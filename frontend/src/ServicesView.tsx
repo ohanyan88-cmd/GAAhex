@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { bget, bpost, loadCustomers } from './billing'
+import { bget, bpost, bdel, loadCustomers } from './billing'
 import { Modal, confirmDialog } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ArrowRightIcon, ChevronLeftIcon, InboxIcon } from './icons'
 
 // Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
-type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null }
+type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
 type Resource = { id: string; kind?: string; value?: string; label?: string | null; status?: string | null; created_at?: string | null }
 
 const STATUSES = ['PENDING', 'ACTIVE', 'SUSPENDED', 'TERMINATED']
@@ -112,8 +112,7 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
     const res = await bget<Service>(token, `/api/services/${id}`)
     if (!res.ok) { setError(res.status === 404 ? 'Service not found' : 'Failed to load service'); return }
     setSv(res.data)
-    const rr = await bget<Resource[]>(token, `/api/services/${id}/resources`)
-    if (rr.ok && Array.isArray(rr.data)) setResources(rr.data)
+    setResources(res.data?.resources ?? [])   // resources are embedded in the service detail
   }
   useEffect(() => { load() }, [token, id])
 
@@ -131,7 +130,7 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
 
   async function release(rid: string) {
     try {
-      await bpost(token, `/api/services/${id}/resources/${rid}/release`)
+      await bdel(token, `/api/services/${id}/resources/${rid}`)   // release = DELETE (row kept as RELEASED server-side)
       toast.success('Resource released')
       await load()
     } catch (e) { toast.error((e as Error).message) }

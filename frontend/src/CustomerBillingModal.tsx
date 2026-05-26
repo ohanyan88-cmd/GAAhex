@@ -20,6 +20,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   const [subs, setSubs] = useState<Subscription[] | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [unrated, setUnrated] = useState<Record<string, number>>({})
   const [products, setProducts] = useState<Product[]>([])
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
@@ -39,6 +40,11 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
     if (ir.ok && Array.isArray(ir.data)) setInvoices(ir.data)
     const svr = await bget<Service[]>(token, `/api/services?customer=${encodeURIComponent(customerId)}`)
     setServices(svr.ok && Array.isArray(svr.data) ? svr.data : [])
+    // unrated usage counts per subscription (light: one query, counted client-side)
+    const ur = await bget<any[]>(token, '/api/usage?rated=false')
+    const m: Record<string, number> = {}
+    if (ur.ok && Array.isArray(ur.data)) for (const u of ur.data) if (u.subscription_id) m[u.subscription_id] = (m[u.subscription_id] || 0) + 1
+    setUnrated(m)
   }
 
   useEffect(() => { load() }, [token, customerId])
@@ -60,6 +66,17 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
       toast.success('Invoice generated')
       await load()
     } catch (e) { toast.error((e as Error).message) }
+  }
+
+  async function rateUsage(subId: string) {
+    try {
+      await bpost(token, '/api/usage/rate', { subscription_id: subId })
+      toast.success('Usage rated into a draft invoice')
+      await load()
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      toast.error(err.status === 404 ? 'Usage rating isn’t available yet' : err.message)
+    }
   }
 
   async function createSub() {
@@ -120,7 +137,10 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                       <td>{money(s.amount)}</td>
                       <td>{s.cycle ?? '—'}</td>
                       <td>{s.status ? <span className="pill">{s.status}</span> : '—'}</td>
-                      <td className="row-actions">{(s.status ?? '').toUpperCase() !== 'CANCELLED' && <button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button>}</td>
+                      <td className="row-actions">
+                        {(s.status ?? '').toUpperCase() !== 'CANCELLED' && <button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button>}
+                        {unrated[s.id] ? <button className="btn btn-ghost btn-sm" onClick={() => rateUsage(s.id)}>Rate usage ({unrated[s.id]})</button> : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

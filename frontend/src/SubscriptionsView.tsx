@@ -77,6 +77,19 @@ export default function SubscriptionsView({ token }: { token: string }) {
     } catch (e) { toast.error((e as Error).message) }
   }
 
+  // roll a subscription's UNRATED usage into a draft invoice
+  async function rateUsage(id: string) {
+    try {
+      const res: any = await bpost(token, '/api/usage/rate', { subscription_id: id })
+      const inv = res?.invoice_number ?? res?.number ?? (res?.invoice_id ? `#${String(res.invoice_id).slice(0, 8)}` : '')
+      const total = res?.total
+      toast.success(`Usage rated${inv ? ` → ${inv}` : ''}${typeof total === 'number' ? ` (${money(total)})` : ''}`)
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      toast.error(err.status === 404 ? 'Usage rating isn’t available yet' : err.message)
+    }
+  }
+
   return (
     <div>
       <div className="view-head">
@@ -135,6 +148,7 @@ export default function SubscriptionsView({ token }: { token: string }) {
                   <td>{s.status ? <span className={'pill' + (canceled ? ' pill-muted' : st === 'SUSPENDED' ? ' pill-danger' : ' pill-success')}>{s.status}</span> : '—'}</td>
                   <td className="row-actions">
                     {!canceled && <button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button>}
+                    {!canceled && <button className="btn btn-ghost btn-sm" onClick={() => rateUsage(s.id)}>Rate usage</button>}
                     {st === 'ACTIVE' && <button className="btn btn-ghost btn-sm" onClick={() => action(s.id, 'suspend')}>Suspend</button>}
                     {st === 'SUSPENDED' && <button className="btn btn-ghost btn-sm" onClick={() => action(s.id, 'resume')}>Resume</button>}
                     {!canceled && <button className="btn btn-danger btn-sm" onClick={() => action(s.id, 'cancel')}>Cancel</button>}

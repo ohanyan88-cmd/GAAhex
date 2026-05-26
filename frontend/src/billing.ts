@@ -93,6 +93,7 @@ async function send<T = any>(token: string, method: string, path: string, body?:
 }
 export const bpost = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'POST', path, body)
 export const bpatch = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PATCH', path, body)
+export const bdel = <T = any>(token: string, path: string) => send<T>(token, 'DELETE', path)
 
 // Resolve customer_id → display name via the CRM customer entity. Empty map if unavailable.
 export async function loadCustomers(token: string): Promise<Record<string, string>> {
