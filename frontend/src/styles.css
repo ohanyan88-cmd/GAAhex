@@ -114,7 +114,7 @@ input, select, textarea { accent-color: var(--primary); }
 /* full-dark logo on the card; icon-light on the dark sidebar — BIG */
 .logo-lg { width: 100%; height: auto; align-self: center; margin: 6px 0 10px; object-fit: contain; }
 .logo-sm { height: 88px; width: auto; display: block; object-fit: contain; }
-.card input { padding: 9px 11px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
+/* login inputs now use the .inp component classes (see Component library below) */
 
 button { padding: 8px 12px; border: 0; border-radius: var(--radius); background: var(--primary); color: var(--text); cursor: pointer; font-size: 14px; }
 button:hover { background: var(--primary-hover); }
@@ -153,24 +153,25 @@ button:hover { background: var(--primary-hover); }
 .grid tr:last-child td { border-bottom: 0; }
 .pill { display: inline-block; font-size: 11px; background: var(--primary-soft); color: var(--primary-hover); padding: 2px 9px; border-radius: var(--pill); font-weight: 600; }
 
-button.mini { font-size: 12px; padding: 3px 9px; margin: 0 4px 0 0; background: var(--surface-2); color: var(--text); }
-button.mini:hover { background: var(--border); }
-button.mini.danger { background: var(--danger-soft); color: var(--danger); }
-button.mini.danger:hover { background: rgba(230, 57, 70, 0.28); }
-.row-actions { white-space: nowrap; }
+.row-actions { white-space: nowrap; display: flex; gap: 6px; }
 
 .field em.muted { font-style: italic; padding: 8px 0; }
 .studio h3 { margin: 20px 0 6px; font-size: 15px; }
 .ok-msg { color: var(--success); font-size: 14px; font-weight: 600; }
-.studio .grid input, .studio .grid select { width: 100%; padding: 5px 7px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; }
+/* studio table cells use .inp .inp-sm (component lib); just keep them compact */
 .studio .grid td { padding: 5px 6px; vertical-align: middle; }
 
 /* generic record form */
 .rec-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad); margin-bottom: var(--pad); display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--gap); align-items: end; box-shadow: var(--shadow); }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
 .field span { color: var(--text-3); }
-.field input[type="text"], .field input[type="number"], .field input[type="date"], .field input[type="datetime-local"], .field input[type="email"], .field input[type="tel"], .field select { padding: 8px 10px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; }
 .rec-form-actions { display: flex; align-items: center; grid-column: 1 / -1; }
+
+/* list toolbar: search + saved-views above the records table */
+.list-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.list-toolbar .search { flex: 1 1 240px; max-width: 380px; }
+.saved-views { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.list-toolbar select.inp { width: auto; min-width: 160px; }
 
 /* ── Notification center ─────────────────────────────────────────────────── */
 .notif { position: relative; display: flex; align-items: center; }
@@ -229,7 +230,6 @@ button.mini.danger:hover { background: rgba(230, 57, 70, 0.28); }
 .iconbtn svg { display: block; }
 .widget-err { display: inline-flex; align-items: center; gap: 6px; }
 .err svg, .muted svg { vertical-align: -2px; }
-.mini-icon { display: inline-flex; align-items: center; gap: 4px; }
 
 /* ============================================================================
    Component library (BRAND.md / COMPONENTS.md) — buttons · inputs · search.

@@ -118,7 +118,7 @@ export default function NotificationCenter({ token, entities, onOpen }: {
                 <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
                 unread only
               </label>
-              <button className="mini" onClick={markAll}>Mark all read</button>
+              <button className="btn btn-ghost btn-sm" onClick={markAll}>Mark all read</button>
             </div>
             <div className="notif-list">
               {loading && <p className="muted notif-empty">Loading…</p>}

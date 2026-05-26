@@ -78,7 +78,7 @@ export default function RefPicker({ token, targetKey, value, onChange }: {
   if (err) return <em className="muted"><WarningIcon size={13} /> {err}</em>
 
   return (
-    <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={loading}>
+    <select className="inp inp-md" value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={loading}>
       <option value="">{loading ? 'Loading…' : '— none —'}</option>
       {rows.map((r) => <option key={r.id} value={r.id}>{recordLabel(r)}</option>)}
     </select>

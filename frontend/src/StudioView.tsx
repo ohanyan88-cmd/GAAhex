@@ -62,11 +62,11 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
 
       <form onSubmit={submit}>
         <div className="rec-form">
-          <label className="field"><span>Key (snake) *</span><input value={key} onChange={(e) => setKey(e.target.value)} placeholder="opportunity" /></label>
-          <label className="field"><span>Label *</span><input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Opportunity" /></label>
-          <label className="field"><span>Label plural</span><input value={labelPlural} onChange={(e) => setLabelPlural(e.target.value)} placeholder="Opportunities" /></label>
-          <label className="field"><span>Route slug (kebab) *</span><input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="opportunities" /></label>
-          <label className="field"><span>Icon</span><input value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="pipeline" /></label>
+          <label className="field"><span>Key (snake) *</span><input className="inp inp-md" value={key} onChange={(e) => setKey(e.target.value)} placeholder="opportunity" /></label>
+          <label className="field"><span>Label *</span><input className="inp inp-md" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Opportunity" /></label>
+          <label className="field"><span>Label plural</span><input className="inp inp-md" value={labelPlural} onChange={(e) => setLabelPlural(e.target.value)} placeholder="Opportunities" /></label>
+          <label className="field"><span>Route slug (kebab) *</span><input className="inp inp-md" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="opportunities" /></label>
+          <label className="field"><span>Icon</span><input className="inp inp-md" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="pipeline" /></label>
         </div>
 
         <h3>Fields</h3>
@@ -75,21 +75,21 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
           <tbody>
             {fields.map((f, i) => (
               <tr key={i}>
-                <td><input value={f.key} onChange={(e) => upd(setFields, fields, i, { key: e.target.value })} /></td>
-                <td><input value={f.label} onChange={(e) => upd(setFields, fields, i, { label: e.target.value })} /></td>
+                <td><input className="inp inp-sm" value={f.key} onChange={(e) => upd(setFields, fields, i, { key: e.target.value })} /></td>
+                <td><input className="inp inp-sm" value={f.label} onChange={(e) => upd(setFields, fields, i, { label: e.target.value })} /></td>
                 <td>
-                  <select value={f.type} onChange={(e) => upd(setFields, fields, i, { type: e.target.value })}>
+                  <select className="inp inp-sm" value={f.type} onChange={(e) => upd(setFields, fields, i, { type: e.target.value })}>
                     {FIELD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </td>
                 <td><input type="checkbox" checked={f.required} onChange={(e) => upd(setFields, fields, i, { required: e.target.checked })} /></td>
-                <td><input value={f.extra} placeholder={f.type === 'select' ? 'a, b, c' : f.type === 'ref' ? 'customer' : ''} onChange={(e) => upd(setFields, fields, i, { extra: e.target.value })} /></td>
-                <td><button type="button" className="mini" aria-label="Remove field" onClick={() => setFields(fields.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
+                <td><input className="inp inp-sm" value={f.extra} placeholder={f.type === 'select' ? 'a, b, c' : f.type === 'ref' ? 'customer' : ''} onChange={(e) => upd(setFields, fields, i, { extra: e.target.value })} /></td>
+                <td><button type="button" className="btn btn-ghost btn-sm" aria-label="Remove field" onClick={() => setFields(fields.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button type="button" className="mini" onClick={() => setFields([...fields, { key: '', label: '', type: 'text', required: false, extra: '' }])}>+ field</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFields([...fields, { key: '', label: '', type: 'text', required: false, extra: '' }])}>+ field</button>
 
         <h3>Statuses (optional)</h3>
         <table className="grid">
@@ -97,15 +97,15 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
           <tbody>
             {statuses.map((sx, i) => (
               <tr key={i}>
-                <td><input value={sx.key} onChange={(e) => upd(setStatuses, statuses, i, { key: e.target.value })} /></td>
-                <td><input value={sx.label} onChange={(e) => upd(setStatuses, statuses, i, { label: e.target.value })} /></td>
+                <td><input className="inp inp-sm" value={sx.key} onChange={(e) => upd(setStatuses, statuses, i, { key: e.target.value })} /></td>
+                <td><input className="inp inp-sm" value={sx.label} onChange={(e) => upd(setStatuses, statuses, i, { label: e.target.value })} /></td>
                 <td><input type="checkbox" checked={sx.is_initial} onChange={(e) => upd(setStatuses, statuses, i, { is_initial: e.target.checked })} /></td>
-                <td><button type="button" className="mini" aria-label="Remove status" onClick={() => setStatuses(statuses.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
+                <td><button type="button" className="btn btn-ghost btn-sm" aria-label="Remove status" onClick={() => setStatuses(statuses.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button type="button" className="mini" onClick={() => setStatuses([...statuses, { key: '', label: '', is_initial: statuses.length === 0 }])}>+ status</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStatuses([...statuses, { key: '', label: '', is_initial: statuses.length === 0 }])}>+ status</button>
 
         <h3>Transitions (optional)</h3>
         <table className="grid">
@@ -113,17 +113,17 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
           <tbody>
             {transitions.map((t, i) => (
               <tr key={i}>
-                <td><select value={t.from} onChange={(e) => upd(setTransitions, transitions, i, { from: e.target.value })}><option value=""></option>{statusKeys.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
-                <td><select value={t.to} onChange={(e) => upd(setTransitions, transitions, i, { to: e.target.value })}><option value=""></option>{statusKeys.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
-                <td><input value={t.guard} placeholder="phone != None" onChange={(e) => upd(setTransitions, transitions, i, { guard: e.target.value })} /></td>
-                <td><button type="button" className="mini" aria-label="Remove transition" onClick={() => setTransitions(transitions.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
+                <td><select className="inp inp-sm" value={t.from} onChange={(e) => upd(setTransitions, transitions, i, { from: e.target.value })}><option value=""></option>{statusKeys.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
+                <td><select className="inp inp-sm" value={t.to} onChange={(e) => upd(setTransitions, transitions, i, { to: e.target.value })}><option value=""></option>{statusKeys.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
+                <td><input className="inp inp-sm" value={t.guard} placeholder="phone != None" onChange={(e) => upd(setTransitions, transitions, i, { guard: e.target.value })} /></td>
+                <td><button type="button" className="btn btn-ghost btn-sm" aria-label="Remove transition" onClick={() => setTransitions(transitions.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button type="button" className="mini" onClick={() => setTransitions([...transitions, { from: '', to: '', guard: '' }])}>+ transition</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTransitions([...transitions, { from: '', to: '', guard: '' }])}>+ transition</button>
 
-        <div style={{ marginTop: 18 }}><button type="submit">Create entity</button></div>
+        <div style={{ marginTop: 18 }}><button type="submit" className="btn btn-accent btn-md">Create entity</button></div>
       </form>
     </div>
   )

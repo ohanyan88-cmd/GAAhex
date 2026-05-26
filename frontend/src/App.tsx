@@ -56,9 +56,9 @@ export default function App() {
         <form className="card" onSubmit={handleLogin}>
           <img src="/full-dark.png" alt="GAAex" className="logo-lg" />
           <p className="muted">Sign in</p>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
-          <button type="submit">Sign in</button>
+          <input className={'inp inp-md' + (error ? ' is-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
+          <input className={'inp inp-md' + (error ? ' is-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
+          <button type="submit" className="btn btn-primary btn-md">Sign in</button>
           {error && <p className="err">{error}</p>}
           <p className="hint">demo: admin@demo.isp / admin123</p>
         </form>
@@ -109,7 +109,7 @@ export default function App() {
               entities={entities}
               onOpen={(slug) => setView({ type: 'entity', slug })}
             />
-            <button onClick={logout}>Sign out</button>
+            <button className="btn btn-ghost btn-sm" onClick={logout}>Sign out</button>
           </div>
         </header>
         <main>
