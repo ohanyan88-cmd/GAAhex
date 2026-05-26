@@ -12,6 +12,7 @@ from .saved_view import SavedViewDef
 from .approval import PendingApproval
 from .refresh_token import RefreshToken
 from .comm import Thread, Message
+from .notification_pref import NotificationPref
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -24,4 +25,5 @@ __all__ = [
     "SavedViewDef", "PendingApproval",
     "RefreshToken",
     "Thread", "Message",
+    "NotificationPref",
 ]

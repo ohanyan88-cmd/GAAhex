@@ -2,12 +2,14 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import User
 from ..models.notification import NotificationDef, Notification
+from ..models.notification_pref import NotificationPref
 from .. import gxl
 from .auth import current_user
 
@@ -42,9 +44,12 @@ async def emit_notification(
     record_id=None,
     context: dict | None = None,
 ) -> Notification | None:
-    """Create one inbox notification from its NotificationDef. Config-gated and condition-gated.
+    """Create one inbox notification from its NotificationDef. Config-, condition-, and
+    preference-gated.
 
-    No-op (returns None) when the def is missing, disabled, or its GXL condition is falsy.
+    No-op (returns None) when the def is missing, disabled, its GXL condition is falsy, or the
+    recipient has opted out (a disabled NotificationPref for the def's category or its def_key on
+    that channel). Preference checking is default-on and fail-soft — a pref lookup error delivers.
     Does NOT commit — the caller's unit of work owns the transaction — but flushes so the id
     is available.
     """
@@ -58,11 +63,15 @@ async def emit_notification(
         return None
     if ndef.gxl_condition and not gxl.evaluate(ndef.gxl_condition, ctx):
         return None
+    if await _pref_opted_out(s, tenant_id, user_id, ndef):
+        return None
 
     note = Notification(
         tenant_id=tenant_id,
         def_key=ndef.key,
         user_id=user_id,
+        category=ndef.category,
+        priority=ndef.priority,
         title=_render(ndef.title_template, ctx),
         body=_render(ndef.body_template, ctx),
         entity_key=entity_key,
@@ -73,12 +82,32 @@ async def emit_notification(
     return note
 
 
+async def _pref_opted_out(s: AsyncSession, tenant_id, user_id, ndef: NotificationDef) -> bool:
+    """True if the recipient has a *disabled* preference matching this def's category or def_key on
+    its channel. Default-on (no row ⇒ deliver) and fail-soft (lookup error ⇒ deliver)."""
+    try:
+        pref = (await s.execute(
+            select(NotificationPref).where(
+                NotificationPref.tenant_id == tenant_id,
+                NotificationPref.user_id == user_id,
+                NotificationPref.channel == ndef.channel,
+                NotificationPref.enabled.is_(False),
+                NotificationPref.category.in_([ndef.category, ndef.key]),
+            )
+        )).scalars().first()
+        return pref is not None
+    except Exception:
+        return False
+
+
 # ---- serialization ----
 
 def _serialize(n: Notification) -> dict:
     return {
         "id": str(n.id),
         "def_key": n.def_key,
+        "category": n.category,
+        "priority": n.priority,
         "title": n.title,
         "body": n.body,
         "entity_key": n.entity_key,
@@ -88,19 +117,91 @@ def _serialize(n: Notification) -> dict:
     }
 
 
+def _serialize_pref(p: NotificationPref) -> dict:
+    return {
+        "id": str(p.id),
+        "category": p.category,
+        "channel": p.channel,
+        "enabled": p.enabled,
+    }
+
+
+# ---- preference payloads ----
+
+class PrefIn(BaseModel):
+    category: str                      # a category name OR a def_key
+    channel: str = "inapp"
+    enabled: bool
+
+
+class PrefsIn(BaseModel):
+    preferences: list[PrefIn] = Field(default_factory=list)
+
+
 # ---- endpoints (each strictly scoped to the current user's own rows) ----
 
 @router.get("")
-async def inbox(unread: bool = False, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """The current user's inbox, newest first. `?unread=true` returns only unread."""
+async def inbox(
+    unread: bool = False,
+    category: str | None = None,
+    priority: str | None = None,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """The current user's inbox, newest first. Optional filters: `?unread=true`,
+    `?category=`, `?priority=` (all backward-compatible — no params ⇒ prior behavior)."""
     q = select(Notification).where(
         Notification.tenant_id == user.tenant_id, Notification.user_id == user.id
     )
     if unread:
         q = q.where(Notification.read_at.is_(None))
+    if category:
+        q = q.where(Notification.category == category)
+    if priority:
+        q = q.where(Notification.priority == priority)
     q = q.order_by(Notification.created_at.desc())
     rows = (await s.execute(q)).scalars().all()
     return [_serialize(n) for n in rows]
+
+
+@router.get("/preferences")
+async def get_preferences(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """The caller's own notification preferences (opt-outs). Absence ⇒ delivered (default-on)."""
+    rows = (await s.execute(
+        select(NotificationPref).where(
+            NotificationPref.tenant_id == user.tenant_id, NotificationPref.user_id == user.id
+        ).order_by(NotificationPref.category)
+    )).scalars().all()
+    return [_serialize_pref(p) for p in rows]
+
+
+@router.put("/preferences")
+async def set_preferences(body: PrefsIn, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Upsert the caller's own preferences (one row per category/def_key + channel). Returns the
+    full current preference set."""
+    for p in body.preferences:
+        existing = (await s.execute(
+            select(NotificationPref).where(
+                NotificationPref.tenant_id == user.tenant_id,
+                NotificationPref.user_id == user.id,
+                NotificationPref.category == p.category,
+                NotificationPref.channel == p.channel,
+            )
+        )).scalar_one_or_none()
+        if existing:
+            existing.enabled = p.enabled
+        else:
+            s.add(NotificationPref(
+                tenant_id=user.tenant_id, user_id=user.id,
+                category=p.category, channel=p.channel, enabled=p.enabled,
+            ))
+    await s.commit()
+    rows = (await s.execute(
+        select(NotificationPref).where(
+            NotificationPref.tenant_id == user.tenant_id, NotificationPref.user_id == user.id
+        ).order_by(NotificationPref.category)
+    )).scalars().all()
+    return [_serialize_pref(p) for p in rows]
 
 
 @router.get("/unread-count")

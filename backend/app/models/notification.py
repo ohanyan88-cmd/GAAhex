@@ -21,6 +21,8 @@ class NotificationDef(Base):
     key: Mapped[str] = mapped_column(String(120), nullable=False)              # e.g. "lead.assigned"
     label: Mapped[str] = mapped_column(String(120), nullable=False)
     channel: Mapped[str] = mapped_column(String(40), nullable=False, default="inapp")
+    category: Mapped[str] = mapped_column(String(40), nullable=False, default="system", server_default="system")  # system|billing|network|customer|internal
+    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="info", server_default="info")      # critical|warning|info
     title_template: Mapped[str] = mapped_column(String(255), nullable=False)   # "{placeholder}" templates
     body_template: Mapped[str] = mapped_column(String(1000), nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -40,6 +42,8 @@ class Notification(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     def_key: Mapped[str] = mapped_column(String(120), nullable=False)          # the NotificationDef.key it came from
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("app_user.id"), nullable=False)  # recipient
+    category: Mapped[str] = mapped_column(String(40), nullable=False, default="system", server_default="system")  # copied from the def at emit
+    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="info", server_default="info")      # copied from the def at emit
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     body: Mapped[str] = mapped_column(String(1000), nullable=False)
     entity_key: Mapped[str | None] = mapped_column(String(80), nullable=True)  # what it's about
