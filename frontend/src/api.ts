@@ -20,7 +20,7 @@ export async function me(token: string) {
 }
 
 export async function orgTree() {
-  const r = await fetch(`${BASE}/api/org-tree`)
+  const r = await fetch(`${BASE}/org-tree`)
   if (!r.ok) throw new Error('Failed to load org tree')
   return r.json()
 }

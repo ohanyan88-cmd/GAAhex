@@ -15,10 +15,8 @@ from .routers import auth, meta, records
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # M0: bring the schema up directly (Alembic migrations arrive in M1).
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
-        await conn.run_sync(Base.metadata.create_all)
+    # Schema is managed by Alembic migrations — run `alembic upgrade head` before starting.
+    # On boot we only seed demo data (idempotent).
     await seed_if_empty()
     await seed_meta_if_empty()
     yield
@@ -47,9 +45,10 @@ async def health_db():
     return {"db": "ok"}
 
 
-@app.get("/api/org-tree")
+@app.get("/org-tree")
 async def org_tree():
-    """Baseline read: the seeded tenant + org tree (proves DB + ltree + models work)."""
+    """Baseline read: the seeded tenant + org tree. Public; lives outside the /api/{slug}
+    entity namespace so the generic record router doesn't shadow it."""
     async with SessionLocal() as s:
         tenants = (await s.execute(select(Tenant))).scalars().all()
         nodes = (await s.execute(select(OrgNode).order_by(OrgNode.path))).scalars().all()
