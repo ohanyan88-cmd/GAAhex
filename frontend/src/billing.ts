@@ -95,6 +95,26 @@ export const bpost = <T = any>(token: string, path: string, body?: any) => send<
 export const bpatch = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PATCH', path, body)
 export const bdel = <T = any>(token: string, path: string) => send<T>(token, 'DELETE', path)
 
+// Open an auth'd document endpoint (branded HTML) in a new tab. A plain GET link can't carry the
+// Authorization header, so we fetch→blob→object-URL. Opens a blank tab synchronously (within the
+// click gesture) to avoid popup blocking, then points it at the blob. Returns an error message or null.
+export async function openDocument(token: string, path: string): Promise<string | null> {
+  const win = window.open('', '_blank')
+  try {
+    const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
+    if (!r.ok) throw new Error(r.status === 404 ? 'Document not available' : r.status === 403 ? 'Not allowed' : `Failed (${r.status})`)
+    const blob = await r.blob()
+    const url = URL.createObjectURL(blob)
+    if (win) win.location.href = url
+    else { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.click() }   // popup blocked → fallback
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+    return null
+  } catch (e) {
+    if (win) win.close()
+    return (e as Error).message
+  }
+}
+
 // Resolve customer_id → display name via the CRM customer entity. Empty map if unavailable.
 export async function loadCustomers(token: string): Promise<Record<string, string>> {
   const res = await bget<any[]>(token, '/api/customers')

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
-import { bget, bpost, loadProducts, type Subscription, type Invoice, type Product } from './billing'
+import { bget, bpost, loadProducts, openDocument, type Subscription, type Invoice, type Product } from './billing'
 import { money, toMinor } from './money'
 import { toast } from './Toast'
 import { EmptyState } from './States'
 import InteractionsView from './InteractionsView'
+import { PrinterIcon } from './icons'
 
 type Service = { id: string; type?: string; name?: string; status?: string | null }
 
@@ -100,6 +101,13 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
       {subs && !unavailable && (
         <>
+          <div className="bill-section-head">
+            <h3>Account</h3>
+            <button className="btn btn-ghost btn-sm" onClick={async () => { const e = await openDocument(token, `/api/customers/${customerId}/statement`); if (e) toast.error(e) }}>
+              <PrinterIcon size={14} /> Statement
+            </button>
+          </div>
+
           <div className="bill-section-head">
             <h3>Subscriptions</h3>
             <button className="btn btn-ghost btn-sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : '+ New subscription'}</button>

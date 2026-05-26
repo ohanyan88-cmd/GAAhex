@@ -712,6 +712,12 @@ button:hover { background: var(--primary-hover); }
 .chan-cell { display: inline-flex; align-items: center; gap: 6px; text-transform: capitalize; }
 .chan-cell svg { color: var(--text-3); flex: none; }
 
+/* B16 — language switcher (EN / ՀՅ) */
+.lang-switch { display: inline-flex; border: var(--bw-1) solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+.lang-opt { background: transparent; color: var(--text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--fw-medium); cursor: pointer; }
+.lang-opt:hover { background: var(--surface-2); color: var(--text); }
+.lang-opt.on { background: var(--primary-soft); color: var(--text); }
+
 /* ============================================================================
    B13 — Responsive + a11y. Breakpoints: 860px (shell → drawer), 600px (phone).
    ============================================================================ */

@@ -9,6 +9,7 @@ import CustomerBillingModal from './CustomerBillingModal'
 import { Select, MultiSelect } from './Select'
 import { EmptyState, PermissionDenied, NotFound } from './States'
 import ActivityTimeline from './ActivityTimeline'
+import { useI18n } from './i18n'
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any; editable?: boolean }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
@@ -44,6 +45,7 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 
 // One generic component renders EVERY entity from its config — no per-entity code.
 export default function EntityView({ token, slug }: { token: string; slug: string }) {
+  const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
@@ -359,7 +361,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           className={formOpen ? 'btn btn-ghost btn-md' : 'btn btn-primary btn-md'}
           onClick={() => (formOpen ? closeForm() : openCreate())}
         >
-          {formOpen ? 'Close' : `+ New ${def.label}`}
+          {formOpen ? t('common.close', 'Close') : `+ ${t('common.new', 'New')} ${def.label}`}
         </button>
       </div>
 
@@ -381,16 +383,16 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
             />
           ))}
           <div className="rec-form-actions">
-            <button type="submit" className="btn btn-accent btn-md">{mode === 'editing' ? 'Save changes' : 'Create'}</button>
+            <button type="submit" className="btn btn-accent btn-md">{mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}</button>
           </div>
         </form>
       )}
 
       {rows.length === 0 && !loading && !formOpen ? (
         <EmptyState
-          title={`No ${def.label_plural.toLowerCase()} yet`}
-          message="Create the first one to get started."
-          action={<button className="btn btn-primary btn-md" onClick={openCreate}>+ New {def.label}</button>}
+          title={`${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
+          message={t('common.createFirst', 'Create the first one to get started.')}
+          action={<button className="btn btn-primary btn-md" onClick={openCreate}>+ {t('common.new', 'New')} {def.label}</button>}
         />
       ) : (
         <>
@@ -485,8 +487,8 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                 )}
                 <button className="btn btn-ghost btn-sm" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}><ClockIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}><MessageIcon size={14} /></button>
-                <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>Edit</button>
-                <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>Delete</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>{t('common.edit', 'Edit')}</button>
+                <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>{t('common.delete', 'Delete')}</button>
               </td>
             </tr>
           ))}

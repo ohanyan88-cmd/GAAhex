@@ -18,6 +18,7 @@ import ServicesView from './ServicesView'
 import InteractionsView from './InteractionsView'
 import UsageView from './UsageView'
 import ResourcePoolsView from './ResourcePoolsView'
+import { useI18n, initI18n, type Lang } from './i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
@@ -37,6 +38,10 @@ export default function App() {
   const [error, setError] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)   // off-canvas sidebar on narrow widths
+  const { t, lang, setLang } = useI18n()
+
+  // (re)load translation strings for the current language whenever auth changes
+  useEffect(() => { initI18n(token) }, [token])
 
   // ⌘K / Ctrl-K opens the command palette (once signed in)
   useEffect(() => {
@@ -89,10 +94,10 @@ export default function App() {
       <div className="center">
         <form className="card" onSubmit={handleLogin}>
           <img src="/full-dark.png" alt="GAAex" className="logo-lg" />
-          <p className="muted">Sign in</p>
-          <input className={'inp inp-md' + (error ? ' is-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
-          <input className={'inp inp-md' + (error ? ' is-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
-          <button type="submit" className="btn btn-primary btn-md">Sign in</button>
+          <p className="muted">{t('auth.signin', 'Sign in')}</p>
+          <input className={'inp inp-md' + (error ? ' is-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.email', 'email')} aria-label={t('auth.email', 'email')} />
+          <input className={'inp inp-md' + (error ? ' is-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth.password', 'password')} aria-label={t('auth.password', 'password')} />
+          <button type="submit" className="btn btn-primary btn-md">{t('auth.signin', 'Sign in')}</button>
           {error && <p className="err">{error}</p>}
           <p className="hint">demo: admin@demo.isp / admin123</p>
         </form>
@@ -106,22 +111,22 @@ export default function App() {
       {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
       <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
         <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
-        <div className="nav-label">Workspace</div>
-        <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
-        <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>Dashboards</button>
-        <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>Reports</button>
-        <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>Messages</button>
-        <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>Activity</button>
-        <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>Report Builder</button>
-        <div className="nav-label">Billing</div>
-        <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>Invoices</button>
-        <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>Subscriptions</button>
-        <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}>Products</button>
-        <button className={'nav' + (view.type === 'usage' ? ' on' : '')} onClick={() => setView({ type: 'usage' })}>Usage</button>
-        <div className="nav-label">Service</div>
-        <button className={'nav' + (view.type === 'services' ? ' on' : '')} onClick={() => setView({ type: 'services' })}>Services</button>
-        <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}>Interactions</button>
-        <div className="nav-label">Records</div>
+        <div className="nav-label">{t('nav.workspace', 'Workspace')}</div>
+        <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>{t('nav.org', 'Org tree')}</button>
+        <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>{t('nav.dashboards', 'Dashboards')}</button>
+        <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>{t('nav.reports', 'Reports')}</button>
+        <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>{t('nav.messages', 'Messages')}</button>
+        <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>{t('nav.activity', 'Activity')}</button>
+        <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>{t('nav.reportBuilder', 'Report Builder')}</button>
+        <div className="nav-label">{t('nav.billing', 'Billing')}</div>
+        <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>{t('nav.invoices', 'Invoices')}</button>
+        <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>{t('nav.subscriptions', 'Subscriptions')}</button>
+        <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}>{t('nav.products', 'Products')}</button>
+        <button className={'nav' + (view.type === 'usage' ? ' on' : '')} onClick={() => setView({ type: 'usage' })}>{t('nav.usage', 'Usage')}</button>
+        <div className="nav-label">{t('nav.service', 'Service')}</div>
+        <button className={'nav' + (view.type === 'services' ? ' on' : '')} onClick={() => setView({ type: 'services' })}>{t('nav.services', 'Services')}</button>
+        <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}>{t('nav.interactions', 'Interactions')}</button>
+        <div className="nav-label">{t('nav.records', 'Records')}</div>
         {entities.map((en) => (
           <button
             key={en.key}
@@ -133,11 +138,11 @@ export default function App() {
         ))}
         {user?.can_configure && (
           <>
-            <div className="nav-label">Admin</div>
-            <button className={'nav nav-icon' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon /> Studio</button>
-            <button className={'nav' + (view.type === 'outbound' ? ' on' : '')} onClick={() => setView({ type: 'outbound' })}>Outbound</button>
-            <button className={'nav' + (view.type === 'webhooks' ? ' on' : '')} onClick={() => setView({ type: 'webhooks' })}>Webhooks</button>
-            <button className={'nav' + (view.type === 'resource-pools' ? ' on' : '')} onClick={() => setView({ type: 'resource-pools' })}>Resource Pools</button>
+            <div className="nav-label">{t('nav.admin', 'Admin')}</div>
+            <button className={'nav nav-icon' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon /> {t('nav.studio', 'Studio')}</button>
+            <button className={'nav' + (view.type === 'outbound' ? ' on' : '')} onClick={() => setView({ type: 'outbound' })}>{t('nav.outbound', 'Outbound')}</button>
+            <button className={'nav' + (view.type === 'webhooks' ? ' on' : '')} onClick={() => setView({ type: 'webhooks' })}>{t('nav.webhooks', 'Webhooks')}</button>
+            <button className={'nav' + (view.type === 'resource-pools' ? ' on' : '')} onClick={() => setView({ type: 'resource-pools' })}>{t('nav.resourcePools', 'Resource Pools')}</button>
           </>
         )}
       </aside>
@@ -149,9 +154,16 @@ export default function App() {
           <div className="header-right">
             <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl or Cmd K)">
               <SearchIcon size={15} />
-              <span>Search</span>
+              <span>{t('common.search', 'Search')}</span>
               <kbd className="search-kbd">⌘K</kbd>
             </button>
+            <div className="lang-switch" role="group" aria-label="Language">
+              {(['en', 'hy'] as Lang[]).map((l) => (
+                <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
+                  {l === 'en' ? 'EN' : 'ՀՅ'}
+                </button>
+              ))}
+            </div>
             <button
               className="iconbtn"
               onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
@@ -173,7 +185,7 @@ export default function App() {
               entities={entities}
               onOpen={(slug) => setView({ type: 'entity', slug })}
             />
-            <button className="btn btn-ghost btn-sm" onClick={logout}>Sign out</button>
+            <button className="btn btn-ghost btn-sm" onClick={logout}>{t('common.signout', 'Sign out')}</button>
           </div>
         </header>
         <main id="main-content">
@@ -184,7 +196,7 @@ export default function App() {
               : view.type === 'messages'
                 ? <MessagesView token={token} />
                 : view.type === 'activity'
-                  ? <div><div className="view-head"><h2>Activity</h2></div><ActivityTimeline token={token} /></div>
+                  ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
                 : view.type === 'invoices'
                   ? <InvoicesView token={token} />
                 : view.type === 'subscriptions'

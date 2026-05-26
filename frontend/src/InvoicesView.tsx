@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { bget, bpost, loadCustomers, type Invoice } from './billing'
+import { bget, bpost, loadCustomers, openDocument, type Invoice } from './billing'
 import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
-import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon } from './icons'
+import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon } from './icons'
 
 const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
 
@@ -156,6 +156,9 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
             <div className="bill-actions">
               {status === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>}
               {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>}
+              <button className="btn btn-ghost btn-sm" onClick={async () => { const e = await openDocument(token, `/api/invoices/${id}/document`); if (e) toast.error(e) }}>
+                <PrinterIcon size={14} /> Print / Download
+              </button>
             </div>
           </div>
 
