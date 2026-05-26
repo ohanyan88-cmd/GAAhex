@@ -1,20 +1,19 @@
 import { useState } from 'react'
-import { login, me, orgTree } from './api'
+import { login, me, getEntities, orgTree } from './api'
+import EntityView from './EntityView'
 
-type Node = {
-  id: string
-  type: string
-  name: string
-  code: string | null
-  path: string
-  parent_id: string | null
-}
 type Me = { email: string; name: string; tenant_id: string }
+type Entity = { key: string; label: string; label_plural: string; route_slug: string }
+type OrgNode = { id: string; type: string; name: string; path: string }
+type View = { type: 'org' } | { type: 'entity'; slug: string }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<Me | null>(null)
-  const [nodes, setNodes] = useState<Node[]>([])
+  const [entities, setEntities] = useState<Entity[]>([])
+  const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
+  const [view, setView] = useState<View>({ type: 'org' })
+
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
@@ -26,17 +25,15 @@ export default function App() {
       const t = await login(email, password)
       setToken(t)
       setUser(await me(t))
-      const tree = await orgTree()
-      setNodes(tree.nodes)
+      setEntities(await getEntities(t))
+      setOrgNodes((await orgTree()).nodes)
     } catch (err) {
       setError((err as Error).message)
     }
   }
 
   function logout() {
-    setToken(null)
-    setUser(null)
-    setNodes([])
+    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' })
   }
 
   if (!token) {
@@ -56,23 +53,47 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header>
-        <strong>GAAex</strong>
-        <span className="muted">{user?.name} · {user?.email}</span>
-        <button onClick={logout}>Sign out</button>
-      </header>
-      <main>
-        <h2>Org tree</h2>
-        <ul className="tree">
-          {nodes.map((n) => (
-            <li key={n.id} style={{ marginLeft: (n.path.split('.').length - 1) * 22 }}>
-              <span className="badge">{n.type}</span>
-              {n.name} <span className="muted">/{n.path}/</span>
-            </li>
-          ))}
-        </ul>
-      </main>
+    <div className="shell">
+      <aside className="sidebar">
+        <div className="brand">GAAex</div>
+        <div className="nav-label">Workspace</div>
+        <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
+        <div className="nav-label">Records</div>
+        {entities.map((en) => (
+          <button
+            key={en.key}
+            className={'nav' + (view.type === 'entity' && view.slug === en.route_slug ? ' on' : '')}
+            onClick={() => setView({ type: 'entity', slug: en.route_slug })}
+          >
+            {en.label_plural}
+          </button>
+        ))}
+      </aside>
+
+      <div className="content">
+        <header>
+          <span className="muted">{user?.name} · {user?.email}</span>
+          <button onClick={logout}>Sign out</button>
+        </header>
+        <main>
+          {view.type === 'org' ? <OrgTreeView nodes={orgNodes} /> : <EntityView token={token} slug={view.slug} />}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function OrgTreeView({ nodes }: { nodes: OrgNode[] }) {
+  return (
+    <div>
+      <h2>Org tree</h2>
+      <ul className="tree">
+        {nodes.map((n) => (
+          <li key={n.id} style={{ marginLeft: (n.path.split('.').length - 1) * 22 }}>
+            <span className="badge">{n.type}</span>{n.name} <span className="muted">/{n.path}/</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
