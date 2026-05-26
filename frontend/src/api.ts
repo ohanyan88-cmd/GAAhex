@@ -55,6 +55,19 @@ export async function createRecord(token: string, slug: string, data: Record<str
   return r.json()
 }
 
+export async function createEntity(token: string, def: Record<string, unknown>) {
+  const r = await fetch(`${BASE}/meta/entities`, {
+    method: 'POST',
+    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify(def),
+  })
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: 'Error' }))
+    throw new Error(e.detail || 'Error')
+  }
+  return r.json()
+}
+
 export async function transitionRecord(token: string, slug: string, id: string, to: string) {
   const r = await fetch(`${BASE}/api/${slug}/${id}/transition`, {
     method: 'POST',

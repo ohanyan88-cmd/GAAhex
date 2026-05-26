@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { login, me, getEntities, orgTree } from './api'
 import EntityView from './EntityView'
+import StudioView from './StudioView'
 
-type Me = { email: string; name: string; tenant_id: string }
+type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -68,6 +69,12 @@ export default function App() {
             {en.label_plural}
           </button>
         ))}
+        {user?.can_configure && (
+          <>
+            <div className="nav-label">Admin</div>
+            <button className={'nav' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}>⚙ Studio</button>
+          </>
+        )}
       </aside>
 
       <div className="content">
@@ -76,7 +83,11 @@ export default function App() {
           <button onClick={logout}>Sign out</button>
         </header>
         <main>
-          {view.type === 'org' ? <OrgTreeView nodes={orgNodes} /> : <EntityView token={token} slug={view.slug} />}
+          {view.type === 'org'
+            ? <OrgTreeView nodes={orgNodes} />
+            : view.type === 'studio'
+              ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
+              : <EntityView token={token} slug={view.slug} />}
         </main>
       </div>
     </div>

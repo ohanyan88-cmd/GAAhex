@@ -108,3 +108,34 @@ async def test_audit_history(client, admin):
     await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "CONTACTED"})
     types = [e["type"] for e in (await client.get(f"/api/leads/{lead['id']}/history", headers=admin)).json()]
     assert types == ["create", "update", "transition"]
+
+
+# ---- SuperAdmin Studio (config-write) ----
+
+async def test_me_can_configure(client, admin, agent):
+    assert (await client.get("/auth/me", headers=admin)).json()["can_configure"] is True
+    assert (await client.get("/auth/me", headers=agent)).json()["can_configure"] is False
+
+
+async def test_studio_create_entity(client, admin, agent):
+    body = {
+        "key": "project", "label": "Project", "label_plural": "Projects", "route_slug": "projects", "icon": "folder",
+        "fields": [
+            {"key": "name", "label": "Name", "type": "text", "required": True},
+            {"key": "status", "label": "Status", "type": "status"},
+        ],
+        "statuses": [{"key": "PLANNED", "label": "Planned", "is_initial": True}, {"key": "DONE", "label": "Done"}],
+        "transitions": [{"from": "PLANNED", "to": "DONE", "guard": None}],
+    }
+    # non-super-admin is denied config writes
+    assert (await client.post("/meta/entities", headers=agent, json=body)).status_code == 403
+    # super-admin creates the entity entirely from the API — no SQL, no code
+    assert (await client.post("/meta/entities", headers=admin, json=body)).status_code == 201
+    assert "projects" in {e["route_slug"] for e in (await client.get("/meta/entities", headers=admin)).json()}
+    # and it immediately works: create + workflow transition
+    proj = (await client.post("/api/projects", headers=admin, json={"name": "Build GAAex"})).json()
+    assert proj["status"] == "PLANNED"
+    moved = (await client.post(f"/api/projects/{proj['id']}/transition", headers=admin, json={"to": "DONE"})).json()
+    assert moved["status"] == "DONE"
+    # duplicate slug rejected
+    assert (await client.post("/meta/entities", headers=admin, json=body)).status_code == 409

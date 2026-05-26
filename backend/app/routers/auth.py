@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User
 from ..security import verify_password, create_access_token, decode_token
+from ..access import load_grants, can
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -46,11 +47,13 @@ async def current_user(token: str = Depends(oauth2), s: AsyncSession = Depends(g
 
 
 @router.get("/me")
-async def me(user: User = Depends(current_user)):
+async def me(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    grants = await load_grants(s, user)
     return {
         "id": str(user.id),
         "email": user.email,
         "name": user.name,
         "tenant_id": str(user.tenant_id),
         "primary_node_id": str(user.primary_node_id) if user.primary_node_id else None,
+        "can_configure": can(grants, "config", "manage"),
     }
