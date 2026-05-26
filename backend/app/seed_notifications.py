@@ -10,7 +10,7 @@ def_key naming follows `notify_hooks.derive_def_key`:
 """
 from sqlalchemy import select, func
 
-from .db import SessionLocal
+from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import Tenant
 from .models.notification import NotificationDef
 

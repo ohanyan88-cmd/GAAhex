@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
-from ..db import get_session, set_tenant_guc
+from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
 from ..models import User
 from ..models.refresh_token import RefreshToken
 from ..security import verify_password, create_access_token, decode_token
@@ -73,7 +73,8 @@ async def _issue_refresh_token(s: AsyncSession, user: User) -> str:
 # ---- endpoints ----
 
 @router.post("/login", response_model=TokenOut)
-async def login(body: LoginIn, s: AsyncSession = Depends(get_session)):
+async def login(body: LoginIn, s: AsyncSession = Depends(get_owner_session)):
+    # owner session: the email→user lookup is pre-auth (no tenant yet), so it must bypass RLS.
     user = (await s.execute(select(User).where(User.email == body.email))).scalar_one_or_none()
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -84,7 +85,7 @@ async def login(body: LoginIn, s: AsyncSession = Depends(get_session)):
 
 
 @router.post("/refresh", response_model=TokenOut)
-async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_session)):
+async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_owner_session)):
     """Exchange a valid refresh token for a new access token. Rotates the refresh token:
     the presented one is revoked and a fresh one issued (replay protection). Any invalid,
     expired, or revoked token → 401."""
@@ -106,7 +107,7 @@ async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_session)):
 
 
 @router.post("/logout")
-async def logout(body: RefreshIn, s: AsyncSession = Depends(get_session)):
+async def logout(body: RefreshIn, s: AsyncSession = Depends(get_owner_session)):
     """Revoke a refresh token. Idempotent: an unknown or already-revoked token still returns ok."""
     rt = (await s.execute(
         select(RefreshToken).where(RefreshToken.token_hash == _hash_token(body.refresh_token))
@@ -125,11 +126,14 @@ async def current_user(token: str = Depends(oauth2), s: AsyncSession = Depends(g
         uid = uuid.UUID(payload["sub"])
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
-    user = (await s.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+    # Look the user up via the OWNER session: the app session `s` is RLS-subject and has no tenant
+    # GUC set yet (chicken-and-egg), so a gaaex_app read of app_user here would default-deny.
+    async with OwnerSessionLocal() as o:
+        user = (await o.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    # Bind this request's connection to the user's tenant for RLS (survives mid-request commits;
-    # cleared on session teardown). Harmless under the owner role, which bypasses RLS.
+    # Bind the request's RLS session to the user's tenant (survives mid-request commits; cleared on
+    # teardown). Harmless under the owner role, which bypasses RLS.
     await set_tenant_guc(s, user.tenant_id)
     return user
 

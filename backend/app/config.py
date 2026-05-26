@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex"
+    # Privileged (RLS-bypassing) role for the few pre-auth / no-tenant paths: seeding, the
+    # login + current_user user lookup, and /org-tree. Falls back to database_url when unset (e.g.
+    # tests, or before the RLS enforcement flip). In prod: database_url=gaaex_app, this=gaaex.
+    owner_database_url: str | None = None
     redis_url: str = "redis://localhost:6380/0"
     jwt_secret: str = "dev-only-change-me"
     jwt_alg: str = "HS256"

@@ -1,8 +1,11 @@
 import os
 import asyncio
 
-# Point the app at an isolated test database BEFORE importing any app module.
+# Point the app at an isolated test database BEFORE importing any app module. Set BOTH the app and
+# the owner URL to gaaex_test (overriding any .env that may flip these for RLS) so tests never touch
+# the dev DB — the suite runs as the gaaex owner on gaaex_test (no RLS policies via create_all).
 os.environ["DATABASE_URL"] = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test"
+os.environ["OWNER_DATABASE_URL"] = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test"
 
 import asyncpg
 import pytest

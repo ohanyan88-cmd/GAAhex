@@ -9,6 +9,20 @@ from .config import settings
 engine = create_async_engine(settings.database_url, echo=False, future=True)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+# Owner (RLS-bypass) engine for the pre-auth / no-tenant paths (seeding, login + user lookup,
+# org-tree). Falls back to the app engine's URL when owner_database_url is unset — so tests and the
+# pre-flip app behave exactly as before; only a real gaaex_app database_url makes the split bite.
+owner_engine = create_async_engine(settings.owner_database_url or settings.database_url, echo=False, future=True)
+OwnerSessionLocal = async_sessionmaker(owner_engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def get_owner_session() -> AsyncSession:
+    """Yield a privileged session that BYPASSES RLS — only for the unavoidable pre-auth / no-tenant
+    reads (auth lookups, org-tree). Never set the tenant GUC here; it must not carry tenant scope."""
+    async with OwnerSessionLocal() as session:
+        yield session
+
+
 # The Postgres GUC RLS policies key on. Set per request (after auth) via `set_tenant_guc`, and always
 # cleared on session teardown so a pooled connection never carries one tenant into another's request.
 TENANT_GUC = "gaaex.tenant_id"

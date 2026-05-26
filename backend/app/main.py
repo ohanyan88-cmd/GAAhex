@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text, select
 
-from .db import engine, SessionLocal
+from .db import engine, SessionLocal, OwnerSessionLocal
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
@@ -65,7 +65,8 @@ async def health_db():
 async def org_tree():
     """Baseline read: the seeded tenant + org tree. Public; lives outside the /api/{slug}
     entity namespace so the generic record router doesn't shadow it."""
-    async with SessionLocal() as s:
+    # public + no tenant context → owner session (bypasses RLS) so it isn't default-denied.
+    async with OwnerSessionLocal() as s:
         tenants = (await s.execute(select(Tenant))).scalars().all()
         nodes = (await s.execute(select(OrgNode).order_by(OrgNode.path))).scalars().all()
         return {

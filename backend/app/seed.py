@@ -1,7 +1,7 @@
 from sqlalchemy import select, func
 from sqlalchemy_utils import Ltree
 
-from .db import SessionLocal
+from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import (
     Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
     PermissionDef, RoleDef, Assignment,
