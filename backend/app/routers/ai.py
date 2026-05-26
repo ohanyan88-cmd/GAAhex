@@ -13,9 +13,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import Record, User
 from ..access import load_grants, can
-from ..ai import score_lead, summarize_record, ask_assistant, active_provider
+from sqlalchemy import func
+
+from ..ai import score_lead, summarize_record, ask_assistant, active_provider, plan_chat
 from .auth import current_user
-from .records import _node_path
+from .records import _node_path, create_record as records_create, transition as records_transition
+
+# The actions the agent may execute (server-side allowlist — the model's proposal is validated
+# against this, never trusted blindly). v1 = leads only.
+_LEAD_SOURCES = {"Website", "Referral", "Cold Call", "Ad"}
+_LEAD_STATUSES = {"NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"}
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
@@ -110,3 +117,80 @@ async def ask_endpoint(payload: dict, user: User = Depends(current_user), s: Asy
     context = await _business_context(s, user)
     answer = await ask_assistant(question, context)
     return {"answer": answer, "provider": active_provider(), "grounded": bool(context)}
+
+
+# ---- agent: propose (LLM) → confirm (user) → execute (server) ----
+
+def _validate_action(action: str, args: dict) -> tuple[str, dict]:
+    """Validate a proposed action against the server-side allowlist. Returns a sanitized
+    (action, args) or raises 422. The model is never trusted — every field is re-checked here."""
+    if action == "create_lead":
+        name = (args.get("name") or "").strip()
+        if not name:
+            raise HTTPException(422, "create_lead needs a name")
+        clean = {"name": name}
+        for k in ("phone", "email"):
+            if args.get(k):
+                clean[k] = str(args[k]).strip()
+        src = (args.get("source") or "").strip()
+        if src and src in _LEAD_SOURCES:
+            clean["source"] = src
+        return action, clean
+    if action == "move_lead":
+        lead_name = (args.get("lead_name") or args.get("name") or "").strip()
+        to = (args.get("to_status") or args.get("to") or "").strip().upper()
+        if not lead_name or to not in _LEAD_STATUSES:
+            raise HTTPException(422, "move_lead needs lead_name and a valid to_status")
+        return action, {"lead_name": lead_name, "to_status": to}
+    raise HTTPException(422, f"Unknown action: {action}")
+
+
+@router.post("/chat")
+async def chat_endpoint(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Agent turn: the model answers OR proposes ONE action (it never executes). A proposal comes
+    back for the user to confirm; execution happens only via /act."""
+    await _require_ai(s, user)
+    question = (payload.get("question") or "").strip()
+    if not question:
+        raise HTTPException(422, "question is required")
+    context = await _business_context(s, user)
+    plan = await plan_chat(question, context)
+    if plan.get("kind") == "proposal":
+        try:
+            action, clean = _validate_action(plan.get("action", ""), plan.get("args", {}))
+            return {"kind": "proposal", "action": action, "args": clean,
+                    "summary": plan.get("summary") or "Confirm this action?", "provider": active_provider()}
+        except HTTPException:
+            # an unproposable/invalid action → just answer instead of erroring at the user
+            return {"kind": "answer", "answer": plan.get("summary") or "I can't do that yet.", "provider": active_provider()}
+    return {"kind": "answer", "answer": plan.get("text", ""), "provider": active_provider()}
+
+
+@router.post("/act")
+async def act_endpoint(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Execute a CONFIRMED action. Re-validated against the allowlist, then run through the SAME
+    records engine as the UI — so the caller's lead.create / lead.edit permissions, scope and audit
+    all apply exactly as normal. The AI gets no special privilege."""
+    await _require_ai(s, user)
+    action, args = _validate_action((payload.get("action") or ""), payload.get("args") or {})
+
+    if action == "create_lead":
+        rec = await records_create("leads", args, user=user, s=s)
+        return {"ok": True, "action": action,
+                "message": f"Created lead '{args['name']}'.", "record": rec}
+
+    if action == "move_lead":
+        rid = (await s.execute(
+            select(Record.id).where(
+                Record.tenant_id == user.tenant_id, Record.entity_key == "lead",
+                func.lower(Record.data["name"].astext) == args["lead_name"].lower())
+        )).scalars().all()
+        if not rid:
+            raise HTTPException(404, f"No lead named '{args['lead_name']}'")
+        if len(rid) > 1:
+            raise HTTPException(409, f"Several leads named '{args['lead_name']}' — open the pipeline to pick one")
+        await records_transition("leads", rid[0], {"to": args["to_status"]}, user=user, s=s)
+        return {"ok": True, "action": action,
+                "message": f"Moved '{args['lead_name']}' to {args['to_status']}."}
+
+    raise HTTPException(422, f"Unknown action: {action}")

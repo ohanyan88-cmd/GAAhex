@@ -706,6 +706,11 @@ button:hover { background: var(--primary-hover); }
 .ask-assistant .ask-bubble { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
 .ask-input { display: flex; gap: 8px; }
 .ask-input .inp { flex: 1; }
+.ask-proposal { max-width: 78%; border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ask-proposal-head { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--accent-hover); text-transform: uppercase; letter-spacing: .04em; }
+.ask-proposal-body { font-size: 14px; line-height: 1.5; color: var(--text); }
+.ask-proposal-actions { display: flex; gap: 8px; }
+.ask-proposal-done { font-size: 13px; font-weight: 600; color: var(--success); }
 
 /* ============================================================================
    B11 — bulk-action bar · selection column · report builder.

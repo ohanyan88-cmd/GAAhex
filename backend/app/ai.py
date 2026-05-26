@@ -206,5 +206,61 @@ async def ask_assistant(question: str, context_lines: list[str]) -> str:
     return await complete(prompt, system=ASSISTANT_SYSTEM)
 
 
+# ============================================================================================
+# Capability 4 — agent planner: the model PROPOSES a structured action (it never executes).
+# Execution is plain, permission-checked, audited server code in the router, only after the user
+# confirms. The LLM is kept entirely out of the write path — it only translates intent → JSON.
+# ============================================================================================
+
+import json
+import re
+
+# The tools the planner may propose. Kept tiny + safe for v1 (leads only). The router validates
+# every proposal again before executing — the model is never trusted blindly.
+ACTION_SPEC = (
+    "You may either ANSWER the user, or PROPOSE exactly ONE action. Available actions:\n"
+    "  - create_lead(name, phone?, email?, source?)   # source one of: Website, Referral, Cold Call, Ad\n"
+    "  - move_lead(lead_name, to_status)               # to_status one of: NEW, CONTACTED, QUALIFIED, CONVERTED, LOST\n"
+    "Reply with ONLY a single JSON object, no prose, no markdown fences:\n"
+    '  to answer: {"kind":"answer","text":"<your answer>"}\n'
+    '  to act:    {"kind":"proposal","action":"create_lead","args":{...},"summary":"<one-line confirmation in plain language>"}\n'
+    "Propose an action ONLY when the user clearly asks to create or change something; otherwise answer. "
+    "Use the business context for answers; never invent numbers."
+)
+
+
+def _extract_json(text: str) -> dict | None:
+    """Best-effort: pull the first {...} JSON object out of a model reply (tolerates code fences /
+    stray prose). Returns the parsed dict or None."""
+    if not text:
+        return None
+    m = re.search(r"\{.*\}", text.strip(), re.DOTALL)
+    if not m:
+        return None
+    try:
+        out = json.loads(m.group(0))
+        return out if isinstance(out, dict) else None
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+async def plan_chat(question: str, context_lines: list[str]) -> dict:
+    """Decide answer-vs-action for a chat turn. Returns {"kind":"answer","text":..} or
+    {"kind":"proposal","action":..,"args":{..},"summary":..}. With no real provider, always answers
+    (read-only) — actions need a model that can plan. Never executes anything."""
+    if active_provider() == "none":
+        return {"kind": "answer", "text": await ask_assistant(question, context_lines)}
+    ctx = "\n".join(context_lines) if context_lines else "- (no context available)"
+    prompt = f"{ACTION_SPEC}\n\nBusiness context:\n{ctx}\n\nUser: {question}"
+    raw = await complete(prompt, system="You are the GAAex assistant. Follow the response format exactly.")
+    parsed = _extract_json(raw)
+    if parsed and parsed.get("kind") == "proposal" and isinstance(parsed.get("args"), dict):
+        return {"kind": "proposal", "action": str(parsed.get("action") or ""),
+                "args": parsed["args"], "summary": str(parsed.get("summary") or "Confirm this action?")}
+    if parsed and parsed.get("kind") == "answer":
+        return {"kind": "answer", "text": str(parsed.get("text") or "").strip() or raw.strip()}
+    return {"kind": "answer", "text": raw.strip() or "I'm not sure how to help with that."}
+
+
 # Activate at import time, guarded by settings (non-invasive — no main.py change needed).
 configure_ai()
