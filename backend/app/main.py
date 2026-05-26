@@ -5,9 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text, select
 
 from .db import engine, SessionLocal
-from .models import Base, Tenant, OrgNode, User  # noqa: F401  (User imported so its table is created)
-from .seed import seed_if_empty
-from .routers import auth
+from .models import (  # noqa: F401  (imported so create_all builds every table)
+    Base, Tenant, OrgNode, User,
+    EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
+)
+from .seed import seed_if_empty, seed_meta_if_empty
+from .routers import auth, meta, records
 
 
 @asynccontextmanager
@@ -17,6 +20,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
         await conn.run_sync(Base.metadata.create_all)
     await seed_if_empty()
+    await seed_meta_if_empty()
     yield
 
 
@@ -27,6 +31,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(meta.router)
+app.include_router(records.router)
 
 
 @app.get("/health")
