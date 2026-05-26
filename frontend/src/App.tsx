@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { login, me, getEntities, orgTree } from './api'
 import EntityView from './EntityView'
 import StudioView from './StudioView'
+import ReportsView from './ReportsView'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -59,6 +60,7 @@ export default function App() {
         <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
         <div className="nav-label">Workspace</div>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
+        <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>Reports</button>
         <div className="nav-label">Records</div>
         {entities.map((en) => (
           <button
@@ -85,9 +87,11 @@ export default function App() {
         <main>
           {view.type === 'org'
             ? <OrgTreeView nodes={orgNodes} />
-            : view.type === 'studio'
-              ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
-              : <EntityView token={token} slug={view.slug} />}
+            : view.type === 'reports'
+              ? <ReportsView token={token} />
+              : view.type === 'studio'
+                ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
+                : <EntityView token={token} slug={view.slug} />}
         </main>
       </div>
     </div>
