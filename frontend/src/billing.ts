@@ -104,6 +104,7 @@ async function send<T = any>(token: string, method: string, path: string, body?:
 }
 export const bpost = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'POST', path, body)
 export const bpatch = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PATCH', path, body)
+export const bput = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PUT', path, body)
 export const bdel = <T = any>(token: string, path: string) => send<T>(token, 'DELETE', path)
 
 // Open an auth'd document endpoint (branded HTML) in a new tab. A plain GET link can't carry the

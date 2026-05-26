@@ -23,13 +23,16 @@ import PartiesView from './PartiesView'
 import AnalyticsView from './AnalyticsView'
 import LeadPipelineView from './LeadPipelineView'
 import AskGaaexView from './AskGaaexView'
+import CreateTenantWizard from './CreateTenantWizard'
+import SettingsView from './SettingsView'
+import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'ask' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'ask' } | { type: 'settings' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -43,10 +46,27 @@ export default function App() {
   const [error, setError] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)   // off-canvas sidebar on narrow widths
+  const [wizardOpen, setWizardOpen] = useState(false)   // "Stand up a new ISP" (login screen)
+  const [nudge, setNudge] = useState(false)             // first-run "finish setting up" banner
   const { t, lang, setLang } = useI18n()
 
   // (re)load translation strings for the current language whenever auth changes
   useEffect(() => { initI18n(token) }, [token])
+
+  // First-run nudge: if the tenant reports onboarded:false, surface a dismissible banner. Best-effort
+  // (degrades silently if E19 settings aren't available yet).
+  useEffect(() => {
+    if (!token) { setNudge(false); return }
+    bget<{ onboarded?: boolean }>(token, '/api/tenant/settings')
+      .then((r) => { if (r.ok && r.data && r.data.onboarded === false) setNudge(true) })
+      .catch(() => {})
+  }, [token])
+
+  function finishSetup() {
+    if (token) bpost(token, '/api/tenant/onboarded', {}).catch(() => {})   // mark done so it won't nag again
+    setNudge(false)
+    setView({ type: 'settings' })
+  }
 
   // ⌘K / Ctrl-K opens the command palette (once signed in)
   useEffect(() => {
@@ -105,7 +125,11 @@ export default function App() {
           <button type="submit" className="btn btn-primary btn-md">{t('auth.signin', 'Sign in')}</button>
           {error && <p className="err">{error}</p>}
           <p className="hint">demo: admin@demo.isp / admin123</p>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setWizardOpen(true)}>
+            {t('wizard.cta', 'Set up a new ISP')} <span aria-hidden>→</span>
+          </button>
         </form>
+        <CreateTenantWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       </div>
     )
   }
@@ -125,6 +149,7 @@ export default function App() {
         <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>{t('nav.messages', 'Messages')}</button>
         <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>{t('nav.activity', 'Activity')}</button>
         <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>{t('nav.reportBuilder', 'Report Builder')}</button>
+        <button className={'nav nav-icon' + (view.type === 'settings' ? ' on' : '')} onClick={() => setView({ type: 'settings' })}><GearIcon /> {t('nav.settings', 'Settings')}</button>
         <div className="nav-label">{t('nav.customers', 'Customers')}</div>
         <button className={'nav' + (view.type === 'lead-pipeline' ? ' on' : '')} onClick={() => setView({ type: 'lead-pipeline' })}>{t('nav.leadPipeline', 'Lead Pipeline')}</button>
         <button className={'nav' + (view.type === 'accounts' ? ' on' : '')} onClick={() => setView({ type: 'accounts' })}>{t('nav.accounts', 'Accounts')}</button>
@@ -200,6 +225,16 @@ export default function App() {
           </div>
         </header>
         <main id="main-content">
+          {nudge && (
+            <div className="onboard-nudge" role="status"
+                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', marginBottom: 14,
+                          border: '1px solid var(--border)', borderRadius: 'var(--r-md, 8px)', background: 'var(--accent-soft)' }}>
+              <GearIcon size={16} />
+              <span style={{ flex: 1 }}>{t('onboard.nudge', 'Finish setting up your ISP.')}</span>
+              <button className="btn btn-primary btn-sm" onClick={finishSetup}>{t('onboard.finish', 'Finish setting up')}</button>
+              <button className="iconbtn" aria-label={t('common.close', 'Close')} onClick={() => setNudge(false)}><CloseIcon size={16} /></button>
+            </div>
+          )}
           {view.type === 'org'
             ? <OrgTreeView nodes={orgNodes} />
             : view.type === 'dashboards'
@@ -238,6 +273,8 @@ export default function App() {
                   ? <AccountsView token={token} />
                 : view.type === 'parties'
                   ? <PartiesView token={token} />
+                : view.type === 'settings'
+                  ? <SettingsView token={token} onSaved={() => setNudge(false)} />
                 : view.type === 'reports'
                   ? <ReportsView token={token} />
                   : view.type === 'studio'
