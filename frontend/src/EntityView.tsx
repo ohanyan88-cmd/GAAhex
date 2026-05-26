@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { getEntityDef, listRecords, createRecord } from './api'
+import { getEntityDef, listRecords, createRecord, transitionRecord } from './api'
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
-type Def = { key: string; label: string; label_plural: string; route_slug: string; fields: Field[]; statuses: Status[] }
+type Transition = { from: string; to: string }
+type Def = { key: string; label: string; label_plural: string; route_slug: string; fields: Field[]; statuses: Status[]; transitions: Transition[] }
 type Row = Record<string, any>
 
 // One generic component renders EVERY entity from its config — no per-entity code.
@@ -42,9 +43,21 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
     }
   }
 
+  async function doTransition(id: string, to: string) {
+    setError('')
+    try {
+      await transitionRecord(token, slug, id, to)
+      setRows(await listRecords(token, slug))
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
   if (!def) return <p className="muted">Loading…</p>
 
   const cols = def.fields.filter((f) => f.type !== 'status')
+  const hasWorkflow = (def.transitions ?? []).length > 0
+  const nextFrom = (status: string | null) => (def.transitions ?? []).filter((t) => t.from === status).map((t) => t.to)
 
   return (
     <div>
@@ -53,15 +66,14 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
         <button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Close' : `+ New ${def.label}`}</button>
       </div>
 
+      {error && <p className="err">{error}</p>}
+
       {showForm && (
         <form className="rec-form" onSubmit={submit}>
           {def.fields.map((f) => (
             <FieldInput key={f.key} field={f} statuses={def.statuses} value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} />
           ))}
-          <div className="rec-form-actions">
-            <button type="submit">Save</button>
-            {error && <span className="err">{error}</span>}
-          </div>
+          <div className="rec-form-actions"><button type="submit">Save</button></div>
         </form>
       )}
 
@@ -70,6 +82,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           <tr>
             {cols.map((c) => <th key={c.key}>{c.label}</th>)}
             <th>Status</th>
+            {hasWorkflow && <th>Move to</th>}
           </tr>
         </thead>
         <tbody>
@@ -77,10 +90,17 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
             <tr key={r.id}>
               {cols.map((c) => <td key={c.key}>{String(r[c.key] ?? '')}</td>)}
               <td>{r.status ? <span className="pill">{r.status}</span> : ''}</td>
+              {hasWorkflow && (
+                <td>
+                  {nextFrom(r.status).map((to) => (
+                    <button key={to} className="mini" onClick={() => doTransition(r.id, to)}>→ {to}</button>
+                  ))}
+                </td>
+              )}
             </tr>
           ))}
           {rows.length === 0 && (
-            <tr><td colSpan={cols.length + 1} className="muted">No records yet.</td></tr>
+            <tr><td colSpan={cols.length + 1 + (hasWorkflow ? 1 : 0)} className="muted">No records yet.</td></tr>
           )}
         </tbody>
       </table>
@@ -100,12 +120,8 @@ function FieldInput({ field, statuses, value, onChange }: { field: Field; status
   } else if (f.type === 'datetime') {
     input = <input type="datetime-local" value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'status') {
-    input = (
-      <select value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
-        <option value="">(default)</option>
-        {statuses.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-      </select>
-    )
+    // status is set by the workflow, not chosen at create — show a hint instead of an input
+    return <label className="field"><span>{f.label}</span><em className="muted">set by workflow</em></label>
   } else if (f.type === 'select') {
     const opts: string[] = f.config?.options ?? []
     input = (

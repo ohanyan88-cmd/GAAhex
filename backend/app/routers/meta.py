@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import EntityDef, FieldDef, StatusDef, User
+from ..models import EntityDef, FieldDef, StatusDef, WorkflowDef, User
 from .auth import current_user
 
 router = APIRouter(prefix="/meta", tags=["meta"])
@@ -28,6 +28,8 @@ async def get_entity_def(slug: str, user: User = Depends(current_user), s: Async
         raise HTTPException(404, f"Unknown entity '{slug}'")
     fields = (await s.execute(select(FieldDef).where(FieldDef.entity_def_id == ent.id).order_by(FieldDef.order))).scalars().all()
     statuses = (await s.execute(select(StatusDef).where(StatusDef.entity_def_id == ent.id).order_by(StatusDef.order))).scalars().all()
+    wf = (await s.execute(select(WorkflowDef).where(WorkflowDef.entity_def_id == ent.id))).scalars().first()
+    transitions = (wf.config or {}).get("transitions", []) if wf else []
     return {
         "key": ent.key,
         "label": ent.label,
@@ -42,4 +44,5 @@ async def get_entity_def(slug: str, user: User = Depends(current_user), s: Async
             {"key": st.key, "label": st.label, "order": st.order, "is_initial": st.is_initial}
             for st in statuses
         ],
+        "transitions": [{"from": t.get("from"), "to": t.get("to")} for t in transitions],
     }
