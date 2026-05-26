@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
@@ -26,6 +26,30 @@ type SavedView = { id: string | number; name: string; q?: string; filter?: strin
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+
+// B25 — export format availability probe: HEAD /{slug}/export?format=X; 404 → hide that button.
+// CSV is always available (no probe); XLSX + PDF are probed in parallel on slug change.
+type ExportFormats = { csv: boolean; xlsx: boolean; pdf: boolean }
+
+async function probeEntityExportFormats(token: string, slug: string): Promise<ExportFormats> {
+  async function probe(format: string): Promise<boolean> {
+    try {
+      const ctrl = new AbortController()
+      const tid = setTimeout(() => ctrl.abort(), 3000)
+      const r = await fetch(`${BASE}/api/${slug}/export?format=${format}`, {
+        method: 'HEAD',
+        headers: authH(token),
+        signal: ctrl.signal,
+      })
+      clearTimeout(tid)
+      return r.status !== 404
+    } catch {
+      return true  // network error / abort → assume available; real download will surface the error
+    }
+  }
+  const [xlsx, pdf] = await Promise.all([probe('xlsx'), probe('pdf')])
+  return { csv: true, xlsx, pdf }
+}
 
 // Pull the offending field key out of a backend 422 message (e.g. "Invalid email for 'email'").
 function errFieldOf(msg: string): string | null {
@@ -85,6 +109,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   const [fatal, setFatal] = useState<null | 'denied' | 'notfound'>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkTo, setBulkTo] = useState('')
+
+  // B25: export format availability (probed per slug)
+  const [exportFormats, setExportFormats] = useState<ExportFormats | null>(null)
+  const [exporting, setExporting] = useState<string | null>(null)
 
   // B22: pagination
   const [offset, setOffset] = useState(0)
@@ -146,6 +174,14 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     setQ(''); setAppliedQ(''); setFilter(''); setSort(''); setActiveView('')
     setOffset(0); setTotal(null)
     loadViews(slug)
+  }, [slug])
+
+  // B25: probe export format availability on slug change (reset first so stale buttons don't linger)
+  useEffect(() => {
+    setExportFormats(null)
+    let alive = true
+    probeEntityExportFormats(token, slug).then((f) => { if (alive) setExportFormats(f) })
+    return () => { alive = false }
   }, [slug])
 
   // debounce the search box (~300ms)
@@ -312,26 +348,38 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     return String(v ?? '')
   }
 
-  async function doExport(format: 'csv' | 'json') {
-    toast.info(`Exporting ${format.toUpperCase()}…`)
+  // B25: blob download with Authorization header — same technique as B24 in ReportBuilderView.
+  // Carries the current entity's active filter/sort/q so the export matches what's on screen.
+  async function doExport(format: string) {
+    setExporting(format)
     try {
       const params = new URLSearchParams({ format })
       if (appliedQ) params.set('q', appliedQ)
       if (filter) params.set('filter', filter)
       if (sort) params.set('sort', sort)
-      const r = await fetch(`${BASE}/api/${slug}/export?${params.toString()}`, { headers: authH(token) })
-      if (!r.ok) throw new Error(`Export failed (${r.status})`)
+      const r = await fetch(`${BASE}/api/${slug}/export?${params.toString()}`, {
+        headers: authH(token),
+      })
+      if (!r.ok) {
+        const detail = await r.json().catch(() => null)
+        throw new Error(detail?.detail || t('export.error', 'Export failed'))
+      }
       const blob = await r.blob()
       const cd = r.headers.get('Content-Disposition') || ''
       const m = cd.match(/filename="?([^";]+)"?/)
       const filename = m ? m[1] : `${slug}.${format}`
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = filename
-      document.body.appendChild(a); a.click(); a.remove()
-      URL.revokeObjectURL(url)
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch (err) {
-      toast.error((err as Error).message)
+      toast.error((err as Error).message || t('export.error', 'Export failed'))
+    } finally {
+      setExporting(null)
     }
   }
 
@@ -492,11 +540,52 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           </div>
         )}
 
-        <div className={'export-group' + (viewsAvailable ? '' : ' export-start')}>
-          <span className="muted export-label">Export</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => doExport('csv')}>CSV</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => doExport('json')}>JSON</button>
-        </div>
+        {/* B25 — export control: CSV always available; XLSX/PDF shown only if probe passes */}
+        {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
+          <div
+            className={'export-group' + (viewsAvailable ? '' : ' export-start')}
+            role="group"
+            aria-label={t('export.label', 'Export')}
+          >
+            <span className="muted export-label">{t('export.label', 'Export')}</span>
+            {exportFormats.csv && (
+              <button
+                type="button"
+                className="export-btn"
+                disabled={exporting !== null}
+                onClick={() => doExport('csv')}
+                aria-label={t('export.csv', 'CSV')}
+              >
+                <DownloadIcon size={12} aria-hidden />
+                {t('export.csv', 'CSV')}
+              </button>
+            )}
+            {exportFormats.xlsx && (
+              <button
+                type="button"
+                className="export-btn"
+                disabled={exporting !== null}
+                onClick={() => doExport('xlsx')}
+                aria-label={t('export.xlsx', 'XLSX')}
+              >
+                <DownloadIcon size={12} aria-hidden />
+                {t('export.xlsx', 'XLSX')}
+              </button>
+            )}
+            {exportFormats.pdf && (
+              <button
+                type="button"
+                className="export-btn"
+                disabled={exporting !== null}
+                onClick={() => doExport('pdf')}
+                aria-label={t('export.pdf', 'PDF')}
+              >
+                <DownloadIcon size={12} aria-hidden />
+                {t('export.pdf', 'PDF')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {selected.size > 0 && (

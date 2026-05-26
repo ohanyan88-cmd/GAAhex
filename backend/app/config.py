@@ -41,5 +41,9 @@ class Settings(BaseSettings):
     ai_model: str | None = None           # provider model id; sensible default per provider when unset
     ai_base_url: str | None = None        # override API base (proxy / self-host / Azure)
 
+    # ---- background scheduler (opt-in; OFF by default so dev/test are unaffected) ----
+    scheduler_enabled: bool = False        # true ⇒ auto-fire run-dunning/run-cycle/run-due per tenant
+    scheduler_interval_seconds: int = 3600 # sweep cadence (default hourly)
+
 
 settings = Settings()
