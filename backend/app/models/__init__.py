@@ -16,6 +16,7 @@ from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product
 from .report import ReportDef
+from .order import Order, OrderItem
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -31,4 +32,5 @@ __all__ = [
     "NotificationPref",
     "Subscription", "Invoice", "InvoiceLine", "Payment",
     "Product", "ReportDef",
+    "Order", "OrderItem",
 ]
