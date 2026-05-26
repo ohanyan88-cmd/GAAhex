@@ -268,3 +268,30 @@ export const CreditCardIcon = (p: IconProps) => (
     <line x1="2" y1="10" x2="22" y2="10" />
   </Svg>
 )
+
+export const SpinnerIcon = ({ size = 18, className }: IconProps) => (
+  <svg
+    width={size} height={size} viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth={2}
+    strokeLinecap="round" strokeLinejoin="round"
+    className={['spin-icon', className].filter(Boolean).join(' ')}
+    aria-hidden focusable="false"
+  >
+    <path d="M12 2a10 10 0 0 1 10 10" />
+  </svg>
+)
+
+export const ChevronRightIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="9 18 15 12 9 6" />
+  </Svg>
+)
+
+export const ServerIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="2" y="2" width="20" height="8" rx="2" />
+    <rect x="2" y="14" width="20" height="8" rx="2" />
+    <line x1="6" y1="6" x2="6.01" y2="6" />
+    <line x1="6" y1="18" x2="6.01" y2="18" />
+  </Svg>
+)

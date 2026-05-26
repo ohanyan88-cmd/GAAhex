@@ -1,15 +1,28 @@
 import re
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
+from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT
 from .. import workflow, gxl, notify_hooks
 from .auth import current_user
+
+# Back-compat paging helpers reused by sibling routers (billing / usage / interactions) and the
+# pagination unit tests. The generic list endpoint below uses `Page` directly (unbounded by default
+# + X-Total-Count); these preserve the original semantics: no limit => first DEFAULT_PAGE rows,
+# any explicit limit clamped to MAX_PAGE.
+DEFAULT_PAGE = 200
+MAX_PAGE = MAX_LIMIT  # 500
+
+
+def _paginate(items, limit=None, offset=0):
+    """Window an already-materialized list. limit=None => first DEFAULT_PAGE; limit capped at MAX_PAGE."""
+    return Page(DEFAULT_PAGE if limit is None else limit, offset).slice_list(items)
 
 router = APIRouter(prefix="/api", tags=["records"])
 
@@ -159,37 +172,29 @@ def _sort_value(rec: Record, field: str):
     return (rec.data or {}).get(field)
 
 
-DEFAULT_PAGE = 200
-MAX_PAGE = 500
-
-
-def _paginate(items: list, limit, offset) -> list:
-    """Bound a post-filter result list: default DEFAULT_PAGE, capped at MAX_PAGE, with an offset.
-    Applied AFTER scope/q/filter/sort, so pagination can never widen what access control allows."""
-    lim = max(1, min(int(limit if limit is not None else DEFAULT_PAGE), MAX_PAGE))
-    off = max(0, int(offset or 0))
-    return items[off: off + lim]
-
-
 @router.get("/{slug}")
 async def list_records(
     slug: str,
+    response: Response,
     q: str | None = None,
     filter: str | None = None,
     sort: str | None = None,
-    limit: int = DEFAULT_PAGE,
+    limit: int | None = None,
     offset: int = 0,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
     """List records for an entity. All query params are optional and backward-compatible
-    (no params ⇒ prior behavior — still a plain JSON list):
+    (no params ⇒ prior behavior — still a plain JSON list, unchanged body):
       - q:      case-insensitive substring over text data fields
       - filter: a GXL boolean evaluated per record (ctx = {**data, "status"}); broken ⇒ fail closed
       - sort:   a field key (or `-key` for descending) over a data value / status / created_at
-      - limit:  page size (default 200, capped at 500) · offset: rows to skip
+      - limit:  page size — OMIT for the full list (default); when given, capped at 500
+      - offset: rows to skip (default 0)
     Order of operations: org-scope + view-gate FIRST (never leak past access control), then q,
     then filter, then sort, then pagination LAST (so paging never widens visibility).
+    The `X-Total-Count` response header always carries the total matching rows (post-filter,
+    pre-pagination) so a frontend can build a pager without the body shape changing.
     """
     ent = await _entity(s, user.tenant_id, slug)
     grants = await load_grants(s, user)
@@ -231,8 +236,14 @@ async def list_records(
             present = sorted(present, key=lambda r: str(_sort_value(r, field)), reverse=desc)
         visible = present + missing
 
-    # 5. pagination — bound the result LAST, after all access/filter/sort decisions
-    return [_serialize(r, hidden) for r in _paginate(visible, limit, offset)]
+    # X-Total-Count: total matching rows AFTER all filters but BEFORE paging — always set, so the
+    # frontend can size a pager regardless of which page (or no page) was requested.
+    response.headers[X_TOTAL_COUNT] = str(len(visible))
+
+    # 5. pagination — bound the result LAST, after all access/filter/sort decisions. With no `limit`
+    # param (and the default offset=0) this returns the full list unchanged — identical to before.
+    page = Page(limit, offset)
+    return [_serialize(r, hidden) for r in page.slice_list(visible)]
 
 
 @router.post("/{slug}", status_code=201)

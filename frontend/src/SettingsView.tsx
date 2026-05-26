@@ -4,6 +4,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { GearIcon } from './icons'
 import { useI18n, setLang, type Lang } from './i18n'
+import SystemStatusChip from './SystemStatusChip'
 
 // Tenant settings (E19): GET/PUT /api/tenant/settings. Edits name/currency/locale/logo_text with a
 // saved toast. Degrades to "not available yet" on 404 and "denied" on 403 (lanes land together).
@@ -63,7 +64,10 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
 
   return (
     <div>
-      <div className="view-head"><h2>{t('nav.settings', 'Settings')}</h2></div>
+      <div className="view-head">
+        <h2>{t('nav.settings', 'Settings')}</h2>
+        <SystemStatusChip />
+      </div>
 
       {unavailable && (
         <EmptyState icon={<GearIcon size={40} />} title={t('settings.unavailable', "Settings aren't available yet")}

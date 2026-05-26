@@ -42,6 +42,29 @@ export async function listRecords(token: string, slug: string) {
   return r.json()
 }
 
+/** Paginated list fetch — returns both rows and the X-Total-Count header (null when absent). */
+export async function listRecordsPaged(
+  token: string,
+  slug: string,
+  params: URLSearchParams,
+): Promise<{ rows: Record<string, unknown>[]; total: number | null; status: number; response: Response }> {
+  const qs = params.toString()
+  const r = await fetch(`${BASE}/api/${slug}${qs ? `?${qs}` : ''}`, { headers: authH(token) })
+  const totalRaw = r.headers.get('X-Total-Count')
+  const total = totalRaw !== null ? parseInt(totalRaw, 10) : null
+  const rows = r.ok ? await r.json() : []
+  return { rows, total, status: r.status, response: r }
+}
+
+export async function healthCheck(): Promise<'ok' | 'error'> {
+  try {
+    const r = await fetch(`${BASE}/api/health`)
+    return r.ok ? 'ok' : 'error'
+  } catch {
+    return 'error'
+  }
+}
+
 export async function createRecord(token: string, slug: string, data: Record<string, unknown>) {
   const r = await fetch(`${BASE}/api/${slug}`, {
     method: 'POST',

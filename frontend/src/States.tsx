@@ -1,7 +1,19 @@
 import type { ReactNode } from 'react'
-import { WarningIcon, LockIcon, SearchIcon, InboxIcon } from './icons'
+import { WarningIcon, LockIcon, SearchIcon, InboxIcon, SpinnerIcon } from './icons'
+import { t } from './i18n'
 
 // Reusable feedback / state screens (Tier 6). Themed, SVG icons, dual-theme.
+
+export function LoadingState({ message }: { message?: string } = {}) {
+  return (
+    <div className="state" role="status" aria-live="polite" aria-label={t('common.loading', 'Loading…')}>
+      <div className="state-icon">
+        <SpinnerIcon size={36} />
+      </div>
+      <div className="state-title">{message ?? t('common.loading', 'Loading…')}</div>
+    </div>
+  )
+}
 
 export function EmptyState({ icon, title, message, action }: {
   icon?: ReactNode

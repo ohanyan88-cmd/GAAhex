@@ -76,6 +76,15 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
     'billing.runCycle': 'Գործարկել վճարման ցիկլը', 'billing.running': 'Գործարկվում է…',
     'billing.cycleResult': 'Վճարման ցիկլ՝ {generated} ստեղծված, {skipped} բաց թողնված',
     'billing.cycleNA': 'Վճարման ցիկլը դեռ հասանելի չէ',
+    // B22 — pagination + system status + entity states
+    'pager.prev': 'Հետ', 'pager.next': 'Առաջ',
+    'pager.info': '{from}–{to} / {total}',
+    'pager.ariaLabel': 'Էջային նավիգացիա',
+    'status.operational': 'Գործում է', 'status.issue': 'Խնդիր',
+    'status.checking': 'Ստուգվում…', 'status.label': 'Համակարգի կարգավիճակ',
+    'entity.noMatch': 'Որոնմանը համապատասխան գրառումներ չկան',
+    'entity.loadError': 'Չհաջողվեց բեռնել այս կազմաձևը',
+    'entity.permDenied': 'Դուք թույլտվություն չունեք դիտելու այս գրառումները',
     // B21 — no-access screen + read-only mode
     'noaccess.title': 'Դուք մուտք չունեք',
     'noaccess.msg': 'Դուք թույլտվություն չունեք դիտելու այս ռեսուրսը։ Կապվեք ձեր ադմինի հետ, եթե անհրաժեշտ է մուտք։',

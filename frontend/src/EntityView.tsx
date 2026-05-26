@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
-import { getEntityDef, createRecord, transitionRecord } from './api'
+import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
 import CustomerBillingModal from './CustomerBillingModal'
 import AiAssistModal from './AiAssistModal'
 import { Select, MultiSelect } from './Select'
-import { EmptyState, PermissionDenied, NotFound } from './States'
+import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } from './States'
 import ActivityTimeline from './ActivityTimeline'
 import { useI18n } from './i18n'
 import NoAccess from './NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from './capabilities'
+
+const PAGE_SIZE = 50
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any; editable?: boolean }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
@@ -84,7 +86,11 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkTo, setBulkTo] = useState('')
 
-  async function load(s: string) {
+  // B22: pagination
+  const [offset, setOffset] = useState(0)
+  const [total, setTotal] = useState<number | null>(null)
+
+  async function load(s: string, pageOffset = offset) {
     setLoading(true); setFatal(null)
     try {
       let d: Def
@@ -95,11 +101,14 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       if (appliedQ) params.set('q', appliedQ)
       if (filter) params.set('filter', filter)
       if (sort) params.set('sort', sort)
-      const qs = params.toString()
-      const r = await fetch(`${BASE}/api/${s}${qs ? `?${qs}` : ''}`, { headers: authH(token) })
-      if (r.status === 403) { setFatal('denied'); return }
-      if (!r.ok) throw new Error('Failed to load records')
-      setRows(await r.json())
+      // B22: add pagination params
+      params.set('limit', String(PAGE_SIZE))
+      params.set('offset', String(pageOffset))
+      const { rows: fetched, total: tot, status } = await listRecordsPaged(token, s, params)
+      if (status === 403) { setFatal('denied'); return }
+      if (status >= 400 && status !== 403) throw new Error('Failed to load records')
+      setRows(fetched)
+      setTotal(tot)                   // null = X-Total-Count absent → hide pager
       setSelected(new Set())          // clear selection whenever the list reloads
       // build { fieldKey -> { id -> label } } maps for every ref field, for the list display
       const maps: Record<string, Record<string, string>> = {}
@@ -111,6 +120,11 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     } finally {
       setLoading(false)
     }
+  }
+
+  function goToPage(newOffset: number) {
+    setOffset(newOffset)
+    load(slug, newOffset).catch((e) => setError((e as Error).message))
   }
 
   // Saved views are optional: if /api/views isn't merged yet it 404s → hide the control quietly.
@@ -130,6 +144,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   useEffect(() => {
     closeForm(); setError(''); setErrorField(null)
     setQ(''); setAppliedQ(''); setFilter(''); setSort(''); setActiveView('')
+    setOffset(0); setTotal(null)
     loadViews(slug)
   }, [slug])
 
@@ -139,9 +154,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     return () => clearTimeout(id)
   }, [q])
 
-  // (re)fetch records on slug / applied search / filter / sort change
+  // (re)fetch records on slug / applied search / filter / sort change — always reset to page 0
   useEffect(() => {
-    load(slug).catch((e) => setError((e as Error).message))
+    setOffset(0)
+    load(slug, 0).catch((e) => setError((e as Error).message))
   }, [slug, appliedQ, filter, sort])
 
   function closeForm() {
@@ -250,17 +266,17 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     setQ(v?.q ?? ''); setAppliedQ(v?.q ?? ''); setFilter(v?.filter ?? ''); setSort(v?.sort ?? '')
   }
 
-  if (loading && !def && !fatal) return <p className="muted">Loading…</p>
+  if (loading && !def && !fatal) return <LoadingState />
   if (fatal === 'notfound') return <NotFound what="entity" message={`No entity matches "${slug}".`} />
   if (fatal === 'denied') {
     return (
       <div>
         <div className="view-head"><h2>{def?.label_plural ?? slug}</h2></div>
-        <PermissionDenied message="You don't have permission to view these records." />
+        <PermissionDenied message={t('entity.permDenied', "You don't have permission to view these records.")} />
       </div>
     )
   }
-  if (!def) return <p className="err">Could not load this entity.</p>
+  if (!def) return <ErrorBanner message={t('entity.loadError', 'Could not load this entity.')} />
 
   // B21: derive per-verb capability flags from the capabilities map (full-access by default)
   const entityKey = def.key
@@ -557,14 +573,49 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           ))}
           {!loading && visibleRows.length === 0 && (
             <tr>
-              <td colSpan={colSpan} className="muted">
-                {needle ? `No records match "${appliedQ}".` : 'No records yet.'}
+              <td colSpan={colSpan}>
+                <EmptyState
+                  title={needle
+                    ? t('entity.noMatch', 'No records match your search')
+                    : `${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
+                  message={!needle && canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
+                />
               </td>
             </tr>
           )}
         </tbody>
       </table>
       </div>
+
+      {/* B22: pager — only shown when X-Total-Count was returned and total > PAGE_SIZE */}
+      {total !== null && total > PAGE_SIZE && (
+        <div className="pager" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
+            disabled={offset === 0 || loading}
+            aria-label={t('pager.prev', 'Previous page')}
+          >
+            <ChevronLeftIcon size={14} />
+            {t('pager.prev', 'Prev')}
+          </button>
+          <span className="pager-info" aria-live="polite">
+            {t('pager.info', '{from}–{to} / {total}')
+              .replace('{from}', String(offset + 1))
+              .replace('{to}', String(Math.min(offset + PAGE_SIZE, total)))
+              .replace('{total}', String(total))}
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => goToPage(offset + PAGE_SIZE)}
+            disabled={offset + PAGE_SIZE >= total || loading}
+            aria-label={t('pager.next', 'Next page')}
+          >
+            {t('pager.next', 'Next')}
+            <ChevronRightIcon size={14} />
+          </button>
+        </div>
+      )}
         </>
       )}
 

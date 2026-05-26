@@ -823,3 +823,28 @@ button:hover { background: var(--primary-hover); }
   /* force the grid to scroll rather than crush columns on phones */
   .grid-wrap .grid { min-width: 560px; }
 }
+
+/* ============================================================================
+   B22 — spinner · pager · system-status chip.
+   ============================================================================ */
+
+/* Spinner rotation — collapses to near-0 under prefers-reduced-motion (inherited). */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-icon { animation: spin 0.9s linear infinite; color: var(--text-3); }
+
+/* ---- Pager (prev/next + range label) ---- */
+.pager { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.pager-info { font-size: var(--fs-sm); color: var(--text-3); font-variant-numeric: tabular-nums; }
+.pager .btn { min-width: 80px; }
+
+/* ---- System status chip ---- */
+.status-chip { display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--r-pill);
+  font-size: var(--fs-caption); font-weight: var(--fw-medium); }
+.status-chip-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.status-chip-ok { background: var(--success-soft); color: var(--success); }
+.status-chip-ok .status-chip-dot { background: var(--success); }
+.status-chip-err { background: var(--danger-soft); color: var(--danger); }
+.status-chip-err .status-chip-dot { background: var(--danger); }
+.status-chip-loading { background: var(--surface-2); color: var(--text-3); }
+.status-chip-loading .status-chip-dot { background: var(--text-3); }
