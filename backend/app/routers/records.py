@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import EntityDef, FieldDef, StatusDef, Record, User
+from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User
+from ..access import load_grants, can
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["records"])
@@ -33,6 +34,18 @@ async def _initial_status(s: AsyncSession, entity_id) -> str | None:
         select(StatusDef).where(StatusDef.entity_def_id == entity_id, StatusDef.is_initial == True)  # noqa: E712
     )).scalar_one_or_none()
     return st.key if st else None
+
+
+async def _node_paths(s: AsyncSession, tenant_id) -> dict[str, str]:
+    rows = (await s.execute(select(OrgNode.id, OrgNode.path).where(OrgNode.tenant_id == tenant_id))).all()
+    return {str(i): str(p) for i, p in rows}
+
+
+async def _node_path(s: AsyncSession, node_id) -> str | None:
+    if not node_id:
+        return None
+    p = (await s.execute(select(OrgNode.path).where(OrgNode.id == node_id))).scalar_one_or_none()
+    return str(p) if p is not None else None
 
 
 def _validate(fields: list[FieldDef], payload: dict, partial: bool):
@@ -81,20 +94,36 @@ async def _get(s, tenant_id, entity_key, rec_id) -> Record:
     return rec
 
 
-# ---- generic CRUD ----
+def _deny(entity_key: str, verb: str):
+    raise HTTPException(403, f"Not allowed: {entity_key}.{verb}")
+
+
+# ---- generic CRUD (access-enforced) ----
 
 @router.get("/{slug}")
 async def list_records(slug: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     ent = await _entity(s, user.tenant_id, slug)
+    grants = await load_grants(s, user)
+    if not can(grants, ent.key, "view"):           # no view permission on this entity at all
+        _deny(ent.key, "view")
+    paths = await _node_paths(s, user.tenant_id)
     rows = (await s.execute(
         select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key).order_by(Record.created_at)
     )).scalars().all()
-    return [_serialize(r) for r in rows]
+    visible = [
+        r for r in rows
+        if can(grants, ent.key, "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)
+    ]
+    return [_serialize(r) for r in visible]
 
 
 @router.post("/{slug}", status_code=201)
 async def create_record(slug: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     ent = await _entity(s, user.tenant_id, slug)
+    grants = await load_grants(s, user)
+    owner_path = await _node_path(s, user.primary_node_id)
+    if not can(grants, ent.key, "create", owner_path):
+        _deny(ent.key, "create")
     fields = await _fields(s, ent.id)
     data, status_value, has_status = _validate(fields, payload, partial=False)
     status = status_value or (await _initial_status(s, ent.id) if has_status else None)
@@ -111,14 +140,21 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
 @router.get("/{slug}/{rec_id}")
 async def get_record(slug: str, rec_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     ent = await _entity(s, user.tenant_id, slug)
-    return _serialize(await _get(s, user.tenant_id, ent.key, rec_id))
+    rec = await _get(s, user.tenant_id, ent.key, rec_id)
+    grants = await load_grants(s, user)
+    if not can(grants, ent.key, "view", await _node_path(s, rec.owner_node_id)):
+        _deny(ent.key, "view")
+    return _serialize(rec)
 
 
 @router.patch("/{slug}/{rec_id}")
 async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     ent = await _entity(s, user.tenant_id, slug)
-    fields = await _fields(s, ent.id)
     rec = await _get(s, user.tenant_id, ent.key, rec_id)
+    grants = await load_grants(s, user)
+    if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
+        _deny(ent.key, "edit")
+    fields = await _fields(s, ent.id)
     data, status_value, _ = _validate(fields, payload, partial=True)
     merged = dict(rec.data or {})
     merged.update(data)
@@ -134,5 +170,8 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
 async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     ent = await _entity(s, user.tenant_id, slug)
     rec = await _get(s, user.tenant_id, ent.key, rec_id)
+    grants = await load_grants(s, user)
+    if not can(grants, ent.key, "delete", await _node_path(s, rec.owner_node_id)):
+        _deny(ent.key, "delete")
     await s.delete(rec)
     await s.commit()

@@ -5,11 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text, select
 
 from .db import engine, SessionLocal
-from .models import (  # noqa: F401  (imported so create_all builds every table)
+from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
+    PermissionDef, RoleDef, Assignment,
 )
-from .seed import seed_if_empty, seed_meta_if_empty
+from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .routers import auth, meta, records
 
 
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     # On boot we only seed demo data (idempotent).
     await seed_if_empty()
     await seed_meta_if_empty()
+    await seed_access_if_empty()
     yield
 
 
