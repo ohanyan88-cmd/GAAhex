@@ -56,7 +56,7 @@ def _deterministic_stub(prompt: str, system: str | None) -> str:
 # Gemini and Groq both expose this surface, so one client covers openai / gemini / groq.
 _OPENAI_COMPAT = {
     "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.0-flash"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-flash-latest"),
     "groq":   ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
 }
 
