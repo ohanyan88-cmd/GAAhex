@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
-from ..db import get_session
+from ..db import get_session, set_tenant_guc
 from ..models import User
 from ..models.refresh_token import RefreshToken
 from ..security import verify_password, create_access_token, decode_token
@@ -128,6 +128,9 @@ async def current_user(token: str = Depends(oauth2), s: AsyncSession = Depends(g
     user = (await s.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    # Bind this request's connection to the user's tenant for RLS (survives mid-request commits;
+    # cleared on session teardown). Harmless under the owner role, which bypasses RLS.
+    await set_tenant_guc(s, user.tenant_id)
     return user
 
 
