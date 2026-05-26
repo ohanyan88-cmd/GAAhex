@@ -40,7 +40,7 @@ export default function App() {
     return (
       <div className="center">
         <form className="card" onSubmit={handleLogin}>
-          <h1>GAAex</h1>
+          <img src="/full-dark.png" alt="GAAex" className="logo-lg" />
           <p className="muted">Sign in</p>
           <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email" />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
@@ -55,7 +55,7 @@ export default function App() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand">GAAex</div>
+        <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
         <div className="nav-label">Workspace</div>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
         <div className="nav-label">Records</div>

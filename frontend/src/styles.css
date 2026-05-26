@@ -3,8 +3,11 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 
 /* login */
 .center { min-height: 100vh; display: grid; place-items: center; }
-.card { background: #fff; padding: 28px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.08); width: 300px; display: flex; flex-direction: column; gap: 10px; }
+.card { background: #fff; padding: 28px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.08); width: 420px; display: flex; flex-direction: column; gap: 10px; }
 .card h1 { margin: 0; font-size: 24px; }
+/* full-dark logo on the white login card; icon-light on the dark sidebar — BIG */
+.logo-lg { width: 100%; height: auto; align-self: center; margin: 6px 0 10px; object-fit: contain; }
+.logo-sm { height: 88px; width: auto; display: block; object-fit: contain; }
 .card input { padding: 9px 11px; border: 1px solid #d0d3d8; border-radius: 7px; font-size: 14px; }
 button { padding: 8px 12px; border: 0; border-radius: 7px; background: #1a1a1a; color: #fff; cursor: pointer; font-size: 14px; }
 .muted { color: #7a7f87; font-size: 13px; }
