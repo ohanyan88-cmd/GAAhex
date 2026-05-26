@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, WorkflowDef, PermissionDef, Record, User
-from ..access import load_grants, can
+from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from .auth import current_user
 
 router = APIRouter(prefix="/meta", tags=["meta"])
@@ -62,6 +62,13 @@ async def get_entity_def(slug: str, user: User = Depends(current_user), s: Async
     statuses = (await s.execute(select(StatusDef).where(StatusDef.entity_def_id == ent.id).order_by(StatusDef.order))).scalars().all()
     wf = (await s.execute(select(WorkflowDef).where(WorkflowDef.entity_def_id == ent.id))).scalars().first()
     transitions = (wf.config or {}).get("transitions", []) if wf else []
+
+    # field-level access for THIS caller: hide fields they can't view, annotate `editable` so the
+    # interpreter can render the rest read-only where needed. config.manage holders see all + editable.
+    grants = await load_grants(s, user)
+    rkeys = role_keys(grants)
+    admin = can(grants, "config", "manage")
+    visible_fields = [f for f in fields if can_view_field(f.config, rkeys, admin)]
     return {
         "key": ent.key,
         "label": ent.label,
@@ -69,8 +76,9 @@ async def get_entity_def(slug: str, user: User = Depends(current_user), s: Async
         "route_slug": ent.route_slug,
         "icon": ent.icon,
         "fields": [
-            {"key": f.key, "label": f.label, "type": f.type, "required": f.required, "order": f.order, "config": f.config}
-            for f in fields
+            {"key": f.key, "label": f.label, "type": f.type, "required": f.required, "order": f.order,
+             "config": f.config, "editable": can_edit_field(f.config, rkeys, admin)}
+            for f in visible_fields
         ],
         "statuses": [
             {"key": st.key, "label": st.label, "order": st.order, "is_initial": st.is_initial}

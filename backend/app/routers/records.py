@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
-from ..access import load_grants, can
+from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from .. import workflow, gxl, notify_hooks
 from .auth import current_user
 
@@ -74,7 +74,10 @@ def _check_type(field: FieldDef, value):
             raise HTTPException(422, f"'{field.key}' must be one of {opts}")
 
 
-def _validate(fields: list[FieldDef], payload: dict, partial: bool):
+def _validate(fields: list[FieldDef], payload: dict, partial: bool,
+              caller_roles: set | None = None, is_admin: bool = False):
+    """Validate a create/patch payload. When `caller_roles` is provided, also enforce field-level
+    edit gates: setting a field the caller's roles can't edit is refused with 403."""
     by_key = {f.key: f for f in fields}
     for k in payload:
         if k not in by_key:
@@ -89,6 +92,9 @@ def _validate(fields: list[FieldDef], payload: dict, partial: bool):
                 status_value = payload[f.key]
             continue
         if present:
+            # field-level edit gate (view-only / role-gated fields cannot be written)
+            if caller_roles is not None and not can_edit_field(f.config, caller_roles, is_admin):
+                raise HTTPException(403, f"Not allowed to edit field '{f.key}'")
             v = payload[f.key]
             if v is not None and v != "":
                 _check_type(f, v)
@@ -100,14 +106,22 @@ def _validate(fields: list[FieldDef], payload: dict, partial: bool):
     return data, status_value, has_status
 
 
-def _serialize(rec: Record) -> dict:
+def _hidden_keys(fields: list[FieldDef], caller_roles: set, is_admin: bool) -> set:
+    """Data field keys the caller's roles may NOT view (dropped from serialized output)."""
+    return {f.key for f in fields if not can_view_field(f.config, caller_roles, is_admin)}
+
+
+def _serialize(rec: Record, hidden_keys: set | frozenset = frozenset()) -> dict:
     out = {
         "id": str(rec.id),
         "owner_node_id": str(rec.owner_node_id) if rec.owner_node_id else None,
         "status": rec.status,
         "created_at": rec.created_at.isoformat() if rec.created_at else None,
     }
-    out.update(rec.data or {})
+    for k, v in (rec.data or {}).items():
+        if k in hidden_keys:                       # field-level view gate
+            continue
+        out[k] = v
     return out
 
 
@@ -171,6 +185,10 @@ async def list_records(
         select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key).order_by(Record.created_at)
     )).scalars().all()
 
+    # field-level view gate: which data keys this caller's roles may not see
+    fields = await _fields(s, ent.id)
+    hidden = _hidden_keys(fields, role_keys(grants), can(grants, "config", "manage"))
+
     # 1. scope filter (access control) — must run before any user-supplied filtering
     visible = [
         r for r in rows
@@ -198,7 +216,7 @@ async def list_records(
             present = sorted(present, key=lambda r: str(_sort_value(r, field)), reverse=desc)
         visible = present + missing
 
-    return [_serialize(r) for r in visible]
+    return [_serialize(r, hidden) for r in visible]
 
 
 @router.post("/{slug}", status_code=201)
@@ -210,8 +228,10 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, ent.key, "create", owner_path):
         _deny(ent.key, "create")
+    rkeys = role_keys(grants)
+    admin = can(grants, "config", "manage")
     fields = await _fields(s, ent.id)
-    data, _ignored_status, has_status = _validate(fields, payload, partial=False)
+    data, _ignored_status, has_status = _validate(fields, payload, partial=False, caller_roles=rkeys, is_admin=admin)
     # status is lifecycle-managed: new records always start at the initial status
     status = (await _initial_status(s, ent.id)) if has_status else None
     rec = Record(
@@ -225,7 +245,7 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
                             record=rec, actor_user_id=user.id, extra={"status": status})
     await s.commit()
     await s.refresh(rec)
-    return _serialize(rec)
+    return _serialize(rec, _hidden_keys(fields, rkeys, admin))
 
 
 @router.get("/{slug}/{rec_id}")
@@ -235,7 +255,9 @@ async def get_record(slug: str, rec_id: uuid.UUID, user: User = Depends(current_
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "view", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "view")
-    return _serialize(rec)
+    fields = await _fields(s, ent.id)
+    hidden = _hidden_keys(fields, role_keys(grants), can(grants, "config", "manage"))
+    return _serialize(rec, hidden)
 
 
 @router.patch("/{slug}/{rec_id}")
@@ -245,8 +267,10 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "edit")
+    rkeys = role_keys(grants)
+    admin = can(grants, "config", "manage")
     fields = await _fields(s, ent.id)
-    data, _status_ignored, _ = _validate(fields, payload, partial=True)
+    data, _status_ignored, _ = _validate(fields, payload, partial=True, caller_roles=rkeys, is_admin=admin)
     # status changes go through /transition (guarded), never via free PATCH
     before = dict(rec.data or {})
     merged = dict(before)
@@ -258,7 +282,7 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
                             record=rec, actor_user_id=user.id, extra={"changed": data})
     await s.commit()
     await s.refresh(rec)
-    return _serialize(rec)
+    return _serialize(rec, _hidden_keys(fields, rkeys, admin))
 
 
 @router.delete("/{slug}/{rec_id}", status_code=204)
@@ -284,6 +308,8 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "edit")
+    fields = await _fields(s, ent.id)
+    hidden = _hidden_keys(fields, role_keys(grants), can(grants, "config", "manage"))
 
     to = payload.get("to")
     if not to:
@@ -306,7 +332,7 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
                                              record=rec, transition=tr, actor_user_id=user.id)
         await s.commit()
         await s.refresh(rec)
-        return {**_serialize(rec),
+        return {**_serialize(rec, hidden),
                 "pending_approval": {"id": str(pa.id), "to": to, "status": "PENDING"}}
 
     # Normal move: set status + emit the transition Event + run on-enter actions (fail-soft),
@@ -317,7 +343,7 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
                             record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
     await s.commit()
     await s.refresh(rec)
-    return _serialize(rec)
+    return _serialize(rec, hidden)
 
 
 @router.get("/{slug}/{rec_id}/history")
