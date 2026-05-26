@@ -22,7 +22,7 @@ _DEFS = [
      "Lead '{name}' moved to QUALIFIED. Phone: {phone}, source: {source}.",
      None),
     ("lead.converted", "Lead converted",
-     "Lead {name} converted 🎉",
+     "Lead {name} converted",
      "Lead '{name}' was converted to a customer.",
      None),
     ("deal.won", "Deal won",

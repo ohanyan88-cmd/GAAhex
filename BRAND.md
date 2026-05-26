@@ -147,3 +147,18 @@ the source hues above are fixed.
 - **Status pills / telemetry:** crimson = danger, amber = warning, mint = success (+ their `-soft`
   tints for pill backgrounds).
 - **Sidebar:** already dark by design — keep it on `--bg`/`--surface` with the `icon-light.png` mark.
+
+---
+
+## 4. Iconography — NO emoji in the product (hard rule)
+**The GAAex product UI uses zero emoji. Every icon is an inline SVG.** Emoji are allowed *only* in
+human communication (chat, email, etc.) — never in the app, notification content, seed data, or any
+user-facing string.
+
+- Icons live in `frontend/src/icons.tsx` as small SVG components: `stroke="currentColor"`,
+  `fill="none"`, `viewBox="0 0 24 24"`, `strokeWidth=2`, round caps/joins, sized via a `size` prop.
+  They inherit the current text color, so they theme automatically (dark/light).
+- This also rules out glyph/dingbat substitutes used *as* icons (✓ ✕ ⚙ ⚠ 🔔 ☀ 🌙 → …) — replace them
+  with the SVG equivalents (`CheckIcon`, `CloseIcon`, `GearIcon`, `WarningIcon`, `BellIcon`,
+  `SunIcon`, `MoonIcon`, `ArrowRightIcon`). Add new icons to `icons.tsx`; don't paste Unicode glyphs.
+- Plain typography (·, —, ellipsis…) and source-code comments are fine; the rule is about UI iconography.

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createEntity } from './api'
+import { CloseIcon } from './icons'
 
 const FIELD_TYPES = ['text', 'textarea', 'number', 'money', 'boolean', 'date', 'datetime', 'email', 'phone', 'select', 'ref', 'status']
 
@@ -42,7 +43,7 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
         transitions: transitions.filter((t) => t.from && t.to).map((t) => ({ from: t.from, to: t.to, guard: t.guard.trim() || null })),
       }
       const res = await createEntity(token, def)
-      setOk(`Created "${res.label_plural}" — it's now in the sidebar and fully working. 🎉`)
+      setOk(`Created "${res.label_plural}" — it's now in the sidebar and fully working.`)
       // reset
       setKey(''); setLabel(''); setLabelPlural(''); setSlug(''); setIcon('')
       setFields([{ key: 'name', label: 'Name', type: 'text', required: true, extra: '' }]); setStatuses([]); setTransitions([])
@@ -83,7 +84,7 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
                 </td>
                 <td><input type="checkbox" checked={f.required} onChange={(e) => upd(setFields, fields, i, { required: e.target.checked })} /></td>
                 <td><input value={f.extra} placeholder={f.type === 'select' ? 'a, b, c' : f.type === 'ref' ? 'customer' : ''} onChange={(e) => upd(setFields, fields, i, { extra: e.target.value })} /></td>
-                <td><button type="button" className="mini" onClick={() => setFields(fields.filter((_, j) => j !== i))}>✕</button></td>
+                <td><button type="button" className="mini" aria-label="Remove field" onClick={() => setFields(fields.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
               </tr>
             ))}
           </tbody>
@@ -99,7 +100,7 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
                 <td><input value={sx.key} onChange={(e) => upd(setStatuses, statuses, i, { key: e.target.value })} /></td>
                 <td><input value={sx.label} onChange={(e) => upd(setStatuses, statuses, i, { label: e.target.value })} /></td>
                 <td><input type="checkbox" checked={sx.is_initial} onChange={(e) => upd(setStatuses, statuses, i, { is_initial: e.target.checked })} /></td>
-                <td><button type="button" className="mini" onClick={() => setStatuses(statuses.filter((_, j) => j !== i))}>✕</button></td>
+                <td><button type="button" className="mini" aria-label="Remove status" onClick={() => setStatuses(statuses.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
               </tr>
             ))}
           </tbody>
@@ -115,7 +116,7 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
                 <td><select value={t.from} onChange={(e) => upd(setTransitions, transitions, i, { from: e.target.value })}><option value=""></option>{statusKeys.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
                 <td><select value={t.to} onChange={(e) => upd(setTransitions, transitions, i, { to: e.target.value })}><option value=""></option>{statusKeys.map((k) => <option key={k} value={k}>{k}</option>)}</select></td>
                 <td><input value={t.guard} placeholder="phone != None" onChange={(e) => upd(setTransitions, transitions, i, { guard: e.target.value })} /></td>
-                <td><button type="button" className="mini" onClick={() => setTransitions(transitions.filter((_, j) => j !== i))}>✕</button></td>
+                <td><button type="button" className="mini" aria-label="Remove transition" onClick={() => setTransitions(transitions.filter((_, j) => j !== i))}><CloseIcon size={13} /></button></td>
               </tr>
             ))}
           </tbody>

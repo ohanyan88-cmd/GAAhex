@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { WarningIcon } from './icons'
 
 // RefPicker — resolves a `ref` field to a dropdown of the target entity's records.
 // The backend stores a ref's target as the entity KEY in field.config.target (see seed.py /
@@ -74,7 +75,7 @@ export default function RefPicker({ token, targetKey, value, onChange }: {
     return () => { alive = false }
   }, [token, targetKey])
 
-  if (err) return <em className="muted">⚠ {err}</em>
+  if (err) return <em className="muted"><WarningIcon size={13} /> {err}</em>
 
   return (
     <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={loading}>

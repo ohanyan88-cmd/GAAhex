@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { WarningIcon } from './icons'
 
 // Dashboards — picks a board and renders its config-driven widgets from /dashboards/{key}/data.
 // Self-contained inline fetch (same pattern as api.ts / ReportsView). No chart library: KPIs are
@@ -120,7 +121,7 @@ export default function DashboardView({ token }: { token: string }) {
 }
 
 function Widget({ w }: { w: WidgetOut }) {
-  if (w.error) return <p className="err widget-err">⚠ {friendlyError(w.error)}</p>
+  if (w.error) return <p className="err widget-err"><WarningIcon size={14} /> {friendlyError(w.error)}</p>
 
   if (w.type === 'kpi') return <div className="kpi">{fmtNum(kpiValue(w.result))}</div>
 

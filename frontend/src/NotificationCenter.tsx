@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BellIcon } from './icons'
 
 // Notification center — a header bell + dropdown. Self-contained: inlines its own fetch calls
 // (same base + Authorization pattern as api.ts) and consumes the /notifications API.
@@ -103,7 +104,7 @@ export default function NotificationCenter({ token, entities, onOpen }: {
   return (
     <div className="notif">
       <button className="iconbtn" onClick={() => setOpen((o) => !o)} aria-label="Notifications" title="Notifications">
-        <span aria-hidden>🔔</span>
+        <BellIcon size={20} />
         {count > 0 && <span className="notif-badge">{count > 99 ? '99+' : count}</span>}
       </button>
 

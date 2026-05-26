@@ -5,6 +5,7 @@ import StudioView from './StudioView'
 import ReportsView from './ReportsView'
 import DashboardView from './DashboardView'
 import NotificationCenter from './NotificationCenter'
+import { GearIcon, SunIcon, MoonIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
@@ -86,7 +87,7 @@ export default function App() {
         {user?.can_configure && (
           <>
             <div className="nav-label">Admin</div>
-            <button className={'nav' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}>⚙ Studio</button>
+            <button className={'nav nav-icon' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon /> Studio</button>
           </>
         )}
       </aside>
@@ -101,7 +102,7 @@ export default function App() {
               title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
               aria-label="Toggle theme"
             >
-              <span aria-hidden>{theme === 'dark' ? '☀️' : '🌙'}</span>
+              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
             <NotificationCenter
               token={token}

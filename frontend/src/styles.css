@@ -223,3 +223,10 @@ button.mini.danger:hover { background: rgba(230, 57, 70, 0.28); }
 .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .legend-name { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legend-val { margin-left: auto; font-variant-numeric: tabular-nums; padding-left: 10px; color: var(--text); }
+
+/* SVG icons — the UI uses NO emoji (see BRAND.md); icons come from icons.tsx and inherit color. */
+.nav-icon { display: flex; align-items: center; gap: 8px; }
+.iconbtn svg { display: block; }
+.widget-err { display: inline-flex; align-items: center; gap: 6px; }
+.err svg, .muted svg { vertical-align: -2px; }
+.mini-icon { display: inline-flex; align-items: center; gap: 4px; }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, listRecords, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
+import { CheckIcon, ArrowRightIcon } from './icons'
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
@@ -144,7 +145,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   function renderCell(c: Field, r: Row) {
     const v = r[c.key]
     if (c.type === 'ref') return refLabels[c.key]?.[v] ?? (v ?? '')
-    if (c.type === 'boolean') return v ? '✓' : ''
+    if (c.type === 'boolean') return v ? <CheckIcon size={15} /> : ''
     return String(v ?? '')
   }
 
@@ -195,7 +196,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
               {hasWorkflow && (
                 <td>
                   {nextFrom(r.status).map((to) => (
-                    <button key={to} className="mini" onClick={() => doTransition(r.id, to)}>→ {to}</button>
+                    <button key={to} className="mini mini-icon" onClick={() => doTransition(r.id, to)}><ArrowRightIcon size={13} /> {to}</button>
                   ))}
                 </td>
               )}
