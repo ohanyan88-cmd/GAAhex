@@ -58,6 +58,18 @@ async def test_create_forces_initial_status(client, admin):
     assert r["status"] == "NEW"
 
 
+async def test_field_type_validation(client, admin):
+    # phone field must look like a phone (your "surname in the phone box" case)
+    assert (await client.post("/api/leads", headers=admin, json={"name": "P", "phone": "Petrosyan"})).status_code == 422
+    # email field must be a valid email
+    assert (await client.post("/api/leads", headers=admin, json={"name": "E", "email": "not-an-email"})).status_code == 422
+    # select must be one of the configured options
+    assert (await client.post("/api/leads", headers=admin, json={"name": "S", "source": "Telepathy"})).status_code == 422
+    # valid values pass
+    ok = await client.post("/api/leads", headers=admin, json={"name": "Good", "phone": "+374 91 234567", "email": "g@x.io", "source": "Website"})
+    assert ok.status_code == 201
+
+
 # ---- workflow ----
 
 async def test_workflow_guard_and_transitions(client, admin):

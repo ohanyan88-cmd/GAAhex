@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -49,6 +50,30 @@ async def _node_path(s: AsyncSession, node_id) -> str | None:
     return str(p) if p is not None else None
 
 
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_PHONE_RE = re.compile(r"^\+?[\d \-]{5,20}$")
+
+
+def _check_type(field: FieldDef, value):
+    """Type-aware validation for a present, non-empty field value (raises 422 if invalid)."""
+    t = field.type
+    if t == "email":
+        if not isinstance(value, str) or not _EMAIL_RE.match(value):
+            raise HTTPException(422, f"Invalid email for '{field.key}'")
+    elif t == "phone":
+        if not isinstance(value, str) or not _PHONE_RE.match(value.strip()):
+            raise HTTPException(422, f"Invalid phone number for '{field.key}'")
+    elif t in ("number", "money"):
+        try:
+            float(value)
+        except (TypeError, ValueError):
+            raise HTTPException(422, f"'{field.key}' must be a number")
+    elif t == "select":
+        opts = (field.config or {}).get("options")
+        if opts and value not in opts:
+            raise HTTPException(422, f"'{field.key}' must be one of {opts}")
+
+
 def _validate(fields: list[FieldDef], payload: dict, partial: bool):
     by_key = {f.key: f for f in fields}
     for k in payload:
@@ -65,6 +90,8 @@ def _validate(fields: list[FieldDef], payload: dict, partial: bool):
             continue
         if present:
             v = payload[f.key]
+            if v is not None and v != "":
+                _check_type(f, v)
             if f.type == "boolean" and v is not None:
                 v = bool(v)
             data[f.key] = v
