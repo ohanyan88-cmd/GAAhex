@@ -150,10 +150,16 @@ the source hues above are fixed.
 
 ---
 
-## 4. Iconography — NO emoji in the product (hard rule)
-**The GAAex product UI uses zero emoji. Every icon is an inline SVG.** Emoji are allowed *only* in
-human communication (chat, email, etc.) — never in the app, notification content, seed data, or any
-user-facing string.
+## 4. Iconography — NO emoji in the product UI (hard rule)
+**The GAAex product UI uses zero emoji. Every icon is an inline SVG.** This covers all UI chrome,
+controls, labels, system-generated notification content, seed data, and any string GAAex itself
+authors.
+
+**The one exception — human-authored communication content.** Inside GAAex's communication features
+(a Messenger / chat, Email composer, comments, or any other message a *user types and sends*), emoji
+are allowed in the **message body**, exactly as in any chat or email. The rule bans emoji as product
+chrome/iconography and in system-authored text — it does **not** police what users write to each
+other. (The communication feature's own UI — its buttons, icons, toolbar — still uses SVG icons.)
 
 - Icons live in `frontend/src/icons.tsx` as small SVG components: `stroke="currentColor"`,
   `fill="none"`, `viewBox="0 0 24 24"`, `strokeWidth=2`, round caps/joins, sized via a `size` prop.
