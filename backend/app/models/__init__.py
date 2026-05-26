@@ -19,6 +19,7 @@ from .report import ReportDef
 from .order import Order, OrderItem
 from .outbound import OutboundMessage
 from .webhook import WebhookDef, WebhookDelivery
+from .apikey import ApiKey
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -36,4 +37,5 @@ __all__ = [
     "Product", "ReportDef",
     "Order", "OrderItem",
     "OutboundMessage", "WebhookDef", "WebhookDelivery",
+    "ApiKey",
 ]

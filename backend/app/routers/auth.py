@@ -4,7 +4,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -14,11 +14,13 @@ from ..config import settings
 from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
 from ..models import User
 from ..models.refresh_token import RefreshToken
+from ..models.apikey import ApiKey
 from ..security import verify_password, create_access_token, decode_token
 from ..access import load_grants, can
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# auto_error=False so a missing Bearer doesn't 401 before we get a chance to try the X-API-Key path.
+oauth2 = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 class LoginIn(BaseModel):
@@ -118,9 +120,40 @@ async def logout(body: RefreshIn, s: AsyncSession = Depends(get_owner_session)):
     return {"ok": True}
 
 
-async def current_user(token: str = Depends(oauth2), s: AsyncSession = Depends(get_session)) -> User:
+async def _user_from_api_key(raw_key: str) -> User | None:
+    """Resolve an X-API-Key to the User it acts as. Looks up the hash via the OWNER session (the
+    request is pre-tenant), rejects missing/revoked keys, and stamps last_used_at. Default-deny."""
+    async with OwnerSessionLocal() as o:
+        ak = (await o.execute(
+            select(ApiKey).where(ApiKey.key_hash == _hash_token(raw_key))
+        )).scalar_one_or_none()
+        if not ak or ak.revoked_at is not None:
+            return None
+        ak.last_used_at = datetime.now(timezone.utc)
+        user = (await o.execute(select(User).where(User.id == ak.acts_as_user_id))).scalar_one_or_none()
+        await o.commit()
+    return user
+
+
+async def current_user(
+    token: str | None = Depends(oauth2),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    s: AsyncSession = Depends(get_session),
+) -> User:
+    """Authenticate via EITHER an X-API-Key header (machine principal) OR a Bearer JWT (human).
+    Either way we resolve the User via the OWNER session (the request session has no tenant GUC yet)
+    and bind the request to the user's tenant for RLS. Default-deny on any bad credential."""
+    if x_api_key:
+        user = await _user_from_api_key(x_api_key)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        await set_tenant_guc(s, user.tenant_id)
+        return user
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     # jwt.decode verifies the signature AND the `exp` claim; an expired or forged token raises,
-    # and we map every failure to 401 (never 500). Default-deny.
+    # and we map every failure to 401 (never 500).
     try:
         payload = decode_token(token)
         uid = uuid.UUID(payload["sub"])

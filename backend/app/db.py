@@ -6,13 +6,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from .config import settings
 
-engine = create_async_engine(settings.database_url, echo=False, future=True)
+# Pool sizing: each authenticated request uses an app session AND a short owner session (the RLS-flip
+# user lookup), so the defaults (5+10) are tight under burst. pool_pre_ping avoids stale-conn errors.
+_POOL = dict(pool_size=20, max_overflow=20, pool_pre_ping=True)
+
+engine = create_async_engine(settings.database_url, echo=False, future=True, **_POOL)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 # Owner (RLS-bypass) engine for the pre-auth / no-tenant paths (seeding, login + user lookup,
 # org-tree). Falls back to the app engine's URL when owner_database_url is unset — so tests and the
 # pre-flip app behave exactly as before; only a real gaaex_app database_url makes the split bite.
-owner_engine = create_async_engine(settings.owner_database_url or settings.database_url, echo=False, future=True)
+owner_engine = create_async_engine(settings.owner_database_url or settings.database_url, echo=False, future=True, **_POOL)
 OwnerSessionLocal = async_sessionmaker(owner_engine, class_=AsyncSession, expire_on_commit=False)
 
 

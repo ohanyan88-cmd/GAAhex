@@ -24,7 +24,7 @@ from ..models.product import Product
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
 from .auth import current_user
-from .records import _node_path, _node_paths     # reuse the exact records scope primitives
+from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
 
 router = APIRouter(prefix="/api", tags=["billing"])
@@ -185,6 +185,7 @@ async def _next_invoice_number(s, tenant_id) -> str:
 
 @router.get("/subscriptions")
 async def list_subscriptions(customer: uuid.UUID | None = None, status: str | None = None,
+                             limit: int = 200, offset: int = 0,
                              user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await load_grants(s, user)
     if not can(grants, "subscription", "view"):
@@ -198,7 +199,7 @@ async def list_subscriptions(customer: uuid.UUID | None = None, status: str | No
     rows = (await s.execute(q.order_by(Subscription.created_at))).scalars().all()
     visible = [r for r in rows
                if can(grants, "subscription", "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)]
-    return [_sub(r) for r in visible]
+    return [_sub(r) for r in _paginate(visible, limit, offset)]
 
 
 @router.post("/subscriptions", status_code=201)
@@ -358,6 +359,7 @@ async def generate_invoice(sub_id: uuid.UUID, user: User = Depends(current_user)
 
 @router.get("/invoices")
 async def list_invoices(customer: uuid.UUID | None = None, status: str | None = None,
+                        limit: int = 200, offset: int = 0,
                         user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "view"):
@@ -371,7 +373,7 @@ async def list_invoices(customer: uuid.UUID | None = None, status: str | None = 
     rows = (await s.execute(q.order_by(Invoice.created_at))).scalars().all()
     visible = [r for r in rows
                if can(grants, "invoice", "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)]
-    return [_invoice(r) for r in visible]
+    return [_invoice(r) for r in _paginate(visible, limit, offset)]
 
 
 @router.post("/invoices", status_code=201)
@@ -515,12 +517,13 @@ async def _get_product(s, user: User, product_id) -> Product:
 
 
 @router.get("/products")
-async def list_products(active: bool | None = None, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+async def list_products(active: bool | None = None, limit: int = 200, offset: int = 0,
+                        user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     q = select(Product).where(Product.tenant_id == user.tenant_id)
     if active is not None:
         q = q.where(Product.active.is_(active))
     rows = (await s.execute(q.order_by(Product.name))).scalars().all()
-    return [_product(p) for p in rows]
+    return [_product(p) for p in _paginate(rows, limit, offset)]
 
 
 @router.post("/products", status_code=201)

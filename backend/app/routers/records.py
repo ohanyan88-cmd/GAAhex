@@ -159,22 +159,37 @@ def _sort_value(rec: Record, field: str):
     return (rec.data or {}).get(field)
 
 
+DEFAULT_PAGE = 200
+MAX_PAGE = 500
+
+
+def _paginate(items: list, limit, offset) -> list:
+    """Bound a post-filter result list: default DEFAULT_PAGE, capped at MAX_PAGE, with an offset.
+    Applied AFTER scope/q/filter/sort, so pagination can never widen what access control allows."""
+    lim = max(1, min(int(limit if limit is not None else DEFAULT_PAGE), MAX_PAGE))
+    off = max(0, int(offset or 0))
+    return items[off: off + lim]
+
+
 @router.get("/{slug}")
 async def list_records(
     slug: str,
     q: str | None = None,
     filter: str | None = None,
     sort: str | None = None,
+    limit: int = DEFAULT_PAGE,
+    offset: int = 0,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
-    """List records for an entity. All three query params are optional and backward-compatible
-    (no params ⇒ prior behavior):
+    """List records for an entity. All query params are optional and backward-compatible
+    (no params ⇒ prior behavior — still a plain JSON list):
       - q:      case-insensitive substring over text data fields
       - filter: a GXL boolean evaluated per record (ctx = {**data, "status"}); broken ⇒ fail closed
       - sort:   a field key (or `-key` for descending) over a data value / status / created_at
+      - limit:  page size (default 200, capped at 500) · offset: rows to skip
     Order of operations: org-scope + view-gate FIRST (never leak past access control), then q,
-    then filter, then sort.
+    then filter, then sort, then pagination LAST (so paging never widens visibility).
     """
     ent = await _entity(s, user.tenant_id, slug)
     grants = await load_grants(s, user)
@@ -216,7 +231,8 @@ async def list_records(
             present = sorted(present, key=lambda r: str(_sort_value(r, field)), reverse=desc)
         visible = present + missing
 
-    return [_serialize(r, hidden) for r in visible]
+    # 5. pagination — bound the result LAST, after all access/filter/sort decisions
+    return [_serialize(r, hidden) for r in _paginate(visible, limit, offset)]
 
 
 @router.post("/{slug}", status_code=201)

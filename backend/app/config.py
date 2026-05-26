@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     access_token_minutes: int = 60
     refresh_token_days: int = 14          # lifetime of a stored (rotating) refresh token
     password_min_length: int = 8          # password policy: minimum length
+    rate_limit_enabled: bool = False      # OFF by default so the test suite is unaffected; enable in prod
+    rate_limit_per_min: int = 6000        # requests per principal-or-IP per fixed 1-minute window
 
 
 settings = Settings()

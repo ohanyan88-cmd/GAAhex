@@ -12,7 +12,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys
 
 
 @asynccontextmanager
@@ -31,6 +31,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
+# Abuse guard — OFF unless settings.rate_limit_enabled (so tests/dev are unaffected). In-process.
+app.add_middleware(apikeys.RateLimitMiddleware)
 
 app.include_router(auth.router)
 app.include_router(meta.router)
@@ -49,6 +51,7 @@ app.include_router(report_builder.router)
 app.include_router(orders.router)
 app.include_router(customer360.router)
 app.include_router(webhooks.router)
+app.include_router(apikeys.router)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)
