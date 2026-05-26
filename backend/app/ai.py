@@ -52,20 +52,35 @@ def _deterministic_stub(prompt: str, system: str | None) -> str:
 
 # ---- real providers (registered only when configured) ----
 
-async def _openai_complete(prompt: str, system: str | None) -> str:
-    import httpx  # already a dependency; lazy so it's only paid when a provider is live
-    base = settings.ai_base_url or "https://api.openai.com/v1"
-    model = settings.ai_model or "gpt-4o-mini"
-    messages = ([{"role": "system", "content": system}] if system else []) + \
-               [{"role": "user", "content": prompt}]
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.post(
-            f"{base}/chat/completions",
-            headers={"Authorization": f"Bearer {settings.ai_api_key}"},
-            json={"model": model, "messages": messages},
-        )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+# OpenAI-compatible providers: same chat/completions wire format, different base URL + default model.
+# Gemini and Groq both expose this surface, so one client covers openai / gemini / groq.
+_OPENAI_COMPAT = {
+    "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.0-flash"),
+    "groq":   ("https://api.groq.com/openai/v1", "llama-3.3-70b-versatile"),
+}
+
+
+def _openai_compatible(provider: str) -> CompletionFn:
+    """Build a completion fn for any OpenAI-compatible provider (openai/gemini/groq)."""
+    default_base, default_model = _OPENAI_COMPAT[provider]
+
+    async def _complete(prompt: str, system: str | None) -> str:
+        import httpx  # already a dependency; lazy so it's only paid when a provider is live
+        base = settings.ai_base_url or default_base
+        model = settings.ai_model or default_model
+        messages = ([{"role": "system", "content": system}] if system else []) + \
+                   [{"role": "user", "content": prompt}]
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{base}/chat/completions",
+                headers={"Authorization": f"Bearer {settings.ai_api_key}"},
+                json={"model": model, "messages": messages},
+            )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+    return _complete
 
 
 async def _anthropic_complete(prompt: str, system: str | None) -> str:
@@ -90,10 +105,10 @@ def configure_ai() -> None:
     Idempotent — safe to call more than once."""
     global _active_provider
     p = (settings.ai_provider or "none").lower()
-    if p == "openai" and settings.ai_api_key:
-        register_provider("openai", _openai_complete)
-        _active_provider = "openai"
-        logger.info("ai: provider = openai (model=%s)", settings.ai_model or "gpt-4o-mini")
+    if p in _OPENAI_COMPAT and settings.ai_api_key:
+        register_provider(p, _openai_compatible(p))
+        _active_provider = p
+        logger.info("ai: provider = %s (model=%s)", p, settings.ai_model or _OPENAI_COMPAT[p][1])
     elif p == "anthropic" and settings.ai_api_key:
         register_provider("anthropic", _anthropic_complete)
         _active_provider = "anthropic"
@@ -168,6 +183,27 @@ async def summarize_record(fields: dict) -> str:
     prompt = "Summarize this record in 1-2 plain sentences:\n" + "\n".join(facts)
     system = "You are a concise assistant for an ISP back-office. Summarize the record plainly."
     return await complete(prompt, system=system)
+
+
+# ============================================================================================
+# Capability 3 — Ask GAAex (the assistant: answers a question grounded in live business context)
+# ============================================================================================
+
+ASSISTANT_SYSTEM = (
+    "You are the GAAex assistant for an ISP back-office. Answer the user's question concisely and "
+    "plainly, using ONLY the business context provided below. Money is Armenian Dram (֏). If the "
+    "context doesn't contain the answer, say so honestly and suggest where in GAAex to look. Do not "
+    "invent numbers."
+)
+
+
+async def ask_assistant(question: str, context_lines: list[str]) -> str:
+    """Answer a free-text question grounded in the caller's live, scoped business context. With no
+    provider this returns the deterministic stub (an extractive readout of the context); with a
+    provider it's a real answer. The context is gathered + scoped by the router, never here."""
+    ctx = "\n".join(context_lines) if context_lines else "- (no context available)"
+    prompt = f"Business context:\n{ctx}\n\nQuestion: {question}\n\nAnswer:"
+    return await complete(prompt, system=ASSISTANT_SYSTEM)
 
 
 # Activate at import time, guarded by settings (non-invasive — no main.py change needed).

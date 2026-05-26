@@ -34,7 +34,9 @@ class Settings(BaseSettings):
     twilio_from: str | None = None        # sender phone number / messaging-service id
 
     # ---- AI assist (opt-in; "none" ⇒ deterministic rule-based results, no external calls) ----
-    ai_provider: str = "none"             # none|openai|anthropic
+    # gemini = Google's free tier (aistudio.google.com); groq = groq.com free tier — both
+    # OpenAI-compatible, so they reuse the openai client with a provider-specific default base URL.
+    ai_provider: str = "none"             # none|openai|anthropic|gemini|groq
     ai_api_key: str | None = None
     ai_model: str | None = None           # provider model id; sensible default per provider when unset
     ai_base_url: str | None = None        # override API base (proxy / self-host / Azure)

@@ -22,13 +22,14 @@ import AccountsView from './AccountsView'
 import PartiesView from './PartiesView'
 import AnalyticsView from './AnalyticsView'
 import LeadPipelineView from './LeadPipelineView'
+import AskGaaexView from './AskGaaexView'
 import { useI18n, initI18n, type Lang } from './i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'ask' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -116,6 +117,7 @@ export default function App() {
       <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
         <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
         <div className="nav-label">{t('nav.workspace', 'Workspace')}</div>
+        <button className={'nav' + (view.type === 'ask' ? ' on' : '')} onClick={() => setView({ type: 'ask' })}>{t('nav.ask', 'Ask GAAex')}</button>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>{t('nav.org', 'Org tree')}</button>
         <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>{t('nav.dashboards', 'Dashboards')}</button>
         <button className={'nav' + (view.type === 'analytics' ? ' on' : '')} onClick={() => setView({ type: 'analytics' })}>{t('nav.analytics', 'Analytics')}</button>
@@ -206,6 +208,8 @@ export default function App() {
               ? <AnalyticsView token={token} />
             : view.type === 'lead-pipeline'
               ? <LeadPipelineView token={token} />
+            : view.type === 'ask'
+              ? <AskGaaexView token={token} />
               : view.type === 'messages'
                 ? <MessagesView token={token} />
                 : view.type === 'activity'

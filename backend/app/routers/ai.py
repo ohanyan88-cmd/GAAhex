@@ -13,11 +13,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import Record, User
 from ..access import load_grants, can
-from ..ai import score_lead, summarize_record
+from ..ai import score_lead, summarize_record, ask_assistant, active_provider
 from .auth import current_user
 from .records import _node_path
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+
+def _amd(luma) -> str:
+    """luma (minor units) → a plain '12,345 ֏' string for the assistant context."""
+    return f"{int(luma) / 100:,.0f} ֏"
 
 
 async def _require_ai(s: AsyncSession, user: User):
@@ -63,3 +68,45 @@ async def summarize_endpoint(payload: dict, user: User = Depends(current_user), 
     grants = await _require_ai(s, user)
     fields = await _resolve_fields(s, user, grants, payload)
     return {"summary": await summarize_record(fields)}
+
+
+@router.get("/status")
+async def ai_status(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Which brain is live — so the UI can show 'local/offline' vs a real provider."""
+    await _require_ai(s, user)
+    p = active_provider()
+    return {"provider": p, "live": p != "none"}
+
+
+async def _business_context(s: AsyncSession, user: User) -> list[str]:
+    """Live, SCOPED business facts for the assistant to answer from. Reuses analytics.overview (so
+    the same scope + permission rules apply); if the caller lacks analytics.view we simply answer
+    without the financial context rather than failing."""
+    from .analytics import overview as analytics_overview
+    lines: list[str] = []
+    try:
+        ov = await analytics_overview(user=user, s=s)
+        lines += [
+            f"- MRR (monthly recurring revenue): {_amd(ov['mrr'])}",
+            f"- Active subscriptions: {ov['active_subscriptions']}",
+            f"- Accounts receivable outstanding: {_amd(ov['ar_outstanding'])}",
+            f"- Overdue invoices: {ov['overdue_count']} totaling {_amd(ov['overdue_total'])}",
+            f"- Collected this month: {_amd(ov['collected_this_month'])} (previous month {_amd(ov['collected_prev_month'])})",
+            f"- New leads in the last 30 days: {ov['new_leads_30d']} (prior 30 days: {ov['new_leads_prev_30d']})",
+        ]
+    except HTTPException:
+        pass  # no analytics permission → answer from general knowledge of GAAex only
+    return lines
+
+
+@router.post("/ask")
+async def ask_endpoint(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Ask GAAex — a free-text question answered from the caller's live, scoped business context.
+    Templated readout with no provider; a real answer when a provider (e.g. Gemini) is configured."""
+    await _require_ai(s, user)
+    question = (payload.get("question") or "").strip()
+    if not question:
+        raise HTTPException(422, "question is required")
+    context = await _business_context(s, user)
+    answer = await ask_assistant(question, context)
+    return {"answer": answer, "provider": active_provider(), "grounded": bool(context)}
