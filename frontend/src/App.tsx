@@ -18,13 +18,15 @@ import ServicesView from './ServicesView'
 import InteractionsView from './InteractionsView'
 import UsageView from './UsageView'
 import ResourcePoolsView from './ResourcePoolsView'
+import AccountsView from './AccountsView'
+import PartiesView from './PartiesView'
 import { useI18n, initI18n, type Lang } from './i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -118,6 +120,9 @@ export default function App() {
         <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>{t('nav.messages', 'Messages')}</button>
         <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>{t('nav.activity', 'Activity')}</button>
         <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>{t('nav.reportBuilder', 'Report Builder')}</button>
+        <div className="nav-label">{t('nav.customers', 'Customers')}</div>
+        <button className={'nav' + (view.type === 'accounts' ? ' on' : '')} onClick={() => setView({ type: 'accounts' })}>{t('nav.accounts', 'Accounts')}</button>
+        <button className={'nav' + (view.type === 'parties' ? ' on' : '')} onClick={() => setView({ type: 'parties' })}>{t('nav.parties', 'Parties')}</button>
         <div className="nav-label">{t('nav.billing', 'Billing')}</div>
         <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>{t('nav.invoices', 'Invoices')}</button>
         <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>{t('nav.subscriptions', 'Subscriptions')}</button>
@@ -217,6 +222,10 @@ export default function App() {
                   ? <UsageView token={token} />
                 : view.type === 'resource-pools'
                   ? <ResourcePoolsView token={token} />
+                : view.type === 'accounts'
+                  ? <AccountsView token={token} />
+                : view.type === 'parties'
+                  ? <PartiesView token={token} />
                 : view.type === 'reports'
                   ? <ReportsView token={token} />
                   : view.type === 'studio'

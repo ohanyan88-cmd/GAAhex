@@ -52,6 +52,17 @@ export type Payment = {
   created_at?: string | null
 }
 
+export type Party = {
+  id: string
+  type?: string                 // individual | organization | carrier
+  name?: string
+  parent_party_id?: string | null
+  parent_name?: string | null
+  status?: string | null
+  created_at?: string | null
+  [k: string]: any
+}
+
 export type Product = {
   id: string
   key?: string

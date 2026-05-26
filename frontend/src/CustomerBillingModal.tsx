@@ -8,6 +8,7 @@ import InteractionsView from './InteractionsView'
 import { PrinterIcon } from './icons'
 
 type Service = { id: string; type?: string; name?: string; status?: string | null }
+type Acct = { id: string; type?: string; currency?: string; billing_cycle?: string; status?: string | null }
 
 // A customer's billing-at-a-glance: their subscriptions + recent invoices, with generate-invoice and
 // a product-prefilled new-subscription form. Reads /api/subscriptions?customer= and /api/invoices?customer=.
@@ -21,6 +22,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   const [subs, setSubs] = useState<Subscription[] | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [accounts, setAccounts] = useState<Acct[]>([])
   const [unrated, setUnrated] = useState<Record<string, number>>({})
   const [products, setProducts] = useState<Product[]>([])
   const [unavailable, setUnavailable] = useState(false)
@@ -41,6 +43,9 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
     if (ir.ok && Array.isArray(ir.data)) setInvoices(ir.data)
     const svr = await bget<Service[]>(token, `/api/services?customer=${encodeURIComponent(customerId)}`)
     setServices(svr.ok && Array.isArray(svr.data) ? svr.data : [])
+    // accounts layer (17a, Stage-1 dormant — empty until the accounts↔customer link is wired)
+    const ar = await bget<Acct[]>(token, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
+    setAccounts(ar.ok && Array.isArray(ar.data) ? ar.data : [])
     // unrated usage counts per subscription (light: one query, counted client-side)
     const ur = await bget<any[]>(token, '/api/usage?rated=false')
     const m: Record<string, number> = {}
@@ -108,7 +113,26 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             </button>
           </div>
 
-          <div className="bill-section-head">
+          <h3>Accounts</h3>
+          {accounts.length === 0
+            ? <p className="muted">No accounts yet.</p>
+            : (
+              <div className="grid-wrap"><table className="grid">
+                <thead><tr><th scope="col">Type</th><th scope="col">Currency</th><th scope="col">Cycle</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                  {accounts.map((a) => (
+                    <tr key={a.id}>
+                      <td><span className="pill">{a.type ?? '—'}</span></td>
+                      <td>{a.currency ?? '—'}</td>
+                      <td>{a.billing_cycle ?? '—'}</td>
+                      <td>{a.status ? <span className="pill">{a.status}</span> : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            )}
+
+          <div className="bill-section-head" style={{ marginTop: 18 }}>
             <h3>Subscriptions</h3>
             <button className="btn btn-ghost btn-sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : '+ New subscription'}</button>
           </div>

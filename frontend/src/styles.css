@@ -712,6 +712,9 @@ button:hover { background: var(--primary-hover); }
 .chan-cell { display: inline-flex; align-items: center; gap: 6px; text-transform: capitalize; }
 .chan-cell svg { color: var(--text-3); flex: none; }
 
+/* B17 — party hierarchy hint: a child name gets a left connector line + indent (no glyph) */
+.party-child { display: inline-block; margin-left: 10px; padding-left: 10px; border-left: var(--bw-2) solid var(--border); }
+
 /* B16 — language switcher (EN / ՀՅ) */
 .lang-switch { display: inline-flex; border: var(--bw-1) solid var(--border); border-radius: var(--r-md); overflow: hidden; }
 .lang-opt { background: transparent; color: var(--text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--fw-medium); cursor: pointer; }
