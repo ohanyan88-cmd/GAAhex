@@ -27,6 +27,7 @@ from .usage import UsageRecord
 from .translation import Translation
 from .party import Party, Account
 from .job import JobRun
+from .report_schedule import ReportSchedule
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -50,4 +51,5 @@ __all__ = [
     "Translation",
     "Party", "Account",
     "JobRun",
+    "ReportSchedule",
 ]

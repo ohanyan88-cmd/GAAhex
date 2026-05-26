@@ -1,11 +1,21 @@
 """Record export (launch-critical H73).
 
-`GET /api/{slug}/export?format=csv|json` downloads the records the caller can view for an entity —
-using the SAME org-scope + view-gate + q/filter/sort pipeline as the list endpoint, so an export
-never leaks beyond what's on screen. Read-only. Stdlib only (`csv`, `json`); no new dependency.
+`GET /api/{slug}/export?format=csv|json|xlsx|pdf` downloads the records the caller can view for an
+entity — using the SAME org-scope + view-gate + q/filter/sort pipeline as the list endpoint, so an
+export never leaks beyond what's on screen. Read-only.
 
-Columns are the entity's FieldDefs in order (the status-type field is folded into the canonical
-`status` column), then `status`, `id`, `created_at`. CSV headers use field labels.
+Formats
+-------
+csv   (default) — streaming plain-text CSV; stdlib only.
+json            — JSON array; stdlib only.
+xlsx            — OOXML workbook with bold header row; stdlib only (no openpyxl/xlsxwriter dep).
+pdf             — Branded tabular PDF: tenant logo_text + entity title + date in header; stdlib only.
+
+Branding for xlsx/pdf comes from tenant settings (logo_text, currency, name) — nothing hardcoded.
+Money values stored as integer luma are displayed via format_money(luma, currency) (÷100, grouped).
+
+Dependency note: no third-party PDF/XLSX libraries are required or added.  Both formats are
+rendered by the stdlib-only helpers in app/export_formats.py.
 """
 import csv
 import io
@@ -18,14 +28,25 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import Record, User
+from ..models import Record, Tenant, User
 from ..access import load_grants, can
 from .. import gxl
 from .auth import current_user
 # reuse the records engine's exact helpers so filtering/scoping stays in lock-step with the list view
 from .records import _entity, _fields, _node_paths, _matches_q, _sort_value
+from ..export_formats import build_xlsx, build_pdf
 
 router = APIRouter(prefix="/api", tags=["export"])
+
+_VALID_FORMATS = {"csv", "json", "xlsx", "pdf"}
+
+
+async def _tenant(s: AsyncSession, tenant_id) -> Tenant:
+    """Load the tenant row for branding (logo_text, currency, name)."""
+    row = (await s.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "Tenant not found")
+    return row
 
 
 async def _viewable_filtered(s: AsyncSession, user: User, ent, q, filter_expr, sort) -> list[Record]:
@@ -85,11 +106,19 @@ async def export_records(
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
-    """Export an entity's viewable records as CSV or JSON (same filters as the list view).
-    Empty result → a valid empty file (header only), never an error."""
+    """Export an entity's viewable records as CSV, JSON, XLSX, or PDF.
+
+    Same filters + access control as the list view.  Empty result → a valid empty file (header
+    only for CSV/XLSX; header band only for PDF), never an error.
+
+    ?format=csv   (default)  — streaming plain CSV
+    ?format=json             — JSON array
+    ?format=xlsx             — OOXML workbook, bold header row
+    ?format=pdf              — branded PDF: tenant logo_text + entity title + date in header
+    """
     fmt = (format or "csv").lower()
-    if fmt not in ("csv", "json"):
-        raise HTTPException(400, "format must be 'csv' or 'json'")
+    if fmt not in _VALID_FORMATS:
+        raise HTTPException(400, f"format must be one of {sorted(_VALID_FORMATS)}")
 
     ent = await _entity(s, user.tenant_id, slug)
     fields = await _fields(s, ent.id)
@@ -98,8 +127,12 @@ async def export_records(
     header = [f.label for f in data_fields] + ["Status", "ID", "Created At"]
 
     records = await _viewable_filtered(s, user, ent, q, filter, sort)
-    filename = f"{slug}-{date.today():%Y%m%d}.{fmt}"
+    today = date.today()
+    filename = f"{slug}-{today:%Y%m%d}.{fmt}"
 
+    # ------------------------------------------------------------------
+    # JSON (unchanged)
+    # ------------------------------------------------------------------
     if fmt == "json":
         rows = []
         for r in records:
@@ -114,22 +147,69 @@ async def export_records(
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
-    # CSV — streamed, one row at a time
-    def _rows():
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(header)
-        yield buf.getvalue()
-        buf.seek(0); buf.truncate(0)
-        for r in records:
-            line = [_cell((r.data or {}).get(k)) for k in keys]
-            line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else ""]
-            writer.writerow(line)
+    # ------------------------------------------------------------------
+    # CSV — streamed, one row at a time (unchanged)
+    # ------------------------------------------------------------------
+    if fmt == "csv":
+        def _csv_rows():
+            buf = io.StringIO()
+            writer = csv.writer(buf)
+            writer.writerow(header)
             yield buf.getvalue()
             buf.seek(0); buf.truncate(0)
+            for r in records:
+                line = [_cell((r.data or {}).get(k)) for k in keys]
+                line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else ""]
+                writer.writerow(line)
+                yield buf.getvalue()
+                buf.seek(0); buf.truncate(0)
 
-    return StreamingResponse(
-        _rows(),
-        media_type="text/csv",
+        return StreamingResponse(
+            _csv_rows(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    # ------------------------------------------------------------------
+    # XLSX and PDF both need branding — load tenant once
+    # ------------------------------------------------------------------
+    t = await _tenant(s, user.tenant_id)
+    currency: str = t.currency or "AMD"
+    logo_text: str = t.logo_text or t.name or "GAAex"
+
+    # Build flat rows (all string cells, same as CSV but without streaming)
+    data_rows = []
+    for r in records:
+        line = [_cell((r.data or {}).get(k)) for k in keys]
+        line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else ""]
+        data_rows.append(line)
+
+    # ------------------------------------------------------------------
+    # XLSX — stdlib OOXML writer (no openpyxl / xlsxwriter dep)
+    # ------------------------------------------------------------------
+    if fmt == "xlsx":
+        content = build_xlsx(header, data_rows)
+        return Response(
+            content=content,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    # ------------------------------------------------------------------
+    # PDF — stdlib raw PDF writer, branded header (no reportlab / weasyprint dep)
+    # ------------------------------------------------------------------
+    # fmt == "pdf"
+    report_title = f"{ent.label or slug} Export"
+    content = build_pdf(
+        header=header,
+        rows=data_rows,
+        logo_text=logo_text,
+        report_title=report_title,
+        generated_date=today,
+        currency=currency,
+    )
+    return Response(
+        content=content,
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

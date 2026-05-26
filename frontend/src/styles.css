@@ -881,3 +881,42 @@ button:hover { background: var(--primary-hover); }
 .status-chip-err .status-chip-dot { background: var(--danger); }
 .status-chip-loading { background: var(--surface-2); color: var(--text-3); }
 .status-chip-loading .status-chip-dot { background: var(--text-3); }
+
+/* ============================================================================
+   B24 — schedule-a-report panel + export-format buttons.
+   ============================================================================ */
+
+/* ---- Schedule panel (sits below the rb-layout result pane) ---- */
+.sched-section { margin-top: 24px; border-top: var(--bw-1) solid var(--border); padding-top: 20px; }
+.sched-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.sched-section-head h3 { margin: 0; font-size: var(--fs-h3); font-weight: var(--fw-semibold); }
+.sched-form { background: var(--surface); border: var(--bw-1) solid var(--border); border-radius: var(--r-lg);
+  padding: var(--pad); margin-bottom: 16px; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--gap); align-items: end;
+  box-shadow: var(--shadow); }
+.sched-list { display: flex; flex-direction: column; gap: 8px; }
+.sched-item { display: flex; align-items: center; gap: 10px; background: var(--surface);
+  border: var(--bw-1) solid var(--border); border-radius: var(--r-md); padding: 10px 12px;
+  box-shadow: var(--shadow); }
+.sched-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sched-item-name { font-size: var(--fs-sm); font-weight: var(--fw-medium); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.sched-item-meta { font-size: var(--fs-caption); color: var(--text-3); display: flex; gap: 10px; flex-wrap: wrap; }
+.sched-item-actions { display: flex; gap: 6px; flex: none; }
+.sched-pill-active { background: var(--success-soft); color: var(--success); }
+.sched-pill-paused { background: var(--surface-2); color: var(--text-3); }
+
+/* ---- Export-format buttons (appended to the rb-result / run-view) ---- */
+.export-formats { display: flex; align-items: center; gap: 6px; margin-top: 14px;
+  padding-top: 12px; border-top: var(--bw-1) solid var(--border-soft); flex-wrap: wrap; }
+.export-formats-label { font-size: var(--fs-caption); text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-3); margin-right: 4px; }
+.export-btn { display: inline-flex; align-items: center; gap: 5px; background: var(--surface-2);
+  color: var(--text-2); border: var(--bw-1) solid var(--border); border-radius: var(--r-sm);
+  padding: 4px 10px; font-size: var(--fs-caption); font-weight: var(--fw-medium);
+  font-family: inherit; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard); }
+.export-btn:hover { background: var(--primary-soft); color: var(--text); border-color: var(--primary); }
+.export-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+.export-btn:disabled { opacity: .45; cursor: not-allowed; }
+.export-btn svg { flex: none; }

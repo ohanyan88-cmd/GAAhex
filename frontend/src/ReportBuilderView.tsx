@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef } from './api'
-import { bget, bpost, type Fetched } from './billing'   // reuse the generic auth'd fetch helpers
+import { bget, bpost, type Fetched, BASE, authH } from './billing'   // reuse the generic auth'd fetch helpers
 import { toast } from './Toast'
 import { confirmDialog } from './Modal'
 import { EmptyState, ErrorBanner, SkeletonRows } from './States'
 import { t } from './i18n'
-
-const BASE = 'http://127.0.0.1:8099'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import ReportSchedulePanel from './ReportSchedulePanel'
+import { DownloadIcon } from './icons'
 
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type Field = { key: string; label: string; type: string }
@@ -15,6 +14,34 @@ type Query = { entity: string; metric: string; field?: string; group_by?: string
 type Report = { id: string; key: string; name: string; description?: string | null; query: Query; shared: boolean; mine: boolean }
 type RunResult = { id: string; name: string; matched?: number; result?: any; error?: string }
 type Group = { group: string; value: number }
+
+// Export format availability probe: check once whether XLSX and PDF are supported.
+// If the relevant endpoint 404s for a format, hide that button silently.
+type ExportFormats = { csv: boolean; xlsx: boolean; pdf: boolean }
+
+async function probeExportFormats(token: string, reportId: string): Promise<ExportFormats> {
+  // We do HEAD probes — if the server doesn't support HEAD we fall back to a small
+  // GET probe that we abort quickly. Any 404 ⇒ hide; everything else ⇒ show.
+  async function probe(format: string): Promise<boolean> {
+    try {
+      const ctrl = new AbortController()
+      const tid = setTimeout(() => ctrl.abort(), 3000)
+      const r = await fetch(`${BASE}/api/reports-builder/${reportId}/run?format=${format}`, {
+        method: 'HEAD',
+        headers: authH(token),
+        signal: ctrl.signal,
+      })
+      clearTimeout(tid)
+      return r.status !== 404
+    } catch {
+      // Network error or abort = treat as available (show button, real download will surface the error)
+      return true
+    }
+  }
+  // CSV is already working (no probe needed); probe XLSX + PDF in parallel
+  const [xlsx, pdf] = await Promise.all([probe('xlsx'), probe('pdf')])
+  return { csv: true, xlsx, pdf }
+}
 
 const METRICS = ['count', 'sum', 'avg']
 const slugify = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -168,19 +195,65 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
           <div className="rb-result">
             {!run && <p className="muted">Select a report to run it.</p>}
             {run && run.error && <ErrorBanner message={run.error === 'forbidden' ? "You can't view this report's data." : run.error} />}
-            {run && !run.error && <RunView run={run} />}
+            {run && !run.error && <RunView run={run} token={token} />}
           </div>
         </div>
+      )}
+
+      {/* B24 — schedule panel; degrades silently if /api/report-schedules 404s */}
+      {!unavailable && reports && reports.length > 0 && (
+        <ReportSchedulePanel
+          token={token}
+          reports={(reports ?? []).map((r) => ({ id: r.id, name: r.name }))}
+        />
       )}
     </div>
   )
 }
 
-function RunView({ run }: { run: RunResult }) {
+function RunView({ run, token }: { run: RunResult; token: string }) {
   const fmt = (n: number) => n.toLocaleString('en-US')
   const result = run.result
   const groups = asGroups(result)
   const isValue = result && typeof result === 'object' && 'value' in result
+
+  // B24 — export format availability (probe on mount when a report is selected)
+  const [formats, setFormats] = useState<ExportFormats | null>(null)
+  const [exporting, setExporting] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    probeExportFormats(token, run.id).then((f) => { if (alive) setFormats(f) })
+    return () => { alive = false }
+  }, [token, run.id])
+
+  // Trigger a file download for the chosen format. Opens a blob URL so the
+  // Authorization header can be passed (a plain <a> link cannot carry it).
+  async function doExport(format: string) {
+    setExporting(format)
+    try {
+      const r = await fetch(`${BASE}/api/reports-builder/${run.id}/run?format=${format}`, {
+        headers: authH(token),
+      })
+      if (!r.ok) {
+        const detail = await r.json().catch(() => null)
+        throw new Error(detail?.detail || t('export.error', 'Export failed'))
+      }
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${run.name}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      toast.error((e as Error).message || t('export.error', 'Export failed'))
+    } finally {
+      setExporting(null)
+    }
+  }
 
   return (
     <div className="widget">
@@ -202,6 +275,49 @@ function RunView({ run }: { run: RunResult }) {
             })()}
           </div>
         </>
+      )}
+
+      {/* B24 — export-format buttons; hidden until probe resolves; hides per-format if 404 */}
+      {formats !== null && (formats.csv || formats.xlsx || formats.pdf) && (
+        <div className="export-formats" role="group" aria-label={t('export.label', 'Export')}>
+          <span className="export-formats-label">{t('export.label', 'Export')}</span>
+          {formats.csv && (
+            <button
+              type="button"
+              className="export-btn"
+              disabled={exporting !== null}
+              onClick={() => doExport('csv')}
+              aria-label={t('export.csv', 'CSV')}
+            >
+              <DownloadIcon size={12} aria-hidden />
+              {t('export.csv', 'CSV')}
+            </button>
+          )}
+          {formats.xlsx && (
+            <button
+              type="button"
+              className="export-btn"
+              disabled={exporting !== null}
+              onClick={() => doExport('xlsx')}
+              aria-label={t('export.xlsx', 'XLSX')}
+            >
+              <DownloadIcon size={12} aria-hidden />
+              {t('export.xlsx', 'XLSX')}
+            </button>
+          )}
+          {formats.pdf && (
+            <button
+              type="button"
+              className="export-btn"
+              disabled={exporting !== null}
+              onClick={() => doExport('pdf')}
+              aria-label={t('export.pdf', 'PDF')}
+            >
+              <DownloadIcon size={12} aria-hidden />
+              {t('export.pdf', 'PDF')}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
