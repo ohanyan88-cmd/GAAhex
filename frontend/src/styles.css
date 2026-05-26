@@ -1,0 +1,20 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9; color: #1a1a1a; }
+
+.center { min-height: 100vh; display: grid; place-items: center; }
+.card { background: #fff; padding: 28px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.08); width: 300px; display: flex; flex-direction: column; gap: 10px; }
+.card h1 { margin: 0; font-size: 24px; }
+.card input { padding: 9px 11px; border: 1px solid #d0d3d8; border-radius: 7px; font-size: 14px; }
+.card button, header button { padding: 9px 12px; border: 0; border-radius: 7px; background: #1a1a1a; color: #fff; cursor: pointer; font-size: 14px; }
+
+.muted { color: #7a7f87; font-size: 13px; }
+.hint { color: #9aa0a8; font-size: 12px; margin: 0; }
+.err { color: #c0392b; font-size: 13px; margin: 0; }
+
+.app header { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #e6e8eb; }
+.app header button { margin-left: auto; }
+.app main { padding: 20px 24px; }
+
+.tree { list-style: none; padding: 0; }
+.tree li { padding: 6px 0; font-size: 14px; }
+.badge { display: inline-block; font-size: 11px; background: #eef0f3; color: #555; padding: 2px 8px; border-radius: 999px; margin-right: 8px; }

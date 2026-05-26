@@ -30,14 +30,24 @@ Then open:
 
 Postgres → `localhost:5433` (user/pass/db = `gaaex`). Redis → `localhost:6380`.
 
-## M0 status (the walking-skeleton foundation)
+## M0 status (the walking-skeleton foundation) — ✅ COMPLETE
 - [x] Postgres + Redis (docker)
 - [x] Tenant + OrgNode (recursive, ltree) models
 - [x] Schema bootstrap + demo seed on startup
 - [x] FastAPI baseline: `/health`, `/health/db`, `/api/org-tree`
-- [ ] Auth: login / session
-- [ ] Frontend baseline page
-- [ ] (M1+) Alembic migrations · Config Registry · Runtime Interpreter
+- [x] Auth: login / session (JWT + bcrypt) — `/auth/login`, `/auth/me`
+- [x] Frontend baseline page (React + TS + Vite): login → org tree
+
+### Frontend (dev)
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173 (auto-bumps if taken)
+```
+
+### Next: M1
+Alembic migrations · Config Registry (`EntityDef`/`FieldDef`) · Runtime Interpreter · generic
+CRUD from config. See `../GAAex-Vision/6-platform-delivery/31-phase-0-scope.md`.
 
 ## Layout
 ```
