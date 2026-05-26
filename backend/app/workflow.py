@@ -1,12 +1,17 @@
-"""Workflow engine (M4 slice): guarded lifecycle transitions + event emission.
+"""Workflow engine: guarded lifecycle transitions, on-enter actions, and approval steps.
 
-A WorkflowDef.config holds {"transitions": [{from, to, guard}]}. Status changes go ONLY through
-transitions (not free PATCH), each gated by a GXL guard. On success an Event is emitted.
+A WorkflowDef.config holds {"transitions": [{from, to, guard, actions?, approval?}]}. Status changes
+go ONLY through transitions (not free PATCH), each gated by a GXL guard. On success an Event is
+emitted, the transition's on-enter `actions` run (fail-soft), and — if the transition is flagged for
+`approval` — the move is parked as a PendingApproval until an eligible approver decides it.
 """
+from simpleeval import EvalWithCompoundTypes, NameNotDefined
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import WorkflowDef, FieldDef, Event, Record
+from .models import WorkflowDef, FieldDef, Event, Record, OrgNode, RoleDef, Assignment
+from .models.approval import PendingApproval
+from .access import _scope_ok, _has_perm
 
 
 async def get_transitions(s: AsyncSession, entity_id) -> list[dict]:
@@ -40,3 +45,208 @@ async def emit(s: AsyncSession, tenant_id, type_: str, entity_key: str, record_i
         tenant_id=tenant_id, type=type_, entity_key=entity_key,
         record_id=record_id, actor_user_id=actor_user_id, data=data,
     ))
+
+
+# ===========================================================================================
+# On-enter actions
+# ===========================================================================================
+#
+# A transition may carry an `actions` list in its config; each action runs on entry, inside the
+# caller's transaction (after the status change, before commit). Action JSON shapes:
+#
+#   {"type": "notify", "def_key"?: "<NotificationDef key>", "roles"?: ["manager", ...]}
+#       Fire inbox notifications. def_key defaults to "{entity_key}.{to_status_lower}". `roles`
+#       (optional) narrows recipients to covering holders of those roles (else the usual
+#       owner + covering-role set). The actor is never notified.
+#   {"type": "set_field", "field": "<key>", "value": <literal>}
+#       Set a `data` field to a literal value.
+#   {"type": "set_field", "field": "<key>", "expr": "<GXL expression>"}
+#       Set a `data` field to a value computed from the record context (data fields + status).
+#   {"type": "emit_event", "event_type": "<type>", "data"?: {...}}
+#       Emit a custom typed audit Event.
+#
+# Anything else is skipped (and noted in the per-action result). Every action is fail-soft: a
+# failing one is logged as an `action_failed` Event and skipped — it never breaks the transition.
+
+
+def _record_context(record: Record) -> dict:
+    """Names an action's GXL expression can reference: the record's data fields + status + ids."""
+    ctx: dict = dict(record.data or {})
+    ctx["status"] = record.status
+    ctx["id"] = str(record.id)
+    ctx["record_id"] = str(record.id)
+    return ctx
+
+
+def _eval_value(expr: str, context: dict):
+    """Evaluate a GXL expression to its *value* (not coerced to bool, unlike gxl.evaluate, which is
+    for guards). Sandboxed via simpleeval; unknown names resolve to None."""
+    evaluator = EvalWithCompoundTypes(names=dict(context))
+
+    def run():
+        try:
+            return evaluator.eval(expr)
+        except NameNotDefined as e:
+            name = getattr(e, "name", None)
+            if not name:
+                raise
+            evaluator.names[name] = None
+            return run()
+
+    return run()
+
+
+def _action_set_field(record: Record, action: dict) -> None:
+    field = action.get("field")
+    if not field:
+        raise ValueError("set_field action requires 'field'")
+    if "expr" in action:
+        value = _eval_value(action["expr"], _record_context(record))
+    else:
+        value = action.get("value")
+    data = dict(record.data or {})
+    data[field] = value
+    record.data = data                      # reassign so SQLAlchemy detects the JSONB change
+
+
+async def _action_notify(s: AsyncSession, *, tenant_id, entity_key, record, transition, action, actor_user_id) -> None:
+    from .notify_hooks import resolve_recipients          # local import avoids any import-order coupling
+    from .routers.notifications import emit_notification
+
+    to_status = transition.get("to")
+    def_key = action.get("def_key") or f"{entity_key}.{str(to_status).lower()}"
+    context = _record_context(record)
+    context["to"] = to_status
+    recipients = await resolve_recipients(s, tenant_id=tenant_id, record=record, role_keys=action.get("roles"))
+    for uid in recipients:
+        if actor_user_id is not None and uid == actor_user_id:
+            continue
+        await emit_notification(s, tenant_id=tenant_id, def_key=def_key, user_id=uid,
+                                entity_key=entity_key, record_id=record.id, context=context)
+
+
+async def run_actions(s: AsyncSession, *, tenant_id, entity_key, record: Record, transition: dict, actor_user_id) -> list[dict]:
+    """Run a transition's on-enter actions in the caller's transaction. Fail-soft per action; returns
+    a per-action result list (useful for callers/tests). See the module comment for action shapes."""
+    results = []
+    for action in (transition or {}).get("actions") or []:
+        atype = (action or {}).get("type")
+        try:
+            if atype == "notify":
+                await _action_notify(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
+                                     transition=transition, action=action, actor_user_id=actor_user_id)
+            elif atype == "set_field":
+                _action_set_field(record, action)
+            elif atype == "emit_event":
+                await emit(s, tenant_id, action.get("event_type", "action"), entity_key,
+                           record.id, actor_user_id, action.get("data") or {})
+            else:
+                results.append({"type": atype, "status": "skipped", "reason": "unknown action type"})
+                continue
+            results.append({"type": atype, "status": "ok"})
+        except Exception as e:                  # fail-soft: log + keep going, never break the transition
+            try:
+                await emit(s, tenant_id, "action_failed", entity_key, record.id, actor_user_id,
+                           {"action": atype, "error": str(e)})
+            except Exception:
+                pass
+            results.append({"type": atype, "status": "error", "error": str(e)})
+    return results
+
+
+async def complete_transition(s: AsyncSession, *, tenant_id, entity_key, record: Record, transition: dict, actor_user_id) -> None:
+    """Apply a transition's full effect: set status, emit the transition Event, run on-enter actions.
+    Used by the approval-approve path; the normal /transition handler can call run_actions directly."""
+    frm = record.status
+    record.status = transition.get("to")
+    await emit(s, tenant_id, "transition", entity_key, record.id, actor_user_id, {"from": frm, "to": record.status})
+    await run_actions(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
+                      transition=transition, actor_user_id=actor_user_id)
+
+
+# ===========================================================================================
+# Approval steps
+# ===========================================================================================
+#
+# A transition is an approval step when it carries a truthy `approval` flag:
+#   {"from": "QUALIFIED", "to": "CONVERTED", "approval": true}
+#   {"from": "OPEN", "to": "WON", "approval": {"roles": ["manager", "super_admin"]}}
+# `approval.roles` (when given) names the role keys that may approve; otherwise any covering
+# role-holder who can edit the entity is eligible.
+
+
+def requires_approval(transition: dict | None) -> bool:
+    return bool((transition or {}).get("approval"))
+
+
+def approver_roles(transition: dict | None) -> list | None:
+    """The role keys allowed to approve, or None for the default (covering editors)."""
+    appr = (transition or {}).get("approval")
+    if isinstance(appr, dict):
+        roles = appr.get("roles")
+        if isinstance(roles, list) and roles:
+            return roles
+    return None
+
+
+async def eligible_approvers(s: AsyncSession, *, tenant_id, record: Record, transition: dict) -> list:
+    """User ids allowed to approve this transition for this record: a holder of a qualifying role
+    whose (scope, node) covers the record's owner node — the same scope rule access.py enforces.
+
+    Qualifying role = one named in `approval.roles`, or (when unspecified) any role granting
+    `{entity_key}.edit`. Owners with no covering role do NOT qualify (unlike notification recipients).
+    """
+    if record is None or record.owner_node_id is None:
+        return []
+    paths = {str(i): str(p) for i, p in (await s.execute(
+        select(OrgNode.id, OrgNode.path).where(OrgNode.tenant_id == tenant_id)
+    )).all()}
+    record_path = paths.get(str(record.owner_node_id))
+    if not record_path:
+        return []
+
+    wanted = approver_roles(transition)
+    rows = (await s.execute(
+        select(Assignment.user_id, RoleDef.scope, RoleDef.key, RoleDef.permissions, OrgNode.path)
+        .join(RoleDef, RoleDef.id == Assignment.role_id)
+        .join(OrgNode, OrgNode.id == Assignment.node_id)
+        .where(Assignment.tenant_id == tenant_id)
+    )).all()
+
+    out: set = set()
+    for uid, scope, rkey, perms, grant_path in rows:
+        if wanted is not None:
+            if rkey not in wanted:
+                continue
+        elif not _has_perm(set(perms or []), record.entity_key, "edit"):
+            continue
+        if _scope_ok(scope, str(grant_path), record_path):
+            out.add(uid)
+    return list(out)
+
+
+async def request_approval(s: AsyncSession, *, tenant_id, entity_key, record: Record, transition: dict, actor_user_id) -> PendingApproval:
+    """Park an approval transition: create a PENDING PendingApproval (the record does NOT move),
+    emit an `approval_requested` Event, and notify eligible approvers (fail-soft). Returns the row."""
+    pa = PendingApproval(
+        tenant_id=tenant_id, entity_key=entity_key, record_id=record.id,
+        from_status=record.status, to_status=transition.get("to"),
+        requested_by=actor_user_id, status="PENDING",
+    )
+    s.add(pa)
+    await s.flush()
+    await emit(s, tenant_id, "approval_requested", entity_key, record.id, actor_user_id,
+               {"from": record.status, "to": transition.get("to"), "approval_id": str(pa.id)})
+    try:
+        from .routers.notifications import emit_notification
+        approvers = await eligible_approvers(s, tenant_id=tenant_id, record=record, transition=transition)
+        context = _record_context(record)
+        context["to_status"] = transition.get("to")
+        for uid in approvers:
+            if actor_user_id is not None and uid == actor_user_id:
+                continue
+            await emit_notification(s, tenant_id=tenant_id, def_key=f"{entity_key}.approval_requested",
+                                    user_id=uid, entity_key=entity_key, record_id=record.id, context=context)
+    except Exception:
+        pass                                    # a notification failure must never block the request
+    return pa

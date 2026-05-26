@@ -12,7 +12,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
-from .routers import auth, meta, records, reports, notifications, dashboards
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals
 
 
 @asynccontextmanager
@@ -34,6 +34,10 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(meta.router)
+# views + approvals own fixed paths under /api/* — register BEFORE the generic /api/{slug} records
+# router so they aren't swallowed as entity slugs.
+app.include_router(views.router)
+app.include_router(approvals.router)
 app.include_router(records.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)

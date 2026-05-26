@@ -8,6 +8,8 @@ from .access import PermissionDef, RoleDef, Assignment
 from .event import Event
 from .notification import NotificationDef, Notification
 from .dashboard import DashboardDef, WidgetDef
+from .saved_view import SavedViewDef
+from .approval import PendingApproval
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -17,4 +19,5 @@ __all__ = [
     "Event",
     "NotificationDef", "Notification",
     "DashboardDef", "WidgetDef",
+    "SavedViewDef", "PendingApproval",
 ]

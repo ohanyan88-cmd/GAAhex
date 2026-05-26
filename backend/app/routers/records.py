@@ -128,8 +128,40 @@ def _deny(entity_key: str, verb: str):
 
 # ---- generic CRUD (access-enforced) ----
 
+def _matches_q(rec: Record, needle: str) -> bool:
+    """Case-insensitive substring match over a record's text-ish data values (status excluded)."""
+    for v in (rec.data or {}).values():
+        if isinstance(v, str) and needle in v.lower():
+            return True
+    return False
+
+
+def _sort_value(rec: Record, field: str):
+    """The value a record sorts by: a core column (status/created_at) or a JSONB data field."""
+    if field == "created_at":
+        return rec.created_at
+    if field == "status":
+        return rec.status
+    return (rec.data or {}).get(field)
+
+
 @router.get("/{slug}")
-async def list_records(slug: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+async def list_records(
+    slug: str,
+    q: str | None = None,
+    filter: str | None = None,
+    sort: str | None = None,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """List records for an entity. All three query params are optional and backward-compatible
+    (no params ⇒ prior behavior):
+      - q:      case-insensitive substring over text data fields
+      - filter: a GXL boolean evaluated per record (ctx = {**data, "status"}); broken ⇒ fail closed
+      - sort:   a field key (or `-key` for descending) over a data value / status / created_at
+    Order of operations: org-scope + view-gate FIRST (never leak past access control), then q,
+    then filter, then sort.
+    """
     ent = await _entity(s, user.tenant_id, slug)
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "view"):           # no view permission on this entity at all
@@ -138,10 +170,34 @@ async def list_records(slug: str, user: User = Depends(current_user), s: AsyncSe
     rows = (await s.execute(
         select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key).order_by(Record.created_at)
     )).scalars().all()
+
+    # 1. scope filter (access control) — must run before any user-supplied filtering
     visible = [
         r for r in rows
         if can(grants, ent.key, "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)
     ]
+
+    # 2. free-text search
+    if q:
+        needle = q.lower()
+        visible = [r for r in visible if _matches_q(r, needle)]
+
+    # 3. GXL filter (per record; a broken/false expression excludes — never 500)
+    if filter:
+        visible = [r for r in visible if gxl.evaluate(filter, {**(r.data or {}), "status": r.status})]
+
+    # 4. sort (None values always last; coerce to string if values are uncomparable)
+    if sort:
+        desc = sort.startswith("-")
+        field = sort[1:] if desc else sort
+        present = [r for r in visible if _sort_value(r, field) is not None]
+        missing = [r for r in visible if _sort_value(r, field) is None]
+        try:
+            present = sorted(present, key=lambda r: _sort_value(r, field), reverse=desc)
+        except TypeError:
+            present = sorted(present, key=lambda r: str(_sort_value(r, field)), reverse=desc)
+        visible = present + missing
+
     return [_serialize(r) for r in visible]
 
 
@@ -243,8 +299,20 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
         raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {tr.get('guard')}")
 
     frm = rec.status
-    rec.status = to
-    await workflow.emit(s, user.tenant_id, "transition", ent.key, rec.id, user.id, {"from": frm, "to": to})
+
+    # Approval step: park the move instead of applying it; the record stays at `frm` until decided.
+    if workflow.requires_approval(tr):
+        pa = await workflow.request_approval(s, tenant_id=user.tenant_id, entity_key=ent.key,
+                                             record=rec, transition=tr, actor_user_id=user.id)
+        await s.commit()
+        await s.refresh(rec)
+        return {**_serialize(rec),
+                "pending_approval": {"id": str(pa.id), "to": to, "status": "PENDING"}}
+
+    # Normal move: set status + emit the transition Event + run on-enter actions (fail-soft),
+    # then fire event notifications.
+    await workflow.complete_transition(s, tenant_id=user.tenant_id, entity_key=ent.key,
+                                       record=rec, transition=tr, actor_user_id=user.id)
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
     await s.commit()
