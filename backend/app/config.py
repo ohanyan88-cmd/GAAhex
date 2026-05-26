@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-change-me"
     jwt_alg: str = "HS256"
     access_token_minutes: int = 60
+    refresh_token_days: int = 14          # lifetime of a stored (rotating) refresh token
+    password_min_length: int = 8          # password policy: minimum length
 
 
 settings = Settings()

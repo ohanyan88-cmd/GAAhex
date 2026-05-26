@@ -10,6 +10,8 @@ from .notification import NotificationDef, Notification
 from .dashboard import DashboardDef, WidgetDef
 from .saved_view import SavedViewDef
 from .approval import PendingApproval
+from .refresh_token import RefreshToken
+from .comm import Thread, Message
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -20,4 +22,6 @@ __all__ = [
     "NotificationDef", "Notification",
     "DashboardDef", "WidgetDef",
     "SavedViewDef", "PendingApproval",
+    "RefreshToken",
+    "Thread", "Message",
 ]
