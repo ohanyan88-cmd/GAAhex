@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User, Record
 from ..models.billing import Subscription, Invoice, InvoiceLine, Payment
+from ..models.job import JobRun
 from ..models.product import Product
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
@@ -65,6 +66,16 @@ def _money(value, field: str) -> int:
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _record_job_run(s: AsyncSession, user: User, job_key: str, status: str, summary: dict,
+                    started_at: datetime, owner_node_id=None) -> None:
+    """Add a JobRun row (J96 job log) to the session. Caller commits. Used by the batch jobs
+    (run-dunning, run-cycle) to record when they ran and what they did."""
+    s.add(JobRun(
+        tenant_id=user.tenant_id, owner_node_id=owner_node_id, job_key=job_key, status=status,
+        summary=summary, actor_user_id=user.id, started_at=started_at, finished_at=_now(),
+    ))
 
 
 def _add_cycle(dt: datetime, cycle: str) -> datetime:
@@ -615,18 +626,27 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
     if not can(grants, "invoice", "edit"):
         _deny("invoice.edit")
 
-    now = _now()
-    issued = (await s.execute(
-        select(Invoice).where(Invoice.tenant_id == user.tenant_id, Invoice.status == "ISSUED")
-    )).scalars().all()
-    newly = []
-    for inv in issued:
-        if inv.due_at is not None and inv.due_at < now:
-            inv.status = "OVERDUE"
-            await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
-                                {"from": "ISSUED", "to": "OVERDUE"})
-            newly.append(inv)
-    await s.commit()                                  # persist the status changes first
+    started = _now()
+    try:
+        now = _now()
+        issued = (await s.execute(
+            select(Invoice).where(Invoice.tenant_id == user.tenant_id, Invoice.status == "ISSUED")
+        )).scalars().all()
+        newly = []
+        for inv in issued:
+            if inv.due_at is not None and inv.due_at < now:
+                inv.status = "OVERDUE"
+                await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
+                                    {"from": "ISSUED", "to": "OVERDUE"})
+                newly.append(inv)
+        summary = {"checked": len(issued), "marked_overdue": len(newly)}
+        _record_job_run(s, user, "billing.run_dunning", "SUCCESS", summary, started)
+        await s.commit()                              # persist status changes + the JobRun first
+    except Exception as e:
+        await s.rollback()
+        _record_job_run(s, user, "billing.run_dunning", "ERROR", {"message": str(e)}, started)
+        await s.commit()
+        raise
 
     # Best-effort dunning notifications — a notification failure must not undo the marking above.
     # `emit_notification` is config-gated: no-op unless an `invoice.overdue` def exists & is enabled.
@@ -643,7 +663,7 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
     except Exception:
         await s.rollback()                            # marking already committed; just drop the notifies
 
-    return {"checked": len(issued), "marked_overdue": len(newly)}
+    return summary
 
 
 # ---- date parsing (after the routes that use it; module-level fn is fine) ----

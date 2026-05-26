@@ -15,6 +15,29 @@ export function LoadingState({ message }: { message?: string } = {}) {
   )
 }
 
+// Skeleton shimmer — for list-level loading. Renders N placeholder rows that
+// animate a muted shimmer until real data arrives. Fully disabled under
+// prefers-reduced-motion (the animation collapses to near-0 via the global rule
+// in styles.css). Prefer this over LoadingState on second-tier loads (inside a
+// view that already has a heading) so the page layout is stable.
+export function SkeletonRows({ rows = 5 }: { rows?: number }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={t('common.loading', 'Loading…')}
+      aria-busy="true"
+    >
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} style={{ marginBottom: 8 }}>
+          <div className="skeleton skeleton-row" />
+          {i % 2 === 0 && <div className="skeleton skeleton-row-sm" style={{ marginTop: 4 }} />}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function EmptyState({ icon, title, message, action }: {
   icon?: ReactNode
   title: string

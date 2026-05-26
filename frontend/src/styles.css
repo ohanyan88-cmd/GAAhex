@@ -832,6 +832,39 @@ button:hover { background: var(--primary-hover); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin-icon { animation: spin 0.9s linear infinite; color: var(--text-3); }
 
+/* ---- Skeleton shimmer loading state ----------------------------------------
+   Uses only BRAND tokens; shimmer animates a translucent highlight left→right.
+   Under prefers-reduced-motion the animation collapses to near-0 (inherited
+   from the global rule above), leaving a static muted block — no motion at all.
+   ---- */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position:  400px 0; }
+}
+.skeleton {
+  border-radius: var(--r-sm);
+  background-color: var(--surface-2);
+  background-image: linear-gradient(
+    90deg,
+    var(--surface-2)   0%,
+    var(--border)      40%,
+    var(--surface-2)   60%,
+    var(--surface-2)   100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer var(--dur-slow) ease-in-out infinite;
+}
+/* A skeleton table row: a full-width bar of the given height */
+.skeleton-row { height: 18px; width: 100%; margin: 6px 0; }
+/* Narrow variant for sub-labels / secondary lines */
+.skeleton-row-sm { height: 13px; width: 60%; }
+/* Skeleton block used inside .state (matches EmptyState centering) */
+.skeleton-block { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 24px; }
+.skeleton-block .skeleton { display: block; }
+.skeleton-block .skeleton-circle { width: 40px; height: 40px; border-radius: 50%; }
+.skeleton-block .skeleton-title { height: 20px; width: 180px; }
+.skeleton-block .skeleton-msg   { height: 14px; width: 280px; }
+
 /* ---- Pager (prev/next + range label) ---- */
 .pager { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
 .pager-info { font-size: var(--fs-sm); color: var(--text-3); font-variant-numeric: tabular-nums; }

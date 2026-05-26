@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { bget, bpost, bdel } from './billing'
 import { Modal, confirmDialog } from './Modal'
 import { toast } from './Toast'
-import { EmptyState, ErrorBanner, PermissionDenied } from './States'
+import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
 import { ArrowRightIcon, ChevronLeftIcon, InboxIcon } from './icons'
+import { t } from './i18n'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + detail with allocations. Degrades on 404.
 type Pool = { id: string; name?: string; kind?: string; spec?: any; allocation_count?: number; created_at?: string | null }
@@ -41,7 +42,7 @@ export default function ResourcePoolsView({ token }: { token: string }) {
     const res = await bget<Pool[]>(token, '/api/resource-pools')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
-    if (!res.ok) { setError('Failed to load resource pools'); setList([]); return }
+    if (!res.ok) { setError(t('pools.loadError', 'Failed to load resource pools')); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
   }
 
@@ -52,13 +53,13 @@ export default function ResourcePoolsView({ token }: { token: string }) {
     const spec = (kind === 'ipv4' || kind === 'ipv6') ? { cidr: cidr.trim() } : (kind === 'vlan' || kind === 'phone') ? { from: from.trim(), to: to.trim() } : {}
     try {
       await bpost(token, '/api/resource-pools', { name: name.trim(), kind, spec })
-      toast.success('Pool created')
+      toast.success(t('pools.created', 'Pool created'))
       setCreating(false); setName(''); setKind('ipv4'); setCidr(''); setFrom(''); setTo('')
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
 
-  if (denied) return <PermissionDenied message="Resource pools are admin-only." />
+  if (denied) return <PermissionDenied message={t('pools.denied', 'Resource pools are admin-only.')} />
   if (detailId) return <PoolDetail token={token} id={detailId} onBack={() => { setDetailId(null); load() }} />
 
   return (
@@ -88,8 +89,8 @@ export default function ResourcePoolsView({ token }: { token: string }) {
       )}
 
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<InboxIcon size={40} />} title="Resource pools aren't available yet" message="IPAM pools will appear here once the inventory service is enabled." />}
+      {list === null && !error && <SkeletonRows />}
+      {unavailable && <EmptyState icon={<InboxIcon size={40} />} title={t('pools.unavailable', "Resource pools aren't available yet")} message={t('pools.unavailableMsg', 'IPAM pools will appear here once the inventory service is enabled.')} />}
       {list && !unavailable && list.length === 0 && !error && (
         <EmptyState icon={<InboxIcon size={40} />} title="No pools" message="Create a block to allocate values from." />
       )}
@@ -124,7 +125,7 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
   async function load() {
     setError('')
     const pr = await bget<Pool>(token, `/api/resource-pools/${id}`)
-    if (!pr.ok) { setError(pr.status === 404 ? 'Pool not found' : 'Failed to load pool'); return }
+    if (!pr.ok) { setError(pr.status === 404 ? t('pools.poolNotFound', 'Pool not found') : t('pools.poolLoadError', 'Failed to load pool')); return }
     setPool(pr.data)
     const ar = await bget<Allocation[]>(token, `/api/resource-pools/${id}/allocations`)
     setAllocs(ar.ok && Array.isArray(ar.data) ? ar.data : [])
@@ -139,7 +140,7 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
     if (!ok) return
     try {
       await bdel(token, `/api/resource-pools/${id}/allocations/${aid}`)
-      toast.success('Value released')
+      toast.success(t('pools.valueReleased', 'Value released'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -152,7 +153,7 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {!pool && !error && <p className="muted">Loading…</p>}
+      {!pool && !error && <SkeletonRows rows={3} />}
 
       {pool && (
         <>
@@ -198,7 +199,7 @@ function AllocateModal({ token, poolId, services, onClose, onDone }: { token: st
     setSaving(true)
     try {
       await bpost(token, `/api/resource-pools/${poolId}/allocations`, { value: value.trim(), service_id: serviceId || undefined })
-      toast.success('Value allocated')
+      toast.success(t('pools.valueAllocated', 'Value allocated'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
   }

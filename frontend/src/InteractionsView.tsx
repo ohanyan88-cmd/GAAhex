@@ -3,8 +3,9 @@ import { bget, bpost } from './billing'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { timeAgo } from './time'
-import { EmptyState, ErrorBanner, PermissionDenied } from './States'
+import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
 import { PhoneIcon, MailIcon, MessageIcon, EditIcon, InfoIcon } from './icons'
+import { t } from './i18n'
 
 // Interactions log (E14 /api/interactions) — list + "Log interaction" composer. Degrades on 404.
 type Interaction = {
@@ -50,13 +51,13 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
     const res = await bget<Interaction[]>(token, `/api/interactions${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
-    if (!res.ok) { setError('Failed to load interactions'); setList([]); return }
+    if (!res.ok) { setError(t('interactions.loadError', 'Failed to load interactions')); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
   }
 
   useEffect(() => { load() }, [token, customerId, channel])
 
-  if (denied) return <PermissionDenied message="You don't have permission to view interactions." />
+  if (denied) return <PermissionDenied message={t('interactions.denied', "You don't have permission to view interactions.")} />
 
   return (
     <div>
@@ -77,8 +78,8 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
       )}
 
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<MessageIcon size={40} />} title="Interactions aren't available yet" message="Logged touchpoints will appear here once the contact-center service is enabled." />}
+      {list === null && !error && <SkeletonRows />}
+      {unavailable && <EmptyState icon={<MessageIcon size={40} />} title={t('interactions.unavailable', "Interactions aren't available yet")} message={t('interactions.unavailableMsg', 'Logged touchpoints will appear here once the contact-center service is enabled.')} />}
       {list && !unavailable && list.length === 0 && !error && (
         <EmptyState icon={<MessageIcon size={40} />} title="No interactions" message="Log the first customer touchpoint." />
       )}
@@ -122,7 +123,7 @@ function LogModal({ token, customerId, onClose, onDone }: { token: string; custo
         channel, direction, subject: subject.trim() || undefined, body: body.trim(),
         customer_id: customerId || undefined,
       })
-      toast.success('Interaction logged')
+      toast.success(t('interactions.logged', 'Interaction logged'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
   }

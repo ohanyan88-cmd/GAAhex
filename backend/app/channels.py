@@ -5,6 +5,12 @@ Dev adapters just log (no external credentials); a real SMTP/Twilio/webhook adap
 behind the same interface via `register(name, adapter)`. `dispatch(...)` routes by channel name,
 records an OutboundMessage (the delivery log), and is fully fail-soft — it never raises into the
 caller (a delivery problem must not break the notification emit / record mutation that triggered it).
+
+E23: `dispatch` now consults `app.adapters.registry` (the OOP ChannelAdapter layer) FIRST.
+If the new registry has an adapter for the channel, it is used and its result drives the
+OutboundMessage status.  For channels NOT in the new registry (inapp, webhook, console), the
+legacy functional adapters in `_REGISTRY` below continue to handle the call unchanged.
+This makes the transition fully non-breaking.
 """
 import asyncio
 import logging
@@ -78,19 +84,53 @@ async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
 
     `inapp` is a no-op with no log row (the inbox Notification is the delivery). For every other
     channel: run the adapter, record SENT on success or FAILED (with the error) on raise, and never
-    propagate. Returns the OutboundMessage (or None for inapp / if logging itself fails)."""
+    propagate. Returns the OutboundMessage (or None for inapp / if logging itself fails).
+
+    E23 routing — checked in priority order:
+    1.  adapters.registry (OOP ChannelAdapter layer — email + sms)  → uses result["status"]
+    2.  _REGISTRY (legacy functional adapters — inapp/console/webhook) → raises on failure
+    3.  Neither present → FAILED with "no adapter" error
+    The fallback to legacy adapters keeps all existing channels (inapp/webhook/console) working
+    without any change; the non-breaking guarantee is preserved.
+    """
     if channel == "inapp":
         return None
 
-    adapter = _REGISTRY.get(channel)
-    status, error = "SENT", None
+    # -- E23: try the OOP adapter registry first --
+    # Import lazily to avoid a circular import at module load (adapters imports config, not channels).
     try:
-        if adapter is None:
-            status, error = "FAILED", f"no adapter registered for channel '{channel}'"
-        else:
-            await adapter(to, subject, body)
-    except Exception as e:                      # adapter failure → FAILED, but keep going
-        status, error = "FAILED", str(e)[:500]
+        from .adapters import registry as _adapter_registry  # noqa: PLC0415
+        oop_adapter = _adapter_registry.get(channel)
+    except Exception:
+        oop_adapter = None
+
+    status, error = "SENT", None
+
+    if oop_adapter is not None:
+        # Delegate to the OOP adapter (safe_send never raises).
+        meta = {"def_key": def_key, "user_id": str(user_id) if user_id else None}
+        try:
+            result = await oop_adapter.safe_send(to, subject, body or "", meta)
+            raw_status = result.get("status", "FAILED")
+            # Map "LOG" (logged-only, no real send) to "SENT" for the outbound log status column
+            # so the record is queryable as a successful delivery-to-log event.
+            status = "SENT" if raw_status == "LOG" else raw_status
+            if raw_status == "FAILED":
+                error = result.get("detail", "")[:500]
+            elif raw_status == "LOG":
+                error = result.get("detail", "")[:500]  # store the "logged" note in the error col
+        except Exception as exc:
+            status, error = "FAILED", str(exc)[:500]
+    else:
+        # -- Fallback: legacy functional adapter registry (inapp already handled above) --
+        legacy_adapter = _REGISTRY.get(channel)
+        try:
+            if legacy_adapter is None:
+                status, error = "FAILED", f"no adapter registered for channel '{channel}'"
+            else:
+                await legacy_adapter(to, subject, body)
+        except Exception as e:                      # adapter failure → FAILED, but keep going
+            status, error = "FAILED", str(e)[:500]
 
     try:
         msg = OutboundMessage(tenant_id=tenant_id, channel=channel, to_addr=to, subject=subject,

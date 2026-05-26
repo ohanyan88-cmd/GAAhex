@@ -34,7 +34,7 @@ from ..models.billing import Subscription, Invoice, InvoiceLine
 from ..access import load_grants, can
 from .. import workflow
 from .auth import current_user
-from .billing import _deny, _add_cycle, _next_invoice_number, _now, DEFAULT_DUE_DAYS
+from .billing import _deny, _add_cycle, _next_invoice_number, _now, _record_job_run, DEFAULT_DUE_DAYS
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -99,26 +99,38 @@ async def run_cycle(payload: dict | None = None, user: User = Depends(current_us
     if not can(grants, "invoice", "create"):
         _deny("invoice.create")
 
-    as_of = _as_of_dt(payload)
-    subs = (await s.execute(
-        select(Subscription).where(
-            Subscription.tenant_id == user.tenant_id, Subscription.status == "ACTIVE"
-        ).order_by(Subscription.created_at)
-    )).scalars().all()
+    started = _now()
+    try:
+        as_of = _as_of_dt(payload)
+        subs = (await s.execute(
+            select(Subscription).where(
+                Subscription.tenant_id == user.tenant_id, Subscription.status == "ACTIVE"
+            ).order_by(Subscription.created_at)
+        )).scalars().all()
 
-    generated, skipped, errors, invoice_ids = 0, 0, [], []
-    for sub in subs:
-        if not _is_due(sub, as_of):
-            skipped += 1
-            continue
-        try:
-            async with s.begin_nested():      # per-sub savepoint: a failure rolls back only this sub
-                inv = await _bill_one(s, user, sub, as_of)
-            generated += 1
-            invoice_ids.append(str(inv.id))
-        except Exception as e:                # fail-soft: collect + report, keep the batch going
-            errors.append({"subscription_id": str(sub.id), "message": str(e)})
+        generated, skipped, errors, invoice_ids = 0, 0, [], []
+        for sub in subs:
+            if not _is_due(sub, as_of):
+                skipped += 1
+                continue
+            try:
+                async with s.begin_nested():  # per-sub savepoint: a failure rolls back only this sub
+                    inv = await _bill_one(s, user, sub, as_of)
+                generated += 1
+                invoice_ids.append(str(inv.id))
+            except Exception as e:            # fail-soft: collect + report, keep the batch going
+                errors.append({"subscription_id": str(sub.id), "message": str(e)})
 
-    await s.commit()
-    return {"as_of": as_of.date().isoformat(), "generated": generated, "skipped": skipped,
-            "errors": errors, "invoices": invoice_ids}
+        result = {"as_of": as_of.date().isoformat(), "generated": generated, "skipped": skipped,
+                  "errors": errors, "invoices": invoice_ids}
+        # J96 job log: SUCCESS — the per-sub fail-soft errors live inside the summary, not a job error.
+        _record_job_run(s, user, "billing.run_cycle", "SUCCESS",
+                        {"as_of": result["as_of"], "generated": generated, "skipped": skipped,
+                         "errors": errors}, started)
+        await s.commit()                      # persist invoices + the JobRun atomically
+        return result
+    except Exception as e:                    # an unexpected failure of the whole run
+        await s.rollback()
+        _record_job_run(s, user, "billing.run_cycle", "ERROR", {"message": str(e)}, started)
+        await s.commit()
+        raise

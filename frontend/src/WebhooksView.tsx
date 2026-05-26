@@ -4,8 +4,9 @@ import { MultiSelect } from './Select'
 import { toast } from './Toast'
 import { timeAgo } from './time'
 import { confirmDialog } from './Modal'
-import { EmptyState, ErrorBanner, PermissionDenied } from './States'
+import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
 import { InfoIcon } from './icons'
+import { t } from './i18n'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -54,10 +55,10 @@ export default function WebhooksView({ token }: { token: string }) {
       const { r, data } = await jfetch(token, '/api/webhooks')
       if (r.status === 404) { setUnavailable(true); setList([]); return }
       if (r.status === 403) { setDenied(true); setList([]); return }
-      if (!r.ok) { setError('Failed to load webhooks'); setList([]); return }
+      if (!r.ok) { setError(t('webhooks.loadError', 'Failed to load webhooks')); setList([]); return }
       setList(Array.isArray(data) ? data : [])
-    } catch (e) {
-      setError((e as Error).message); setList([])
+    } catch {
+      setError(t('webhooks.loadError', 'Failed to load webhooks')); setList([])
     }
   }
 
@@ -70,11 +71,11 @@ export default function WebhooksView({ token }: { token: string }) {
       if (draft.id) {
         const { r, data } = await jfetch(token, `/api/webhooks/${draft.id}`, { method: 'PATCH', body: JSON.stringify(body) })
         if (!r.ok) throw new Error(data?.detail || `Save failed (${r.status})`)
-        toast.success('Webhook updated')
+        toast.success(t('webhooks.updated', 'Webhook updated'))
       } else {
         const { r, data } = await jfetch(token, '/api/webhooks', { method: 'POST', body: JSON.stringify(body) })
         if (!r.ok) throw new Error(data?.detail || `Create failed (${r.status})`)
-        toast.success('Webhook created')
+        toast.success(t('webhooks.created', 'Webhook created'))
         if (data?.secret) setNewSecret(data.secret)     // signing secret shown once
       }
       setDraft(null)
@@ -88,7 +89,7 @@ export default function WebhooksView({ token }: { token: string }) {
     try {
       const { r, data } = await jfetch(token, `/api/webhooks/${w.id}`, { method: 'DELETE' })
       if (!r.ok) throw new Error(data?.detail || `Delete failed (${r.status})`)
-      toast.success('Webhook deleted')
+      toast.success(t('webhooks.deleted', 'Webhook deleted'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -97,11 +98,11 @@ export default function WebhooksView({ token }: { token: string }) {
     try {
       const { r, data } = await jfetch(token, `/api/webhooks/${w.id}/test`, { method: 'POST' })
       if (!r.ok) throw new Error(data?.detail || `Test failed (${r.status})`)
-      toast.success('Test event sent')
+      toast.success(t('webhooks.testSent', 'Test event sent'))
     } catch (e) { toast.error((e as Error).message) }
   }
 
-  if (denied) return <PermissionDenied message="Webhooks are admin-only." />
+  if (denied) return <PermissionDenied message={t('webhooks.denied', 'Webhooks are admin-only.')} />
 
   return (
     <div>
@@ -121,8 +122,8 @@ export default function WebhooksView({ token }: { token: string }) {
       )}
 
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<InfoIcon size={40} />} title="Webhooks aren't available yet" message="Webhook delivery will appear here once the integration service is enabled." />}
+      {list === null && !error && <SkeletonRows />}
+      {unavailable && <EmptyState icon={<InfoIcon size={40} />} title={t('webhooks.unavailable', "Webhooks aren't available yet")} message={t('webhooks.unavailableMsg', 'Webhook delivery will appear here once the integration service is enabled.')} />}
       {list && !unavailable && list.length === 0 && !error && (
         <EmptyState icon={<InfoIcon size={40} />} title="No webhooks" message="Create one to forward events to an external URL." />
       )}
@@ -173,9 +174,9 @@ function DeliveriesModal({ token, webhook, onClose }: { token: string; webhook: 
     setError(''); setList(null)
     try {
       const { r, data } = await jfetch(token, `/api/webhooks/${webhook.id}/deliveries`)
-      if (!r.ok) { setError(r.status === 404 ? 'Deliveries log not available' : 'Failed to load deliveries'); setList([]); return }
+      if (!r.ok) { setError(r.status === 404 ? t('webhooks.deliveriesLoadError', 'Deliveries log not available') : t('webhooks.deliveriesLoadError', 'Failed to load deliveries')); setList([]); return }
       setList(Array.isArray(data) ? data : [])
-    } catch (e) { setError((e as Error).message); setList([]) }
+    } catch { setError(t('webhooks.deliveriesLoadError', 'Failed to load deliveries')); setList([]) }
   }
 
   useEffect(() => { load() }, [token, webhook.id])
@@ -183,8 +184,8 @@ function DeliveriesModal({ token, webhook, onClose }: { token: string; webhook: 
   return (
     <Modal open onClose={onClose} title={`Deliveries · ${webhook.name ?? ''}`} size="lg">
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {list && list.length === 0 && !error && <p className="muted">No deliveries yet.</p>}
+      {list === null && !error && <SkeletonRows rows={3} />}
+      {list && list.length === 0 && !error && <p className="muted">{t('common.noneYet', 'No deliveries yet.')}</p>}
       {list && list.length > 0 && (
         <table className="grid">
           <thead><tr><th>Event</th><th>Status</th><th>Code</th><th>When</th></tr></thead>

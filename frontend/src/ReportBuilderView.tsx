@@ -3,7 +3,8 @@ import { getEntityDef } from './api'
 import { bget, bpost, type Fetched } from './billing'   // reuse the generic auth'd fetch helpers
 import { toast } from './Toast'
 import { confirmDialog } from './Modal'
-import { EmptyState, ErrorBanner } from './States'
+import { EmptyState, ErrorBanner, SkeletonRows } from './States'
+import { t } from './i18n'
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
@@ -44,7 +45,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
     setError(''); setUnavailable(false); setReports(null)
     const res: Fetched<Report[]> = await bget(token, '/api/reports-builder')
     if (res.status === 404) { setUnavailable(true); setReports([]); return }
-    if (!res.ok) { setError('Failed to load reports'); setReports([]); return }
+    if (!res.ok) { setError(t('reports.loadError', 'Failed to load reports')); setReports([]); return }
     setReports(Array.isArray(res.data) ? res.data : [])
   }
 
@@ -65,7 +66,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
   async function doRun(id: string) {
     try {
       const res: Fetched<RunResult> = await bget(token, `/api/reports-builder/${id}/run`)
-      if (!res.ok || !res.data) throw new Error('Failed to run report')
+      if (!res.ok || !res.data) throw new Error(t('reports.runError', 'Failed to run report'))
       setRun(res.data)
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -78,7 +79,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
     if (filter.trim()) query.filter = filter.trim()
     try {
       const created = await bpost<Report>(token, '/api/reports-builder', { key: slugify(name), name: name.trim(), query, shared })
-      toast.success('Report saved')
+      toast.success(t('reports.saved', 'Report saved'))
       setBuilding(false)
       setName(''); setEntity(''); setMetric('count'); setField(''); setGroupBy(''); setFilter(''); setShared(false)
       await loadReports()
@@ -92,7 +93,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
     try {
       const resp = await fetch(`${BASE}/api/reports-builder/${r.id}`, { method: 'DELETE', headers: authH(token) })
       if (!resp.ok) throw new Error(`Delete failed (${resp.status})`)
-      toast.success('Report deleted')
+      toast.success(t('reports.deleted', 'Report deleted'))
       if (run?.id === r.id) setRun(null)
       await loadReports()
     } catch (e) { toast.error((e as Error).message) }
@@ -141,8 +142,8 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
       )}
 
       {error && <ErrorBanner message={error} onRetry={loadReports} />}
-      {reports === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState title="Report builder isn't available yet" message="Saved reports will appear here once the endpoint is enabled." />}
+      {reports === null && !error && <SkeletonRows />}
+      {unavailable && <EmptyState title={t('reports.unavailable', "Report builder isn't available yet")} message={t('reports.unavailableMsg', 'Saved reports will appear here once the endpoint is enabled.')} />}
       {reports && !unavailable && reports.length === 0 && !error && (
         <EmptyState title="No reports yet" message="Build one to save a re-runnable aggregation." />
       )}

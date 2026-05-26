@@ -3,8 +3,9 @@ import { bget, bpost, type Subscription } from './billing'
 import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
-import { EmptyState, ErrorBanner, PermissionDenied } from './States'
+import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
 import { ReceiptIcon, CheckIcon } from './icons'
+import { t } from './i18n'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -39,7 +40,7 @@ export default function UsageView({ token }: { token: string }) {
     const res = await bget<Usage[]>(token, `/api/usage${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
-    if (!res.ok) { setError('Failed to load usage'); setList([]); return }
+    if (!res.ok) { setError(t('usage.loadError', 'Failed to load usage')); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
   }
 
@@ -48,7 +49,7 @@ export default function UsageView({ token }: { token: string }) {
 
   const subName = (sid: string | null | undefined) => (sid ? (subs.find((s) => s.id === sid)?.plan_name ?? sid.slice(0, 8)) : '—')
 
-  if (denied) return <PermissionDenied message="You don't have permission to view usage." />
+  if (denied) return <PermissionDenied message={t('usage.denied', "You don't have permission to view usage.")} />
 
   return (
     <div>
@@ -69,8 +70,8 @@ export default function UsageView({ token }: { token: string }) {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title="Usage isn't available yet" message="Metered usage will appear here once the rating service is enabled." />}
+      {list === null && !error && <SkeletonRows />}
+      {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title={t('usage.unavailable', "Usage isn't available yet")} message={t('usage.unavailableMsg', 'Metered usage will appear here once the rating service is enabled.')} />}
       {list && !unavailable && list.length === 0 && !error && (
         <EmptyState icon={<ReceiptIcon size={40} />} title="No usage records" message="Nothing matches this filter." />
       )}
@@ -113,7 +114,7 @@ function RecordUsageModal({ token, subs, onClose, onDone }: { token: string; sub
         subscription_id: subscriptionId || undefined,
         metric, quantity: Number(quantity), unit_rate: toMinor(rate),
       })
-      toast.success('Usage recorded')
+      toast.success(t('usage.recorded', 'Usage recorded'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
   }
