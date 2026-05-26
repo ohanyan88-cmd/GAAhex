@@ -13,7 +13,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import get_session
+from ..db import get_session, SessionLocal, set_tenant_guc
 from ..models import User
 from ..access import load_grants, can
 from .. import workflow, gxl, notify_hooks
@@ -83,33 +83,39 @@ async def bulk(slug: str, payload: dict, user: User = Depends(current_user), s: 
     paths = await _node_paths(s, user.tenant_id)
     transitions = await workflow.get_transitions(s, ent.id) if action == "transition" else None
 
+    # Process each id in its OWN session/transaction — true partial-failure isolation, and it avoids
+    # corrupting one shared async session with interleaved per-id commit/rollback. `grants`, `paths`,
+    # `transitions`, `ent` are plain in-memory data loaded above, reusable across sessions. Each per-id
+    # session gets the tenant GUC set so RLS holds under the gaaex_app flip.
     results = []
     succeeded = 0
     for raw_id in ids:
         entry: dict = {"id": raw_id}
         try:
+            rid = uuid.UUID(str(raw_id))
+        except (ValueError, AttributeError, TypeError):
+            entry.update(ok=False, error="Invalid id")
+            results.append(entry)
+            continue
+        async with SessionLocal() as s2:
+            await set_tenant_guc(s2, user.tenant_id)
             try:
-                rid = uuid.UUID(str(raw_id))
-            except (ValueError, AttributeError, TypeError):
-                raise HTTPException(422, "Invalid id")
-            rec = await _get(s, user.tenant_id, ent.key, rid)      # 404 if missing / wrong entity
-            if action == "delete":
-                extra = await _do_delete(s, user, ent, grants, paths, rec)
-            else:
-                extra = await _do_transition(s, user, ent, grants, paths, rec, to, transitions)
-            await s.commit()                                       # commit this id on its own
-            entry["ok"] = True
-            if extra:
-                entry.update(extra)
-            succeeded += 1
-        except HTTPException as e:
-            await s.rollback()
-            entry["ok"] = False
-            entry["error"] = e.detail
-        except Exception as e:                                     # never let one id 500 the batch
-            await s.rollback()
-            entry["ok"] = False
-            entry["error"] = str(e)
+                rec = await _get(s2, user.tenant_id, ent.key, rid)     # 404 if missing / wrong entity
+                if action == "delete":
+                    extra = await _do_delete(s2, user, ent, grants, paths, rec)
+                else:
+                    extra = await _do_transition(s2, user, ent, grants, paths, rec, to, transitions)
+                await s2.commit()
+                entry["ok"] = True
+                if extra:
+                    entry.update(extra)
+                succeeded += 1
+            except HTTPException as e:
+                await s2.rollback()
+                entry.update(ok=False, error=e.detail)
+            except Exception as e:                                     # never let one id 500 the batch
+                await s2.rollback()
+                entry.update(ok=False, error=str(e))
         results.append(entry)
 
     return {

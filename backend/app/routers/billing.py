@@ -20,16 +20,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User, Record
 from ..models.billing import Subscription, Invoice, InvoiceLine, Payment
+from ..models.product import Product
 from ..access import load_grants, can
-from .. import workflow
+from .. import workflow, notify_hooks
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
+from .notifications import emit_notification
 
 router = APIRouter(prefix="/api", tags=["billing"])
 
 _CYCLES = {"monthly", "yearly"}
 _METHODS = {"cash", "card", "transfer"}
+_LINE_KINDS = {"charge", "discount", "tax"}
 DEFAULT_DUE_DAYS = 14
+
+
+def _signed_line_total(kind: str, line_total: int) -> int:
+    """Discounts subtract; charges and tax add. (line_total itself is stored as a positive luma.)"""
+    return -line_total if kind == "discount" else line_total
+
+
+def _invoice_total(lines) -> int:
+    """total = Σ(charge) − Σ(discount) + Σ(tax), clamped at 0 (never negative).
+    `lines` is an iterable of (kind, line_total)."""
+    return max(0, sum(_signed_line_total(k, lt) for k, lt in lines))
 
 
 # ---- shared helpers ----
@@ -85,6 +99,7 @@ def _sub(x: Subscription) -> dict:
     return {
         "id": str(x.id),
         "customer_id": str(x.customer_id) if x.customer_id else None,
+        "product_id": str(x.product_id) if x.product_id else None,
         "owner_node_id": str(x.owner_node_id) if x.owner_node_id else None,
         "plan_name": x.plan_name,
         "amount": x.amount,
@@ -97,8 +112,14 @@ def _sub(x: Subscription) -> dict:
 
 
 def _line(l: InvoiceLine) -> dict:
-    return {"id": str(l.id), "description": l.description, "quantity": l.quantity,
+    return {"id": str(l.id), "kind": l.kind, "description": l.description, "quantity": l.quantity,
             "unit_amount": l.unit_amount, "line_total": l.line_total}
+
+
+def _product(p: Product) -> dict:
+    return {"id": str(p.id), "key": p.key, "name": p.name, "description": p.description,
+            "default_amount": p.default_amount, "cycle": p.cycle, "active": p.active,
+            "created_at": _iso(p.created_at)}
 
 
 def _invoice(inv: Invoice, lines: list[InvoiceLine] | None = None) -> dict:
@@ -187,26 +208,41 @@ async def create_subscription(payload: dict, user: User = Depends(current_user),
     if not can(grants, "subscription", "create", owner_path):
         _deny("subscription.create")
 
-    plan_name = (payload.get("plan_name") or "").strip()
+    # optional catalog plan: copies name/amount/cycle defaults, all still overridable per subscription
+    product_id = payload.get("product_id")
+    prod = None
+    if product_id:
+        prod = (await s.execute(
+            select(Product).where(Product.id == product_id, Product.tenant_id == user.tenant_id)
+        )).scalar_one_or_none()
+        if not prod:
+            raise HTTPException(422, "product_id does not reference a known product")
+
+    plan_name = (payload.get("plan_name") or (prod.name if prod else "") or "").strip()
     if not plan_name:
         raise HTTPException(422, "plan_name is required")
-    cycle = payload.get("cycle", "monthly")
+    cycle = payload.get("cycle") or (prod.cycle if prod else "monthly")
     if cycle not in _CYCLES:
         raise HTTPException(422, f"cycle must be one of {sorted(_CYCLES)}")
-    amount = _money(payload.get("amount", 0), "amount")
+    amount_in = payload.get("amount")
+    if amount_in is None and prod is not None:
+        amount = prod.default_amount
+    else:
+        amount = _money(amount_in if amount_in is not None else 0, "amount")
     customer_id = payload.get("customer_id")
     await _customer_or_422(s, user.tenant_id, customer_id)
 
     started = _now()
     sub = Subscription(
         tenant_id=user.tenant_id, owner_node_id=user.primary_node_id, customer_id=customer_id,
-        plan_name=plan_name, amount=amount, cycle=cycle, status="ACTIVE",
+        product_id=product_id, plan_name=plan_name, amount=amount, cycle=cycle, status="ACTIVE",
         started_at=started, next_invoice_at=_add_cycle(started, cycle),
     )
     s.add(sub)
     await s.flush()
     await workflow.emit(s, user.tenant_id, "create", "subscription", sub.id, user.id,
-                        {"plan_name": plan_name, "amount": amount, "cycle": cycle})
+                        {"plan_name": plan_name, "amount": amount, "cycle": cycle,
+                         "product_id": str(product_id) if product_id else None})
     await s.commit()
     await s.refresh(sub)
     return _sub(sub)
@@ -362,8 +398,11 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
     s.add(inv)
     await s.flush()
 
-    total = 0
+    computed = []
     for li in lines_in:
+        kind = li.get("kind", "charge")
+        if kind not in _LINE_KINDS:
+            raise HTTPException(422, f"line kind must be one of {sorted(_LINE_KINDS)}")
         desc = (li.get("description") or "").strip()
         if not desc:
             raise HTTPException(422, "each line needs a description")
@@ -372,12 +411,12 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
             raise HTTPException(422, "line quantity must be >= 1")
         unit = _money(li.get("unit_amount", 0), "unit_amount")
         line_total = qty * unit
-        total += line_total
-        s.add(InvoiceLine(tenant_id=user.tenant_id, invoice_id=inv.id, description=desc,
+        computed.append((kind, line_total))
+        s.add(InvoiceLine(tenant_id=user.tenant_id, invoice_id=inv.id, kind=kind, description=desc,
                           quantity=qty, unit_amount=unit, line_total=line_total))
-    inv.total = total
+    inv.total = _invoice_total(computed)             # Σ(charge) − Σ(discount) + Σ(tax), clamped ≥ 0
     await workflow.emit(s, user.tenant_id, "create", "invoice", inv.id, user.id,
-                        {"number": number, "total": total})
+                        {"number": number, "total": inv.total})
     await s.commit()
     await s.refresh(inv)
     return _invoice(inv, await _invoice_lines(s, inv.id))
@@ -458,6 +497,150 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     await s.commit()
     await s.refresh(pay)
     return _payment(pay)
+
+
+# ==========================================================================================
+# Product / Plan catalog
+#   Reads (list/get) are open to any authenticated tenant user — the catalog isn't sensitive and
+#   agents need it to pick a plan. Writes (create/update/retire) require config.manage.
+# ==========================================================================================
+
+async def _get_product(s, user: User, product_id) -> Product:
+    prod = (await s.execute(
+        select(Product).where(Product.id == product_id, Product.tenant_id == user.tenant_id)
+    )).scalar_one_or_none()
+    if not prod:
+        raise HTTPException(404, "Product not found")
+    return prod
+
+
+@router.get("/products")
+async def list_products(active: bool | None = None, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    q = select(Product).where(Product.tenant_id == user.tenant_id)
+    if active is not None:
+        q = q.where(Product.active.is_(active))
+    rows = (await s.execute(q.order_by(Product.name))).scalars().all()
+    return [_product(p) for p in rows]
+
+
+@router.post("/products", status_code=201)
+async def create_product(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        _deny("config.manage")
+
+    key = (payload.get("key") or "").strip()
+    name = (payload.get("name") or "").strip()
+    if not key or not name:
+        raise HTTPException(422, "key and name are required")
+    cycle = payload.get("cycle", "monthly")
+    if cycle not in _CYCLES:
+        raise HTTPException(422, f"cycle must be one of {sorted(_CYCLES)}")
+    clash = (await s.execute(
+        select(Product).where(Product.tenant_id == user.tenant_id, Product.key == key)
+    )).scalar_one_or_none()
+    if clash:
+        raise HTTPException(409, f"A product with key '{key}' already exists")
+
+    prod = Product(
+        tenant_id=user.tenant_id, key=key, name=name, description=payload.get("description"),
+        default_amount=_money(payload.get("default_amount", 0), "default_amount"), cycle=cycle,
+        active=bool(payload.get("active", True)),
+    )
+    s.add(prod)
+    await s.flush()
+    await workflow.emit(s, user.tenant_id, "create", "product", prod.id, user.id, {"key": key, "name": name})
+    await s.commit()
+    await s.refresh(prod)
+    return _product(prod)
+
+
+@router.patch("/products/{product_id}")
+async def update_product(product_id: uuid.UUID, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        _deny("config.manage")
+    prod = await _get_product(s, user, product_id)
+
+    if "name" in payload:
+        v = (payload["name"] or "").strip()
+        if not v:
+            raise HTTPException(422, "name cannot be empty")
+        prod.name = v
+    if "description" in payload:
+        prod.description = payload["description"]
+    if "default_amount" in payload:
+        prod.default_amount = _money(payload["default_amount"], "default_amount")
+    if "cycle" in payload:
+        if payload["cycle"] not in _CYCLES:
+            raise HTTPException(422, f"cycle must be one of {sorted(_CYCLES)}")
+        prod.cycle = payload["cycle"]
+    if "active" in payload:
+        prod.active = bool(payload["active"])
+
+    await workflow.emit(s, user.tenant_id, "update", "product", prod.id, user.id, {"key": prod.key})
+    await s.commit()
+    await s.refresh(prod)
+    return _product(prod)
+
+
+@router.post("/products/{product_id}/retire")
+async def retire_product(product_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Soft-retire a product (active=False). Existing subscriptions referencing it are untouched."""
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        _deny("config.manage")
+    prod = await _get_product(s, user, product_id)
+    prod.active = False
+    await workflow.emit(s, user.tenant_id, "transition", "product", prod.id, user.id,
+                        {"to": "retired", "active": False})
+    await s.commit()
+    await s.refresh(prod)
+    return _product(prod)
+
+
+# ==========================================================================================
+# Overdue / dunning
+# ==========================================================================================
+
+@router.post("/invoices/run-dunning")
+async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Mark ISSUED invoices past their due_at as OVERDUE; notify + audit per newly-overdue invoice.
+    Idempotent (already-OVERDUE invoices aren't reconsidered). Returns {checked, marked_overdue}.
+    Gated on invoice.edit (it mutates invoice status)."""
+    grants = await load_grants(s, user)
+    if not can(grants, "invoice", "edit"):
+        _deny("invoice.edit")
+
+    now = _now()
+    issued = (await s.execute(
+        select(Invoice).where(Invoice.tenant_id == user.tenant_id, Invoice.status == "ISSUED")
+    )).scalars().all()
+    newly = []
+    for inv in issued:
+        if inv.due_at is not None and inv.due_at < now:
+            inv.status = "OVERDUE"
+            await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
+                                {"from": "ISSUED", "to": "OVERDUE"})
+            newly.append(inv)
+    await s.commit()                                  # persist the status changes first
+
+    # Best-effort dunning notifications — a notification failure must not undo the marking above.
+    # `emit_notification` is config-gated: no-op unless an `invoice.overdue` def exists & is enabled.
+    try:
+        for inv in newly:
+            recipients = await notify_hooks.resolve_recipients(s, tenant_id=user.tenant_id, record=inv)
+            for uid in recipients:
+                await emit_notification(
+                    s, tenant_id=user.tenant_id, def_key="invoice.overdue", user_id=uid,
+                    entity_key="invoice", record_id=inv.id,
+                    context={"number": inv.number, "total": inv.total, "due_at": _iso(inv.due_at)},
+                )
+        await s.commit()
+    except Exception:
+        await s.rollback()                            # marking already committed; just drop the notifies
+
+    return {"checked": len(issued), "marked_overdue": len(newly)}
 
 
 # ---- date parsing (after the routes that use it; module-level fn is fine) ----

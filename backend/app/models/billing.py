@@ -23,6 +23,7 @@ class Subscription(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
+    product_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("product.id"), nullable=True, index=True)  # catalog plan it was created from
     plan_name: Mapped[str] = mapped_column(String(160), nullable=False)
     amount: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)        # luma per cycle
     cycle: Mapped[str] = mapped_column(String(20), nullable=False, default="monthly")  # monthly|yearly
@@ -57,6 +58,7 @@ class InvoiceLine(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     invoice_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("invoice.id"), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, default="charge", server_default="charge")  # charge|discount|tax
     description: Mapped[str] = mapped_column(String(255), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     unit_amount: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)     # luma

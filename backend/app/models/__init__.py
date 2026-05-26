@@ -14,6 +14,8 @@ from .refresh_token import RefreshToken
 from .comm import Thread, Message
 from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
+from .product import Product
+from .report import ReportDef
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -28,4 +30,5 @@ __all__ = [
     "Thread", "Message",
     "NotificationPref",
     "Subscription", "Invoice", "InvoiceLine", "Payment",
+    "Product", "ReportDef",
 ]
