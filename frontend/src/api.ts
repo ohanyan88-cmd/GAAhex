@@ -103,3 +103,148 @@ export async function transitionRecord(token: string, slug: string, id: string, 
   }
   return r.json()
 }
+
+// ── B27 — cross-entity search (A27) + saved/recent/suggest (E27) ─────────────
+
+/** A facet bucket (count for a given entity key or status value). */
+export type SearchFacet = { key: string; label: string; count: number }
+
+/** Facets returned alongside search results. */
+export type SearchFacets = {
+  entity?: SearchFacet[]
+  status?: SearchFacet[]
+}
+
+/** A single highlighted fragment: start/end character offsets + whether it is a match. */
+export type HighlightSpan = { start: number; end: number; highlight: boolean }
+
+/** One result hit from /api/search. */
+export type SearchHit = {
+  id: string
+  label: string
+  snippet: string
+  status: string | null
+  /** Optional character-offset highlight map for snippet (A27 richer response). */
+  highlight_spans?: HighlightSpan[]
+}
+
+/** One result group from /api/search (grouped by entity). */
+export type SearchGroup = {
+  entity_key: string
+  label_plural: string
+  route_slug: string
+  matches: SearchHit[]
+}
+
+/** Full /api/search response (A27). */
+export type SearchResponse = {
+  groups?: SearchGroup[]
+  facets?: SearchFacets
+} | SearchGroup[]  // older array-only format for backward compat
+
+/** GET /api/search — degrades to [] on 404.
+ *  A27 returns facets only on the opt-in envelope (?view=hits), as a FLAT hit list with facet
+ *  COUNT MAPS and a `<mark>`-wrapped `highlight` string. The palette renders GROUPS with a `snippet`
+ *  the safe <mark> parser reads, and facet BUCKET ARRAYS — so this adapter translates all three. */
+export async function crossSearch(
+  token: string,
+  q: string,
+  entity?: string,
+  status?: string,
+): Promise<{ groups: SearchGroup[]; facets: SearchFacets | null }> {
+  const params = new URLSearchParams({ q, view: 'hits', facets: 'true' })
+  if (entity) params.set('entity', entity)
+  if (status) params.set('status', status)
+  const r = await fetch(`${BASE}/api/search?${params}`, { headers: authH(token) })
+  if (!r.ok) return { groups: [], facets: null }
+  const data = await r.json()
+  // Old array-only format: already grouped, no facets.
+  if (Array.isArray(data)) return { groups: data as SearchGroup[], facets: null }
+  const obj = data as {
+    groups?: SearchGroup[]
+    hits?: Array<Record<string, unknown>>
+    facets?: { entity?: unknown; status?: unknown }
+  }
+  // Group the flat hit list by entity_key into the palette's grouped shape.
+  let groups: SearchGroup[]
+  if (obj.groups) {
+    groups = obj.groups
+  } else {
+    const byEntity = new Map<string, SearchGroup>()
+    for (const h of obj.hits ?? []) {
+      const ek = String(h.entity_key)
+      let g = byEntity.get(ek)
+      if (!g) {
+        g = {
+          entity_key: ek,
+          label_plural: typeof h.label_plural === 'string' ? h.label_plural : ek,
+          route_slug: typeof h.route_slug === 'string' ? h.route_slug : ek,
+          matches: [],
+        }
+        byEntity.set(ek, g)
+      }
+      // Feed A27's <mark>-wrapped (HTML-escaped) `highlight` string in as the snippet so the
+      // palette's safe <mark> parser highlights it; fall back to the plain snippet.
+      g.matches.push({
+        id: String(h.id),
+        label: String(h.label ?? ''),
+        snippet: typeof h.highlight === 'string' ? h.highlight : String(h.snippet ?? ''),
+        status: (h.status as string | null) ?? null,
+        highlight_spans: h.highlight_spans as HighlightSpan[] | undefined,
+      })
+    }
+    groups = Array.from(byEntity.values())
+  }
+  // Normalize facets: A27 returns {entity:{key:count}}; the UI wants bucket arrays.
+  const toBuckets = (m: unknown): SearchFacet[] | undefined => {
+    if (!m) return undefined
+    if (Array.isArray(m)) return m as SearchFacet[]
+    return Object.entries(m as Record<string, number>).map(([key, count]) => ({ key, label: key, count }))
+  }
+  const rf = obj.facets
+  const facets: SearchFacets | null = rf
+    ? { entity: toBuckets(rf.entity), status: toBuckets(rf.status) }
+    : null
+  return { groups, facets }
+}
+
+/** GET /api/search/suggest?q= — degrades to [] on 404. */
+export async function searchSuggest(token: string, q: string): Promise<string[]> {
+  const r = await fetch(`${BASE}/api/search/suggest?q=${encodeURIComponent(q)}`, { headers: authH(token) })
+  if (!r.ok) return []
+  const data = await r.json()
+  return Array.isArray(data) ? data : (data.suggestions ?? [])
+}
+
+export type SavedSearch = { id: string; name: string; query: string; pinned?: boolean }
+export type RecentSearch = { id?: string; query: string; ran_at?: string }
+
+/** GET /api/saved-searches — degrades gracefully on 404 (returns null = feature unavailable). */
+export async function getSavedSearches(token: string): Promise<SavedSearch[] | null> {
+  const r = await fetch(`${BASE}/api/saved-searches`, { headers: authH(token) })
+  if (r.status === 404) return null
+  if (!r.ok) return []
+  const data = await r.json()
+  return Array.isArray(data) ? data : (data.items ?? [])
+}
+
+/** POST /api/saved-searches — save a query. Returns null on 404 (unavailable). */
+export async function saveSearch(token: string, name: string, query: string): Promise<SavedSearch | null> {
+  const r = await fetch(`${BASE}/api/saved-searches`, {
+    method: 'POST',
+    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, query }),
+  })
+  if (r.status === 404) return null
+  if (!r.ok) throw new Error('save-search-error')
+  return r.json()
+}
+
+/** GET /api/recent-searches — degrades gracefully on 404 (returns null = feature unavailable). */
+export async function getRecentSearches(token: string): Promise<RecentSearch[] | null> {
+  const r = await fetch(`${BASE}/api/recent-searches`, { headers: authH(token) })
+  if (r.status === 404) return null
+  if (!r.ok) return []
+  const data = await r.json()
+  return Array.isArray(data) ? data : (data.items ?? [])
+}

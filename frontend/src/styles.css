@@ -567,6 +567,93 @@ button:hover { background: var(--primary-hover); }
 .cmdk-item-label { font-size: var(--fs-sm); }
 .cmdk-item-sub { font-size: var(--fs-caption); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---- B27 Command palette extensions (facets · suggestions · save search) ---- */
+/* Palette is now wider to accommodate the facet panel */
+.overlay-panel.cmdk { width: 640px; }
+
+/* Suggestion strip below the search input */
+.cmdk-suggest {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 6px 10px; border-bottom: var(--bw-1) solid var(--border);
+  background: var(--surface-2);
+}
+.cmdk-suggest-item {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: transparent; border: var(--bw-1) solid var(--border);
+  color: var(--text-2); border-radius: var(--r-pill); padding: 2px 8px;
+  font-size: var(--fs-caption); cursor: pointer; transition: background var(--dur-fast) var(--ease-standard);
+}
+.cmdk-suggest-item:hover { background: var(--primary-soft); color: var(--text); border-color: var(--primary); }
+
+/* Facet panel */
+.cmdk-facets {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px; border-bottom: var(--bw-1) solid var(--border);
+  background: var(--surface-2);
+}
+.cmdk-facet-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cmdk-facet-label {
+  font-size: var(--fs-caption); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-3); min-width: 44px;
+}
+.cmdk-facet-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface); border: var(--bw-1) solid var(--border);
+  color: var(--text-2); border-radius: var(--r-pill); padding: 2px 9px;
+  font-size: var(--fs-caption); cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
+}
+.cmdk-facet-chip:hover { background: var(--surface-2); color: var(--text); }
+.cmdk-facet-chip.on { background: var(--accent-soft); color: var(--accent-hover); border-color: var(--accent); }
+.cmdk-facet-count {
+  background: var(--surface-2); color: var(--text-3);
+  border-radius: var(--r-pill); padding: 0 5px; font-size: 10px; line-height: 16px;
+}
+.cmdk-facet-chip.on .cmdk-facet-count { background: var(--accent-soft); color: var(--accent); }
+
+/* Clear search button inside search row */
+.cmdk-clear { background: transparent; border: 0; color: var(--text-3); padding: 2px; border-radius: var(--r-sm); display: flex; align-items: center; cursor: pointer; }
+.cmdk-clear:hover { color: var(--text); background: var(--surface-2); }
+
+/* Group label icons (pinned/saved/recent sections) */
+.cmdk-group-label { display: flex; align-items: center; gap: 5px; }
+
+/* Highlight mark inside snippets — gold background, safe (built from React children, never innerHTML) */
+.cmdk-mark {
+  background: var(--accent-soft); color: var(--accent-hover);
+  border-radius: 2px; padding: 0 2px; font-style: normal;
+}
+
+/* Footer bar (save search / save form) */
+.cmdk-footer {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-top: var(--bw-1) solid var(--border);
+  background: var(--surface-2);
+}
+.cmdk-save-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: 0; color: var(--text-3); font-size: var(--fs-caption);
+  cursor: pointer; border-radius: var(--r-sm); padding: 3px 6px;
+  transition: color var(--dur-fast) var(--ease-standard), background var(--dur-fast) var(--ease-standard);
+}
+.cmdk-save-btn:hover { color: var(--text); background: var(--surface); }
+.cmdk-save-form { flex-wrap: wrap; }
+.cmdk-save-input { flex: 1 1 160px; min-width: 100px; }
+.cmdk-save-msg { font-size: var(--fs-caption); color: var(--success); margin-left: 4px; }
+
+/* Light theme adjustments for new elements */
+[data-theme="light"] .cmdk-suggest { background: var(--surface-2); }
+[data-theme="light"] .cmdk-suggest-item { color: var(--text-2); border-color: var(--border); }
+[data-theme="light"] .cmdk-suggest-item:hover { background: var(--primary-soft); border-color: var(--primary); }
+[data-theme="light"] .cmdk-facets { background: var(--surface-2); }
+[data-theme="light"] .cmdk-facet-chip { background: var(--surface); border-color: var(--border); color: var(--text-2); }
+[data-theme="light"] .cmdk-facet-chip:hover { background: var(--surface-2); color: var(--text); }
+[data-theme="light"] .cmdk-facet-chip.on { background: var(--accent-soft); color: var(--accent-hover); border-color: var(--accent); }
+[data-theme="light"] .cmdk-mark { background: var(--accent-soft); color: var(--accent-hover); }
+[data-theme="light"] .cmdk-footer { background: var(--surface-2); border-color: var(--border); }
+[data-theme="light"] .cmdk-save-btn { color: var(--text-3); }
+[data-theme="light"] .cmdk-save-btn:hover { color: var(--text); background: var(--surface); }
+
 /* ---- Select / MultiSelect ---- */
 .sel { position: relative; }
 .sel-control { display: flex; align-items: center; gap: 8px; justify-content: space-between; cursor: pointer; text-align: left; }

@@ -28,6 +28,7 @@ from .translation import Translation
 from .party import Party, Account
 from .job import JobRun
 from .report_schedule import ReportSchedule
+from .search_history import SearchHistory
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -52,4 +53,5 @@ __all__ = [
     "Party", "Account",
     "JobRun",
     "ReportSchedule",
+    "SearchHistory",
 ]

@@ -349,3 +349,16 @@ export const MuteIcon = (p: IconProps) => (
     <line x1="2" y1="2" x2="22" y2="22" />
   </Svg>
 )
+
+export const BookmarkIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+  </Svg>
+)
+
+export const PinIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="12" y1="17" x2="12" y2="22" />
+    <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" />
+  </Svg>
+)

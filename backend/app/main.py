@@ -14,7 +14,7 @@ from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
 from .seed_demo_loop import seed_demo_loop_if_empty
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist
 
 
 @asynccontextmanager
@@ -78,6 +78,7 @@ app.include_router(health.router)                   # /api/health[/ready|/status
 app.include_router(jobs.router)                     # /api/jobs (batch-job run log; before records)
 app.include_router(report_schedules.router)         # /api/report-schedules (scheduled reports; before records)
 app.include_router(digests.router)                  # /api/notifications/run-digests (digest job; before records)
+app.include_router(search_assist.router)            # /api/saved-searches + /api/search/suggest (before records)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)
