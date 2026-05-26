@@ -54,10 +54,13 @@ export type Payment = {
 
 export type Product = {
   id: string
+  key?: string
   name?: string
-  amount?: number          // luma
+  description?: string | null
+  default_amount?: number   // luma
   cycle?: string
   active?: boolean
+  created_at?: string | null
   [k: string]: any
 }
 
@@ -98,4 +101,16 @@ export async function loadCustomers(token: string): Promise<Record<string, strin
   const map: Record<string, string> = {}
   for (const r of res.data) map[r.id] = r.name ?? r.title ?? String(r.id).slice(0, 8)
   return map
+}
+
+// Customer options [{id,label}] for pickers (sorted by label). Empty if unavailable.
+export async function loadCustomerOptions(token: string): Promise<{ id: string; label: string }[]> {
+  const map = await loadCustomers(token)
+  return Object.entries(map).map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label))
+}
+
+// Active products for pickers/catalog. Empty if unavailable.
+export async function loadProducts(token: string, activeOnly = false): Promise<Product[]> {
+  const res = await bget<Product[]>(token, `/api/products${activeOnly ? '?active=true' : ''}`)
+  return res.ok && Array.isArray(res.data) ? res.data : []
 }

@@ -668,3 +668,33 @@ button:hover { background: var(--primary-hover); }
 .bill-total-row span:last-child { color: var(--accent); }
 .bill-section-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
 .bill-section-head h3 { margin: 0; }
+.amt-neg { color: var(--success); }   /* discount lines read as a credit */
+
+/* status pill variants (shared) */
+.pill-success { background: var(--success-soft); color: var(--success); }
+.pill-danger { background: var(--danger-soft); color: var(--danger); }
+.pill-muted { background: var(--surface-2); color: var(--text-3); }
+
+/* ============================================================================
+   B11 — bulk-action bar · selection column · report builder.
+   ============================================================================ */
+.sel-col { width: 36px; text-align: center; }
+.sel-col input { cursor: pointer; }
+.row-selected td { background: var(--primary-soft); }
+.row-muted td { opacity: .6; }
+
+.bulk-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface);
+  border: var(--bw-1) solid var(--border); border-radius: var(--r-md); padding: 8px 12px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.bulk-count { font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
+.bulk-move { display: inline-flex; align-items: center; gap: 6px; }
+.bulk-bar > .btn-danger { margin-left: auto; }
+
+/* report builder */
+.rb-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+.rb-list { display: flex; flex-direction: column; gap: 6px; }
+.rb-item { display: flex; align-items: center; gap: 6px; background: var(--surface); border: var(--bw-1) solid var(--border); border-radius: var(--r-md); padding: 6px 8px; }
+.rb-item.on { border-color: var(--primary); }
+.rb-item-main { flex: 1; display: flex; flex-direction: column; gap: 4px; background: transparent; color: var(--text); border: 0; text-align: left; cursor: pointer; }
+.rb-name { font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+.rb-badges { display: flex; gap: 4px; }
+.rb-result { min-width: 0; }

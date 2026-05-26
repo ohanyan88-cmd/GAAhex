@@ -10,12 +10,14 @@ import CommandPalette from './CommandPalette'
 import ActivityTimeline from './ActivityTimeline'
 import InvoicesView from './InvoicesView'
 import SubscriptionsView from './SubscriptionsView'
+import ProductsView from './ProductsView'
+import ReportBuilderView from './ReportBuilderView'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'report-builder' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -102,9 +104,11 @@ export default function App() {
         <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>Reports</button>
         <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>Messages</button>
         <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>Activity</button>
+        <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>Report Builder</button>
         <div className="nav-label">Billing</div>
         <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>Invoices</button>
         <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>Subscriptions</button>
+        <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}>Products</button>
         <div className="nav-label">Records</div>
         {entities.map((en) => (
           <button
@@ -169,6 +173,10 @@ export default function App() {
                   ? <InvoicesView token={token} />
                 : view.type === 'subscriptions'
                   ? <SubscriptionsView token={token} />
+                : view.type === 'products'
+                  ? <ProductsView token={token} />
+                : view.type === 'report-builder'
+                  ? <ReportBuilderView token={token} entities={entities} />
                 : view.type === 'reports'
                   ? <ReportsView token={token} />
                   : view.type === 'studio'

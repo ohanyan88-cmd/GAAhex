@@ -67,6 +67,8 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   const [activityRow, setActivityRow] = useState<Row | null>(null)
   const [billingRow, setBillingRow] = useState<Row | null>(null)
   const [fatal, setFatal] = useState<null | 'denied' | 'notfound'>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkTo, setBulkTo] = useState('')
 
   async function load(s: string) {
     setLoading(true); setFatal(null)
@@ -84,6 +86,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
       if (r.status === 403) { setFatal('denied'); return }
       if (!r.ok) throw new Error('Failed to load records')
       setRows(await r.json())
+      setSelected(new Set())          // clear selection whenever the list reloads
       // build { fieldKey -> { id -> label } } maps for every ref field, for the list display
       const maps: Record<string, Record<string, string>> = {}
       for (const f of d.fields.filter((x) => x.type === 'ref')) {
@@ -289,7 +292,64 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
     }
   }
 
-  const colSpan = cols.length + 2 + (hasWorkflow ? 1 : 0)
+  const transitionTargets = Array.from(new Set((def.transitions ?? []).map((t) => t.to)))
+  const allSelected = visibleRows.length > 0 && visibleRows.every((r) => selected.has(r.id))
+  const someSelected = visibleRows.some((r) => selected.has(r.id))
+
+  function toggleRow(id: string) {
+    setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function toggleAll() {
+    setSelected((prev) => {
+      const n = new Set(prev)
+      if (visibleRows.every((r) => n.has(r.id))) visibleRows.forEach((r) => n.delete(r.id))
+      else visibleRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+
+  // POST /api/{slug}/bulk — partial-failure aware; Toasts the {succeeded, failed} summary.
+  async function runBulk(action: 'delete' | 'transition', to?: string) {
+    const ids = Array.from(selected)
+    if (ids.length === 0) return
+    try {
+      const r = await fetch(`${BASE}/api/${slug}/bulk`, {
+        method: 'POST',
+        headers: { ...authH(token), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ids, to }),
+      })
+      const data = await r.json().catch(() => null)
+      if (!r.ok) {
+        const d = data?.detail
+        throw new Error(typeof d === 'string' ? d : `Bulk action failed (${r.status})`)
+      }
+      const sum = data?.summary ?? { succeeded: 0, failed: ids.length }
+      if (sum.failed > 0) {
+        const reasons = Array.from(new Set((data?.results ?? []).filter((x: any) => !x.ok)
+          .map((x: any) => (typeof x.error === 'string' ? x.error : JSON.stringify(x.error))))).slice(0, 2).join('; ')
+        toast.warning(`${sum.succeeded} succeeded, ${sum.failed} failed${reasons ? `: ${reasons}` : ''}`)
+      } else {
+        toast.success(`${sum.succeeded} ${action === 'delete' ? 'deleted' : 'moved'}`)
+      }
+      setBulkTo('')
+      await load(slug)
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  async function bulkDelete() {
+    const n = selected.size
+    const ok = await confirmDialog({
+      title: `Delete ${n} ${def!.label_plural.toLowerCase()}`,
+      message: `Delete ${n} selected record${n === 1 ? '' : 's'}? This can't be undone.`,
+      confirmLabel: 'Delete', danger: true,
+    })
+    if (!ok) return
+    await runBulk('delete')
+  }
+
+  const colSpan = cols.length + 3 + (hasWorkflow ? 1 : 0)
 
   return (
     <div>
@@ -367,9 +427,35 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="bulk-bar">
+          <span className="bulk-count">{selected.size} selected</span>
+          {transitionTargets.length > 0 && (
+            <span className="bulk-move">
+              <select className="inp inp-sm" value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} aria-label="Move to status">
+                <option value="">Move to…</option>
+                {transitionTargets.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
+            </span>
+          )}
+          <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+        </div>
+      )}
+
       <table className="grid">
         <thead>
           <tr>
+            <th className="sel-col">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
+                onChange={toggleAll}
+                aria-label="Select all"
+              />
+            </th>
             {cols.map((c) => <th key={c.key}>{c.label}</th>)}
             <th>Status</th>
             {hasWorkflow && <th>Move to</th>}
@@ -378,7 +464,8 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
         </thead>
         <tbody>
           {visibleRows.map((r) => (
-            <tr key={r.id}>
+            <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
+              <td className="sel-col"><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" /></td>
               {cols.map((c) => <td key={c.key}>{renderCell(c, r)}</td>)}
               <td>{r.status ? <span className="pill">{r.status}</span> : ''}</td>
               {hasWorkflow && (

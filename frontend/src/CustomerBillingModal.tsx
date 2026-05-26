@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
-import { bget, bpost, type Subscription, type Invoice } from './billing'
+import { bget, bpost, loadProducts, type Subscription, type Invoice, type Product } from './billing'
 import { money, toMinor } from './money'
 import { toast } from './Toast'
 import { EmptyState } from './States'
 
 // A customer's billing-at-a-glance: their subscriptions + recent invoices, with generate-invoice and
-// new-subscription actions. Reads /api/subscriptions?customer= and /api/invoices?customer=.
+// a product-prefilled new-subscription form. Reads /api/subscriptions?customer= and /api/invoices?customer=.
 // Degrades quietly (shows "not available") when the billing endpoints 404.
 export default function CustomerBillingModal({ token, customerId, customerLabel, onClose }: {
   token: string
@@ -16,10 +16,12 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 }) {
   const [subs, setSubs] = useState<Subscription[] | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
-  const [plan, setPlan] = useState('')
+  const [productId, setProductId] = useState('')
+  const [planName, setPlanName] = useState('')
   const [amount, setAmount] = useState('')
   const [cycle, setCycle] = useState('monthly')
 
@@ -34,6 +36,17 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   }
 
   useEffect(() => { load() }, [token, customerId])
+  useEffect(() => { loadProducts(token, true).then(setProducts) }, [token])
+
+  function pickProduct(id: string) {
+    setProductId(id)
+    const p = products.find((x) => x.id === id)
+    if (p) {
+      setPlanName(p.name ?? '')
+      setAmount(p.default_amount != null ? String(p.default_amount / 100) : '')
+      setCycle(p.cycle ?? 'monthly')
+    }
+  }
 
   async function generate(subId: string) {
     try {
@@ -44,11 +57,14 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   }
 
   async function createSub() {
-    if (!plan.trim()) return
+    if (!planName.trim()) return
     try {
-      await bpost(token, '/api/subscriptions', { customer: customerId, plan: plan.trim(), amount: toMinor(amount), cycle })
+      await bpost(token, '/api/subscriptions', {
+        customer_id: customerId, product_id: productId || undefined,
+        plan_name: planName.trim(), amount: toMinor(amount), cycle,
+      })
       toast.success('Subscription created')
-      setCreating(false); setPlan(''); setAmount(''); setCycle('monthly')
+      setCreating(false); setProductId(''); setPlanName(''); setAmount(''); setCycle('monthly')
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -68,16 +84,21 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
           {creating && (
             <div className="rec-form" style={{ marginBottom: 12 }}>
-              <label className="field"><span>Plan *</span><input className="inp inp-md" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="e.g. Fiber 100" /></label>
+              <label className="field"><span>Product</span>
+                <select className="inp inp-md" value={productId} onChange={(e) => pickProduct(e.target.value)}>
+                  <option value="">— custom —</option>
+                  {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>Plan name *</span><input className="inp inp-md" value={planName} onChange={(e) => setPlanName(e.target.value)} placeholder="e.g. Fiber 100" /></label>
               <label className="field"><span>Amount (֏)</span><input className="inp inp-md inp-numeric" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
               <label className="field"><span>Cycle</span>
                 <select className="inp inp-md" value={cycle} onChange={(e) => setCycle(e.target.value)}>
                   <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
                   <option value="yearly">Yearly</option>
                 </select>
               </label>
-              <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={createSub} disabled={!plan.trim()}>Create</button></div>
+              <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={createSub} disabled={!planName.trim()}>Create</button></div>
             </div>
           )}
 
@@ -89,11 +110,11 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 <tbody>
                   {subs.map((s) => (
                     <tr key={s.id}>
-                      <td>{s.plan ?? '—'}</td>
+                      <td>{s.plan_name ?? '—'}</td>
                       <td>{money(s.amount)}</td>
                       <td>{s.cycle ?? '—'}</td>
                       <td>{s.status ? <span className="pill">{s.status}</span> : '—'}</td>
-                      <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button></td>
+                      <td className="row-actions">{(s.status ?? '').toUpperCase() !== 'CANCELLED' && <button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button>}</td>
                     </tr>
                   ))}
                 </tbody>

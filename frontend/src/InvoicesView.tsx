@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { bget, bpost, loadCustomers, type Invoice, type Payment } from './billing'
+import { bget, bpost, loadCustomers, type Invoice } from './billing'
 import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
@@ -112,7 +112,6 @@ export default function InvoicesView({ token }: { token: string }) {
 
 function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string; names: Record<string, string>; onBack: () => void }) {
   const [inv, setInv] = useState<Invoice | null>(null)
-  const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
   const [payOpen, setPayOpen] = useState(false)
 
