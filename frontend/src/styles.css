@@ -676,6 +676,21 @@ button:hover { background: var(--primary-hover); }
 .pill-danger { background: var(--danger-soft); color: var(--danger); }
 .pill-muted { background: var(--surface-2); color: var(--text-3); }
 
+/* Lead pipeline kanban (LeadPipelineView) — token-based, dual-theme */
+.kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+.kan-col { flex: 0 0 268px; display: flex; flex-direction: column; gap: 10px; }
+.kan-col-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.kan-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; transition: border-color 140ms; }
+.kan-card:hover { border-color: var(--accent); }
+.kan-avatar { width: 28px; height: 28px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-hover); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex: 0 0 auto; }
+.kan-empty { font-size: 12px; text-align: center; padding: 8px 0; opacity: .5; }
+.kan-newform { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+.kan-summary { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; border-top: 1px solid var(--border); padding-top: 12px; }
+.score-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+.score-hot { background: var(--danger-soft); color: var(--danger); }
+.score-warm { background: var(--warning-soft); color: var(--warning); }
+.score-cold { background: var(--surface-2); color: var(--text-3); }
+
 /* ============================================================================
    B11 — bulk-action bar · selection column · report builder.
    ============================================================================ */
