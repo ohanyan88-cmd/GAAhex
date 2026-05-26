@@ -136,6 +136,16 @@ async def _provision_subscriptions(s, user: User, order: Order, items: list[Orde
         await workflow.emit(s, user.tenant_id, "create", "subscription", sub.id, user.id,
                             {"plan_name": prod.name, "amount": prod.default_amount, "from_order": str(order.id)})
         created.append(str(sub.id))
+        # order → subscription → service: provision a Service fulfilling this subscription (lazy
+        # import avoids any router import cycle; fail-soft so a service hiccup never blocks the order).
+        try:
+            from .services import provision_service_for_subscription
+            await provision_service_for_subscription(
+                s, tenant_id=user.tenant_id, subscription=sub, owner_node_id=order.owner_node_id,
+                customer_id=order.customer_id, actor_user_id=user.id,
+            )
+        except Exception:
+            pass
     return created
 
 

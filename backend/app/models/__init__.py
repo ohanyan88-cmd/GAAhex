@@ -20,6 +20,8 @@ from .order import Order, OrderItem
 from .outbound import OutboundMessage
 from .webhook import WebhookDef, WebhookDelivery
 from .apikey import ApiKey
+from .service import Service, ServiceResource
+from .interaction import Interaction
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -38,4 +40,5 @@ __all__ = [
     "Order", "OrderItem",
     "OutboundMessage", "WebhookDef", "WebhookDelivery",
     "ApiKey",
+    "Service", "ServiceResource", "Interaction",
 ]
