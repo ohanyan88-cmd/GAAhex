@@ -650,7 +650,8 @@ button:hover { background: var(--primary-hover); }
 .notif-prefs-hint { padding: 4px 12px 8px; }
 .pref-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: var(--bw-1) solid var(--border-soft); cursor: pointer; }
 .pref-row:last-child { border-bottom: 0; }
-.pref-cat { font-size: var(--fs-sm); text-transform: capitalize; }
+.pref-cat { font-size: var(--fs-sm); text-transform: capitalize; display: flex; align-items: center; gap: 8px; }
+.pref-chan { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); background: var(--surface-2); padding: 1px 6px; border-radius: var(--r-pill); }
 
 /* ============================================================================
    B9 — Billing (invoices · subscriptions · customer panel).
@@ -698,3 +699,11 @@ button:hover { background: var(--primary-hover); }
 .rb-name { font-size: var(--fs-sm); font-weight: var(--fw-medium); }
 .rb-badges { display: flex; gap: 4px; }
 .rb-result { min-width: 0; }
+
+/* ============================================================================
+   B12 — outbound log · webhooks admin.
+   ============================================================================ */
+.mono { font-family: var(--font-mono); font-size: var(--fs-sm); }
+.ob-preview { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amt-neg-danger { color: var(--danger); }
+.secret-box { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border: var(--bw-1) solid var(--border); border-radius: var(--r-md); word-break: break-all; }

@@ -12,12 +12,14 @@ import InvoicesView from './InvoicesView'
 import SubscriptionsView from './SubscriptionsView'
 import ProductsView from './ProductsView'
 import ReportBuilderView from './ReportBuilderView'
+import OutboundView from './OutboundView'
+import WebhooksView from './WebhooksView'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'report-builder' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -123,6 +125,8 @@ export default function App() {
           <>
             <div className="nav-label">Admin</div>
             <button className={'nav nav-icon' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon /> Studio</button>
+            <button className={'nav' + (view.type === 'outbound' ? ' on' : '')} onClick={() => setView({ type: 'outbound' })}>Outbound</button>
+            <button className={'nav' + (view.type === 'webhooks' ? ' on' : '')} onClick={() => setView({ type: 'webhooks' })}>Webhooks</button>
           </>
         )}
       </aside>
@@ -177,6 +181,10 @@ export default function App() {
                   ? <ProductsView token={token} />
                 : view.type === 'report-builder'
                   ? <ReportBuilderView token={token} entities={entities} />
+                : view.type === 'outbound'
+                  ? <OutboundView token={token} />
+                : view.type === 'webhooks'
+                  ? <WebhooksView token={token} />
                 : view.type === 'reports'
                   ? <ReportsView token={token} />
                   : view.type === 'studio'

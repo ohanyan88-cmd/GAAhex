@@ -221,7 +221,7 @@ export default function NotificationCenter({ token, entities, onOpen }: {
                   <p className="muted notif-prefs-hint">In-app notifications by category. Turn a category off to stop receiving it.</p>
                   {CATEGORIES.map((c) => (
                     <label key={c} className="pref-row">
-                      <span className="pref-cat">{c}</span>
+                      <span className="pref-cat">{c}<span className="pref-chan">in-app</span></span>
                       <input type="checkbox" checked={prefEnabled(c)} onChange={(e) => togglePref(c, e.target.checked)} />
                     </label>
                   ))}
