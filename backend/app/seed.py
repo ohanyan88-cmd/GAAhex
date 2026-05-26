@@ -56,97 +56,123 @@ async def _make_entity(s, tenant_id, key, label, plural, slug, icon, fields, sta
     return ent
 
 
+async def build_crm_entities(s, t) -> None:
+    """Build the baseline CRM module (Lead, Customer, Contact, Deal, Ticket) for tenant `t` AS CONFIG.
+    Reusable by the demo seed AND by tenant provisioning — no emptiness guard here (callers guard)."""
+    # ---- CRM: Lead ----
+    await _make_entity(
+        s, t, "lead", "Lead", "Leads", "leads", "users",
+        fields=[
+            ("name", "Name", "text", True, None),
+            ("phone", "Phone", "phone", False, None),
+            ("email", "Email", "email", False, None),
+            ("source", "Source", "select", False, {"options": ["Website", "Referral", "Cold Call", "Ad"]}),
+            ("status", "Status", "status", False, None),
+        ],
+        statuses=[("NEW", "New", True), ("CONTACTED", "Contacted", False), ("QUALIFIED", "Qualified", False),
+                  ("CONVERTED", "Converted", False), ("LOST", "Lost", False)],
+        transitions=[
+            {"from": "NEW", "to": "CONTACTED", "guard": "phone != None and phone != ''"},
+            {"from": "CONTACTED", "to": "QUALIFIED", "guard": None},
+            {"from": "QUALIFIED", "to": "CONVERTED", "guard": None},
+            {"from": "CONTACTED", "to": "LOST", "guard": None},
+            {"from": "QUALIFIED", "to": "LOST", "guard": None},
+        ],
+    )
+
+    # ---- CRM: Customer ----
+    await _make_entity(
+        s, t, "customer", "Customer", "Customers", "customers", "building",
+        fields=[
+            ("name", "Name", "text", True, None),
+            ("email", "Email", "email", False, None),
+            ("phone", "Phone", "phone", False, None),
+            ("plan", "Plan", "select", False, {"options": ["Basic", "Pro", "Enterprise"]}),
+            ("status", "Status", "status", False, None),
+        ],
+        statuses=[("PROSPECT", "Prospect", True), ("ACTIVE", "Active", False),
+                  ("SUSPENDED", "Suspended", False), ("CHURNED", "Churned", False)],
+        transitions=[
+            {"from": "PROSPECT", "to": "ACTIVE", "guard": "email != None and email != ''"},
+            {"from": "ACTIVE", "to": "SUSPENDED", "guard": None},
+            {"from": "SUSPENDED", "to": "ACTIVE", "guard": None},
+            {"from": "ACTIVE", "to": "CHURNED", "guard": None},
+            {"from": "SUSPENDED", "to": "CHURNED", "guard": None},
+        ],
+    )
+
+    # ---- CRM: Contact (linked to a customer) ----
+    await _make_entity(
+        s, t, "contact", "Contact", "Contacts", "contacts", "user",
+        fields=[
+            ("name", "Name", "text", True, None),
+            ("email", "Email", "email", False, None),
+            ("phone", "Phone", "phone", False, None),
+            ("title", "Title", "text", False, None),
+            ("customer", "Customer", "ref", False, {"target": "customer"}),
+        ],
+    )
+
+    # ---- CRM: Deal ----
+    await _make_entity(
+        s, t, "deal", "Deal", "Deals", "deals", "pipeline",
+        fields=[
+            ("title", "Title", "text", True, None),
+            ("value", "Value", "money", False, None),
+            ("customer", "Customer", "ref", False, {"target": "customer"}),
+            ("status", "Status", "status", False, None),
+        ],
+        statuses=[("OPEN", "Open", True), ("WON", "Won", False), ("LOST", "Lost", False)],
+        transitions=[
+            {"from": "OPEN", "to": "WON", "guard": None},
+            {"from": "OPEN", "to": "LOST", "guard": None},
+        ],
+    )
+
+    # ---- Support: Ticket ----
+    await _make_entity(
+        s, t, "ticket", "Ticket", "Tickets", "tickets", "ticket",
+        fields=[
+            ("subject", "Subject", "text", True, None),
+            ("priority", "Priority", "select", False, {"options": ["Low", "Normal", "High", "Urgent"]}),
+            ("status", "Status", "status", False, None),
+        ],
+        statuses=[("OPEN", "Open", True), ("IN_PROGRESS", "In Progress", False), ("RESOLVED", "Resolved", False)],
+    )
+
+
 async def seed_meta_if_empty() -> None:
-    """Seed the CRM module (Lead, Customer, Contact, Deal) + Ticket — all AS CONFIG."""
+    """Seed the CRM module (Lead, Customer, Contact, Deal) + Ticket — all AS CONFIG (demo tenant)."""
     async with SessionLocal() as s:
         if (await s.execute(select(func.count()).select_from(EntityDef))).scalar_one():
             return
         tenant = (await s.execute(select(Tenant))).scalars().first()
         if not tenant:
             return
-        t = tenant.id
-
-        # ---- CRM: Lead ----
-        await _make_entity(
-            s, t, "lead", "Lead", "Leads", "leads", "users",
-            fields=[
-                ("name", "Name", "text", True, None),
-                ("phone", "Phone", "phone", False, None),
-                ("email", "Email", "email", False, None),
-                ("source", "Source", "select", False, {"options": ["Website", "Referral", "Cold Call", "Ad"]}),
-                ("status", "Status", "status", False, None),
-            ],
-            statuses=[("NEW", "New", True), ("CONTACTED", "Contacted", False), ("QUALIFIED", "Qualified", False),
-                      ("CONVERTED", "Converted", False), ("LOST", "Lost", False)],
-            transitions=[
-                {"from": "NEW", "to": "CONTACTED", "guard": "phone != None and phone != ''"},
-                {"from": "CONTACTED", "to": "QUALIFIED", "guard": None},
-                {"from": "QUALIFIED", "to": "CONVERTED", "guard": None},
-                {"from": "CONTACTED", "to": "LOST", "guard": None},
-                {"from": "QUALIFIED", "to": "LOST", "guard": None},
-            ],
-        )
-
-        # ---- CRM: Customer ----
-        await _make_entity(
-            s, t, "customer", "Customer", "Customers", "customers", "building",
-            fields=[
-                ("name", "Name", "text", True, None),
-                ("email", "Email", "email", False, None),
-                ("phone", "Phone", "phone", False, None),
-                ("plan", "Plan", "select", False, {"options": ["Basic", "Pro", "Enterprise"]}),
-                ("status", "Status", "status", False, None),
-            ],
-            statuses=[("PROSPECT", "Prospect", True), ("ACTIVE", "Active", False),
-                      ("SUSPENDED", "Suspended", False), ("CHURNED", "Churned", False)],
-            transitions=[
-                {"from": "PROSPECT", "to": "ACTIVE", "guard": "email != None and email != ''"},
-                {"from": "ACTIVE", "to": "SUSPENDED", "guard": None},
-                {"from": "SUSPENDED", "to": "ACTIVE", "guard": None},
-                {"from": "ACTIVE", "to": "CHURNED", "guard": None},
-                {"from": "SUSPENDED", "to": "CHURNED", "guard": None},
-            ],
-        )
-
-        # ---- CRM: Contact (linked to a customer) ----
-        await _make_entity(
-            s, t, "contact", "Contact", "Contacts", "contacts", "user",
-            fields=[
-                ("name", "Name", "text", True, None),
-                ("email", "Email", "email", False, None),
-                ("phone", "Phone", "phone", False, None),
-                ("title", "Title", "text", False, None),
-                ("customer", "Customer", "ref", False, {"target": "customer"}),
-            ],
-        )
-
-        # ---- CRM: Deal ----
-        await _make_entity(
-            s, t, "deal", "Deal", "Deals", "deals", "pipeline",
-            fields=[
-                ("title", "Title", "text", True, None),
-                ("value", "Value", "money", False, None),
-                ("customer", "Customer", "ref", False, {"target": "customer"}),
-                ("status", "Status", "status", False, None),
-            ],
-            statuses=[("OPEN", "Open", True), ("WON", "Won", False), ("LOST", "Lost", False)],
-            transitions=[
-                {"from": "OPEN", "to": "WON", "guard": None},
-                {"from": "OPEN", "to": "LOST", "guard": None},
-            ],
-        )
-
-        # ---- Support: Ticket ----
-        await _make_entity(
-            s, t, "ticket", "Ticket", "Tickets", "tickets", "ticket",
-            fields=[
-                ("subject", "Subject", "text", True, None),
-                ("priority", "Priority", "select", False, {"options": ["Low", "Normal", "High", "Urgent"]}),
-                ("status", "Status", "status", False, None),
-            ],
-            statuses=[("OPEN", "Open", True), ("IN_PROGRESS", "In Progress", False), ("RESOLVED", "Resolved", False)],
-        )
+        await build_crm_entities(s, tenant.id)
         await s.commit()
+
+
+async def build_access_config(s, tenant_id) -> dict:
+    """Build the baseline permission catalog + the three roles (super_admin, manager, sales_agent)
+    for tenant `tenant_id`. Reusable by the demo seed AND by provisioning. Flushes (so role ids are
+    available) but does NOT commit. Returns the three RoleDefs by key."""
+    crm = ["lead", "customer", "contact", "deal", "ticket"]
+    for ekey in crm:
+        for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+            s.add(PermissionDef(tenant_id=tenant_id, key=f"{ekey}.{verb}", label=f"{vl} {ekey}", group=ekey))
+
+    def perms(entities, verbs):
+        return [f"{e}.{v}" for e in entities for v in verbs]
+
+    super_admin = RoleDef(tenant_id=tenant_id, key="super_admin", label="Super Admin", permissions=["*"], scope="tenant")
+    manager = RoleDef(tenant_id=tenant_id, key="manager", label="Manager", scope="subtree",
+                      permissions=perms(crm, ["view", "create", "edit", "delete"]))
+    sales_agent = RoleDef(tenant_id=tenant_id, key="sales_agent", label="Sales Agent", scope="node",
+                          permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"])
+    s.add_all([super_admin, manager, sales_agent])
+    await s.flush()
+    return {"super_admin": super_admin, "manager": manager, "sales_agent": sales_agent}
 
 
 async def seed_access_if_empty() -> None:
@@ -160,21 +186,8 @@ async def seed_access_if_empty() -> None:
         nodes = {n.code: n for n in (await s.execute(select(OrgNode).where(OrgNode.tenant_id == tenant.id))).scalars().all()}
         group, team = nodes.get("grp"), nodes.get("sales1")
 
-        crm = ["lead", "customer", "contact", "deal", "ticket"]
-        for ekey in crm:
-            for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
-                s.add(PermissionDef(tenant_id=tenant.id, key=f"{ekey}.{verb}", label=f"{vl} {ekey}", group=ekey))
-
-        def perms(entities, verbs):
-            return [f"{e}.{v}" for e in entities for v in verbs]
-
-        super_admin = RoleDef(tenant_id=tenant.id, key="super_admin", label="Super Admin", permissions=["*"], scope="tenant")
-        manager = RoleDef(tenant_id=tenant.id, key="manager", label="Manager", scope="subtree",
-                          permissions=perms(crm, ["view", "create", "edit", "delete"]))
-        sales_agent = RoleDef(tenant_id=tenant.id, key="sales_agent", label="Sales Agent", scope="node",
-                              permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"])
-        s.add_all([super_admin, manager, sales_agent])
-        await s.flush()
+        roles = await build_access_config(s, tenant.id)
+        super_admin, sales_agent = roles["super_admin"], roles["sales_agent"]
 
         admin = (await s.execute(select(User).where(User.email == "admin@demo.isp"))).scalar_one_or_none()
         if admin and group:

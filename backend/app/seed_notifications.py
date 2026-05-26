@@ -45,6 +45,16 @@ _DEFS = [
 ]
 
 
+async def build_notification_defs(s, tenant_id) -> None:
+    """Add the baseline CRM NotificationDefs for tenant `tenant_id`. Reusable by the demo seed AND by
+    provisioning — no emptiness guard and no commit here (callers own the transaction)."""
+    for key, label, title_t, body_t, cond in _DEFS:
+        s.add(NotificationDef(
+            tenant_id=tenant_id, key=key, label=label, channel="inapp",
+            title_template=title_t, body_template=body_t, enabled=True, gxl_condition=cond,
+        ))
+
+
 async def seed_notifications_if_empty() -> None:
     """Seed the demo CRM's NotificationDefs once. No-op if any already exist for the demo tenant."""
     async with SessionLocal() as s:
@@ -57,9 +67,5 @@ async def seed_notifications_if_empty() -> None:
         if existing:
             return
 
-        for key, label, title_t, body_t, cond in _DEFS:
-            s.add(NotificationDef(
-                tenant_id=tenant.id, key=key, label=label, channel="inapp",
-                title_template=title_t, body_template=body_t, enabled=True, gxl_condition=cond,
-            ))
+        await build_notification_defs(s, tenant.id)
         await s.commit()
