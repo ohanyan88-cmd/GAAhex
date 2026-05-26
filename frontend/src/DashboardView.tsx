@@ -155,14 +155,14 @@ function Bars({ data }: { data: Group[] }) {
 
 function GroupTable({ data }: { data: Group[] }) {
   return (
-    <table className="grid">
-      <thead><tr><th>Group</th><th>Value</th></tr></thead>
+    <div className="grid-wrap"><table className="grid">
+      <thead><tr><th scope="col">Group</th><th scope="col">Value</th></tr></thead>
       <tbody>
         {data.map((d, i) => (
           <tr key={i}><td>{d.group}</td><td>{fmtNum(d.value)}</td></tr>
         ))}
       </tbody>
-    </table>
+    </table></div>
   )
 }
 

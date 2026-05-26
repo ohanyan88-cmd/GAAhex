@@ -128,8 +128,8 @@ export default function WebhooksView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <table className="grid">
-          <thead><tr><th>Name</th><th>URL</th><th>Events</th><th>Secret</th><th>Active</th><th></th></tr></thead>
+        <div className="grid-wrap"><table className="grid">
+          <thead><tr><th scope="col">Name</th><th scope="col">URL</th><th scope="col">Events</th><th scope="col">Secret</th><th scope="col">Active</th><th scope="col"></th></tr></thead>
           <tbody>
             {list.map((w) => (
               <tr key={w.id} className={w.active === false ? 'row-muted' : ''}>
@@ -147,7 +147,7 @@ export default function WebhooksView({ token }: { token: string }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {newSecret && (

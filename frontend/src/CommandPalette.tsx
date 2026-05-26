@@ -101,6 +101,7 @@ export default function CommandPalette({ token, entities, canConfigure, onEntity
         <input
           className="cmdk-input"
           autoFocus
+          aria-label="Search records or jump to a view"
           placeholder="Search records, or jump to…"
           value={q}
           onChange={(e) => setQ(e.target.value)}

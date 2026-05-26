@@ -400,6 +400,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           <input
             className="search-input"
             placeholder={`Search ${def.label_plural.toLowerCase()}…`}
+            aria-label={`Search ${def.label_plural}`}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -412,7 +413,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
 
         {viewsAvailable && (
           <div className="saved-views">
-            <select className="inp inp-sm" value={activeView} onChange={(e) => applyView(e.target.value)}>
+            <select className="inp inp-sm" aria-label="Saved views" value={activeView} onChange={(e) => applyView(e.target.value)}>
               <option value="">All records</option>
               {views.map((v) => <option key={String(v.id)} value={String(v.id)}>{v.name}</option>)}
             </select>
@@ -444,10 +445,11 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
         </div>
       )}
 
+      <div className="grid-wrap">
       <table className="grid">
         <thead>
           <tr>
-            <th className="sel-col">
+            <th className="sel-col" scope="col">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -456,10 +458,10 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                 aria-label="Select all"
               />
             </th>
-            {cols.map((c) => <th key={c.key}>{c.label}</th>)}
-            <th>Status</th>
-            {hasWorkflow && <th>Move to</th>}
-            <th></th>
+            {cols.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+            <th scope="col">Status</th>
+            {hasWorkflow && <th scope="col">Move to</th>}
+            <th scope="col"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -497,6 +499,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           )}
         </tbody>
       </table>
+      </div>
         </>
       )}
 

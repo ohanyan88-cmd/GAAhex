@@ -99,6 +99,14 @@ export const ChevronLeftIcon = (p: IconProps) => (
   </Svg>
 )
 
+export const MenuIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </Svg>
+)
+
 export const InfoIcon = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="10" />

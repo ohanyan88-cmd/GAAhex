@@ -103,9 +103,9 @@ export default function ReportsView({ token }: { token: string }) {
               {statusLoading && <p className="muted">Loading…</p>}
               {statusError && <p className="err">{statusError}</p>}
               {!statusLoading && !statusError && (
-                <table className="grid">
+                <div className="grid-wrap"><table className="grid">
                   <thead>
-                    <tr><th>Status</th><th>Count</th><th style={{ width: '50%' }}>Share</th></tr>
+                    <tr><th scope="col">Status</th><th scope="col">Count</th><th scope="col" style={{ width: '50%' }}>Share</th></tr>
                   </thead>
                   <tbody>
                     {byStatus.map((s) => (
@@ -128,7 +128,7 @@ export default function ReportsView({ token }: { token: string }) {
                       <tr><td colSpan={3} className="muted">No records yet.</td></tr>
                     )}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
           )}

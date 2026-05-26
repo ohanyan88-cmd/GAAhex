@@ -69,14 +69,14 @@ export default function OutboundView({ token }: { token: string }) {
       <div className="list-toolbar">
         <div className="bill-filter">
           <span className="muted export-label">Channel</span>
-          <select className="inp inp-sm" value={channel} onChange={(e) => setChannel(e.target.value)}>
+          <select className="inp inp-sm" aria-label="Filter by channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
             <option value="">All</option>
             {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="bill-filter">
           <span className="muted export-label">Status</span>
-          <select className="inp inp-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select className="inp inp-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All</option>
             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -91,8 +91,8 @@ export default function OutboundView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <table className="grid">
-          <thead><tr><th>Channel</th><th>To</th><th>Message</th><th>Status</th><th>When</th></tr></thead>
+        <div className="grid-wrap"><table className="grid">
+          <thead><tr><th scope="col">Channel</th><th scope="col">To</th><th scope="col">Message</th><th scope="col">Status</th><th scope="col">When</th></tr></thead>
           <tbody>
             {list.map((o) => (
               <tr key={o.id}>
@@ -104,7 +104,7 @@ export default function OutboundView({ token }: { token: string }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   )

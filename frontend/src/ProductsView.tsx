@@ -85,8 +85,8 @@ export default function ProductsView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <table className="grid">
-          <thead><tr><th>Name</th><th>Key</th><th>Amount</th><th>Cycle</th><th>Active</th><th></th></tr></thead>
+        <div className="grid-wrap"><table className="grid">
+          <thead><tr><th scope="col">Name</th><th scope="col">Key</th><th scope="col">Amount</th><th scope="col">Cycle</th><th scope="col">Active</th><th scope="col"></th></tr></thead>
           <tbody>
             {list.map((p) => (
               <tr key={p.id} className={p.active === false ? 'row-muted' : ''}>
@@ -102,7 +102,7 @@ export default function ProductsView({ token }: { token: string }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   )

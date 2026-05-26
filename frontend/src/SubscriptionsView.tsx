@@ -118,9 +118,9 @@ export default function SubscriptionsView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <table className="grid">
+        <div className="grid-wrap"><table className="grid">
           <thead>
-            <tr><th>Customer</th><th>Plan</th><th>Amount</th><th>Cycle</th><th>Status</th><th></th></tr>
+            <tr><th scope="col">Customer</th><th scope="col">Plan</th><th scope="col">Amount</th><th scope="col">Cycle</th><th scope="col">Status</th><th scope="col"></th></tr>
           </thead>
           <tbody>
             {list.map((s) => {
@@ -143,7 +143,7 @@ export default function SubscriptionsView({ token }: { token: string }) {
               )
             })}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   )

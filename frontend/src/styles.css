@@ -707,3 +707,45 @@ button:hover { background: var(--primary-hover); }
 .ob-preview { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .amt-neg-danger { color: var(--danger); }
 .secret-box { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border: var(--bw-1) solid var(--border); border-radius: var(--r-md); word-break: break-all; }
+
+/* ============================================================================
+   B13 — Responsive + a11y. Breakpoints: 860px (shell → drawer), 600px (phone).
+   ============================================================================ */
+/* table horizontal-scroll wrapper (no-op on desktop; scrolls when content overflows) */
+.grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nav-toggle { display: none; }            /* hamburger: hidden on desktop */
+.nav-backdrop { display: none; }          /* drawer scrim: only shown under the mobile breakpoint */
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; }
+  /* sidebar becomes an off-canvas drawer */
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; overflow-y: auto;
+    transform: translateX(-100%); transition: transform var(--dur-base) var(--ease-standard); z-index: var(--z-modal); }
+  .sidebar.open { transform: none; box-shadow: var(--shadow-pop); }
+  .nav-backdrop { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: calc(var(--z-modal) - 1); }
+  .nav-toggle { display: inline-flex; }
+
+  .content header { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .content main { padding: 16px 14px; }
+
+  /* dense surfaces collapse to single column */
+  .rec-form { grid-template-columns: 1fr; }
+  .messages { grid-template-columns: 1fr; height: auto; }
+  .rb-layout { grid-template-columns: 1fr; }
+  .widgets { grid-template-columns: 1fr; }
+  .donut-wrap { flex-direction: column; align-items: flex-start; }
+
+  /* the command-search trigger collapses to its icon */
+  .cmdk-trigger span, .cmdk-trigger .search-kbd { display: none; }
+  .overlay-panel.cmdk, .modal-md, .modal-lg { max-width: calc(100vw - 24px); }
+}
+
+@media (max-width: 600px) {
+  .content header > .muted { display: none; }   /* hide the user email on phones */
+  .view-head { flex-wrap: wrap; }
+  .list-toolbar { flex-direction: column; align-items: stretch; }
+  .list-toolbar .search { max-width: none; }
+  .saved-views, .export-group, .export-group.export-start { margin-left: 0; }
+  /* force the grid to scroll rather than crush columns on phones */
+  .grid-wrap .grid { min-width: 560px; }
+}

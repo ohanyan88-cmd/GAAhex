@@ -70,8 +70,8 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
         </div>
 
         <h3>Fields</h3>
-        <table className="grid">
-          <thead><tr><th>Key</th><th>Label</th><th>Type</th><th>Required</th><th>Options / ref target</th><th></th></tr></thead>
+        <div className="grid-wrap"><table className="grid">
+          <thead><tr><th scope="col">Key</th><th scope="col">Label</th><th scope="col">Type</th><th scope="col">Required</th><th scope="col">Options / ref target</th><th scope="col"></th></tr></thead>
           <tbody>
             {fields.map((f, i) => (
               <tr key={i}>
@@ -88,12 +88,12 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFields([...fields, { key: '', label: '', type: 'text', required: false, extra: '' }])}>+ field</button>
 
         <h3>Statuses (optional)</h3>
-        <table className="grid">
-          <thead><tr><th>Key (UPPER)</th><th>Label</th><th>Initial</th><th></th></tr></thead>
+        <div className="grid-wrap"><table className="grid">
+          <thead><tr><th scope="col">Key (UPPER)</th><th scope="col">Label</th><th scope="col">Initial</th><th scope="col"></th></tr></thead>
           <tbody>
             {statuses.map((sx, i) => (
               <tr key={i}>
@@ -104,12 +104,12 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStatuses([...statuses, { key: '', label: '', is_initial: statuses.length === 0 }])}>+ status</button>
 
         <h3>Transitions (optional)</h3>
-        <table className="grid">
-          <thead><tr><th>From</th><th>To</th><th>Guard (GXL, optional)</th><th></th></tr></thead>
+        <div className="grid-wrap"><table className="grid">
+          <thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Guard (GXL, optional)</th><th scope="col"></th></tr></thead>
           <tbody>
             {transitions.map((t, i) => (
               <tr key={i}>
@@ -120,7 +120,7 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTransitions([...transitions, { from: '', to: '', guard: '' }])}>+ transition</button>
 
         <div style={{ marginTop: 18 }}><button type="submit" className="btn btn-accent btn-md">Create entity</button></div>

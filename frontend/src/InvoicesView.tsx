@@ -71,7 +71,7 @@ export default function InvoicesView({ token }: { token: string }) {
       <div className="list-toolbar">
         <div className="bill-filter">
           <span className="muted export-label">Status</span>
-          <select className="inp inp-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select className="inp inp-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All</option>
             {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -86,9 +86,9 @@ export default function InvoicesView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <table className="grid">
+        <div className="grid-wrap"><table className="grid">
           <thead>
-            <tr><th>Invoice</th><th>Customer</th><th>Status</th><th>Total</th><th>Due</th><th></th></tr>
+            <tr><th scope="col">Invoice</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col">Total</th><th scope="col">Due</th><th scope="col"></th></tr>
           </thead>
           <tbody>
             {list.map((inv) => (
@@ -104,7 +104,7 @@ export default function InvoicesView({ token }: { token: string }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   )

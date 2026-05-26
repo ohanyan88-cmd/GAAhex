@@ -14,7 +14,7 @@ import ProductsView from './ProductsView'
 import ReportBuilderView from './ReportBuilderView'
 import OutboundView from './OutboundView'
 import WebhooksView from './WebhooksView'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
@@ -32,6 +32,7 @@ export default function App() {
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)   // off-canvas sidebar on narrow widths
 
   // ⌘K / Ctrl-K opens the command palette (once signed in)
   useEffect(() => {
@@ -98,7 +99,8 @@ export default function App() {
   return (
     <div className="shell">
       <a href="#main-content" className="skip-link">Skip to content</a>
-      <aside className="sidebar">
+      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
+      <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
         <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
         <div className="nav-label">Workspace</div>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
@@ -133,6 +135,7 @@ export default function App() {
 
       <div className="content">
         <header>
+          <button className="iconbtn nav-toggle" aria-label="Menu" onClick={() => setNavOpen((o) => !o)}><MenuIcon /></button>
           <span className="muted">{user?.name} · {user?.email}</span>
           <div className="header-right">
             <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl or Cmd K)">
