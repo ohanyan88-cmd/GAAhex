@@ -24,6 +24,7 @@ from .service import Service, ServiceResource
 from .interaction import Interaction
 from .respool import ResourcePool, PoolAllocation
 from .usage import UsageRecord
+from .translation import Translation
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -44,4 +45,5 @@ __all__ = [
     "ApiKey",
     "Service", "ServiceResource", "Interaction",
     "ResourcePool", "PoolAllocation", "UsageRecord",
+    "Translation",
 ]

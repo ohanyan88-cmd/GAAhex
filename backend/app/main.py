@@ -12,7 +12,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n
 
 
 @asynccontextmanager
@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
     await seed_meta_if_empty()
     await seed_access_if_empty()
     await seed_notifications_if_empty()
+    await i18n.seed_i18n_if_empty()
     yield
 
 
@@ -56,6 +57,8 @@ app.include_router(services.router)
 app.include_router(interactions.router)
 app.include_router(respool.router)
 app.include_router(usage.router)
+app.include_router(documents.router)
+app.include_router(i18n.router)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)
