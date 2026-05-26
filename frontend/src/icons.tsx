@@ -128,6 +128,37 @@ export const PrinterIcon = (p: IconProps) => (
   </Svg>
 )
 
+export const ChartIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="3" y1="3" x2="3" y2="21" />
+    <line x1="3" y1="21" x2="21" y2="21" />
+    <rect x="7" y="12" width="3" height="6" />
+    <rect x="12" y="8" width="3" height="10" />
+    <rect x="17" y="5" width="3" height="13" />
+  </Svg>
+)
+
+export const SparkleIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" />
+    <path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14z" />
+  </Svg>
+)
+
+export const ArrowUpIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="12" y1="19" x2="12" y2="5" />
+    <polyline points="5 12 12 5 19 12" />
+  </Svg>
+)
+
+export const ArrowDownIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <polyline points="19 12 12 19 5 12" />
+  </Svg>
+)
+
 export const UsersIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />

@@ -20,13 +20,14 @@ import UsageView from './UsageView'
 import ResourcePoolsView from './ResourcePoolsView'
 import AccountsView from './AccountsView'
 import PartiesView from './PartiesView'
+import AnalyticsView from './AnalyticsView'
 import { useI18n, initI18n, type Lang } from './i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -116,6 +117,7 @@ export default function App() {
         <div className="nav-label">{t('nav.workspace', 'Workspace')}</div>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>{t('nav.org', 'Org tree')}</button>
         <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>{t('nav.dashboards', 'Dashboards')}</button>
+        <button className={'nav' + (view.type === 'analytics' ? ' on' : '')} onClick={() => setView({ type: 'analytics' })}>{t('nav.analytics', 'Analytics')}</button>
         <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>{t('nav.reports', 'Reports')}</button>
         <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>{t('nav.messages', 'Messages')}</button>
         <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>{t('nav.activity', 'Activity')}</button>
@@ -198,6 +200,8 @@ export default function App() {
             ? <OrgTreeView nodes={orgNodes} />
             : view.type === 'dashboards'
               ? <DashboardView token={token} />
+            : view.type === 'analytics'
+              ? <AnalyticsView token={token} />
               : view.type === 'messages'
                 ? <MessagesView token={token} />
                 : view.type === 'activity'

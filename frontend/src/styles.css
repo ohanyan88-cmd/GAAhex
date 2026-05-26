@@ -712,6 +712,31 @@ button:hover { background: var(--primary-hover); }
 .chan-cell { display: inline-flex; align-items: center; gap: 6px; text-transform: capitalize; }
 .chan-cell svg { color: var(--text-3); flex: none; }
 
+/* ============================================================================
+   B18 — analytics (KPI deltas · revenue trend · charts) + AI assist.
+   ============================================================================ */
+.kpi-row { margin-bottom: 16px; }
+.kpi-delta { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-caption); margin-top: 6px; }
+.kpi-delta.pos { color: var(--success); }
+.kpi-delta.neg { color: var(--danger); }
+.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--pad); }
+.analytics-grid .widget { display: flex; flex-direction: column; }
+
+/* revenue trend — vertical grouped CSS bars in the dashboard chart style */
+.trend { display: flex; align-items: flex-end; gap: 12px; height: 160px; padding: 8px 0; }
+.trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.trend-bars { flex: 1; display: flex; align-items: flex-end; gap: 4px; width: 100%; justify-content: center; }
+.trend-bar { width: 14px; border-radius: var(--r-sm) var(--r-sm) 0 0; min-height: 2px; }
+.trend-x { font-size: var(--fs-caption); color: var(--text-3); }
+.trend-legend { flex-direction: row; gap: 16px; margin-top: 8px; }
+
+/* AI assist */
+.ai-result { display: flex; flex-direction: column; gap: 10px; }
+.ai-score { display: flex; align-items: center; gap: 10px; }
+.ai-score svg { color: var(--accent); }
+.ai-score-num { font-size: 28px; font-weight: var(--fw-bold); color: var(--accent); }
+.ai-summary { margin: 0; line-height: var(--lh-base); white-space: pre-wrap; }
+
 /* B17 — party hierarchy hint: a child name gets a left connector line + indent (no glyph) */
 .party-child { display: inline-block; margin-left: 10px; padding-left: 10px; border-left: var(--bw-2) solid var(--border); }
 

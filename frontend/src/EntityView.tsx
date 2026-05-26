@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
 import CustomerBillingModal from './CustomerBillingModal'
+import AiAssistModal from './AiAssistModal'
 import { Select, MultiSelect } from './Select'
 import { EmptyState, PermissionDenied, NotFound } from './States'
 import ActivityTimeline from './ActivityTimeline'
@@ -68,6 +69,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   const [commentsRow, setCommentsRow] = useState<Row | null>(null)
   const [activityRow, setActivityRow] = useState<Row | null>(null)
   const [billingRow, setBillingRow] = useState<Row | null>(null)
+  const [aiRow, setAiRow] = useState<Row | null>(null)
   const [fatal, setFatal] = useState<null | 'denied' | 'notfound'>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkTo, setBulkTo] = useState('')
@@ -482,6 +484,9 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                 </td>
               )}
               <td className="row-actions">
+                {(def.key === 'lead' || def.key === 'customer') && (
+                  <button className="btn btn-ghost btn-sm" aria-label={t('ai.title', 'AI assist')} title={t('ai.title', 'AI assist')} onClick={() => setAiRow(r)}><SparkleIcon size={14} /></button>
+                )}
                 {def.key === 'customer' && (
                   <button className="btn btn-ghost btn-sm" aria-label="Billing" title="Billing" onClick={() => setBillingRow(r)}><ReceiptIcon size={14} /></button>
                 )}
@@ -527,6 +532,16 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           customerId={billingRow.id}
           customerLabel={billingRow.name ?? billingRow.title ?? String(billingRow.id).slice(0, 8)}
           onClose={() => setBillingRow(null)}
+        />
+      )}
+
+      {aiRow && (
+        <AiAssistModal
+          token={token}
+          entityKey={def.key}
+          recordId={aiRow.id}
+          label={aiRow.name ?? aiRow.title ?? aiRow.subject ?? String(aiRow.id).slice(0, 8)}
+          onClose={() => setAiRow(null)}
         />
       )}
     </div>
