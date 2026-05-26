@@ -29,6 +29,7 @@ import SettingsView from './SettingsView'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon } from './icons'
+import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
@@ -42,6 +43,8 @@ export default function App() {
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })   // where the customer workspace returns to
+  // B21: capabilities fetched once after login; degrades to FULL_ACCESS if E21 isn't live
+  const [capabilities, setCapabilities] = useState<Capabilities>(FULL_ACCESS)
 
   // Open the single-customer workspace, remembering where to go "back" to.
   function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
@@ -110,13 +113,15 @@ export default function App() {
       setUser(await me(t))
       setEntities(await getEntities(t))
       setOrgNodes((await orgTree()).nodes)
+      // B21: fetch capabilities once; degrades gracefully on 404 (E21 sibling lane)
+      fetchCapabilities(t).then(setCapabilities).catch(() => setCapabilities(FULL_ACCESS))
     } catch (err) {
       setError((err as Error).message)
     }
   }
 
   function logout() {
-    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' })
+    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS)
   }
 
   if (!token) {
@@ -286,7 +291,7 @@ export default function App() {
                   ? <ReportsView token={token} />
                   : view.type === 'studio'
                     ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
-                    : <EntityView token={token} slug={view.slug} onOpenCustomer={openCustomer} />}
+                    : <EntityView token={token} slug={view.slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
         </main>
       </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
@@ -11,6 +11,8 @@ import { Select, MultiSelect } from './Select'
 import { EmptyState, PermissionDenied, NotFound } from './States'
 import ActivityTimeline from './ActivityTimeline'
 import { useI18n } from './i18n'
+import NoAccess from './NoAccess'
+import { can, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any; editable?: boolean }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
@@ -45,7 +47,15 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 }
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug, onOpenCustomer }: { token: string; slug: string; onOpenCustomer?: (id: string) => void }) {
+export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack }: {
+  token: string
+  slug: string
+  onOpenCustomer?: (id: string) => void
+  /** B21: per-entity capability map (from GET /api/me/capabilities). Defaults to FULL_ACCESS. */
+  capabilities?: Capabilities
+  /** B21: handler for "back to dashboard" in NoAccess panel. */
+  onBack?: () => void
+}) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [rows, setRows] = useState<Row[]>([])
@@ -241,7 +251,7 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
   }
 
   if (loading && !def && !fatal) return <p className="muted">Loading…</p>
-  if (fatal === 'notfound') return <NotFound what="entity" message={`No entity matches “${slug}”.`} />
+  if (fatal === 'notfound') return <NotFound what="entity" message={`No entity matches "${slug}".`} />
   if (fatal === 'denied') {
     return (
       <div>
@@ -251,6 +261,19 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
     )
   }
   if (!def) return <p className="err">Could not load this entity.</p>
+
+  // B21: derive per-verb capability flags from the capabilities map (full-access by default)
+  const entityKey = def.key
+  const canView   = can(capabilities, entityKey, 'view')
+  const canCreate = can(capabilities, entityKey, 'create')
+  const canEdit   = can(capabilities, entityKey, 'edit')
+  const canDelete = can(capabilities, entityKey, 'delete')
+  // If the user cannot view this entity at all, show NoAccess instead of the list
+  if (!canView) {
+    return <NoAccess what={def.label_plural} onBack={onBack} />
+  }
+  // Read-only mode: any mutating verb is denied
+  const readOnly = !canCreate && !canEdit && !canDelete
 
   const cols = def.fields.filter((f) => f.type !== 'status')
   const hasWorkflow = (def.transitions ?? []).length > 0
@@ -353,19 +376,47 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
     await runBulk('delete')
   }
 
-  const colSpan = cols.length + 3 + (hasWorkflow ? 1 : 0)
+  // B21: workflow column only appears when canEdit; adjust colSpan accordingly
+  const colSpan = cols.length + 3 + (hasWorkflow && canEdit ? 1 : 0)
 
   return (
     <div>
       <div className="view-head">
         <h2>{def.label_plural}</h2>
-        <button
-          className={formOpen ? 'btn btn-ghost btn-md' : 'btn btn-primary btn-md'}
-          onClick={() => (formOpen ? closeForm() : openCreate())}
-        >
-          {formOpen ? t('common.close', 'Close') : `+ ${t('common.new', 'New')} ${def.label}`}
-        </button>
+        {/* B21: show New button only when user can create; always show Close if form is open */}
+        {(formOpen || canCreate) && (
+          <button
+            className={formOpen ? 'btn btn-ghost btn-md' : 'btn btn-primary btn-md'}
+            onClick={() => (formOpen ? closeForm() : openCreate())}
+          >
+            {formOpen ? t('common.close', 'Close') : `+ ${t('common.new', 'New')} ${def.label}`}
+          </button>
+        )}
       </div>
+
+      {/* B21: read-only hint — shown when none of create/edit/delete is permitted */}
+      {readOnly && (
+        <div
+          className="readonly-hint"
+          role="status"
+          aria-label={t('readonly.ariaLabel', 'Read-only mode')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            marginBottom: 10,
+            background: 'var(--warning-soft)',
+            border: '1px solid var(--warning)',
+            borderRadius: 'var(--r-md)',
+            color: 'var(--text-2)',
+            fontSize: 'var(--fs-sm)',
+          }}
+        >
+          <LockIcon size={14} aria-hidden />
+          <span>{t('readonly.hint', 'Read-only — you can view but not modify records here.')}</span>
+        </div>
+      )}
 
       {error && !errorField && <p className="err">{error}</p>}
 
@@ -393,8 +444,8 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
       {rows.length === 0 && !loading && !formOpen ? (
         <EmptyState
           title={`${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
-          message={t('common.createFirst', 'Create the first one to get started.')}
-          action={<button className="btn btn-primary btn-md" onClick={openCreate}>+ {t('common.new', 'New')} {def.label}</button>}
+          message={canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
+          action={canCreate ? <button className="btn btn-primary btn-md" onClick={openCreate}>+ {t('common.new', 'New')} {def.label}</button> : undefined}
         />
       ) : (
         <>
@@ -435,7 +486,8 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
       {selected.size > 0 && (
         <div className="bulk-bar">
           <span className="bulk-count">{selected.size} selected</span>
-          {transitionTargets.length > 0 && (
+          {/* B21: only show transition controls if user can edit */}
+          {canEdit && transitionTargets.length > 0 && (
             <span className="bulk-move">
               <select className="inp inp-sm" value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} aria-label="Move to status">
                 <option value="">Move to…</option>
@@ -444,7 +496,8 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
               <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
             </span>
           )}
-          <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
+          {/* B21: only show bulk delete if user can delete */}
+          {canDelete && <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>}
           <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}
@@ -464,7 +517,7 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
             </th>
             {cols.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
             <th scope="col">Status</th>
-            {hasWorkflow && <th scope="col">Move to</th>}
+            {hasWorkflow && canEdit && <th scope="col">Move to</th>}
             <th scope="col"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
@@ -474,7 +527,8 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
               <td className="sel-col"><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" /></td>
               {cols.map((c) => <td key={c.key}>{renderCell(c, r)}</td>)}
               <td>{r.status ? <span className="pill">{r.status}</span> : ''}</td>
-              {hasWorkflow && (
+              {/* B21: workflow transition column only shown when canEdit (header hidden too) */}
+              {hasWorkflow && canEdit && (
                 <td>
                   {nextFrom(r.status).map((to) => (
                     <button key={to} className="btn btn-ghost btn-sm" onClick={() => doTransition(r.id, to)}>
@@ -495,15 +549,16 @@ export default function EntityView({ token, slug, onOpenCustomer }: { token: str
                 )}
                 <button className="btn btn-ghost btn-sm" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}><ClockIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}><MessageIcon size={14} /></button>
-                <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>{t('common.edit', 'Edit')}</button>
-                <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>{t('common.delete', 'Delete')}</button>
+                {/* B21: hide edit/delete when capability missing */}
+                {canEdit && <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>{t('common.edit', 'Edit')}</button>}
+                {canDelete && <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>{t('common.delete', 'Delete')}</button>}
               </td>
             </tr>
           ))}
           {!loading && visibleRows.length === 0 && (
             <tr>
               <td colSpan={colSpan} className="muted">
-                {needle ? `No records match “${appliedQ}”.` : 'No records yet.'}
+                {needle ? `No records match "${appliedQ}".` : 'No records yet.'}
               </td>
             </tr>
           )}

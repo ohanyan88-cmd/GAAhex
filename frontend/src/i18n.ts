@@ -76,6 +76,15 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
     'billing.runCycle': 'Գործարկել վճարման ցիկլը', 'billing.running': 'Գործարկվում է…',
     'billing.cycleResult': 'Վճարման ցիկլ՝ {generated} ստեղծված, {skipped} բաց թողնված',
     'billing.cycleNA': 'Վճարման ցիկլը դեռ հասանելի չէ',
+    // B21 — no-access screen + read-only mode
+    'noaccess.title': 'Դուք մուտք չունեք',
+    'noaccess.msg': 'Դուք թույլտվություն չունեք դիտելու այս ռեսուրսը։ Կապվեք ձեր ադմինի հետ, եթե անհրաժեշտ է մուտք։',
+    'noaccess.msgSpecific': 'Դուք թույլտվություն չունեք դիտելու {what}։',
+    'noaccess.back': 'Վերադառնալ վահանակ',
+    'noaccess.ariaLabel': 'Մուտք արգելված',
+    'noaccess.backAriaLabel': 'Վերադառնալ վահանակ',
+    'readonly.hint': 'Կարդալու ռեժիմ — կարող եք դիտել, բայց ոչ փոփոխել գրառումները։',
+    'readonly.ariaLabel': 'Կարդալու ռեժիմ',
   },
 }
 
