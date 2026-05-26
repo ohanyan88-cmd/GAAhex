@@ -13,6 +13,7 @@ from .approval import PendingApproval
 from .refresh_token import RefreshToken
 from .comm import Thread, Message
 from .notification_pref import NotificationPref
+from .billing import Subscription, Invoice, InvoiceLine, Payment
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -26,4 +27,5 @@ __all__ = [
     "RefreshToken",
     "Thread", "Message",
     "NotificationPref",
+    "Subscription", "Invoice", "InvoiceLine", "Payment",
 ]
