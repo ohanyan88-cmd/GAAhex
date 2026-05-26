@@ -19,5 +19,19 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = False      # OFF by default so the test suite is unaffected; enable in prod
     rate_limit_per_min: int = 6000        # requests per principal-or-IP per fixed 1-minute window
 
+    # ---- outbound channel providers (opt-in; unset ⇒ dev/console behavior, suite unaffected) ----
+    email_provider: str = "dev"           # dev|smtp
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str | None = None          # From: address (falls back to smtp_user)
+    smtp_starttls: bool = True
+
+    sms_provider: str = "dev"             # dev|twilio
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_from: str | None = None        # sender phone number / messaging-service id
+
 
 settings = Settings()
