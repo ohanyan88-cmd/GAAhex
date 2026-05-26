@@ -11,7 +11,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
     PermissionDef, RoleDef, Assignment, Event,
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
-from .routers import auth, meta, records, reports
+from .routers import auth, meta, records, reports, notifications, dashboards
 
 
 @asynccontextmanager
@@ -34,6 +34,8 @@ app.include_router(auth.router)
 app.include_router(meta.router)
 app.include_router(records.router)
 app.include_router(reports.router)
+app.include_router(notifications.router)
+app.include_router(dashboards.router)
 
 
 @app.get("/health")

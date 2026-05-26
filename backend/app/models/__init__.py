@@ -6,6 +6,8 @@ from .meta import EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef
 from .record import Record
 from .access import PermissionDef, RoleDef, Assignment
 from .event import Event
+from .notification import NotificationDef, Notification
+from .dashboard import DashboardDef, WidgetDef
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -13,4 +15,6 @@ __all__ = [
     "Record",
     "PermissionDef", "RoleDef", "Assignment",
     "Event",
+    "NotificationDef", "Notification",
+    "DashboardDef", "WidgetDef",
 ]
