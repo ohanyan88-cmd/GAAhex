@@ -4,6 +4,9 @@ import { bget, bpost, loadProducts, type Subscription, type Invoice, type Produc
 import { money, toMinor } from './money'
 import { toast } from './Toast'
 import { EmptyState } from './States'
+import InteractionsView from './InteractionsView'
+
+type Service = { id: string; type?: string; name?: string; status?: string | null }
 
 // A customer's billing-at-a-glance: their subscriptions + recent invoices, with generate-invoice and
 // a product-prefilled new-subscription form. Reads /api/subscriptions?customer= and /api/invoices?customer=.
@@ -16,6 +19,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 }) {
   const [subs, setSubs] = useState<Subscription[] | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
@@ -33,6 +37,8 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
     setSubs(Array.isArray(sr.data) ? sr.data : [])
     const ir = await bget<Invoice[]>(token, `/api/invoices?customer=${encodeURIComponent(customerId)}`)
     if (ir.ok && Array.isArray(ir.data)) setInvoices(ir.data)
+    const svr = await bget<Service[]>(token, `/api/services?customer=${encodeURIComponent(customerId)}`)
+    setServices(svr.ok && Array.isArray(svr.data) ? svr.data : [])
   }
 
   useEffect(() => { load() }, [token, customerId])
@@ -70,7 +76,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   }
 
   return (
-    <Modal open onClose={onClose} title={`Billing · ${customerLabel}`} size="lg">
+    <Modal open onClose={onClose} title={`Customer · ${customerLabel}`} size="lg">
       {error && <p className="err">{error}</p>}
       {subs === null && !error && <p className="muted">Loading…</p>}
       {unavailable && <EmptyState title="Billing isn't available yet" message="This customer's billing will appear once the billing service is enabled." />}
@@ -138,6 +144,27 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 </tbody>
               </table>
             )}
+
+          <h3 style={{ marginTop: 18 }}>Services</h3>
+          {services.length === 0
+            ? <p className="muted">No services.</p>
+            : (
+              <div className="grid-wrap"><table className="grid">
+                <thead><tr><th scope="col">Service</th><th scope="col">Type</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                  {services.map((sv) => (
+                    <tr key={sv.id}>
+                      <td>{sv.name ?? sv.id.slice(0, 8)}</td>
+                      <td>{sv.type ?? '—'}</td>
+                      <td>{sv.status ? <span className="pill">{sv.status}</span> : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            )}
+
+          <h3 style={{ marginTop: 18 }}>Touchpoints</h3>
+          <InteractionsView token={token} customerId={customerId} embedded />
         </>
       )}
     </Modal>

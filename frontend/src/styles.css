@@ -708,6 +708,10 @@ button:hover { background: var(--primary-hover); }
 .amt-neg-danger { color: var(--danger); }
 .secret-box { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border: var(--bw-1) solid var(--border); border-radius: var(--r-md); word-break: break-all; }
 
+/* B14 — interaction channel cell (icon + label) */
+.chan-cell { display: inline-flex; align-items: center; gap: 6px; text-transform: capitalize; }
+.chan-cell svg { color: var(--text-3); flex: none; }
+
 /* ============================================================================
    B13 — Responsive + a11y. Breakpoints: 860px (shell → drawer), 600px (phone).
    ============================================================================ */

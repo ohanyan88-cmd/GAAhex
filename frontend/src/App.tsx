@@ -14,12 +14,14 @@ import ProductsView from './ProductsView'
 import ReportBuilderView from './ReportBuilderView'
 import OutboundView from './OutboundView'
 import WebhooksView from './WebhooksView'
+import ServicesView from './ServicesView'
+import InteractionsView from './InteractionsView'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -113,6 +115,9 @@ export default function App() {
         <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>Invoices</button>
         <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>Subscriptions</button>
         <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}>Products</button>
+        <div className="nav-label">Service</div>
+        <button className={'nav' + (view.type === 'services' ? ' on' : '')} onClick={() => setView({ type: 'services' })}>Services</button>
+        <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}>Interactions</button>
         <div className="nav-label">Records</div>
         {entities.map((en) => (
           <button
@@ -188,6 +193,10 @@ export default function App() {
                   ? <OutboundView token={token} />
                 : view.type === 'webhooks'
                   ? <WebhooksView token={token} />
+                : view.type === 'services'
+                  ? <ServicesView token={token} />
+                : view.type === 'interactions'
+                  ? <InteractionsView token={token} />
                 : view.type === 'reports'
                   ? <ReportsView token={token} />
                   : view.type === 'studio'
