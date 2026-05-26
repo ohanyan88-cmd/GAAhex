@@ -599,3 +599,55 @@ button:hover { background: var(--primary-hover); }
 .export-group { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
 .export-group.export-start { margin-left: auto; }
 .export-label { font-size: var(--fs-caption); text-transform: uppercase; letter-spacing: .06em; }
+
+/* ============================================================================
+   B8 — feedback/state screens · activity timeline · notification prefs.
+   ============================================================================ */
+
+/* ---- State screens (EmptyState / 403 / 404) + ErrorBanner ---- */
+.state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 48px 24px; }
+.state-icon { color: var(--text-3); margin-bottom: 4px; }
+.state-title { font-size: var(--fs-h3); font-weight: var(--fw-semibold); }
+.state-msg { color: var(--text-3); font-size: var(--fs-sm); margin: 0; max-width: 380px; line-height: var(--lh-base); }
+.state-action { margin-top: 10px; }
+
+.error-banner { display: flex; align-items: center; gap: 8px; background: var(--danger-soft); color: var(--danger);
+  border: var(--bw-1) solid var(--danger); border-radius: var(--r-md); padding: 9px 12px; font-size: var(--fs-sm); margin-bottom: 14px; }
+.error-banner-msg { flex: 1; }
+.error-banner .btn { color: var(--danger); }
+
+/* ---- Read-only field ---- */
+.field-readonly { padding: 8px 0; color: var(--text-2); font-size: 14px; }
+
+/* ---- Activity timeline ---- */
+.timeline { list-style: none; margin: 0; padding: 0; }
+.tl-item { display: flex; gap: 12px; position: relative; padding-bottom: 16px; }
+.tl-item::before { content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 2px; background: var(--border); }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item:last-child::before { display: none; }
+.tl-dot { flex: none; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: var(--bw-1) solid var(--border); color: var(--text-2); z-index: 1; }
+.tl-dot.ev-success { color: var(--success); border-color: var(--success); }
+.tl-dot.ev-danger { color: var(--danger); border-color: var(--danger); }
+.tl-dot.ev-warning { color: var(--warning); border-color: var(--warning); }
+.tl-body { padding-top: 4px; min-width: 0; }
+.tl-text { font-size: var(--fs-sm); line-height: var(--lh-base); }
+.tl-ent { color: var(--text-3); }
+.tl-time { font-size: var(--fs-caption); color: var(--text-3); margin-top: 1px; }
+
+/* ---- Notification filters · item meta · preferences ---- */
+.notif-filters { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: var(--bw-1) solid var(--border); }
+.notif-filters .notif-toggle { margin-left: 0; }
+.notif-filters .inp-sm { flex: 1; min-width: 0; }
+.notif-gear { padding: 4px; }
+.notif-item-meta { display: flex; align-items: center; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.notif-cat { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; background: var(--surface-2); color: var(--text-2); padding: 1px 6px; border-radius: var(--r-pill); }
+.notif-pri { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: var(--r-pill); }
+.notif-pri-high, .notif-pri-urgent { background: var(--danger-soft); color: var(--danger); }
+.notif-pri-normal, .notif-pri-low { background: var(--surface-2); color: var(--text-3); }
+.notif-item-meta .notif-item-time { margin-left: auto; margin-top: 0; }
+.notif-prefs { padding: 6px 4px; overflow-y: auto; }
+.notif-prefs-hint { padding: 4px 12px 8px; }
+.pref-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: var(--bw-1) solid var(--border-soft); cursor: pointer; }
+.pref-row:last-child { border-bottom: 0; }
+.pref-cat { font-size: var(--fs-sm); text-transform: capitalize; }

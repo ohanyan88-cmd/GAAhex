@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon } from './icons'
-import { confirmDialog } from './Modal'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon } from './icons'
+import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
 import { Select, MultiSelect } from './Select'
+import { EmptyState, PermissionDenied, NotFound } from './States'
+import ActivityTimeline from './ActivityTimeline'
 
-type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any }
+type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any; editable?: boolean }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
 type Transition = { from: string; to: string }
 type Def = { key: string; label: string; label_plural: string; route_slug: string; fields: Field[]; statuses: Status[]; transitions: Transition[] }
@@ -61,11 +63,14 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   const [viewsAvailable, setViewsAvailable] = useState(false)
   const [activeView, setActiveView] = useState('')
   const [commentsRow, setCommentsRow] = useState<Row | null>(null)
+  const [activityRow, setActivityRow] = useState<Row | null>(null)
+  const [fatal, setFatal] = useState<null | 'denied' | 'notfound'>(null)
 
   async function load(s: string) {
-    setLoading(true)
+    setLoading(true); setFatal(null)
     try {
-      const d: Def = await getEntityDef(token, s)
+      let d: Def
+      try { d = await getEntityDef(token, s) } catch { setFatal('notfound'); return }
       setDef(d)
       // build the list request to A's contract; FastAPI ignores params an older build doesn't declare
       const params = new URLSearchParams()
@@ -74,6 +79,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
       if (sort) params.set('sort', sort)
       const qs = params.toString()
       const r = await fetch(`${BASE}/api/${s}${qs ? `?${qs}` : ''}`, { headers: authH(token) })
+      if (r.status === 403) { setFatal('denied'); return }
       if (!r.ok) throw new Error('Failed to load records')
       setRows(await r.json())
       // build { fieldKey -> { id -> label } } maps for every ref field, for the list display
@@ -145,6 +151,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
       const payload: Record<string, unknown> = {}
       def!.fields.forEach((f) => {
         if (f.type === 'status') return            // status is lifecycle-managed, never sent here
+        if (f.editable === false) return           // read-only fields are never submitted
         const v = form[f.key]
         if (mode === 'creating') {
           if (v !== undefined && v !== '') payload[f.key] = v
@@ -224,7 +231,16 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
     setQ(v?.q ?? ''); setAppliedQ(v?.q ?? ''); setFilter(v?.filter ?? ''); setSort(v?.sort ?? '')
   }
 
-  if (loading && !def) return <p className="muted">Loading…</p>
+  if (loading && !def && !fatal) return <p className="muted">Loading…</p>
+  if (fatal === 'notfound') return <NotFound what="entity" message={`No entity matches “${slug}”.`} />
+  if (fatal === 'denied') {
+    return (
+      <div>
+        <div className="view-head"><h2>{def?.label_plural ?? slug}</h2></div>
+        <PermissionDenied message="You don't have permission to view these records." />
+      </div>
+    )
+  }
   if (!def) return <p className="err">Could not load this entity.</p>
 
   const cols = def.fields.filter((f) => f.type !== 'status')
@@ -308,6 +324,14 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
         </form>
       )}
 
+      {rows.length === 0 && !loading && !formOpen ? (
+        <EmptyState
+          title={`No ${def.label_plural.toLowerCase()} yet`}
+          message="Create the first one to get started."
+          action={<button className="btn btn-primary btn-md" onClick={openCreate}>+ New {def.label}</button>}
+        />
+      ) : (
+        <>
       <div className="list-toolbar">
         <div className="search search-md">
           <SearchIcon className="search-icon" size={16} />
@@ -365,6 +389,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                 </td>
               )}
               <td className="row-actions">
+                <button className="btn btn-ghost btn-sm" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}><ClockIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}><MessageIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>Edit</button>
                 <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>Delete</button>
@@ -380,6 +405,8 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           )}
         </tbody>
       </table>
+        </>
+      )}
 
       {commentsRow && (
         <CommentsModal
@@ -389,6 +416,12 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           label={def.label}
           onClose={() => setCommentsRow(null)}
         />
+      )}
+
+      {activityRow && (
+        <Modal open onClose={() => setActivityRow(null)} title={`Activity · ${def.label}`} size="md">
+          <ActivityTimeline token={token} entity={slug} record={activityRow.id} />
+        </Modal>
       )}
     </div>
   )
@@ -408,6 +441,17 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
   const isErr = errorField === f.key
   const cls = 'inp inp-md' + (isErr ? ' is-error' : '')
   let input: React.ReactNode
+
+  // read-only field (per-field `editable` flag from /meta; absent ⇒ editable)
+  if (f.editable === false) {
+    const display = Array.isArray(value) ? value.join(', ') : (value === true ? 'Yes' : value === false ? 'No' : (value ?? '—'))
+    return (
+      <label className="field">
+        <span>{f.label}</span>
+        <span className="field-readonly">{String(display) || '—'}</span>
+      </label>
+    )
+  }
 
   if (f.type === 'status') {
     // status is set by the workflow, never edited directly

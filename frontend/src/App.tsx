@@ -7,12 +7,13 @@ import DashboardView from './DashboardView'
 import MessagesView from './MessagesView'
 import NotificationCenter from './NotificationCenter'
 import CommandPalette from './CommandPalette'
+import ActivityTimeline from './ActivityTimeline'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -98,6 +99,7 @@ export default function App() {
         <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>Dashboards</button>
         <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>Reports</button>
         <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>Messages</button>
+        <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>Activity</button>
         <div className="nav-label">Records</div>
         {entities.map((en) => (
           <button
@@ -156,6 +158,8 @@ export default function App() {
               ? <DashboardView token={token} />
               : view.type === 'messages'
                 ? <MessagesView token={token} />
+                : view.type === 'activity'
+                  ? <div><div className="view-head"><h2>Activity</h2></div><ActivityTimeline token={token} /></div>
                 : view.type === 'reports'
                   ? <ReportsView token={token} />
                   : view.type === 'studio'
