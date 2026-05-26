@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User
+from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
 from ..access import load_grants, can
 from .. import workflow, gxl
 from .auth import current_user
@@ -134,6 +134,8 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
         owner_node_id=user.primary_node_id, status=status, data=data,
     )
     s.add(rec)
+    await s.flush()
+    await workflow.emit(s, user.tenant_id, "create", ent.key, rec.id, user.id, {"data": data, "status": status})
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)
@@ -159,9 +161,12 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     fields = await _fields(s, ent.id)
     data, _status_ignored, _ = _validate(fields, payload, partial=True)
     # status changes go through /transition (guarded), never via free PATCH
-    merged = dict(rec.data or {})
+    before = dict(rec.data or {})
+    merged = dict(before)
     merged.update(data)
     rec.data = merged
+    await workflow.emit(s, user.tenant_id, "update", ent.key, rec.id, user.id,
+                        {"changed": data, "before": {k: before.get(k) for k in data}})
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)
@@ -174,6 +179,8 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "delete", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "delete")
+    await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
+                        {"data": dict(rec.data or {}), "status": rec.status})
     await s.delete(rec)
     await s.commit()
 
@@ -206,3 +213,21 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)
+
+
+@router.get("/{slug}/{rec_id}/history")
+async def record_history(slug: str, rec_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """The audit trail for one record — every create/update/transition/delete event."""
+    ent = await _entity(s, user.tenant_id, slug)
+    rec = await _get(s, user.tenant_id, ent.key, rec_id)
+    grants = await load_grants(s, user)
+    if not can(grants, ent.key, "view", await _node_path(s, rec.owner_node_id)):
+        _deny(ent.key, "view")
+    rows = (await s.execute(
+        select(Event).where(Event.tenant_id == user.tenant_id, Event.record_id == rec_id).order_by(Event.created_at)
+    )).scalars().all()
+    return [
+        {"type": e.type, "data": e.data, "actor_user_id": str(e.actor_user_id) if e.actor_user_id else None,
+         "at": e.created_at.isoformat() if e.created_at else None}
+        for e in rows
+    ]
