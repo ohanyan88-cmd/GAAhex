@@ -1,0 +1,226 @@
+"""Outbound webhooks (integration layer, J95 / doc 24).
+
+Subscribe external URLs to kernel Events. `dispatch_event` is the engine: called from the event
+chokepoint (workflow.emit), it finds active WebhookDefs subscribed to the event type, records a
+WebhookDelivery for each, and attempts a best-effort signed HTTP POST. It is FULLY fail-soft — a
+slow/broken endpoint marks the delivery FAILED and never raises into the kernel.
+
+Phase-1 = records + a single attempt. A real retry queue/worker is a later step (see report).
+"""
+import hashlib
+import hmac
+import json
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..db import get_session
+from ..models import User
+from ..models.webhook import WebhookDef, WebhookDelivery
+from ..access import load_grants, can
+from .auth import current_user
+
+router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
+
+DELIVERY_TIMEOUT = 3.0          # seconds — short, so a slow endpoint can't stall the request
+DELIVERY_LOG_CAP = 100
+
+
+# ---- dispatch engine (importable; called from workflow.emit) -----------------------------------
+
+async def _deliver(s: AsyncSession, hook: WebhookDef, event_type: str, payload: dict) -> WebhookDelivery:
+    """Record a delivery and attempt one signed POST. Fail-soft: the delivery row always lands; the
+    HTTP result only updates its status. Does NOT commit (the caller's transaction owns that)."""
+    delivery = WebhookDelivery(
+        tenant_id=hook.tenant_id, webhook_id=hook.id, event_type=event_type,
+        payload=payload, status="QUEUED", attempts=0,
+    )
+    s.add(delivery)
+    try:
+        await s.flush()
+    except Exception:
+        return delivery
+
+    body = json.dumps({"event": event_type, "data": payload}, default=str).encode()
+    headers = {"Content-Type": "application/json", "User-Agent": "GAAex-Webhooks/1"}
+    if hook.secret:
+        sig = hmac.new(hook.secret.encode(), body, hashlib.sha256).hexdigest()
+        headers["X-GAAex-Signature"] = f"sha256={sig}"
+
+    delivery.attempts = 1
+    try:
+        import httpx                                    # lazy: only needed when a webhook actually fires
+        async with httpx.AsyncClient(timeout=DELIVERY_TIMEOUT) as client:
+            resp = await client.post(hook.url, content=body, headers=headers)
+        delivery.status_code = resp.status_code
+        if 200 <= resp.status_code < 300:
+            delivery.status = "SENT"
+        else:
+            delivery.status = "FAILED"
+            delivery.error = f"HTTP {resp.status_code}"
+    except Exception as e:
+        delivery.status = "FAILED"
+        delivery.error = str(e)[:500]
+    return delivery
+
+
+async def dispatch_event(s: AsyncSession, *, tenant_id, event_type: str, payload: dict) -> None:
+    """Fan a kernel Event out to subscribed webhooks. Fail-soft end-to-end: any error is swallowed so
+    webhook delivery can never break the mutation that emitted the event."""
+    try:
+        hooks = (await s.execute(
+            select(WebhookDef).where(WebhookDef.tenant_id == tenant_id, WebhookDef.active.is_(True))
+        )).scalars().all()
+        for hook in hooks:
+            subscribed = hook.events or []
+            if event_type in subscribed or "*" in subscribed:
+                await _deliver(s, hook, event_type, payload)
+    except Exception:
+        return
+
+
+# ---- serialization (secret is NEVER returned) --------------------------------------------------
+
+def _def_out(w: WebhookDef) -> dict:
+    return {
+        "id": str(w.id), "name": w.name, "url": w.url, "events": w.events,
+        "active": w.active, "has_secret": bool(w.secret),
+        "created_at": w.created_at.isoformat() if w.created_at else None,
+    }
+
+
+def _delivery_out(d: WebhookDelivery) -> dict:
+    return {
+        "id": str(d.id), "webhook_id": str(d.webhook_id), "event_type": d.event_type,
+        "status": d.status, "attempts": d.attempts, "status_code": d.status_code,
+        "error": d.error, "payload": d.payload,
+        "created_at": d.created_at.isoformat() if d.created_at else None,
+    }
+
+
+# ---- helpers -----------------------------------------------------------------------------------
+
+async def _require_config_manage(s: AsyncSession, user: User) -> None:
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        raise HTTPException(403, "Not allowed to manage configuration")
+
+
+async def _load(s: AsyncSession, tenant_id, webhook_id) -> WebhookDef:
+    w = (await s.execute(
+        select(WebhookDef).where(WebhookDef.id == webhook_id, WebhookDef.tenant_id == tenant_id)
+    )).scalar_one_or_none()
+    if not w:
+        raise HTTPException(404, "Webhook not found")
+    return w
+
+
+def _validate_url(url: str) -> str:
+    url = (url or "").strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(422, "url must start with http:// or https://")
+    return url
+
+
+def _validate_events(events) -> list:
+    if events is None:
+        return []
+    if not isinstance(events, list) or not all(isinstance(e, str) for e in events):
+        raise HTTPException(422, "events must be a list of event-type strings")
+    return events
+
+
+# ---- endpoints (all gated by config.manage) ----------------------------------------------------
+
+@router.get("")
+async def list_webhooks(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    await _require_config_manage(s, user)
+    rows = (await s.execute(
+        select(WebhookDef).where(WebhookDef.tenant_id == user.tenant_id).order_by(WebhookDef.created_at)
+    )).scalars().all()
+    return [_def_out(w) for w in rows]
+
+
+@router.post("", status_code=201)
+async def create_webhook(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    await _require_config_manage(s, user)
+    name = (payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(422, "name is required")
+    url = _validate_url(payload.get("url"))
+    events = _validate_events(payload.get("events"))
+    w = WebhookDef(
+        tenant_id=user.tenant_id, name=name, url=url, events=events,
+        secret=(payload.get("secret") or None), active=bool(payload.get("active", True)),
+    )
+    s.add(w)
+    await s.commit()
+    await s.refresh(w)
+    return _def_out(w)
+
+
+@router.get("/{webhook_id}")
+async def get_webhook(webhook_id: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    await _require_config_manage(s, user)
+    return _def_out(await _load(s, user.tenant_id, webhook_id))
+
+
+@router.patch("/{webhook_id}")
+async def update_webhook(webhook_id: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    await _require_config_manage(s, user)
+    w = await _load(s, user.tenant_id, webhook_id)
+    allowed = {"name", "url", "events", "active", "secret"}
+    unknown = set(payload) - allowed
+    if unknown:
+        raise HTTPException(422, f"Cannot patch {sorted(unknown)}; allowed: {sorted(allowed)}")
+    if "name" in payload:
+        v = (payload["name"] or "").strip()
+        if not v:
+            raise HTTPException(422, "name cannot be empty")
+        w.name = v
+    if "url" in payload:
+        w.url = _validate_url(payload["url"])
+    if "events" in payload:
+        w.events = _validate_events(payload["events"])
+    if "active" in payload:
+        w.active = bool(payload["active"])
+    if "secret" in payload:
+        w.secret = payload["secret"] or None
+    await s.commit()
+    await s.refresh(w)
+    return _def_out(w)
+
+
+@router.delete("/{webhook_id}", status_code=204)
+async def delete_webhook(webhook_id: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    await _require_config_manage(s, user)
+    w = await _load(s, user.tenant_id, webhook_id)
+    await s.delete(w)
+    await s.commit()
+
+
+@router.get("/{webhook_id}/deliveries")
+async def list_deliveries(webhook_id: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """The delivery log for a webhook, newest first."""
+    await _require_config_manage(s, user)
+    await _load(s, user.tenant_id, webhook_id)          # 404 if not this tenant's webhook
+    rows = (await s.execute(
+        select(WebhookDelivery).where(
+            WebhookDelivery.tenant_id == user.tenant_id, WebhookDelivery.webhook_id == webhook_id
+        ).order_by(WebhookDelivery.created_at.desc()).limit(DELIVERY_LOG_CAP)
+    )).scalars().all()
+    return [_delivery_out(d) for d in rows]
+
+
+@router.post("/{webhook_id}/test")
+async def test_webhook(webhook_id: str, payload: dict | None = None, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Fire a sample event at one webhook and return the resulting delivery record."""
+    await _require_config_manage(s, user)
+    w = await _load(s, user.tenant_id, webhook_id)
+    event_type = (payload or {}).get("event_type") or "test"
+    sample = (payload or {}).get("data") or {"message": "GAAex test event", "webhook_id": str(w.id)}
+    delivery = await _deliver(s, w, event_type, sample)
+    await s.commit()
+    await s.refresh(delivery)
+    return _delivery_out(delivery)

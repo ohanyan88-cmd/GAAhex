@@ -10,10 +10,16 @@ from ..db import get_session
 from ..models import User
 from ..models.notification import NotificationDef, Notification
 from ..models.notification_pref import NotificationPref
-from .. import gxl
+from ..models.outbound import OutboundMessage
+from ..access import load_grants, can
+from .. import gxl, channels
 from .auth import current_user
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+# Outbound delivery log lives under /api (not /notifications) — see GET /api/outbound below.
+# Register BEFORE records.router in main.py so "/api/outbound" isn't captured as an entity slug.
+outbound_router = APIRouter(prefix="/api", tags=["outbound"])
 
 
 # ---- template rendering (fail-soft — never raises into the caller) ----
@@ -79,7 +85,40 @@ async def emit_notification(
     )
     s.add(note)
     await s.flush()
+
+    # If the def targets a non-inapp channel, ALSO fan out externally (the inbox row above is kept
+    # either way). Fully fail-soft — a delivery problem must never break the emit.
+    if ndef.channel and ndef.channel != "inapp":
+        await _dispatch_external(s, tenant_id, user_id, ndef, note)
+
     return note
+
+
+async def _resolve_address(s: AsyncSession, tenant_id, user_id, channel: str) -> str | None:
+    """The recipient's address for a channel. email ⇒ User.email; sms ⇒ User.phone if it exists
+    (it does NOT yet — degrades to None, which the sms adapter records as FAILED). Other channels
+    have no per-user address here."""
+    recipient = (await s.execute(
+        select(User).where(User.id == user_id, User.tenant_id == tenant_id)
+    )).scalar_one_or_none()
+    if recipient is None:
+        return None
+    if channel == "email":
+        return recipient.email
+    if channel == "sms":
+        return getattr(recipient, "phone", None)
+    return None
+
+
+async def _dispatch_external(s: AsyncSession, tenant_id, user_id, ndef: NotificationDef, note: Notification) -> None:
+    try:
+        to_addr = await _resolve_address(s, tenant_id, user_id, ndef.channel)
+        await channels.dispatch(
+            s, tenant_id=tenant_id, channel=ndef.channel, to=to_addr,
+            subject=note.title, body=note.body, def_key=ndef.key, user_id=user_id,
+        )
+    except Exception:
+        return  # never propagate into the emit
 
 
 async def _pref_opted_out(s: AsyncSession, tenant_id, user_id, ndef: NotificationDef) -> bool:
@@ -123,6 +162,21 @@ def _serialize_pref(p: NotificationPref) -> dict:
         "category": p.category,
         "channel": p.channel,
         "enabled": p.enabled,
+    }
+
+
+def _serialize_outbound(m: OutboundMessage) -> dict:
+    return {
+        "id": str(m.id),
+        "channel": m.channel,
+        "to_addr": m.to_addr,
+        "subject": m.subject,
+        "body": m.body,
+        "status": m.status,
+        "def_key": m.def_key,
+        "user_id": str(m.user_id) if m.user_id else None,
+        "error": m.error,
+        "created_at": m.created_at.isoformat() if m.created_at else None,
     }
 
 
@@ -248,3 +302,22 @@ async def mark_all_read(user: User = Depends(current_user), s: AsyncSession = De
     )
     await s.commit()
     return {"updated": result.rowcount}
+
+
+# ---- outbound delivery log (admin) — on the /api router ----
+
+@outbound_router.get("/outbound")
+async def outbound_log(channel: str | None = None, status: str | None = None,
+                       user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """The tenant's external-delivery log, newest first. Gated on config.manage. Optional filters
+    `?channel=` and `?status=`."""
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        raise HTTPException(403, "Not allowed: config.manage")
+    q = select(OutboundMessage).where(OutboundMessage.tenant_id == user.tenant_id)
+    if channel:
+        q = q.where(OutboundMessage.channel == channel)
+    if status:
+        q = q.where(OutboundMessage.status == status)
+    rows = (await s.execute(q.order_by(OutboundMessage.created_at.desc()))).scalars().all()
+    return [_serialize_outbound(m) for m in rows]

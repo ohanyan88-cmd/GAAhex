@@ -45,6 +45,18 @@ async def emit(s: AsyncSession, tenant_id, type_: str, entity_key: str, record_i
         tenant_id=tenant_id, type=type_, entity_key=entity_key,
         record_id=record_id, actor_user_id=actor_user_id, data=data,
     ))
+    # Fan the event out to any subscribed outbound webhooks (fail-soft, lazy import to avoid a
+    # router↔workflow import cycle; a no-op when no webhooks are configured for this tenant).
+    try:
+        from .routers.webhooks import dispatch_event
+        await dispatch_event(s, tenant_id=tenant_id, event_type=type_, payload={
+            "type": type_, "entity_key": entity_key,
+            "record_id": str(record_id) if record_id else None,
+            "actor_user_id": str(actor_user_id) if actor_user_id else None,
+            "data": data,
+        })
+    except Exception:
+        pass
 
 
 # ===========================================================================================

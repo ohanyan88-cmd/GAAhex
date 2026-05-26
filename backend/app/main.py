@@ -12,7 +12,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks
 
 
 @asynccontextmanager
@@ -48,6 +48,8 @@ app.include_router(bulk.router)
 app.include_router(report_builder.router)
 app.include_router(orders.router)
 app.include_router(customer360.router)
+app.include_router(webhooks.router)
+app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)

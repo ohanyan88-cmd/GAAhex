@@ -17,6 +17,8 @@ from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product
 from .report import ReportDef
 from .order import Order, OrderItem
+from .outbound import OutboundMessage
+from .webhook import WebhookDef, WebhookDelivery
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -33,4 +35,5 @@ __all__ = [
     "Subscription", "Invoice", "InvoiceLine", "Payment",
     "Product", "ReportDef",
     "Order", "OrderItem",
+    "OutboundMessage", "WebhookDef", "WebhookDelivery",
 ]
