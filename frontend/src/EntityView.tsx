@@ -113,6 +113,26 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
     }
   }
 
+  async function doDelete(row: Row) {
+    if (!window.confirm(`Delete this ${def!.label}? This can't be undone.`)) return
+    setError('')
+    try {
+      const r = await fetch(`${BASE}/api/${slug}/${row.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({ detail: r.status === 403 ? 'Not allowed to delete this record' : 'Error' }))
+        const d = e.detail ?? 'Error'
+        throw new Error(typeof d === 'string' ? d : JSON.stringify(d))
+      }
+      if (editingId === row.id) closeForm()
+      await load(slug)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
   if (loading && !def) return <p className="muted">Loading…</p>
   if (!def) return <p className="err">Could not load this entity.</p>
 
@@ -179,8 +199,9 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                   ))}
                 </td>
               )}
-              <td>
+              <td className="row-actions">
                 <button className="mini" onClick={() => openEdit(r)}>Edit</button>
+                <button className="mini danger" onClick={() => doDelete(r)}>Delete</button>
               </td>
             </tr>
           ))}

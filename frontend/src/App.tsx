@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { login, me, getEntities, orgTree } from './api'
 import EntityView from './EntityView'
 import StudioView from './StudioView'
 import ReportsView from './ReportsView'
+import DashboardView from './DashboardView'
+import NotificationCenter from './NotificationCenter'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -19,6 +21,15 @@ export default function App() {
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
+
+  // Theme: dark is the default (:root); light is the [data-theme="light"] override. Persisted.
+  const [theme, setTheme] = useState<'dark' | 'light'>(
+    () => (localStorage.getItem('gaaex-theme') === 'light' ? 'light' : 'dark'),
+  )
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('gaaex-theme', theme)
+  }, [theme])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -60,6 +71,7 @@ export default function App() {
         <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
         <div className="nav-label">Workspace</div>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
+        <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>Dashboards</button>
         <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>Reports</button>
         <div className="nav-label">Records</div>
         {entities.map((en) => (
@@ -82,16 +94,33 @@ export default function App() {
       <div className="content">
         <header>
           <span className="muted">{user?.name} · {user?.email}</span>
-          <button onClick={logout}>Sign out</button>
+          <div className="header-right">
+            <button
+              className="iconbtn"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-label="Toggle theme"
+            >
+              <span aria-hidden>{theme === 'dark' ? '☀️' : '🌙'}</span>
+            </button>
+            <NotificationCenter
+              token={token}
+              entities={entities}
+              onOpen={(slug) => setView({ type: 'entity', slug })}
+            />
+            <button onClick={logout}>Sign out</button>
+          </div>
         </header>
         <main>
           {view.type === 'org'
             ? <OrgTreeView nodes={orgNodes} />
-            : view.type === 'reports'
-              ? <ReportsView token={token} />
-              : view.type === 'studio'
-                ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
-                : <EntityView token={token} slug={view.slug} />}
+            : view.type === 'dashboards'
+              ? <DashboardView token={token} />
+              : view.type === 'reports'
+                ? <ReportsView token={token} />
+                : view.type === 'studio'
+                  ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
+                  : <EntityView token={token} slug={view.slug} />}
         </main>
       </div>
     </div>

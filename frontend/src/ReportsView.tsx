@@ -79,14 +79,14 @@ export default function ReportsView({ token }: { token: string }) {
                 key={s.entity_key}
                 onClick={() => openEntity(s.route_slug)}
                 style={{
-                  background: '#fff',
-                  color: '#1a1a1a',
-                  border: '1px solid ' + (selected === s.route_slug ? '#2456b8' : '#e6e8eb'),
+                  background: 'var(--surface)',
+                  color: 'var(--text)',
+                  border: '1px solid ' + (selected === s.route_slug ? 'var(--primary)' : 'var(--border)'),
                   borderRadius: 10,
                   padding: '14px 18px',
                   minWidth: 130,
                   textAlign: 'left',
-                  boxShadow: '0 1px 3px rgba(0,0,0,.04)',
+                  boxShadow: 'var(--shadow)',
                   cursor: 'pointer',
                 }}
               >
@@ -113,9 +113,9 @@ export default function ReportsView({ token }: { token: string }) {
                         <td>{s.status ? <span className="pill">{s.status}</span> : <span className="muted">—</span>}</td>
                         <td>{s.count}</td>
                         <td>
-                          <div style={{ background: '#eef0f3', borderRadius: 999, height: 10, width: '100%' }}>
+                          <div style={{ background: 'var(--surface-2)', borderRadius: 999, height: 10, width: '100%' }}>
                             <div style={{
-                              background: '#2456b8',
+                              background: 'var(--primary)',
                               borderRadius: 999,
                               height: 10,
                               width: (maxCount > 0 ? (s.count / maxCount) * 100 : 0) + '%',
