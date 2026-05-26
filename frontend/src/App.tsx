@@ -4,13 +4,14 @@ import EntityView from './EntityView'
 import StudioView from './StudioView'
 import ReportsView from './ReportsView'
 import DashboardView from './DashboardView'
+import MessagesView from './MessagesView'
 import NotificationCenter from './NotificationCenter'
-import { GearIcon, SunIcon, MoonIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -31,6 +32,15 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('gaaex-theme', theme)
   }, [theme])
+
+  // Density: 'comfortable' (default) | 'compact' — an axis separate from component sizes. Persisted.
+  const [density, setDensity] = useState<'comfortable' | 'compact'>(
+    () => (localStorage.getItem('gaaex-density') === 'compact' ? 'compact' : 'comfortable'),
+  )
+  useEffect(() => {
+    document.documentElement.setAttribute('data-density', density)
+    localStorage.setItem('gaaex-density', density)
+  }, [density])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -68,12 +78,14 @@ export default function App() {
 
   return (
     <div className="shell">
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <aside className="sidebar">
         <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
         <div className="nav-label">Workspace</div>
         <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>Org tree</button>
         <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>Dashboards</button>
         <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>Reports</button>
+        <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>Messages</button>
         <div className="nav-label">Records</div>
         {entities.map((en) => (
           <button
@@ -98,6 +110,14 @@ export default function App() {
           <div className="header-right">
             <button
               className="iconbtn"
+              onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
+              title={density === 'comfortable' ? 'Switch to compact density' : 'Switch to comfortable density'}
+              aria-label="Toggle density"
+            >
+              <RowsIcon />
+            </button>
+            <button
+              className="iconbtn"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
               aria-label="Toggle theme"
@@ -112,16 +132,18 @@ export default function App() {
             <button className="btn btn-ghost btn-sm" onClick={logout}>Sign out</button>
           </div>
         </header>
-        <main>
+        <main id="main-content">
           {view.type === 'org'
             ? <OrgTreeView nodes={orgNodes} />
             : view.type === 'dashboards'
               ? <DashboardView token={token} />
-              : view.type === 'reports'
-                ? <ReportsView token={token} />
-                : view.type === 'studio'
-                  ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
-                  : <EntityView token={token} slug={view.slug} />}
+              : view.type === 'messages'
+                ? <MessagesView token={token} />
+                : view.type === 'reports'
+                  ? <ReportsView token={token} />
+                  : view.type === 'studio'
+                    ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
+                    : <EntityView token={token} slug={view.slug} />}
         </main>
       </div>
     </div>

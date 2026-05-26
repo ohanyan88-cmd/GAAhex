@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon } from './icons'
+import { confirmDialog } from './Modal'
+import { toast } from './Toast'
+import CommentsModal from './CommentsModal'
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
@@ -56,6 +59,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   const [views, setViews] = useState<SavedView[]>([])
   const [viewsAvailable, setViewsAvailable] = useState(false)
   const [activeView, setActiveView] = useState('')
+  const [commentsRow, setCommentsRow] = useState<Row | null>(null)
 
   async function load(s: string) {
     setLoading(true)
@@ -147,10 +151,12 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           if (v !== undefined) payload[f.key] = v  // editing: send all (allows clearing a field)
         }
       })
-      if (mode === 'editing' && editingId) await patchRecord(token, slug, editingId, payload)
+      const wasEditing = mode === 'editing'
+      if (wasEditing && editingId) await patchRecord(token, slug, editingId, payload)
       else await createRecord(token, slug, payload)
       closeForm()
       await load(slug)
+      toast.success(`${def!.label} ${wasEditing ? 'updated' : 'created'}`)
     } catch (err) {
       const msg = (err as Error).message
       setError(msg)
@@ -169,7 +175,13 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   }
 
   async function doDelete(row: Row) {
-    if (!window.confirm(`Delete this ${def!.label}? This can't be undone.`)) return
+    const ok = await confirmDialog({
+      title: `Delete ${def!.label}`,
+      message: `Delete this ${def!.label}? This can't be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+    })
+    if (!ok) return
     setError(''); setErrorField(null)
     try {
       const r = await fetch(`${BASE}/api/${slug}/${row.id}`, { method: 'DELETE', headers: authH(token) })
@@ -180,8 +192,11 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
       }
       if (editingId === row.id) closeForm()
       await load(slug)
+      toast.success(`${def!.label} deleted`)
     } catch (err) {
-      setError((err as Error).message)
+      const msg = (err as Error).message
+      setError(msg)
+      toast.error(msg)
     }
   }
 
@@ -196,6 +211,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
       })
       if (!r.ok) throw new Error('Could not save view')
       await loadViews(slug)
+      toast.success('View saved')
     } catch (err) {
       setError((err as Error).message)
     }
@@ -318,6 +334,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                 </td>
               )}
               <td className="row-actions">
+                <button className="btn btn-ghost btn-sm" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}><MessageIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>Edit</button>
                 <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>Delete</button>
               </td>
@@ -332,6 +349,16 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
           )}
         </tbody>
       </table>
+
+      {commentsRow && (
+        <CommentsModal
+          token={token}
+          slug={slug}
+          recordId={commentsRow.id}
+          label={def.label}
+          onClose={() => setCommentsRow(null)}
+        />
+      )}
     </div>
   )
 }

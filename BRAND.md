@@ -175,3 +175,31 @@ other. (The communication feature's own UI — its buttons, icons, toolbar — s
 The core form components (Buttons · Inputs · Search — 4 types × 3 sizes, all states, both themes)
 are specified in **`frontend/COMPONENTS.md`** and implemented in `frontend/src/styles.css`
 ("Component library" section): `.btn`, `.inp`, `.search` families. Build new UI from these.
+
+---
+
+## 6. Foundation token scales
+Theme-independent scales (defined once on `:root` in `frontend/src/styles.css`). Use these tokens —
+don't hardcode raw px/ms. Colors are in §2; these are the non-color foundations.
+
+**Typography** — `--font-mono`; sizes `--fs-h1` 28 · `--fs-h2` 22 · `--fs-h3` 17 · `--fs-body` 14 ·
+`--fs-sm` 13 · `--fs-caption` 11; weights `--fw-regular/-medium/-semibold/-bold` (400/500/600/700);
+line-heights `--lh-tight` 1.2 · `--lh-base` 1.5 · `--lh-relaxed` 1.65. Applied to `body`/`h1`/`h2`/`h3`.
+
+**Radius** — `--r-sm` 6 · `--r-md` 8 · `--r-lg` 10 · `--r-xl` 12 · `--r-pill` 999 (match the
+component-library radii). **Border width** — `--bw-1` 1px · `--bw-2` 2px.
+
+**Motion** — durations `--dur-instant` 0 · `--dur-fast` 120ms · `--dur-base` 200ms · `--dur-slow` 320ms;
+easing `--ease-standard` · `--ease-decelerate` · `--ease-accelerate`. All collapse to ~0 under
+`prefers-reduced-motion: reduce` (handled globally in `styles.css`).
+
+**Z-index (ascending)** — `--z-base` 0 · `--z-dropdown` 1000 · `--z-sticky` 1100 · `--z-modal` 1300 ·
+`--z-toast` 1400. The overlay family (Modal/confirm) sits at `--z-modal`; toasts at `--z-toast`.
+
+**Density** — an axis *separate* from component sizes (sm/md/lg). `comfortable` is the default;
+`[data-density="compact"]` (toggled in the header, persisted) tightens `--row-pad-y/-x` +
+`--control-pad-y`. Applied to table rows; extend to other dense surfaces as needed.
+
+**A11y / overlay primitives** — `.sr-only`, a `Skip to content` skip-link, the `useFocusTrap` hook,
+and the `Overlay` base (portal + backdrop + focus-trap + Esc + scroll-lock) under `Modal`/`Toast`/
+`confirmDialog` live in `frontend/src/` (`Overlay.tsx`, `Modal.tsx`, `Toast.tsx`, `useFocusTrap.ts`).
