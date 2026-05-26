@@ -79,3 +79,16 @@ export const ArrowRightIcon = (p: IconProps) => (
     <polyline points="12 5 19 12 12 19" />
   </Svg>
 )
+
+export const SearchIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </Svg>
+)
+
+export const ChevronDownIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="6 9 12 15 18 9" />
+  </Svg>
+)

@@ -168,3 +168,10 @@ other. (The communication feature's own UI — its buttons, icons, toolbar — s
   with the SVG equivalents (`CheckIcon`, `CloseIcon`, `GearIcon`, `WarningIcon`, `BellIcon`,
   `SunIcon`, `MoonIcon`, `ArrowRightIcon`). Add new icons to `icons.tsx`; don't paste Unicode glyphs.
 - Plain typography (·, —, ellipsis…) and source-code comments are fine; the rule is about UI iconography.
+
+---
+
+## 5. Component library
+The core form components (Buttons · Inputs · Search — 4 types × 3 sizes, all states, both themes)
+are specified in **`frontend/COMPONENTS.md`** and implemented in `frontend/src/styles.css`
+("Component library" section): `.btn`, `.inp`, `.search` families. Build new UI from these.
