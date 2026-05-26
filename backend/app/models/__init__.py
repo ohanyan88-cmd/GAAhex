@@ -22,6 +22,8 @@ from .webhook import WebhookDef, WebhookDelivery
 from .apikey import ApiKey
 from .service import Service, ServiceResource
 from .interaction import Interaction
+from .respool import ResourcePool, PoolAllocation
+from .usage import UsageRecord
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -41,4 +43,5 @@ __all__ = [
     "OutboundMessage", "WebhookDef", "WebhookDelivery",
     "ApiKey",
     "Service", "ServiceResource", "Interaction",
+    "ResourcePool", "PoolAllocation", "UsageRecord",
 ]

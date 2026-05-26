@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from .config import settings
 
-# Pool sizing: each authenticated request uses an app session AND a short owner session (the RLS-flip
-# user lookup), so the defaults (5+10) are tight under burst. pool_pre_ping avoids stale-conn errors.
-_POOL = dict(pool_size=20, max_overflow=20, pool_pre_ping=True)
+# Pool sizing: each authenticated request uses an app session AND a short owner session (RLS-flip
+# user lookup). Two engines (app+owner) × this pool must stay well under Postgres max_connections
+# (100) even with a second process (a running dev server) connected → keep it modest. pool_pre_ping
+# avoids stale-conn errors; pool_timeout fails fast instead of hanging if the pool is momentarily full.
+_POOL = dict(pool_size=10, max_overflow=10, pool_pre_ping=True, pool_timeout=10)
 
 engine = create_async_engine(settings.database_url, echo=False, future=True, **_POOL)
 SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
