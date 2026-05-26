@@ -1,50 +1,64 @@
-// Billing API helpers + types (A9 contract). Self-contained: own fetch wrappers (same base + auth
-// pattern as api.ts). All billing endpoints are optional — callers treat 404 as "not available yet"
-// and degrade quietly until A9 is merged.
+// Billing API helpers + types — matches the merged A9 contract (backend/app/routers/billing.py).
+// Money is integer luma (minor units; 100 = 1 ֏). Optional endpoints (products, dunning) are
+// treated as "not available yet" on 404 and degrade quietly.
 export const BASE = 'http://127.0.0.1:8099'
 export const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 export type Subscription = {
   id: string
-  customer?: string
-  customer_name?: string
-  plan?: string
-  amount?: number          // minor units (÷100 = ֏)
-  cycle?: string
-  status?: string | null
+  customer_id?: string | null
+  owner_node_id?: string | null
+  plan_name?: string
+  amount?: number          // luma
+  cycle?: string           // monthly | yearly
+  status?: string | null   // ACTIVE | SUSPENDED | CANCELLED
+  started_at?: string | null
+  next_invoice_at?: string | null
   created_at?: string | null
   [k: string]: any
 }
 
 export type InvoiceLine = {
+  id?: string
   description?: string
   quantity?: number
-  unit_amount?: number     // minor units
-  amount?: number          // minor units
+  unit_amount?: number     // luma (negative ⇒ discount line)
+  line_total?: number      // luma
   [k: string]: any
 }
 
 export type Invoice = {
   id: string
   number?: string
-  customer?: string
-  customer_name?: string
-  status?: string | null
-  subtotal?: number
-  tax?: number
-  total?: number           // minor units
-  due_date?: string | null
+  customer_id?: string | null
+  status?: string | null   // DRAFT | ISSUED | PAID | VOID (| OVERDUE if dunning sets it)
+  period_start?: string | null
+  period_end?: string | null
+  total?: number           // luma
   issued_at?: string | null
+  due_at?: string | null
+  created_at?: string | null
   lines?: InvoiceLine[]
   [k: string]: any
 }
 
 export type Payment = {
   id: string
-  amount?: number          // minor units
-  method?: string
-  reference?: string
+  invoice_id?: string
+  amount?: number          // luma
+  method?: string          // cash | card | transfer
+  paid_at?: string | null
+  note?: string | null
   created_at?: string | null
+}
+
+export type Product = {
+  id: string
+  name?: string
+  amount?: number          // luma
+  cycle?: string
+  active?: boolean
+  [k: string]: any
 }
 
 export type Fetched<T> = { status: number; ok: boolean; data: T | null }
@@ -57,10 +71,10 @@ export async function bget<T = any>(token: string, path: string): Promise<Fetche
   return { status: r.status, ok: r.ok, data }
 }
 
-// POST that throws on failure (so action handlers can Toast the message).
-export async function bpost<T = any>(token: string, path: string, body?: any): Promise<T> {
+// POST/PATCH that throws on failure (so action handlers can Toast). The thrown Error has `.status`.
+async function send<T = any>(token: string, method: string, path: string, body?: any): Promise<T> {
   const r = await fetch(`${BASE}${path}`, {
-    method: 'POST',
+    method,
     headers: { ...authH(token), 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
@@ -68,7 +82,20 @@ export async function bpost<T = any>(token: string, path: string, body?: any): P
   try { data = await r.json() } catch { /* ignore */ }
   if (!r.ok) {
     const d = data?.detail
-    throw new Error(typeof d === 'string' ? d : d ? JSON.stringify(d) : `Request failed (${r.status})`)
+    const err = new Error(typeof d === 'string' ? d : d ? JSON.stringify(d) : `Request failed (${r.status})`) as Error & { status?: number }
+    err.status = r.status
+    throw err
   }
   return data as T
+}
+export const bpost = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'POST', path, body)
+export const bpatch = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PATCH', path, body)
+
+// Resolve customer_id → display name via the CRM customer entity. Empty map if unavailable.
+export async function loadCustomers(token: string): Promise<Record<string, string>> {
+  const res = await bget<any[]>(token, '/api/customers')
+  if (!res.ok || !Array.isArray(res.data)) return {}
+  const map: Record<string, string> = {}
+  for (const r of res.data) map[r.id] = r.name ?? r.title ?? String(r.id).slice(0, 8)
+  return map
 }

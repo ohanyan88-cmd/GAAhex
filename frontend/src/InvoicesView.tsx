@@ -1,23 +1,32 @@
 import { useEffect, useState } from 'react'
-import { bget, bpost, type Invoice, type Payment } from './billing'
+import { bget, bpost, loadCustomers, type Invoice, type Payment } from './billing'
 import { money, toMinor } from './money'
-import { timeAgo } from './time'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon } from './icons'
 
-const STATUSES = ['draft', 'issued', 'paid', 'overdue', 'void']
+const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
-const custName = (x: { customer_name?: string; customer?: string }) => x.customer_name ?? x.customer ?? '—'
+
+// Status → pill style: PAID success, OVERDUE danger, VOID muted, others default.
+function statusPill(status: string | null | undefined) {
+  const s = (status ?? '').toUpperCase()
+  const cls = s === 'PAID' ? 'pill pill-success'
+    : s === 'OVERDUE' ? 'pill pill-danger'
+    : s === 'VOID' ? 'pill pill-muted'
+    : 'pill'
+  return status ? <span className={cls}>{status}</span> : <span>—</span>
+}
 
 export default function InvoicesView({ token }: { token: string }) {
   const [list, setList] = useState<Invoice[] | null>(null)
+  const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -32,15 +41,32 @@ export default function InvoicesView({ token }: { token: string }) {
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (!res.ok) { setError('Failed to load invoices'); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
+    setNames(await loadCustomers(token))
   }
 
   useEffect(() => { load() }, [token, status])
 
-  if (detailId) return <InvoiceDetail token={token} id={detailId} onBack={() => { setDetailId(null); load() }} />
+  async function runDunning() {
+    try {
+      await bpost(token, '/api/invoices/run-dunning')
+      toast.success('Dunning run complete')
+      await load()
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      toast.error(err.status === 404 ? 'Dunning isn’t available yet' : err.message)
+    }
+  }
+
+  const cust = (inv: Invoice) => (inv.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—')
+
+  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
 
   return (
     <div>
-      <div className="view-head"><h2>Invoices</h2></div>
+      <div className="view-head">
+        <h2>Invoices</h2>
+        <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
+      </div>
 
       <div className="list-toolbar">
         <div className="bill-filter">
@@ -68,10 +94,10 @@ export default function InvoicesView({ token }: { token: string }) {
             {list.map((inv) => (
               <tr key={inv.id}>
                 <td>{inv.number ?? inv.id.slice(0, 8)}</td>
-                <td>{custName(inv)}</td>
-                <td>{inv.status ? <span className="pill">{inv.status}</span> : '—'}</td>
+                <td>{cust(inv)}</td>
+                <td>{statusPill(inv.status)}</td>
                 <td>{money(inv.total)}</td>
-                <td>{fmtDate(inv.due_date)}</td>
+                <td>{fmtDate(inv.due_at)}</td>
                 <td className="row-actions">
                   <button className="btn btn-ghost btn-sm" onClick={() => setDetailId(inv.id)}>Open <ArrowRightIcon size={13} /></button>
                 </td>
@@ -84,7 +110,7 @@ export default function InvoicesView({ token }: { token: string }) {
   )
 }
 
-function InvoiceDetail({ token, id, onBack }: { token: string; id: string; onBack: () => void }) {
+function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string; names: Record<string, string>; onBack: () => void }) {
   const [inv, setInv] = useState<Invoice | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
@@ -95,8 +121,7 @@ function InvoiceDetail({ token, id, onBack }: { token: string; id: string; onBac
     const res = await bget<Invoice>(token, `/api/invoices/${id}`)
     if (!res.ok) { setError(res.status === 404 ? 'Invoice not found' : 'Failed to load invoice'); return }
     setInv(res.data)
-    const pr = await bget<Payment[]>(token, `/api/invoices/${id}/payments`)
-    if (pr.ok && Array.isArray(pr.data)) setPayments(pr.data)
+    // payments aren't separately listed by the API — derive nothing; show via record activity if needed
   }
 
   useEffect(() => { load() }, [token, id])
@@ -110,7 +135,8 @@ function InvoiceDetail({ token, id, onBack }: { token: string; id: string; onBac
   }
 
   const lines = inv?.lines ?? []
-  const status = (inv?.status ?? '').toLowerCase()
+  const status = (inv?.status ?? '').toUpperCase()
+  const cust = inv?.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—'
 
   return (
     <div>
@@ -125,49 +151,36 @@ function InvoiceDetail({ token, id, onBack }: { token: string; id: string; onBac
       {inv && (
         <>
           <div className="bill-meta">
-            <div><span className="muted">Customer</span><div>{custName(inv)}</div></div>
-            <div><span className="muted">Status</span><div>{inv.status ? <span className="pill">{inv.status}</span> : '—'}</div></div>
-            <div><span className="muted">Due</span><div>{fmtDate(inv.due_date)}</div></div>
+            <div><span className="muted">Customer</span><div>{cust}</div></div>
+            <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
+            <div><span className="muted">Due</span><div>{fmtDate(inv.due_at)}</div></div>
             <div className="bill-actions">
-              {status === 'draft' && <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>}
-              <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
+              {status === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>}
+              {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>}
             </div>
           </div>
 
           <table className="grid bill-lines">
             <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Amount</th></tr></thead>
             <tbody>
-              {lines.map((l, i) => (
-                <tr key={i}>
-                  <td>{l.description ?? '—'}</td>
-                  <td>{l.quantity ?? 1}</td>
-                  <td>{money(l.unit_amount)}</td>
-                  <td>{money(l.amount)}</td>
-                </tr>
-              ))}
+              {lines.map((l, i) => {
+                const negative = (l.line_total ?? 0) < 0
+                return (
+                  <tr key={l.id ?? i}>
+                    <td>{l.description ?? '—'}</td>
+                    <td>{l.quantity ?? 1}</td>
+                    <td className={negative ? 'amt-neg' : ''}>{money(l.unit_amount)}</td>
+                    <td className={negative ? 'amt-neg' : ''}>{money(l.line_total)}</td>
+                  </tr>
+                )
+              })}
               {lines.length === 0 && <tr><td colSpan={4} className="muted">No line items.</td></tr>}
             </tbody>
           </table>
 
           <div className="bill-totals">
-            {inv.subtotal != null && <div><span className="muted">Subtotal</span><span>{money(inv.subtotal)}</span></div>}
-            {inv.tax != null && <div><span className="muted">Tax</span><span>{money(inv.tax)}</span></div>}
             <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
           </div>
-
-          <h3 style={{ marginTop: 20 }}>Payments</h3>
-          {payments.length === 0
-            ? <p className="muted">No payments recorded.</p>
-            : (
-              <table className="grid">
-                <thead><tr><th>Amount</th><th>Method</th><th>When</th></tr></thead>
-                <tbody>
-                  {payments.map((p) => (
-                    <tr key={p.id}><td>{money(p.amount)}</td><td>{p.method ?? '—'}</td><td>{timeAgo(p.created_at ?? null)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
         </>
       )}
 
@@ -181,14 +194,14 @@ function InvoiceDetail({ token, id, onBack }: { token: string; id: string; onBac
 function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; invoiceId: string; onClose: () => void; onDone: () => void }) {
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState('card')
-  const [reference, setReference] = useState('')
+  const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function submit() {
     if (!amount || saving) return
     setSaving(true)
     try {
-      await bpost(token, `/api/invoices/${invoiceId}/payments`, { amount: toMinor(amount), method, reference: reference || undefined })
+      await bpost(token, `/api/invoices/${invoiceId}/payments`, { amount: toMinor(amount), method, note: note || undefined })
       toast.success('Payment recorded')
       onDone()
     } catch (e) {
@@ -216,11 +229,11 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
         <label className="field"><span>Method</span>
           <select className="inp inp-md" value={method} onChange={(e) => setMethod(e.target.value)}>
             <option value="card">Card</option>
-            <option value="bank">Bank transfer</option>
+            <option value="transfer">Transfer</option>
             <option value="cash">Cash</option>
           </select>
         </label>
-        <label className="field"><span>Reference</span><input className="inp inp-md" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="optional" /></label>
+        <label className="field"><span>Note</span><input className="inp inp-md" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" /></label>
       </div>
     </Modal>
   )
