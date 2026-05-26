@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text, select
 
 from .db import engine, SessionLocal
-from .models import Base, Tenant, OrgNode
+from .models import Base, Tenant, OrgNode, User  # noqa: F401  (User imported so its table is created)
 from .seed import seed_if_empty
+from .routers import auth
 
 
 @asynccontextmanager
@@ -24,6 +25,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
 )
+
+app.include_router(auth.router)
 
 
 @app.get("/health")

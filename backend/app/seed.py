@@ -2,11 +2,12 @@ from sqlalchemy import select, func
 from sqlalchemy_utils import Ltree
 
 from .db import SessionLocal
-from .models import Tenant, OrgNode
+from .models import Tenant, OrgNode, User
+from .security import hash_password
 
 
 async def seed_if_empty() -> None:
-    """Seed a demo tenant + a 2-level org tree, only if the DB is empty."""
+    """Seed a demo tenant + a 2-level org tree + a demo admin user, only if the DB is empty."""
     async with SessionLocal() as s:
         existing = (await s.execute(select(func.count()).select_from(Tenant))).scalar_one()
         if existing:
@@ -35,4 +36,14 @@ async def seed_if_empty() -> None:
             code="sales1", path=Ltree("grp.yerevan.sales1"),
         )
         s.add(team)
+        await s.flush()
+
+        admin = User(
+            tenant_id=tenant.id,
+            primary_node_id=group.id,
+            email="admin@demo.isp",
+            name="Demo Admin",
+            password_hash=hash_password("admin123"),
+        )
+        s.add(admin)
         await s.commit()
