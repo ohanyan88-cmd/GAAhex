@@ -651,3 +651,20 @@ button:hover { background: var(--primary-hover); }
 .pref-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: var(--bw-1) solid var(--border-soft); cursor: pointer; }
 .pref-row:last-child { border-bottom: 0; }
 .pref-cat { font-size: var(--fs-sm); text-transform: capitalize; }
+
+/* ============================================================================
+   B9 — Billing (invoices · subscriptions · customer panel).
+   ============================================================================ */
+.bill-filter { display: inline-flex; align-items: center; gap: 8px; }
+.bill-meta { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; background: var(--surface);
+  border: var(--bw-1) solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.bill-meta > div { display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-sm); }
+.bill-meta .muted { font-size: var(--fs-caption); text-transform: uppercase; letter-spacing: .05em; }
+.bill-actions { margin-left: auto; flex-direction: row !important; gap: 8px; align-items: center; }
+.bill-lines { margin-bottom: 12px; }
+.bill-totals { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; font-size: var(--fs-sm); }
+.bill-totals > div { display: flex; gap: 24px; justify-content: space-between; min-width: 200px; }
+.bill-total-row { font-weight: var(--fw-semibold); font-size: 15px; border-top: var(--bw-1) solid var(--border); padding-top: 6px; margin-top: 2px; }
+.bill-total-row span:last-child { color: var(--accent); }
+.bill-section-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
+.bill-section-head h3 { margin: 0; }

@@ -93,6 +93,12 @@ export const ChevronDownIcon = (p: IconProps) => (
   </Svg>
 )
 
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="15 18 9 12 15 6" />
+  </Svg>
+)
+
 export const InfoIcon = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="10" />
@@ -163,5 +169,20 @@ export const InboxIcon = (p: IconProps) => (
   <Svg {...p}>
     <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
     <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+  </Svg>
+)
+
+export const ReceiptIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 2v20l2-1.5L8 22l2-1.5L12 22l2-1.5L16 22l2-1.5L20 22V2l-2 1.5L16 2l-2 1.5L12 2l-2 1.5L8 2 6 3.5 4 2z" />
+    <line x1="8" y1="8" x2="16" y2="8" />
+    <line x1="8" y1="12" x2="16" y2="12" />
+  </Svg>
+)
+
+export const CreditCardIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
   </Svg>
 )

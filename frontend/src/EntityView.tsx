@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
+import CustomerBillingModal from './CustomerBillingModal'
 import { Select, MultiSelect } from './Select'
 import { EmptyState, PermissionDenied, NotFound } from './States'
 import ActivityTimeline from './ActivityTimeline'
@@ -64,6 +65,7 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   const [activeView, setActiveView] = useState('')
   const [commentsRow, setCommentsRow] = useState<Row | null>(null)
   const [activityRow, setActivityRow] = useState<Row | null>(null)
+  const [billingRow, setBillingRow] = useState<Row | null>(null)
   const [fatal, setFatal] = useState<null | 'denied' | 'notfound'>(null)
 
   async function load(s: string) {
@@ -389,6 +391,9 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
                 </td>
               )}
               <td className="row-actions">
+                {def.key === 'customer' && (
+                  <button className="btn btn-ghost btn-sm" aria-label="Billing" title="Billing" onClick={() => setBillingRow(r)}><ReceiptIcon size={14} /></button>
+                )}
                 <button className="btn btn-ghost btn-sm" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}><ClockIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}><MessageIcon size={14} /></button>
                 <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>Edit</button>
@@ -422,6 +427,15 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
         <Modal open onClose={() => setActivityRow(null)} title={`Activity · ${def.label}`} size="md">
           <ActivityTimeline token={token} entity={slug} record={activityRow.id} />
         </Modal>
+      )}
+
+      {billingRow && (
+        <CustomerBillingModal
+          token={token}
+          customerId={billingRow.id}
+          customerLabel={billingRow.name ?? billingRow.title ?? String(billingRow.id).slice(0, 8)}
+          onClose={() => setBillingRow(null)}
+        />
       )}
     </div>
   )
