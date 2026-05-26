@@ -5,6 +5,7 @@ import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageI
 import { confirmDialog } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
+import { Select, MultiSelect } from './Select'
 
 type Field = { key: string; label: string; type: string; required: boolean; order: number; config: any }
 type Status = { key: string; label: string; order: number; is_initial: boolean }
@@ -243,7 +244,31 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
   function renderCell(c: Field, r: Row) {
     const v = cellValue(c, r)
     if (c.type === 'boolean') return r[c.key] ? <CheckIcon size={15} /> : ''
+    if (Array.isArray(v)) return v.join(', ')
     return String(v ?? '')
+  }
+
+  async function doExport(format: 'csv' | 'json') {
+    toast.info(`Exporting ${format.toUpperCase()}…`)
+    try {
+      const params = new URLSearchParams({ format })
+      if (appliedQ) params.set('q', appliedQ)
+      if (filter) params.set('filter', filter)
+      if (sort) params.set('sort', sort)
+      const r = await fetch(`${BASE}/api/${slug}/export?${params.toString()}`, { headers: authH(token) })
+      if (!r.ok) throw new Error(`Export failed (${r.status})`)
+      const blob = await r.blob()
+      const cd = r.headers.get('Content-Disposition') || ''
+      const m = cd.match(/filename="?([^";]+)"?/)
+      const filename = m ? m[1] : `${slug}.${format}`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      toast.error((err as Error).message)
+    }
   }
 
   const colSpan = cols.length + 2 + (hasWorkflow ? 1 : 0)
@@ -308,6 +333,12 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
             <button className="btn btn-ghost btn-sm" onClick={saveView}>Save view</button>
           </div>
         )}
+
+        <div className={'export-group' + (viewsAvailable ? '' : ' export-start')}>
+          <span className="muted export-label">Export</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => doExport('csv')}>CSV</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => doExport('json')}>JSON</button>
+        </div>
       </div>
 
       <table className="grid">
@@ -405,13 +436,9 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
   } else if (f.type === 'textarea') {
     input = <textarea className={cls + ' inp-area'} rows={4} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'select') {
-    const opts: string[] = f.config?.options ?? []
-    input = (
-      <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
-        <option value=""></option>
-        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-    )
+    input = <Select value={value ?? ''} options={f.config?.options ?? []} onChange={onChange} />
+  } else if (f.type === 'multiselect') {
+    input = <MultiSelect value={value} options={f.config?.options ?? []} onChange={onChange} />
   } else {
     input = <input type="text" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   }

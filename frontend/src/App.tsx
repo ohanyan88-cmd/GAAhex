@@ -6,7 +6,8 @@ import ReportsView from './ReportsView'
 import DashboardView from './DashboardView'
 import MessagesView from './MessagesView'
 import NotificationCenter from './NotificationCenter'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon } from './icons'
+import CommandPalette from './CommandPalette'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon } from './icons'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
@@ -23,6 +24,17 @@ export default function App() {
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  // ⌘K / Ctrl-K opens the command palette (once signed in)
+  useEffect(() => {
+    if (!token) return
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPaletteOpen(true) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [token])
 
   // Theme: dark is the default (:root); light is the [data-theme="light"] override. Persisted.
   const [theme, setTheme] = useState<'dark' | 'light'>(
@@ -108,6 +120,11 @@ export default function App() {
         <header>
           <span className="muted">{user?.name} · {user?.email}</span>
           <div className="header-right">
+            <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl or Cmd K)">
+              <SearchIcon size={15} />
+              <span>Search</span>
+              <kbd className="search-kbd">⌘K</kbd>
+            </button>
             <button
               className="iconbtn"
               onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
@@ -146,6 +163,17 @@ export default function App() {
                     : <EntityView token={token} slug={view.slug} />}
         </main>
       </div>
+
+      {paletteOpen && (
+        <CommandPalette
+          token={token}
+          entities={entities}
+          canConfigure={!!user?.can_configure}
+          onEntity={(slug) => setView({ type: 'entity', slug })}
+          onRoute={(r) => setView({ type: r })}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
     </div>
   )
 }
