@@ -5,10 +5,12 @@ from .user import User
 from .meta import EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef
 from .record import Record
 from .access import PermissionDef, RoleDef, Assignment
+from .event import Event
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
     "EntityDef", "FieldDef", "StatusDef", "RelationDef", "WorkflowDef",
     "Record",
     "PermissionDef", "RoleDef", "Assignment",
+    "Event",
 ]

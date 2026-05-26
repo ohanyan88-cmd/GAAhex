@@ -8,7 +8,7 @@ from .db import engine, SessionLocal
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
-    PermissionDef, RoleDef, Assignment,
+    PermissionDef, RoleDef, Assignment, Event,
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .routers import auth, meta, records

@@ -3,7 +3,7 @@ from sqlalchemy_utils import Ltree
 
 from .db import SessionLocal
 from .models import (
-    Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef,
+    Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
     PermissionDef, RoleDef, Assignment,
 )
 from .security import hash_password
@@ -59,6 +59,13 @@ async def seed_meta_if_empty() -> None:
             StatusDef(tenant_id=tenant.id, entity_def_id=lead.id, key="CONTACTED", label="Contacted", order=2),
             StatusDef(tenant_id=tenant.id, entity_def_id=lead.id, key="QUALIFIED", label="Qualified", order=3),
         ])
+        s.add(WorkflowDef(
+            tenant_id=tenant.id, entity_def_id=lead.id, key="lead_lifecycle", label="Lead Lifecycle",
+            config={"transitions": [
+                {"from": "NEW", "to": "CONTACTED", "guard": "phone != None and phone != ''"},
+                {"from": "CONTACTED", "to": "QUALIFIED", "guard": None},
+            ]},
+        ))
 
         # second entity, also AS CONFIG — proves the engine generalizes (and gives M3 a second
         # entity to scope permissions against)

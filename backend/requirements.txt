@@ -7,3 +7,4 @@ sqlalchemy-utils>=0.41
 bcrypt>=4.2
 pyjwt>=2.10
 alembic>=1.14
+simpleeval>=0.9.13

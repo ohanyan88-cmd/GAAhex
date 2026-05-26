@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User
 from ..access import load_grants, can
+from .. import workflow, gxl
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["records"])
@@ -125,8 +126,9 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     if not can(grants, ent.key, "create", owner_path):
         _deny(ent.key, "create")
     fields = await _fields(s, ent.id)
-    data, status_value, has_status = _validate(fields, payload, partial=False)
-    status = status_value or (await _initial_status(s, ent.id) if has_status else None)
+    data, _ignored_status, has_status = _validate(fields, payload, partial=False)
+    # status is lifecycle-managed: new records always start at the initial status
+    status = (await _initial_status(s, ent.id)) if has_status else None
     rec = Record(
         tenant_id=user.tenant_id, entity_key=ent.key,
         owner_node_id=user.primary_node_id, status=status, data=data,
@@ -155,12 +157,11 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "edit")
     fields = await _fields(s, ent.id)
-    data, status_value, _ = _validate(fields, payload, partial=True)
+    data, _status_ignored, _ = _validate(fields, payload, partial=True)
+    # status changes go through /transition (guarded), never via free PATCH
     merged = dict(rec.data or {})
     merged.update(data)
     rec.data = merged
-    if status_value is not None:
-        rec.status = status_value
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)
@@ -175,3 +176,33 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
         _deny(ent.key, "delete")
     await s.delete(rec)
     await s.commit()
+
+
+@router.post("/{slug}/{rec_id}/transition")
+async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Move a record's status along a workflow transition, gated by a GXL guard."""
+    ent = await _entity(s, user.tenant_id, slug)
+    rec = await _get(s, user.tenant_id, ent.key, rec_id)
+    grants = await load_grants(s, user)
+    if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
+        _deny(ent.key, "edit")
+
+    to = payload.get("to")
+    if not to:
+        raise HTTPException(422, "Missing 'to' status")
+
+    transitions = await workflow.get_transitions(s, ent.id)
+    tr = workflow.find_transition(transitions, rec.status, to)
+    if not tr:
+        raise HTTPException(409, f"No transition from '{rec.status}' to '{to}'")
+
+    ctx = await workflow.guard_context(s, ent.id, rec)
+    if not gxl.evaluate(tr.get("guard"), ctx):
+        raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {tr.get('guard')}")
+
+    frm = rec.status
+    rec.status = to
+    await workflow.emit(s, user.tenant_id, "transition", ent.key, rec.id, user.id, {"from": frm, "to": to})
+    await s.commit()
+    await s.refresh(rec)
+    return _serialize(rec)
