@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
 from ..access import load_grants, can
-from .. import workflow, gxl
+from .. import workflow, gxl, notify_hooks
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["records"])
@@ -148,6 +148,8 @@ async def list_records(slug: str, user: User = Depends(current_user), s: AsyncSe
 @router.post("/{slug}", status_code=201)
 async def create_record(slug: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     ent = await _entity(s, user.tenant_id, slug)
+    if ent.status == "retired":
+        raise HTTPException(409, f"Entity '{slug}' is retired; new records cannot be created")
     grants = await load_grants(s, user)
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, ent.key, "create", owner_path):
@@ -163,6 +165,8 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     s.add(rec)
     await s.flush()
     await workflow.emit(s, user.tenant_id, "create", ent.key, rec.id, user.id, {"data": data, "status": status})
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="create", entity_key=ent.key,
+                            record=rec, actor_user_id=user.id, extra={"status": status})
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)
@@ -194,6 +198,8 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     rec.data = merged
     await workflow.emit(s, user.tenant_id, "update", ent.key, rec.id, user.id,
                         {"changed": data, "before": {k: before.get(k) for k in data}})
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="update", entity_key=ent.key,
+                            record=rec, actor_user_id=user.id, extra={"changed": data})
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)
@@ -208,6 +214,8 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
         _deny(ent.key, "delete")
     await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
                         {"data": dict(rec.data or {}), "status": rec.status})
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="delete", entity_key=ent.key,
+                            record=rec, actor_user_id=user.id, extra={"status": rec.status})
     await s.delete(rec)
     await s.commit()
 
@@ -237,6 +245,8 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
     frm = rec.status
     rec.status = to
     await workflow.emit(s, user.tenant_id, "transition", ent.key, rec.id, user.id, {"from": frm, "to": to})
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=ent.key,
+                            record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
     await s.commit()
     await s.refresh(rec)
     return _serialize(rec)

@@ -11,6 +11,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
     PermissionDef, RoleDef, Assignment, Event,
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
+from .seed_notifications import seed_notifications_if_empty
 from .routers import auth, meta, records, reports, notifications, dashboards
 
 
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
     await seed_if_empty()
     await seed_meta_if_empty()
     await seed_access_if_empty()
+    await seed_notifications_if_empty()
     yield
 
 

@@ -24,6 +24,7 @@ class EntityDef(Base):
     route_slug: Mapped[str] = mapped_column(String(120), nullable=False)    # kebab-case, plural
     icon: Mapped[str | None] = mapped_column(String(60), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="active")
+    order: Mapped[int] = mapped_column(Integer, default=0)                   # sidebar / listing order
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
