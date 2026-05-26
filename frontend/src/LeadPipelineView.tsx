@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { bget, bpost } from './billing'
 import { createRecord, transitionRecord } from './api'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
-import { PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon, CloseIcon } from './icons'
+import { toast } from './Toast'
+import { confirmDialog } from './Modal'
+import { PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon, CloseIcon, UsersIcon } from './icons'
 import { useI18n } from './i18n'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the Figma model spec but
@@ -32,7 +34,7 @@ function pillVariant(key: string): string {
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 
-export default function LeadPipelineView({ token }: { token: string }) {
+export default function LeadPipelineView({ token, onOpenCustomer }: { token: string; onOpenCustomer?: (id: string) => void }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [leads, setLeads] = useState<Lead[] | null>(null)
@@ -41,6 +43,8 @@ export default function LeadPipelineView({ token }: { token: string }) {
   const [error, setError] = useState('')
   const [scores, setScores] = useState<Record<string, Score | 'loading' | 'error'>>({})
   const [busy, setBusy] = useState<string | null>(null)
+  const [converting, setConverting] = useState<string | null>(null)
+  const [convertNA, setConvertNA] = useState(false)   // hide the action once the endpoint 404s
   const [showNew, setShowNew] = useState(false)
   const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website' })
   const [saving, setSaving] = useState(false)
@@ -78,6 +82,36 @@ export default function LeadPipelineView({ token }: { token: string }) {
     } catch {
       setScores((s) => ({ ...s, [id]: 'error' }))
     }
+  }
+
+  // Convert a (qualified) lead into a customer. Idempotent-safe: if the API reports already:true we
+  // just open the existing customer. On success we toast and offer to open the new workspace.
+  async function convert(lead: Lead) {
+    setConverting(lead.id)
+    try {
+      const res = await bpost<{ customer_id?: string; id?: string; already?: boolean; customer?: { id?: string } }>(token, `/api/leads/${lead.id}/convert`)
+      const cid = res.customer_id ?? res.customer?.id ?? res.id ?? null
+      if (res.already) {
+        toast.info(t('leads.alreadyCustomer', 'This lead is already a customer'))
+        if (cid && onOpenCustomer) onOpenCustomer(cid)
+        return
+      }
+      toast.success(t('leads.convertOk', 'Lead converted to customer'))
+      await load()
+      if (cid && onOpenCustomer) {
+        const go = await confirmDialog({
+          title: t('leads.convertedTitle', 'Customer created'),
+          message: t('leads.openCustomerQ', 'Open the new customer workspace?'),
+          confirmLabel: t('common.open', 'Open'),
+          cancelLabel: t('common.stay', 'Stay'),
+        })
+        if (go) onOpenCustomer(cid)
+      }
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      if (err.status === 404) { setConvertNA(true); toast.error(t('leads.convertNA', 'Lead conversion isn’t available yet')) }
+      else toast.error(err.message || t('leads.convertError', 'Could not convert the lead'))
+    } finally { setConverting(null) }
   }
 
   async function createLead(e: React.FormEvent) {
@@ -170,6 +204,12 @@ export default function LeadPipelineView({ token }: { token: string }) {
                                 <ArrowRightIcon /> {labelOf(to)}
                               </button>
                             ))}
+                            {!convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
+                              <button className="btn btn--sm btn--primary" onClick={() => convert(lead)} disabled={converting === lead.id}
+                                      title={t('leads.convert', 'Convert to customer')}>
+                                <UsersIcon /> {converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert to customer')}
+                              </button>
+                            )}
                           </div>
                         </div>
                       )

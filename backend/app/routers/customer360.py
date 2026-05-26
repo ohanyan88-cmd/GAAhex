@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import Record, Event, User
+from ..models import Record, Event, User, Service
 from ..models.billing import Subscription, Invoice, Payment
 from ..access import load_grants, can
 from .auth import current_user
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/api/customers", tags=["customer-360"])
 
 SUBS_CAP = 50
 INVOICE_CAP = 20
+SERVICE_CAP = 50
 ACTIVITY_CAP = 15
 BILLED_STATUSES = ("ISSUED", "PAID", "OVERDUE")     # DRAFT/VOID don't count toward billed
 RELATED_ENTITIES = ("deal", "contact", "ticket")
@@ -42,6 +43,17 @@ def _sub_out(x: Subscription) -> dict:
         "status": x.status,
         "started_at": _iso(x.started_at),
         "next_invoice_at": _iso(x.next_invoice_at),
+    }
+
+
+def _svc_out(x: Service) -> dict:
+    return {
+        "id": str(x.id),
+        "name": x.name,
+        "type": x.type,
+        "status": x.status,
+        "activated_at": _iso(x.activated_at),
+        "subscription_id": str(x.subscription_id) if x.subscription_id else None,
     }
 
 
@@ -73,6 +85,13 @@ async def customer_360(customer_id: uuid.UUID, user: User = Depends(current_user
         ).order_by(Subscription.created_at.desc()).limit(SUBS_CAP)
     )).scalars().all()
 
+    # ---- services (what the ISP actually delivers to this customer, most-recent first) ----
+    services = (await s.execute(
+        select(Service).where(
+            Service.tenant_id == user.tenant_id, Service.customer_id == customer_id
+        ).order_by(Service.created_at.desc()).limit(SERVICE_CAP)
+    )).scalars().all()
+
     # ---- invoices (+ money summary over ALL of them, list shows recent) ----
     all_invoices = (await s.execute(
         select(Invoice).where(
@@ -97,6 +116,7 @@ async def customer_360(customer_id: uuid.UUID, user: User = Depends(current_user
         "overdue_count": overdue_count,
         "subscription_count": len(subs),
         "invoice_count": len(all_invoices),
+        "service_count": len(services),
     }
 
     # ---- activity (the customer record's audit trail, newest first) ----
@@ -129,6 +149,7 @@ async def customer_360(customer_id: uuid.UUID, user: User = Depends(current_user
     return {
         "profile": _serialize_record(rec),
         "subscriptions": [_sub_out(x) for x in subs],
+        "services": [_svc_out(x) for x in services],
         "invoices": [_inv_out(x) for x in all_invoices[:INVOICE_CAP]],
         "summary": summary,
         "activity": activity,

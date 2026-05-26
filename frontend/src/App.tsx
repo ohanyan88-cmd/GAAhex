@@ -22,6 +22,7 @@ import AccountsView from './AccountsView'
 import PartiesView from './PartiesView'
 import AnalyticsView from './AnalyticsView'
 import LeadPipelineView from './LeadPipelineView'
+import CustomerView from './CustomerView'
 import AskGaaexView from './AskGaaexView'
 import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
@@ -32,7 +33,7 @@ import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'ask' } | { type: 'settings' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -40,6 +41,10 @@ export default function App() {
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
+  const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })   // where the customer workspace returns to
+
+  // Open the single-customer workspace, remembering where to go "back" to.
+  function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -242,7 +247,9 @@ export default function App() {
             : view.type === 'analytics'
               ? <AnalyticsView token={token} />
             : view.type === 'lead-pipeline'
-              ? <LeadPipelineView token={token} />
+              ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} />
+            : view.type === 'customer'
+              ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} />
             : view.type === 'ask'
               ? <AskGaaexView token={token} />
               : view.type === 'messages'
@@ -250,7 +257,7 @@ export default function App() {
                 : view.type === 'activity'
                   ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
                 : view.type === 'invoices'
-                  ? <InvoicesView token={token} />
+                  ? <InvoicesView token={token} canConfigure={!!user?.can_configure} />
                 : view.type === 'subscriptions'
                   ? <SubscriptionsView token={token} />
                 : view.type === 'products'
@@ -279,7 +286,7 @@ export default function App() {
                   ? <ReportsView token={token} />
                   : view.type === 'studio'
                     ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
-                    : <EntityView token={token} slug={view.slug} />}
+                    : <EntityView token={token} slug={view.slug} onOpenCustomer={openCustomer} />}
         </main>
       </div>
 

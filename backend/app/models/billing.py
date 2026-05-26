@@ -31,6 +31,7 @@ class Subscription(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")  # ACTIVE|SUSPENDED|CANCELLED
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     next_invoice_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_invoiced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # E20: idempotency marker for the billing-cycle run — last as_of this sub was billed for
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

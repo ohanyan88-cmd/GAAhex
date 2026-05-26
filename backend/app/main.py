@@ -12,7 +12,7 @@ from .models import (  # noqa: F401  (imported so the mappers register)
 )
 from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle
 
 
 @asynccontextmanager
@@ -64,6 +64,8 @@ app.include_router(analytics.router)                # /api/analytics/* (fixed KP
 app.include_router(ai.router)                       # /api/ai/* (lead score + summarize, before records)
 app.include_router(admin.router)                    # /api/admin/* (tenant provisioning; owner-run, before records)
 app.include_router(tenant_settings.router)          # /api/tenant/* (tenant profile/settings, before records)
+app.include_router(convert.router)                  # /api/leads/{id}/convert (lead->customer; before records)
+app.include_router(billing_cycle.router)            # /api/billing/run-cycle (batch billing; before records)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)

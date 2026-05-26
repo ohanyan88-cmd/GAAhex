@@ -5,6 +5,7 @@ import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon } from './icons'
+import { useI18n } from './i18n'
 
 const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
 
@@ -24,13 +25,16 @@ function statusPill(status: string | null | undefined) {
   return status ? <span className={cls}>{status}</span> : <span>—</span>
 }
 
-export default function InvoicesView({ token }: { token: string }) {
+export default function InvoicesView({ token, canConfigure = false }: { token: string; canConfigure?: boolean }) {
+  const { t } = useI18n()
   const [list, setList] = useState<Invoice[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [cycleNA, setCycleNA] = useState(false)     // hide run-cycle once the endpoint 404s
+  const [cycleBusy, setCycleBusy] = useState(false)
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
@@ -57,6 +61,23 @@ export default function InvoicesView({ token }: { token: string }) {
     }
   }
 
+  // Run the billing cycle (super-admin / config-gated): generates invoices for due subscriptions.
+  async function runCycle() {
+    if (cycleBusy) return
+    setCycleBusy(true)
+    try {
+      const r = await bpost<{ generated?: number; skipped?: number }>(token, '/api/billing/run-cycle')
+      const msg = t('billing.cycleResult', 'Billing cycle: {generated} generated, {skipped} skipped')
+        .replace('{generated}', String(r?.generated ?? 0)).replace('{skipped}', String(r?.skipped ?? 0))
+      toast.success(msg)
+      await load()
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      if (err.status === 404) { setCycleNA(true); toast.error(t('billing.cycleNA', 'Billing cycle isn’t available yet')) }
+      else toast.error(err.message)
+    } finally { setCycleBusy(false) }
+  }
+
   const cust = (inv: Invoice) => (inv.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—')
 
   if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
@@ -65,6 +86,9 @@ export default function InvoicesView({ token }: { token: string }) {
     <div>
       <div className="view-head">
         <h2>Invoices</h2>
+        {canConfigure && !cycleNA && (
+          <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>{cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}</button>
+        )}
         <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
       </div>
 

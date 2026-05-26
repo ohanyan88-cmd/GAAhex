@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
@@ -45,7 +45,7 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 }
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug }: { token: string; slug: string }) {
+export default function EntityView({ token, slug, onOpenCustomer }: { token: string; slug: string; onOpenCustomer?: (id: string) => void }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [rows, setRows] = useState<Row[]>([])
@@ -486,6 +486,9 @@ export default function EntityView({ token, slug }: { token: string; slug: strin
               <td className="row-actions">
                 {(def.key === 'lead' || def.key === 'customer') && (
                   <button className="btn btn-ghost btn-sm" aria-label={t('ai.title', 'AI assist')} title={t('ai.title', 'AI assist')} onClick={() => setAiRow(r)}><SparkleIcon size={14} /></button>
+                )}
+                {def.key === 'customer' && onOpenCustomer && (
+                  <button className="btn btn-ghost btn-sm" aria-label={t('cust.openWorkspace', 'Open workspace')} title={t('cust.openWorkspace', 'Open workspace')} onClick={() => onOpenCustomer(r.id)}><UsersIcon size={14} /></button>
                 )}
                 {def.key === 'customer' && (
                   <button className="btn btn-ghost btn-sm" aria-label="Billing" title="Billing" onClick={() => setBillingRow(r)}><ReceiptIcon size={14} /></button>
