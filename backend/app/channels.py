@@ -18,6 +18,7 @@ import smtplib
 from email.message import EmailMessage
 from typing import Awaitable, Callable
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
@@ -75,6 +76,43 @@ register("sms", _sms_adapter)
 register("webhook", _webhook_adapter)
 
 
+# ---- A26 preference consultation (default-send, fail-soft) ----
+
+async def _pref_suppresses_external(s: AsyncSession, tenant_id, user_id, channel: str,
+                                    def_key: str | None) -> bool:
+    """True only when an EXPLICIT A26 delivery preference says this external `channel` must NOT be
+    delivered to `user_id` for this `def_key`. Default-send: no pref row ⇒ False (deliver). Fail-soft:
+    any error ⇒ False (deliver). Resolution mirrors routers.notifications.resolve_pref.
+
+    Suppress when the winning pref is: muted, mode == off, or the channel is not in its `channels`.
+    realtime/digest with the channel allowed ⇒ do NOT suppress here (digest deferral is handled at
+    emit by `digest_pending`; this guard's job is only to honor off/mute/channel-exclusion).
+    """
+    try:
+        from .routers.notifications import _resolve_pref  # lazy: avoid import cycle at module load
+        from .models.notification import NotificationDef
+
+        category = None
+        if def_key:
+            ndef = (await s.execute(
+                select(NotificationDef).where(
+                    NotificationDef.tenant_id == tenant_id, NotificationDef.key == def_key
+                )
+            )).scalar_one_or_none()
+            category = ndef.category if ndef else None
+
+        pref = await _resolve_pref(s, tenant_id, user_id, category or "", def_key or "")
+        if pref is None:
+            return False                       # no A26 pref ⇒ today's behaviour (send)
+        if pref["muted"] or pref["mode"] == "off":
+            return True
+        if channel not in pref["channels"]:
+            return True
+        return False
+    except Exception:
+        return False                           # never block delivery on a pref-lookup error
+
+
 # ---- dispatch ----
 
 async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
@@ -94,6 +132,17 @@ async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
     without any change; the non-breaking guarantee is preserved.
     """
     if channel == "inapp":
+        return None
+
+    # -- A26: consult the recipient's delivery preference before any EXTERNAL dispatch --
+    # Defense-in-depth: emit_notification is the primary gate, but dispatch may be reached from other
+    # callers, so we re-check here. Fully fail-soft and DEFAULT-SEND: only an explicit A26 pref that
+    # `off`s / `mute`s / excludes this channel suppresses delivery; no pref row (the common case, and
+    # every existing channels test) ⇒ send exactly as before. The in-app inbox row is unaffected
+    # (it's never created here). Never raises into the caller.
+    if user_id is not None and await _pref_suppresses_external(s, tenant_id, user_id, channel, def_key):
+        logger.info("[a26] external dispatch suppressed by pref (channel=%s def_key=%s user=%s)",
+                    channel, def_key, user_id)
         return None
 
     # -- E23: try the OOP adapter registry first --

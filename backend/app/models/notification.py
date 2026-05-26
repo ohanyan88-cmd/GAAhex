@@ -49,4 +49,10 @@ class Notification(Base):
     entity_key: Mapped[str | None] = mapped_column(String(80), nullable=True)  # what it's about
     record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # ---- A26 inbox state + digest hand-off (additive; SHARED CONTRACT) ----
+    # Set true at emit when the recipient's resolved mode is `digest`: the inbox row is still created
+    # now, external delivery is deferred — lane E sends the digest and CLEARS this flag.
+    digest_pending: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

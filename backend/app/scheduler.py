@@ -62,6 +62,7 @@ from .models import Tenant, User, RoleDef, Assignment
 from .routers.billing import run_dunning
 from .routers.billing_cycle import run_cycle
 from .routers.report_schedules import run_due
+from .routers.digests import run_digests
 
 log = logging.getLogger("gaaex.scheduler")
 
@@ -133,9 +134,12 @@ async def _system_actor(s: AsyncSession, tenant_id) -> User | None:
 # with a fresh owner session. Signatures differ across the three handlers — keyword args keep it
 # explicit and bypass FastAPI's Depends() defaults (those only matter under request injection).
 _JOBS = (
-    ("billing.run_dunning", lambda s, actor: run_dunning(user=actor, s=s)),
-    ("billing.run_cycle",   lambda s, actor: run_cycle(payload=None, user=actor, s=s)),
-    ("report.run_due",      lambda s, actor: run_due(as_of=None, user=actor, s=s)),
+    ("billing.run_dunning",         lambda s, actor: run_dunning(user=actor, s=s)),
+    ("billing.run_cycle",           lambda s, actor: run_cycle(payload=None, user=actor, s=s)),
+    ("report.run_due",              lambda s, actor: run_due(as_of=None, user=actor, s=s)),
+    # E26: digest delivery — batches digest-pending notifications per user + dispatches them.
+    # Fail-soft per user; graceful no-op when A26 schema columns aren't present yet.
+    ("notification.run_digests",    lambda s, actor: run_digests(s, tenant_id=actor.tenant_id, actor=actor)),
 )
 
 
