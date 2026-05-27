@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { bget, bpost, loadCustomers, openDocument, type Invoice } from './billing'
+import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from './billing'
 import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
@@ -136,6 +136,7 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
 
 function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string; names: Record<string, string>; onBack: () => void }) {
   const [inv, setInv] = useState<Invoice | null>(null)
+  const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
   const [payOpen, setPayOpen] = useState(false)
 
@@ -144,7 +145,8 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
     const res = await bget<Invoice>(token, `/api/invoices/${id}`)
     if (!res.ok) { setError(res.status === 404 ? 'Invoice not found' : 'Failed to load invoice'); return }
     setInv(res.data)
-    // payments aren't separately listed by the API — derive nothing; show via record activity if needed
+    const pr = await bget<Payment[]>(token, `/api/invoices/${id}/payments`)
+    if (pr.ok && Array.isArray(pr.data)) setPayments(pr.data)
   }
 
   useEffect(() => { load() }, [token, id])
@@ -153,6 +155,15 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
     try {
       await bpost(token, `/api/invoices/${id}/issue`)
       toast.success('Invoice issued')
+      await load()
+    } catch (e) { toast.error((e as Error).message) }
+  }
+
+  async function voidInvoice() {
+    if (!window.confirm('Void this invoice? This cannot be undone.')) return
+    try {
+      await bpost(token, `/api/invoices/${id}/void`)
+      toast.success('Invoice voided')
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -180,6 +191,7 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
             <div className="bill-actions">
               {status === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>}
               {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>}
+              {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>}
               <button className="btn btn-ghost btn-sm" onClick={async () => { const e = await openDocument(token, `/api/invoices/${id}/document`); if (e) toast.error(e) }}>
                 <PrinterIcon size={14} /> Print / Download
               </button>
@@ -206,7 +218,32 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
 
           <div className="bill-totals">
             <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
+            {inv.balance !== undefined && (
+              <>
+                <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
+                <div className="bill-total-row"><span>Balance due</span><span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>{money(inv.balance)}</span></div>
+              </>
+            )}
           </div>
+
+          {payments.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h3 style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 8 }}>Payments recorded</h3>
+              <table className="grid">
+                <thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Note</th></tr></thead>
+                <tbody>
+                  {payments.map(p => (
+                    <tr key={p.id}>
+                      <td>{fmtDate(p.paid_at)}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
+                      <td>{money(p.amount)}</td>
+                      <td className="muted">{p.note ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
 

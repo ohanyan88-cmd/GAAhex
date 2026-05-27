@@ -9,6 +9,7 @@ import NotificationCenter from './NotificationCenter'
 import CommandPalette from './CommandPalette'
 import ActivityTimeline from './ActivityTimeline'
 import InvoicesView from './InvoicesView'
+import PaymentsView from './PaymentsView'
 import SubscriptionsView from './SubscriptionsView'
 import ProductsView from './ProductsView'
 import ReportBuilderView from './ReportBuilderView'
@@ -28,13 +29,13 @@ import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon, CreditCardIcon } from './icons'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'payments' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -166,6 +167,7 @@ export default function App() {
         <button className={'nav' + (view.type === 'parties' ? ' on' : '')} onClick={() => setView({ type: 'parties' })}>{t('nav.parties', 'Parties')}</button>
         <div className="nav-label">{t('nav.billing', 'Billing')}</div>
         <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>{t('nav.invoices', 'Invoices')}</button>
+        <button className={'nav nav-icon' + (view.type === 'payments' ? ' on' : '')} onClick={() => setView({ type: 'payments' })}><CreditCardIcon size={14} /> {t('nav.payments', 'Payments')}</button>
         <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>{t('nav.subscriptions', 'Subscriptions')}</button>
         <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}>{t('nav.products', 'Products')}</button>
         <button className={'nav' + (view.type === 'usage' ? ' on' : '')} onClick={() => setView({ type: 'usage' })}>{t('nav.usage', 'Usage')}</button>
@@ -263,6 +265,8 @@ export default function App() {
                   ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
                 : view.type === 'invoices'
                   ? <InvoicesView token={token} canConfigure={!!user?.can_configure} />
+                : view.type === 'payments'
+                  ? <PaymentsView token={token} />
                 : view.type === 'subscriptions'
                   ? <SubscriptionsView token={token} />
                 : view.type === 'products'

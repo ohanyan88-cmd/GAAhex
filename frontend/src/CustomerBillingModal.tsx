@@ -5,10 +5,11 @@ import { money, toMinor } from './money'
 import { toast } from './Toast'
 import { EmptyState } from './States'
 import InteractionsView from './InteractionsView'
-import { PrinterIcon } from './icons'
+import { PrinterIcon, CreditCardIcon } from './icons'
 
 type Service = { id: string; type?: string; name?: string; status?: string | null }
 type Acct = { id: string; type?: string; currency?: string; billing_cycle?: string; status?: string | null }
+type Payment = { id: string; invoice_id: string; amount: number; method: string; paid_at: string | null; note: string | null }
 
 // A customer's billing-at-a-glance: their subscriptions + recent invoices, with generate-invoice and
 // a product-prefilled new-subscription form. Reads /api/subscriptions?customer= and /api/invoices?customer=.
@@ -25,6 +26,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   const [accounts, setAccounts] = useState<Acct[]>([])
   const [unrated, setUnrated] = useState<Record<string, number>>({})
   const [products, setProducts] = useState<Product[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
@@ -51,6 +53,10 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
     const m: Record<string, number> = {}
     if (ur.ok && Array.isArray(ur.data)) for (const u of ur.data) if (u.subscription_id) m[u.subscription_id] = (m[u.subscription_id] || 0) + 1
     setUnrated(m)
+    // fetch payments for this customer
+    const pr = await bget<Payment[]>(token, `/api/payments?customer=${encodeURIComponent(customerId)}`)
+    if (pr.status === 404) setPayments([])
+    else setPayments(pr.ok && Array.isArray(pr.data) ? pr.data : [])
   }
 
   useEffect(() => { load() }, [token, customerId])
@@ -132,6 +138,34 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
               </table></div>
             )}
 
+          {/* Balance summary */}
+          {subs !== null && !unavailable && (() => {
+            const billedTotal = invoices
+              .filter(inv => ['ISSUED', 'OVERDUE', 'PAID'].includes((inv.status ?? '').toUpperCase()))
+              .reduce((sum, inv) => sum + (inv.total ?? 0), 0)
+            const paidTotal = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0)
+            const balance = Math.max(0, billedTotal - paidTotal)
+            return (
+              <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Total billed', value: billedTotal },
+                  { label: 'Total paid', value: paidTotal },
+                  { label: 'Outstanding', value: balance, highlight: balance > 0 },
+                ].map(({ label, value, highlight }) => (
+                  <div key={label} style={{
+                    flex: '1 1 120px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
+                    padding: '12px 16px', border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: highlight ? 'var(--danger)' : 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+                      {money(value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
           <div className="bill-section-head" style={{ marginTop: 18 }}>
             <h3>Subscriptions</h3>
             <button className="btn btn-ghost btn-sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : '+ New subscription'}</button>
@@ -196,6 +230,40 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 </tbody>
               </table>
             )}
+
+          {payments.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CreditCardIcon size={15} /> Recent payments
+              </div>
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Method</th>
+                    <th>Amount</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.slice(0, 10).map(p => (
+                    <tr key={p.id}>
+                      <td>{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '—'}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
+                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>{money(p.amount)}</td>
+                      <td className="muted">{p.note ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {payments.length > 10 && (
+                <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>Showing 10 of {payments.length} payments</p>
+              )}
+            </div>
+          )}
+          {payments.length === 0 && subs !== null && !unavailable && (
+            <p className="muted" style={{ marginTop: 16, fontSize: 13 }}>No payments recorded for this customer.</p>
+          )}
 
           <h3 style={{ marginTop: 18 }}>Services</h3>
           {services.length === 0

@@ -35,6 +35,8 @@ export type Invoice = {
   period_start?: string | null
   period_end?: string | null
   total?: number           // luma
+  paid_total?: number      // luma — sum of recorded payments
+  balance?: number         // luma — total minus paid_total
   issued_at?: string | null
   due_at?: string | null
   created_at?: string | null
@@ -44,12 +46,12 @@ export type Invoice = {
 
 export type Payment = {
   id: string
-  invoice_id?: string
-  amount?: number          // luma
-  method?: string          // cash | card | transfer
-  paid_at?: string | null
-  note?: string | null
-  created_at?: string | null
+  invoice_id: string
+  amount: number           // luma
+  method: string           // cash | card | transfer
+  paid_at: string | null
+  note: string | null
+  created_at: string | null
 }
 
 export type Party = {

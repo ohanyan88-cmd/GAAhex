@@ -133,7 +133,8 @@ def _product(p: Product) -> dict:
             "created_at": _iso(p.created_at)}
 
 
-def _invoice(inv: Invoice, lines: list[InvoiceLine] | None = None) -> dict:
+def _invoice(inv: Invoice, lines: list[InvoiceLine] | None = None,
+             paid_total: int | None = None) -> dict:
     out = {
         "id": str(inv.id),
         "number": inv.number,
@@ -149,6 +150,9 @@ def _invoice(inv: Invoice, lines: list[InvoiceLine] | None = None) -> dict:
     }
     if lines is not None:
         out["lines"] = [_line(l) for l in lines]
+    if paid_total is not None:
+        out["paid_total"] = paid_total
+        out["balance"] = max(0, inv.total - paid_total)
     return out
 
 
@@ -441,7 +445,10 @@ async def get_invoice(inv_id: uuid.UUID, user: User = Depends(current_user), s: 
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "view", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.view")
-    return _invoice(inv, await _invoice_lines(s, inv.id))
+    paid_total = (await s.execute(
+        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == inv.id)
+    )).scalar_one()
+    return _invoice(inv, await _invoice_lines(s, inv.id), paid_total=int(paid_total))
 
 
 @router.post("/invoices/{inv_id}/issue")
@@ -510,6 +517,64 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     await s.commit()
     await s.refresh(pay)
     return _payment(pay)
+
+
+@router.get("/invoices/{inv_id}/payments")
+async def list_invoice_payments(inv_id: uuid.UUID, user: User = Depends(current_user),
+                                s: AsyncSession = Depends(get_session)):
+    """List all payments recorded against one invoice."""
+    inv = await _get_invoice(s, user, inv_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "payment", "view", await _node_path(s, inv.owner_node_id)):
+        _deny("payment.view")
+    payments = (await s.execute(
+        select(Payment).where(Payment.invoice_id == inv.id).order_by(Payment.paid_at)
+    )).scalars().all()
+    return [_payment(p) for p in payments]
+
+
+@router.get("/payments")
+async def list_payments(customer: uuid.UUID | None = None, limit: int = 200, offset: int = 0,
+                        user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Tenant-wide payment list, optionally filtered by customer."""
+    grants = await load_grants(s, user)
+    if not can(grants, "payment", "view"):
+        _deny("payment.view")
+    paths = await _node_paths(s, user.tenant_id)
+
+    q = (select(Payment, Invoice)
+         .join(Invoice, Payment.invoice_id == Invoice.id)
+         .where(Payment.tenant_id == user.tenant_id))
+    if customer:
+        q = q.where(Invoice.customer_id == customer)
+    q = q.order_by(Payment.paid_at.desc())
+
+    rows = (await s.execute(q)).all()
+    result = []
+    for pay, inv in rows:
+        inv_path = paths.get(str(inv.owner_node_id)) if inv.owner_node_id else None
+        if can(grants, "payment", "view", inv_path):
+            result.append(pay)
+    return [_payment(p) for p in _paginate(result, limit, offset)]
+
+
+@router.post("/invoices/{inv_id}/void")
+async def void_invoice(inv_id: uuid.UUID, user: User = Depends(current_user),
+                       s: AsyncSession = Depends(get_session)):
+    """Transition an ISSUED or OVERDUE invoice to VOID. DRAFT and PAID are rejected with 409."""
+    inv = await _get_invoice(s, user, inv_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "invoice", "edit", await _node_path(s, inv.owner_node_id)):
+        _deny("invoice.edit")
+    if inv.status not in {"ISSUED", "OVERDUE"}:
+        raise HTTPException(409, f"Cannot void an invoice with status {inv.status}")
+    old_status = inv.status
+    inv.status = "VOID"
+    await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
+                        {"from": old_status, "to": "VOID"})
+    await s.commit()
+    await s.refresh(inv)
+    return _invoice(inv, await _invoice_lines(s, inv.id))
 
 
 # ==========================================================================================
