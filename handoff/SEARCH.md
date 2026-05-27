@@ -98,13 +98,32 @@ Implementation lives in `backend/app/routers/views.py` and `backend/app/models/s
 
 ## 3. Search Assist — Recent / Pinned / Suggestions
 
-These UI affordances are **not yet implemented on the backend**. They are planned as G65–G70 in the vision scope:
+**Status:** Fully implemented backend. UI wiring (command-palette dropdown) is in-progress.
 
-- **Recent:** intended to pull from the activity feed (`/api/activity` — see D29) or user interaction logs; would show recently viewed/modified records across entities
-- **Pinned:** would require a new table or extension to SavedView; intended to let users flag records as quick-access
-- **Suggestions:** intended to offer common views, popular filters, or AI-assisted query refinement (later phase)
+### Recent Search History
 
-The infrastructure is ready (activity feed exists, event logging is comprehensive); UI wiring + endpoint contracts are in-progress.
+**Endpoints:**
+- `GET /api/recent-searches?limit=` — list caller's history, newest-first (max 50)
+- `POST /api/recent-searches` — record a query after execution (`{query, entity?}`)
+- `PATCH /api/recent-searches/{id}` — pin or unpin an entry (`{pinned: bool}`)
+- `DELETE /api/recent-searches/{id}` — delete one entry
+
+**Model:** `SearchHistory` in `backend/app/models/search_history.py`
+
+**Ring-buffer eviction:** unpinned rows beyond `RECENT_CAP=50` are pruned on each `POST` call (oldest first). Pinned rows are exempt and kept until explicitly deleted or unpinned then evicted.
+
+### Suggestions
+
+**Endpoint:** `GET /api/search/suggest?q=`
+
+Merges three sources (up to `SUGGEST_CAP=10` total):
+1. **Saved search names/queries** — prefix match on name or query text
+2. **Recent queries** — prefix match on query text (deduped against saved)
+3. **Record labels** — prefix match against `name/title/subject` fields across entities (capped at 5, only when `q` is non-empty)
+
+Empty `q` returns the user's most-recent queries as warm suggestions. Each result carries a `kind` field (`"saved"` | `"recent"` | `"record"`) so the UI can style and route them differently.
+
+Implementation: `backend/app/routers/search_assist.py` (register before `records.router` in `main.py`).
 
 ---
 
@@ -162,16 +181,16 @@ Saved views support a `filter` field (GXL expression on each record); full query
 
 ---
 
-## 6. Search Assist Table Option
+## 6. Storage Design
 
-**Not implemented.** Alternative considered but not adopted (D27 scope):
+Two tables back the search assist layer:
 
-The system could use a dedicated `SearchAssist` or `SearchHistory` table to track:
-- User queries (for suggestion/analytics)
-- Pinned records (for quick access)
-- Recent record IDs (instead of relying on activity feed)
+| Table | Purpose |
+|-------|---------|
+| `saved_view_def` | Saved searches (reused with `entity_key='__search__'` sentinel; `config` holds `{q, entity?}`) |
+| `search_history` | Per-user recent/pinned history with `queried_at` + `pinned` columns |
 
-Current plan: reuse `SavedViewDef` for saved searches + wire `Activity` feed for recent, deferring a new table to G70 (search analytics).
+Using `saved_view_def` for saved searches avoids a schema change and keeps the auth/ownership model consistent with entity saved views. The `search_history` table was introduced for recent/pinned because `SavedViewDef` has no `queried_at` or eviction logic.
 
 ---
 
@@ -181,7 +200,9 @@ Current plan: reuse `SavedViewDef` for saved searches + wire `Activity` feed for
 |---------|---------|----------|-------|--------|
 | Cross-entity search (`GET /api/search`) | `search.py` (A27) | `CommandPalette.tsx` | `test_global_search.py` | ✅ Complete |
 | Saved views CRUD (`/api/views`) | `views.py` + `SavedViewDef` | (stored in views, not UI yet) | `test_search.py` | ✅ Complete |
-| Recent/pinned/suggest | — | — | — | Horizon (G65–G70) |
+| Saved searches (`/api/saved-searches`) | `search_assist.py` | (UI in progress) | `test_search.py` | ✅ Backend complete |
+| Recent history (`/api/recent-searches`) | `search_assist.py` + `SearchHistory` | (UI in progress) | `test_search.py` | ✅ Backend complete |
+| Suggestions (`/api/search/suggest`) | `search_assist.py` | `crossSearch` adapter | `test_search.py` | ✅ Backend complete |
 | Field-level redaction in search | — | — | — | Horizon (G61) |
 | Faceted filtering UI | — | — | — | Horizon (G67) |
 | Search analytics | — | — | — | Horizon (G70) |
