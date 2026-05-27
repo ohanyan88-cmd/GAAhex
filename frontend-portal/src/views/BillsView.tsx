@@ -1,25 +1,15 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalInvoice, type PortalPayment } from '../api'
 
-function StatusPill({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    PAID: 'var(--success)', ISSUED: 'var(--warning)', OVERDUE: 'var(--danger)',
-    DRAFT: 'var(--text-3)', VOID: 'var(--text-3)',
+function statusPillClass(status: string): string {
+  const map: Record<string, string> = {
+    PAID:    'pill pill-success',
+    ISSUED:  'pill pill-warning',
+    OVERDUE: 'pill pill-danger',
+    DRAFT:   'pill pill-muted',
+    VOID:    'pill pill-muted',
   }
-  return (
-    <span style={{
-      background: `${colors[status] ?? 'var(--text-3)'}22`,
-      color: colors[status] ?? 'var(--text-3)',
-      border: `1px solid ${colors[status] ?? 'var(--text-3)'}`,
-      borderRadius: 'var(--pill)',
-      padding: '2px 10px',
-      fontSize: 11,
-      fontWeight: 600,
-      letterSpacing: '0.04em',
-    }}>
-      {status}
-    </span>
-  )
+  return map[status] ?? 'pill pill-muted'
 }
 
 function fmt(luma: number) {
@@ -27,11 +17,11 @@ function fmt(luma: number) {
 }
 
 export default function BillsView() {
-  const [invoices, setInvoices] = useState<PortalInvoice[]>([])
-  const [payments, setPayments] = useState<PortalPayment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [paying, setPaying] = useState<string | null>(null)
+  const [invoices, setInvoices]   = useState<PortalInvoice[]>([])
+  const [payments, setPayments]   = useState<PortalPayment[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState<string | null>(null)
+  const [paying, setPaying]       = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([api.invoices(), api.payments()])
@@ -56,96 +46,106 @@ export default function BillsView() {
     }
   }
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--text-3)' }}>Loading...</div>
-  if (error) return <div style={{ padding: 24, color: 'var(--danger)' }}>{error}</div>
+  if (loading) return <div className="loading-state">Loading...</div>
+  if (error)   return (
+    <div className="error-banner">
+      <span className="error-banner-title">Error</span>
+      <span className="error-banner-msg">{error}</span>
+    </div>
+  )
 
   const totalBalance = invoices.reduce((s, i) => s + i.balance, 0)
 
   return (
-    <div style={{ padding: 28 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Bills</h1>
+    <div>
+      <div className="view-head">
+        <div className="view-title-wrap">
+          <h2>Bills</h2>
+          <span className="view-sub">Invoices and payment history</span>
+        </div>
+      </div>
 
       {totalBalance > 0 && (
-        <div style={{
-          background: 'var(--warning-soft)',
-          border: '1px solid var(--warning)',
-          borderRadius: 'var(--radius)',
-          padding: '12px 16px',
-          marginBottom: 20,
-          color: 'var(--warning)',
-          fontWeight: 600,
-        }}>
-          Balance due: {fmt(totalBalance)}
+        <div className="toast toast-warning" style={{ position: 'static', marginBottom: 20, width: '100%', boxSizing: 'border-box' }}>
+          <div className="toast-msg">
+            <b>Balance due</b>
+            <span>{fmt(totalBalance)} outstanding — please pay to avoid service interruption</span>
+          </div>
         </div>
       )}
 
-      <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--text-2)' }}>Invoices</h2>
+      {/* Invoices section */}
+      <div className="section-head">Invoices</div>
+
       {invoices.length === 0 ? (
-        <p style={{ color: 'var(--text-3)', marginBottom: 24 }}>No invoices yet.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 32 }}>
-          {invoices.map(inv => (
-            <div key={inv.id} style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              flexWrap: 'wrap',
-            }}>
-              <span style={{ fontWeight: 600, minWidth: 90 }}>{inv.number}</span>
-              <StatusPill status={inv.status} />
-              <span style={{ color: 'var(--text-2)' }}>{fmt(inv.total)}</span>
-              {inv.balance > 0 && (
-                <span style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                  Balance: {fmt(inv.balance)}
-                </span>
-              )}
-              <span style={{ flex: 1 }} />
-              {['ISSUED', 'OVERDUE'].includes(inv.status) && (
-                <button
-                  onClick={() => handlePay(inv.id)}
-                  disabled={paying === inv.id}
-                  style={{
-                    background: 'var(--accent)',
-                    color: 'var(--accent-text)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '6px 14px',
-                    fontWeight: 600,
-                    fontSize: 13,
-                  }}
-                >
-                  {paying === inv.id ? 'Processing...' : 'Pay now'}
-                </button>
-              )}
-            </div>
-          ))}
+        <div className="empty-state">
+          <h3>No invoices yet</h3>
+          <p>Your invoices will appear here once they are issued.</p>
         </div>
+      ) : (
+        <table className="grid" style={{ marginBottom: 32 }}>
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Status</th>
+              <th className="num">Total</th>
+              <th className="num">Balance</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map(inv => (
+              <tr key={inv.id}>
+                <td style={{ fontWeight: 600 }}>{inv.number}</td>
+                <td><span className={statusPillClass(inv.status)}>{inv.status}</span></td>
+                <td className="num">{fmt(inv.total)}</td>
+                <td className="num" style={inv.balance > 0 ? { color: 'var(--danger)', fontWeight: 600 } : { color: 'var(--text-3)' }}>
+                  {inv.balance > 0 ? fmt(inv.balance) : '—'}
+                </td>
+                <td>
+                  {['ISSUED', 'OVERDUE'].includes(inv.status) && (
+                    <button
+                      className="btn btn-accent btn-sm"
+                      onClick={() => handlePay(inv.id)}
+                      disabled={paying === inv.id}
+                    >
+                      {paying === inv.id ? 'Processing...' : 'Pay now'}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
 
-      <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12, color: 'var(--text-2)' }}>Payment history</h2>
+      {/* Payment history section */}
+      <div className="section-head">Payment history</div>
+
       {payments.length === 0 ? (
-        <p style={{ color: 'var(--text-3)' }}>No payments yet.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {payments.map(p => (
-            <div key={p.id} style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              padding: '12px 16px',
-              display: 'flex',
-              gap: 12,
-              flexWrap: 'wrap',
-            }}>
-              <span style={{ color: 'var(--success)', fontWeight: 600 }}>{fmt(p.amount)}</span>
-              <span style={{ color: 'var(--text-3)' }}>{p.method}</span>
-              <span style={{ color: 'var(--text-3)' }}>{new Date(p.paid_at).toLocaleDateString()}</span>
-            </div>
-          ))}
+        <div className="empty-state">
+          <h3>No payments yet</h3>
+          <p>Completed payments will appear here.</p>
         </div>
+      ) : (
+        <table className="grid">
+          <thead>
+            <tr>
+              <th className="num">Amount</th>
+              <th>Method</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {payments.map(p => (
+              <tr key={p.id}>
+                <td className="num" style={{ color: 'var(--success)', fontWeight: 600 }}>{fmt(p.amount)}</td>
+                <td><span className="badge">{p.method}</span></td>
+                <td style={{ color: 'var(--text-3)' }}>{new Date(p.paid_at).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   )

@@ -139,7 +139,7 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
           <div className="eyebrow">{t('nav.crm', 'CRM')}</div>
           <h2 style={{ margin: 0 }}>{t('leads.pipeline', 'Lead Pipeline')}</h2>
         </div>
-        <button className="btn btn--primary" onClick={() => setShowNew((v) => !v)}>
+        <button className="btn btn-primary" onClick={() => setShowNew((v) => !v)}>
           <PlusIcon /> {t('leads.new', 'New Lead')}
         </button>
       </div>
@@ -157,10 +157,10 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
           <select className="inp inp-sm" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} aria-label={t('leads.source', 'Source')}>
             {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <button className="btn btn--primary btn--sm" type="submit" disabled={saving || !form.name.trim()}>
+          <button className="btn btn-primary btn-sm" type="submit" disabled={saving || !form.name.trim()}>
             {saving ? t('common.saving', 'Saving…') : t('common.add', 'Add')}
           </button>
-          <button className="btn btn--sm" type="button" onClick={() => setShowNew(false)} aria-label={t('common.cancel', 'Cancel')}><CloseIcon /></button>
+          <button className="btn btn-sm" type="button" onClick={() => setShowNew(false)} aria-label={t('common.cancel', 'Cancel')}><CloseIcon /></button>
         </form>
       )}
 
@@ -196,16 +196,16 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
                             {lead.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, overflow: 'hidden', textOverflow: 'ellipsis' }}><MailIcon /> {lead.email}</span>}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <button className="btn btn--sm btn--ghost" onClick={() => scoreLead(lead.id)} disabled={sc === 'loading'} title={t('leads.aiScore', 'AI lead score')}>
+                            <button className="btn btn-sm btn-ghost" onClick={() => scoreLead(lead.id)} disabled={sc === 'loading'} title={t('leads.aiScore', 'AI lead score')}>
                               <SparkleIcon /> {sc === 'loading' ? t('common.loading', 'Loading…') : sc === 'error' ? t('leads.scoreNA', 'n/a') : sc ? sc.band : t('leads.score', 'Score')}
                             </button>
                             {nextFrom(lead.status).map((to) => (
-                              <button key={to} className="btn btn--sm" onClick={() => move(lead.id, to)} disabled={busy === lead.id}>
+                              <button key={to} className="btn btn-sm" onClick={() => move(lead.id, to)} disabled={busy === lead.id}>
                                 <ArrowRightIcon /> {labelOf(to)}
                               </button>
                             ))}
                             {!convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
-                              <button className="btn btn--sm btn--primary" onClick={() => convert(lead)} disabled={converting === lead.id}
+                              <button className="btn btn-sm btn-primary" onClick={() => convert(lead)} disabled={converting === lead.id}
                                       title={t('leads.convert', 'Convert to customer')}>
                                 <UsersIcon /> {converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert to customer')}
                               </button>

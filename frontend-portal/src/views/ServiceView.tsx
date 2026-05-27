@@ -1,24 +1,15 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalService, type PortalSubscription, type PortalUsage } from '../api'
 
-function StatusPill({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    ACTIVE: 'var(--success)', PENDING: 'var(--warning)', SUSPENDED: 'var(--danger)', TERMINATED: 'var(--text-3)',
-    CANCELLED: 'var(--text-3)',
+function servicePillClass(status: string): string {
+  const map: Record<string, string> = {
+    ACTIVE:     'pill pill-success',
+    PENDING:    'pill pill-warning',
+    SUSPENDED:  'pill pill-danger',
+    TERMINATED: 'pill pill-muted',
+    CANCELLED:  'pill pill-muted',
   }
-  return (
-    <span style={{
-      background: `${colors[status] ?? 'var(--text-3)'}22`,
-      color: colors[status] ?? 'var(--text-3)',
-      border: `1px solid ${colors[status] ?? 'var(--text-3)'}`,
-      borderRadius: 'var(--pill)',
-      padding: '2px 10px',
-      fontSize: 11,
-      fontWeight: 600,
-    }}>
-      {status}
-    </span>
-  )
+  return map[status] ?? 'pill pill-muted'
 }
 
 function fmt(luma: number) {
@@ -26,14 +17,14 @@ function fmt(luma: number) {
 }
 
 export default function ServiceView() {
-  const [services, setServices] = useState<PortalService[]>([])
+  const [services, setServices]           = useState<PortalService[]>([])
   const [subscriptions, setSubscriptions] = useState<PortalSubscription[]>([])
-  const [usage, setUsage] = useState<PortalUsage[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [requestMsg, setRequestMsg] = useState('')
-  const [requesting, setRequesting] = useState(false)
-  const [requestDone, setRequestDone] = useState(false)
+  const [usage, setUsage]                 = useState<PortalUsage[]>([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState<string | null>(null)
+  const [requestMsg, setRequestMsg]       = useState('')
+  const [requesting, setRequesting]       = useState(false)
+  const [requestDone, setRequestDone]     = useState(false)
 
   useEffect(() => {
     Promise.all([api.services(), api.subscriptions(), api.usage()])
@@ -56,117 +47,135 @@ export default function ServiceView() {
     }
   }
 
-  if (loading) return <div style={{ padding: 24, color: 'var(--text-3)' }}>Loading...</div>
-  if (error) return <div style={{ padding: 24, color: 'var(--danger)' }}>{error}</div>
+  if (loading) return <div className="loading-state">Loading...</div>
+  if (error)   return (
+    <div className="error-banner">
+      <span className="error-banner-title">Error</span>
+      <span className="error-banner-msg">{error}</span>
+    </div>
+  )
 
   return (
-    <div style={{ padding: 28 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>Service</h1>
+    <div>
+      <div className="view-head">
+        <div className="view-title-wrap">
+          <h2>Service</h2>
+          <span className="view-sub">Your active services and subscriptions</span>
+        </div>
+      </div>
 
-      <section style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)', marginBottom: 12 }}>Active services</h2>
-        {services.length === 0 ? (
-          <p style={{ color: 'var(--text-3)' }}>No services found.</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-            {services.map(s => (
-              <div key={s.id} style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '16px',
-              }}>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>{s.name}</div>
-                <div style={{ color: 'var(--text-3)', fontSize: 12, marginBottom: 8 }}>{s.type}</div>
-                <StatusPill status={s.status} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Active services */}
+      <div className="section-head">Active services</div>
+      {services.length === 0 ? (
+        <div className="empty-state" style={{ marginBottom: 24 }}>
+          <h3>No services found</h3>
+          <p>Contact support to provision new services on your account.</p>
+        </div>
+      ) : (
+        <div className="widgets" style={{ marginBottom: 28 }}>
+          {services.map(s => (
+            <div className="widget" key={s.id}>
+              <div className="widget-label">{s.type}</div>
+              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 10 }}>{s.name}</div>
+              <span className={servicePillClass(s.status)}>{s.status}</span>
+              {s.activated_at && (
+                <div className="widget-foot">
+                  <span>Since {new Date(s.activated_at).toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
-      <section style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)', marginBottom: 12 }}>Subscriptions</h2>
-        {subscriptions.length === 0 ? (
-          <p style={{ color: 'var(--text-3)' }}>No subscriptions found.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Subscriptions */}
+      <div className="section-head">Subscriptions</div>
+      {subscriptions.length === 0 ? (
+        <div className="empty-state" style={{ marginBottom: 24 }}>
+          <h3>No subscriptions</h3>
+          <p>Active plan subscriptions will appear here.</p>
+        </div>
+      ) : (
+        <table className="grid" style={{ marginBottom: 28 }}>
+          <thead>
+            <tr>
+              <th>Plan</th>
+              <th className="num">Amount / cycle</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
             {subscriptions.map(s => (
-              <div key={s.id} style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius)',
-                padding: '14px 16px',
-                display: 'flex',
-                gap: 12,
-                alignItems: 'center',
-                flexWrap: 'wrap',
-              }}>
-                <span style={{ fontWeight: 600, flex: 1 }}>{s.plan_name}</span>
-                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{fmt(s.amount)} / {s.cycle}</span>
-                <StatusPill status={s.status} />
-              </div>
+              <tr key={s.id}>
+                <td style={{ fontWeight: 600 }}>{s.plan_name}</td>
+                <td className="num" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                  {fmt(s.amount)} / {s.cycle}
+                </td>
+                <td><span className={servicePillClass(s.status)}>{s.status}</span></td>
+              </tr>
             ))}
-          </div>
-        )}
-      </section>
+          </tbody>
+        </table>
+      )}
 
-      <section style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)', marginBottom: 12 }}>Recent usage</h2>
-        {usage.length === 0 ? (
-          <p style={{ color: 'var(--text-3)' }}>No usage records.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* Recent usage */}
+      <div className="section-head">Recent usage</div>
+      {usage.length === 0 ? (
+        <div className="empty-state" style={{ marginBottom: 24 }}>
+          <h3>No usage records</h3>
+          <p>Usage data will appear here as your services are used.</p>
+        </div>
+      ) : (
+        <table className="grid" style={{ marginBottom: 28 }}>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th className="num">Quantity</th>
+              <th className="num">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
             {usage.slice(0, 10).map(u => (
-              <div key={u.id} style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius)',
-                padding: '10px 14px',
-                display: 'flex',
-                gap: 12,
-                alignItems: 'center',
-              }}>
-                <span style={{ fontWeight: 600, minWidth: 80 }}>{u.metric}</span>
-                <span style={{ color: 'var(--text-2)' }}>{Number(u.quantity).toLocaleString()} units</span>
-                <span style={{ color: 'var(--accent)' }}>{fmt(u.amount)}</span>
-              </div>
+              <tr key={u.id}>
+                <td style={{ fontWeight: 600 }}>{u.metric}</td>
+                <td className="num tabular">{Number(u.quantity).toLocaleString()} units</td>
+                <td className="num" style={{ color: 'var(--accent)' }}>{fmt(u.amount)}</td>
+              </tr>
             ))}
-          </div>
-        )}
-      </section>
+          </tbody>
+        </table>
+      )}
 
-      <section>
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)', marginBottom: 12 }}>Request a change</h2>
-        {requestDone ? (
-          <div style={{
-            background: 'var(--success-soft)',
-            border: '1px solid var(--success)',
-            color: 'var(--success)',
-            borderRadius: 'var(--radius)',
-            padding: '12px 16px',
-          }}>
-            Your request was submitted. Our team will be in touch.
+      {/* Service change request */}
+      <div className="section-head">Request a change</div>
+      {requestDone ? (
+        <div className="toast toast-success" style={{ position: 'static', width: 'auto', maxWidth: 500 }}>
+          <div className="toast-msg">
+            <b>Request submitted</b>
+            <span>Our team will be in touch shortly.</span>
           </div>
-        ) : (
-          <form onSubmit={handleRequest} style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 500 }}>
-            <textarea
-              value={requestMsg}
-              onChange={e => setRequestMsg(e.target.value)}
-              placeholder="Describe the change you need..."
-              rows={3}
-              style={{ width: '100%', resize: 'vertical' }}
-              required
-            />
-            <button type="submit" disabled={requesting} style={{
-              background: 'var(--primary)', color: 'var(--text)', borderRadius: 'var(--radius)',
-              padding: '8px 18px', fontWeight: 600, alignSelf: 'flex-start',
-            }}>
+        </div>
+      ) : (
+        <form onSubmit={handleRequest} className="composer" style={{ maxWidth: 500 }}>
+          <textarea
+            className="inp inp-area"
+            value={requestMsg}
+            onChange={e => setRequestMsg(e.target.value)}
+            placeholder="Describe the change you need..."
+            rows={3}
+            required
+          />
+          <div className="composer-actions">
+            <button
+              type="submit"
+              className="btn btn-primary btn-md"
+              disabled={requesting}
+            >
               {requesting ? 'Sending...' : 'Send request'}
             </button>
-          </form>
-        )}
-      </section>
+          </div>
+        </form>
+      )}
     </div>
   )
 }

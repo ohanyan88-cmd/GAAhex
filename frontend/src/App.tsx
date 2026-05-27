@@ -110,6 +110,17 @@ export default function App() {
     localStorage.setItem('gaaex-density', density)
   }, [density])
 
+  // Palette: 'default' (the :root dark) | 'midnight' | 'forest' | 'slate' — [data-palette] overrides.
+  // 'default' removes the attribute so :root wins. Persisted.
+  const [palette, setPalette] = useState<string>(
+    () => localStorage.getItem('gaaex-palette') || 'default',
+  )
+  useEffect(() => {
+    if (palette === 'default') document.documentElement.removeAttribute('data-palette')
+    else document.documentElement.setAttribute('data-palette', palette)
+    localStorage.setItem('gaaex-palette', palette)
+  }, [palette])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -238,6 +249,24 @@ export default function App() {
             >
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
             </button>
+            <div className="swatch-row" role="group" aria-label="Color palette">
+              {([
+                ['default', '#3A6FB5', 'Cobalt (default)'],
+                ['midnight', '#5B8DEF', 'Midnight'],
+                ['forest', '#3FA66A', 'Forest'],
+                ['slate', '#8A94A6', 'Slate'],
+              ] as const).map(([key, dot, label]) => (
+                <button
+                  key={key}
+                  className={'swatch' + (palette === key ? ' on' : '')}
+                  style={{ background: dot }}
+                  onClick={() => setPalette(key)}
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={palette === key}
+                />
+              ))}
+            </div>
             <NotificationCenter
               token={token}
               entities={entities}

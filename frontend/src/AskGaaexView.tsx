@@ -116,8 +116,8 @@ export default function AskGaaexView({ token }: { token: string }) {
                   <div className="ask-proposal-body">{m.proposal.summary}</div>
                   {m.state === 'pending' ? (
                     <div className="ask-proposal-actions">
-                      <button className="btn btn--primary btn--sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</button>
-                      <button className="btn btn--sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</button>
+                      <button className="btn btn-primary btn-sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</button>
+                      <button className="btn btn-sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</button>
                     </div>
                   ) : m.state === 'done' ? (
                     <div className="ask-proposal-done">{m.result}</div>
@@ -141,7 +141,7 @@ export default function AskGaaexView({ token }: { token: string }) {
       <form className="ask-input" onSubmit={(e) => { e.preventDefault(); ask(q) }}>
         <input className="inp" value={q} onChange={(e) => setQ(e.target.value)} disabled={busy}
                placeholder={t('ask.placeholder', 'Ask GAAex anything about your business…')} aria-label={t('ask.title', 'Ask GAAex')} autoFocus />
-        <button className="btn btn--primary" type="submit" disabled={busy || !q.trim()} aria-label={t('ask.send', 'Send')}>
+        <button className="btn btn-primary" type="submit" disabled={busy || !q.trim()} aria-label={t('ask.send', 'Send')}>
           <ArrowRightIcon />
         </button>
       </form>
