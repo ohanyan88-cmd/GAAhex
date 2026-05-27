@@ -61,11 +61,11 @@ async def portal_setup(client: AsyncClient, admin):
         await s.commit()
 
     # Get portal tokens
-    ra_tok = await client.post("/portal/auth/login", json={"email": "portal_a@test.isp", "password": "PortalA123"})
+    ra_tok = await client.post("/portal/auth/login", json={"email": "portal_a@test.isp", "password": "PortalA123", "tenant_id": str(tid)})
     assert ra_tok.status_code == 200, ra_tok.text
     token_a = ra_tok.json()["access_token"]
 
-    rb_tok = await client.post("/portal/auth/login", json={"email": "portal_b@test.isp", "password": "PortalB123"})
+    rb_tok = await client.post("/portal/auth/login", json={"email": "portal_b@test.isp", "password": "PortalB123", "tenant_id": str(tid)})
     assert rb_tok.status_code == 200, rb_tok.text
     token_b = rb_tok.json()["access_token"]
 
@@ -79,7 +79,7 @@ async def portal_setup(client: AsyncClient, admin):
 
 @pytest.mark.asyncio
 async def test_portal_login_ok(client: AsyncClient, portal_setup):
-    r = await client.post("/portal/auth/login", json={"email": "portal_a@test.isp", "password": "PortalA123"})
+    r = await client.post("/portal/auth/login", json={"email": "portal_a@test.isp", "password": "PortalA123", "tenant_id": portal_setup["tenant_id"]})
     assert r.status_code == 200
     data = r.json()
     assert "access_token" in data
@@ -88,7 +88,7 @@ async def test_portal_login_ok(client: AsyncClient, portal_setup):
 
 @pytest.mark.asyncio
 async def test_portal_login_wrong_password(client: AsyncClient, portal_setup):
-    r = await client.post("/portal/auth/login", json={"email": "portal_a@test.isp", "password": "wrong"})
+    r = await client.post("/portal/auth/login", json={"email": "portal_a@test.isp", "password": "wrong", "tenant_id": portal_setup["tenant_id"]})
     assert r.status_code == 401
 
 
@@ -200,7 +200,7 @@ async def test_staff_provision_portal_user(client: AsyncClient, admin, portal_se
     assert r.json()["email"] == email
 
     # New login must work
-    r2 = await client.post("/portal/auth/login", json={"email": email, "password": "Prov1234"})
+    r2 = await client.post("/portal/auth/login", json={"email": email, "password": "Prov1234", "tenant_id": portal_setup["tenant_id"]})
     assert r2.status_code == 200
 
 
@@ -234,5 +234,5 @@ async def test_inactive_user_cannot_login(client: AsyncClient, portal_setup):
             cu.is_active = False
             await s.commit()
 
-    r = await client.post("/portal/auth/login", json={"email": email, "password": "Inact1234"})
+    r = await client.post("/portal/auth/login", json={"email": email, "password": "Inact1234", "tenant_id": tenant_id})
     assert r.status_code == 403

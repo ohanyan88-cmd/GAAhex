@@ -16,6 +16,18 @@ from sqlalchemy import select
 from app.db import SessionLocal
 from app.models import Tenant
 from app.models.webhook import WebhookDef
+from app.config import settings as _settings
+
+
+@pytest.fixture(autouse=True)
+def _allow_private_webhooks():
+    """These tests intentionally use a loopback DEAD_URL (fast connection-refused). Opt into the
+    E38 webhook_allow_private flag so the SSRF guard (secure-default-OFF) doesn't 422 them at create.
+    C38's dedicated SSRF tests live in another module and keep the default (private = blocked)."""
+    prev = _settings.webhook_allow_private
+    _settings.webhook_allow_private = True
+    yield
+    _settings.webhook_allow_private = prev
 
 
 async def _deactivate(client, admin, wid):

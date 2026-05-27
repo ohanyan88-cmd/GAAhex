@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { login, me, getEntities, orgTree } from './api'
+import ErrorBoundary from './ErrorBoundary'
 import EntityView from './EntityView'
 import StudioView from './StudioView'
 import ReportsView from './ReportsView'
@@ -256,6 +257,7 @@ export default function App() {
               <button className="iconbtn" aria-label={t('common.close', 'Close')} onClick={() => setNudge(false)}><CloseIcon size={16} /></button>
             </div>
           )}
+          <ErrorBoundary>
           {view.type === 'org'
             ? <OrgTreeView nodes={orgNodes} />
             : view.type === 'dashboards'
@@ -313,6 +315,7 @@ export default function App() {
                   : view.type === 'studio'
                     ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
                     : <EntityView token={token} slug={view.slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
+          </ErrorBoundary>
         </main>
       </div>
 

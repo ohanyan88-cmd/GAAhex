@@ -1,9 +1,12 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text, select
 
+from .config import settings
 from .db import engine, SessionLocal, OwnerSessionLocal
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
@@ -17,8 +20,17 @@ from .scheduler import start_scheduler, stop_scheduler
 from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service
 
 
+_log = logging.getLogger("gaaex")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # S1 — JWT secret fail-fast (default-OFF; prod sets REQUIRE_STRONG_SECRETS=true).
+    # Guard fires ONLY when require_strong_secrets is explicitly enabled, so dev/test are unaffected.
+    if settings.require_strong_secrets:
+        if settings.jwt_secret == "dev-only-change-me" or len(settings.jwt_secret) < 32:
+            raise RuntimeError("Weak JWT secret; set a 32+ byte JWT_SECRET")
+
     # Schema is managed by Alembic migrations — run `alembic upgrade head` before starting.
     # On boot we only seed demo data (idempotent).
     await seed_if_empty()
@@ -29,6 +41,23 @@ async def lifespan(app: FastAPI):
     await i18n.seed_i18n_if_empty()
     await seed_demo_loop_if_empty()   # one sample customer with the full daily loop (idempotent)
     await start_scheduler(app)        # no-op unless settings.scheduler_enabled (auto batch jobs)
+
+    # N1 — RLS-bypass / superuser safety check (best-effort, fail-soft; informational only).
+    # Warns when the app DB role is a superuser that can bypass RLS, which would be a
+    # misconfiguration in a real multi-tenant deployment.  Only loud when require_strong_secrets
+    # is on (prod); silent in dev so it doesn't clutter test output.
+    if settings.require_strong_secrets:
+        try:
+            async with SessionLocal() as _s:
+                row = (await _s.execute(text("SELECT current_setting('is_superuser')"))).scalar()
+                if str(row).lower() == "on":
+                    _log.warning(
+                        "SECURITY: the application database role is a superuser and can bypass RLS. "
+                        "Use a restricted app role in production."
+                    )
+        except Exception:
+            pass  # DB may not be available during migrations / CI — never hard-fail here
+
     try:
         yield
     finally:
@@ -38,10 +67,26 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="GAAex API", version="0.0.1-m0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    # S3: origins driven by settings.cors_origins (default "*" keeps dev/tests working).
+    # Prod: set CORS_ORIGINS=https://app.example.com (comma-separate multiple origins).
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 # Abuse guard — OFF unless settings.rate_limit_enabled (so tests/dev are unaffected). In-process.
 app.add_middleware(apikeys.RateLimitMiddleware)
+
+
+# N4 — global unhandled-exception handler: log server-side, return clean 500, never leak traceback.
+# HTTPException is intentionally NOT caught here — FastAPI handles those normally.
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    if isinstance(exc, HTTPException):
+        # Should not reach here, but be safe — let FastAPI's own handler deal with it.
+        raise exc
+    _log.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 
 app.include_router(auth.router)
 app.include_router(meta.router)

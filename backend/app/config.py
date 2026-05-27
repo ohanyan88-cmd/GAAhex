@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     password_min_length: int = 8          # password policy: minimum length
     rate_limit_enabled: bool = False      # OFF by default so the test suite is unaffected; enable in prod
     rate_limit_per_min: int = 6000        # requests per principal-or-IP per fixed 1-minute window
+    # S1: refuse to boot a prod deployment with the dev JWT secret (default-OFF; set REQUIRE_STRONG_SECRETS=true in prod)
+    require_strong_secrets: bool = False
+    # S3: CORS allowed origins; comma-separated. Default "*" keeps dev/tests working.
+    # In prod set CORS_ORIGINS=https://app.example.com (comma-separate multiple origins)
+    cors_origins: str = "*"
+    # E38: webhook SSRF guard. Default OFF blocks private/loopback/reserved targets. Set
+    # WEBHOOK_ALLOW_PRIVATE=true only in a trusted network that legitimately needs internal webhooks.
+    webhook_allow_private: bool = False
 
     # ---- outbound channel providers (opt-in; unset ⇒ dev/console behavior, suite unaffected) ----
     email_provider: str = "dev"           # dev|smtp

@@ -9,7 +9,10 @@ Phase-1 = records + a single attempt. A real retry queue/worker is a later step 
 """
 import hashlib
 import hmac
+import ipaddress
 import json
+import socket
+import urllib.parse
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -25,6 +28,80 @@ router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
 DELIVERY_TIMEOUT = 3.0          # seconds — short, so a slow endpoint can't stall the request
 DELIVERY_LOG_CAP = 100
+
+# Cloud metadata endpoint that must always be blocked regardless of IP-flag classification.
+_METADATA_IP = ipaddress.ip_address("169.254.169.254")
+
+_SSRF_DENY_REASON = "Webhook URL not allowed: private/internal address"
+
+
+def _is_safe_webhook_url(url: str) -> bool:
+    """Return True only when *url* is safe to use as an outbound webhook target.
+
+    Fail-CLOSED: any parsing failure, non-http/s scheme, or DNS-resolution error
+    returns False so the caller can block / skip the request.
+
+    Blocked categories
+    ------------------
+    - Schemes other than http / https
+    - The hostname literal "localhost" (case-insensitive)
+    - Any hostname ending in ".local" (mDNS / LAN names)
+    - The literal cloud-metadata IP string "169.254.169.254"
+    - Any IP (resolved or literal) that is private, loopback, link-local, or
+      reserved according to stdlib ipaddress
+    - DNS resolution failures (treat as unsafe — fail-closed)
+    """
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except Exception:
+        return False
+
+    # Scheme check — must be http or https, nothing else (file://, ftp://, etc.)
+    if parsed.scheme not in ("http", "https"):
+        return False
+
+    host = parsed.hostname  # lowercased, brackets stripped for IPv6
+    if not host:
+        return False
+
+    # Opt-in escape hatch for legitimate internal/VPC webhook targets (and the test suite).
+    # Secure default is OFF: private/loopback/reserved targets are blocked. Set
+    # WEBHOOK_ALLOW_PRIVATE=true only in a trusted network where internal webhooks are wanted.
+    from ..config import settings
+    if getattr(settings, "webhook_allow_private", False):
+        return True
+
+    # Block obvious internal hostnames before DNS is even consulted
+    if host == "localhost":
+        return False
+    if host.endswith(".local"):
+        return False
+    # Block the literal metadata IP string early (also caught by ipaddress below,
+    # but explicit is clearer and avoids any future is_link_local edge-case debate)
+    if host == "169.254.169.254":
+        return False
+
+    # Resolve the host to an IP address.  If resolution fails for any reason
+    # (NXDOMAIN, timeout, OS error) we treat the URL as unsafe — fail-closed.
+    try:
+        resolved = socket.gethostbyname(host)
+        ip = ipaddress.ip_address(resolved)
+    except Exception:
+        return False
+
+    # Block every category of non-public IP
+    if (
+        ip == _METADATA_IP
+        or ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_unspecified
+        or ip.is_multicast
+    ):
+        return False
+
+    return True
 
 
 # ---- dispatch engine (importable; called from workflow.emit) -----------------------------------
@@ -47,6 +124,15 @@ async def _deliver(s: AsyncSession, hook: WebhookDef, event_type: str, payload: 
     if hook.secret:
         sig = hmac.new(hook.secret.encode(), body, hashlib.sha256).hexdigest()
         headers["X-GAAex-Signature"] = f"sha256={sig}"
+
+    # SSRF guard — re-check at dispatch so URLs stored before this guard was added
+    # (or mutated via direct DB writes) cannot bypass the protection.
+    # Fail-soft: mark FAILED with a clear reason, never raise into the kernel.
+    if not _is_safe_webhook_url(hook.url):
+        delivery.attempts = 0
+        delivery.status = "FAILED"
+        delivery.error = _SSRF_DENY_REASON
+        return delivery
 
     delivery.attempts = 1
     try:
@@ -120,6 +206,8 @@ def _validate_url(url: str) -> str:
     url = (url or "").strip()
     if not url.startswith(("http://", "https://")):
         raise HTTPException(422, "url must start with http:// or https://")
+    if not _is_safe_webhook_url(url):
+        raise HTTPException(422, _SSRF_DENY_REASON)
     return url
 
 

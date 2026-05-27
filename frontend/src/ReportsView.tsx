@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from './States'
 
 // Reports view — consumes the Reports API (Task A). Self-contained: inlines its own
 // fetch calls (same base + Authorization pattern as api.ts) and does NOT touch the shared api.ts.
@@ -8,11 +9,19 @@ const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 type Summary = { entity_key: string; route_slug: string; label_plural: string; count: number }
 type StatusCount = { status: string; count: number }
 
+class FetchError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
 async function fetchJson(token: string, path: string) {
   const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
   if (!r.ok) {
     const e = await r.json().catch(() => ({ detail: 'Error' }))
-    throw new Error(e.detail || `Failed to load ${path}`)
+    throw new FetchError(e.detail || `Failed to load ${path}`, r.status)
   }
   return r.json()
 }
@@ -32,21 +41,28 @@ export default function ReportsView({ token }: { token: string }) {
   const [summary, setSummary] = useState<Summary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [denied, setDenied] = useState(false)
 
   const [selected, setSelected] = useState<string | null>(null)
   const [byStatus, setByStatus] = useState<StatusCount[]>([])
   const [statusLoading, setStatusLoading] = useState(false)
   const [statusError, setStatusError] = useState('')
 
-  useEffect(() => {
+  function loadSummary() {
     let alive = true
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setDenied(false)
     fetchJson(token, '/reports/summary')
       .then((data) => { if (alive) setSummary(Array.isArray(data) ? data : []) })
-      .catch((err) => { if (alive) setError((err as Error).message) })
+      .catch((err) => {
+        if (!alive) return
+        if (err instanceof FetchError && err.status === 403) { setDenied(true) }
+        else { setError((err as Error).message) }
+      })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
-  }, [token])
+  }
+
+  useEffect(loadSummary, [token])
 
   async function openEntity(slug: string) {
     setSelected(slug)
@@ -64,14 +80,16 @@ export default function ReportsView({ token }: { token: string }) {
   const maxCount = byStatus.reduce((m, s) => Math.max(m, s.count), 0)
   const selectedLabel = summary.find((s) => s.route_slug === selected)?.label_plural ?? selected
 
+  if (loading) return <LoadingState />
+  if (denied) return <PermissionDenied message="You don't have permission to view reports." />
+
   return (
     <div>
       <div className="view-head"><h2>Reports</h2></div>
 
-      {loading && <p className="muted">Loading…</p>}
-      {error && <p className="err">{error}</p>}
+      {error && <ErrorBanner message={error} onRetry={loadSummary} />}
 
-      {!loading && !error && (
+      {!error && (
         <>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
             {summary.map((s) => (
@@ -94,14 +112,14 @@ export default function ReportsView({ token }: { token: string }) {
                 <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{s.count}</div>
               </button>
             ))}
-            {summary.length === 0 && <p className="muted">No entities to report on yet.</p>}
+            {summary.length === 0 && <EmptyState title="No entities to report on yet." message="Configure entity types in Studio to see reports here." />}
           </div>
 
           {selected && (
             <div>
               <div className="view-head"><h2 style={{ fontSize: 18 }}>{selectedLabel} · by status</h2></div>
-              {statusLoading && <p className="muted">Loading…</p>}
-              {statusError && <p className="err">{statusError}</p>}
+              {statusLoading && <LoadingState />}
+              {statusError && <ErrorBanner message={statusError} />}
               {!statusLoading && !statusError && (
                 <div className="grid-wrap"><table className="grid">
                   <thead>

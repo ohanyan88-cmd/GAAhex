@@ -56,8 +56,8 @@ async def service_setup(client: AsyncClient, admin):
         svc_a_id = str(svc_a.id)
         svc_b_id = str(svc_b.id)
 
-    tok_a = (await client.post("/portal/auth/login", json={"email": "service_a@test.isp", "password": "SvcA123"})).json()["access_token"]
-    tok_b = (await client.post("/portal/auth/login", json={"email": "service_b@test.isp", "password": "SvcB123"})).json()["access_token"]
+    tok_a = (await client.post("/portal/auth/login", json={"email": "service_a@test.isp", "password": "SvcA123", "tenant_id": str(tid)})).json()["access_token"]
+    tok_b = (await client.post("/portal/auth/login", json={"email": "service_b@test.isp", "password": "SvcB123", "tenant_id": str(tid)})).json()["access_token"]
 
     return {
         "cid_a": cid_a, "cid_b": cid_b,

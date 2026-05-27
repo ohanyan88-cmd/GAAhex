@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { WarningIcon } from './icons'
+import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from './States'
 
 // Dashboards — picks a board and renders its config-driven widgets from /dashboards/{key}/data.
 // Self-contained inline fetch (same pattern as api.ts / ReportsView). No chart library: KPIs are
@@ -17,11 +17,19 @@ type Group = { group: string; value: number }
 // crimson, then derived cobalt/gold steps and a neutral. No off-palette colors.
 const PALETTE = ['#3A6FB5', '#C5A059', '#2ECC71', '#F5A623', '#E63946', '#4A82CC', '#D4B26C', '#AEB7C2']
 
+class FetchError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
 async function jget(token: string, path: string) {
   const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
   if (!r.ok) {
     const e = await r.json().catch(() => ({ detail: 'Error' }))
-    throw new Error(e.detail || `Failed to load ${path}`)
+    throw new FetchError(e.detail || `Failed to load ${path}`, r.status)
   }
   return r.json()
 }
@@ -49,12 +57,13 @@ export default function DashboardView({ token }: { token: string }) {
   const [data, setData] = useState<BoardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [denied, setDenied] = useState(false)
   const [boardLoading, setBoardLoading] = useState(false)
   const [boardError, setBoardError] = useState('')
 
-  useEffect(() => {
+  function loadBoards() {
     let alive = true
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setDenied(false)
     jget(token, '/dashboards')
       .then((d: Board[]) => {
         if (!alive) return
@@ -62,10 +71,16 @@ export default function DashboardView({ token }: { token: string }) {
         setBoards(list)
         if (list.length) setSelected(list[0].key)
       })
-      .catch((e) => { if (alive) setError((e as Error).message) })
+      .catch((e) => {
+        if (!alive) return
+        if (e instanceof FetchError && e.status === 403) { setDenied(true) }
+        else { setError((e as Error).message) }
+      })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
-  }, [token])
+  }
+
+  useEffect(loadBoards, [token])
 
   useEffect(() => {
     if (!selected) { setData(null); return }
@@ -78,14 +93,15 @@ export default function DashboardView({ token }: { token: string }) {
     return () => { alive = false }
   }, [token, selected])
 
-  if (loading) return <p className="muted">Loading…</p>
-  if (error) return <p className="err">{error}</p>
+  if (loading) return <LoadingState />
+  if (denied) return <PermissionDenied message="You don't have permission to view dashboards." />
+  if (error) return <ErrorBanner message={error} onRetry={loadBoards} />
 
   return (
     <div>
       <div className="view-head"><h2>Dashboards</h2></div>
 
-      {boards.length === 0 && <p className="muted">No dashboards configured yet.</p>}
+      {boards.length === 0 && <EmptyState title="No dashboards configured yet." message="Ask an admin to configure a dashboard for your role." />}
 
       {boards.length > 0 && (
         <div className="tabs">
@@ -102,12 +118,12 @@ export default function DashboardView({ token }: { token: string }) {
         </div>
       )}
 
-      {boardLoading && <p className="muted">Loading…</p>}
-      {boardError && <p className="err">{boardError}</p>}
+      {boardLoading && <LoadingState />}
+      {boardError && <ErrorBanner message={boardError} />}
 
       {!boardLoading && !boardError && data && (
         <div className="widgets">
-          {data.widgets.length === 0 && <p className="muted">This board has no widgets.</p>}
+          {data.widgets.length === 0 && <EmptyState title="This board has no widgets." message="Add widgets in Studio to populate this dashboard." />}
           {data.widgets.map((w) => (
             <div key={w.widget_key} className={'widget' + (w.type === 'kpi' ? ' widget-kpi' : '')}>
               <div className="widget-label">{w.label}</div>
@@ -121,12 +137,12 @@ export default function DashboardView({ token }: { token: string }) {
 }
 
 function Widget({ w }: { w: WidgetOut }) {
-  if (w.error) return <p className="err widget-err"><WarningIcon size={14} /> {friendlyError(w.error)}</p>
+  if (w.error) return <ErrorBanner message={friendlyError(w.error)} />
 
   if (w.type === 'kpi') return <div className="kpi">{fmtNum(kpiValue(w.result))}</div>
 
   const groups = asGroups(w.result)
-  if (groups.length === 0) return <p className="muted">No data.</p>
+  if (groups.length === 0) return <EmptyState title="No data." />
 
   if (w.type === 'donut') return <Donut data={groups} />
   if (w.type === 'bar' || w.type === 'line') return <Bars data={groups} />

@@ -61,11 +61,15 @@ async def _resolve_tenant_id(tenant_id_str: str | None) -> uuid.UUID:
             if not tenant:
                 raise HTTPException(400, "Unknown tenant")
             return tenant.id
-        # no hint — fall back to the first active tenant (demo / single-tenant mode)
-        tenant = (await o.execute(select(Tenant).where(Tenant.status == "active"))).scalars().first()
-        if not tenant:
+        # no hint — fall back only when there is exactly ONE active tenant (demo / single-tenant).
+        # S5: if multiple active tenants exist, picking the first would be a silent security
+        # mistake — force the caller to supply a tenant_id instead.
+        active_tenants = (await o.execute(select(Tenant).where(Tenant.status == "active"))).scalars().all()
+        if not active_tenants:
             raise HTTPException(503, "No active tenant found")
-        return tenant.id
+        if len(active_tenants) > 1:
+            raise HTTPException(400, "tenant_id required")
+        return active_tenants[0].id
 
 
 # ---- endpoints ----
@@ -136,6 +140,10 @@ async def current_customer(
 
     if not cu or not cu.is_active:
         raise HTTPException(401, "Customer not found or inactive")
+
+    # S4 — defense-in-depth: assert the customer's stored tenant matches the token claim.
+    if cu.tenant_id != tenant_id:
+        raise HTTPException(401, "Token/identity mismatch")
 
     await set_tenant_guc(s, tenant_id)
     return cu

@@ -43,8 +43,8 @@ async def support_setup(client: AsyncClient, admin):
                                    password_hash=hash_password(pw), is_active=True))
         await s.commit()
 
-    tok_a = (await client.post("/portal/auth/login", json={"email": "support_a@test.isp", "password": "SuppA123"})).json()["access_token"]
-    tok_b = (await client.post("/portal/auth/login", json={"email": "support_b@test.isp", "password": "SuppB123"})).json()["access_token"]
+    tok_a = (await client.post("/portal/auth/login", json={"email": "support_a@test.isp", "password": "SuppA123", "tenant_id": str(tid)})).json()["access_token"]
+    tok_b = (await client.post("/portal/auth/login", json={"email": "support_b@test.isp", "password": "SuppB123", "tenant_id": str(tid)})).json()["access_token"]
 
     return {"cid_a": cid_a, "cid_b": cid_b, "tok_a": tok_a, "tok_b": tok_b}
 

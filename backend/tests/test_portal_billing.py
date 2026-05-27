@@ -68,8 +68,8 @@ async def billing_setup(client: AsyncClient, admin):
         inv_b_id = str(inv_b.id)
 
     # Login
-    tok_a = (await client.post("/portal/auth/login", json={"email": "billing_a@test.isp", "password": "BillA123"})).json()["access_token"]
-    tok_b = (await client.post("/portal/auth/login", json={"email": "billing_b@test.isp", "password": "BillB123"})).json()["access_token"]
+    tok_a = (await client.post("/portal/auth/login", json={"email": "billing_a@test.isp", "password": "BillA123", "tenant_id": str(tid)})).json()["access_token"]
+    tok_b = (await client.post("/portal/auth/login", json={"email": "billing_b@test.isp", "password": "BillB123", "tenant_id": str(tid)})).json()["access_token"]
 
     return {
         "cid_a": cid_a, "cid_b": cid_b,
