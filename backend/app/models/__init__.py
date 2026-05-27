@@ -32,6 +32,7 @@ from .search_history import SearchHistory
 from .calendar import UserCalendar, CalendarEvent
 from .helpdesk import HelpdeskQueue, HelpdeskTicket
 from .workitem import WorkItem
+from .payment_gateway import PaymentOrder
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -60,4 +61,5 @@ __all__ = [
     "UserCalendar", "CalendarEvent",
     "HelpdeskQueue", "HelpdeskTicket",
     "WorkItem",
+    "PaymentOrder",
 ]

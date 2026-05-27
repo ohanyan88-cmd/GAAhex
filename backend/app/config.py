@@ -45,5 +45,15 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = False        # true ⇒ auto-fire run-dunning/run-cycle/run-due per tenant
     scheduler_interval_seconds: int = 3600 # sweep cadence (default hourly)
 
+    # ---- payment gateway (opt-in; dev ⇒ deterministic DevGateway, no external calls) ----
+    payment_provider: str = "dev"              # dev|idram|telcell|arca
+    idram_merchant_id: str | None = None
+    idram_secret_key: str | None = None
+    telcell_merchant: str | None = None
+    telcell_key: str | None = None
+    arca_merchant: str | None = None
+    arca_password: str | None = None
+    payment_callback_base_url: str | None = None   # public base URL the provider POSTs callbacks to
+
 
 settings = Settings()

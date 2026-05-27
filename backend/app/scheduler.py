@@ -64,6 +64,7 @@ from .routers.billing_cycle import run_cycle
 from .routers.report_schedules import run_due
 from .routers.digests import run_digests
 from .routers.helpdesk import run_sla_breach_sweep
+from .routers.payment_gateway import run_payment_reconcile
 
 log = logging.getLogger("gaaex.scheduler")
 
@@ -143,6 +144,8 @@ _JOBS = (
     ("notification.run_digests",    lambda s, actor: run_digests(s, tenant_id=actor.tenant_id, actor=actor)),
     # B31: SLA breach sweep — flag OPEN/IN_PROGRESS tickets past their sla_due_at.
     ("helpdesk.sla_breach",         lambda s, actor: run_sla_breach_sweep(user=actor, s=s)),
+    # B33: reconcile PENDING payment orders — settle confirmed, expire stale.
+    ("payment.reconcile",           lambda s, actor: run_payment_reconcile(user=actor, s=s)),
 )
 
 

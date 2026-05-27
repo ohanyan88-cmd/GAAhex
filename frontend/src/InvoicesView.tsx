@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from './billing'
+import { initiatePayment, confirmDevPayment, isDevFlow } from './paymentgw'
 import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
-import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon } from './icons'
+import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon, CreditCardIcon } from './icons'
 import { useI18n } from './i18n'
 
 const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
@@ -23,6 +24,84 @@ function statusPill(status: string | null | undefined) {
     : s === 'VOID' ? 'pill pill-muted'
     : 'pill'
   return status ? <span className={cls}>{status}</span> : <span>—</span>
+}
+
+// ── Pay online button ─────────────────────────────────────────────────────────
+// Used in both the list row and the invoice detail. Handles:
+//   1. POST /api/invoices/{id}/pay → {order_id, redirect_url, status}
+//   2a. redirect_url is real external URL  → window.open(redirect_url, '_blank')
+//   2b. redirect_url contains /pay/dev/    → show confirm modal → POST confirm-dev
+//                                            → toast + call onDone() to refresh
+
+function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceId: string; onDone: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [devConfirm, setDevConfirm] = useState<{ orderId: string } | null>(null)
+
+  async function handlePay() {
+    if (busy) return
+    setBusy(true)
+    try {
+      const result = await initiatePayment(token, invoiceId)
+      if (isDevFlow(result.redirect_url)) {
+        // Dev path — show in-app confirm modal instead of opening a tab
+        setDevConfirm({ orderId: result.order_id })
+      } else {
+        // Real external gateway — open in new tab
+        window.open(result.redirect_url, '_blank', 'noopener,noreferrer')
+        toast.success('Payment page opened in a new tab.')
+      }
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleConfirmDev() {
+    if (!devConfirm) return
+    setBusy(true)
+    try {
+      await confirmDevPayment(token, devConfirm.orderId)
+      setDevConfirm(null)
+      toast.success('Payment confirmed — invoice is now PAID.')
+      onDone()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button className="btn btn-primary btn-sm" onClick={handlePay} disabled={busy}>
+        <CreditCardIcon size={13} /> {busy ? 'Initiating…' : 'Pay online'}
+      </button>
+
+      {devConfirm && (
+        <Modal
+          open
+          onClose={() => { setDevConfirm(null); setBusy(false) }}
+          title="Simulate gateway payment?"
+          size="sm"
+          footer={
+            <>
+              <button className="btn btn-ghost btn-md" onClick={() => { setDevConfirm(null); setBusy(false) }}>Cancel</button>
+              <button className="btn btn-primary btn-md" onClick={handleConfirmDev} disabled={busy}>
+                {busy ? 'Confirming…' : 'Confirm payment'}
+              </button>
+            </>
+          }
+        >
+          <p style={{ margin: 0 }}>
+            This is the <strong>dev payment flow</strong>. Clicking Confirm will call{' '}
+            <code>confirm-dev</code> and immediately settle the payment order, marking the invoice
+            as <strong>PAID</strong>.
+          </p>
+        </Modal>
+      )}
+    </>
+  )
 }
 
 export default function InvoicesView({ token, canConfigure = false }: { token: string; canConfigure?: boolean }) {
@@ -123,6 +202,9 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
                 <td>{money(inv.total)}</td>
                 <td>{fmtDate(inv.due_at)}</td>
                 <td className="row-actions">
+                  {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
+                    <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
+                  )}
                   <button className="btn btn-ghost btn-sm" onClick={() => setDetailId(inv.id)}>Open <ArrowRightIcon size={13} /></button>
                 </td>
               </tr>
@@ -190,6 +272,7 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
             <div><span className="muted">Due</span><div>{fmtDate(inv.due_at)}</div></div>
             <div className="bill-actions">
               {status === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>}
+              {(status === 'ISSUED' || status === 'OVERDUE') && <PayOnlineButton token={token} invoiceId={id} onDone={load} />}
               {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>}
               {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>}
               <button className="btn btn-ghost btn-sm" onClick={async () => { const e = await openDocument(token, `/api/invoices/${id}/document`); if (e) toast.error(e) }}>
