@@ -5,6 +5,7 @@ import {
   type Queue, type Ticket, type TicketFilters, type TicketPriority, type TicketStatus,
 } from './helpdesk'
 import { loadCustomers } from './billing'
+import UserPicker from './UserPicker'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
@@ -406,13 +407,12 @@ function TicketDetailModal({
           {/* Assign */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span className="muted" style={{ fontSize: 13, minWidth: 60 }}>Assignee</span>
-            <input
-              className="inp inp-sm"
-              style={{ width: 220 }}
-              placeholder="Agent ID"
+            <UserPicker
+              token={token}
               value={agentId}
-              onChange={(e) => setAgentId(e.target.value)}
-              aria-label="Agent ID to assign"
+              onChange={setAgentId}
+              className="inp inp-sm"
+              aria-label="Agent to assign"
             />
             <button className="btn btn-primary btn-sm" disabled={busy || !agentId.trim()} onClick={handleAssign}>
               Assign

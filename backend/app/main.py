@@ -14,7 +14,7 @@ from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 from .seed_notifications import seed_notifications_if_empty
 from .seed_demo_loop import seed_demo_loop_if_empty
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, calendar as calendar_router
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, interactions, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, calendar as calendar_router
 
 
 @asynccontextmanager
@@ -81,6 +81,8 @@ app.include_router(digests.router)                  # /api/notifications/run-dig
 app.include_router(search_assist.router)            # /api/saved-searches + /api/search/suggest (before records)
 app.include_router(calendar_router.router)          # /api/calendar/* (fixed paths; before records)
 app.include_router(helpdesk.router)                 # /api/helpdesk/* (fixed paths; before records)
+app.include_router(users.router)                    # /api/users (assignee/agent picker; before records)
+app.include_router(workitems.router)                # /api/workitems/* (fixed paths; before records)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)

@@ -168,17 +168,23 @@ async def build_access_config(s, tenant_id) -> dict:
     for verb, vl in (("view", "View"), ("manage", "Manage")):
         s.add(PermissionDef(tenant_id=tenant_id, key=f"helpdesk_queue.{verb}", label=f"{vl} helpdesk queue", group="helpdesk"))
 
+    # B32 WorkItems: real-model permissions (assign-work-to-a-person loop + field dispatch).
+    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+        s.add(PermissionDef(tenant_id=tenant_id, key=f"workitem.{verb}", label=f"{vl} work item", group="workitem"))
+
     def perms(entities, verbs):
         return [f"{e}.{v}" for e in entities for v in verbs]
 
     _helpdesk_full = ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit",
                       "helpdesk_ticket.delete", "helpdesk_queue.view", "helpdesk_queue.manage"]
+    _workitem_full = ["workitem.view", "workitem.create", "workitem.edit", "workitem.delete"]
     super_admin = RoleDef(tenant_id=tenant_id, key="super_admin", label="Super Admin", permissions=["*"], scope="tenant")
     manager = RoleDef(tenant_id=tenant_id, key="manager", label="Manager", scope="subtree",
-                      permissions=perms(crm, ["view", "create", "edit", "delete"]) + _helpdesk_full)
+                      permissions=perms(crm, ["view", "create", "edit", "delete"]) + _helpdesk_full + _workitem_full)
     sales_agent = RoleDef(tenant_id=tenant_id, key="sales_agent", label="Sales Agent", scope="node",
                           permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"]
-                          + ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit"])
+                          + ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit"]
+                          + ["workitem.view", "workitem.create", "workitem.edit"])
     s.add_all([super_admin, manager, sales_agent])
     await s.flush()
     return {"super_admin": super_admin, "manager": manager, "sales_agent": sales_agent}

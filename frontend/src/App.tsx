@@ -26,6 +26,7 @@ import LeadPipelineView from './LeadPipelineView'
 import CustomerView from './CustomerView'
 import AskGaaexView from './AskGaaexView'
 import HelpdeskView from './HelpdeskView'
+import WorkItemsView from './WorkItemsView'
 import CalendarView from './CalendarView'
 import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
@@ -37,7 +38,7 @@ import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilitie
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'payments' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' } | { type: 'calendar' } | { type: 'helpdesk' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'payments' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' } | { type: 'calendar' } | { type: 'helpdesk' } | { type: 'workitems' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -179,6 +180,7 @@ export default function App() {
         <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}>{t('nav.interactions', 'Interactions')}</button>
         <div className="nav-label">Support</div>
         <button className={'nav' + (view.type === 'helpdesk' ? ' on' : '')} onClick={() => setView({ type: 'helpdesk' })}>Helpdesk</button>
+        <button className={'nav' + (view.type === 'workitems' ? ' on' : '')} onClick={() => setView({ type: 'workitems' })}>Work Items</button>
         <div className="nav-label">{t('nav.records', 'Records')}</div>
         {entities.map((en) => (
           <button
@@ -296,6 +298,8 @@ export default function App() {
                   ? <PartiesView token={token} />
                 : view.type === 'helpdesk'
                   ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} />
+                : view.type === 'workitems'
+                  ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} />
                 : view.type === 'calendar'
                   ? <CalendarView token={token} />
                 : view.type === 'settings'
