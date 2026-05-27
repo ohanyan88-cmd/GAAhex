@@ -162,14 +162,23 @@ async def build_access_config(s, tenant_id) -> dict:
         for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
             s.add(PermissionDef(tenant_id=tenant_id, key=f"{ekey}.{verb}", label=f"{vl} {ekey}", group=ekey))
 
+    # B31 Helpdesk: real-model permissions (helpdesk_ticket CRUD + helpdesk_queue view/manage).
+    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+        s.add(PermissionDef(tenant_id=tenant_id, key=f"helpdesk_ticket.{verb}", label=f"{vl} helpdesk ticket", group="helpdesk"))
+    for verb, vl in (("view", "View"), ("manage", "Manage")):
+        s.add(PermissionDef(tenant_id=tenant_id, key=f"helpdesk_queue.{verb}", label=f"{vl} helpdesk queue", group="helpdesk"))
+
     def perms(entities, verbs):
         return [f"{e}.{v}" for e in entities for v in verbs]
 
+    _helpdesk_full = ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit",
+                      "helpdesk_ticket.delete", "helpdesk_queue.view", "helpdesk_queue.manage"]
     super_admin = RoleDef(tenant_id=tenant_id, key="super_admin", label="Super Admin", permissions=["*"], scope="tenant")
     manager = RoleDef(tenant_id=tenant_id, key="manager", label="Manager", scope="subtree",
-                      permissions=perms(crm, ["view", "create", "edit", "delete"]))
+                      permissions=perms(crm, ["view", "create", "edit", "delete"]) + _helpdesk_full)
     sales_agent = RoleDef(tenant_id=tenant_id, key="sales_agent", label="Sales Agent", scope="node",
-                          permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"])
+                          permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"]
+                          + ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit"])
     s.add_all([super_admin, manager, sales_agent])
     await s.flush()
     return {"super_admin": super_admin, "manager": manager, "sales_agent": sales_agent}

@@ -794,6 +794,8 @@ button:hover { background: var(--primary-hover); }
 /* status pill variants (shared) */
 .pill-success { background: var(--success-soft); color: var(--success); }
 .pill-danger { background: var(--danger-soft); color: var(--danger); }
+.pill-warning { background: var(--warning-soft); color: var(--warning); }
+.pill-info { background: var(--accent-soft); color: var(--accent-hover, var(--accent)); }
 .pill-muted { background: var(--surface-2); color: var(--text-3); }
 
 /* Lead pipeline kanban (LeadPipelineView) — token-based, dual-theme */

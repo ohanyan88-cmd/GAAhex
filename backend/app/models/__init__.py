@@ -30,6 +30,7 @@ from .job import JobRun
 from .report_schedule import ReportSchedule
 from .search_history import SearchHistory
 from .calendar import UserCalendar, CalendarEvent
+from .helpdesk import HelpdeskQueue, HelpdeskTicket
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -56,4 +57,5 @@ __all__ = [
     "ReportSchedule",
     "SearchHistory",
     "UserCalendar", "CalendarEvent",
+    "HelpdeskQueue", "HelpdeskTicket",
 ]

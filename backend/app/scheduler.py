@@ -63,6 +63,7 @@ from .routers.billing import run_dunning
 from .routers.billing_cycle import run_cycle
 from .routers.report_schedules import run_due
 from .routers.digests import run_digests
+from .routers.helpdesk import run_sla_breach_sweep
 
 log = logging.getLogger("gaaex.scheduler")
 
@@ -140,6 +141,8 @@ _JOBS = (
     # E26: digest delivery — batches digest-pending notifications per user + dispatches them.
     # Fail-soft per user; graceful no-op when A26 schema columns aren't present yet.
     ("notification.run_digests",    lambda s, actor: run_digests(s, tenant_id=actor.tenant_id, actor=actor)),
+    # B31: SLA breach sweep — flag OPEN/IN_PROGRESS tickets past their sla_due_at.
+    ("helpdesk.sla_breach",         lambda s, actor: run_sla_breach_sweep(user=actor, s=s)),
 )
 
 
