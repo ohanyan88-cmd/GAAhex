@@ -159,6 +159,9 @@ async def current_user(
         uid = uuid.UUID(payload["sub"])
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
+    # Portal tokens carry kind='customer' — they must never authenticate a staff endpoint.
+    if payload.get("kind") == "customer":
+        raise HTTPException(status_code=401, detail="Portal token not accepted on staff endpoints")
     # Look the user up via the OWNER session: the app session `s` is RLS-subject and has no tenant
     # GUC set yet (chicken-and-egg), so a gaaex_app read of app_user here would default-deny.
     async with OwnerSessionLocal() as o:

@@ -22,6 +22,18 @@ from .activity import _item as _activity_item, _actor_names
 
 router = APIRouter(prefix="/api/customers", tags=["customer-360"])
 
+# ---- portal provisioning ----
+from pydantic import BaseModel
+from ..models.customer_user import CustomerUser
+from ..security import hash_password as _hash_password
+from ..db import OwnerSessionLocal
+
+
+class PortalUserIn(BaseModel):
+    email: str
+    password: str | None = None
+    name: str | None = None
+
 SUBS_CAP = 50
 INVOICE_CAP = 20
 SERVICE_CAP = 50
@@ -154,4 +166,52 @@ async def customer_360(customer_id: uuid.UUID, user: User = Depends(current_user
         "summary": summary,
         "activity": activity,
         "related": related,
+    }
+
+
+@router.post("/{customer_id}/portal-users", status_code=201)
+async def provision_portal_user(
+    customer_id: uuid.UUID,
+    body: PortalUserIn,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Staff-only: create a portal login for a customer. Gated by customer.edit permission."""
+    rec = await _get(s, user.tenant_id, "customer", customer_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "customer", "edit", await _node_path(s, rec.owner_node_id)):
+        raise HTTPException(403, "Not allowed: customer.edit")
+
+    if not body.password or len(body.password) < 6:
+        raise HTTPException(422, "Password must be at least 6 characters")
+
+    # check uniqueness (tenant + email) via owner session to bypass RLS
+    async with OwnerSessionLocal() as o:
+        existing = (await o.execute(
+            select(CustomerUser).where(
+                CustomerUser.tenant_id == user.tenant_id,
+                CustomerUser.email == body.email,
+            )
+        )).scalar_one_or_none()
+        if existing:
+            raise HTTPException(409, "A portal user with that email already exists for this tenant")
+
+        cu = CustomerUser(
+            tenant_id=user.tenant_id,
+            customer_id=customer_id,
+            email=body.email,
+            password_hash=_hash_password(body.password),
+            name=body.name,
+            is_active=True,
+        )
+        o.add(cu)
+        await o.commit()
+        await o.refresh(cu)
+
+    return {
+        "id": str(cu.id),
+        "email": cu.email,
+        "name": cu.name,
+        "customer_id": str(cu.customer_id),
+        "tenant_id": str(cu.tenant_id),
     }

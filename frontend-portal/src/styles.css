@@ -1,0 +1,87 @@
+/* ── GAAex design tokens — dark-first (from BRAND.md) ─────────────────────── */
+:root {
+  color-scheme: dark;
+
+  --bg:           #0D0F12;
+  --surface:      #1F242C;
+  --surface-2:    #262D37;
+  --border:       #2A313B;
+  --border-soft:  rgba(244,246,249,0.08);
+
+  --text:         #F4F6F9;
+  --text-2:       #AEB7C2;
+  --text-3:       #7C8794;
+  --text-inv:     #0D0F12;
+
+  --brand:        #1C3B68;
+  --primary:      #3A6FB5;
+  --primary-hover:#4A82CC;
+  --primary-soft: rgba(58,111,181,0.16);
+
+  --accent:       #C5A059;
+  --accent-hover: #D4B26C;
+  --accent-soft:  rgba(197,160,89,0.16);
+  --accent-text:  #0D0F12;
+
+  --success:      #2ECC71;  --success-soft: rgba(46,204,113,0.16);
+  --warning:      #F5A623;  --warning-soft: rgba(245,166,35,0.16);
+  --danger:       #E63946;  --danger-soft:  rgba(230,57,70,0.16);
+
+  --focus-ring:   rgba(197,160,89,0.55);
+
+  --sidebar-bg:     #1F242C;
+  --sidebar-hover:  #262D37;
+  --sidebar-border: #2A313B;
+  --sidebar-text:   #AEB7C2;
+  --sidebar-strong: #F4F6F9;
+  --sidebar-label:  #7C8794;
+  --sidebar-on:     rgba(58,111,181,0.22);
+
+  --radius-sm: 5px;
+  --radius: 7px;
+  --radius-lg: 10px;
+  --pill: 999px;
+  --gap: 12px;
+  --pad: 16px;
+  --shadow: 0 1px 3px rgba(0,0,0,.35);
+  --shadow-card: 0 8px 28px rgba(0,0,0,.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+button:focus-visible { box-shadow: 0 0 0 2px var(--focus-ring); }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-hover); }
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}

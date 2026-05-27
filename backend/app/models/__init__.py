@@ -33,6 +33,8 @@ from .calendar import UserCalendar, CalendarEvent
 from .helpdesk import HelpdeskQueue, HelpdeskTicket
 from .workitem import WorkItem
 from .payment_gateway import PaymentOrder
+from .customer_user import CustomerUser
+from .portal_ticket_reply import PortalTicketReply
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -62,4 +64,6 @@ __all__ = [
     "HelpdeskQueue", "HelpdeskTicket",
     "WorkItem",
     "PaymentOrder",
+    "CustomerUser",
+    "PortalTicketReply",
 ]

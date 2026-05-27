@@ -4,8 +4,9 @@ from sqlalchemy_utils import Ltree
 from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import (
     Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
-    PermissionDef, RoleDef, Assignment,
+    PermissionDef, RoleDef, Assignment, Record,
 )
+from .models.customer_user import CustomerUser
 from .security import hash_password
 
 
@@ -222,4 +223,36 @@ async def seed_access_if_empty() -> None:
         await s.flush()
         if team:
             s.add(Assignment(tenant_id=tenant.id, user_id=agent_user.id, role_id=sales_agent.id, node_id=team.id))
+        await s.commit()
+
+
+async def seed_portal_if_empty() -> None:
+    """Create one demo CustomerUser for the first customer Record (idempotent).
+
+    Demo portal creds: portal@demo.isp / portal123
+    Tenant is resolved dynamically at login (no hardcoded UUID here).
+    """
+    async with SessionLocal() as s:
+        if (await s.execute(select(func.count()).select_from(CustomerUser))).scalar_one():
+            return
+        tenant = (await s.execute(select(Tenant))).scalars().first()
+        if not tenant:
+            return
+        # Find the first customer Record in this tenant
+        customer_record = (await s.execute(
+            select(Record).where(
+                Record.tenant_id == tenant.id,
+                Record.entity_key == "customer",
+            )
+        )).scalars().first()
+        if not customer_record:
+            return
+        s.add(CustomerUser(
+            tenant_id=tenant.id,
+            customer_id=customer_record.id,
+            email="portal@demo.isp",
+            password_hash=hash_password("portal123"),
+            name="Demo Customer Portal",
+            is_active=True,
+        ))
         await s.commit()
