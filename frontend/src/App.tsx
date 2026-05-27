@@ -34,7 +34,9 @@ import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon, CreditCardIcon, CalendarIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon, CreditCardIcon, CalendarIcon,
+  SparkleIcon, ServerIcon, ChartIcon, BookmarkIcon, MessageIcon, ClockIcon, EditIcon, UsersIcon, BuildingIcon,
+  ReceiptIcon, ArchiveIcon, InboxIcon, MailIcon, ChevronRightIcon } from './icons'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
@@ -166,60 +168,78 @@ export default function App() {
       <a href="#main-content" className="skip-link">Skip to content</a>
       {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
       <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
-        <div className="brand"><img src="/icon-light.png" alt="GAAex" className="logo-sm" /></div>
-        <div className="nav-label">{t('nav.workspace', 'Workspace')}</div>
-        <button className={'nav' + (view.type === 'ask' ? ' on' : '')} onClick={() => setView({ type: 'ask' })}>{t('nav.ask', 'Ask GAAex')}</button>
-        <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}>{t('nav.org', 'Org tree')}</button>
-        <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}>{t('nav.dashboards', 'Dashboards')}</button>
-        <button className={'nav' + (view.type === 'analytics' ? ' on' : '')} onClick={() => setView({ type: 'analytics' })}>{t('nav.analytics', 'Analytics')}</button>
-        <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>{t('nav.reports', 'Reports')}</button>
-        <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>{t('nav.messages', 'Messages')}</button>
-        <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>{t('nav.activity', 'Activity')}</button>
-        <button className={'nav nav-icon' + (view.type === 'calendar' ? ' on' : '')} onClick={() => setView({ type: 'calendar' })}><CalendarIcon size={14} /> Calendar</button>
-        <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>{t('nav.reportBuilder', 'Report Builder')}</button>
-        <button className={'nav nav-icon' + (view.type === 'settings' ? ' on' : '')} onClick={() => setView({ type: 'settings' })}><GearIcon /> {t('nav.settings', 'Settings')}</button>
-        <div className="nav-label">{t('nav.customers', 'Customers')}</div>
-        <button className={'nav' + (view.type === 'lead-pipeline' ? ' on' : '')} onClick={() => setView({ type: 'lead-pipeline' })}>{t('nav.leadPipeline', 'Lead Pipeline')}</button>
-        <button className={'nav' + (view.type === 'accounts' ? ' on' : '')} onClick={() => setView({ type: 'accounts' })}>{t('nav.accounts', 'Accounts')}</button>
-        <button className={'nav' + (view.type === 'parties' ? ' on' : '')} onClick={() => setView({ type: 'parties' })}>{t('nav.parties', 'Parties')}</button>
-        <div className="nav-label">{t('nav.billing', 'Billing')}</div>
-        <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}>{t('nav.invoices', 'Invoices')}</button>
-        <button className={'nav nav-icon' + (view.type === 'payments' ? ' on' : '')} onClick={() => setView({ type: 'payments' })}><CreditCardIcon size={14} /> {t('nav.payments', 'Payments')}</button>
-        <button className={'nav nav-icon' + (view.type === 'gateway' ? ' on' : '')} onClick={() => setView({ type: 'gateway' })}><CreditCardIcon size={14} /> {t('nav.gateway', 'Pay Gateway')}</button>
-        <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}>{t('nav.subscriptions', 'Subscriptions')}</button>
-        <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}>{t('nav.products', 'Products')}</button>
-        <button className={'nav' + (view.type === 'usage' ? ' on' : '')} onClick={() => setView({ type: 'usage' })}>{t('nav.usage', 'Usage')}</button>
-        <div className="nav-label">{t('nav.service', 'Service')}</div>
-        <button className={'nav' + (view.type === 'services' ? ' on' : '')} onClick={() => setView({ type: 'services' })}>{t('nav.services', 'Services')}</button>
-        <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}>{t('nav.interactions', 'Interactions')}</button>
-        <div className="nav-label">Support</div>
-        <button className={'nav' + (view.type === 'helpdesk' ? ' on' : '')} onClick={() => setView({ type: 'helpdesk' })}>Helpdesk</button>
-        <button className={'nav' + (view.type === 'workitems' ? ' on' : '')} onClick={() => setView({ type: 'workitems' })}>Work Items</button>
-        <div className="nav-label">{t('nav.records', 'Records')}</div>
+        <div className="sidebar-brand">
+          <div className="sidebar-logo">GA</div>
+          <div className="sidebar-brand-name">GAAex<small>ISP Platform</small></div>
+        </div>
+        <nav className="sidebar-scroll">
+        <div className="nav-label"><span>{t('nav.workspace', 'Workspace')}</span><span className="nav-label-dot" /></div>
+        <button className={'nav' + (view.type === 'ask' ? ' on' : '')} onClick={() => setView({ type: 'ask' })}><SparkleIcon className="nav-icon" size={16} /><span>{t('nav.ask', 'Ask GAAex')}</span></button>
+        <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.org', 'Org tree')}</span></button>
+        <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}><RowsIcon className="nav-icon" size={16} /><span>{t('nav.dashboards', 'Dashboards')}</span></button>
+        <button className={'nav' + (view.type === 'analytics' ? ' on' : '')} onClick={() => setView({ type: 'analytics' })}><ChartIcon className="nav-icon" size={16} /><span>{t('nav.analytics', 'Analytics')}</span></button>
+        <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}><BookmarkIcon className="nav-icon" size={16} /><span>{t('nav.reports', 'Reports')}</span></button>
+        <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}><MessageIcon className="nav-icon" size={16} /><span>{t('nav.messages', 'Messages')}</span></button>
+        <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}><ClockIcon className="nav-icon" size={16} /><span>{t('nav.activity', 'Activity')}</span></button>
+        <button className={'nav' + (view.type === 'calendar' ? ' on' : '')} onClick={() => setView({ type: 'calendar' })}><CalendarIcon className="nav-icon" size={16} /><span>Calendar</span></button>
+        <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}><EditIcon className="nav-icon" size={16} /><span>{t('nav.reportBuilder', 'Report Builder')}</span></button>
+        <button className={'nav' + (view.type === 'settings' ? ' on' : '')} onClick={() => setView({ type: 'settings' })}><GearIcon className="nav-icon" size={16} /><span>{t('nav.settings', 'Settings')}</span></button>
+        <div className="nav-label"><span>{t('nav.customers', 'Customers')}</span><span className="nav-label-dot" /></div>
+        <button className={'nav' + (view.type === 'lead-pipeline' ? ' on' : '')} onClick={() => setView({ type: 'lead-pipeline' })}><UsersIcon className="nav-icon" size={16} /><span>{t('nav.leadPipeline', 'Lead Pipeline')}</span></button>
+        <button className={'nav' + (view.type === 'accounts' ? ' on' : '')} onClick={() => setView({ type: 'accounts' })}><BuildingIcon className="nav-icon" size={16} /><span>{t('nav.accounts', 'Accounts')}</span></button>
+        <button className={'nav' + (view.type === 'parties' ? ' on' : '')} onClick={() => setView({ type: 'parties' })}><UsersIcon className="nav-icon" size={16} /><span>{t('nav.parties', 'Parties')}</span></button>
+        <div className="nav-label"><span>{t('nav.billing', 'Billing')}</span><span className="nav-label-dot" /></div>
+        <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}><ReceiptIcon className="nav-icon" size={16} /><span>{t('nav.invoices', 'Invoices')}</span></button>
+        <button className={'nav' + (view.type === 'payments' ? ' on' : '')} onClick={() => setView({ type: 'payments' })}><CreditCardIcon className="nav-icon" size={16} /><span>{t('nav.payments', 'Payments')}</span></button>
+        <button className={'nav' + (view.type === 'gateway' ? ' on' : '')} onClick={() => setView({ type: 'gateway' })}><CreditCardIcon className="nav-icon" size={16} /><span>{t('nav.gateway', 'Pay Gateway')}</span></button>
+        <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}><ArchiveIcon className="nav-icon" size={16} /><span>{t('nav.subscriptions', 'Subscriptions')}</span></button>
+        <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}><ArchiveIcon className="nav-icon" size={16} /><span>{t('nav.products', 'Products')}</span></button>
+        <button className={'nav' + (view.type === 'usage' ? ' on' : '')} onClick={() => setView({ type: 'usage' })}><ChartIcon className="nav-icon" size={16} /><span>{t('nav.usage', 'Usage')}</span></button>
+        <div className="nav-label"><span>{t('nav.service', 'Service')}</span><span className="nav-label-dot" /></div>
+        <button className={'nav' + (view.type === 'services' ? ' on' : '')} onClick={() => setView({ type: 'services' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.services', 'Services')}</span></button>
+        <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}><MessageIcon className="nav-icon" size={16} /><span>{t('nav.interactions', 'Interactions')}</span></button>
+        <div className="nav-label"><span>Support</span><span className="nav-label-dot" /></div>
+        <button className={'nav' + (view.type === 'helpdesk' ? ' on' : '')} onClick={() => setView({ type: 'helpdesk' })}><InboxIcon className="nav-icon" size={16} /><span>Helpdesk</span></button>
+        <button className={'nav' + (view.type === 'workitems' ? ' on' : '')} onClick={() => setView({ type: 'workitems' })}><RowsIcon className="nav-icon" size={16} /><span>Work Items</span></button>
+        <div className="nav-label"><span>{t('nav.records', 'Records')}</span><span className="nav-label-dot" /></div>
         {entities.map((en) => (
           <button
             key={en.key}
             className={'nav' + (view.type === 'entity' && view.slug === en.route_slug ? ' on' : '')}
             onClick={() => setView({ type: 'entity', slug: en.route_slug })}
           >
-            {en.label_plural}
+            <RowsIcon className="nav-icon" size={16} /><span>{en.label_plural}</span>
           </button>
         ))}
         {user?.can_configure && (
           <>
-            <div className="nav-label">{t('nav.admin', 'Admin')}</div>
-            <button className={'nav nav-icon' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon /> {t('nav.studio', 'Studio')}</button>
-            <button className={'nav' + (view.type === 'outbound' ? ' on' : '')} onClick={() => setView({ type: 'outbound' })}>{t('nav.outbound', 'Outbound')}</button>
-            <button className={'nav' + (view.type === 'webhooks' ? ' on' : '')} onClick={() => setView({ type: 'webhooks' })}>{t('nav.webhooks', 'Webhooks')}</button>
-            <button className={'nav' + (view.type === 'resource-pools' ? ' on' : '')} onClick={() => setView({ type: 'resource-pools' })}>{t('nav.resourcePools', 'Resource Pools')}</button>
+            <div className="nav-label"><span>{t('nav.admin', 'Admin')}</span><span className="nav-label-dot" /></div>
+            <button className={'nav' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon className="nav-icon" size={16} /><span>{t('nav.studio', 'Studio')}</span></button>
+            <button className={'nav' + (view.type === 'outbound' ? ' on' : '')} onClick={() => setView({ type: 'outbound' })}><MailIcon className="nav-icon" size={16} /><span>{t('nav.outbound', 'Outbound')}</span></button>
+            <button className={'nav' + (view.type === 'webhooks' ? ' on' : '')} onClick={() => setView({ type: 'webhooks' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.webhooks', 'Webhooks')}</span></button>
+            <button className={'nav' + (view.type === 'resource-pools' ? ' on' : '')} onClick={() => setView({ type: 'resource-pools' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.resourcePools', 'Resource Pools')}</span></button>
           </>
         )}
+        </nav>
+        <div className="sidebar-tenant">
+          <div className="sidebar-tenant-avatar">{(user?.name || 'G').slice(0, 1).toUpperCase()}</div>
+          <div style={{ minWidth: 0 }}>
+            <div className="sidebar-tenant-name">{user?.name || 'GAAex'}</div>
+            <div className="sidebar-tenant-role">{user?.email}</div>
+          </div>
+        </div>
       </aside>
 
       <div className="content">
         <header>
           <button className="iconbtn nav-toggle" aria-label="Menu" onClick={() => setNavOpen((o) => !o)}><MenuIcon /></button>
-          <span className="muted">{user?.name} · {user?.email}</span>
+          <div className="header-bcrumb">
+            <span style={{ color: 'var(--text-3)' }}>GAAex</span>
+            <ChevronRightIcon size={14} className="header-bcrumb-sep" />
+            <span className="header-bcrumb-cur">
+              {(view.type === 'entity' ? view.slug : view.type).replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            </span>
+          </div>
           <div className="header-right">
             <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl or Cmd K)">
               <SearchIcon size={15} />
@@ -272,6 +292,13 @@ export default function App() {
               entities={entities}
               onOpen={(slug) => setView({ type: 'entity', slug })}
             />
+            <div className="user-chip">
+              <span className="user-avatar">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span className="user-chip-name">{user?.name}</span>
+                <span className="user-chip-role">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
+              </div>
+            </div>
             <button className="btn btn-ghost btn-sm" onClick={logout}>{t('common.signout', 'Sign out')}</button>
           </div>
         </header>
