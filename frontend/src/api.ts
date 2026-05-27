@@ -248,3 +248,27 @@ export async function getRecentSearches(token: string): Promise<RecentSearch[] |
   const data = await r.json()
   return Array.isArray(data) ? data : (data.items ?? [])
 }
+
+// ── B28 — outbound compose (A28 POST /api/outbound/compose) ──────────────────
+
+/** POST /api/outbound/compose — compose and send a new outbound message. Never throws. */
+export async function composeOutbound(
+  token: string,
+  payload: { channel: string; to: string; subject?: string; body: string },
+): Promise<{ ok: boolean; status?: string; error?: string }> {
+  try {
+    const r = await fetch(`${BASE}/api/outbound/compose`, {
+      method: 'POST',
+      headers: { ...authH(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (r.status === 201) {
+      const data = await r.json()
+      return { ok: true, status: data.status }
+    }
+    const errBody = await r.json().catch(() => ({ detail: 'Unknown error' }))
+    return { ok: false, error: errBody.detail ?? 'Unknown error' }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}

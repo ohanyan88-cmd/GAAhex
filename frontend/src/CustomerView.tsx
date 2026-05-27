@@ -5,6 +5,7 @@ import { Modal } from './Modal'
 import { toast } from './Toast'
 import { ErrorBanner, PermissionDenied, NotFound } from './States'
 import ActivityTimeline from './ActivityTimeline'
+import InteractionsView from './InteractionsView'
 import { ChevronLeftIcon } from './icons'
 import { useI18n } from './i18n'
 
@@ -213,6 +214,10 @@ export default function CustomerView({ token, customerId, onBack }: {
                 ))}
               </div>
             )}
+
+          {/* Interactions — customer touchpoints (calls, emails, notes, etc.) */}
+          <h3 style={{ marginTop: 18 }}>{t('nav.interactions', 'Interactions')}</h3>
+          <InteractionsView token={token} customerId={customerId} embedded />
 
           {/* Activity — reuse the shared record timeline (degrades on its own) */}
           <h3 style={{ marginTop: 18 }}>{t('nav.activity', 'Activity')}</h3>

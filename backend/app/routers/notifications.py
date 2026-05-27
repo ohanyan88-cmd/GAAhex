@@ -13,6 +13,7 @@ from ..models.notification_pref import NotificationPref
 from ..models.outbound import OutboundMessage
 from ..access import load_grants, can
 from .. import gxl, channels
+from ..adapters.base import registry as adapter_registry
 from .auth import current_user
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -489,6 +490,70 @@ async def outbound_log(channel: str | None = None, status: str | None = None,
         q = q.where(OutboundMessage.status == status)
     rows = (await s.execute(q.order_by(OutboundMessage.created_at.desc()))).scalars().all()
     return [_serialize_outbound(m) for m in rows]
+
+
+# ---- manual compose + send ----
+
+_SUPPORTED_CHANNELS = {"email", "sms"}
+
+
+class ComposeIn(BaseModel):
+    channel: str
+    to: str
+    subject: str | None = None
+    body: str
+    record_id: str | None = None
+    entity_key: str | None = None
+
+    def model_post_init(self, __context) -> None:  # noqa: ANN001
+        if self.channel not in _SUPPORTED_CHANNELS:
+            raise ValueError(f"channel must be one of {sorted(_SUPPORTED_CHANNELS)}")
+        if not self.to or not self.to.strip():
+            raise ValueError("to must not be blank")
+        if not self.body or not self.body.strip():
+            raise ValueError("body must not be blank")
+
+
+@outbound_router.post("/outbound/compose", status_code=201)
+async def compose_and_send(
+    payload: ComposeIn,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Manually compose and send a message via a registered channel adapter.
+
+    Validates the channel, looks up the adapter, calls `safe_send` (never raises),
+    records the result as an OutboundMessage, and returns the serialized row with 201.
+    Returns 503 when no adapter is registered for the requested channel.
+    """
+    adapter = adapter_registry.get(payload.channel)
+    if adapter is None:
+        raise HTTPException(503, "channel not available")
+
+    result = await adapter.safe_send(
+        to=payload.to,
+        subject=payload.subject,
+        body=payload.body,
+        meta={"source": "manual", "user_id": str(user.id)},
+    )
+
+    error_detail: str | None = None
+    if result["status"] == "FAILED":
+        error_detail = result.get("detail")
+
+    msg = OutboundMessage(
+        tenant_id=user.tenant_id,
+        channel=payload.channel,
+        to_addr=payload.to,
+        subject=payload.subject,
+        body=payload.body,
+        status=result["status"],
+        error=error_detail,
+    )
+    s.add(msg)
+    await s.commit()
+    await s.refresh(msg)
+    return _serialize_outbound(msg)
 
 
 # ---- A26 delivery preferences (SHARED CONTRACT) — /api/notification-prefs ----
