@@ -29,6 +29,7 @@ from .party import Party, Account
 from .job import JobRun
 from .report_schedule import ReportSchedule
 from .search_history import SearchHistory
+from .calendar import UserCalendar, CalendarEvent
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -54,4 +55,5 @@ __all__ = [
     "JobRun",
     "ReportSchedule",
     "SearchHistory",
+    "UserCalendar", "CalendarEvent",
 ]

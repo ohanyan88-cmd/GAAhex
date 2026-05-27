@@ -25,17 +25,18 @@ import AnalyticsView from './AnalyticsView'
 import LeadPipelineView from './LeadPipelineView'
 import CustomerView from './CustomerView'
 import AskGaaexView from './AskGaaexView'
+import CalendarView from './CalendarView'
 import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon, CreditCardIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon, CreditCardIcon, CalendarIcon } from './icons'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'payments' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' }
+type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'payments' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' } | { type: 'calendar' }
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -159,6 +160,7 @@ export default function App() {
         <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}>{t('nav.reports', 'Reports')}</button>
         <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}>{t('nav.messages', 'Messages')}</button>
         <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}>{t('nav.activity', 'Activity')}</button>
+        <button className={'nav nav-icon' + (view.type === 'calendar' ? ' on' : '')} onClick={() => setView({ type: 'calendar' })}><CalendarIcon size={14} /> Calendar</button>
         <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}>{t('nav.reportBuilder', 'Report Builder')}</button>
         <button className={'nav nav-icon' + (view.type === 'settings' ? ' on' : '')} onClick={() => setView({ type: 'settings' })}><GearIcon /> {t('nav.settings', 'Settings')}</button>
         <div className="nav-label">{t('nav.customers', 'Customers')}</div>
@@ -289,6 +291,8 @@ export default function App() {
                   ? <AccountsView token={token} />
                 : view.type === 'parties'
                   ? <PartiesView token={token} />
+                : view.type === 'calendar'
+                  ? <CalendarView token={token} />
                 : view.type === 'settings'
                   ? <SettingsView token={token} onSaved={() => setNudge(false)} />
                 : view.type === 'reports'
