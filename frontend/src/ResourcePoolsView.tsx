@@ -95,6 +95,27 @@ export default function ResourcePoolsView({ token }: { token: string }) {
         <EmptyState icon={<InboxIcon size={40} />} title="No pools" message="Create a block to allocate values from." />
       )}
 
+      {list && list.length > 0 && (() => {
+        const byKind = list.reduce<Record<string, { count: number; allocs: number }>>((acc, p) => {
+          const k = p.kind ?? 'other'
+          if (!acc[k]) acc[k] = { count: 0, allocs: 0 }
+          acc[k].count++
+          acc[k].allocs += typeof p.allocation_count === 'number' ? p.allocation_count : 0
+          return acc
+        }, {})
+        return (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            {Object.entries(byKind).map(([kind, info]) => (
+              <div key={kind} className="widget">
+                <div className="widget-label"><ServerIcon size={12} className="widget-label-icon" />{kind.toUpperCase()}</div>
+                <div className="kpi">{info.count} <span style={{ fontSize: 13, color: 'var(--text-3)', marginLeft: 4 }}>pool{info.count !== 1 ? 's' : ''}</span></div>
+                <div className="kpi-sub">{info.allocs} allocation{info.allocs !== 1 ? 's' : ''}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {list && list.length > 0 && (
         <table className="grid">
           <thead><tr><th scope="col">Name</th><th scope="col">Kind</th><th scope="col">Spec</th><th scope="col">Allocations</th><th scope="col"></th></tr></thead>

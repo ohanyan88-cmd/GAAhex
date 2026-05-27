@@ -155,9 +155,13 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
 
   const cust = (inv: Invoice) => (inv.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—')
 
-  // Counts for tab badges
+  // Counts + KPI aggregates (computed from loaded list — no extra API)
   const all = list ?? []
   const countFor = (s: string) => all.filter(i => (i.status ?? '').toUpperCase() === s).length
+  const totalBilled = all.reduce((a, i) => a + (i.total ?? 0), 0)
+  const outstanding = all.filter(i => ['ISSUED', 'OVERDUE'].includes((i.status ?? '').toUpperCase())).reduce((a, i) => a + (i.total ?? 0), 0)
+  const paidCount = countFor('PAID')
+  const overdueCount = countFor('OVERDUE')
 
   const TAB_DEFS: Array<[string, string]> = [
     ['', 'All'],
@@ -187,6 +191,35 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
           </>
         }
       />
+
+      {all.length > 0 && (
+        <div className="widgets" style={{ marginBottom: 18 }}>
+          <div className="widget">
+            <div className="widget-label">Total billed</div>
+            <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 1000).toFixed(1)}k</div>
+            <div className="kpi-sub">{all.length} invoice{all.length !== 1 ? 's' : ''}</div>
+          </div>
+          <div className="widget">
+            <div className="widget-label">Outstanding</div>
+            <div className="kpi" style={{ color: outstanding > 0 ? 'var(--warning)' : 'var(--text)' }}>
+              <span className="kpi-cur">֏</span>{(outstanding / 1000).toFixed(1)}k
+            </div>
+            <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
+          </div>
+          <div className="widget">
+            <div className="widget-label">Paid</div>
+            <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
+            <div className="kpi-sub">of {all.length} invoices</div>
+          </div>
+          {overdueCount > 0 && (
+            <div className="widget">
+              <div className="widget-label">Overdue</div>
+              <div className="kpi" style={{ color: 'var(--danger)' }}>{overdueCount}</div>
+              <div className="kpi-sub">action required</div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="tabs">
         {TAB_DEFS.map(([val, label]) => {

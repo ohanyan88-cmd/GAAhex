@@ -4,7 +4,7 @@ import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
-import { ChartIcon, CheckIcon, ReceiptIcon } from './icons'
+import { ChartIcon, CheckIcon, ReceiptIcon, DownloadIcon } from './icons'
 import { t } from './i18n'
 import ViewHead from './ViewHead'
 
@@ -54,7 +54,17 @@ export default function UsageView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<ChartIcon size={20} />} title="Usage" actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setLogOpen(true)}>Record usage</button>} />
+      <ViewHead
+        icon={<ChartIcon size={20} />}
+        title="Usage"
+        sub="Bandwidth & metered records · rated via subscription rules"
+        actions={!unavailable && (
+          <>
+            <button className="btn btn-ghost btn-sm"><DownloadIcon size={13} /> Export</button>
+            <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>Record usage</button>
+          </>
+        )}
+      />
 
       <div className="list-toolbar">
         <div className="bill-filter">
@@ -66,6 +76,34 @@ export default function UsageView({ token }: { token: string }) {
           </select>
         </div>
       </div>
+
+      {list && list.length > 0 && (() => {
+        const all = list
+        const rated = all.filter(u => u.rated).length
+        const totalAmt = all.reduce((a, u) => a + (u.amount ?? 0), 0)
+        const metrics = [...new Set(all.map(u => u.metric).filter(Boolean))]
+        return (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            <div className="widget">
+              <div className="widget-label">Records</div>
+              <div className="kpi">{all.length}</div>
+              <div className="kpi-sub">{rated} rated · {all.length - rated} unrated</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Total amount</div>
+              <div className="kpi"><span className="kpi-cur">֏</span>{(totalAmt / 1000).toFixed(1)}k</div>
+              <div className="kpi-sub">billed via subscription rules</div>
+            </div>
+            {metrics.length > 0 && (
+              <div className="widget">
+                <div className="widget-label">Metric types</div>
+                <div className="kpi" style={{ fontSize: 22 }}>{metrics.length}</div>
+                <div className="kpi-sub">{metrics.slice(0, 4).join(' · ')}</div>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {error && <ErrorBanner message={error} onRetry={load} />}
       {list === null && !error && <SkeletonRows />}
