@@ -5,8 +5,9 @@ import { toast } from './Toast'
 import { confirmDialog } from './Modal'
 import { EmptyState, ErrorBanner, SkeletonRows } from './States'
 import { t } from './i18n'
+import ViewHead from './ViewHead'
 import ReportSchedulePanel from './ReportSchedulePanel'
-import { DownloadIcon } from './icons'
+import { DownloadIcon, EditIcon } from './icons'
 
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type Field = { key: string; label: string; type: string }
@@ -128,10 +129,11 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Report Builder</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setBuilding((b) => !b)}>{building ? 'Close' : '+ New report'}</button>}
-      </div>
+      <ViewHead
+        icon={<EditIcon size={20} />}
+        title="Report Builder"
+        actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setBuilding((b) => !b)}>{building ? 'Close' : '+ New report'}</button>}
+      />
 
       {building && (
         <div className="rec-form">

@@ -6,6 +6,7 @@ import {
 } from './helpdesk'
 import { loadCustomers } from './billing'
 import UserPicker from './UserPicker'
+import ViewHead from './ViewHead'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
@@ -151,7 +152,7 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
   if (unavailable) {
     return (
       <div>
-        <div className="view-head"><h2>Helpdesk</h2></div>
+        <ViewHead icon={<InboxIcon size={20} />} title="Helpdesk" />
         <EmptyState
           icon={<InboxIcon size={40} />}
           title="Helpdesk isn't available yet"
@@ -201,15 +202,19 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
 
       {/* Main area */}
       <div style={{ flex: 1, minWidth: 0, padding: '0 0 0 0' }}>
-        <div className="view-head" style={{ paddingLeft: 16 }}>
-          <h2>Helpdesk{selectedQueue ? ` — ${queues.find((q) => q.id === selectedQueue)?.name ?? ''}` : ''}</h2>
-          <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-            <PlusIcon size={13} /> New ticket
-          </button>
-        </div>
+        <ViewHead
+          icon={<InboxIcon size={20} />}
+          title="Helpdesk"
+          sub={selectedQueue ? queues.find((q) => q.id === selectedQueue)?.name : undefined}
+          actions={
+            <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
+              <PlusIcon size={13} /> New ticket
+            </button>
+          }
+        />
 
         {/* Filters bar */}
-        <div className="list-toolbar" style={{ paddingLeft: 16 }}>
+        <div className="list-toolbar">
           <div className="bill-filter">
             <span className="muted export-label">Status</span>
             <select className="inp inp-sm" aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
@@ -232,7 +237,7 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
         </div>
 
         {/* Content */}
-        <div style={{ paddingLeft: 16 }}>
+        <div style={{ padding: '0 var(--pad) var(--pad) var(--pad)' }}>
           {error && <ErrorBanner message={error} onRetry={loadData} />}
           {tickets === null && !error && <p className="muted">Loading…</p>}
           {tickets && tickets.length === 0 && !error && (
@@ -260,17 +265,15 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
                 </thead>
                 <tbody>
                   {tickets.map((t) => (
-                    <tr key={t.id}>
-                      <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</td>
-                      <td className="muted">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</td>
-                      <td>{priorityPill(t.priority)}</td>
-                      <td>{statusPill(t.status)}</td>
-                      <td className="muted">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</td>
-                      <td><SlaBadge ticket={t} /></td>
-                      <td className="row-actions">
-                        <button className="btn btn-ghost btn-sm" onClick={() => setDetailId(t.id)}>
-                          Open <ArrowRightIcon size={13} />
-                        </button>
+                    <tr key={t.id} className="row-link" onClick={() => setDetailId(t.id)} style={{ cursor: 'pointer' }}>
+                      <td className="cell-main">{t.subject}</td>
+                      <td className="cell-meta">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</td>
+                      <td className="cell-meta">{priorityPill(t.priority)}</td>
+                      <td className="cell-meta">{statusPill(t.status)}</td>
+                      <td className="cell-meta">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</td>
+                      <td className="cell-meta"><SlaBadge ticket={t} /></td>
+                      <td className="cell-action">
+                        <ArrowRightIcon size={14} />
                       </td>
                     </tr>
                   ))}
@@ -386,7 +389,7 @@ function TicketDetailModal({
 
       {ticket && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Meta row */}
+          {/* Meta grid */}
           <div className="bill-meta">
             <div><span className="muted">Customer</span><div>{custName}</div></div>
             <div><span className="muted">Priority</span><div>{priorityPill(ticket.priority)}</div></div>
@@ -405,22 +408,26 @@ function TicketDetailModal({
           )}
 
           {/* Assign */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span className="muted" style={{ fontSize: 13, minWidth: 60 }}>Assignee</span>
-            <UserPicker
-              token={token}
-              value={agentId}
-              onChange={setAgentId}
-              className="inp inp-sm"
-              aria-label="Agent to assign"
-            />
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label className="field" style={{ margin: 0 }}>
+                <span style={{ fontSize: 12 }}>Assignee</span>
+                <UserPicker
+                  token={token}
+                  value={agentId}
+                  onChange={setAgentId}
+                  className="inp inp-sm"
+                  aria-label="Agent to assign"
+                />
+              </label>
+            </div>
             <button className="btn btn-primary btn-sm" disabled={busy || !agentId.trim()} onClick={handleAssign}>
               Assign
             </button>
           </div>
 
           {/* Actions */}
-          <div className="bill-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {canResolve && (
               <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => handleAction('resolve')}>
                 <CheckIcon size={13} /> Resolve

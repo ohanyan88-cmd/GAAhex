@@ -14,8 +14,9 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import {
   PlusIcon, EditIcon, CheckIcon, CloseIcon,
-  PlayIcon, PauseIcon, ArrowRightIcon, InboxIcon, TrashIcon,
+  PlayIcon, PauseIcon, ArrowRightIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
 } from './icons'
+import ViewHead from './ViewHead'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function priorityPill(priority: string | null | undefined) {
     : p === 'NORMAL' ? 'Normal'
     : null
   return label
-    ? <span className={cls}>{label}</span>
+    ? <span className={cls}><span className="pill-dot" />{label}</span>
     : <span className="muted">—</span>
 }
 
@@ -56,7 +57,7 @@ function statusPill(status: string | null | undefined) {
     : s === 'CANCELLED' ? 'pill pill-muted'
     : s === 'IN_PROGRESS' ? 'pill'
     : s === 'BLOCKED' ? 'pill pill-danger'
-    : s === 'TODO' ? 'pill pill-info'
+    : s === 'TODO' ? 'pill pill-muted'
     : 'pill'
   const label =
     s === 'TODO' ? 'To Do'
@@ -66,7 +67,7 @@ function statusPill(status: string | null | undefined) {
     : s === 'CANCELLED' ? 'Cancelled'
     : (status ?? '—')
   return status
-    ? <span className={cls}>{label}</span>
+    ? <span className={cls}><span className="pill-dot" />{label}</span>
     : <span className="muted">—</span>
 }
 
@@ -93,6 +94,7 @@ export default function WorkItemsView({
   canConfigure?: boolean
 }) {
   const [items, setItems] = useState<WorkItem[] | null>(null)
+  const [allItems, setAllItems] = useState<WorkItem[]>([])   // unfiltered, used for counts
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -120,11 +122,13 @@ export default function WorkItemsView({
     if (statusFilter) filters.status = statusFilter
     if (kindFilter) filters.kind = kindFilter
 
-    // For the Active tab we filter client-side so counts are correct.
+    // Load all items once for tab counts, then filter per tab
     const res = await listWorkItems(token, filters)
-    if (res.status === 404) { setUnavailable(true); setItems([]); return }
-    if (!res.ok) { setError('Failed to load work items'); setItems([]); return }
+    if (res.status === 404) { setUnavailable(true); setItems([]); setAllItems([]); return }
+    if (!res.ok) { setError('Failed to load work items'); setItems([]); setAllItems([]); return }
     let list = Array.isArray(res.data) ? res.data : []
+
+    setAllItems(list)
 
     if (tab === 'active') {
       list = list.filter((i) => i.status !== 'DONE' && i.status !== 'CANCELLED')
@@ -137,10 +141,20 @@ export default function WorkItemsView({
   useEffect(() => { loadUsers() }, [token])
   useEffect(() => { loadData() }, [token, tab, statusFilter, kindFilter])
 
+  // Tab counts derived from allItems
+  const activeCount = allItems.filter((i) => i.status !== 'DONE' && i.status !== 'CANCELLED').length
+  const allCount = allItems.length
+  // For "Mine" we can't easily count without a separate request — show the current list length when on that tab
+  const mineCount = tab === 'mine' ? (items?.length ?? 0) : null
+
   if (unavailable) {
     return (
       <div>
-        <div className="view-head"><h2>Work Items</h2></div>
+        <ViewHead
+          icon={<RowsIcon size={20} />}
+          title="Work Items"
+          sub="Driven by the WorkItem movement engine · stages configured in Studio"
+        />
         <EmptyState
           icon={<InboxIcon size={40} />}
           title="Work Items aren't available yet"
@@ -152,37 +166,50 @@ export default function WorkItemsView({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {/* Header */}
-      <div className="view-head">
-        <h2>Work Items</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-          <PlusIcon size={13} /> New item
-        </button>
+      {/* ViewHead — matches DESIGN: RowsIcon, title, sub, actions */}
+      <ViewHead
+        icon={<RowsIcon size={20} />}
+        title="Work Items"
+        sub="Driven by the WorkItem movement engine · stages configured in Studio"
+        actions={
+          <>
+            {canConfigure && (
+              <button className="btn btn-ghost btn-sm">
+                <GearIcon size={13} /> Workflow
+              </button>
+            )}
+            <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
+              <PlusIcon size={13} /> New work item
+            </button>
+          </>
+        }
+      />
+
+      {/* Tabs — DESIGN .tabs / .tab / .tab-count pattern */}
+      <div className="tabs">
+        {([
+          ['active', 'Active', activeCount],
+          ['all', 'All', allCount],
+          ['mine', 'Mine', mineCount],
+        ] as [Tab, string, number | null][]).map(([t, label, count]) => (
+          <button
+            key={t}
+            className={'tab' + (tab === t ? ' on' : '')}
+            onClick={() => setTab(t)}
+          >
+            {label}
+            {count !== null && (
+              <span className="tab-count">{count}</span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Tabs + filters */}
-      <div className="list-toolbar">
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {([
-            ['active', 'Active'],
-            ['all', 'All'],
-            ['mine', 'Mine'],
-          ] as [Tab, string][]).map(([t, label]) => (
-            <button
-              key={t}
-              className={'btn btn-sm ' + (tab === t ? 'btn-primary' : 'btn-ghost')}
-              onClick={() => setTab(t)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Status filter (only visible on All/Mine tabs) */}
-        {tab !== 'active' && (
-          <div className="bill-filter">
-            <span className="muted export-label">Status</span>
+      {/* Secondary filters — only visible on All/Mine tabs */}
+      {tab !== 'active' && (
+        <div className="list-toolbar" style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Status</span>
             <select
               className="inp inp-sm"
               aria-label="Filter by status"
@@ -194,24 +221,22 @@ export default function WorkItemsView({
               ))}
             </select>
           </div>
-        )}
-
-        {/* Kind filter */}
-        <div className="bill-filter">
-          <span className="muted export-label">Kind</span>
-          <select
-            className="inp inp-sm"
-            aria-label="Filter by kind"
-            value={kindFilter}
-            onChange={(e) => setKindFilter(e.target.value)}
-          >
-            <option value="">All</option>
-            {KINDS.map((k) => (
-              <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Kind</span>
+            <select
+              className="inp inp-sm"
+              aria-label="Filter by kind"
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value)}
+            >
+              <option value="">All</option>
+              {KINDS.map((k) => (
+                <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div style={{ padding: '0 0 24px' }}>

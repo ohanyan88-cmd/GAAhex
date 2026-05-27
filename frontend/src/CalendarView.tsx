@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './Modal'
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, CloseIcon } from './icons'
+import ViewHead from './ViewHead'
+import {
+  CalendarIcon, ChevronLeftIcon, ChevronRightIcon,
+  PlusIcon, CloseIcon,
+} from './icons'
 
 const BASE = 'http://127.0.0.1:8099'
 
@@ -91,28 +95,21 @@ export default function CalendarView({ token }: { token: string }) {
   }
   function prevWeek() {
     setWeekStart(d => {
-      const n = new Date(d)
-      n.setDate(n.getDate() - 7)
-      return n
+      const n = new Date(d); n.setDate(n.getDate() - 7); return n
     })
   }
   function nextWeek() {
     setWeekStart(d => {
-      const n = new Date(d)
-      n.setDate(n.getDate() + 7)
-      return n
+      const n = new Date(d); n.setDate(n.getDate() + 7); return n
     })
   }
   function weekDays(): Date[] {
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart)
-      d.setDate(weekStart.getDate() + i)
-      return d
+      const d = new Date(weekStart); d.setDate(weekStart.getDate() + i); return d
     })
   }
   function weekRangeLabel(start: Date): string {
-    const end = new Date(start)
-    end.setDate(start.getDate() + 6)
+    const end = new Date(start); end.setDate(start.getDate() + 6)
     const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
     return `${start.toLocaleDateString('en', opts)} – ${end.toLocaleDateString('en', { ...opts, year: 'numeric' })}`
   }
@@ -126,14 +123,12 @@ export default function CalendarView({ token }: { token: string }) {
     let startStr: string, endStr: string
     if (calView === 'week') {
       startStr = isoDate(weekStart)
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekStart.getDate() + 6)
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
       endStr = isoDate(weekEnd)
     } else {
       const first = new Date(year, month, 1)
       const last = new Date(year, month + 1, 0)
-      startStr = isoDate(first)
-      endStr = isoDate(last)
+      startStr = isoDate(first); endStr = isoDate(last)
     }
     const er = await fetch(
       `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=500`,
@@ -192,18 +187,12 @@ export default function CalendarView({ token }: { token: string }) {
 
   async function handleSave() {
     if (!fTitle.trim()) { setFError('Title is required'); return }
-    setFSaving(true)
-    setFError('')
+    setFSaving(true); setFError('')
     const startAt = fAllDay ? fDate : `${fDate}T${fStartTime}:00`
     const endAt = fAllDay ? null : `${fDate}T${fEndTime}:00`
     const body = {
-      title: fTitle.trim(),
-      start_at: startAt,
-      end_at: endAt,
-      all_day: fAllDay,
-      description: fDesc || null,
-      calendar_id: fCalId || null,
-      color: fColor,
+      title: fTitle.trim(), start_at: startAt, end_at: endAt, all_day: fAllDay,
+      description: fDesc || null, calendar_id: fCalId || null, color: fColor,
     }
     try {
       let resp: Response
@@ -254,53 +243,88 @@ export default function CalendarView({ token }: { token: string }) {
     })
   }
 
+  // ── Mini calendar for the sidebar ─────────────────────────────────────────
+  function MiniCal() {
+    const grid = buildGrid(year, month)
+    const todayIso = todayStr()
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={prev} aria-label="Previous month">
+            <ChevronLeftIcon size={13} />
+          </button>
+          <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+            {MONTH_NAMES[month].slice(0, 3)} {year}
+          </span>
+          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={next} aria-label="Next month">
+            <ChevronRightIcon size={13} />
+          </button>
+        </div>
+        <div className="cal-mini">
+          {DAY_HEADERS.map(d => (
+            <div key={d} className="cal-mini-dow">{d[0]}</div>
+          ))}
+          {grid.flat().map((cell, idx) => {
+            if (!cell) return <div key={`mini-pad-${idx}`} />
+            const iso = isoDate(cell)
+            const isToday = iso === todayIso
+            return (
+              <button
+                key={iso}
+                className={['cal-mini-day', isToday ? 'today' : ''].filter(Boolean).join(' ')}
+                style={{ textAlign: 'center' }}
+                onClick={() => openNew(iso)}
+                type="button"
+              >
+                {cell.getDate()}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Week view ──────────────────────────────────────────────────────────────
   function WeekView() {
     const days = weekDays()
-    const today = new Date()
+    const todayIso = todayStr()
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7, 1fr)',
+        background: 'var(--border)',
+        gap: 1,
+      }}>
         {days.map(day => {
           const iso = isoDate(day)
-          const dayEvs = events.filter(e => e.start_at.slice(0, 10) === iso)
+          const dayEvs = events
+            .filter(e => e.start_at.slice(0, 10) === iso)
             .filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
             .sort((a, b) => a.start_at.localeCompare(b.start_at))
-          const isToday = iso === isoDate(today)
+          const isToday = iso === todayIso
           return (
             <div
               key={iso}
-              style={{
-                background: isToday ? 'var(--accent-soft)' : 'var(--surface)',
-                minHeight: 160, padding: '8px 6px',
-                borderRight: '1px solid var(--border)',
-                cursor: 'pointer',
-              }}
-              onClick={() => { setEditing(null); setPrefillDate(iso); openNew(iso) }}
+              className={['cal-day', isToday ? 'today' : ''].filter(Boolean).join(' ')}
+              style={{ minHeight: 160 }}
+              onClick={() => openNew(iso)}
             >
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 2 }}>
+              <div className="cal-dow" style={{ background: 'transparent', padding: '0 0 4px 0', marginBottom: 4 }}>
                 {day.toLocaleDateString('en', { weekday: 'short' })}
               </div>
-              <div style={{
-                fontSize: 16, fontWeight: isToday ? 700 : 400,
-                color: isToday ? 'var(--accent)' : 'var(--text)',
-                marginBottom: 8
-              }}>
+              <div className={['cal-day-num', isToday ? 'today' : ''].filter(Boolean).join(' ')}>
                 {day.getDate()}
               </div>
               {dayEvs.map(ev => (
                 <div
                   key={ev.id}
+                  className="cal-chip"
+                  style={{ background: calColor(ev), color: 'var(--text)', marginTop: 3 }}
                   onClick={e => { e.stopPropagation(); openEdit(ev) }}
-                  style={{
-                    fontSize: 11, fontWeight: 500,
-                    padding: '2px 6px', borderRadius: 4,
-                    background: calColor(ev),
-                    color: 'var(--text)',
-                    marginBottom: 3, cursor: 'pointer',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}
                 >
                   {!ev.all_day && (
-                    <span style={{ color: 'var(--text-3)', marginRight: 4 }}>
+                    <span style={{ color: 'var(--text-3)', marginRight: 4, fontSize: 10 }}>
                       {ev.start_at.slice(11, 16)}
                     </span>
                   )}
@@ -308,7 +332,7 @@ export default function CalendarView({ token }: { token: string }) {
                 </div>
               ))}
               {dayEvs.length === 0 && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic' }}>—</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic', marginTop: 4 }}>—</div>
               )}
             </div>
           )
@@ -320,130 +344,120 @@ export default function CalendarView({ token }: { token: string }) {
   const grid = buildGrid(year, month)
   const today = todayStr()
 
+  // ── View toggle (goes in ViewHead actions) ─────────────────────────────────
+  const viewToggle = (
+    <div className="row gap-8">
+      {loading && <span className="muted" style={{ fontSize: 12 }}>Loading...</span>}
+      <div className="cal-view-tabs">
+        <button
+          type="button"
+          className={`cal-view-tab${calView === 'month' ? ' on' : ''}`}
+          onClick={() => setCalView('month')}
+        >Month</button>
+        <button
+          type="button"
+          className={`cal-view-tab${calView === 'week' ? ' on' : ''}`}
+          onClick={() => setCalView('week')}
+        >Week</button>
+      </div>
+      <button
+        className="btn btn-primary btn-md"
+        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        onClick={() => openNew()}
+        type="button"
+      >
+        <PlusIcon size={13} /> New event
+      </button>
+    </div>
+  )
+
   return (
     <div>
-      <div className="view-head">
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CalendarIcon size={18} /> Calendar
-        </h2>
-      </div>
+      <ViewHead
+        icon={<CalendarIcon size={20} />}
+        title="Calendar"
+        actions={viewToggle}
+      />
 
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        {/* Left sidebar */}
-        <div style={{ width: 200, flexShrink: 0 }}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>
-            {MONTH_NAMES[month]} {year}
-          </div>
+      <div className="cal-shell">
+
+        {/* ── Sidebar ──────────────────────────────────────────────────── */}
+        <aside className="cal-side">
+          <MiniCal />
+
+          {/* Calendar list */}
           {cals.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-3)', fontWeight: 600, marginBottom: 8 }}>
+                My Calendars
+              </div>
               {cals.map(cal => (
                 <label
                   key={cal.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, cursor: 'pointer', fontSize: 13 }}
+                  className="cal-list-row"
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   <input
                     type="checkbox"
                     checked={!hiddenCals.has(cal.id)}
                     onChange={() => toggleCal(cal.id)}
+                    style={{ display: 'none' }}
                   />
                   <span
+                    className="cal-list-dot"
                     style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: cal.color, flexShrink: 0,
+                      background: hiddenCals.has(cal.id) ? 'var(--border)' : cal.color,
+                      outline: hiddenCals.has(cal.id) ? `2px solid ${cal.color}` : 'none',
+                      outlineOffset: -2,
                     }}
                   />
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>
                     {cal.name}
                   </span>
                 </label>
               ))}
             </div>
           )}
-          <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={() => openNew()}>
-            <PlusIcon size={12} /> New Calendar
-          </button>
-        </div>
+        </aside>
 
-        {/* Right: nav + grid */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Navigation bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            {calView === 'month' ? (
-              <>
-                <button className="btn btn-ghost btn-sm" onClick={prev} aria-label="Previous month">
-                  <ChevronLeftIcon size={14} />
-                </button>
-                <span style={{ fontWeight: 700, fontSize: 20, minWidth: 180 }}>
-                  {MONTH_NAMES[month]} {year}
-                </span>
-                <button className="btn btn-ghost btn-sm" onClick={next} aria-label="Next month">
-                  <ChevronRightIcon size={14} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button className="btn btn-ghost btn-sm" onClick={prevWeek} aria-label="Previous week">
-                  <ChevronLeftIcon size={14} />
-                </button>
-                <span style={{ fontWeight: 700, fontSize: 20, minWidth: 200 }}>
-                  {weekRangeLabel(weekStart)}
-                </span>
-                <button className="btn btn-ghost btn-sm" onClick={nextWeek} aria-label="Next week">
-                  <ChevronRightIcon size={14} />
-                </button>
-              </>
-            )}
-            <button className="btn btn-ghost btn-sm" onClick={goToday}>Today</button>
-            <span style={{ flex: 1 }} />
-            {loading && <span className="muted" style={{ fontSize: 12 }}>Loading...</span>}
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                className={'btn btn-sm ' + (calView === 'month' ? 'btn-primary' : 'btn-ghost')}
-                onClick={() => setCalView('month')}
-              >Month</button>
-              <button
-                className={'btn btn-sm ' + (calView === 'week' ? 'btn-primary' : 'btn-ghost')}
-                onClick={() => setCalView('week')}
-              >Week</button>
-            </div>
-            <button className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => openNew()}>
-              <PlusIcon size={12} /> New Event
+        {/* ── Main panel ───────────────────────────────────────────────── */}
+        <div className="cal-main">
+
+          {/* Navigation header */}
+          <div className="cal-head">
+            <button className="btn btn-ghost btn-sm" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
+              <ChevronLeftIcon size={14} />
+            </button>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+              {calView === 'month'
+                ? `${MONTH_NAMES[month]} ${year}`
+                : weekRangeLabel(weekStart)
+              }
+            </h3>
+            <button className="btn btn-ghost btn-sm" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
+              <ChevronRightIcon size={14} />
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={goToday} style={{ marginLeft: 4 }}>
+              Today
             </button>
           </div>
 
+          {/* Month grid */}
           {calView === 'month' && (
-            <>
-              {/* Day-of-week header row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 0 }}>
-                {DAY_HEADERS.map(d => (
-                  <div
-                    key={d}
-                    style={{
-                      fontSize: 11, textTransform: 'uppercase', color: 'var(--text-3)',
-                      textAlign: 'center', padding: '4px 0', fontWeight: 600,
-                    }}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
+            <div className="cal-month">
+              {/* Day-of-week headers */}
+              {DAY_HEADERS.map(d => (
+                <div key={d} className="cal-dow">{d}</div>
+              ))}
 
-              {/* Month grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-            {grid.map((row, ri) =>
-              row.map((cell, ci) => {
+              {/* Day cells */}
+              {grid.flat().map((cell, idx) => {
                 if (!cell) {
-                  // Empty padding cell
                   return (
                     <div
-                      key={`pad-${ri}-${ci}`}
-                      style={{
-                        border: '1px solid var(--border)',
-                        minHeight: 90,
-                        padding: '4px 6px',
-                        background: 'var(--bg)',
-                        opacity: 0.4,
-                      }}
+                      key={`pad-${idx}`}
+                      className="cal-day dim"
+                      style={{ opacity: 0.35, cursor: 'default' }}
                     />
                   )
                 }
@@ -452,51 +466,28 @@ export default function CalendarView({ token }: { token: string }) {
                 const dayEvents = eventsForDay(cell)
                 const visible = dayEvents.slice(0, 3)
                 const overflow = dayEvents.length - visible.length
+                const isWeekend = cell.getDay() === 0 || cell.getDay() === 6
 
                 return (
                   <div
                     key={dateStr}
-                    style={{
-                      border: isToday ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      minHeight: 90,
-                      padding: '4px 6px',
-                      background: isToday ? 'var(--accent-soft)' : 'var(--surface)',
-                      verticalAlign: 'top',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => { setEditing(null); setPrefillDate(dateStr); openNew(dateStr) }}
+                    className={[
+                      'cal-day',
+                      isToday ? 'today' : '',
+                      isWeekend ? 'weekend' : '',
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => openNew(dateStr)}
                   >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: isToday ? 700 : 400,
-                        color: isToday ? 'var(--accent)' : 'var(--text-3)',
-                        marginBottom: 4,
-                      }}
-                    >
-                      {cell.getDate()}
-                    </div>
+                    <span className="cal-day-num">{cell.getDate()}</span>
                     {visible.map(ev => (
-                      <span
+                      <div
                         key={ev.id}
-                        style={{
-                          display: 'block',
-                          fontSize: 11,
-                          fontWeight: 500,
-                          padding: '1px 6px',
-                          borderRadius: 4,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          marginBottom: 2,
-                          cursor: 'pointer',
-                          background: calColor(ev),
-                          color: 'var(--text)',
-                        }}
+                        className="cal-chip"
+                        style={{ background: calColor(ev), color: 'var(--text)' }}
                         onClick={e => { e.stopPropagation(); openEdit(ev) }}
                       >
                         {ev.title}
-                      </span>
+                      </div>
                     ))}
                     {overflow > 0 && (
                       <span
@@ -508,17 +499,16 @@ export default function CalendarView({ token }: { token: string }) {
                     )}
                   </div>
                 )
-              })
-            )}
-              </div>
-            </>
+              })}
+            </div>
           )}
 
+          {/* Week grid */}
           {calView === 'week' && <WeekView />}
         </div>
       </div>
 
-      {/* Event create / edit modal */}
+      {/* ── Event create / edit modal ─────────────────────────────────────── */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -527,12 +517,7 @@ export default function CalendarView({ token }: { token: string }) {
         footer={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
             {editing && (
-              <button
-                type="button"
-                className="btn btn-danger btn-sm"
-                onClick={handleDelete}
-                disabled={fSaving}
-              >
+              <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete} disabled={fSaving}>
                 Delete
               </button>
             )}
@@ -568,11 +553,7 @@ export default function CalendarView({ token }: { token: string }) {
           </div>
           <div className="field">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="checkbox"
-                checked={fAllDay}
-                onChange={e => setFAllDay(e.target.checked)}
-              />
+              <input type="checkbox" checked={fAllDay} onChange={e => setFAllDay(e.target.checked)} />
               All day
             </label>
           </div>
@@ -580,21 +561,11 @@ export default function CalendarView({ token }: { token: string }) {
             <>
               <div className="field">
                 <label>Start time</label>
-                <input
-                  type="time"
-                  className="inp inp-md"
-                  value={fStartTime}
-                  onChange={e => setFStartTime(e.target.value)}
-                />
+                <input type="time" className="inp inp-md" value={fStartTime} onChange={e => setFStartTime(e.target.value)} />
               </div>
               <div className="field">
                 <label>End time</label>
-                <input
-                  type="time"
-                  className="inp inp-md"
-                  value={fEndTime}
-                  onChange={e => setFEndTime(e.target.value)}
-                />
+                <input type="time" className="inp inp-md" value={fEndTime} onChange={e => setFEndTime(e.target.value)} />
               </div>
             </>
           )}
@@ -611,11 +582,7 @@ export default function CalendarView({ token }: { token: string }) {
           {cals.length > 0 && (
             <div className="field">
               <label>Calendar</label>
-              <select
-                className="inp inp-md"
-                value={fCalId}
-                onChange={e => setFCalId(e.target.value)}
-              >
+              <select className="inp inp-md" value={fCalId} onChange={e => setFCalId(e.target.value)}>
                 <option value="">— none —</option>
                 {cals.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -625,7 +592,7 @@ export default function CalendarView({ token }: { token: string }) {
           )}
           <div className="field">
             <label>Color</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               {SWATCH_COLORS.map(c => (
                 <button
                   key={c}
@@ -644,7 +611,7 @@ export default function CalendarView({ token }: { token: string }) {
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
-                  style={{ padding: '0 8px', height: 24, fontSize: 11 }}
+                  style={{ padding: '0 8px', height: 24, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
                   onClick={() => setFColor(null)}
                 >
                   <CloseIcon size={10} /> Clear
@@ -655,6 +622,9 @@ export default function CalendarView({ token }: { token: string }) {
           {fError && <p className="err" style={{ margin: 0 }}>{fError}</p>}
         </div>
       </Modal>
+
+      {/* suppress unused prefillDate lint — it drives the date passed to openNew */}
+      {prefillDate === null && null}
     </div>
   )
 }

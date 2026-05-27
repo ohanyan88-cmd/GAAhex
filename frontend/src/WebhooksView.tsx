@@ -5,8 +5,9 @@ import { toast } from './Toast'
 import { timeAgo } from './time'
 import { confirmDialog } from './Modal'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
-import { InfoIcon } from './icons'
+import { InfoIcon, ServerIcon } from './icons'
 import { t } from './i18n'
+import ViewHead from './ViewHead'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -106,10 +107,9 @@ export default function WebhooksView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Webhooks</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : '+ New webhook'}</button>}
-      </div>
+      <ViewHead icon={<ServerIcon size={20} />} title="Webhooks"
+        sub="Event subscriptions · signing secrets · delivery log per endpoint"
+        actions={!unavailable && <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : <><span>+</span> New webhook</>}</button>} />
 
       {draft && (
         <div className="rec-form">
@@ -129,26 +129,26 @@ export default function WebhooksView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
+        <table className="grid">
           <thead><tr><th scope="col">Name</th><th scope="col">URL</th><th scope="col">Events</th><th scope="col">Secret</th><th scope="col">Active</th><th scope="col"></th></tr></thead>
           <tbody>
             {list.map((w) => (
               <tr key={w.id} className={w.active === false ? 'row-muted' : ''}>
-                <td>{w.name ?? '—'}</td>
-                <td className="ob-preview" title={w.url}>{w.url ?? '—'}</td>
-                <td>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span className="muted">all</span>}</td>
-                <td className="mono">{maskSecret(w.secret)}</td>
+                <td><strong>{w.name ?? '—'}</strong></td>
+                <td className="ob-preview mono" title={w.url} style={{ color: 'var(--text-3)', fontSize: 12 }}>{w.url ?? '—'}</td>
+                <td style={{ fontSize: 12 }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span className="muted">all</span>}</td>
+                <td className="mono" style={{ fontSize: 12 }}>{maskSecret(w.secret)}</td>
                 <td>{w.active === false ? <span className="pill pill-muted">off</span> : <span className="pill pill-success">on</span>}</td>
-                <td className="row-actions">
-                  <button className="btn btn-ghost btn-sm" onClick={() => test(w)}>Test</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setDeliveriesFor(w)}>Deliveries</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: w.id, name: w.name ?? '', url: w.url ?? '', events: w.events ?? [], active: w.active !== false })}>Edit</button>
-                  <button className="btn btn-danger btn-sm" onClick={() => remove(w)}>Delete</button>
-                </td>
+                <td><div className="row-actions">
+                  <button className="iconbtn" onClick={() => test(w)} title="Test webhook"><span style={{ fontSize: 13 }}>Test</span></button>
+                  <button className="iconbtn" onClick={() => setDeliveriesFor(w)} title="View deliveries"><span style={{ fontSize: 13 }}>Log</span></button>
+                  <button className="iconbtn" onClick={() => setDraft({ id: w.id, name: w.name ?? '', url: w.url ?? '', events: w.events ?? [], active: w.active !== false })} title="Edit"><span style={{ fontSize: 13 }}>Edit</span></button>
+                  <button className="iconbtn" onClick={() => remove(w)} title="Delete"><span style={{ fontSize: 13 }}>Delete</span></button>
+                </div></td>
               </tr>
             ))}
           </tbody>
-        </table></div>
+        </table>
       )}
 
       {newSecret && (

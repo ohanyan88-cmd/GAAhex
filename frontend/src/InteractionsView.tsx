@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { bget, bpost } from './billing'
+import ViewHead from './ViewHead'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { timeAgo } from './time'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
-import { PhoneIcon, MailIcon, MessageIcon, EditIcon, InfoIcon } from './icons'
+import { PhoneIcon, MailIcon, MessageIcon, EditIcon, InfoIcon, PlusIcon } from './icons'
 import { t } from './i18n'
 
 // Interactions log (E14 /api/interactions) — list + "Log interaction" composer. Degrades on 404.
@@ -61,10 +62,25 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
 
   return (
     <div>
-      <div className="view-head">
-        {!embedded && <h2>Interactions</h2>}
-        <button className={'btn btn-primary btn-sm' + (embedded ? '' : ' btn-md')} onClick={() => setLogOpen(true)}>Log interaction</button>
-      </div>
+      {!embedded && (
+        <ViewHead
+          icon={<MessageIcon size={20} />}
+          title={t('interactions.title', 'Interactions')}
+          actions={
+            <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
+              <PlusIcon size={13} /> Log interaction
+            </button>
+          }
+        />
+      )}
+      {embedded && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>{t('interactions.title', 'Interactions')}</h3>
+          <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
+            <PlusIcon size={13} /> Log
+          </button>
+        </div>
+      )}
 
       {!embedded && (
         <div className="list-toolbar">
@@ -90,11 +106,11 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
           <tbody>
             {list.map((it) => (
               <tr key={it.id}>
-                <td><span className="chan-cell">{channelIcon(it.channel)} {it.channel ?? '—'}</span></td>
-                <td>{it.direction ?? '—'}</td>
-                <td>{it.subject || <span className="muted">{(it.body ?? '').slice(0, 60) || '—'}</span>}</td>
-                <td>{it.agent_name ?? (it.agent_user_id ? it.agent_user_id.slice(0, 8) : '—')}</td>
-                <td>{timeAgo(it.occurred_at ?? it.created_at ?? null)}</td>
+                <td className="cell-meta"><span className="pill">{channelIcon(it.channel)} {it.channel ?? '—'}</span></td>
+                <td className="cell-meta"><span className="pill pill-muted">{it.direction ?? '—'}</span></td>
+                <td className="cell-main">{it.subject || <span className="muted">{(it.body ?? '').slice(0, 60) || '—'}</span>}</td>
+                <td className="cell-meta">{it.agent_name ?? (it.agent_user_id ? it.agent_user_id.slice(0, 8) : '—')}</td>
+                <td className="cell-meta">{timeAgo(it.occurred_at ?? it.created_at ?? null)}</td>
               </tr>
             ))}
           </tbody>

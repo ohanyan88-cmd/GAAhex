@@ -3,8 +3,9 @@ import { bget, bpost, bdel } from './billing'
 import { Modal, confirmDialog } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
-import { ArrowRightIcon, ChevronLeftIcon, InboxIcon } from './icons'
+import { ArrowRightIcon, ChevronLeftIcon, InboxIcon, ServerIcon, EditIcon, PlusIcon } from './icons'
 import { t } from './i18n'
+import ViewHead from './ViewHead'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + detail with allocations. Degrades on 404.
 type Pool = { id: string; name?: string; kind?: string; spec?: any; allocation_count?: number; created_at?: string | null }
@@ -64,10 +65,9 @@ export default function ResourcePoolsView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Resource Pools</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? 'Close' : '+ New pool'}</button>}
-      </div>
+      <ViewHead icon={<ServerIcon size={20} />} title="Resource Pools"
+        sub="IP allocations, equipment inventories · capacity engine"
+        actions={!unavailable && <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Close' : <><PlusIcon size={13} /> New pool</>}</button>} />
 
       {creating && (
         <div className="rec-form">
@@ -96,20 +96,20 @@ export default function ResourcePoolsView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
+        <table className="grid">
           <thead><tr><th scope="col">Name</th><th scope="col">Kind</th><th scope="col">Spec</th><th scope="col">Allocations</th><th scope="col"></th></tr></thead>
           <tbody>
             {list.map((p) => (
               <tr key={p.id}>
-                <td>{p.name ?? p.id.slice(0, 8)}</td>
-                <td>{p.kind ?? '—'}</td>
-                <td className="mono">{specSummary(p.spec)}</td>
-                <td>{allocCount(p)}</td>
-                <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => setDetailId(p.id)}>Open <ArrowRightIcon size={13} /></button></td>
+                <td><strong>{p.name ?? p.id.slice(0, 8)}</strong></td>
+                <td><span style={{ display: 'inline-block', padding: '2px 8px', background: 'var(--surface-2)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>{p.kind ?? '—'}</span></td>
+                <td className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>{specSummary(p.spec)}</td>
+                <td style={{ fontSize: 12 }}>{allocCount(p)}</td>
+                <td><div className="row-actions"><button className="iconbtn" onClick={() => setDetailId(p.id)} title="Open"><ArrowRightIcon size={13} /></button></div></td>
               </tr>
             ))}
           </tbody>
-        </table></div>
+        </table>
       )}
     </div>
   )
@@ -147,9 +147,9 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
 
   return (
     <div>
-      <div className="view-head">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
         <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeftIcon size={14} /> Pools</button>
-        <h2 style={{ marginLeft: 8 }}>{pool?.name ?? `Pool ${id.slice(0, 8)}`}</h2>
+        <h2 style={{ margin: 0 }}>{pool?.name ?? `Pool ${id.slice(0, 8)}`}</h2>
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
@@ -167,19 +167,19 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
           {allocs.length === 0
             ? <p className="muted">Nothing allocated from this pool.</p>
             : (
-              <div className="grid-wrap"><table className="grid">
+              <table className="grid">
                 <thead><tr><th scope="col">Value</th><th scope="col">Service</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
                 <tbody>
                   {allocs.map((a) => (
                     <tr key={a.id} className={(a.status ?? '').toUpperCase() === 'RELEASED' ? 'row-muted' : ''}>
-                      <td className="mono">{a.value ?? '—'}</td>
-                      <td>{svcName(a.service_id)}</td>
+                      <td className="mono" style={{ fontWeight: 500 }}>{a.value ?? '—'}</td>
+                      <td style={{ fontSize: 12 }}>{svcName(a.service_id)}</td>
                       <td>{(a.status ?? '').toUpperCase() === 'RELEASED' ? <span className="pill pill-muted">released</span> : <span className="pill pill-success">allocated</span>}</td>
-                      <td className="row-actions">{(a.status ?? '').toUpperCase() !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(a.id)}>Release</button>}</td>
+                      <td><div className="row-actions">{(a.status ?? '').toUpperCase() !== 'RELEASED' && <button className="iconbtn" onClick={() => release(a.id)} title="Release"><span style={{ fontSize: 12 }}>Release</span></button>}</div></td>
                     </tr>
                   ))}
                 </tbody>
-              </table></div>
+              </table>
             )}
         </>
       )}

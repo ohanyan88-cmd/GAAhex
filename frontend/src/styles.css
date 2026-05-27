@@ -556,6 +556,8 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 }
 .row-link:hover { color: var(--accent); }
 .cell-meta { color: var(--text-3); font-size: 11px; font-family: var(--font-mono); margin-top: 1px; }
+.cell-main { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-action { white-space: nowrap; text-align: right; color: var(--text-3); width: 32px; }
 
 /* ===================== RECORD FORM ===================== */
 .rec-form {

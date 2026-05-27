@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import Composer from './Composer'
 import { toast } from './Toast'
 import { timeAgo } from './time'
+import ViewHead from './ViewHead'
+import { MessageIcon } from './icons'
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
@@ -82,7 +84,10 @@ export default function MessagesView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head"><h2>Messages</h2></div>
+      <ViewHead
+        icon={<MessageIcon size={20} />}
+        title="Messages"
+      />
       {error && <p className="err">{error}</p>}
 
       <div className="messages">

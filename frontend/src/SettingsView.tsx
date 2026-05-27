@@ -4,6 +4,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { GearIcon } from './icons'
 import { useI18n, setLang, type Lang } from './i18n'
+import ViewHead from './ViewHead'
 import SystemStatusChip from './SystemStatusChip'
 
 // Tenant settings (E19): GET/PUT /api/tenant/settings. Edits name/currency/locale/logo_text with a
@@ -64,10 +65,11 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
 
   return (
     <div>
-      <div className="view-head">
-        <h2>{t('nav.settings', 'Settings')}</h2>
-        <SystemStatusChip />
-      </div>
+      <ViewHead
+        icon={<GearIcon size={20} />}
+        title={t('nav.settings', 'Settings')}
+        actions={<SystemStatusChip />}
+      />
 
       {unavailable && (
         <EmptyState icon={<GearIcon size={40} />} title={t('settings.unavailable', "Settings aren't available yet")}

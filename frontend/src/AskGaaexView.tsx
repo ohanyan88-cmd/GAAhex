@@ -3,6 +3,7 @@ import { bget, bpost } from './billing'
 import { PermissionDenied } from './States'
 import { SparkleIcon, ArrowRightIcon } from './icons'
 import { useI18n } from './i18n'
+import ViewHead from './ViewHead'
 
 // Ask GAAex — a talk-to-your-ISP assistant. Sends a question to /api/ai/ask, which answers grounded
 // in the caller's live, scoped business context. Works with no provider (deterministic readout) and
@@ -89,12 +90,15 @@ export default function AskGaaexView({ token }: { token: string }) {
 
   return (
     <div className="ask-wrap">
-      <div className="view-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: 8 }}><SparkleIcon /> {t('ask.title', 'Ask GAAex')}</h2>
-        <span className="badge" title={t('ask.brainHint', 'Which AI brain is answering. Set AI_PROVIDER in backend/.env to upgrade.')}>
-          {status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain}
-        </span>
-      </div>
+      <ViewHead
+        icon={<SparkleIcon size={20} />}
+        title={t('ask.title', 'Ask GAAex')}
+        actions={
+          <span className="badge" title={t('ask.brainHint', 'Which AI brain is answering. Set AI_PROVIDER in backend/.env to upgrade.')}>
+            {status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain}
+          </span>
+        }
+      />
 
       <div className="ask-thread">
         {msgs.length === 0 && (

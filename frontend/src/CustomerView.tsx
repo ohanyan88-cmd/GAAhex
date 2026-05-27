@@ -6,7 +6,11 @@ import { toast } from './Toast'
 import { ErrorBanner, PermissionDenied, NotFound } from './States'
 import ActivityTimeline from './ActivityTimeline'
 import InteractionsView from './InteractionsView'
-import { ChevronLeftIcon } from './icons'
+import ViewHead from './ViewHead'
+import {
+  ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
+  ClockIcon, CreditCardIcon, DownloadIcon,
+} from './icons'
 import { useI18n } from './i18n'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
@@ -102,31 +106,80 @@ export default function CustomerView({ token, customerId, onBack }: {
 
   return (
     <div>
-      <div className="view-head">
-        <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeftIcon size={14} /> {t('nav.customers', 'Customers')}</button>
-        <h2 style={{ marginLeft: 8 }}>{name || t('cust.title', 'Customer')}</h2>
-        {p && statusPill(p.status)}
-      </div>
+      <ViewHead
+        icon={<UsersIcon size={16} />}
+        title={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            {name || t('cust.title', 'Customer')}
+            {p && statusPill(p.status)}
+          </span>
+        }
+        sub={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ padding: '2px 8px', fontSize: 12 }}>
+              <ChevronLeftIcon size={12} /> {t('nav.customers', 'Customers')}
+            </button>
+            {p?.id && <span className="mono" style={{ color: 'var(--text-3)' }}>{p.id.slice(0, 8)}</span>}
+          </span>
+        }
+      />
 
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!data && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
       {data && (
         <>
-          {/* money summary — the at-a-glance header */}
-          <div className="bill-meta" style={{ marginBottom: 18 }}>
-            <div><span className="muted">{t('cust.outstanding', 'Outstanding')}</span>
-              <div style={{ color: (sum.outstanding ?? 0) > 0 ? 'var(--danger)' : 'var(--text)' }}>{money(sum.outstanding)}</div></div>
-            <div><span className="muted">{t('cust.billed', 'Billed')}</span><div>{money(sum.total_billed)}</div></div>
-            <div><span className="muted">{t('cust.paid', 'Paid')}</span><div>{money(sum.total_paid)}</div></div>
-            {(sum.overdue_count ?? 0) > 0 && (
-              <div><span className="muted">{t('cust.overdue', 'Overdue invoices')}</span>
-                <div style={{ color: 'var(--danger)' }}>{sum.overdue_count}</div></div>
+          {/* 360 stat widgets — outstanding / billed / paid / overdue */}
+          <div className="widgets" style={{ marginBottom: 22 }}>
+            <div className="widget">
+              <div className="widget-label">
+                <CreditCardIcon size={12} className="widget-label-icon" />
+                {t('cust.outstanding', 'Outstanding')}
+              </div>
+              <div className="kpi" style={{ fontSize: 30, color: (sum.outstanding ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                {money(sum.outstanding)}
+              </div>
+              {(sum.overdue_count ?? 0) > 0 && (
+                <div className="kpi-sub" style={{ color: 'var(--danger)' }}>
+                  {sum.overdue_count} {t('cust.overdue', 'overdue invoice(s)')}
+                </div>
+              )}
+            </div>
+
+            <div className="widget">
+              <div className="widget-label">{t('cust.billed', 'Total billed')}</div>
+              <div className="kpi" style={{ fontSize: 30 }}>{money(sum.total_billed)}</div>
+              {sum.invoice_count != null && (
+                <div className="kpi-sub">{sum.invoice_count} {t('cust.invoiceCount', 'invoice(s)')}</div>
+              )}
+            </div>
+
+            <div className="widget">
+              <div className="widget-label">{t('cust.paid', 'Total paid')}</div>
+              <div className="kpi" style={{ fontSize: 30, color: 'var(--success)' }}>{money(sum.total_paid)}</div>
+              {sum.subscription_count != null && (
+                <div className="kpi-sub">{sum.subscription_count} {t('cust.subCount', 'active subscription(s)')}</div>
+              )}
+            </div>
+
+            {/* Related CRM counts in compact widget */}
+            {related.filter(([, n]) => n > 0).length > 0 && (
+              <div className="widget">
+                <div className="widget-label">{t('cust.related', 'Related records')}</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                  {related.filter(([, n]) => n > 0).map(([key, n]) => (
+                    <span key={key} className="pill">{key} · {n}</span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
           {/* Services */}
-          <h3>{t('cust.services', 'Services')}</h3>
+          <div className="section-head">
+            <ClockIcon size={16} className="section-icon" />
+            {t('cust.services', 'Services')}
+          </div>
           {services.length === 0
             ? <p className="muted">{t('cust.noServices', 'No services yet.')}</p>
             : (
@@ -151,7 +204,10 @@ export default function CustomerView({ token, customerId, onBack }: {
             )}
 
           {/* Subscriptions */}
-          <h3 style={{ marginTop: 18 }}>{t('nav.subscriptions', 'Subscriptions')}</h3>
+          <div className="section-head">
+            <ReceiptIcon size={16} className="section-icon" />
+            {t('nav.subscriptions', 'Subscriptions')}
+          </div>
           {subs.length === 0
             ? <p className="muted">{t('cust.noSubs', 'No subscriptions yet.')}</p>
             : (
@@ -171,7 +227,14 @@ export default function CustomerView({ token, customerId, onBack }: {
             )}
 
           {/* Invoices — with issue / record-payment affordances */}
-          <h3 style={{ marginTop: 18 }}>{t('nav.invoices', 'Invoices')}</h3>
+          <div className="section-head">
+            <ReceiptIcon size={16} className="section-icon" />
+            {t('nav.invoices', 'Invoices')}
+            <span className="spacer" />
+            <button className="btn btn-ghost btn-sm">
+              <DownloadIcon size={13} /> {t('cust.statement', 'Statement')}
+            </button>
+          </div>
           {invoices.length === 0
             ? <p className="muted">{t('cust.noInvoices', 'No invoices yet.')}</p>
             : (
@@ -203,25 +266,22 @@ export default function CustomerView({ token, customerId, onBack }: {
               </table></div>
             )}
 
-          {/* Related CRM records (counts) */}
-          <h3 style={{ marginTop: 18 }}>{t('cust.related', 'Related')}</h3>
-          {related.length === 0 || related.every(([, n]) => !n)
-            ? <p className="muted">{t('cust.noRelated', 'No related records.')}</p>
-            : (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {related.filter(([, n]) => n > 0).map(([key, n]) => (
-                  <span key={key} className="pill">{key} · {n}</span>
-                ))}
-              </div>
-            )}
-
           {/* Interactions — customer touchpoints (calls, emails, notes, etc.) */}
-          <h3 style={{ marginTop: 18 }}>{t('nav.interactions', 'Interactions')}</h3>
+          <div className="section-head">
+            <PhoneIcon size={16} className="section-icon" />
+            {t('nav.interactions', 'Interactions')}
+            <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>· {t('common.embedded', 'embedded view')}</span>
+          </div>
           <InteractionsView token={token} customerId={customerId} embedded />
 
           {/* Activity — reuse the shared record timeline (degrades on its own) */}
-          <h3 style={{ marginTop: 18 }}>{t('nav.activity', 'Activity')}</h3>
-          <ActivityTimeline token={token} record={customerId} />
+          <div className="section-head">
+            <ClockIcon size={16} className="section-icon" />
+            {t('nav.activity', 'Activity timeline')}
+          </div>
+          <div className="widget">
+            <ActivityTimeline token={token} record={customerId} />
+          </div>
         </>
       )}
 

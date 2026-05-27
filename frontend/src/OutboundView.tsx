@@ -5,6 +5,7 @@ import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { InboxIcon, PlusIcon, MailIcon } from './icons'
 import { Modal } from './Modal'
 import { composeOutbound } from './api'
+import ViewHead from './ViewHead'
 
 // Outbound delivery log (A12 GET /api/outbound) — admin view. Degrades quietly on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -216,34 +217,9 @@ export default function OutboundView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Outbound</h2>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => setComposeOpen(true)}
-        >
-          <PlusIcon size={14} />
-          New Message
-        </button>
-      </div>
-
-      <div className="list-toolbar">
-        <div className="bill-filter">
-          <span className="muted export-label">Channel</span>
-          <select className="inp inp-sm" aria-label="Filter by channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
-            <option value="">All</option>
-            {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="bill-filter">
-          <span className="muted export-label">Status</span>
-          <select className="inp inp-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-      </div>
+      <ViewHead icon={<MailIcon size={20} />} title="Outbound Messaging"
+        sub="Adapter registry · LogEmail (dev) | SMTP (prod) · delivery log"
+        actions={<button className="btn btn-primary btn-sm" onClick={() => setComposeOpen(true)}><PlusIcon size={13} /> New message</button>} />
 
       {error && <ErrorBanner message={error} onRetry={load} />}
       {list === null && !error && <p className="muted">Loading…</p>}
@@ -253,20 +229,32 @@ export default function OutboundView({ token }: { token: string }) {
       )}
 
       {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
-          <thead><tr><th scope="col">Channel</th><th scope="col">To</th><th scope="col">Message</th><th scope="col">Status</th><th scope="col">When</th></tr></thead>
-          <tbody>
-            {list.map((o) => (
-              <tr key={o.id}>
-                <td>{o.channel ?? '—'}</td>
-                <td>{o.to ?? '—'}</td>
-                <td className="ob-preview" title={o.error || preview(o)}>{o.error ? <span className="amt-neg-danger">{o.error}</span> : (preview(o) || '—')}</td>
-                <td>{statusPill(o.status)}</td>
-                <td>{timeAgo(o.created_at ?? null)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
+        <>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select className="inp inp-sm" aria-label="Filter by channel" value={channel} onChange={(e) => setChannel(e.target.value)} style={{ width: 140 }}>
+              <option value="">All channels</option>
+              {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className="inp inp-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)} style={{ width: 140 }}>
+              <option value="">All statuses</option>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <table className="grid">
+            <thead><tr><th scope="col">Channel</th><th scope="col">To</th><th scope="col">Message</th><th scope="col">Status</th><th scope="col">When</th></tr></thead>
+            <tbody>
+              {list.map((o) => (
+                <tr key={o.id}>
+                  <td><span style={{ display: 'inline-block', padding: '2px 8px', background: 'var(--surface-2)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>{o.channel ?? '—'}</span></td>
+                  <td className="mono" style={{ color: 'var(--text-2)', fontSize: 12 }}>{o.to ?? '—'}</td>
+                  <td className="ob-preview" title={o.error || preview(o)} style={{ color: o.error ? 'var(--danger)' : 'var(--text-2)', fontSize: 12 }}>{o.error ? o.error : (preview(o) || '—')}</td>
+                  <td>{statusPill(o.status)}</td>
+                  <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{timeAgo(o.created_at ?? null)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
 
       <ComposeModal
