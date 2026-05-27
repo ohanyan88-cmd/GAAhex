@@ -4,6 +4,7 @@ import { money } from './money'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ChartIcon, ArrowUpIcon, ArrowDownIcon } from './icons'
 import { useI18n } from './i18n'
+import ViewHead from './ViewHead'
 
 // Analytics (A18 /api/analytics/*) — KPIs + inline-SVG/CSS charts in the existing dashboard style.
 // No charting library. Degrades on 404 (Stage-1 dormant) and per-section on error.
@@ -57,7 +58,7 @@ export default function AnalyticsView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head"><h2>{t('nav.analytics', 'Analytics')}</h2></div>
+      <ViewHead icon={<ChartIcon size={20} />} title={t('nav.analytics', 'Analytics')} />
 
       {loading && <p className="muted">{t('common.loading', 'Loading…')}</p>}
       {error && <ErrorBanner message={error} onRetry={load} />}
@@ -74,21 +75,21 @@ export default function AnalyticsView({ token }: { token: string }) {
             <Kpi label={t('analytics.newLeads', 'New leads (30d)')} m={pick(overview, 'new_leads_30d')} goodUp t={t} />
           </div>
 
-          <div className="analytics-grid">
-            <section className="widget">
+          <div className="widgets">
+            <div className="widget">
               <div className="widget-label">{t('analytics.revenueTrend', 'Revenue trend (collected vs invoiced)')}</div>
               {trend && trend.length > 0 ? <RevenueTrend data={trend} t={t} /> : <p className="muted">{t('common.noData', 'No data.')}</p>}
-            </section>
+            </div>
 
-            <section className="widget">
+            <div className="widget">
               <div className="widget-label">{t('analytics.subscriptionMix', 'Subscription mix')}</div>
               {mix && mix.length > 0 ? <MixDonut data={mix} /> : <p className="muted">{t('common.noData', 'No data.')}</p>}
-            </section>
+            </div>
 
-            <section className="widget">
+            <div className="widget">
               <div className="widget-label">{t('analytics.arAging', 'AR aging')}</div>
               {aging && aging.some((b) => b.amount > 0) ? <Aging data={aging} /> : <p className="muted">{t('common.noData', 'No data.')}</p>}
-            </section>
+            </div>
           </div>
         </>
       )}

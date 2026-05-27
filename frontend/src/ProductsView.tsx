@@ -4,7 +4,8 @@ import { money, toMinor } from './money'
 import { toast } from './Toast'
 import { confirmDialog } from './Modal'
 import { EmptyState, ErrorBanner } from './States'
-import { CreditCardIcon } from './icons'
+import { ArchiveIcon } from './icons'
+import ViewHead from './ViewHead'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
@@ -56,10 +57,7 @@ export default function ProductsView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Products</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : '+ New product'}</button>}
-      </div>
+      <ViewHead icon={<ArchiveIcon size={20} />} title="Products" actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : '+ New product'}</button>} />
 
       {draft && (
         <div className="rec-form">
@@ -79,9 +77,9 @@ export default function ProductsView({ token }: { token: string }) {
 
       {error && <ErrorBanner message={error} onRetry={load} />}
       {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<CreditCardIcon size={40} />} title="Products aren't available yet" message="The product catalog will appear once billing is enabled." />}
+      {unavailable && <EmptyState icon={<ArchiveIcon size={40} />} title="Products aren't available yet" message="The product catalog will appear once billing is enabled." />}
       {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<CreditCardIcon size={40} />} title="No products" message="Create your first plan to offer it on subscriptions." />
+        <EmptyState icon={<ArchiveIcon size={40} />} title="No products" message="Create your first plan to offer it on subscriptions." />
       )}
 
       {list && list.length > 0 && (

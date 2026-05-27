@@ -4,8 +4,9 @@ import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './States'
-import { ReceiptIcon, CheckIcon } from './icons'
+import { ChartIcon, CheckIcon, ReceiptIcon } from './icons'
 import { t } from './i18n'
+import ViewHead from './ViewHead'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -53,10 +54,7 @@ export default function UsageView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Usage</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setLogOpen(true)}>Record usage</button>}
-      </div>
+      <ViewHead icon={<ChartIcon size={20} />} title="Usage" actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setLogOpen(true)}>Record usage</button>} />
 
       <div className="list-toolbar">
         <div className="bill-filter">

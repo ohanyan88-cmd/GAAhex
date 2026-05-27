@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from './States'
+import ViewHead from './ViewHead'
+import { ChartIcon } from './icons'
 
 // Dashboards — picks a board and renders its config-driven widgets from /dashboards/{key}/data.
 // Self-contained inline fetch (same pattern as api.ts / ReportsView). No chart library: KPIs are
@@ -97,9 +99,15 @@ export default function DashboardView({ token }: { token: string }) {
   if (denied) return <PermissionDenied message="You don't have permission to view dashboards." />
   if (error) return <ErrorBanner message={error} onRetry={loadBoards} />
 
+  const activeBoard = boards.find((b) => b.key === selected)
+
   return (
     <div>
-      <div className="view-head"><h2>Dashboards</h2></div>
+      <ViewHead
+        icon={<ChartIcon size={20} />}
+        title="Dashboard"
+        sub={activeBoard?.description ?? activeBoard?.label ?? 'Live metrics and KPIs'}
+      />
 
       {boards.length === 0 && <EmptyState title="No dashboards configured yet." message="Ask an admin to configure a dashboard for your role." />}
 
@@ -123,7 +131,12 @@ export default function DashboardView({ token }: { token: string }) {
 
       {!boardLoading && !boardError && data && (
         <div className="widgets">
-          {data.widgets.length === 0 && <EmptyState title="This board has no widgets." message="Add widgets in Studio to populate this dashboard." />}
+          {data.widgets.length === 0 && (
+            <EmptyState
+              title="This board has no widgets."
+              message="Add widgets in Studio to populate this dashboard."
+            />
+          )}
           {data.widgets.map((w) => (
             <div key={w.widget_key} className={'widget' + (w.type === 'kpi' ? ' widget-kpi' : '')}>
               <div className="widget-label">{w.label}</div>
@@ -139,7 +152,15 @@ export default function DashboardView({ token }: { token: string }) {
 function Widget({ w }: { w: WidgetOut }) {
   if (w.error) return <ErrorBanner message={friendlyError(w.error)} />
 
-  if (w.type === 'kpi') return <div className="kpi">{fmtNum(kpiValue(w.result))}</div>
+  if (w.type === 'kpi') {
+    const v = kpiValue(w.result)
+    return (
+      <>
+        <div className="kpi">{fmtNum(v)}</div>
+        <div className="kpi-sub">{w.label}</div>
+      </>
+    )
+  }
 
   const groups = asGroups(w.result)
   if (groups.length === 0) return <EmptyState title="No data." />
@@ -189,24 +210,27 @@ function Donut({ data }: { data: Group[] }) {
   let offset = 0
   return (
     <div className="donut-wrap">
-      <svg viewBox="0 0 100 100" className="donut" role="img">
-        <circle cx="50" cy="50" r={R} fill="none" stroke="#262D37" strokeWidth="14" />
-        {total > 0 && data.map((d, i) => {
-          const len = (d.value / total) * C
-          const seg = (
-            <circle
-              key={i}
-              cx="50" cy="50" r={R} fill="none"
-              stroke={PALETTE[i % PALETTE.length]} strokeWidth="14"
-              strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset}
-              transform="rotate(-90 50 50)"
-            />
-          )
-          offset += len
-          return seg
-        })}
-        <text x="50" y="53" textAnchor="middle" className="donut-total">{fmtNum(total)}</text>
-      </svg>
+      {/* SVG ring + overlay total */}
+      <div className="donut">
+        <svg viewBox="0 0 100 100" width="100%" height="100%" role="img" aria-label={`Total: ${fmtNum(total)}`}>
+          <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="14" />
+          {total > 0 && data.map((d, i) => {
+            const len = (d.value / total) * C
+            const seg = (
+              <circle
+                key={i}
+                cx="50" cy="50" r={R} fill="none"
+                stroke={PALETTE[i % PALETTE.length]} strokeWidth="14"
+                strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset}
+                transform="rotate(-90 50 50)"
+              />
+            )
+            offset += len
+            return seg
+          })}
+        </svg>
+        <div className="donut-total">{fmtNum(total)}</div>
+      </div>
       <div className="legend">
         {data.map((d, i) => (
           <div key={i} className="legend-row">

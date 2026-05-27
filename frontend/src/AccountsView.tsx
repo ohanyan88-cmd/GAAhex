@@ -5,6 +5,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ArrowRightIcon, ChevronLeftIcon, BuildingIcon } from './icons'
 import { useI18n } from './i18n'
+import ViewHead from './ViewHead'
 
 // Accounts UI (A17 /api/accounts) — the money/billing layer on a Party. Stage 1 may be dormant
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
@@ -73,10 +74,7 @@ export default function AccountsView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>{t('nav.accounts', 'Accounts')}</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? t('common.close', 'Close') : t('accounts.new', '+ New Account')}</button>}
-      </div>
+      <ViewHead icon={<BuildingIcon size={20} />} title={t('nav.accounts', 'Accounts')} actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? t('common.close', 'Close') : t('accounts.new', '+ New Account')}</button>} />
 
       {creating && (
         <div className="rec-form">

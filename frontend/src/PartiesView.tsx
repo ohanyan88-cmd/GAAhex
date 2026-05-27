@@ -4,6 +4,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { UsersIcon } from './icons'
 import { useI18n } from './i18n'
+import ViewHead from './ViewHead'
 
 // Parties UI (A17 /api/parties) — the "who" layer (individuals / organizations / carriers) that
 // Accounts hang off. Lighter than Accounts. Shows the parent→child hierarchy hint via an indent.
@@ -53,10 +54,7 @@ export default function PartiesView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head">
-        <h2>{t('nav.parties', 'Parties')}</h2>
-        {!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? t('common.close', 'Close') : t('parties.new', '+ New Party')}</button>}
-      </div>
+      <ViewHead icon={<UsersIcon size={20} />} title={t('nav.parties', 'Parties')} actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? t('common.close', 'Close') : t('parties.new', '+ New Party')}</button>} />
 
       {creating && (
         <div className="rec-form">

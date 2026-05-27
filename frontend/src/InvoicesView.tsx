@@ -5,8 +5,12 @@ import { money, toMinor } from './money'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
-import { ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon, CreditCardIcon } from './icons'
+import {
+  ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
+  CreditCardIcon, DownloadIcon,
+} from './icons'
 import { useI18n } from './i18n'
+import ViewHead from './ViewHead'
 
 const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
 
@@ -16,23 +20,18 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-// Status → pill style: PAID success, OVERDUE danger, VOID muted, others default.
+// Status → pill style
 function statusPill(status: string | null | undefined) {
   const s = (status ?? '').toUpperCase()
   const cls = s === 'PAID' ? 'pill pill-success'
     : s === 'OVERDUE' ? 'pill pill-danger'
     : s === 'VOID' ? 'pill pill-muted'
+    : s === 'ISSUED' ? 'pill pill-accent'
     : 'pill'
-  return status ? <span className={cls}>{status}</span> : <span>—</span>
+  return status ? <span className={cls}><span className="pill-dot" />{status}</span> : <span>—</span>
 }
 
 // ── Pay online button ─────────────────────────────────────────────────────────
-// Used in both the list row and the invoice detail. Handles:
-//   1. POST /api/invoices/{id}/pay → {order_id, redirect_url, status}
-//   2a. redirect_url is real external URL  → window.open(redirect_url, '_blank')
-//   2b. redirect_url contains /pay/dev/    → show confirm modal → POST confirm-dev
-//                                            → toast + call onDone() to refresh
-
 function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceId: string; onDone: () => void }) {
   const [busy, setBusy] = useState(false)
   const [devConfirm, setDevConfirm] = useState<{ orderId: string } | null>(null)
@@ -43,10 +42,8 @@ function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceI
     try {
       const result = await initiatePayment(token, invoiceId)
       if (isDevFlow(result.redirect_url)) {
-        // Dev path — show in-app confirm modal instead of opening a tab
         setDevConfirm({ orderId: result.order_id })
       } else {
-        // Real external gateway — open in new tab
         window.open(result.redirect_url, '_blank', 'noopener,noreferrer')
         toast.success('Payment page opened in a new tab.')
       }
@@ -112,7 +109,7 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
-  const [cycleNA, setCycleNA] = useState(false)     // hide run-cycle once the endpoint 404s
+  const [cycleNA, setCycleNA] = useState(false)
   const [cycleBusy, setCycleBusy] = useState(false)
 
   async function load() {
@@ -136,11 +133,10 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
       await load()
     } catch (e) {
       const err = e as Error & { status?: number }
-      toast.error(err.status === 404 ? 'Dunning isn’t available yet' : err.message)
+      toast.error(err.status === 404 ? "Dunning isn't available yet" : err.message)
     }
   }
 
-  // Run the billing cycle (super-admin / config-gated): generates invoices for due subscriptions.
   async function runCycle() {
     if (cycleBusy) return
     setCycleBusy(true)
@@ -152,33 +148,59 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
       await load()
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 404) { setCycleNA(true); toast.error(t('billing.cycleNA', 'Billing cycle isn’t available yet')) }
+      if (err.status === 404) { setCycleNA(true); toast.error(t('billing.cycleNA', "Billing cycle isn't available yet")) }
       else toast.error(err.message)
     } finally { setCycleBusy(false) }
   }
 
   const cust = (inv: Invoice) => (inv.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—')
 
+  // Counts for tab badges
+  const all = list ?? []
+  const countFor = (s: string) => all.filter(i => (i.status ?? '').toUpperCase() === s).length
+
+  const TAB_DEFS: Array<[string, string]> = [
+    ['', 'All'],
+    ['DRAFT', 'Draft'],
+    ['ISSUED', 'Issued'],
+    ['PAID', 'Paid'],
+    ['OVERDUE', 'Overdue'],
+    ['VOID', 'Void'],
+  ]
+
   if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
 
   return (
     <div>
-      <div className="view-head">
-        <h2>Invoices</h2>
-        {canConfigure && !cycleNA && (
-          <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>{cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}</button>
-        )}
-        <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
-      </div>
+      <ViewHead
+        icon={<ReceiptIcon size={18} />}
+        title="Invoices"
+        sub={`${all.length} records · currency AMD (֏) · billing engine`}
+        actions={
+          <>
+            <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
+            {canConfigure && !cycleNA && (
+              <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>
+                {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <div className="list-toolbar">
-        <div className="bill-filter">
-          <span className="muted export-label">Status</span>
-          <select className="inp inp-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
+      <div className="tabs">
+        {TAB_DEFS.map(([val, label]) => {
+          const count = val === '' ? all.length : countFor(val)
+          return (
+            <button
+              key={val}
+              className={'tab' + (status === val ? ' on' : '')}
+              onClick={() => setStatus(val)}
+            >
+              {label} <span className="tab-count">{count}</span>
+            </button>
+          )
+        })}
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
@@ -189,28 +211,45 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
       )}
 
       {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
-          <thead>
-            <tr><th scope="col">Invoice</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col">Total</th><th scope="col">Due</th><th scope="col"></th></tr>
-          </thead>
-          <tbody>
-            {list.map((inv) => (
-              <tr key={inv.id}>
-                <td>{inv.number ?? inv.id.slice(0, 8)}</td>
-                <td>{cust(inv)}</td>
-                <td>{statusPill(inv.status)}</td>
-                <td>{money(inv.total)}</td>
-                <td>{fmtDate(inv.due_at)}</td>
-                <td className="row-actions">
-                  {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
-                    <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
-                  )}
-                  <button className="btn btn-ghost btn-sm" onClick={() => setDetailId(inv.id)}>Open <ArrowRightIcon size={13} /></button>
-                </td>
+        <div className="grid-wrap">
+          <table className="grid">
+            <thead>
+              <tr>
+                <th scope="col">Invoice</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Issued</th>
+                <th scope="col">Due</th>
+                <th scope="col">Status</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col"></th>
               </tr>
-            ))}
-          </tbody>
-        </table></div>
+            </thead>
+            <tbody>
+              {list.map((inv) => (
+                <tr key={inv.id}>
+                  <td className="mono" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                    {inv.number ?? inv.id.slice(0, 8)}
+                  </td>
+                  <td>{cust(inv)}</td>
+                  <td className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</td>
+                  <td className="mono">{fmtDate(inv.due_at)}</td>
+                  <td>{statusPill(inv.status)}</td>
+                  <td className="num">֏{(inv.total ?? 0).toLocaleString()}</td>
+                  <td>
+                    <div className="row-actions">
+                      {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
+                        <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
+                      )}
+                      <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
+                        <ArrowRightIcon size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
@@ -256,10 +295,16 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
 
   return (
     <div>
-      <div className="view-head">
-        <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeftIcon size={14} /> Invoices</button>
-        <h2 style={{ marginLeft: 8 }}>{inv?.number ?? `Invoice ${id.slice(0, 8)}`}</h2>
-      </div>
+      <ViewHead
+        icon={<ChevronLeftIcon size={16} />}
+        title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
+        sub={inv ? `Customer: ${cust}` : undefined}
+        actions={
+          <button className="btn btn-ghost btn-sm" onClick={onBack}>
+            <ChevronLeftIcon size={14} /> Invoices
+          </button>
+        }
+      />
 
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!inv && !error && <p className="muted">Loading…</p>}
@@ -269,33 +314,57 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
           <div className="bill-meta">
             <div><span className="muted">Customer</span><div>{cust}</div></div>
             <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
-            <div><span className="muted">Due</span><div>{fmtDate(inv.due_at)}</div></div>
+            <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
+            <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
             <div className="bill-actions">
-              {status === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>}
-              {(status === 'ISSUED' || status === 'OVERDUE') && <PayOnlineButton token={token} invoiceId={id} onDone={load} />}
-              {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>}
-              {(status === 'ISSUED' || status === 'OVERDUE') && <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>}
-              <button className="btn btn-ghost btn-sm" onClick={async () => { const e = await openDocument(token, `/api/invoices/${id}/document`); if (e) toast.error(e) }}>
+              {status === 'DRAFT' && (
+                <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
+              )}
+              {(status === 'ISSUED' || status === 'OVERDUE') && (
+                <PayOnlineButton token={token} invoiceId={id} onDone={load} />
+              )}
+              {(status === 'ISSUED' || status === 'OVERDUE') && (
+                <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
+              )}
+              {(status === 'ISSUED' || status === 'OVERDUE') && (
+                <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
+              )}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={async () => {
+                  const e = await openDocument(token, `/api/invoices/${id}/document`)
+                  if (e) toast.error(e)
+                }}
+              >
                 <PrinterIcon size={14} /> Print / Download
               </button>
             </div>
           </div>
 
           <table className="grid bill-lines">
-            <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Amount</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th className="num">Qty</th>
+                <th className="num">Unit (֏)</th>
+                <th className="num">Amount (֏)</th>
+              </tr>
+            </thead>
             <tbody>
               {lines.map((l, i) => {
                 const negative = (l.line_total ?? 0) < 0
                 return (
                   <tr key={l.id ?? i}>
                     <td>{l.description ?? '—'}</td>
-                    <td>{l.quantity ?? 1}</td>
-                    <td className={negative ? 'amt-neg' : ''}>{money(l.unit_amount)}</td>
-                    <td className={negative ? 'amt-neg' : ''}>{money(l.line_total)}</td>
+                    <td className="num">{l.quantity ?? 1}</td>
+                    <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
+                    <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
                   </tr>
                 )
               })}
-              {lines.length === 0 && <tr><td colSpan={4} className="muted">No line items.</td></tr>}
+              {lines.length === 0 && (
+                <tr><td colSpan={4} className="muted">No line items.</td></tr>
+              )}
             </tbody>
           </table>
 
@@ -304,22 +373,36 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
             {inv.balance !== undefined && (
               <>
                 <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
-                <div className="bill-total-row"><span>Balance due</span><span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>{money(inv.balance)}</span></div>
+                <div className="bill-total-row">
+                  <span>Balance due</span>
+                  <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                    {money(inv.balance)}
+                  </span>
+                </div>
               </>
             )}
           </div>
 
           {payments.length > 0 && (
-            <div style={{ marginTop: 20 }}>
-              <h3 style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 8 }}>Payments recorded</h3>
+            <div style={{ marginTop: 24 }}>
+              <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                Payments recorded
+              </div>
               <table className="grid">
-                <thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Note</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Method</th>
+                    <th className="num">Amount (֏)</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {payments.map(p => (
                     <tr key={p.id}>
-                      <td>{fmtDate(p.paid_at)}</td>
+                      <td className="mono">{fmtDate(p.paid_at)}</td>
                       <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
-                      <td>{money(p.amount)}</td>
+                      <td className="num">{money(p.amount)}</td>
                       <td className="muted">{p.note ?? '—'}</td>
                     </tr>
                   ))}
@@ -331,7 +414,12 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
       )}
 
       {payOpen && (
-        <PaymentModal token={token} invoiceId={id} onClose={() => setPayOpen(false)} onDone={() => { setPayOpen(false); load() }} />
+        <PaymentModal
+          token={token}
+          invoiceId={id}
+          onClose={() => setPayOpen(false)}
+          onDone={() => { setPayOpen(false); load() }}
+        />
       )}
     </div>
   )
@@ -366,20 +454,29 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
       footer={
         <>
           <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
-          <button className="btn btn-accent btn-md" disabled={saving || !amount} onClick={submit}>{saving ? 'Saving…' : 'Record'}</button>
+          <button className="btn btn-accent btn-md" disabled={saving || !amount} onClick={submit}>
+            {saving ? 'Saving…' : 'Record'}
+          </button>
         </>
       }
     >
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
-        <label className="field"><span>Amount (֏)</span><input className="inp inp-md inp-numeric" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
-        <label className="field"><span>Method</span>
+        <label className="field">
+          <span>Amount (֏)</span>
+          <input className="inp inp-md inp-numeric" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Method</span>
           <select className="inp inp-md" value={method} onChange={(e) => setMethod(e.target.value)}>
             <option value="card">Card</option>
             <option value="transfer">Transfer</option>
             <option value="cash">Cash</option>
           </select>
         </label>
-        <label className="field"><span>Note</span><input className="inp inp-md" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" /></label>
+        <label className="field">
+          <span>Note</span>
+          <input className="inp inp-md" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" />
+        </label>
       </div>
     </Modal>
   )

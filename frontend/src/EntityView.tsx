@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
@@ -13,6 +13,7 @@ import ActivityTimeline from './ActivityTimeline'
 import { useI18n } from './i18n'
 import NoAccess from './NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from './capabilities'
+import ViewHead from './ViewHead'
 
 const PAGE_SIZE = 50
 
@@ -443,22 +444,75 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   // B21: workflow column only appears when canEdit; adjust colSpan accordingly
   const colSpan = cols.length + 3 + (hasWorkflow && canEdit ? 1 : 0)
 
+  // Derive a sub-headline for ViewHead: show total count when known, else record count in view
+  const countLabel = total !== null
+    ? `${total.toLocaleString()} ${def.label_plural.toLowerCase()}`
+    : rows.length > 0
+      ? `${rows.length.toLocaleString()} ${def.label_plural.toLowerCase()}`
+      : def.label_plural.toLowerCase()
+
   return (
     <div>
-      <div className="view-head">
-        <h2>{def.label_plural}</h2>
-        {/* B21: show New button only when user can create; always show Close if form is open */}
-        {(formOpen || canCreate) && (
-          <button
-            className={formOpen ? 'btn btn-ghost btn-md' : 'btn btn-primary btn-md'}
-            onClick={() => (formOpen ? closeForm() : openCreate())}
-          >
-            {formOpen ? t('common.close', 'Close') : `+ ${t('common.new', 'New')} ${def.label}`}
-          </button>
-        )}
-      </div>
+      {/* ── Page header ───────────────────────────────────────────── */}
+      <ViewHead
+        icon={<RowsIcon size={20} />}
+        title={def.label_plural}
+        sub={countLabel}
+        actions={
+          <>
+            {/* Export button (ghost, always visible in header when formats are available) */}
+            {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
+              <div className="saved-views" role="group" aria-label={t('export.label', 'Export')}>
+                {exportFormats.csv && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={exporting !== null}
+                    onClick={() => doExport('csv')}
+                    aria-label={t('export.csv', 'Export CSV')}
+                  >
+                    <DownloadIcon size={13} aria-hidden /> CSV
+                  </button>
+                )}
+                {exportFormats.xlsx && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={exporting !== null}
+                    onClick={() => doExport('xlsx')}
+                    aria-label={t('export.xlsx', 'Export XLSX')}
+                  >
+                    <DownloadIcon size={13} aria-hidden /> XLSX
+                  </button>
+                )}
+                {exportFormats.pdf && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={exporting !== null}
+                    onClick={() => doExport('pdf')}
+                    aria-label={t('export.pdf', 'Export PDF')}
+                  >
+                    <DownloadIcon size={13} aria-hidden /> PDF
+                  </button>
+                )}
+              </div>
+            )}
+            {/* B21: New button — only when can create; Close button when form is open */}
+            {formOpen ? (
+              <button className="btn btn-ghost btn-sm" onClick={closeForm}>
+                <CloseIcon size={13} aria-hidden /> {t('common.close', 'Close')}
+              </button>
+            ) : canCreate ? (
+              <button className="btn btn-primary btn-sm" onClick={openCreate}>
+                <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
+              </button>
+            ) : null}
+          </>
+        }
+      />
 
-      {/* B21: read-only hint — shown when none of create/edit/delete is permitted */}
+      {/* B21: read-only hint */}
       {readOnly && (
         <div
           className="readonly-hint"
@@ -484,6 +538,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
 
       {error && !errorField && <p className="err">{error}</p>}
 
+      {/* ── Create / edit form ────────────────────────────────────── */}
       {formOpen && (
         <form className="rec-form" onSubmit={submit}>
           {def.fields.map((f) => (
@@ -500,7 +555,14 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
             />
           ))}
           <div className="rec-form-actions">
-            <button type="submit" className="btn btn-accent btn-md">{mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}</button>
+            <span className="spacer" />
+            <button type="button" className="btn btn-ghost btn-md" onClick={closeForm}>
+              {t('common.cancel', 'Cancel')}
+            </button>
+            <button type="submit" className="btn btn-primary btn-md">
+              <CheckIcon size={14} aria-hidden />
+              {mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}
+            </button>
           </div>
         </form>
       )}
@@ -509,202 +571,231 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
         <EmptyState
           title={`${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
           message={canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
-          action={canCreate ? <button className="btn btn-primary btn-md" onClick={openCreate}>+ {t('common.new', 'New')} {def.label}</button> : undefined}
+          action={canCreate ? (
+            <button className="btn btn-primary btn-md" onClick={openCreate}>
+              <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
+            </button>
+          ) : undefined}
         />
       ) : (
         <>
-      <div className="list-toolbar">
-        <div className="search search-md">
-          <SearchIcon className="search-icon" size={16} />
-          <input
-            className="search-input"
-            placeholder={`Search ${def.label_plural.toLowerCase()}…`}
-            aria-label={`Search ${def.label_plural}`}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          {q && (
-            <button className="search-clear" aria-label="Clear search" onClick={() => setQ('')}>
-              <CloseIcon size={14} />
-            </button>
-          )}
-        </div>
-
-        {viewsAvailable && (
-          <div className="saved-views">
-            <select className="inp inp-sm" aria-label="Saved views" value={activeView} onChange={(e) => applyView(e.target.value)}>
-              <option value="">All records</option>
-              {views.map((v) => <option key={String(v.id)} value={String(v.id)}>{v.name}</option>)}
-            </select>
-            <button className="btn btn-ghost btn-sm" onClick={saveView}>Save view</button>
-          </div>
-        )}
-
-        {/* B25 — export control: CSV always available; XLSX/PDF shown only if probe passes */}
-        {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
-          <div
-            className={'export-group' + (viewsAvailable ? '' : ' export-start')}
-            role="group"
-            aria-label={t('export.label', 'Export')}
-          >
-            <span className="muted export-label">{t('export.label', 'Export')}</span>
-            {exportFormats.csv && (
-              <button
-                type="button"
-                className="export-btn"
-                disabled={exporting !== null}
-                onClick={() => doExport('csv')}
-                aria-label={t('export.csv', 'CSV')}
-              >
-                <DownloadIcon size={12} aria-hidden />
-                {t('export.csv', 'CSV')}
-              </button>
-            )}
-            {exportFormats.xlsx && (
-              <button
-                type="button"
-                className="export-btn"
-                disabled={exporting !== null}
-                onClick={() => doExport('xlsx')}
-                aria-label={t('export.xlsx', 'XLSX')}
-              >
-                <DownloadIcon size={12} aria-hidden />
-                {t('export.xlsx', 'XLSX')}
-              </button>
-            )}
-            {exportFormats.pdf && (
-              <button
-                type="button"
-                className="export-btn"
-                disabled={exporting !== null}
-                onClick={() => doExport('pdf')}
-                aria-label={t('export.pdf', 'PDF')}
-              >
-                <DownloadIcon size={12} aria-hidden />
-                {t('export.pdf', 'PDF')}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {selected.size > 0 && (
-        <div className="bulk-bar">
-          <span className="bulk-count">{selected.size} selected</span>
-          {/* B21: only show transition controls if user can edit */}
-          {canEdit && transitionTargets.length > 0 && (
-            <span className="bulk-move">
-              <select className="inp inp-sm" value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} aria-label="Move to status">
-                <option value="">Move to…</option>
-                {transitionTargets.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
-            </span>
-          )}
-          {/* B21: only show bulk delete if user can delete */}
-          {canDelete && <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>}
-          <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
-        </div>
-      )}
-
-      <div className="grid-wrap">
-      <table className="grid">
-        <thead>
-          <tr>
-            <th className="sel-col" scope="col">
+          {/* ── List toolbar ──────────────────────────────────────── */}
+          <div className="list-toolbar">
+            <div className="search search-md">
+              <SearchIcon className="search-icon" size={14} aria-hidden />
               <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
-                onChange={toggleAll}
-                aria-label="Select all"
+                className="search-input"
+                placeholder={`Search ${def.label_plural.toLowerCase()}…`}
+                aria-label={`Search ${def.label_plural}`}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
               />
-            </th>
-            {cols.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
-            <th scope="col">Status</th>
-            {hasWorkflow && canEdit && <th scope="col">Move to</th>}
-            <th scope="col"><span className="sr-only">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {visibleRows.map((r) => (
-            <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
-              <td className="sel-col"><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" /></td>
-              {cols.map((c) => <td key={c.key}>{renderCell(c, r)}</td>)}
-              <td>{r.status ? <span className="pill">{r.status}</span> : ''}</td>
-              {/* B21: workflow transition column only shown when canEdit (header hidden too) */}
-              {hasWorkflow && canEdit && (
-                <td>
-                  {nextFrom(r.status).map((to) => (
-                    <button key={to} className="btn btn-ghost btn-sm" onClick={() => doTransition(r.id, to)}>
-                      <ArrowRightIcon size={13} /> {to}
-                    </button>
-                  ))}
-                </td>
+              {q && (
+                <button className="search-clear" aria-label="Clear search" onClick={() => setQ('')}>
+                  <CloseIcon size={12} />
+                </button>
               )}
-              <td className="row-actions">
-                {(def.key === 'lead' || def.key === 'customer') && (
-                  <button className="btn btn-ghost btn-sm" aria-label={t('ai.title', 'AI assist')} title={t('ai.title', 'AI assist')} onClick={() => setAiRow(r)}><SparkleIcon size={14} /></button>
-                )}
-                {def.key === 'customer' && onOpenCustomer && (
-                  <button className="btn btn-ghost btn-sm" aria-label={t('cust.openWorkspace', 'Open workspace')} title={t('cust.openWorkspace', 'Open workspace')} onClick={() => onOpenCustomer(r.id)}><UsersIcon size={14} /></button>
-                )}
-                {def.key === 'customer' && (
-                  <button className="btn btn-ghost btn-sm" aria-label="Billing" title="Billing" onClick={() => setBillingRow(r)}><ReceiptIcon size={14} /></button>
-                )}
-                <button className="btn btn-ghost btn-sm" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}><ClockIcon size={14} /></button>
-                <button className="btn btn-ghost btn-sm" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}><MessageIcon size={14} /></button>
-                {/* B21: hide edit/delete when capability missing */}
-                {canEdit && <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)}>{t('common.edit', 'Edit')}</button>}
-                {canDelete && <button className="btn btn-danger btn-sm" onClick={() => doDelete(r)}>{t('common.delete', 'Delete')}</button>}
-              </td>
-            </tr>
-          ))}
-          {!loading && visibleRows.length === 0 && (
-            <tr>
-              <td colSpan={colSpan}>
-                <EmptyState
-                  title={needle
-                    ? t('entity.noMatch', 'No records match your search')
-                    : `${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
-                  message={!needle && canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
-                />
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      </div>
+            </div>
 
-      {/* B22: pager — only shown when X-Total-Count was returned and total > PAGE_SIZE */}
-      {total !== null && total > PAGE_SIZE && (
-        <div className="pager" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
-            disabled={offset === 0 || loading}
-            aria-label={t('pager.prev', 'Previous page')}
-          >
-            <ChevronLeftIcon size={14} />
-            {t('pager.prev', 'Prev')}
-          </button>
-          <span className="pager-info" aria-live="polite">
-            {t('pager.info', '{from}–{to} / {total}')
-              .replace('{from}', String(offset + 1))
-              .replace('{to}', String(Math.min(offset + PAGE_SIZE, total)))
-              .replace('{total}', String(total))}
-          </span>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => goToPage(offset + PAGE_SIZE)}
-            disabled={offset + PAGE_SIZE >= total || loading}
-            aria-label={t('pager.next', 'Next page')}
-          >
-            {t('pager.next', 'Next')}
-            <ChevronRightIcon size={14} />
-          </button>
-        </div>
-      )}
+            {viewsAvailable && (
+              <div className="saved-views">
+                <span className="muted" style={{ fontSize: 12 }}>View:</span>
+                <select
+                  className="inp inp-sm"
+                  style={{ width: 160 }}
+                  aria-label="Saved views"
+                  value={activeView}
+                  onChange={(e) => applyView(e.target.value)}
+                >
+                  <option value="">All records</option>
+                  {views.map((v) => (
+                    <option key={String(v.id)} value={String(v.id)}>{v.name}</option>
+                  ))}
+                </select>
+                <button className="btn btn-ghost btn-sm" onClick={saveView}>
+                  Save view
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Bulk action bar ───────────────────────────────────── */}
+          {selected.size > 0 && (
+            <div className="bulk-bar">
+              <span className="bulk-count">{selected.size} selected</span>
+              {/* B21: only show transition controls if user can edit */}
+              {canEdit && transitionTargets.length > 0 && (
+                <span className="bulk-move">
+                  <select className="inp inp-sm" value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} aria-label="Move to status">
+                    <option value="">Move to…</option>
+                    {transitionTargets.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
+                </span>
+              )}
+              {/* B21: only show bulk delete if user can delete */}
+              {canDelete && (
+                <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+            </div>
+          )}
+
+          {/* ── Records grid ──────────────────────────────────────── */}
+          <div className="grid-wrap">
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th className="sel-col" scope="col">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
+                      onChange={toggleAll}
+                      aria-label="Select all"
+                    />
+                  </th>
+                  {cols.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+                  <th scope="col">Status</th>
+                  {hasWorkflow && canEdit && <th scope="col">Move to</th>}
+                  <th scope="col"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRows.map((r) => (
+                  <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
+                    <td className="sel-col">
+                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" />
+                    </td>
+                    {cols.map((c, ci) => (
+                      <td key={c.key}>
+                        {ci === 0 ? (
+                          /* First data column gets the row-link + cell-meta treatment */
+                          <>
+                            <button
+                              className="row-link"
+                              onClick={() => openEdit(r)}
+                              disabled={!canEdit}
+                              style={canEdit ? undefined : { cursor: 'default', pointerEvents: 'none' }}
+                            >
+                              {renderCell(c, r) || <span className="muted">—</span>}
+                            </button>
+                            {/* Show second non-status field as cell-meta if it exists */}
+                            {cols[1] && (
+                              <div className="cell-meta">
+                                {String(cellValue(cols[1], r) ?? '')}
+                              </div>
+                            )}
+                          </>
+                        ) : ci === 1 ? (
+                          /* Second column is already inlined as cell-meta above — skip rendering standalone */
+                          null
+                        ) : (
+                          renderCell(c, r)
+                        )}
+                      </td>
+                    ))}
+                    <td>
+                      {r.status ? (
+                        <span className={`pill ${statusPillVariant(r.status)}`}>
+                          <span className="pill-dot" />
+                          {r.status}
+                        </span>
+                      ) : ''}
+                    </td>
+                    {/* B21: workflow transition column only shown when canEdit */}
+                    {hasWorkflow && canEdit && (
+                      <td>
+                        {nextFrom(r.status).map((to) => (
+                          <button key={to} className="btn btn-ghost btn-sm" onClick={() => doTransition(r.id, to)}>
+                            <ArrowRightIcon size={13} aria-hidden /> {to}
+                          </button>
+                        ))}
+                      </td>
+                    )}
+                    <td>
+                      <div className="row-actions">
+                        {(def.key === 'lead' || def.key === 'customer') && (
+                          <button className="iconbtn" aria-label={t('ai.title', 'AI assist')} title={t('ai.title', 'AI assist')} onClick={() => setAiRow(r)}>
+                            <SparkleIcon size={14} />
+                          </button>
+                        )}
+                        {def.key === 'customer' && onOpenCustomer && (
+                          <button className="iconbtn" aria-label={t('cust.openWorkspace', 'Open workspace')} title={t('cust.openWorkspace', 'Open workspace')} onClick={() => onOpenCustomer(r.id)}>
+                            <UsersIcon size={14} />
+                          </button>
+                        )}
+                        {def.key === 'customer' && (
+                          <button className="iconbtn" aria-label="Billing" title="Billing" onClick={() => setBillingRow(r)}>
+                            <ReceiptIcon size={14} />
+                          </button>
+                        )}
+                        <button className="iconbtn" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}>
+                          <ClockIcon size={14} />
+                        </button>
+                        <button className="iconbtn" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}>
+                          <MessageIcon size={14} />
+                        </button>
+                        {/* B21: hide edit/delete when capability missing */}
+                        {canEdit && (
+                          <button className="iconbtn" aria-label={t('common.edit', 'Edit')} title={t('common.edit', 'Edit')} onClick={() => openEdit(r)}>
+                            <ArrowRightIcon size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button className="iconbtn" style={{ color: 'var(--danger)' }} aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')} onClick={() => doDelete(r)}>
+                            <CloseIcon size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && visibleRows.length === 0 && (
+                  <tr>
+                    <td colSpan={colSpan}>
+                      <EmptyState
+                        title={needle
+                          ? t('entity.noMatch', 'No records match your search')
+                          : `${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
+                        message={!needle && canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* B22: pager — only shown when X-Total-Count was returned and total > PAGE_SIZE */}
+          {total !== null && total > PAGE_SIZE && (
+            <div className="pager" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
+                disabled={offset === 0 || loading}
+                aria-label={t('pager.prev', 'Previous page')}
+              >
+                <ChevronLeftIcon size={14} />
+                {t('pager.prev', 'Prev')}
+              </button>
+              <span className="pager-info" aria-live="polite">
+                {t('pager.info', '{from}–{to} / {total}')
+                  .replace('{from}', String(offset + 1))
+                  .replace('{to}', String(Math.min(offset + PAGE_SIZE, total)))
+                  .replace('{total}', String(total))}
+              </span>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => goToPage(offset + PAGE_SIZE)}
+                disabled={offset + PAGE_SIZE >= total || loading}
+                aria-label={t('pager.next', 'Next page')}
+              >
+                {t('pager.next', 'Next')}
+                <ChevronRightIcon size={14} />
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -744,6 +835,18 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       )}
     </div>
   )
+}
+
+// Map a status string to a pill CSS variant.
+// Well-known semantic statuses → colours; unknown → neutral pill.
+function statusPillVariant(status: string): string {
+  const s = status.toLowerCase()
+  if (['active', 'paid', 'done', 'won', 'completed', 'resolved'].includes(s)) return 'pill-success'
+  if (['suspended', 'blocked', 'warning', 'on_hold', 'on hold'].includes(s)) return 'pill-warning'
+  if (['cancelled', 'canceled', 'churned', 'lost', 'void', 'failed', 'rejected'].includes(s)) return 'pill-danger'
+  if (['prospect', 'pending', 'new', 'open', 'sent', 'draft', 'qualified'].includes(s)) return 'pill-primary'
+  if (['in_progress', 'in progress', 'negotiation', 'processing'].includes(s)) return 'pill-accent'
+  return 'pill-muted'
 }
 
 function FieldInput({ field, value, onChange, token, mode, currentStatus, errorField, errorMsg }: {

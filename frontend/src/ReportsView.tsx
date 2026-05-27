@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from './States'
+import { DownloadIcon } from './icons'
+import ViewHead from './ViewHead'
 
 // Reports view — consumes the Reports API (Task A). Self-contained: inlines its own
 // fetch calls (same base + Authorization pattern as api.ts) and does NOT touch the shared api.ts.
@@ -85,68 +87,53 @@ export default function ReportsView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head"><h2>Reports</h2></div>
+      <ViewHead icon={<DownloadIcon size={20} />} title="Reports" />
 
       {error && <ErrorBanner message={error} onRetry={loadSummary} />}
 
       {!error && (
         <>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+          <div className="widgets">
             {summary.map((s) => (
               <button
                 key={s.entity_key}
                 onClick={() => openEntity(s.route_slug)}
+                className="widget"
                 style={{
-                  background: 'var(--surface)',
-                  color: 'var(--text)',
-                  border: '1px solid ' + (selected === s.route_slug ? 'var(--primary)' : 'var(--border)'),
-                  borderRadius: 10,
-                  padding: '14px 18px',
-                  minWidth: 130,
-                  textAlign: 'left',
-                  boxShadow: 'var(--shadow)',
+                  background: selected === s.route_slug ? 'var(--surface-2)' : 'var(--surface)',
+                  border: '1px solid ' + (selected === s.route_slug ? 'var(--accent)' : 'var(--border)'),
                   cursor: 'pointer',
+                  textAlign: 'left',
                 }}
               >
-                <div className="muted" style={{ marginBottom: 6 }}>{s.label_plural}</div>
-                <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{s.count}</div>
+                <div className="widget-label">{s.label_plural}</div>
+                <div className="kpi">{s.count}</div>
               </button>
             ))}
             {summary.length === 0 && <EmptyState title="No entities to report on yet." message="Configure entity types in Studio to see reports here." />}
           </div>
 
           {selected && (
-            <div>
-              <div className="view-head"><h2 style={{ fontSize: 18 }}>{selectedLabel} · by status</h2></div>
+            <div style={{ marginTop: 20 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, marginTop: 0 }}>{selectedLabel} · by status</h3>
               {statusLoading && <LoadingState />}
               {statusError && <ErrorBanner message={statusError} />}
               {!statusLoading && !statusError && (
-                <div className="grid-wrap"><table className="grid">
-                  <thead>
-                    <tr><th scope="col">Status</th><th scope="col">Count</th><th scope="col" style={{ width: '50%' }}>Share</th></tr>
-                  </thead>
-                  <tbody>
-                    {byStatus.map((s) => (
-                      <tr key={s.status}>
-                        <td>{s.status ? <span className="pill">{s.status}</span> : <span className="muted">—</span>}</td>
-                        <td>{s.count}</td>
-                        <td>
-                          <div style={{ background: 'var(--surface-2)', borderRadius: 999, height: 10, width: '100%' }}>
-                            <div style={{
-                              background: 'var(--primary)',
-                              borderRadius: 999,
-                              height: 10,
-                              width: (maxCount > 0 ? (s.count / maxCount) * 100 : 0) + '%',
-                            }} />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {byStatus.length === 0 && (
-                      <tr><td colSpan={3} className="muted">No records yet.</td></tr>
-                    )}
-                  </tbody>
-                </table></div>
+                <div className="bars">
+                  {byStatus.length > 0 ? (
+                    byStatus.map((s) => (
+                      <div key={s.status} className="bar-row">
+                        <span className="bar-label">{s.status ? <span className="pill">{s.status}</span> : <span className="muted">—</span>}</span>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: (maxCount > 0 ? (s.count / maxCount) * 100 : 0) + '%' }} />
+                        </div>
+                        <span className="bar-val">{s.count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="muted">No records yet.</p>
+                  )}
+                </div>
               )}
             </div>
           )}

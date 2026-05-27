@@ -653,6 +653,9 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   padding-top: 12px; border-top: 1px solid var(--border-soft);
   font-size: 11px; color: var(--text-3);
 }
+.widget-kpi {
+  min-height: auto;
+}
 .kpi {
   font-size: 38px;
   font-weight: var(--fw-bold);
@@ -664,6 +667,13 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 }
 .kpi-sub { font-size: 12px; color: var(--text-3); margin-top: 6px; }
 .kpi-cur { font-size: 18px; color: var(--accent); margin-right: 4px; opacity: 0.7; }
+.kpi-delta {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-family: var(--font-mono);
+  margin-top: 6px;
+}
+.kpi-delta.pos { color: var(--success); }
+.kpi-delta.neg { color: var(--danger); }
 
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar-row {
@@ -694,6 +704,14 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .legend-name { color: var(--text-2); }
 .legend-val { color: var(--text); font-family: var(--font-mono); margin-left: auto; }
+
+/* Trend chart */
+.trend { display: flex; align-items: flex-end; gap: 12px; height: 160px; margin-bottom: 10px; }
+.trend-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.trend-bars { display: flex; align-items: flex-end; gap: 3px; height: 100%; }
+.trend-bar { flex: 1; border-radius: 2px; min-width: 6px; }
+.trend-x { font-size: 11px; color: var(--text-3); text-align: center; }
+.trend-legend { margin-top: 12px; }
 
 /* Activity timeline */
 .timeline { position: relative; padding-left: 18px; }
@@ -1447,3 +1465,6 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 .lang-opt { background: transparent; color: var(--text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--fw-medium); cursor: pointer; }
 .lang-opt:hover { background: var(--surface-2); color: var(--text); }
 .lang-opt.on { background: var(--primary-soft); color: var(--text); }
+
+.capitalize { text-transform: capitalize; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
