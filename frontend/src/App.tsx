@@ -32,17 +32,50 @@ import WorkItemsView from './WorkItemsView'
 import CalendarView from './CalendarView'
 import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
+import { NAV_SECTIONS, type NavItemDef } from './nav-config'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon, CreditCardIcon, CalendarIcon,
-  SparkleIcon, ServerIcon, ChartIcon, BookmarkIcon, MessageIcon, ClockIcon, EditIcon, UsersIcon, BuildingIcon,
-  ReceiptIcon, ArchiveIcon, InboxIcon, MailIcon, ChevronRightIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon,
+  SparkleIcon, ChevronRightIcon, ServerIcon } from './icons'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
-type View = { type: 'org' } | { type: 'entity'; slug: string } | { type: 'studio' } | { type: 'reports' } | { type: 'dashboards' } | { type: 'messages' } | { type: 'activity' } | { type: 'invoices' } | { type: 'payments' } | { type: 'subscriptions' } | { type: 'products' } | { type: 'usage' } | { type: 'report-builder' } | { type: 'outbound' } | { type: 'webhooks' } | { type: 'services' } | { type: 'interactions' } | { type: 'resource-pools' } | { type: 'accounts' } | { type: 'parties' } | { type: 'analytics' } | { type: 'lead-pipeline' } | { type: 'customer'; id: string } | { type: 'ask' } | { type: 'settings' } | { type: 'calendar' } | { type: 'helpdesk' } | { type: 'workitems' } | { type: 'gateway' }
+type View =
+  | { type: 'org' }
+  | { type: 'entity'; slug: string }
+  | { type: 'studio' }
+  | { type: 'reports' }
+  | { type: 'dashboards' }
+  | { type: 'messages' }
+  | { type: 'activity' }
+  | { type: 'invoices' }
+  | { type: 'payments' }
+  | { type: 'subscriptions' }
+  | { type: 'products' }
+  | { type: 'usage' }
+  | { type: 'report-builder' }
+  | { type: 'outbound' }
+  | { type: 'webhooks' }
+  | { type: 'services' }
+  | { type: 'interactions' }
+  | { type: 'resource-pools' }
+  | { type: 'accounts' }
+  | { type: 'parties' }
+  | { type: 'analytics' }
+  | { type: 'lead-pipeline' }
+  | { type: 'customer'; id: string }
+  | { type: 'ask' }
+  | { type: 'settings' }
+  | { type: 'calendar' }
+  | { type: 'helpdesk' }
+  | { type: 'workitems' }
+  | { type: 'gateway' }
+  | { type: 'module-stub'; moduleId: string; moduleLabel: string }
+
+// Entity slugs that have dedicated nav-config items; others surface as extra Records
+const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users'])
 
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
@@ -50,27 +83,59 @@ export default function App() {
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
-  const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })   // where the customer workspace returns to
-  // B21: capabilities fetched once after login; degrades to FULL_ACCESS if E21 isn't live
+  const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
   const [capabilities, setCapabilities] = useState<Capabilities>(FULL_ACCESS)
 
-  // Open the single-customer workspace, remembering where to go "back" to.
   function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [navOpen, setNavOpen] = useState(false)   // off-canvas sidebar on narrow widths
-  const [wizardOpen, setWizardOpen] = useState(false)   // "Stand up a new ISP" (login screen)
-  const [nudge, setNudge] = useState(false)             // first-run "finish setting up" banner
+  const [navOpen, setNavOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const [nudge, setNudge] = useState(false)
   const { t, lang, setLang } = useI18n()
 
-  // (re)load translation strings for the current language whenever auth changes
+  // Collapsible nav section state — pre-open sections marked defaultOpen in nav-config
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    () => new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)),
+  )
+
+  function toggleSection(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setOpenSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function navItemClick(item: NavItemDef, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!item.viewType) {
+      setView({ type: 'module-stub', moduleId: item.id, moduleLabel: item.label })
+      return
+    }
+    if (item.viewType === 'entity') {
+      setView({ type: 'entity', slug: item.viewArgs!.slug })
+      return
+    }
+    setView({ type: item.viewType } as View)
+  }
+
+  function isItemActive(item: NavItemDef): boolean {
+    if (!item.viewType) {
+      return view.type === 'module-stub' && (view as { type: 'module-stub'; moduleId: string }).moduleId === item.id
+    }
+    if (item.viewType === 'entity') {
+      return view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === item.viewArgs?.slug
+    }
+    return view.type === item.viewType
+  }
+
   useEffect(() => { initI18n(token) }, [token])
 
-  // First-run nudge: if the tenant reports onboarded:false, surface a dismissible banner. Best-effort
-  // (degrades silently if E19 settings aren't available yet).
   useEffect(() => {
     if (!token) { setNudge(false); return }
     bget<{ onboarded?: boolean }>(token, '/api/tenant/settings')
@@ -79,12 +144,11 @@ export default function App() {
   }, [token])
 
   function finishSetup() {
-    if (token) bpost(token, '/api/tenant/onboarded', {}).catch(() => {})   // mark done so it won't nag again
+    if (token) bpost(token, '/api/tenant/onboarded', {}).catch(() => {})
     setNudge(false)
     setView({ type: 'settings' })
   }
 
-  // ⌘K / Ctrl-K opens the command palette (once signed in)
   useEffect(() => {
     if (!token) return
     function onKey(e: KeyboardEvent) {
@@ -94,7 +158,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [token])
 
-  // Theme: dark is the default (:root); light is the [data-theme="light"] override. Persisted.
   const [theme, setTheme] = useState<'dark' | 'light'>(
     () => (localStorage.getItem('gaaex-theme') === 'light' ? 'light' : 'dark'),
   )
@@ -103,7 +166,6 @@ export default function App() {
     localStorage.setItem('gaaex-theme', theme)
   }, [theme])
 
-  // Density: 'comfortable' (default) | 'compact' — an axis separate from component sizes. Persisted.
   const [density, setDensity] = useState<'comfortable' | 'compact'>(
     () => (localStorage.getItem('gaaex-density') === 'compact' ? 'compact' : 'comfortable'),
   )
@@ -112,8 +174,6 @@ export default function App() {
     localStorage.setItem('gaaex-density', density)
   }, [density])
 
-  // Palette: 'default' (the :root dark) | 'midnight' | 'forest' | 'slate' — [data-palette] overrides.
-  // 'default' removes the attribute so :root wins. Persisted.
   const [palette, setPalette] = useState<string>(
     () => localStorage.getItem('gaaex-palette') || 'default',
   )
@@ -132,7 +192,6 @@ export default function App() {
       setUser(await me(t))
       setEntities(await getEntities(t))
       setOrgNodes((await orgTree()).nodes)
-      // B21: fetch capabilities once; degrades gracefully on 404 (E21 sibling lane)
       fetchCapabilities(t).then(setCapabilities).catch(() => setCapabilities(FULL_ACCESS))
     } catch (err) {
       setError((err as Error).message)
@@ -163,6 +222,15 @@ export default function App() {
     )
   }
 
+  // Entities not covered by built-in nav items (Studio-created custom entities)
+  const extraEntities = entities.filter((e) => !BUILTIN_ENTITY_SLUGS.has(e.route_slug))
+
+  const breadcrumbLabel = view.type === 'entity'
+    ? (view as { type: 'entity'; slug: string }).slug
+    : view.type === 'module-stub'
+      ? (view as { type: 'module-stub'; moduleLabel: string }).moduleLabel
+      : view.type
+
   return (
     <div className="shell">
       <a href="#main-content" className="skip-link">Skip to content</a>
@@ -172,55 +240,55 @@ export default function App() {
           <div className="sidebar-logo">GA</div>
           <div className="sidebar-brand-name">GAAex<small>ISP Platform</small></div>
         </div>
+
         <nav className="sidebar-scroll">
-        <div className="nav-label"><span>{t('nav.workspace', 'Workspace')}</span><span className="nav-label-dot" /></div>
-        <button className={'nav' + (view.type === 'ask' ? ' on' : '')} onClick={() => setView({ type: 'ask' })}><SparkleIcon className="nav-icon" size={16} /><span>{t('nav.ask', 'Ask GAAex')}</span></button>
-        <button className={'nav' + (view.type === 'org' ? ' on' : '')} onClick={() => setView({ type: 'org' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.org', 'Org tree')}</span></button>
-        <button className={'nav' + (view.type === 'dashboards' ? ' on' : '')} onClick={() => setView({ type: 'dashboards' })}><RowsIcon className="nav-icon" size={16} /><span>{t('nav.dashboards', 'Dashboards')}</span></button>
-        <button className={'nav' + (view.type === 'analytics' ? ' on' : '')} onClick={() => setView({ type: 'analytics' })}><ChartIcon className="nav-icon" size={16} /><span>{t('nav.analytics', 'Analytics')}</span></button>
-        <button className={'nav' + (view.type === 'reports' ? ' on' : '')} onClick={() => setView({ type: 'reports' })}><BookmarkIcon className="nav-icon" size={16} /><span>{t('nav.reports', 'Reports')}</span></button>
-        <button className={'nav' + (view.type === 'messages' ? ' on' : '')} onClick={() => setView({ type: 'messages' })}><MessageIcon className="nav-icon" size={16} /><span>{t('nav.messages', 'Messages')}</span></button>
-        <button className={'nav' + (view.type === 'activity' ? ' on' : '')} onClick={() => setView({ type: 'activity' })}><ClockIcon className="nav-icon" size={16} /><span>{t('nav.activity', 'Activity')}</span></button>
-        <button className={'nav' + (view.type === 'calendar' ? ' on' : '')} onClick={() => setView({ type: 'calendar' })}><CalendarIcon className="nav-icon" size={16} /><span>Calendar</span></button>
-        <button className={'nav' + (view.type === 'report-builder' ? ' on' : '')} onClick={() => setView({ type: 'report-builder' })}><EditIcon className="nav-icon" size={16} /><span>{t('nav.reportBuilder', 'Report Builder')}</span></button>
-        <button className={'nav' + (view.type === 'settings' ? ' on' : '')} onClick={() => setView({ type: 'settings' })}><GearIcon className="nav-icon" size={16} /><span>{t('nav.settings', 'Settings')}</span></button>
-        <div className="nav-label"><span>{t('nav.customers', 'Customers')}</span><span className="nav-label-dot" /></div>
-        <button className={'nav' + (view.type === 'lead-pipeline' ? ' on' : '')} onClick={() => setView({ type: 'lead-pipeline' })}><UsersIcon className="nav-icon" size={16} /><span>{t('nav.leadPipeline', 'Lead Pipeline')}</span></button>
-        <button className={'nav' + (view.type === 'accounts' ? ' on' : '')} onClick={() => setView({ type: 'accounts' })}><BuildingIcon className="nav-icon" size={16} /><span>{t('nav.accounts', 'Accounts')}</span></button>
-        <button className={'nav' + (view.type === 'parties' ? ' on' : '')} onClick={() => setView({ type: 'parties' })}><UsersIcon className="nav-icon" size={16} /><span>{t('nav.parties', 'Parties')}</span></button>
-        <div className="nav-label"><span>{t('nav.billing', 'Billing')}</span><span className="nav-label-dot" /></div>
-        <button className={'nav' + (view.type === 'invoices' ? ' on' : '')} onClick={() => setView({ type: 'invoices' })}><ReceiptIcon className="nav-icon" size={16} /><span>{t('nav.invoices', 'Invoices')}</span></button>
-        <button className={'nav' + (view.type === 'payments' ? ' on' : '')} onClick={() => setView({ type: 'payments' })}><CreditCardIcon className="nav-icon" size={16} /><span>{t('nav.payments', 'Payments')}</span></button>
-        <button className={'nav' + (view.type === 'gateway' ? ' on' : '')} onClick={() => setView({ type: 'gateway' })}><CreditCardIcon className="nav-icon" size={16} /><span>{t('nav.gateway', 'Pay Gateway')}</span></button>
-        <button className={'nav' + (view.type === 'subscriptions' ? ' on' : '')} onClick={() => setView({ type: 'subscriptions' })}><ArchiveIcon className="nav-icon" size={16} /><span>{t('nav.subscriptions', 'Subscriptions')}</span></button>
-        <button className={'nav' + (view.type === 'products' ? ' on' : '')} onClick={() => setView({ type: 'products' })}><ArchiveIcon className="nav-icon" size={16} /><span>{t('nav.products', 'Products')}</span></button>
-        <button className={'nav' + (view.type === 'usage' ? ' on' : '')} onClick={() => setView({ type: 'usage' })}><ChartIcon className="nav-icon" size={16} /><span>{t('nav.usage', 'Usage')}</span></button>
-        <div className="nav-label"><span>{t('nav.service', 'Service')}</span><span className="nav-label-dot" /></div>
-        <button className={'nav' + (view.type === 'services' ? ' on' : '')} onClick={() => setView({ type: 'services' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.services', 'Services')}</span></button>
-        <button className={'nav' + (view.type === 'interactions' ? ' on' : '')} onClick={() => setView({ type: 'interactions' })}><MessageIcon className="nav-icon" size={16} /><span>{t('nav.interactions', 'Interactions')}</span></button>
-        <div className="nav-label"><span>Support</span><span className="nav-label-dot" /></div>
-        <button className={'nav' + (view.type === 'helpdesk' ? ' on' : '')} onClick={() => setView({ type: 'helpdesk' })}><InboxIcon className="nav-icon" size={16} /><span>Helpdesk</span></button>
-        <button className={'nav' + (view.type === 'workitems' ? ' on' : '')} onClick={() => setView({ type: 'workitems' })}><RowsIcon className="nav-icon" size={16} /><span>Work Items</span></button>
-        <div className="nav-label"><span>{t('nav.records', 'Records')}</span><span className="nav-label-dot" /></div>
-        {entities.map((en) => (
-          <button
-            key={en.key}
-            className={'nav' + (view.type === 'entity' && view.slug === en.route_slug ? ' on' : '')}
-            onClick={() => setView({ type: 'entity', slug: en.route_slug })}
-          >
-            <RowsIcon className="nav-icon" size={16} /><span>{en.label_plural}</span>
-          </button>
-        ))}
-        {user?.can_configure && (
-          <>
-            <div className="nav-label"><span>{t('nav.admin', 'Admin')}</span><span className="nav-label-dot" /></div>
-            <button className={'nav' + (view.type === 'studio' ? ' on' : '')} onClick={() => setView({ type: 'studio' })}><GearIcon className="nav-icon" size={16} /><span>{t('nav.studio', 'Studio')}</span></button>
-            <button className={'nav' + (view.type === 'outbound' ? ' on' : '')} onClick={() => setView({ type: 'outbound' })}><MailIcon className="nav-icon" size={16} /><span>{t('nav.outbound', 'Outbound')}</span></button>
-            <button className={'nav' + (view.type === 'webhooks' ? ' on' : '')} onClick={() => setView({ type: 'webhooks' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.webhooks', 'Webhooks')}</span></button>
-            <button className={'nav' + (view.type === 'resource-pools' ? ' on' : '')} onClick={() => setView({ type: 'resource-pools' })}><ServerIcon className="nav-icon" size={16} /><span>{t('nav.resourcePools', 'Resource Pools')}</span></button>
-          </>
-        )}
+          {NAV_SECTIONS.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
+            const isOpen = openSections.has(sec.id)
+            return (
+              <div key={sec.id} className="nav-section">
+                <button
+                  className={'nav-section-header' + (isOpen ? ' open' : '')}
+                  onClick={(e) => toggleSection(sec.id, e)}
+                  aria-expanded={isOpen}
+                >
+                  <sec.icon size={13} className="nav-section-icon" />
+                  <span>{sec.label}</span>
+                  <ChevronRightIcon size={11} className="nav-section-chevron" />
+                </button>
+                {isOpen && (
+                  <div className="nav-section-items">
+                    {sec.items.map((item) => (
+                      <button
+                        key={item.id}
+                        className={'nav nav-sub' + (isItemActive(item) ? ' on' : '')}
+                        onClick={(e) => navItemClick(item, e)}
+                      >
+                        <item.icon size={13} className="nav-icon" />
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {extraEntities.length > 0 && (
+            <>
+              <div className="nav-label"><span>Records</span><span className="nav-label-dot" /></div>
+              {extraEntities.map((en) => (
+                <button
+                  key={en.key}
+                  className={'nav' + (view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === en.route_slug ? ' on' : '')}
+                  onClick={() => setView({ type: 'entity', slug: en.route_slug })}
+                >
+                  <RowsIcon className="nav-icon" size={14} /><span>{en.label_plural}</span>
+                </button>
+              ))}
+            </>
+          )}
         </nav>
+
         <div className="sidebar-tenant">
           <div className="sidebar-tenant-avatar">{(user?.name || 'G').slice(0, 1).toUpperCase()}</div>
           <div style={{ minWidth: 0 }}>
@@ -237,7 +305,7 @@ export default function App() {
             <span style={{ color: 'var(--text-3)' }}>GAAex</span>
             <ChevronRightIcon size={14} className="header-bcrumb-sep" />
             <span className="header-bcrumb-cur">
-              {(view.type === 'entity' ? view.slug : view.type).replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+              {breadcrumbLabel.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
             </span>
           </div>
           <div className="header-right">
@@ -314,63 +382,65 @@ export default function App() {
             </div>
           )}
           <ErrorBoundary>
-          {view.type === 'org'
-            ? <OrgTreeView nodes={orgNodes} />
-            : view.type === 'dashboards'
-              ? <DashboardView token={token} />
-            : view.type === 'analytics'
-              ? <AnalyticsView token={token} />
-            : view.type === 'lead-pipeline'
-              ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} />
-            : view.type === 'customer'
-              ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} />
-            : view.type === 'ask'
-              ? <AskGaaexView token={token} />
+            {view.type === 'org'
+              ? <OrgTreeView nodes={orgNodes} />
+              : view.type === 'dashboards'
+                ? <DashboardView token={token} />
+              : view.type === 'analytics'
+                ? <AnalyticsView token={token} />
+              : view.type === 'lead-pipeline'
+                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} />
+              : view.type === 'customer'
+                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} />
+              : view.type === 'ask'
+                ? <AskGaaexView token={token} />
               : view.type === 'messages'
                 ? <MessagesView token={token} />
-                : view.type === 'activity'
-                  ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
-                : view.type === 'invoices'
-                  ? <InvoicesView token={token} canConfigure={!!user?.can_configure} />
-                : view.type === 'payments'
-                  ? <PaymentsView token={token} />
-                : view.type === 'gateway'
-                  ? <PaymentGatewayView token={token} />
-                : view.type === 'subscriptions'
-                  ? <SubscriptionsView token={token} />
-                : view.type === 'products'
-                  ? <ProductsView token={token} />
-                : view.type === 'report-builder'
-                  ? <ReportBuilderView token={token} entities={entities} />
-                : view.type === 'outbound'
-                  ? <OutboundView token={token} />
-                : view.type === 'webhooks'
-                  ? <WebhooksView token={token} />
-                : view.type === 'services'
-                  ? <ServicesView token={token} />
-                : view.type === 'interactions'
-                  ? <InteractionsView token={token} />
-                : view.type === 'usage'
-                  ? <UsageView token={token} />
-                : view.type === 'resource-pools'
-                  ? <ResourcePoolsView token={token} />
-                : view.type === 'accounts'
-                  ? <AccountsView token={token} />
-                : view.type === 'parties'
-                  ? <PartiesView token={token} />
-                : view.type === 'helpdesk'
-                  ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} />
-                : view.type === 'workitems'
-                  ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} />
-                : view.type === 'calendar'
-                  ? <CalendarView token={token} />
-                : view.type === 'settings'
-                  ? <SettingsView token={token} onSaved={() => setNudge(false)} />
-                : view.type === 'reports'
-                  ? <ReportsView token={token} />
-                  : view.type === 'studio'
-                    ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
-                    : <EntityView token={token} slug={view.slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
+              : view.type === 'activity'
+                ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
+              : view.type === 'invoices'
+                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} />
+              : view.type === 'payments'
+                ? <PaymentsView token={token} />
+              : view.type === 'gateway'
+                ? <PaymentGatewayView token={token} />
+              : view.type === 'subscriptions'
+                ? <SubscriptionsView token={token} />
+              : view.type === 'products'
+                ? <ProductsView token={token} />
+              : view.type === 'report-builder'
+                ? <ReportBuilderView token={token} entities={entities} />
+              : view.type === 'outbound'
+                ? <OutboundView token={token} />
+              : view.type === 'webhooks'
+                ? <WebhooksView token={token} />
+              : view.type === 'services'
+                ? <ServicesView token={token} />
+              : view.type === 'interactions'
+                ? <InteractionsView token={token} />
+              : view.type === 'usage'
+                ? <UsageView token={token} />
+              : view.type === 'resource-pools'
+                ? <ResourcePoolsView token={token} />
+              : view.type === 'accounts'
+                ? <AccountsView token={token} />
+              : view.type === 'parties'
+                ? <PartiesView token={token} />
+              : view.type === 'helpdesk'
+                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} />
+              : view.type === 'workitems'
+                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} />
+              : view.type === 'calendar'
+                ? <CalendarView token={token} />
+              : view.type === 'settings'
+                ? <SettingsView token={token} onSaved={() => setNudge(false)} />
+              : view.type === 'reports'
+                ? <ReportsView token={token} />
+              : view.type === 'studio'
+                ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
+              : view.type === 'module-stub'
+                ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
+              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
           </ErrorBoundary>
         </main>
       </div>
@@ -400,6 +470,26 @@ function OrgTreeView({ nodes }: { nodes: OrgNode[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLabel: string }) {
+  return (
+    <div>
+      <div className="view-head">
+        <div className="view-icon"><ServerIcon size={20} /></div>
+        <div className="view-title-wrap">
+          <h2>{moduleLabel}</h2>
+          <span className="view-sub">Module · coming soon</span>
+        </div>
+      </div>
+      <div style={{ marginTop: 40, textAlign: 'center', color: 'var(--text-3)' }}>
+        <div style={{ fontSize: 13, marginBottom: 6 }}>
+          <strong style={{ color: 'var(--text-2)' }}>{moduleLabel}</strong> is not yet enabled for this tenant.
+        </div>
+        <div style={{ fontSize: 12 }}>Module ID: <code style={{ fontFamily: 'monospace' }}>{moduleId}</code></div>
+      </div>
     </div>
   )
 }

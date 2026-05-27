@@ -336,6 +336,24 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 }
 .nav-label-dot { width: 4px; height: 4px; background: var(--accent); border-radius: 999px; opacity: 0.5; }
 
+/* Collapsible nav sections */
+.nav-section { margin-bottom: 1px; }
+.nav-section-header {
+  display: flex; align-items: center; gap: 7px;
+  width: 100%; padding: 6px 8px;
+  background: none; border: none; cursor: pointer;
+  color: var(--sidebar-label); font-size: 11px; font-weight: var(--fw-medium);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: var(--r-sm, 4px); transition: color 0.15s, background 0.15s;
+  user-select: none;
+}
+.nav-section-header:hover { color: var(--sidebar-fg); background: var(--sidebar-hover); }
+.nav-section-icon { flex-shrink: 0; opacity: 0.7; }
+.nav-section-chevron { margin-left: auto; flex-shrink: 0; transition: transform 0.2s; }
+.nav-section-header.open .nav-section-chevron { transform: rotate(90deg); }
+.nav-section-items { padding-bottom: 2px; }
+.nav.nav-sub { padding-left: 22px; font-size: 12.5px; }
+
 /* ===================== CONTENT ===================== */
 .content {
   display: flex;
