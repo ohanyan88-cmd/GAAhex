@@ -177,6 +177,10 @@ async def build_access_config(s, tenant_id) -> dict:
     for verb, vl in (("view", "View"), ("collect", "Collect")):
         s.add(PermissionDef(tenant_id=tenant_id, key=f"payment_order.{verb}", label=f"{vl} payment order", group="payments"))
 
+    # Self-service "My Requests" catalog — every user (all roles) can CRUD their own requests.
+    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+        s.add(PermissionDef(tenant_id=tenant_id, key=f"request.{verb}", label=f"{vl} request", group="request"))
+
     def perms(entities, verbs):
         return [f"{e}.{v}" for e in entities for v in verbs]
 
@@ -184,14 +188,15 @@ async def build_access_config(s, tenant_id) -> dict:
                       "helpdesk_ticket.delete", "helpdesk_queue.view", "helpdesk_queue.manage"]
     _workitem_full = ["workitem.view", "workitem.create", "workitem.edit", "workitem.delete"]
     _payment_order_perms = ["payment_order.view", "payment_order.collect"]
+    _request_perms = ["request.view", "request.create", "request.edit", "request.delete"]
     super_admin = RoleDef(tenant_id=tenant_id, key="super_admin", label="Super Admin", permissions=["*"], scope="tenant")
     manager = RoleDef(tenant_id=tenant_id, key="manager", label="Manager", scope="subtree",
-                      permissions=perms(crm, ["view", "create", "edit", "delete"]) + _helpdesk_full + _workitem_full + _payment_order_perms)
+                      permissions=perms(crm, ["view", "create", "edit", "delete"]) + _helpdesk_full + _workitem_full + _payment_order_perms + _request_perms)
     sales_agent = RoleDef(tenant_id=tenant_id, key="sales_agent", label="Sales Agent", scope="node",
                           permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"]
                           + ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit"]
                           + ["workitem.view", "workitem.create", "workitem.edit"]
-                          + _payment_order_perms)
+                          + _payment_order_perms + _request_perms)
     s.add_all([super_admin, manager, sales_agent])
     await s.flush()
     return {"super_admin": super_admin, "manager": manager, "sales_agent": sales_agent}

@@ -21,6 +21,29 @@ type Field = { key: string; label: string; type: string; required: boolean; orde
 type Status = { key: string; label: string; order: number; is_initial: boolean }
 type Transition = { from: string; to: string }
 type Def = { key: string; label: string; label_plural: string; route_slug: string; fields: Field[]; statuses: Status[]; transitions: Transition[] }
+
+// Derive generic status groups from the entity definition.
+// Drafts  = the initial status (is_initial === true)
+// History = terminal statuses (no outgoing transitions)
+// Active  = everything else
+type StatusGroups = { drafts: string[]; active: string[]; history: string[] }
+function deriveStatusGroups(def: Def): StatusGroups {
+  const statuses = def.statuses ?? []
+  const transitions = def.transitions ?? []
+  if (statuses.length === 0) return { drafts: [], active: [], history: [] }
+  const outgoing = new Set(transitions.map((t) => t.from))
+  const drafts: string[] = []
+  const history: string[] = []
+  const active: string[] = []
+  for (const s of statuses) {
+    if (s.is_initial) { drafts.push(s.key); continue }
+    if (!outgoing.has(s.key)) { history.push(s.key); continue }
+    active.push(s.key)
+  }
+  return { drafts, active, history }
+}
+
+type StatusTab = 'all' | 'active' | 'history' | 'drafts'
 type Row = Record<string, any>
 type Mode = 'idle' | 'creating' | 'editing'
 type SavedView = { id: string | number; name: string; q?: string; filter?: string; sort?: string }
@@ -119,6 +142,13 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   const [offset, setOffset] = useState(0)
   const [total, setTotal] = useState<number | null>(null)
 
+  // Status-group tabs (generic — active for any entity with statuses)
+  const [statusTab, setStatusTab] = useState<StatusTab>('all')
+  // Filter by select field (e.g. request_type) and by individual status
+  const [filterSelectField, setFilterSelectField] = useState<string>('')  // field key
+  const [filterSelectVal, setFilterSelectVal] = useState<string>('')
+  const [filterStatus, setFilterStatus] = useState<string>('')
+
   async function load(s: string, pageOffset = offset) {
     setLoading(true); setFatal(null)
     try {
@@ -174,6 +204,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     closeForm(); setError(''); setErrorField(null)
     setQ(''); setAppliedQ(''); setFilter(''); setSort(''); setActiveView('')
     setOffset(0); setTotal(null)
+    setStatusTab('all'); setFilterSelectField(''); setFilterSelectVal(''); setFilterStatus('')
     loadViews(slug)
   }, [slug])
 
@@ -335,12 +366,45 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
 
   const cellValue = (c: Field, r: Row) => (c.type === 'ref' ? (refLabels[c.key]?.[r[c.key]] ?? r[c.key]) : r[c.key])
 
+  // Derive status groups generically
+  const statusGroups = deriveStatusGroups(def)
+  const hasStatusTabs = (def.statuses ?? []).length > 0
+
+  // Select fields available for filtering (type === 'select', shown in filter bar)
+  const selectFields = cols.filter((f) => f.type === 'select')
+  // The first select field is pre-selected in the filter bar by default (e.g. request_type)
+  const activeFilterField = filterSelectField || (selectFields.length > 0 ? selectFields[0].key : '')
+  const activeFilterFieldDef = selectFields.find((f) => f.key === activeFilterField)
+
   // client-side filter as graceful degradation: works even if the backend ignores ?q= (older build)
   const needle = appliedQ.trim().toLowerCase()
-  const visibleRows = !needle ? rows : rows.filter((r) =>
-    cols.some((c) => String(cellValue(c, r) ?? '').toLowerCase().includes(needle)) ||
-    String(r.status ?? '').toLowerCase().includes(needle),
-  )
+  const visibleRows = rows.filter((r) => {
+    // text search
+    if (needle && !(
+      cols.some((c) => String(cellValue(c, r) ?? '').toLowerCase().includes(needle)) ||
+      String(r.status ?? '').toLowerCase().includes(needle)
+    )) return false
+    // status-tab filter
+    if (hasStatusTabs && statusTab !== 'all') {
+      const st = r.status ?? ''
+      if (statusTab === 'drafts' && !statusGroups.drafts.includes(st)) return false
+      if (statusTab === 'active' && !statusGroups.active.includes(st)) return false
+      if (statusTab === 'history' && !statusGroups.history.includes(st)) return false
+    }
+    // individual status filter
+    if (filterStatus && r.status !== filterStatus) return false
+    // select-field filter
+    if (activeFilterField && filterSelectVal && String(r[activeFilterField] ?? '') !== filterSelectVal) return false
+    return true
+  })
+
+  // Tab counts (computed from ALL rows, not visibleRows, so the counts don't react to the tab itself)
+  const tabCount = (tab: StatusTab): number => {
+    if (!hasStatusTabs) return rows.length
+    if (tab === 'all') return rows.length
+    const groups = tab === 'drafts' ? statusGroups.drafts : tab === 'active' ? statusGroups.active : statusGroups.history
+    return rows.filter((r) => groups.includes(r.status ?? '')).length
+  }
 
   function renderCell(c: Field, r: Row) {
     const v = cellValue(c, r)
@@ -537,6 +601,85 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       )}
 
       {error && !errorField && <p className="err">{error}</p>}
+
+      {/* ── Status-group tabs (generic — any entity with statuses) ── */}
+      {hasStatusTabs && !formOpen && (
+        <>
+          <div className="tabs">
+            {([
+              ['all',     'All'],
+              ['active',  'Active'],
+              ['history', 'History'],
+              ['drafts',  'Drafts'],
+            ] as [StatusTab, string][]).map(([t, label]) => {
+              const cnt = tabCount(t)
+              return (
+                <button
+                  key={t}
+                  className={'tab' + (statusTab === t ? ' on' : '')}
+                  onClick={() => { setStatusTab(t); setFilterStatus('') }}
+                >
+                  {label}
+                  <span className="tab-count">{cnt}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Filter bar: by select field and/or by individual status */}
+          <div className="list-toolbar" style={{ marginBottom: 14 }}>
+            {selectFields.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {selectFields.length > 1 && (
+                  <select
+                    className="inp inp-sm"
+                    aria-label="Filter field"
+                    value={activeFilterField}
+                    onChange={(e) => { setFilterSelectField(e.target.value); setFilterSelectVal('') }}
+                    style={{ width: 130 }}
+                  >
+                    {selectFields.map((f) => (
+                      <option key={f.key} value={f.key}>{f.label}</option>
+                    ))}
+                  </select>
+                )}
+                {selectFields.length === 1 && (
+                  <span className="muted" style={{ fontSize: 12 }}>{activeFilterFieldDef?.label ?? 'Type'}</span>
+                )}
+                <select
+                  className="inp inp-sm"
+                  aria-label={`Filter by ${activeFilterFieldDef?.label ?? 'type'}`}
+                  value={filterSelectVal}
+                  onChange={(e) => setFilterSelectVal(e.target.value)}
+                  style={{ width: 180 }}
+                >
+                  <option value="">All {activeFilterFieldDef?.label ?? 'types'}</option>
+                  {(activeFilterFieldDef?.config?.options ?? []).map((opt: string) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {statusTab === 'all' && (def.statuses ?? []).length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="muted" style={{ fontSize: 12 }}>Status</span>
+                <select
+                  className="inp inp-sm"
+                  aria-label="Filter by status"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  style={{ width: 150 }}
+                >
+                  <option value="">All statuses</option>
+                  {(def.statuses ?? []).map((s) => (
+                    <option key={s.key} value={s.key}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* ── Create / edit form ────────────────────────────────────── */}
       {formOpen && (

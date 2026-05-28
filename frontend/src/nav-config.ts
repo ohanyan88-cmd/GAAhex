@@ -39,6 +39,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('home-dashboard',    'Dashboard',       ChartIcon,    'dashboards'),
     i('home-calendar',     'Calendar',        CalendarIcon, 'calendar'),
     i('home-tasks',        'My Tasks',        RowsIcon,     'workitems'),
+    i('home-requests',     'My Requests',     InboxIcon,    'entity', { slug: 'requests' }),
     i('home-approvals',    'My Approvals',    ArchiveIcon),
     i('home-activity',     'Recent Activity', ClockIcon,    'activity'),
     i('home-kpi',          'KPI Snapshot',    ChartIcon),
