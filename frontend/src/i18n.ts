@@ -6,12 +6,15 @@ import { useEffect, useState } from 'react'
 // English text passed as the second arg. Choice persisted in localStorage('gaaex-lang'), like theme.
 const BASE = 'http://127.0.0.1:8099'
 
-export type Lang = 'en' | 'hy'
+export type Lang = 'en' | 'hy' | 'ru'
 
 // Best-effort local fallback bundle (chrome + new screens). The backend dict, when present,
 // overrides these. EN keys aren't bundled — t()'s inline English default covers them.
+// NOTE: `ru` has no bundled strings yet — every Russian key falls back to the English text passed
+// to t(key, fallback). TODO: add a real RU translation catalog (chrome + screens).
 const BUNDLED: Record<Lang, Record<string, string>> = {
   en: {},
+  ru: {},
   hy: {
     'nav.workspace': 'Աշխատանք', 'nav.org': 'Կազմ. ծառ', 'nav.dashboards': 'Վահանակներ',
     'nav.reports': 'Հաշվետվություններ', 'nav.messages': 'Հաղորդագրություններ', 'nav.activity': 'Ակտիվություն',

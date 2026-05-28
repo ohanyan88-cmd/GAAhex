@@ -7,7 +7,6 @@ import ReportsView from './ReportsView'
 import DashboardView from './DashboardView'
 import MessagesView from './MessagesView'
 import NotificationCenter from './NotificationCenter'
-import CommandPalette from './CommandPalette'
 import ConfigureDrawer from './ConfigureDrawer'
 import ActivityTimeline from './ActivityTimeline'
 import InvoicesView from './InvoicesView'
@@ -35,11 +34,14 @@ import SettingsView from './SettingsView'
 import { NAV_SECTIONS, type NavItemDef } from './nav-config'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon,
-  SparkleIcon, ChevronRightIcon, ChevronDownIcon, ServerIcon } from './icons'
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, MenuIcon, CloseIcon, SparkleIcon,
+  ChevronRightIcon, ChevronDownIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon } from './icons'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
+import ProfileModal from './ProfileModal'
+import SecurityModal from './SecurityModal'
+import { ShortcutsModal, DocsModal, WhatsNewModal } from './SupportModals'
 
-type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
+type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string }
 type View =
@@ -98,11 +100,12 @@ export default function App() {
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
-  const [paletteOpen, setPaletteOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [nudge, setNudge] = useState(false)
+  // Account-menu modals (My Profile, Security, and SUPPORT items).
+  const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
   const { t, lang, setLang } = useI18n()
 
   // Collapsible nav section state — pre-open sections marked defaultOpen in nav-config
@@ -157,15 +160,6 @@ export default function App() {
     setView({ type: 'settings' })
   }
 
-  useEffect(() => {
-    if (!token) return
-    function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setPaletteOpen(true) }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [token])
-
   // Close the user-profile menu on outside click or Escape
   useEffect(() => {
     if (!userMenuOpen) return
@@ -192,22 +186,16 @@ export default function App() {
     localStorage.setItem('gaaex-theme', theme)
   }, [theme])
 
-  const [density, setDensity] = useState<'comfortable' | 'compact'>(
-    () => (localStorage.getItem('gaaex-density') === 'compact' ? 'compact' : 'comfortable'),
-  )
+  // Density + palette switchers were removed (owner's call). Everyone is pinned to the
+  // 'comfortable' density and the default palette so the layouts/theme-vars that depend on them
+  // still resolve — we just no longer expose a user-facing switcher. We also clear any stale
+  // values an earlier build may have persisted in localStorage.
   useEffect(() => {
-    document.documentElement.setAttribute('data-density', density)
-    localStorage.setItem('gaaex-density', density)
-  }, [density])
-
-  const [palette, setPalette] = useState<string>(
-    () => localStorage.getItem('gaaex-palette') || 'default',
-  )
-  useEffect(() => {
-    if (palette === 'default') document.documentElement.removeAttribute('data-palette')
-    else document.documentElement.setAttribute('data-palette', palette)
-    localStorage.setItem('gaaex-palette', palette)
-  }, [palette])
+    document.documentElement.setAttribute('data-density', 'comfortable')
+    document.documentElement.removeAttribute('data-palette')
+    localStorage.removeItem('gaaex-density')
+    localStorage.removeItem('gaaex-palette')
+  }, [])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -337,7 +325,11 @@ export default function App() {
         </nav>
 
         <div className="sidebar-tenant">
-          <div className="sidebar-tenant-avatar">{(user?.name || 'G').slice(0, 1).toUpperCase()}</div>
+          <div className="sidebar-tenant-avatar">
+            {user?.avatar_url
+              ? <img src={user.avatar_url} alt="" className="avatar-img" />
+              : (user?.name || 'G').slice(0, 1).toUpperCase()}
+          </div>
           <div style={{ minWidth: 0 }}>
             <div className="sidebar-tenant-name">{user?.name || 'GAAex'}</div>
             <div className="sidebar-tenant-role">{user?.email}</div>
@@ -366,11 +358,26 @@ export default function App() {
             </button>
           )}
           <div className="header-right">
-            <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl or Cmd K)">
-              <SearchIcon size={15} />
-              <span>{t('common.search', 'Search')}</span>
-              <kbd className="search-kbd">⌘K</kbd>
+            {/* Theme toggle — moved inline next to the bell (was inside the dropdown). */}
+            <button
+              className="iconbtn"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
+              aria-label={t('common.toggleTheme', 'Toggle theme')}
+            >
+              {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
             </button>
+
+            {/* Language — EN / AM / RU inline. The Armenian locale value stays 'hy'; the button is
+                just labelled "AM". RU has no catalog yet → falls back to English via t(). */}
+            <div className="lang-switch" role="group" aria-label={t('common.language', 'Language')}>
+              {([['en', 'EN'], ['hy', 'AM'], ['ru', 'RU']] as Array<[Lang, string]>).map(([l, label]) => (
+                <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
             <NotificationCenter
               token={token}
               entities={entities}
@@ -384,7 +391,11 @@ export default function App() {
                 aria-expanded={userMenuOpen}
                 aria-label={t('common.accountMenu', 'Account menu')}
               >
-                <span className="user-avatar">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
+                <span className="user-avatar">
+                  {user?.avatar_url
+                    ? <img src={user.avatar_url} alt="" className="avatar-img" />
+                    : (user?.name || 'U').slice(0, 1).toUpperCase()}
+                </span>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                   <span className="user-chip-name">{user?.name}</span>
                   <span className="user-chip-role">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
@@ -393,71 +404,49 @@ export default function App() {
               </button>
 
               {userMenuOpen && (
+                /* Account menu — PERSONAL scope only. Boundary rule: anything that affects OTHER
+                   users, billing, system config, or tenant administration does NOT belong here —
+                   route those to a dedicated Settings module instead. */
                 <div className="user-pop" role="menu" aria-label={t('common.accountMenu', 'Account menu')}>
                   <div className="user-pop-head">
-                    <span className="user-avatar">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
+                    <span className="user-avatar">
+                      {user?.avatar_url
+                        ? <img src={user.avatar_url} alt="" className="avatar-img" />
+                        : (user?.name || 'U').slice(0, 1).toUpperCase()}
+                    </span>
                     <div style={{ minWidth: 0 }}>
                       <div className="user-pop-name">{user?.name}</div>
                       <div className="user-pop-email">{user?.email}</div>
+                      <span className="user-pop-rolebadge">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
                     </div>
                   </div>
 
                   <div className="user-pop-section">
-                    <div className="user-pop-label">{t('common.appearance', 'Appearance')}</div>
-                    <button
-                      className="user-pop-item"
-                      role="menuitem"
-                      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                      title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-                      aria-label="Toggle theme"
-                    >
-                      {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
-                      <span>{theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}</span>
+                    <div className="user-pop-label">{t('account.section', 'Account')}</div>
+                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('profile') }}>
+                      <UsersIcon size={16} />
+                      <span>{t('profile.title', 'My Profile')}</span>
                     </button>
-                    <button
-                      className="user-pop-item"
-                      role="menuitem"
-                      onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
-                      title={density === 'comfortable' ? 'Switch to compact density' : 'Switch to comfortable density'}
-                      aria-label="Toggle density"
-                    >
-                      <RowsIcon size={16} />
-                      <span>{density === 'comfortable' ? t('common.densityCompact', 'Compact density') : t('common.densityComfortable', 'Comfortable density')}</span>
+                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('security') }}>
+                      <ShieldIcon size={16} />
+                      <span>{t('security.title', 'Security & Sign-in')}</span>
                     </button>
-                    <div className="user-pop-row">
-                      <span className="user-pop-row-label">{t('common.palette', 'Palette')}</span>
-                      <div className="swatch-row" role="group" aria-label="Color palette">
-                        {([
-                          ['default', '#3A6FB5', 'Cobalt (default)'],
-                          ['midnight', '#5B8DEF', 'Midnight'],
-                          ['forest', '#3FA66A', 'Forest'],
-                          ['slate', '#8A94A6', 'Slate'],
-                        ] as const).map(([key, dot, label]) => (
-                          <button
-                            key={key}
-                            className={'swatch' + (palette === key ? ' on' : '')}
-                            style={{ background: dot }}
-                            onClick={() => setPalette(key)}
-                            title={label}
-                            aria-label={label}
-                            aria-pressed={palette === key}
-                          />
-                        ))}
-                      </div>
-                    </div>
                   </div>
 
                   <div className="user-pop-section">
-                    <div className="user-pop-label">{t('common.language', 'Language')}</div>
-                    <div className="user-pop-row">
-                      <div className="lang-switch" role="group" aria-label="Language">
-                        {(['en', 'hy'] as Lang[]).map((l) => (
-                          <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
-                            {l === 'en' ? 'EN' : 'ՀՅ'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <div className="user-pop-label">{t('support.section', 'Support')}</div>
+                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('shortcuts') }}>
+                      <InfoIcon size={16} />
+                      <span>{t('shortcuts.title', 'Keyboard shortcuts')}</span>
+                    </button>
+                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('docs') }}>
+                      <GlobeIcon size={16} />
+                      <span>{t('docs.title', 'Documentation')}</span>
+                    </button>
+                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('whatsnew') }}>
+                      <SparkleIcon size={16} />
+                      <span>{t('whatsnew.title', "What's new")}</span>
+                    </button>
                   </div>
 
                   <div className="user-pop-divider" />
@@ -558,16 +547,25 @@ export default function App() {
           }}
         />
       )}
-      {paletteOpen && (
-        <CommandPalette
-          token={token}
-          entities={entities}
-          canConfigure={!!user?.can_configure}
-          onEntity={(slug) => setView({ type: 'entity', slug })}
-          onRoute={(r) => setView({ type: r })}
-          onClose={() => setPaletteOpen(false)}
-        />
-      )}
+
+      {/* Account-menu modals (personal scope only). */}
+      <ProfileModal
+        open={accountModal === 'profile'}
+        onClose={() => setAccountModal(null)}
+        token={token}
+        name={user?.name ?? ''}
+        email={user?.email ?? ''}
+        avatarUrl={user?.avatar_url ?? null}
+        onAvatarChange={(avatar_url) => setUser((u) => (u ? { ...u, avatar_url } : u))}
+      />
+      <SecurityModal
+        open={accountModal === 'security'}
+        onClose={() => setAccountModal(null)}
+        token={token}
+      />
+      <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
+      <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
+      <WhatsNewModal open={accountModal === 'whatsnew'} onClose={() => setAccountModal(null)} />
     </div>
   )
 }
