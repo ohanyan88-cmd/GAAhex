@@ -236,7 +236,13 @@ export default function App() {
     return (
       <div className="center">
         <form className="card" onSubmit={handleLogin}>
-          <img src="/full-dark.png" alt="GAAex" className="logo-lg" />
+          {/* The login banner is always dark, so always use the reversed (platinum+gold)
+              lockup — the cobalt lockup would vanish into the dark banner in light theme. */}
+          <img
+            src="/logo/GAAex-logo-reversed.svg"
+            alt="GAAex"
+            className="logo-lg"
+          />
           <p className="muted">{t('auth.signin', 'Sign in')}</p>
           <input className={'inp inp-md' + (error ? ' is-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.email', 'email')} aria-label={t('auth.email', 'email')} />
           <input className={'inp inp-md' + (error ? ' is-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth.password', 'password')} aria-label={t('auth.password', 'password')} />
@@ -267,7 +273,9 @@ export default function App() {
       {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
       <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
         <div className="sidebar-brand">
-          <div className="sidebar-logo">GA</div>
+          <div className="sidebar-logo">
+            <img src="/favicon/favicon.svg" alt="" width="22" height="22" />
+          </div>
           <div className="sidebar-brand-name">GAAex<small>ISP Platform</small></div>
         </div>
 
