@@ -19,7 +19,7 @@ from .seed_demo_loop import seed_demo_loop_if_empty
 from .seed_catalog import seed_catalog_if_missing
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, me
 
 
 _log = logging.getLogger("gaaex")
@@ -123,6 +123,7 @@ app.include_router(tenant_settings.router)          # /api/tenant/* (tenant prof
 app.include_router(convert.router)                  # /api/leads/{id}/convert (lead->customer; before records)
 app.include_router(billing_cycle.router)            # /api/billing/run-cycle (batch billing; before records)
 app.include_router(capabilities.router)             # /api/me/capabilities (effective rights; before records)
+app.include_router(me.router)                       # /api/me/avatar + /api/me/password (self-service; before records)
 app.include_router(health.router)                   # /api/health[/ready|/status] (probes; before records)
 app.include_router(jobs.router)                     # /api/jobs (batch-job run log; before records)
 app.include_router(report_schedules.router)         # /api/report-schedules (scheduled reports; before records)

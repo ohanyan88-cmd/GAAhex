@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, DateTime, func, ForeignKey
+from sqlalchemy import String, Text, DateTime, func, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,4 +23,10 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="active")
+    # Profile avatar stored as a self-contained base64 `data:` URL (Text — a data URL for a ≤2MB image
+    # is ~2.7MB, well past varchar limits). Nullable: no avatar by default. Chosen over a filesystem
+    # uploads dir because this codebase serves no static files and runs in-process/containerized — a
+    # data URL travels with the row (RLS-scoped, survives restarts, works in tests with no shared volume)
+    # and drops straight into an <img src>.
+    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
