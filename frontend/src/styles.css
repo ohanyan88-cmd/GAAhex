@@ -240,6 +240,12 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   grid-template-columns: 64px 1fr;
 }
 
+/* Backdrop: hidden on desktop (must NOT be an in-flow grid item).
+   Shown only inside the ≤860px media block below as a fixed overlay. */
+.nav-backdrop {
+  display: none;
+}
+
 .nav-toggle {
   display: flex;
   align-items: center;
@@ -305,6 +311,11 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 /* Sub-items: remove left indent on rail */
 .shell.nav-collapsed .nav.nav-sub {
   padding-left: 0;
+}
+
+/* Rail shows only section-header icons — hide all sub-item lists */
+.shell.nav-collapsed .nav-section-items {
+  display: none;
 }
 
 /* Center section header around its icon */
@@ -1612,7 +1623,8 @@ div.studio {
   .shell,
   .shell.nav-collapsed { grid-template-columns: 1fr; }
 
-  /* Sidebar is a fixed overlay drawer; hidden by default via translateX */
+  /* Sidebar is a fixed overlay drawer; hidden by default via translateX.
+     Reset min/max-width set by desktop rail rules so the drawer is always 260px. */
   .sidebar,
   .shell.nav-collapsed .sidebar {
     position: fixed;
@@ -1621,6 +1633,8 @@ div.studio {
     height: 100vh;
     z-index: var(--z-dropdown);
     width: 260px;
+    min-width: 260px;
+    max-width: 260px;
     opacity: 1;
     visibility: visible;
     padding: 14px 12px;
@@ -1637,8 +1651,9 @@ div.studio {
     transform: translateX(0);
   }
 
-  /* Backdrop */
+  /* Backdrop: shown as a fixed overlay on mobile (overrides the default display:none) */
   .nav-backdrop {
+    display: block;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
@@ -1651,7 +1666,7 @@ div.studio {
     to   { opacity: 1; }
   }
 
-  /* Undo rail label-hiding on mobile — drawer shows full sidebar */
+  /* Undo rail label-hiding on mobile — drawer shows full sidebar with labels */
   .shell.nav-collapsed .sidebar-brand-name,
   .shell.nav-collapsed .nav-section-chevron,
   .shell.nav-collapsed .sidebar-tenant-name,
@@ -1664,6 +1679,9 @@ div.studio {
   .shell.nav-collapsed .nav.nav-sub { padding-left: 22px; }
   .shell.nav-collapsed .nav-section-header { justify-content: flex-start; padding: 6px 8px; gap: 7px; }
   .shell.nav-collapsed .sidebar-tenant { justify-content: flex-start; gap: 9px; padding: 10px; }
+
+  /* Undo nav-section-items hiding on mobile — drawer shows full nav tree */
+  .shell.nav-collapsed .nav-section-items { display: revert; }
 
   .content > main { padding: 14px; }
   .messages { grid-template-columns: 1fr; }
