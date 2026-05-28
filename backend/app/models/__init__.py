@@ -37,6 +37,7 @@ from .customer_user import CustomerUser
 from .portal_ticket_reply import PortalTicketReply
 from .automation import AutomationRule
 from .page_config import PageConfig
+from .page_field_value import PageFieldValue
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -70,4 +71,5 @@ __all__ = [
     "PortalTicketReply",
     "AutomationRule",
     "PageConfig",
+    "PageFieldValue",
 ]

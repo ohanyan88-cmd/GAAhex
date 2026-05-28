@@ -10,13 +10,14 @@ and the entity Configure drawer. Every write emits an audit Event through the us
 
 NOTE: fixed path under /api ("/api/page-config"), so register BEFORE records.router ("/api/{slug}").
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import User
 from ..models.page_config import PageConfig
+from ..models.page_field_value import PageFieldValue
 from ..access import load_grants, can
 from .. import workflow
 from .auth import current_user
@@ -89,3 +90,105 @@ async def put_page_config(page_key: str, payload: dict, user: User = Depends(cur
     # app role ("Could not refresh instance") — same family as the records create fix. We already
     # hold the saved values, so return them directly.
     return {"page_key": key, "config": config}
+
+
+# -----------------------------------------------------------------------------
+# Custom field VALUES — the per-row data for the custom fields a superadmin adds to a page.
+#
+# DEFINITIONS live in the page-config descriptor (config.customFields) and need no backend change
+# (PUT above already accepts arbitrary config). These two endpoints store/return the VALUE each row
+# carries for those fields, generically — so the page's hand-coded engine is never touched.
+#
+# READ is open to any authenticated tenant user. WRITE is open too: setting a field's value is a
+# data edit, not a config change (config.manage gates the DEFS, not the data).
+# -----------------------------------------------------------------------------
+def _allowed_field_keys(config: dict | None) -> set[str] | None:
+    """The set of declared customFields keys for the page, or None if we can't determine them
+    (in which case we accept-and-store rather than reject)."""
+    if not isinstance(config, dict):
+        return None
+    defs = config.get("customFields")
+    if not isinstance(defs, list):
+        return None
+    keys = {str(d["key"]) for d in defs if isinstance(d, dict) and d.get("key")}
+    return keys
+
+
+@router.get("/{page_key}/values")
+async def get_page_values(
+    page_key: str,
+    ids: str = Query("", description="comma-separated row ids to fetch values for"),
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """The custom-field VALUES for the given page rows. Readable by any authenticated tenant user.
+
+    Response: { "<row_id>": { "<field_key>": value, ... }, ... } — only rows that have values
+    (missing rows are omitted). Empty `ids` ⇒ {}.
+    """
+    key = _norm_key(page_key)
+    id_list = [r.strip() for r in ids.split(",") if r.strip()]
+    if not id_list:
+        return {}
+    rows = (await s.execute(
+        select(PageFieldValue).where(
+            PageFieldValue.tenant_id == user.tenant_id,
+            PageFieldValue.page_key == key,
+            PageFieldValue.row_id.in_(id_list),
+        )
+    )).scalars().all()
+    return {r.row_id: (r.data or {}) for r in rows}
+
+
+@router.put("/{page_key}/values/{row_id}")
+async def put_page_value(
+    page_key: str,
+    row_id: str,
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Upsert one row's custom-field values. Writable by any authenticated tenant user (data edit).
+
+    Request:  { "<field_key>": value, ... }  (the full data map for the row; replaces prior value)
+    Response: { "row_id", "data" }
+
+    field_keys are validated against the page's `customFields` defs when those defs can be loaded;
+    unknown keys are dropped. If no defs are saved yet, values are accepted and stored as-is.
+    """
+    key = _norm_key(page_key)
+    rid = (row_id or "").strip()
+    if not rid:
+        raise HTTPException(422, "row_id is required")
+    if len(rid) > 255:
+        raise HTTPException(422, "row_id too long")
+    if not isinstance(payload, dict):
+        raise HTTPException(422, "body must be an object of {field_key: value}")
+
+    # Validate against the page's declared custom fields if we can load them (else accept-and-store).
+    cfg_row = (await s.execute(
+        select(PageConfig).where(PageConfig.tenant_id == user.tenant_id, PageConfig.page_key == key)
+    )).scalar_one_or_none()
+    allowed = _allowed_field_keys(cfg_row.config if cfg_row else None)
+    data = {k: v for k, v in payload.items() if allowed is None or k in allowed}
+
+    row = (await s.execute(
+        select(PageFieldValue).where(
+            PageFieldValue.tenant_id == user.tenant_id,
+            PageFieldValue.page_key == key,
+            PageFieldValue.row_id == rid,
+        )
+    )).scalar_one_or_none()
+
+    if row is None:
+        row = PageFieldValue(tenant_id=user.tenant_id, page_key=key, row_id=rid, data=data)
+        s.add(row)
+        verb = "create"
+    else:
+        row.data = data
+        verb = "update"
+
+    await workflow.emit(s, user.tenant_id, verb, "page_field_value", row.id, user.id, {"page_key": key, "row_id": rid})
+    await s.commit()
+    # Same RLS constraint as above — do NOT s.refresh(); return the values we hold.
+    return {"row_id": rid, "data": data}

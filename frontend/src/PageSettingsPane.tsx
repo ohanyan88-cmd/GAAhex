@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { toast } from './Toast'
 import { LoadingState, ErrorBanner } from './States'
-import { CheckIcon, ArrowUpIcon, ArrowDownIcon } from './icons'
+import { CheckIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, EditIcon, TrashIcon, CloseIcon } from './icons'
 import { bget } from './billing'
 import {
-  PAGE_SPECS, defaultDescriptor, resolveDescriptor, savePageConfig,
-  type PageDescriptor, type ColumnDef,
+  PAGE_SPECS, defaultDescriptor, resolveDescriptor, savePageConfig, deriveFieldKey,
+  type PageDescriptor, type ColumnDef, type CustomFieldDef, type CustomFieldType,
 } from './pageConfig'
+
+const CUSTOM_FIELD_TYPES: CustomFieldType[] = ['text', 'number', 'date', 'select', 'boolean']
 
 // -----------------------------------------------------------------------------
 // PageSettingsPane — the page-config editor for a BESPOKE page (Services).
@@ -52,6 +54,23 @@ export default function PageSettingsPane({
     setDirty(true)
   }
 
+  // --- Custom fields (real data fields the superadmin adds; values edited per-row in the view) ---
+  function addCustomField(field: CustomFieldDef) {
+    if (!descriptor) return
+    setDescriptor({ ...descriptor, customFields: [...descriptor.customFields, field] })
+    setDirty(true)
+  }
+  function patchCustomField(i: number, patch: Partial<CustomFieldDef>) {
+    if (!descriptor) return
+    setDescriptor({ ...descriptor, customFields: descriptor.customFields.map((f, j) => (j === i ? { ...f, ...patch } : f)) })
+    setDirty(true)
+  }
+  function removeCustomField(i: number) {
+    if (!descriptor) return
+    setDescriptor({ ...descriptor, customFields: descriptor.customFields.filter((_, j) => j !== i) })
+    setDirty(true)
+  }
+
   async function save() {
     if (!descriptor || saving) return
     setSaving(true)
@@ -60,6 +79,12 @@ export default function PageSettingsPane({
       const clean: PageDescriptor = {
         title: descriptor.title && descriptor.title.trim() !== '' ? descriptor.title.trim() : null,
         columns: descriptor.columns.map((c) => ({ key: c.key, label: (c.label ?? '').trim(), visible: c.visible })),
+        customFields: descriptor.customFields.map((f) => ({
+          key: f.key,
+          label: (f.label ?? '').trim() || f.key,
+          type: f.type,
+          ...(f.type === 'select' ? { options: (f.options ?? []).map((o) => o.trim()).filter(Boolean) } : {}),
+        })),
       }
       await savePageConfig(token, pageKey, clean)
       toast.success('Page settings saved')
@@ -166,6 +191,15 @@ export default function PageSettingsPane({
       </section>
       )}
 
+      {/* Custom fields — real data fields added to the page; each row's VALUE is edited inline in
+          the view and persisted separately. The page's hand-coded engine is never touched. */}
+      <CustomFieldsSection
+        fields={descriptor.customFields}
+        onAdd={addCustomField}
+        onPatch={patchCustomField}
+        onRemove={removeCustomField}
+      />
+
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>
         <button type="button" className="btn btn-primary btn-md" disabled={saving || !dirty} onClick={save}>
@@ -176,5 +210,143 @@ export default function PageSettingsPane({
         </button>
       </div>
     </div>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// CustomFieldsSection — list + add/edit/remove for the page's superadmin-defined data fields.
+// Edits the DEFINITIONS only (label/type/options); per-row VALUES are set inline in the view.
+// -----------------------------------------------------------------------------
+function CustomFieldsSection({
+  fields, onAdd, onPatch, onRemove,
+}: {
+  fields: CustomFieldDef[]
+  onAdd: (f: CustomFieldDef) => void
+  onPatch: (i: number, patch: Partial<CustomFieldDef>) => void
+  onRemove: (i: number) => void
+}) {
+  const [editing, setEditing] = useState<number | null>(null)
+  const [adding, setAdding] = useState(false)
+  // draft for add/edit form
+  const [label, setLabel] = useState('')
+  const [type, setType] = useState<CustomFieldType>('text')
+  const [options, setOptions] = useState('')
+
+  function startAdd() {
+    setEditing(null); setAdding(true)
+    setLabel(''); setType('text'); setOptions('')
+  }
+  function startEdit(i: number) {
+    const f = fields[i]
+    setAdding(false); setEditing(i)
+    setLabel(f.label); setType(f.type); setOptions((f.options ?? []).join(', '))
+  }
+  function cancel() { setAdding(false); setEditing(null) }
+
+  function commit() {
+    const lbl = label.trim()
+    if (!lbl) { toast.error('Field label is required'); return }
+    const opts = type === 'select' ? options.split(',').map((o) => o.trim()).filter(Boolean) : undefined
+    if (type === 'select' && (!opts || opts.length === 0)) { toast.error('Select fields need at least one option'); return }
+
+    if (editing != null) {
+      // key + type are immutable after creation (renaming/retyping would orphan stored values).
+      onPatch(editing, { label: lbl, ...(type === 'select' ? { options: opts } : {}) })
+    } else {
+      const existing = new Set(fields.map((f) => f.key))
+      let key = deriveFieldKey(lbl)
+      if (!key) { toast.error('Could not derive a field key from that label'); return }
+      if (existing.has(key)) { let n = 2; while (existing.has(`${key}_${n}`)) n++; key = `${key}_${n}` }
+      onAdd({ key, label: lbl, type, ...(type === 'select' ? { options: opts } : {}) })
+    }
+    cancel()
+  }
+
+  const formOpen = adding || editing != null
+
+  return (
+    <section>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
+        <h4 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Custom fields</h4>
+        {!formOpen && (
+          <button type="button" className="btn btn-primary btn-sm" onClick={startAdd}>
+            <PlusIcon size={13} /> Add field
+          </button>
+        )}
+      </div>
+      <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-3)' }}>
+        Add real data fields (text, number, date, select, boolean) shown as extra columns. Each row's
+        value is edited directly in the table. The page's data and tools are unchanged.
+      </p>
+
+      {fields.length === 0 && !formOpen && (
+        <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-3)', fontStyle: 'italic' }}>No custom fields yet.</p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {fields.map((f, i) => (
+          <div
+            key={f.key}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 10px', border: '1px solid var(--border)',
+              borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
+            }}
+          >
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13 }}>{f.label}</span>
+            <span className="pill pill-muted" style={{ flexShrink: 0 }}>{f.type}</span>
+            {f.type === 'select' && (
+              <span style={{ fontSize: 11, color: 'var(--text-3)', flexShrink: 0 }}>{(f.options ?? []).join(', ') || '—'}</span>
+            )}
+            <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{f.key}</span>
+            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+              <button type="button" className="iconbtn" aria-label={`Edit field ${f.label}`} onClick={() => startEdit(i)}>
+                <EditIcon size={14} />
+              </button>
+              <button type="button" className="iconbtn" aria-label={`Remove field ${f.label}`} onClick={() => onRemove(i)}>
+                <TrashIcon size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {formOpen && (
+        <div style={{ marginTop: 10, padding: '12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <label className="field" style={{ flex: '1 1 160px' }}>
+              <span>Label *</span>
+              <input className="inp inp-sm" value={label} autoFocus onChange={(e) => setLabel(e.target.value)} placeholder="Notes" />
+            </label>
+            <label className="field" style={{ flex: '0 0 130px' }}>
+              <span>Type</span>
+              <select className="inp inp-sm" value={type} disabled={editing != null}
+                onChange={(e) => { setType(e.target.value as CustomFieldType); setOptions('') }}>
+                {CUSTOM_FIELD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </label>
+            {type === 'select' && (
+              <label className="field" style={{ flex: '1 1 180px' }}>
+                <span>Options (comma-sep)</span>
+                <input className="inp inp-sm" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Low, High" />
+              </label>
+            )}
+            <div style={{ display: 'flex', gap: 4, paddingBottom: 2 }}>
+              <button type="button" className="btn btn-accent btn-sm" onClick={commit}>
+                <CheckIcon size={13} /> {editing != null ? 'Save' : 'Add'}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={cancel}>
+                <CloseIcon size={13} />
+              </button>
+            </div>
+          </div>
+          {editing != null && (
+            <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-3)' }}>
+              Key and type are immutable — changing them would orphan stored values.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   )
 }

@@ -5,6 +5,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ArrowRightIcon, ChevronLeftIcon, InboxIcon } from './icons'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
 type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
@@ -50,6 +51,10 @@ export default function ServicesView({ token, configVersion = 0 }: { token: stri
   // Page-config: title override + visible columns (in order, with labels). configVersion bumps
   // when the superadmin saves in the drawer → re-reads live (no reload needed).
   const page = usePageConfig(token, 'services', configVersion)
+
+  // Custom fields (superadmin-added) appended as extra editable columns. Values are batch-fetched
+  // for the visible rows and persisted per-cell; the rest of Services is untouched.
+  const cf = useCustomFields(token, 'services', page.customFields, (list ?? []).map((sv) => sv.id))
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
@@ -102,12 +107,14 @@ export default function ServicesView({ token, configVersion = 0 }: { token: stri
         <div className="grid-wrap"><table className="grid">
           <thead><tr>
             {page.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+            {cf.headers()}
             <th scope="col"></th>
           </tr></thead>
           <tbody>
             {list.map((sv) => (
               <tr key={sv.id}>
                 {page.columns.map((c) => <td key={c.key}>{renderCell(c.key, sv, cust)}</td>)}
+                {cf.cells(sv.id)}
                 <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => setDetailId(sv.id)}>Open <ArrowRightIcon size={13} /></button></td>
               </tr>
             ))}

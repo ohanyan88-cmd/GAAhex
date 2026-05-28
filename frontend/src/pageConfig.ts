@@ -19,7 +19,19 @@ import { useEffect, useState } from 'react'
 import { bget, bput } from './billing'
 
 export type ColumnDef = { key: string; label: string; visible: boolean }
-export type PageDescriptor = { title: string | null; columns: ColumnDef[] }
+
+// A superadmin-defined REAL data field added to a bespoke page. The DEFINITION lives in the
+// page-config descriptor (persisted via PUT /api/page-config/{key}); the per-row VALUE is stored
+// separately (page_field_value table) and edited inline in the view. Adding/removing a field never
+// touches the page's hand-coded engine — values are rendered + persisted generically.
+export type CustomFieldType = 'text' | 'number' | 'date' | 'select' | 'boolean'
+export type CustomFieldDef = {
+  key: string                  // auto-derived from the label; stable identifier for the value map
+  label: string                // column header
+  type: CustomFieldType
+  options?: string[]           // for type 'select'
+}
+export type PageDescriptor = { title: string | null; columns: ColumnDef[]; customFields: CustomFieldDef[] }
 
 // Per-page registry: the page's identity + its default presentation. Defaults are the single
 // source of truth for "what the page looks like with no saved config".
@@ -213,7 +225,31 @@ export function defaultDescriptor(spec: PageSpec): PageDescriptor {
   return {
     title: null,
     columns: spec.defaultColumns.map((c) => ({ key: c.key, label: c.label, visible: true })),
+    customFields: [],
   }
+}
+
+// Sanitize the saved customFields blob (defensive — it's an open JSON store): keep only well-formed
+// defs with a key + a known type, de-dupe keys, normalize select options.
+const CUSTOM_FIELD_TYPES: CustomFieldType[] = ['text', 'number', 'date', 'select', 'boolean']
+function resolveCustomFields(saved: unknown): CustomFieldDef[] {
+  if (!Array.isArray(saved)) return []
+  const out: CustomFieldDef[] = []
+  const seen = new Set<string>()
+  for (const raw of saved) {
+    if (!raw || typeof raw !== 'object') continue
+    const d = raw as Record<string, unknown>
+    const key = typeof d.key === 'string' ? d.key.trim() : ''
+    const type = d.type as CustomFieldType
+    if (!key || seen.has(key) || !CUSTOM_FIELD_TYPES.includes(type)) continue
+    seen.add(key)
+    const def: CustomFieldDef = { key, label: (typeof d.label === 'string' && d.label.trim()) || key, type }
+    if (type === 'select') {
+      def.options = Array.isArray(d.options) ? d.options.map((o) => String(o).trim()).filter(Boolean) : []
+    }
+    out.push(def)
+  }
+  return out
 }
 
 // Merge a saved (possibly partial / stale) descriptor onto the page's defaults so the result is
@@ -223,7 +259,7 @@ export function defaultDescriptor(spec: PageSpec): PageDescriptor {
 //  - saved order is honoured; new columns trail in default order
 export function resolveDescriptor(spec: PageSpec, saved: Partial<PageDescriptor> | null | undefined): PageDescriptor {
   const def = defaultDescriptor(spec)
-  if (!saved || (saved.title == null && !Array.isArray(saved.columns))) return def
+  if (!saved || (saved.title == null && !Array.isArray(saved.columns) && !Array.isArray(saved.customFields))) return def
 
   const known = new Map(def.columns.map((c) => [c.key, c]))
   const out: ColumnDef[] = []
@@ -247,6 +283,7 @@ export function resolveDescriptor(spec: PageSpec, saved: Partial<PageDescriptor>
   return {
     title: saved.title != null && String(saved.title).trim() !== '' ? String(saved.title) : null,
     columns: out,
+    customFields: resolveCustomFields(saved.customFields),
   }
 }
 
@@ -254,6 +291,7 @@ export function resolveDescriptor(spec: PageSpec, saved: Partial<PageDescriptor>
 export type AppliedPageConfig = {
   title: string                 // override if set, else the page default
   columns: ColumnDef[]          // VISIBLE columns only, in order, with resolved labels
+  customFields: CustomFieldDef[] // superadmin-added real data fields (extra columns, edited inline)
   loaded: boolean
 }
 
@@ -262,7 +300,7 @@ export type AppliedPageConfig = {
 // `reloadKey` (optional): change it to force a re-fetch — e.g. after the superadmin saves config.
 export function usePageConfig(token: string, pageKey: string, reloadKey: number = 0): AppliedPageConfig {
   const spec = PAGE_SPECS[pageKey]
-  const [descriptor, setDescriptor] = useState<PageDescriptor>(() => (spec ? defaultDescriptor(spec) : { title: null, columns: [] }))
+  const [descriptor, setDescriptor] = useState<PageDescriptor>(() => (spec ? defaultDescriptor(spec) : { title: null, columns: [], customFields: [] }))
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
@@ -282,6 +320,7 @@ export function usePageConfig(token: string, pageKey: string, reloadKey: number 
   return {
     title: descriptor.title ?? (spec?.defaultTitle ?? pageKey),
     columns: descriptor.columns.filter((c) => c.visible),
+    customFields: descriptor.customFields,
     loaded,
   }
 }
@@ -290,4 +329,31 @@ export function usePageConfig(token: string, pageKey: string, reloadKey: number 
 // descriptor or throws (so the drawer can Toast on failure).
 export async function savePageConfig(token: string, pageKey: string, descriptor: PageDescriptor): Promise<void> {
   await bput(token, `/api/page-config/${pageKey}`, { config: descriptor })
+}
+
+// -----------------------------------------------------------------------------
+// Custom field VALUES (the per-row data for superadmin-added fields).
+// -----------------------------------------------------------------------------
+export type PageValueMap = Record<string, Record<string, any>>  // { rowId: { fieldKey: value } }
+
+// Batch-fetch the saved custom-field values for a set of rows. Returns {} on error / no values
+// (so the page renders blank cells, never breaks). Rows without saved values are simply omitted.
+export async function fetchPageValues(token: string, pageKey: string, ids: string[]): Promise<PageValueMap> {
+  const list = ids.filter(Boolean)
+  if (list.length === 0) return {}
+  const res = await bget<PageValueMap>(token, `/api/page-config/${pageKey}/values?ids=${encodeURIComponent(list.join(','))}`)
+  return res.ok && res.data && typeof res.data === 'object' ? res.data : {}
+}
+
+// Upsert one row's custom-field values. Returns the saved data; throws on failure (caller toasts).
+export async function savePageValue(token: string, pageKey: string, rowId: string, data: Record<string, any>): Promise<Record<string, any>> {
+  const res = await bput<{ row_id: string; data: Record<string, any> }>(token, `/api/page-config/${pageKey}/values/${encodeURIComponent(rowId)}`, data)
+  return res?.data ?? data
+}
+
+// Derive a safe field key from a human label: lowercase, alnum+underscore, leading-alpha. Used by
+// the drawer so a superadmin only types a label.
+export function deriveFieldKey(label: string): string {
+  const k = label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+  return /^[a-z]/.test(k) ? k.slice(0, 60) : `f_${k}`.slice(0, 60)
 }
