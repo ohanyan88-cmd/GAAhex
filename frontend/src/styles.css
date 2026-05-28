@@ -407,6 +407,55 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 }
 .user-chip-name { font-size: 12px; font-weight: var(--fw-medium); }
 .user-chip-role { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.user-chip.on { background: var(--surface-2); border-color: var(--accent); }
+.user-chip-caret { color: var(--text-3); margin-left: 2px; transition: transform var(--dur-fast); }
+.user-chip.on .user-chip-caret { transform: rotate(180deg); }
+
+/* User-profile dropdown menu */
+.user-menu { position: relative; }
+.user-pop {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  z-index: var(--z-dropdown);
+  width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: overlay-fade var(--dur-base) var(--ease-decelerate);
+}
+.user-pop-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.user-pop-name { font-size: 13px; font-weight: var(--fw-semibold); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-pop-email { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-pop-section { padding: 6px 6px 4px; }
+.user-pop-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-3); font-weight: var(--fw-semibold);
+  padding: 4px 8px 6px;
+}
+.user-pop-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: transparent; border: 0; cursor: pointer;
+  padding: 8px; border-radius: var(--r-sm, 6px);
+  color: var(--text); font-size: 13px; text-align: left;
+}
+.user-pop-item:hover { background: var(--surface-2); }
+.user-pop-item:focus-visible { box-shadow: 0 0 0 3px var(--focus-ring); }
+.user-pop-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px;
+}
+.user-pop-row-label { font-size: 13px; color: var(--text); flex: none; }
+.user-pop .swatch-row { gap: 8px; }
+.user-pop .swatch { width: 22px; height: 22px; border-width: 2px; }
+.user-pop .swatch.on { box-shadow: 0 0 0 2px var(--accent-soft); }
+.user-pop-divider { height: 1px; background: var(--border); margin: 2px 0; }
+.user-pop-signout { color: var(--danger); margin: 4px 6px 8px; width: calc(100% - 12px); }
+.user-pop-signout:hover { background: var(--danger-soft, rgba(229,72,77,0.12)); color: var(--danger); }
 
 /* ===================== BUTTONS ===================== */
 .btn {

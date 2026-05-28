@@ -36,7 +36,7 @@ import { NAV_SECTIONS, type NavItemDef } from './nav-config'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, SearchIcon, MenuIcon, CloseIcon,
-  SparkleIcon, ChevronRightIcon, ServerIcon } from './icons'
+  SparkleIcon, ChevronRightIcon, ChevronDownIcon, ServerIcon } from './icons'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilities'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean }
@@ -99,6 +99,7 @@ export default function App() {
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [nudge, setNudge] = useState(false)
@@ -164,6 +165,24 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [token])
+
+  // Close the user-profile menu on outside click or Escape
+  useEffect(() => {
+    if (!userMenuOpen) return
+    function onMouseDown(e: MouseEvent) {
+      const el = document.getElementById('user-menu')
+      if (el && !el.contains(e.target as Node)) setUserMenuOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [userMenuOpen])
 
   const [theme, setTheme] = useState<'dark' | 'light'>(
     () => (localStorage.getItem('gaaex-theme') === 'light' ? 'light' : 'dark'),
@@ -352,60 +371,106 @@ export default function App() {
               <span>{t('common.search', 'Search')}</span>
               <kbd className="search-kbd">⌘K</kbd>
             </button>
-            <div className="lang-switch" role="group" aria-label="Language">
-              {(['en', 'hy'] as Lang[]).map((l) => (
-                <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
-                  {l === 'en' ? 'EN' : 'ՀՅ'}
-                </button>
-              ))}
-            </div>
-            <button
-              className="iconbtn"
-              onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
-              title={density === 'comfortable' ? 'Switch to compact density' : 'Switch to comfortable density'}
-              aria-label="Toggle density"
-            >
-              <RowsIcon />
-            </button>
-            <button
-              className="iconbtn"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-            </button>
-            <div className="swatch-row" role="group" aria-label="Color palette">
-              {([
-                ['default', '#3A6FB5', 'Cobalt (default)'],
-                ['midnight', '#5B8DEF', 'Midnight'],
-                ['forest', '#3FA66A', 'Forest'],
-                ['slate', '#8A94A6', 'Slate'],
-              ] as const).map(([key, dot, label]) => (
-                <button
-                  key={key}
-                  className={'swatch' + (palette === key ? ' on' : '')}
-                  style={{ background: dot }}
-                  onClick={() => setPalette(key)}
-                  title={label}
-                  aria-label={label}
-                  aria-pressed={palette === key}
-                />
-              ))}
-            </div>
             <NotificationCenter
               token={token}
               entities={entities}
               onOpen={(slug) => setView({ type: 'entity', slug })}
             />
-            <div className="user-chip">
-              <span className="user-avatar">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span className="user-chip-name">{user?.name}</span>
-                <span className="user-chip-role">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
-              </div>
+            <div id="user-menu" className="user-menu">
+              <button
+                className={'user-chip' + (userMenuOpen ? ' on' : '')}
+                onClick={() => setUserMenuOpen((o) => !o)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                aria-label={t('common.accountMenu', 'Account menu')}
+              >
+                <span className="user-avatar">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span className="user-chip-name">{user?.name}</span>
+                  <span className="user-chip-role">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
+                </div>
+                <ChevronDownIcon size={14} className="user-chip-caret" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="user-pop" role="menu" aria-label={t('common.accountMenu', 'Account menu')}>
+                  <div className="user-pop-head">
+                    <span className="user-avatar">{(user?.name || 'U').slice(0, 1).toUpperCase()}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="user-pop-name">{user?.name}</div>
+                      <div className="user-pop-email">{user?.email}</div>
+                    </div>
+                  </div>
+
+                  <div className="user-pop-section">
+                    <div className="user-pop-label">{t('common.appearance', 'Appearance')}</div>
+                    <button
+                      className="user-pop-item"
+                      role="menuitem"
+                      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                      title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+                      aria-label="Toggle theme"
+                    >
+                      {theme === 'dark' ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+                      <span>{theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}</span>
+                    </button>
+                    <button
+                      className="user-pop-item"
+                      role="menuitem"
+                      onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
+                      title={density === 'comfortable' ? 'Switch to compact density' : 'Switch to comfortable density'}
+                      aria-label="Toggle density"
+                    >
+                      <RowsIcon size={16} />
+                      <span>{density === 'comfortable' ? t('common.densityCompact', 'Compact density') : t('common.densityComfortable', 'Comfortable density')}</span>
+                    </button>
+                    <div className="user-pop-row">
+                      <span className="user-pop-row-label">{t('common.palette', 'Palette')}</span>
+                      <div className="swatch-row" role="group" aria-label="Color palette">
+                        {([
+                          ['default', '#3A6FB5', 'Cobalt (default)'],
+                          ['midnight', '#5B8DEF', 'Midnight'],
+                          ['forest', '#3FA66A', 'Forest'],
+                          ['slate', '#8A94A6', 'Slate'],
+                        ] as const).map(([key, dot, label]) => (
+                          <button
+                            key={key}
+                            className={'swatch' + (palette === key ? ' on' : '')}
+                            style={{ background: dot }}
+                            onClick={() => setPalette(key)}
+                            title={label}
+                            aria-label={label}
+                            aria-pressed={palette === key}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="user-pop-section">
+                    <div className="user-pop-label">{t('common.language', 'Language')}</div>
+                    <div className="user-pop-row">
+                      <div className="lang-switch" role="group" aria-label="Language">
+                        {(['en', 'hy'] as Lang[]).map((l) => (
+                          <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
+                            {l === 'en' ? 'EN' : 'ՀՅ'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="user-pop-divider" />
+                  <button
+                    className="user-pop-item user-pop-signout"
+                    role="menuitem"
+                    onClick={() => { setUserMenuOpen(false); logout() }}
+                  >
+                    <span>{t('common.signout', 'Sign out')}</span>
+                  </button>
+                </div>
+              )}
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={logout}>{t('common.signout', 'Sign out')}</button>
           </div>
         </header>
         <main id="main-content">
