@@ -276,6 +276,42 @@ ENTITY_CATALOG = [
     e("integration", "Integration", "Integrations", "integrations", "layers",
       [f("name", "Name", "text", True), f("kind", "Kind", "text"), f("config_json", "Config", "textarea")],
       [st("ENABLED", "Enabled", True), st("DISABLED", "Disabled")], [tr("ENABLED", "DISABLED"), tr("DISABLED", "ENABLED")]),
+
+    # ---- Self-Service (employee "My Requests" catalog) ----
+    # request_type: the FieldDef/select schema only supports a FLAT list of string options
+    # (records._check_type does `value not in opts`; meta only handles a flat `options` list), so the
+    # ~25 types are stored as a flat list with each label prefixed by its category ("Category · Type").
+    # The separator is written as a · escape (pure-ASCII source) so the middle dot survives
+    # regardless of how the interpreter decodes this file's source encoding.
+    e("request", "Request", "My Requests", "requests", "inbox",
+      [f("request_type", "Request Type", "select", True, options=[
+          # Time Off
+          "Time Off · Vacation request", "Time Off · Day-off request", "Time Off · Sick leave",
+          "Time Off · Unpaid leave", "Time Off · Remote / WFH request", "Time Off · Schedule change",
+          "Time Off · Overtime declaration", "Time Off · Business trip request",
+          # Finance
+          "Finance · Salary advance", "Finance · Expense reimbursement",
+          "Finance · Payslip / income certificate", "Finance · Compensation inquiry",
+          # IT & Access
+          "IT & Access · Equipment request", "IT & Access · Access / permission request",
+          "IT & Access · Password reset / account unlock", "IT & Access · Software / license request",
+          "IT & Access · Hardware repair",
+          # Administrative
+          "Administrative · Employment certificate / reference letter",
+          "Administrative · Personal data update", "Administrative · Workspace request",
+          "Administrative · Corporate SIM / signature / card",
+          # Development
+          "Development · Training request", "Development · Internal transfer request",
+          "Development · Performance review request", "Development · Grievance / complaint",
+      ]),
+       f("subject", "Subject", "text", True),
+       f("details", "Details", "textarea"),
+       f("priority", "Priority", "select", options=["Low", "Normal", "High", "Urgent"], default="Normal"),
+       f("sla_due", "SLA Due", "datetime")],
+      [st("DRAFT", "Draft", True), st("OPEN", "Open"), st("IN_REVIEW", "In Review"),
+       st("APPROVED", "Approved"), st("REJECTED", "Rejected"), st("CLOSED", "Closed")],
+      [tr("DRAFT", "OPEN"), tr("OPEN", "IN_REVIEW"), tr("IN_REVIEW", "APPROVED"),
+       tr("IN_REVIEW", "REJECTED"), tr("APPROVED", "CLOSED"), tr("REJECTED", "CLOSED")]),
 ]
 
 
