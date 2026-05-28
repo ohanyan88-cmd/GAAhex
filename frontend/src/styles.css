@@ -232,6 +232,19 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   display: grid;
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Desktop collapsed: sidebar is taken out of grid flow via position:absolute,
+   so the content column immediately fills the viewport width */
+.shell.nav-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar {
@@ -247,6 +260,20 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   top: 0;
   height: 100vh;
   box-sizing: border-box;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Desktop collapsed: hide sidebar — position:absolute takes it out of grid flow
+   so the content column fills the full width immediately */
+.shell.nav-collapsed .sidebar {
+  position: absolute;
+  width: 0;
+  opacity: 0;
+  padding: 0;
+  border-right: none;
+  pointer-events: none;
+  visibility: hidden;
 }
 .sidebar-brand {
   display: flex; align-items: center; gap: 10px;
@@ -1492,8 +1519,49 @@ div.studio {
   .cal-side { position: static; }
 }
 @media (max-width: 860px) {
-  .shell { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
+  /* Shell is always single-column on mobile — nav-collapsed has no grid effect */
+  .shell,
+  .shell.nav-collapsed { grid-template-columns: 1fr; }
+
+  /* Sidebar is a fixed overlay drawer; hidden by default via translateX */
+  .sidebar,
+  .shell.nav-collapsed .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: var(--z-dropdown);
+    width: 260px;
+    opacity: 1;
+    visibility: visible;
+    padding: 14px 12px;
+    border-right: 1px solid var(--sidebar-border);
+    box-shadow: var(--shadow-pop);
+    transform: translateX(-100%);
+    transition: transform var(--dur-slow) var(--ease-decelerate);
+    overflow: hidden auto;
+  }
+
+  /* Slide in when open (higher specificity wins over nav-collapsed rule) */
+  .sidebar.open,
+  .shell.nav-collapsed .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Backdrop */
+  .nav-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: calc(var(--z-dropdown) - 1);
+    backdrop-filter: blur(2px);
+    animation: backdropFadeIn var(--dur-base) var(--ease-standard) both;
+  }
+  @keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
   .content > main { padding: 14px; }
   .messages { grid-template-columns: 1fr; }
   .thread-list { display: none; }

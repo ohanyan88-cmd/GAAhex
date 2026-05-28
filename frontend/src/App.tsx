@@ -258,7 +258,7 @@ export default function App() {
       : view.type
 
   return (
-    <div className="shell">
+    <div className={'shell' + (navOpen ? ' nav-collapsed' : '')}>
       <a href="#main-content" className="skip-link">Skip to content</a>
       {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
       <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
