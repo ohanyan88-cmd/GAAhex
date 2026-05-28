@@ -147,6 +147,77 @@
   --shadow-pop: 0 12px 34px rgba(17, 24, 39, .16);
 }
 
+/* ===================== GX PALETTE BRIDGE =====================
+   Maps the app's semantic design tokens onto the 10-palette `--gx-*` system
+   (defined in color-tokens.css, set by `<html data-gx-palette data-gx-theme>`).
+   Every app var falls back to its original hardcoded value if the matching
+   `--gx-*` token is ever missing, so nothing renders undefined.
+
+   This block is keyed on `[data-gx-theme]` so it has the SAME specificity as
+   the `[data-theme="light"]` block above and, sitting later in source order,
+   wins the tie in BOTH dark and light — the gx palette drives the colors while
+   `--gx-theme` (set in lockstep with `--theme`) decides dark vs light. */
+[data-gx-theme="dark"],
+[data-gx-theme="light"] {
+  /* Surfaces */
+  --bg: var(--gx-bg, #0D0F12);
+  --surface: var(--gx-surface, #1F242C);
+  --surface-2: var(--gx-raised, #262D37);
+  --border: var(--gx-border, #2A313B);
+  --border-soft: var(--gx-hover, rgba(244, 246, 249, 0.08));
+
+  /* Text */
+  --text: var(--gx-text-1, #F4F6F9);
+  --text-2: var(--gx-text-2, #AEB7C2);
+  --text-3: var(--gx-text-3, #7C8794);
+  --text-inv: var(--gx-on-primary, #0D0F12);
+
+  /* Brand / primary — gx has a single primary; map both brand & primary to it.
+     --brand drives heavy primary buttons/tabs; keep it readable on the primary
+     by using primary-active (a darker shade) as the solid brand fill. */
+  --brand: var(--gx-primary-active, #1C3B68);
+  --primary: var(--gx-primary, #3A6FB5);
+  --primary-hover: var(--gx-primary-hover, #4A82CC);
+  --primary-soft: var(--gx-primary, rgba(58, 111, 181, 0.16));
+
+  --accent: var(--gx-primary, #C5A059);
+  --accent-hover: var(--gx-primary-hover, #D4B26C);
+  --accent-soft: var(--gx-primary, rgba(197, 160, 89, 0.16));
+  --accent-text: var(--gx-on-primary, #0D0F12);
+
+  /* Signals */
+  --success: var(--gx-success, #2ECC71);
+  --success-soft: var(--gx-success-soft, rgba(46, 204, 113, 0.16));
+  --warning: var(--gx-warning, #F5A623);
+  --warning-soft: var(--gx-warning-soft, rgba(245, 166, 35, 0.16));
+  --danger: var(--gx-danger, #E63946);
+  --danger-soft: var(--gx-danger-soft, rgba(230, 57, 70, 0.16));
+
+  --focus-ring: var(--gx-ring, rgba(197, 160, 89, 0.55));
+
+  /* Sidebar — was "never overridden" (fixed dark). Re-point it at the palette so
+     the whole chrome recolors coherently with the chosen palette + theme. */
+  --sidebar-bg: var(--gx-surface, #1F242C);
+  --sidebar-hover: var(--gx-hover, #262D37);
+  --sidebar-border: var(--gx-border, #2A313B);
+  --sidebar-text: var(--gx-text-2, #AEB7C2);
+  --sidebar-strong: var(--gx-text-1, #F4F6F9);
+  --sidebar-label: var(--gx-text-3, #7C8794);
+  --sidebar-on: var(--gx-active, rgba(58, 111, 181, 0.22));
+}
+
+/* `--primary-soft` / `--accent-soft` are used as translucent fills behind text.
+   gx exposes no soft-primary token, so derive a tinted layer from the opaque
+   primary via color-mix where supported (graceful: the solid fallbacks above
+   still apply in engines without color-mix). */
+@supports (background: color-mix(in srgb, red, blue)) {
+  [data-gx-theme="dark"],
+  [data-gx-theme="light"] {
+    --primary-soft: color-mix(in srgb, var(--gx-primary) 18%, transparent);
+    --accent-soft: color-mix(in srgb, var(--gx-primary) 16%, transparent);
+  }
+}
+
 /* ===================== PALETTE VARIANTS ===================== */
 [data-palette="midnight"] {
   --bg: #060809;
@@ -1584,6 +1655,34 @@ div.studio {
 .swatch:hover { transform: scale(1.08); }
 .swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); }
 .swatch-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--text-3); }
+
+/* ===================== GX PALETTE CHOOSER (profile menu) ===================== */
+.gx-palette-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 2px;
+}
+.gx-palette-opt {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%;
+  background: transparent; border: 1px solid transparent; cursor: pointer;
+  padding: 6px 8px; border-radius: var(--r-sm, 6px);
+  color: var(--text); font-size: 12.5px; text-align: left;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
+}
+.gx-palette-opt:hover { background: var(--surface-2); }
+.gx-palette-opt:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+.gx-palette-opt.on { background: var(--surface-2); border-color: var(--accent); }
+.gx-palette-swatch {
+  width: 22px; height: 22px; border-radius: 50%;
+  flex: none; display: grid; place-items: center;
+  border: 1px solid var(--border-strong, var(--border));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.gx-palette-dot { width: 10px; height: 10px; border-radius: 50%; }
+.gx-palette-opt.on .gx-palette-swatch { box-shadow: 0 0 0 2px var(--accent-soft); }
+.gx-palette-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ===================== DROPDOWN MENU ===================== */
 .dd-menu {

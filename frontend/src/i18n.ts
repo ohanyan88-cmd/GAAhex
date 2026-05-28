@@ -237,6 +237,9 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
     'search.noPinned': 'Ամ. որոնումներ չկան։',
     'search.unavailable': 'Որոնումը դեռ հասանելի չէ',
     'search.highlight': 'Ընդ.',
+    // Appearance — per-user color palette chooser (profile menu)
+    'appearance.section': 'Տեսք',
+    'appearance.palette': 'Գունապնակ',
   },
 }
 

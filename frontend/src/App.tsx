@@ -106,6 +106,22 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   workitems: 'workitems',
 }
 
+// The 10 gx color palettes (color-tokens.css). `primary`/`bg` here are the DARK-variant
+// hex values, used only to paint the mini swatch in the profile chooser — the live colors
+// always come from the CSS `--gx-*` tokens. Order roughly follows the token file.
+const GX_PALETTES: Array<{ id: string; label: string; primary: string; bg: string }> = [
+  { id: 'navy', label: 'Navy', primary: '#E3B341', bg: '#0E1B33' },
+  { id: 'petrol', label: 'Petrol', primary: '#2DD4BF', bg: '#08272B' },
+  { id: 'forest', label: 'Forest', primary: '#58C46A', bg: '#0C2317' },
+  { id: 'olive', label: 'Olive', primary: '#C9B458', bg: '#1E2310' },
+  { id: 'espresso', label: 'Espresso', primary: '#E0915A', bg: '#241813' },
+  { id: 'oxblood', label: 'Oxblood', primary: '#E27A7A', bg: '#2A0F14' },
+  { id: 'plum', label: 'Plum', primary: '#C189E8', bg: '#221128' },
+  { id: 'indigo', label: 'Indigo', primary: '#8B7CF7', bg: '#161433' },
+  { id: 'slate', label: 'Slate', primary: '#5BA3F0', bg: '#1E2228' },
+  { id: 'sand', label: 'Sand', primary: '#C9A45A', bg: '#241E14' },
+]
+
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<Me | null>(null)
@@ -220,13 +236,24 @@ export default function App() {
   )
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    // Unify the dark/light toggle with the gx token system: the same choice drives
+    // both the legacy `--theme` light overrides and the gx palette's dark/light block.
+    document.documentElement.setAttribute('data-gx-theme', theme)
     localStorage.setItem('gaaex-theme', theme)
   }, [theme])
 
-  // Density + palette switchers were removed (owner's call). Everyone is pinned to the
-  // 'comfortable' density and the default palette so the layouts/theme-vars that depend on them
-  // still resolve — we just no longer expose a user-facing switcher. We also clear any stale
-  // values an earlier build may have persisted in localStorage.
+  // Per-user PALETTE choice (gx 10-palette system). Default 'navy' = closest to the
+  // original cobalt/gold look, so existing users aren't jarred on first load.
+  const [gxPalette, setGxPalette] = useState<string>(
+    () => localStorage.getItem('gaaex-gx-palette') || 'navy',
+  )
+  useEffect(() => {
+    document.documentElement.setAttribute('data-gx-palette', gxPalette)
+    localStorage.setItem('gaaex-gx-palette', gxPalette)
+  }, [gxPalette])
+
+  // Legacy density/palette switchers were removed (owner's call). Everyone is pinned to the
+  // 'comfortable' density; clear any stale legacy `data-palette` an earlier build may have left.
   useEffect(() => {
     document.documentElement.setAttribute('data-density', 'comfortable')
     document.documentElement.removeAttribute('data-palette')
@@ -476,6 +503,35 @@ export default function App() {
                       <ShieldIcon size={16} />
                       <span>{t('security.title', 'Security & Sign-in')}</span>
                     </button>
+                  </div>
+
+                  <div className="user-pop-divider" />
+
+                  <div className="user-pop-section">
+                    <div className="user-pop-label">{t('appearance.section', 'Appearance')}</div>
+                    <div className="gx-palette-grid" role="radiogroup" aria-label={t('appearance.palette', 'Color palette')}>
+                      {GX_PALETTES.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={gxPalette === p.id}
+                          aria-label={p.label}
+                          title={p.label}
+                          className={'gx-palette-opt' + (gxPalette === p.id ? ' on' : '')}
+                          onClick={() => setGxPalette(p.id)}
+                        >
+                          <span
+                            className="gx-palette-swatch"
+                            style={{ background: p.bg }}
+                            aria-hidden
+                          >
+                            <span className="gx-palette-dot" style={{ background: p.primary }} />
+                          </span>
+                          <span className="gx-palette-name">{p.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="user-pop-section">
