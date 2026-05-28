@@ -143,6 +143,69 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
       { key: 'when', label: 'When' },
     ],
   },
+  // Title-only pages: widgets/charts/tree/detail — no column config.
+  dashboards: {
+    pageKey: 'dashboards',
+    defaultTitle: 'Dashboard',
+    defaultColumns: [],
+  },
+  analytics: {
+    pageKey: 'analytics',
+    defaultTitle: 'Analytics',
+    defaultColumns: [],
+  },
+  org: {
+    pageKey: 'org',
+    defaultTitle: 'Org',
+    defaultColumns: [],
+  },
+  gateway: {
+    pageKey: 'gateway',
+    defaultTitle: 'Payment Gateway',
+    defaultColumns: [],
+  },
+  customer: {
+    pageKey: 'customer',
+    defaultTitle: 'Customer',
+    defaultColumns: [],
+  },
+  reports: {
+    pageKey: 'reports',
+    defaultTitle: 'Reports',
+    defaultColumns: [],
+  },
+  calendar: {
+    pageKey: 'calendar',
+    defaultTitle: 'Calendar',
+    defaultColumns: [],
+  },
+  // Table-capable pages.
+  helpdesk: {
+    pageKey: 'helpdesk',
+    defaultTitle: 'Helpdesk',
+    defaultColumns: [
+      { key: 'subject', label: 'Subject' },
+      { key: 'customer', label: 'Customer' },
+      { key: 'priority', label: 'Priority' },
+      { key: 'status', label: 'Status' },
+      { key: 'assignee', label: 'Assignee' },
+      { key: 'sla', label: 'SLA' },
+    ],
+  },
+  workitems: {
+    pageKey: 'workitems',
+    defaultTitle: 'Work Items',
+    defaultColumns: [
+      { key: 'title', label: 'Title' },
+      { key: 'kind', label: 'Kind' },
+      { key: 'customer', label: 'Customer' },
+      { key: 'status', label: 'Status' },
+      { key: 'priority', label: 'Priority' },
+      { key: 'assignee', label: 'Assignee' },
+      { key: 'due', label: 'Due' },
+      { key: 'scheduled', label: 'Scheduled' },
+    ],
+  },
 }
 
 // Build the full default descriptor for a page (all columns visible, default labels, default order).

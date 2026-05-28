@@ -12,6 +12,7 @@ import {
   ClockIcon, CreditCardIcon, DownloadIcon,
 } from './icons'
 import { useI18n } from './i18n'
+import { usePageConfig } from './pageConfig'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
 // to see ONE customer's whole life: header money summary, services, subscriptions, invoices (with
@@ -55,12 +56,15 @@ function statusPill(status: string | null | undefined) {
   return status ? <span className={cls}>{status}</span> : <span>—</span>
 }
 
-export default function CustomerView({ token, customerId, onBack }: {
+export default function CustomerView({ token, customerId, onBack, configVersion = 0 }: {
   token: string
   customerId: string
   onBack: () => void
+  configVersion?: number
 }) {
   const { t } = useI18n()
+  // Hook called so the Configure button (via BESPOKE_PAGE_KEYS) lights up for this page.
+  usePageConfig(token, 'customer', configVersion)
   const [data, setData] = useState<C360 | null>(null)
   const [services, setServices] = useState<Service[]>([])
   const [error, setError] = useState('')

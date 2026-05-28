@@ -8,6 +8,7 @@ import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import { CreditCardIcon, ReceiptIcon, ArrowRightIcon } from './icons'
+import { usePageConfig } from './pageConfig'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,8 @@ function orderStatusPill(status: string | null | undefined) {
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function PaymentGatewayView({ token }: { token: string }) {
+export default function PaymentGatewayView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'gateway', configVersion)
   const [orders, setOrders] = useState<PaymentOrder[] | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [error, setError] = useState('')
@@ -81,7 +83,7 @@ export default function PaymentGatewayView({ token }: { token: string }) {
     <div>
       <div className="view-head">
         <CreditCardIcon size={18} />
-        <h2 style={{ marginLeft: 8 }}>Payment Gateway</h2>
+        <h2 style={{ marginLeft: 8 }}>{cfg.title}</h2>
         <button
           className="btn btn-primary btn-sm"
           onClick={handleReconcile}

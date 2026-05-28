@@ -40,6 +40,7 @@ import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilitie
 import ProfileModal from './ProfileModal'
 import SecurityModal from './SecurityModal'
 import { ShortcutsModal, DocsModal, WhatsNewModal } from './SupportModals'
+import { usePageConfig } from './pageConfig'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
@@ -92,6 +93,17 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   webhooks: 'webhooks',
   'resource-pools': 'resource-pools',
   outbound: 'outbound',
+  // Title-only pages.
+  dashboards: 'dashboards',
+  analytics: 'analytics',
+  org: 'org',
+  gateway: 'gateway',
+  customer: 'customer',
+  reports: 'reports',
+  calendar: 'calendar',
+  // Table-capable pages.
+  helpdesk: 'helpdesk',
+  workitems: 'workitems',
 }
 
 export default function App() {
@@ -508,15 +520,15 @@ export default function App() {
           )}
           <ErrorBoundary>
             {view.type === 'org'
-              ? <OrgTreeView nodes={orgNodes} />
+              ? <OrgTreeView nodes={orgNodes} configVersion={pageConfigVersion} token={token} />
               : view.type === 'dashboards'
-                ? <DashboardView token={token} />
+                ? <DashboardView token={token} configVersion={pageConfigVersion} />
               : view.type === 'analytics'
-                ? <AnalyticsView token={token} />
+                ? <AnalyticsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'lead-pipeline'
                 ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} />
               : view.type === 'customer'
-                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} />
+                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} />
               : view.type === 'ask'
                 ? <AskGaaexView token={token} />
               : view.type === 'messages'
@@ -528,7 +540,7 @@ export default function App() {
               : view.type === 'payments'
                 ? <PaymentsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'gateway'
-                ? <PaymentGatewayView token={token} />
+                ? <PaymentGatewayView token={token} configVersion={pageConfigVersion} />
               : view.type === 'subscriptions'
                 ? <SubscriptionsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'products'
@@ -550,15 +562,15 @@ export default function App() {
               : view.type === 'parties'
                 ? <PartiesView token={token} />
               : view.type === 'helpdesk'
-                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} />
+                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'workitems'
-                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} />
+                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'calendar'
-                ? <CalendarView token={token} />
+                ? <CalendarView token={token} configVersion={pageConfigVersion} />
               : view.type === 'settings'
                 ? <SettingsView token={token} onSaved={() => setNudge(false)} />
               : view.type === 'reports'
-                ? <ReportsView token={token} />
+                ? <ReportsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'studio'
                 ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
               : view.type === 'module-stub'
@@ -614,10 +626,11 @@ export default function App() {
   )
 }
 
-function OrgTreeView({ nodes }: { nodes: OrgNode[] }) {
+function OrgTreeView({ nodes, token, configVersion }: { nodes: OrgNode[]; token: string; configVersion: number }) {
+  const cfg = usePageConfig(token, 'org', configVersion)
   return (
     <div>
-      <h2>Org tree</h2>
+      <h2>{cfg.title}</h2>
       <ul className="tree">
         {nodes.map((n) => (
           <li key={n.id} style={{ marginLeft: (n.path.split('.').length - 1) * 22 }}>

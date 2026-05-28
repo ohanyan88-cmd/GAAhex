@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from './States'
 import ViewHead from './ViewHead'
 import { ChartIcon } from './icons'
+import { usePageConfig } from './pageConfig'
 
 // Dashboards — picks a board and renders its config-driven widgets from /dashboards/{key}/data.
 // Self-contained inline fetch (same pattern as api.ts / ReportsView). No chart library: KPIs are
@@ -53,7 +54,8 @@ function friendlyError(e: string): string {
   return e
 }
 
-export default function DashboardView({ token }: { token: string }) {
+export default function DashboardView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'dashboards', configVersion)
   const [boards, setBoards] = useState<Board[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [data, setData] = useState<BoardData | null>(null)
@@ -105,7 +107,7 @@ export default function DashboardView({ token }: { token: string }) {
     <div>
       <ViewHead
         icon={<ChartIcon size={20} />}
-        title="Dashboard"
+        title={cfg.title}
         sub={activeBoard?.description ?? activeBoard?.label ?? 'Live metrics and KPIs'}
       />
 

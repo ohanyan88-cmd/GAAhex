@@ -11,6 +11,7 @@ import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import { InboxIcon, PlusIcon, ClockIcon, CheckIcon, CloseIcon, ArrowRightIcon } from './icons'
+import { usePageConfig } from './pageConfig'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,8 @@ const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function HelpdeskView({ token, canConfigure = false }: { token: string; canConfigure?: boolean }) {
+export default function HelpdeskView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'helpdesk', configVersion)
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
@@ -152,7 +154,7 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
   if (unavailable) {
     return (
       <div>
-        <ViewHead icon={<InboxIcon size={20} />} title="Helpdesk" />
+        <ViewHead icon={<InboxIcon size={20} />} title={cfg.title} />
         <EmptyState
           icon={<InboxIcon size={40} />}
           title="Helpdesk isn't available yet"
@@ -204,7 +206,7 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
       <div style={{ flex: 1, minWidth: 0, padding: '0 0 0 0' }}>
         <ViewHead
           icon={<InboxIcon size={20} />}
-          title="Helpdesk"
+          title={cfg.title}
           sub={selectedQueue ? queues.find((q) => q.id === selectedQueue)?.name : undefined}
           actions={
             <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
@@ -254,24 +256,24 @@ export default function HelpdeskView({ token, canConfigure = false }: { token: s
               <table className="grid">
                 <thead>
                   <tr>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Customer</th>
-                    <th scope="col">Priority</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Assignee</th>
-                    <th scope="col">SLA</th>
+                    {cfg.columns.map((col) => (
+                      <th key={col.key} scope="col">{col.label}</th>
+                    ))}
                     <th scope="col"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {tickets.map((t) => (
                     <tr key={t.id} className="row-link" onClick={() => setDetailId(t.id)} style={{ cursor: 'pointer' }}>
-                      <td className="cell-main">{t.subject}</td>
-                      <td className="cell-meta">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</td>
-                      <td className="cell-meta">{priorityPill(t.priority)}</td>
-                      <td className="cell-meta">{statusPill(t.status)}</td>
-                      <td className="cell-meta">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</td>
-                      <td className="cell-meta"><SlaBadge ticket={t} /></td>
+                      {cfg.columns.map((col) => {
+                        if (col.key === 'subject') return <td key={col.key} className="cell-main">{t.subject}</td>
+                        if (col.key === 'customer') return <td key={col.key} className="cell-meta">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</td>
+                        if (col.key === 'priority') return <td key={col.key} className="cell-meta">{priorityPill(t.priority)}</td>
+                        if (col.key === 'status') return <td key={col.key} className="cell-meta">{statusPill(t.status)}</td>
+                        if (col.key === 'assignee') return <td key={col.key} className="cell-meta">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</td>
+                        if (col.key === 'sla') return <td key={col.key} className="cell-meta"><SlaBadge ticket={t} /></td>
+                        return null
+                      })}
                       <td className="cell-action">
                         <ArrowRightIcon size={14} />
                       </td>

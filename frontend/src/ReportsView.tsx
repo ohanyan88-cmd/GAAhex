@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { DownloadIcon } from './icons'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Reports view — consumes the Reports API (Task A). Self-contained: inlines its own
 // fetch calls (same base + Authorization pattern as api.ts) and does NOT touch the shared api.ts.
@@ -39,7 +40,8 @@ function normalizeByStatus(raw: any): StatusCount[] {
   return []
 }
 
-export default function ReportsView({ token }: { token: string }) {
+export default function ReportsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'reports', configVersion)
   const [summary, setSummary] = useState<Summary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -87,7 +89,7 @@ export default function ReportsView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<DownloadIcon size={20} />} title="Reports" />
+      <ViewHead icon={<DownloadIcon size={20} />} title={cfg.title} />
 
       {error && <ErrorBanner message={error} onRetry={loadSummary} />}
 

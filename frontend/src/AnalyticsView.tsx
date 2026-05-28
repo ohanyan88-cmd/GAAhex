@@ -5,6 +5,7 @@ import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ChartIcon, ArrowUpIcon, ArrowDownIcon } from './icons'
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Analytics (A18 /api/analytics/*) — KPIs + inline-SVG/CSS charts in the existing dashboard style.
 // No charting library. Degrades on 404 (Stage-1 dormant) and per-section on error.
@@ -22,8 +23,9 @@ function pick(o: Overview, key: string): { value: number; prev?: number } {
   return { value: Number(raw) || 0, prev: p != null ? Number(p) : undefined }
 }
 
-export default function AnalyticsView({ token }: { token: string }) {
+export default function AnalyticsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const { t } = useI18n()
+  const cfg = usePageConfig(token, 'analytics', configVersion)
   const [overview, setOverview] = useState<Overview | null>(null)
   const [trend, setTrend] = useState<TrendPoint[] | null>(null)
   const [mix, setMix] = useState<MixSlice[] | null>(null)
@@ -58,7 +60,7 @@ export default function AnalyticsView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<ChartIcon size={20} />} title={t('nav.analytics', 'Analytics')} />
+      <ViewHead icon={<ChartIcon size={20} />} title={cfg.title} />
 
       {loading && <p className="muted">{t('common.loading', 'Loading…')}</p>}
       {error && <ErrorBanner message={error} onRetry={load} />}

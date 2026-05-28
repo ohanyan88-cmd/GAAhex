@@ -5,6 +5,7 @@ import {
   CalendarIcon, ChevronLeftIcon, ChevronRightIcon,
   PlusIcon, CloseIcon,
 } from './icons'
+import { usePageConfig } from './pageConfig'
 
 const BASE = 'http://127.0.0.1:8099'
 
@@ -43,7 +44,8 @@ function todayStr(): string {
   return isoDate(new Date())
 }
 
-export default function CalendarView({ token }: { token: string }) {
+export default function CalendarView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'calendar', configVersion)
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
   const [calView, setCalView] = useState<'month' | 'week'>('month')
@@ -375,7 +377,7 @@ export default function CalendarView({ token }: { token: string }) {
     <div>
       <ViewHead
         icon={<CalendarIcon size={20} />}
-        title="Calendar"
+        title={cfg.title}
         actions={viewToggle}
       />
 

@@ -100,7 +100,8 @@ export default function PageSettingsPane({
         />
       </section>
 
-      {/* Column controls */}
+      {/* Column controls — only shown when the page has configurable columns */}
+      {spec.defaultColumns.length > 0 && (
       <section>
         <h4 style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>Table columns</h4>
         <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-3)' }}>
@@ -163,6 +164,7 @@ export default function PageSettingsPane({
           })}
         </div>
       </section>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>

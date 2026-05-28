@@ -17,6 +17,7 @@ import {
   PlayIcon, PauseIcon, ArrowRightIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
 } from './icons'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -89,10 +90,13 @@ type Tab = 'active' | 'all' | 'mine'
 export default function WorkItemsView({
   token,
   canConfigure = false,
+  configVersion = 0,
 }: {
   token: string
   canConfigure?: boolean
+  configVersion?: number
 }) {
+  const cfg = usePageConfig(token, 'workitems', configVersion)
   const [items, setItems] = useState<WorkItem[] | null>(null)
   const [allItems, setAllItems] = useState<WorkItem[]>([])   // unfiltered, used for counts
   const [users, setUsers] = useState<User[]>([])
@@ -152,7 +156,7 @@ export default function WorkItemsView({
       <div>
         <ViewHead
           icon={<RowsIcon size={20} />}
-          title="Work Items"
+          title={cfg.title}
           sub="Driven by the WorkItem movement engine · stages configured in Studio"
         />
         <EmptyState
@@ -169,7 +173,7 @@ export default function WorkItemsView({
       {/* ViewHead — matches DESIGN: RowsIcon, title, sub, actions */}
       <ViewHead
         icon={<RowsIcon size={20} />}
-        title="Work Items"
+        title={cfg.title}
         sub="Driven by the WorkItem movement engine · stages configured in Studio"
         actions={
           <>
@@ -261,14 +265,9 @@ export default function WorkItemsView({
             <table className="grid">
               <thead>
                 <tr>
-                  <th scope="col">Title</th>
-                  <th scope="col">Kind</th>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Priority</th>
-                  <th scope="col">Assignee</th>
-                  <th scope="col">Due</th>
-                  <th scope="col">Scheduled</th>
+                  {cfg.columns.map((col) => (
+                    <th key={col.key} scope="col">{col.label}</th>
+                  ))}
                   <th scope="col"></th>
                 </tr>
               </thead>
@@ -280,6 +279,7 @@ export default function WorkItemsView({
                     users={users}
                     customerNames={customerNames}
                     token={token}
+                    columns={cfg.columns}
                     onRefresh={loadData}
                     onEdit={() => setDetailId(item.id)}
                   />
@@ -316,12 +316,13 @@ export default function WorkItemsView({
 // ── Row ───────────────────────────────────────────────────────────────────────
 
 function WorkItemRow({
-  item, users, customerNames, token, onRefresh, onEdit,
+  item, users, customerNames, token, columns, onRefresh, onEdit,
 }: {
   item: WorkItem
   users: User[]
   customerNames: Record<string, string>
   token: string
+  columns: { key: string; label: string; visible: boolean }[]
   onRefresh: () => void
   onEdit: () => void
 }) {
@@ -342,21 +343,26 @@ function WorkItemRow({
 
   return (
     <tr>
-      <td style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {item.title}
-      </td>
-      <td className="muted">
-        {item.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : '—'}
-      </td>
-      <td className="muted">{custName}</td>
-      <td>{statusPill(item.status)}</td>
-      <td>{priorityPill(item.priority)}</td>
-      <td className="muted">{resolveUserDisplay(item.assigned_user_id, users)}</td>
-      <td className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(item.due_at)}</td>
-      <td className="muted" style={{ whiteSpace: 'nowrap' }}>
-        {item.scheduled_at ? fmtDateShort(item.scheduled_at) : '—'}
-        {item.location ? <span title={item.location}> {item.location.length > 16 ? item.location.slice(0, 14) + '…' : item.location}</span> : null}
-      </td>
+      {columns.map((col) => {
+        if (col.key === 'title') return (
+          <td key={col.key} style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {item.title}
+          </td>
+        )
+        if (col.key === 'kind') return <td key={col.key} className="muted">{item.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : '—'}</td>
+        if (col.key === 'customer') return <td key={col.key} className="muted">{custName}</td>
+        if (col.key === 'status') return <td key={col.key}>{statusPill(item.status)}</td>
+        if (col.key === 'priority') return <td key={col.key}>{priorityPill(item.priority)}</td>
+        if (col.key === 'assignee') return <td key={col.key} className="muted">{resolveUserDisplay(item.assigned_user_id, users)}</td>
+        if (col.key === 'due') return <td key={col.key} className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(item.due_at)}</td>
+        if (col.key === 'scheduled') return (
+          <td key={col.key} className="muted" style={{ whiteSpace: 'nowrap' }}>
+            {item.scheduled_at ? fmtDateShort(item.scheduled_at) : '—'}
+            {item.location ? <span title={item.location}> {item.location.length > 16 ? item.location.slice(0, 14) + '…' : item.location}</span> : null}
+          </td>
+        )
+        return null
+      })}
       <td className="row-actions" style={{ whiteSpace: 'nowrap' }}>
         {/* Stage actions per current status */}
         {s === 'TODO' && (
