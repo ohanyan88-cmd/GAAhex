@@ -344,3 +344,57 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('plt-health',      'System Health',          ActivityIcon),
   ], { adminOnly: true }),
 ]
+
+// Stub items promoted to real config-driven entities (seeded by backend app/seed_catalog.py).
+// Mutates NAV_SECTIONS once at module load so these items route to their entity page, not a stub.
+const ENTITY_SLUGS: Record<string, string> = {
+  // CRM
+  'crm-opportunities': 'opportunities', 'crm-quotes': 'quotes', 'crm-contracts': 'contracts',
+  'crm-campaigns': 'campaigns', 'crm-promotions': 'promotions', 'crm-segments': 'segments',
+  'crm-partnerships': 'partnerships', 'crm-loyalty': 'loyalty-members',
+  // Orders
+  'ord-queue': 'orders', 'ord-change': 'change-orders',
+  // Support
+  'sup-complaints': 'complaints', 'sup-escalations': 'escalations', 'sup-kb': 'kb-articles',
+  // Billing
+  'bil-discounts': 'discounts', 'bil-credits': 'credit-notes', 'bil-tax': 'tax-rules',
+  // Network
+  'net-sites': 'sites', 'net-olts': 'olts', 'net-routers': 'routers', 'net-switches': 'switches',
+  'net-bts': 'towers', 'net-devices': 'devices', 'net-vlans': 'vlans', 'net-alarms': 'alarms',
+  'net-incidents': 'incidents', 'net-outages': 'outages',
+  // Field Operations
+  'fld-workorders': 'work-orders', 'fld-jobs': 'maintenance-jobs',
+  // Inventory
+  'inv-warehouse': 'warehouses', 'inv-stock': 'stock-items', 'inv-movements': 'stock-movements',
+  'inv-suppliers': 'suppliers', 'inv-po': 'purchase-orders', 'inv-receipts': 'goods-receipts',
+  'inv-assets': 'assets', 'inv-vehicles': 'vehicles',
+  // Finance
+  'fin-expenses': 'expenses', 'fin-budgeting': 'budgets', 'fin-vendors': 'vendor-payments',
+  // HR
+  'hr-employees': 'employees', 'hr-departments': 'departments', 'hr-leave': 'leave-requests',
+  'hr-payroll': 'payroll-runs', 'hr-recruitment': 'candidates', 'hr-performance': 'performance-reviews',
+  'hr-training': 'training-courses',
+  // Communications
+  'com-email-tpl': 'email-templates', 'com-sms-tpl': 'sms-templates', 'com-broadcast': 'broadcast-campaigns',
+  // Documents
+  'doc-templates': 'document-templates', 'doc-storage': 'documents',
+  'doc-contracts': 'contracts', 'doc-quotes': 'quotes', 'doc-workorders': 'work-orders',
+  // Projects
+  'prj-projects': 'projects', 'prj-milestones': 'milestones', 'prj-risks': 'risks', 'prj-budgets': 'budgets',
+  // Legal & Compliance
+  'leg-cases': 'legal-cases', 'leg-policies': 'policies', 'leg-consent': 'consent-records',
+  'leg-holds': 'legal-holds', 'leg-compliance': 'compliance-rules', 'leg-risk': 'risk-registers',
+  'leg-contracts': 'contracts',
+  // Administration
+  'adm-sla': 'sla-policies', 'adm-routing': 'routing-rules', 'adm-notif-rules': 'notification-rules',
+  'adm-integrations': 'integrations',
+}
+
+for (const sec of NAV_SECTIONS) {
+  for (const it of sec.items) {
+    if (!it.viewType && ENTITY_SLUGS[it.id]) {
+      it.viewType = 'entity'
+      it.viewArgs = { slug: ENTITY_SLUGS[it.id] }
+    }
+  }
+}

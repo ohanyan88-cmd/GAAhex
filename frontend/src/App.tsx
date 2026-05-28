@@ -274,18 +274,30 @@ export default function App() {
           })}
 
           {extraEntities.length > 0 && (
-            <>
-              <div className="nav-label"><span>Records</span><span className="nav-label-dot" /></div>
-              {extraEntities.map((en) => (
-                <button
-                  key={en.key}
-                  className={'nav' + (view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === en.route_slug ? ' on' : '')}
-                  onClick={() => setView({ type: 'entity', slug: en.route_slug })}
-                >
-                  <RowsIcon className="nav-icon" size={14} /><span>{en.label_plural}</span>
-                </button>
-              ))}
-            </>
+            <div className="nav-section">
+              <button
+                className={'nav-section-header' + (openSections.has('records') ? ' open' : '')}
+                onClick={(e) => toggleSection('records', e)}
+                aria-expanded={openSections.has('records')}
+              >
+                <RowsIcon size={13} className="nav-section-icon" />
+                <span>Records</span>
+                <ChevronRightIcon size={11} className="nav-section-chevron" />
+              </button>
+              {openSections.has('records') && (
+                <div className="nav-section-items">
+                  {extraEntities.map((en) => (
+                    <button
+                      key={en.key}
+                      className={'nav nav-sub' + (view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === en.route_slug ? ' on' : '')}
+                      onClick={() => setView({ type: 'entity', slug: en.route_slug })}
+                    >
+                      <RowsIcon className="nav-icon" size={13} /><span>{en.label_plural}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </nav>
 

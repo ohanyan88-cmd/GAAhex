@@ -243,7 +243,10 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   flex-direction: column;
   gap: 4px;
   border-right: 1px solid var(--sidebar-border);
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-sizing: border-box;
 }
 .sidebar-brand {
   display: flex; align-items: center; gap: 10px;
