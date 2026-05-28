@@ -271,7 +271,7 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="create", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"status": status})
     await s.commit()
-    await s.refresh(rec)
+    rec = await _get(s, user.tenant_id, ent.key, rec.id)  # re-fetch: post-commit s.refresh fails (see transition)
     return _serialize(rec, _hidden_keys(fields, rkeys, admin))
 
 
@@ -308,7 +308,7 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="update", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"changed": data})
     await s.commit()
-    await s.refresh(rec)
+    rec = await _get(s, user.tenant_id, ent.key, rec.id)  # re-fetch: post-commit s.refresh fails (see transition)
     return _serialize(rec, _hidden_keys(fields, rkeys, admin))
 
 
@@ -358,7 +358,7 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
         pa = await workflow.request_approval(s, tenant_id=user.tenant_id, entity_key=ent.key,
                                              record=rec, transition=tr, actor_user_id=user.id)
         await s.commit()
-        await s.refresh(rec)
+        rec = await _get(s, user.tenant_id, ent.key, rec.id)  # re-fetch: post-commit s.refresh fails
         return {**_serialize(rec, hidden),
                 "pending_approval": {"id": str(pa.id), "to": to, "status": "PENDING"}}
 
@@ -369,7 +369,10 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
     await s.commit()
-    await s.refresh(rec)
+    # Re-fetch rather than s.refresh(rec): after the transition's on-enter actions run, refreshing
+    # the existing instance by identity raises InvalidRequestError ("Could not refresh instance"),
+    # but the row is committed and readable — a fresh select returns the updated record.
+    rec = await _get(s, user.tenant_id, ent.key, rec_id)
     return _serialize(rec, hidden)
 
 

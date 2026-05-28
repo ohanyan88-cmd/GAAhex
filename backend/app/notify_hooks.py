@@ -128,16 +128,18 @@ async def fire(s: AsyncSession, *, tenant_id, event_type: str, entity_key: str, 
     every event and only materializes notifications that are actually configured.
     """
     try:
-        def_key = derive_def_key(entity_key, event_type, record, extra)
-        context = _build_context(record, extra)
-        recipients = await resolve_recipients(s, tenant_id=tenant_id, record=record)
-        for uid in recipients:
-            if actor_user_id is not None and uid == actor_user_id:
-                continue                       # don't notify the person who did the thing
-            await emit_notification(
-                s, tenant_id=tenant_id, def_key=def_key, user_id=uid,
-                entity_key=entity_key, record_id=record.id, context=context,
-            )
+        async with s.begin_nested():   # savepoint: a notification failure must not abort the caller's txn
+            def_key = derive_def_key(entity_key, event_type, record, extra)
+            context = _build_context(record, extra)
+            recipients = await resolve_recipients(s, tenant_id=tenant_id, record=record)
+            for uid in recipients:
+                if actor_user_id is not None and uid == actor_user_id:
+                    continue                   # don't notify the person who did the thing
+                await emit_notification(
+                    s, tenant_id=tenant_id, def_key=def_key, user_id=uid,
+                    entity_key=entity_key, record_id=record.id, context=context,
+                )
     except Exception:
-        # never propagate into the caller's unit of work
+        # never propagate into the caller's unit of work; the savepoint already rolled back any
+        # partial notification writes, leaving the outer transaction (and its tenant GUC) usable.
         return
