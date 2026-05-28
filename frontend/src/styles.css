@@ -1190,7 +1190,10 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 .wiz-conn.done { background: var(--success); }
 
 /* ===================== STUDIO ===================== */
-.studio {
+/* Scope the layout grid to the container DIV only — the data tables also carry a `studio`
+   class (`.grid.studio`), and a bare `.studio { display:grid }` was blockifying their
+   thead/tbody and breaking column alignment. */
+div.studio {
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 18px;
