@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from './api'
 import RefPicker, { refTargetKey, loadRefLabels } from './RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, GearIcon } from './icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon } from './icons'
 import { confirmDialog, Modal } from './Modal'
 import { toast } from './Toast'
 import CommentsModal from './CommentsModal'
@@ -74,7 +74,7 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 }
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onConfigure, onBack }: {
+export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack }: {
   token: string
   slug: string
   onOpenCustomer?: (id: string) => void
@@ -82,8 +82,6 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   capabilities?: Capabilities
   /** B21: handler for "back to dashboard" in NoAccess panel. */
   onBack?: () => void
-  /** Superadmin "Configure page" → open Studio focused on this entity. */
-  onConfigure?: (slug: string) => void
 }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
@@ -462,11 +460,6 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
         sub={countLabel}
         actions={
           <>
-            {onConfigure && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => onConfigure(slug)} aria-label={t('common.configurePage', 'Configure page')}>
-                <GearIcon size={13} aria-hidden /> {t('common.configurePage', 'Configure page')}
-              </button>
-            )}
             {/* Export button (ghost, always visible in header when formats are available) */}
             {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
               <div className="saved-views" role="group" aria-label={t('export.label', 'Export')}>

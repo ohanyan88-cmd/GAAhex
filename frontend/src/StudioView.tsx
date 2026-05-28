@@ -3,7 +3,7 @@ import { createEntity } from './api'
 import {
   CloseIcon, GearIcon, RowsIcon, EditIcon, ArrowRightIcon, ChartIcon,
   DownloadIcon, SparkleIcon, BuildingIcon, LockIcon, PlusIcon,
-  InfoIcon, CheckIcon,
+  InfoIcon, CheckIcon, ChevronLeftIcon,
 } from './icons'
 import ViewHead from './ViewHead'
 import FieldsPane from './studio/FieldsPane'
@@ -28,7 +28,7 @@ type Section =
   | 'appear' | 'perms'
 
 // The SuperAdmin Studio: build a whole entity AS CONFIG from the browser — no SQL, no code.
-export default function StudioView({ token, onCreated, focusSlug }: { token: string; onCreated: () => void; focusSlug?: string }) {
+export default function StudioView({ token, onCreated, focusSlug, entities, onBack, onSwitchEntity }: { token: string; onCreated: () => void; focusSlug?: string; entities?: { key: string; label: string; label_plural: string; route_slug: string }[]; onBack?: () => void; onSwitchEntity?: (slug: string) => void }) {
   // When opened via a page's "Configure page" button, jump straight to Fields for that entity.
   const [section, setSection] = useState<Section>(focusSlug ? 'fields' : 'entities')
 
@@ -90,6 +90,63 @@ export default function StudioView({ token, onCreated, focusSlug }: { token: str
     { id: 'appear',     label: 'Appearance',            Icon: BuildingIcon   },
     { id: 'perms',      label: 'Roles & Permissions',   Icon: LockIcon       },
   ]
+
+  // Focused "Configure page" mode — scoped to one entity (fields + workflow), with a searchable
+  // page switcher and a Back-to-page button. Opened via a page's Configure-page button.
+  if (focusSlug) {
+    const cur = entities?.find((e) => e.route_slug === focusSlug)
+    const focusedNav: { id: Section; label: string; Icon: React.ComponentType<{ size?: number }> }[] = [
+      { id: 'fields',    label: 'Fields',               Icon: EditIcon       },
+      { id: 'workflows', label: 'Statuses / Workflows', Icon: ArrowRightIcon },
+    ]
+    const fsec: Section = section === 'workflows' ? 'workflows' : 'fields'
+    return (
+      <>
+        <ViewHead
+          icon={<GearIcon size={20} />}
+          title={`Configure · ${cur?.label_plural ?? focusSlug}`}
+          sub="This page's settings — fields & workflow"
+          actions={onBack ? (
+            <button className="btn btn-ghost btn-sm" onClick={onBack}>
+              <ChevronLeftIcon size={13} /> Back to page
+            </button>
+          ) : undefined}
+        />
+        <div className="studio">
+          <aside className="studio-nav">
+            <div className="studio-nav-section">Page</div>
+            <div style={{ padding: '0 4px 10px' }}>
+              <input
+                className="inp inp-sm"
+                list="studio-page-switch"
+                key={focusSlug}
+                defaultValue={cur?.label_plural ?? focusSlug}
+                placeholder="Switch page…"
+                aria-label="Switch page"
+                onChange={(e) => {
+                  const m = (entities ?? []).find((en) => en.label_plural === e.target.value || en.route_slug === e.target.value)
+                  if (m && m.route_slug !== focusSlug) onSwitchEntity?.(m.route_slug)
+                }}
+              />
+              <datalist id="studio-page-switch">
+                {(entities ?? []).map((en) => <option key={en.route_slug} value={en.label_plural} />)}
+              </datalist>
+            </div>
+            <div className="studio-nav-section">Settings</div>
+            {focusedNav.map(({ id, label, Icon }) => (
+              <button key={id} className={'studio-nav-item' + (fsec === id ? ' on' : '')} onClick={() => setSection(id)}>
+                <Icon size={14} />{label}
+              </button>
+            ))}
+          </aside>
+          <section className="studio-pane">
+            {fsec === 'fields'    && <FieldsPane key={focusSlug} token={token} initialSlug={focusSlug} lockEntity />}
+            {fsec === 'workflows' && <WorkflowsPane key={focusSlug} token={token} initialSlug={focusSlug} lockEntity />}
+          </section>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

@@ -225,7 +225,7 @@ function TransitionsEditor({
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function WorkflowsPane({ token, initialSlug }: { token: string; initialSlug?: string }) {
+export default function WorkflowsPane({ token, initialSlug, lockEntity }: { token: string; initialSlug?: string; lockEntity?: boolean }) {
   const [entities, setEntities] = useState<EntitySummary[]>([])
   const [entLoading, setEntLoading] = useState(true)
   const [entError, setEntError] = useState('')
@@ -343,23 +343,27 @@ export default function WorkflowsPane({ token, initialSlug }: { token: string; i
         <EmptyState title="No entities found." message="Create an entity first via the Entities pane." />
       ) : (
         <>
-          <div className="section-head" style={{ marginTop: 0 }}>
-            <RowsIcon size={15} className="section-icon" /> Entity
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <select
-              className="inp inp-md"
-              style={{ maxWidth: 280 }}
-              value={slug ?? ''}
-              onChange={(e) => setSlug(e.target.value)}
-            >
-              {entities.map((e) => (
-                <option key={e.route_slug} value={e.route_slug}>
-                  {e.label_plural || e.label} ({e.route_slug})
-                </option>
-              ))}
-            </select>
-          </div>
+          {!lockEntity && (
+            <>
+              <div className="section-head" style={{ marginTop: 0 }}>
+                <RowsIcon size={15} className="section-icon" /> Entity
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <select
+                  className="inp inp-md"
+                  style={{ maxWidth: 280 }}
+                  value={slug ?? ''}
+                  onChange={(e) => setSlug(e.target.value)}
+                >
+                  {entities.map((e) => (
+                    <option key={e.route_slug} value={e.route_slug}>
+                      {e.label_plural || e.label} ({e.route_slug})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {slug && (
             <>

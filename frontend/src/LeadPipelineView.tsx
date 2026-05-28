@@ -6,7 +6,7 @@ import { toast } from './Toast'
 import { confirmDialog } from './Modal'
 import {
   PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon,
-  CloseIcon, UsersIcon, GearIcon, SearchIcon,
+  CloseIcon, UsersIcon, SearchIcon,
 } from './icons'
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
@@ -47,7 +47,7 @@ function pillKind(key: string): string {
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 
-export default function LeadPipelineView({ token, onOpenCustomer, onConfigure }: { token: string; onOpenCustomer?: (id: string) => void; onConfigure?: (slug: string) => void }) {
+export default function LeadPipelineView({ token, onOpenCustomer }: { token: string; onOpenCustomer?: (id: string) => void }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [leads, setLeads] = useState<Lead[] | null>(null)
@@ -170,11 +170,6 @@ export default function LeadPipelineView({ token, onOpenCustomer, onConfigure }:
         sub={t('leads.pipelineSub', `Workflow configured in Studio › Statuses › lead · ${columns.length} stages`)}
         actions={
           <>
-            {onConfigure && (
-              <button className="btn btn-ghost btn-sm" onClick={() => onConfigure(SLUG)}>
-                <GearIcon size={13} /> {t('common.configurePage', 'Configure page')}
-              </button>
-            )}
             <button className="btn btn-primary btn-sm" onClick={() => setShowNew((v) => !v)}>
               <PlusIcon size={13} /> {t('leads.new', 'New lead')}
             </button>

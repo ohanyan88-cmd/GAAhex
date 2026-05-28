@@ -84,13 +84,22 @@ export default function App() {
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
+  const [studioReturn, setStudioReturn] = useState<View>({ type: 'org' })
   const [capabilities, setCapabilities] = useState<Capabilities>(FULL_ACCESS)
 
   function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
 
-  // Superadmin-only "Configure page" → open Studio focused on the current entity. Undefined for
-  // non-superadmins, so the button never renders for them.
-  const onConfigure = user?.can_configure ? (slug: string) => setView({ type: 'studio', focusSlug: slug }) : undefined
+  // Superadmin-only "Configure page" → open Studio focused on the current page's entity (or general
+  // Studio if the page isn't a config entity). Undefined for non-superadmins (button never renders).
+  const onConfigure = user?.can_configure
+    ? (slug?: string) => { setStudioReturn(view); setView({ type: 'studio', focusSlug: slug }) }
+    : undefined
+  // The config-entity slug for the current page, or undefined ⇒ open Studio in full mode.
+  const configSlug: string | undefined =
+    view.type === 'entity' ? (view as { type: 'entity'; slug: string }).slug
+    : view.type === 'lead-pipeline' ? 'leads'
+    : entities.some((e) => e.route_slug === (view as { type: string }).type) ? (view as { type: string }).type
+    : undefined
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -333,6 +342,16 @@ export default function App() {
               {breadcrumbLabel.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
             </span>
           </div>
+          {onConfigure && view.type !== 'studio' && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginLeft: 12 }}
+              onClick={() => onConfigure(configSlug)}
+              title={t('common.configurePageTitle', 'Configure this page in Studio')}
+            >
+              <GearIcon size={13} /> {t('common.configurePage', 'Configure page')}
+            </button>
+          )}
           <div className="header-right">
             <button className="cmdk-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search (Ctrl or Cmd K)">
               <SearchIcon size={15} />
@@ -414,7 +433,7 @@ export default function App() {
               : view.type === 'analytics'
                 ? <AnalyticsView token={token} />
               : view.type === 'lead-pipeline'
-                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} onConfigure={onConfigure} />
+                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} />
               : view.type === 'customer'
                 ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} />
               : view.type === 'ask'
@@ -462,10 +481,10 @@ export default function App() {
               : view.type === 'reports'
                 ? <ReportsView token={token} />
               : view.type === 'studio'
-                ? <StudioView token={token} focusSlug={(view as { type: 'studio'; focusSlug?: string }).focusSlug} onCreated={async () => setEntities(await getEntities(token))} />
+                ? <StudioView token={token} focusSlug={(view as { type: 'studio'; focusSlug?: string }).focusSlug} entities={entities} onBack={() => setView(studioReturn)} onSwitchEntity={(slug) => { setStudioReturn({ type: 'entity', slug }); setView({ type: 'studio', focusSlug: slug }) }} onCreated={async () => setEntities(await getEntities(token))} />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
-              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onConfigure={onConfigure} onBack={() => setView({ type: 'org' })} />}
+              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
           </ErrorBoundary>
         </main>
       </div>
