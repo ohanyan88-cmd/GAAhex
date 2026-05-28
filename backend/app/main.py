@@ -20,7 +20,7 @@ from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, me
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, admin, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, page_config, me
 
 
 _log = logging.getLogger("gaaex")
@@ -143,6 +143,7 @@ app.include_router(portal_support.router)           # /portal/me/tickets (B36; b
 app.include_router(portal_service.router)           # /portal/me/services|subscriptions|usage (B37; before records)
 app.include_router(roles.router)                    # /api/roles + /api/permissions (Studio; before records)
 app.include_router(automations.router)              # /api/automations (Studio; before records)
+app.include_router(page_config.router)              # /api/page-config/* (configure-in-place for bespoke pages; before records)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)

@@ -4,6 +4,7 @@ import { Modal, confirmDialog } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ArrowRightIcon, ChevronLeftIcon, InboxIcon } from './icons'
+import { usePageConfig } from './pageConfig'
 
 // Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
 type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
@@ -23,7 +24,20 @@ function statusPill(status: string | null | undefined) {
   return status ? <span className={cls}>{status}</span> : <span>—</span>
 }
 
-export default function ServicesView({ token }: { token: string }) {
+// Renders one list cell for a given column key. Adding a column? add a default in pageConfig.ts
+// (PAGE_SPECS.services.defaultColumns) and a case here — nothing else changes.
+function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) {
+  switch (colKey) {
+    case 'name': return sv.name ?? sv.id.slice(0, 8)
+    case 'customer': return cust(sv)
+    case 'type': return sv.type ?? '—'
+    case 'status': return statusPill(sv.status)
+    case 'activated': return fmtDate(sv.activated_at)
+    default: return '—'
+  }
+}
+
+export default function ServicesView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -32,6 +46,10 @@ export default function ServicesView({ token }: { token: string }) {
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
+
+  // Page-config: title override + visible columns (in order, with labels). configVersion bumps
+  // when the superadmin saves in the drawer → re-reads live (no reload needed).
+  const page = usePageConfig(token, 'services', configVersion)
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
@@ -56,7 +74,7 @@ export default function ServicesView({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="view-head"><h2>Services</h2></div>
+      <div className="view-head"><h2>{page.title}</h2></div>
 
       <div className="list-toolbar">
         <div className="bill-filter">
@@ -82,15 +100,14 @@ export default function ServicesView({ token }: { token: string }) {
 
       {list && list.length > 0 && (
         <div className="grid-wrap"><table className="grid">
-          <thead><tr><th scope="col">Service</th><th scope="col">Customer</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Activated</th><th scope="col"></th></tr></thead>
+          <thead><tr>
+            {page.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+            <th scope="col"></th>
+          </tr></thead>
           <tbody>
             {list.map((sv) => (
               <tr key={sv.id}>
-                <td>{sv.name ?? sv.id.slice(0, 8)}</td>
-                <td>{cust(sv)}</td>
-                <td>{sv.type ?? '—'}</td>
-                <td>{statusPill(sv.status)}</td>
-                <td>{fmtDate(sv.activated_at)}</td>
+                {page.columns.map((c) => <td key={c.key}>{renderCell(c.key, sv, cust)}</td>)}
                 <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => setDetailId(sv.id)}>Open <ArrowRightIcon size={13} /></button></td>
               </tr>
             ))}

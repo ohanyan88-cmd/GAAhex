@@ -1,14 +1,21 @@
 import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from './useFocusTrap'
-import { CloseIcon, GearIcon, EditIcon, ArrowRightIcon, SearchIcon } from './icons'
+import { CloseIcon, GearIcon, EditIcon, ArrowRightIcon, SearchIcon, RowsIcon } from './icons'
 import FieldsPane from './studio/FieldsPane'
 import WorkflowsPane from './studio/WorkflowsPane'
+import PageSettingsPane from './PageSettingsPane'
+import { PAGE_SPECS } from './pageConfig'
 
 // -----------------------------------------------------------------------
 // ConfigureDrawer — right-side slide-in overlay for per-page configuration.
 // Opened by the superadmin "Configure page" button; stays on the current page.
-// The orchestrator wires the open/close + onSwitchPage callbacks from App.tsx.
+// The orchestrator wires the open/close callbacks from App.tsx.
+//
+// Two modes (the panel shell — header, focus-trap, scroll-lock, backdrop — is shared):
+//   • ENTITY mode  (pass `slug`):    entity Fields / Workflows panes + a page switcher.
+//   • PAGE mode    (pass `pageKey`): a single "Page settings" pane that edits a bespoke page's
+//                                    presentation descriptor (title + columns). No entity switcher.
 // -----------------------------------------------------------------------
 
 type EntitySummary = {
@@ -20,13 +27,25 @@ type EntitySummary = {
 
 type Tab = 'fields' | 'workflows'
 
-export interface ConfigureDrawerProps {
-  token: string
-  slug: string
-  entities: EntitySummary[]
-  onClose: () => void
-  onSwitchPage: (slug: string) => void
-}
+export type ConfigureDrawerProps =
+  | {
+      token: string
+      slug: string
+      entities: EntitySummary[]
+      onClose: () => void
+      onSwitchPage: (slug: string) => void
+      pageKey?: undefined
+      onSaved?: undefined
+    }
+  | {
+      token: string
+      pageKey: string
+      entities: EntitySummary[]
+      onClose: () => void
+      onSaved?: () => void
+      slug?: undefined
+      onSwitchPage?: undefined
+    }
 
 // ---------------------------------------------------------------------------
 // Searchable entity dropdown
@@ -142,14 +161,22 @@ function PageSwitcher({
 // ---------------------------------------------------------------------------
 // Drawer panel (portal, right-side slide-in)
 // ---------------------------------------------------------------------------
-export default function ConfigureDrawer({ token, slug, entities, onClose, onSwitchPage }: ConfigureDrawerProps) {
+export default function ConfigureDrawer(props: ConfigureDrawerProps) {
+  const { token, entities, onClose } = props
+  const isPageMode = props.pageKey != null
+  const slug = props.slug
+  const pageKey = props.pageKey
+
   const [tab, setTab] = useState<Tab>('fields')
   const titleId = useId()
 
-  const current = entities.find((e) => e.route_slug === slug)
-  const heading = `Configure · ${current?.label_plural ?? slug}`
+  const current = !isPageMode ? entities.find((e) => e.route_slug === slug) : undefined
+  const pageSpec = isPageMode ? PAGE_SPECS[pageKey!] : undefined
+  const heading = isPageMode
+    ? `Configure · ${pageSpec?.defaultTitle ?? pageKey}`
+    : `Configure · ${current?.label_plural ?? slug}`
 
-  // Reset tab when slug changes (switching page)
+  // Reset tab when slug changes (switching page) — entity mode only
   useEffect(() => { setTab('fields') }, [slug])
 
   const panelRef = useFocusTrap<HTMLDivElement>(onClose)
@@ -214,62 +241,86 @@ export default function ConfigureDrawer({ token, slug, entities, onClose, onSwit
           </button>
         </div>
 
-        {/* Page switcher */}
-        <div
-          style={{
-            padding: '12px 18px',
-            borderBottom: '1px solid var(--border)',
-            flexShrink: 0,
-            background: 'var(--surface-2)',
-          }}
-        >
-          <PageSwitcher
-            entities={entities}
-            currentSlug={slug}
-            onSwitch={onSwitchPage}
-          />
-        </div>
+        {/* Entity mode: page switcher. Page mode: a one-line context label (no entity switcher). */}
+        {isPageMode ? (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '12px 18px', borderBottom: '1px solid var(--border)',
+              flexShrink: 0, background: 'var(--surface-2)',
+              fontSize: 12, color: 'var(--text-3)',
+            }}
+          >
+            <RowsIcon size={13} />
+            <span>Bespoke page — editing how it presents (title and columns). Its data and tools are unchanged.</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--border)',
+              flexShrink: 0,
+              background: 'var(--surface-2)',
+            }}
+          >
+            <PageSwitcher
+              entities={entities}
+              currentSlug={slug!}
+              onSwitch={props.onSwitchPage!}
+            />
+          </div>
+        )}
 
-        {/* Tabs: Fields / Statuses & Workflows */}
-        <div
-          style={{
-            display: 'flex', gap: 6,
-            padding: '12px 18px 0',
-            borderBottom: '1px solid var(--border)',
-            flexShrink: 0,
-          }}
-        >
-          <button
-            type="button"
-            className={'tab' + (tab === 'fields' ? ' on' : '')}
-            onClick={() => setTab('fields')}
+        {/* Tabs — entity mode only (page mode has a single pane). */}
+        {!isPageMode && (
+          <div
+            style={{
+              display: 'flex', gap: 6,
+              padding: '12px 18px 0',
+              borderBottom: '1px solid var(--border)',
+              flexShrink: 0,
+            }}
           >
-            <EditIcon size={13} /> Fields
-          </button>
-          <button
-            type="button"
-            className={'tab' + (tab === 'workflows' ? ' on' : '')}
-            onClick={() => setTab('workflows')}
-          >
-            <ArrowRightIcon size={13} /> Statuses / Workflows
-          </button>
-        </div>
+            <button
+              type="button"
+              className={'tab' + (tab === 'fields' ? ' on' : '')}
+              onClick={() => setTab('fields')}
+            >
+              <EditIcon size={13} /> Fields
+            </button>
+            <button
+              type="button"
+              className={'tab' + (tab === 'workflows' ? ' on' : '')}
+              onClick={() => setTab('workflows')}
+            >
+              <ArrowRightIcon size={13} /> Statuses / Workflows
+            </button>
+          </div>
+        )}
 
         {/* Pane content — scrollable */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 18px' }}>
-          {tab === 'fields' && (
+          {isPageMode && (
+            <PageSettingsPane
+              key={`page-${pageKey}`}
+              token={token}
+              pageKey={pageKey!}
+              onSaved={props.onSaved}
+            />
+          )}
+          {!isPageMode && tab === 'fields' && (
             <FieldsPane
               key={`fields-${slug}`}
               token={token}
-              initialSlug={slug}
+              initialSlug={slug!}
               lockEntity
             />
           )}
-          {tab === 'workflows' && (
+          {!isPageMode && tab === 'workflows' && (
             <WorkflowsPane
               key={`workflows-${slug}`}
               token={token}
-              initialSlug={slug}
+              initialSlug={slug!}
               lockEntity
             />
           )}

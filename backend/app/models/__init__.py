@@ -36,6 +36,7 @@ from .payment_gateway import PaymentOrder
 from .customer_user import CustomerUser
 from .portal_ticket_reply import PortalTicketReply
 from .automation import AutomationRule
+from .page_config import PageConfig
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -68,4 +69,5 @@ __all__ = [
     "CustomerUser",
     "PortalTicketReply",
     "AutomationRule",
+    "PageConfig",
 ]

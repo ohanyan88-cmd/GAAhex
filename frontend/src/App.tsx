@@ -78,6 +78,13 @@ type View =
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
 const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users'])
 
+// Bespoke (non-entity) views that opt into "configure in place" — view.type → page-config key.
+// Add a view.type here (and register the page in pageConfig.ts) to light up its Configure button +
+// page-settings drawer. Template stage: Services only.
+const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
+  services: 'services',
+}
+
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<Me | null>(null)
@@ -86,16 +93,25 @@ export default function App() {
   const [view, setView] = useState<View>({ type: 'org' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
   const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
+  const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)   // …or for this bespoke page (page-config, not an entity)
+  const [pageConfigVersion, setPageConfigVersion] = useState(0)   // bumped on a page-config save so the live view re-reads it
   const [capabilities, setCapabilities] = useState<Capabilities>(FULL_ACCESS)
 
   function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
 
-  // The config-entity slug for the current page (undefined ⇒ not a config-driven page → no in-place config).
+  // The config-entity slug for the current page (undefined ⇒ not an entity-config page).
   const configSlug: string | undefined =
     view.type === 'entity' ? (view as { type: 'entity'; slug: string }).slug
     : view.type === 'lead-pipeline' ? 'leads'
     : entities.some((e) => e.route_slug === (view as { type: string }).type) ? (view as { type: string }).type
     : undefined
+
+  // The page-config key for the current bespoke page (undefined ⇒ not a page-config page).
+  // Distinct from configSlug: this opens the drawer's "Page settings" pane, not entity Fields/Workflows.
+  const pageConfigKey: string | undefined = configSlug ? undefined : BESPOKE_PAGE_KEYS[view.type]
+
+  // Either kind of config makes the header "Configure page" button appear.
+  const canConfigureThisPage = configSlug != null || pageConfigKey != null
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -347,11 +363,11 @@ export default function App() {
               {breadcrumbLabel.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
             </span>
           </div>
-          {user?.can_configure && configSlug && view.type !== 'studio' && (
+          {user?.can_configure && canConfigureThisPage && view.type !== 'studio' && (
             <button
               className="btn btn-ghost btn-sm"
               style={{ marginLeft: 12 }}
-              onClick={() => setCfgSlug(configSlug ?? null)}
+              onClick={() => { if (configSlug) setCfgSlug(configSlug); else if (pageConfigKey) setCfgPageKey(pageConfigKey) }}
               title={t('common.configurePageTitle', 'Configure this page')}
             >
               <GearIcon size={13} /> {t('common.configurePage', 'Configure page')}
@@ -507,7 +523,7 @@ export default function App() {
               : view.type === 'webhooks'
                 ? <WebhooksView token={token} />
               : view.type === 'services'
-                ? <ServicesView token={token} />
+                ? <ServicesView token={token} configVersion={pageConfigVersion} />
               : view.type === 'usage'
                 ? <UsageView token={token} />
               : view.type === 'resource-pools'
@@ -545,6 +561,17 @@ export default function App() {
             setView(slug === 'leads' ? { type: 'lead-pipeline' } : { type: 'entity', slug })
             setCfgSlug(slug)
           }}
+        />
+      )}
+
+      {/* Page-config drawer for bespoke pages (Services): same shell, "Page settings" pane. */}
+      {cfgPageKey && (
+        <ConfigureDrawer
+          token={token}
+          pageKey={cfgPageKey}
+          entities={entities}
+          onClose={() => setCfgPageKey(null)}
+          onSaved={() => setPageConfigVersion((v) => v + 1)}
         />
       )}
 
