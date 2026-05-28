@@ -331,6 +331,43 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   gap: 0;
   padding: 10px 0;
 }
+
+/* ── Rail icon enlargement (desktop collapsed only) ──────────────────────────
+   SVGs are sized by width/height attributes; override here so the rail icons
+   are clearly visible at ~22px. Expanded sidebar and mobile drawer are NOT
+   affected — those contexts either don't have .nav-collapsed on .shell or are
+   fully reversed by the ≤860px media block below. */
+.shell.nav-collapsed .nav-section-icon svg,
+.shell.nav-collapsed .nav-section-icon {
+  width: 22px;
+  height: 22px;
+}
+.shell.nav-collapsed .nav-standalone .nav-icon svg,
+.shell.nav-collapsed .nav-standalone .nav-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Widen the rail a touch so 22px icons have comfortable padding */
+.shell.nav-collapsed {
+  grid-template-columns: 72px 1fr;
+}
+.shell.nav-collapsed .sidebar {
+  width: 72px;
+  min-width: 72px;
+  max-width: 72px;
+}
+
+/* Keep brand logo and tenant avatar centered and sensibly sized in the rail */
+.shell.nav-collapsed .sidebar-logo {
+  width: 32px;
+  height: 32px;
+}
+.shell.nav-collapsed .sidebar-tenant-avatar {
+  width: 32px;
+  height: 32px;
+}
+
 .sidebar-brand {
   display: flex; align-items: center; gap: 10px;
   padding: 6px 8px 14px;
@@ -1682,6 +1719,17 @@ div.studio {
 
   /* Undo nav-section-items hiding on mobile — drawer shows full nav tree */
   .shell.nav-collapsed .nav-section-items { display: revert; }
+
+  /* Undo rail icon enlargement on mobile — drawer uses normal icon sizes */
+  .shell.nav-collapsed .nav-section-icon svg,
+  .shell.nav-collapsed .nav-section-icon,
+  .shell.nav-collapsed .nav-standalone .nav-icon svg,
+  .shell.nav-collapsed .nav-standalone .nav-icon {
+    width: revert;
+    height: revert;
+  }
+  .shell.nav-collapsed .sidebar-logo { width: revert; height: revert; }
+  .shell.nav-collapsed .sidebar-tenant-avatar { width: revert; height: revert; }
 
   .content > main { padding: 14px; }
   .messages { grid-template-columns: 1fr; }
