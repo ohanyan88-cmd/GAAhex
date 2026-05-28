@@ -242,6 +242,15 @@ export default function App() {
         </div>
 
         <nav className="sidebar-scroll">
+          {/* Studio — its own top-level item, superadmin only (config.manage). */}
+          {user?.can_configure && (
+            <button
+              className={'nav nav-standalone' + (view.type === 'studio' ? ' on' : '')}
+              onClick={() => setView({ type: 'studio' })}
+            >
+              <GearIcon className="nav-icon" size={14} /><span>Studio</span>
+            </button>
+          )}
           {NAV_SECTIONS.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
             const isOpen = openSections.has(sec.id)
             return (
