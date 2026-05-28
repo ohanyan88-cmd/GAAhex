@@ -6,6 +6,7 @@ import { EmptyState, ErrorBanner, PermissionDenied } from './States'
 import { ArrowRightIcon, ChevronLeftIcon, BuildingIcon } from './icons'
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Accounts UI (A17 /api/accounts) — the money/billing layer on a Party. Stage 1 may be dormant
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
@@ -31,8 +32,9 @@ function statusPill(status: string | null | undefined) {
   return status ? <span className={cls}>{status}</span> : <span>—</span>
 }
 
-export default function AccountsView({ token }: { token: string }) {
+export default function AccountsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const { t } = useI18n()
+  const cfg = usePageConfig(token, 'accounts', configVersion)
   const [list, setList] = useState<Account[] | null>(null)
   const [parties, setParties] = useState<Party[]>([])
   const [error, setError] = useState('')
@@ -74,7 +76,7 @@ export default function AccountsView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<BuildingIcon size={20} />} title={t('nav.accounts', 'Accounts')} actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? t('common.close', 'Close') : t('accounts.new', '+ New Account')}</button>} />
+      <ViewHead icon={<BuildingIcon size={20} />} title={cfg.title} actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setCreating((c) => !c)}>{creating ? t('common.close', 'Close') : t('accounts.new', '+ New Account')}</button>} />
 
       {creating && (
         <div className="rec-form">
@@ -105,21 +107,20 @@ export default function AccountsView({ token }: { token: string }) {
       {list && list.length > 0 && (
         <div className="grid-wrap"><table className="grid">
           <thead><tr>
-            <th scope="col">{t('accounts.type', 'Type')}</th>
-            <th scope="col">{t('accounts.holder', 'Holder')}</th>
-            <th scope="col">{t('accounts.currency', 'Currency')}</th>
-            <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
-            <th scope="col">{t('common.status', 'Status')}</th>
+            {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
             <th scope="col"></th>
           </tr></thead>
           <tbody>
             {list.map((a) => (
               <tr key={a.id}>
-                <td><span className="pill">{a.type ?? '—'}</span></td>
-                <td>{holderName(a)}</td>
-                <td>{a.currency ?? '—'}</td>
-                <td>{a.billing_cycle ?? '—'}</td>
-                <td>{statusPill(a.status)}</td>
+                {cfg.columns.map((c) => {
+                  if (c.key === 'type') return <td key={c.key}><span className="pill">{a.type ?? '—'}</span></td>
+                  if (c.key === 'holder') return <td key={c.key}>{holderName(a)}</td>
+                  if (c.key === 'currency') return <td key={c.key}>{a.currency ?? '—'}</td>
+                  if (c.key === 'cycle') return <td key={c.key}>{a.billing_cycle ?? '—'}</td>
+                  if (c.key === 'status') return <td key={c.key}>{statusPill(a.status)}</td>
+                  return <td key={c.key}>—</td>
+                })}
                 <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => setDetailId(a.id)}>{t('common.open', 'Open')} <ArrowRightIcon size={13} /></button></td>
               </tr>
             ))}

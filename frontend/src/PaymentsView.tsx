@@ -4,6 +4,7 @@ import { money } from './money'
 import { EmptyState, ErrorBanner } from './States'
 import { CreditCardIcon, ReceiptIcon, DownloadIcon } from './icons'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -19,7 +20,8 @@ function methodPill(method: string | null | undefined) {
   return <span className={cls}>{method ?? '—'}</span>
 }
 
-export default function PaymentsView({ token }: { token: string }) {
+export default function PaymentsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'payments', configVersion)
   const [payments, setPayments] = useState<Payment[] | null>(null)
   const [invoiceMap, setInvoiceMap] = useState<Record<string, Invoice>>({})
   const [names, setNames] = useState<Record<string, string>>({})
@@ -73,7 +75,7 @@ export default function PaymentsView({ token }: { token: string }) {
     <div>
       <ViewHead
         icon={<CreditCardIcon size={18} />}
-        title="Payments"
+        title={cfg.title}
         sub={`Inbound payments · adapters: Card, Bank, Cash · ${pList.length} records`}
         actions={
           <button className="btn btn-ghost btn-sm">
@@ -114,28 +116,30 @@ export default function PaymentsView({ token }: { token: string }) {
             <table className="grid">
               <thead>
                 <tr>
-                  <th scope="col">Invoice</th>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Method</th>
-                  <th scope="col">Date</th>
-                  <th scope="col" className="num">Amount (֏)</th>
-                  <th scope="col">Note</th>
+                  {cfg.columns.map((c) => (
+                    <th key={c.key} scope="col" className={c.key === 'amount' ? 'num' : ''}>{c.label}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {pList.map(p => (
                   <tr key={p.id}>
-                    <td>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        <ReceiptIcon size={13} />
-                        <span className="mono" style={{ color: 'var(--accent)' }}>{invoiceRef(p)}</span>
-                      </span>
-                    </td>
-                    <td>{customerName(p)}</td>
-                    <td>{methodPill(p.method)}</td>
-                    <td className="mono">{fmtDate(p.paid_at)}</td>
-                    <td className="num">֏{(p.amount ?? 0).toLocaleString()}</td>
-                    <td className="muted">{p.note ?? '—'}</td>
+                    {cfg.columns.map((c) => {
+                      if (c.key === 'invoice') return (
+                        <td key={c.key}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <ReceiptIcon size={13} />
+                            <span className="mono" style={{ color: 'var(--accent)' }}>{invoiceRef(p)}</span>
+                          </span>
+                        </td>
+                      )
+                      if (c.key === 'customer') return <td key={c.key}>{customerName(p)}</td>
+                      if (c.key === 'method') return <td key={c.key}>{methodPill(p.method)}</td>
+                      if (c.key === 'date') return <td key={c.key} className="mono">{fmtDate(p.paid_at)}</td>
+                      if (c.key === 'amount') return <td key={c.key} className="num">֏{(p.amount ?? 0).toLocaleString()}</td>
+                      if (c.key === 'note') return <td key={c.key} className="muted">{p.note ?? '—'}</td>
+                      return <td key={c.key}>—</td>
+                    })}
                   </tr>
                 ))}
               </tbody>

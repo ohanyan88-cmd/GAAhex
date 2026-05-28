@@ -5,6 +5,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import { ReceiptIcon, PlusIcon, DownloadIcon, PauseIcon, PlayIcon } from './icons'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
@@ -20,7 +21,8 @@ function subStatusPill(status: string | null | undefined) {
     : <span>—</span>
 }
 
-export default function SubscriptionsView({ token }: { token: string }) {
+export default function SubscriptionsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'subscriptions', configVersion)
   const [list, setList] = useState<Subscription[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [customers, setCustomers] = useState<{ id: string; label: string }[]>([])
@@ -108,7 +110,7 @@ export default function SubscriptionsView({ token }: { token: string }) {
     <div>
       <ViewHead
         icon={<ReceiptIcon size={18} />}
-        title="Subscriptions"
+        title={cfg.title}
         sub="Customer × service bindings · billed via the WorkItem engine"
         actions={
           !unavailable ? (
@@ -187,11 +189,9 @@ export default function SubscriptionsView({ token }: { token: string }) {
             <table className="grid">
               <thead>
                 <tr>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Plan</th>
-                  <th scope="col">Cycle</th>
-                  <th scope="col">Status</th>
-                  <th scope="col" className="num">MRR (֏)</th>
+                  {cfg.columns.map((c) => (
+                    <th key={c.key} scope="col" className={c.key === 'mrr' ? 'num' : ''}>{c.label}</th>
+                  ))}
                   <th scope="col"></th>
                 </tr>
               </thead>
@@ -201,13 +201,18 @@ export default function SubscriptionsView({ token }: { token: string }) {
                   const canceled = st === 'CANCELLED'
                   return (
                     <tr key={s.id}>
-                      <td>{cust(s)}</td>
-                      <td>
-                        <span className="pill pill-accent">{s.plan_name ?? '—'}</span>
-                      </td>
-                      <td className="muted" style={{ textTransform: 'capitalize' }}>{s.cycle ?? '—'}</td>
-                      <td>{subStatusPill(s.status)}</td>
-                      <td className="num">֏{(s.amount ?? 0).toLocaleString()}</td>
+                      {cfg.columns.map((c) => {
+                        if (c.key === 'customer') return <td key={c.key}>{cust(s)}</td>
+                        if (c.key === 'plan') return (
+                          <td key={c.key}><span className="pill pill-accent">{s.plan_name ?? '—'}</span></td>
+                        )
+                        if (c.key === 'cycle') return (
+                          <td key={c.key} className="muted" style={{ textTransform: 'capitalize' }}>{s.cycle ?? '—'}</td>
+                        )
+                        if (c.key === 'status') return <td key={c.key}>{subStatusPill(s.status)}</td>
+                        if (c.key === 'mrr') return <td key={c.key} className="num">֏{(s.amount ?? 0).toLocaleString()}</td>
+                        return <td key={c.key}>—</td>
+                      })}
                       <td>
                         <div className="row-actions">
                           {!canceled && (

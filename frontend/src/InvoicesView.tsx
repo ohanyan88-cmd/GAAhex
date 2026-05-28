@@ -11,6 +11,7 @@ import {
 } from './icons'
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
 
@@ -101,8 +102,36 @@ function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceI
   )
 }
 
-export default function InvoicesView({ token, canConfigure = false }: { token: string; canConfigure?: boolean }) {
+// renderCell for configurable columns. Custom cells keep their styling via helpers below.
+function renderInvoiceCell(colKey: string, inv: Invoice, cust: (inv: Invoice) => string) {
+  switch (colKey) {
+    case 'number': return inv.number ?? inv.id.slice(0, 8)
+    case 'customer': return cust(inv)
+    case 'issued': return fmtDate(inv.issued_at ?? inv.created_at)
+    case 'due': return fmtDate(inv.due_at)
+    case 'status': return statusPill(inv.status)
+    case 'amount': return `֏${(inv.total ?? 0).toLocaleString()}`
+    default: return '—'
+  }
+}
+
+// Columns that get special class treatment in their <th>/<td>
+const COL_CLASS: Record<string, string> = { amount: 'num' }
+// Columns that get special inline styling on their <td>
+function colTdStyle(colKey: string): React.CSSProperties | undefined {
+  if (colKey === 'number') return { color: 'var(--accent)', fontWeight: 600 }
+  return undefined
+}
+// Columns that get extra className on their <td>
+function colTdClass(colKey: string): string {
+  if (colKey === 'number' || colKey === 'issued' || colKey === 'due') return 'mono'
+  if (colKey === 'amount') return 'num'
+  return ''
+}
+
+export default function InvoicesView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const { t } = useI18n()
+  const cfg = usePageConfig(token, 'invoices', configVersion)
   const [list, setList] = useState<Invoice[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -178,7 +207,7 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
     <div>
       <ViewHead
         icon={<ReceiptIcon size={18} />}
-        title="Invoices"
+        title={cfg.title}
         sub={`${all.length} records · currency AMD (֏) · billing engine`}
         actions={
           <>
@@ -248,26 +277,18 @@ export default function InvoicesView({ token, canConfigure = false }: { token: s
           <table className="grid">
             <thead>
               <tr>
-                <th scope="col">Invoice</th>
-                <th scope="col">Customer</th>
-                <th scope="col">Issued</th>
-                <th scope="col">Due</th>
-                <th scope="col">Status</th>
-                <th scope="col" className="num">Amount</th>
+                {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
                 <th scope="col"></th>
               </tr>
             </thead>
             <tbody>
               {list.map((inv) => (
                 <tr key={inv.id}>
-                  <td className="mono" style={{ color: 'var(--accent)', fontWeight: 600 }}>
-                    {inv.number ?? inv.id.slice(0, 8)}
-                  </td>
-                  <td>{cust(inv)}</td>
-                  <td className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</td>
-                  <td className="mono">{fmtDate(inv.due_at)}</td>
-                  <td>{statusPill(inv.status)}</td>
-                  <td className="num">֏{(inv.total ?? 0).toLocaleString()}</td>
+                  {cfg.columns.map((c) => (
+                    <td key={c.key} className={colTdClass(c.key)} style={colTdStyle(c.key)}>
+                      {renderInvoiceCell(c.key, inv, cust)}
+                    </td>
+                  ))}
                   <td>
                     <div className="row-actions">
                       {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (

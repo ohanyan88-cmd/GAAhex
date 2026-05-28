@@ -42,6 +42,52 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
       { key: 'activated', label: 'Activated' },
     ],
   },
+  invoices: {
+    pageKey: 'invoices',
+    defaultTitle: 'Invoices',
+    defaultColumns: [
+      { key: 'number', label: 'Invoice' },
+      { key: 'customer', label: 'Customer' },
+      { key: 'issued', label: 'Issued' },
+      { key: 'due', label: 'Due' },
+      { key: 'status', label: 'Status' },
+      { key: 'amount', label: 'Amount' },
+    ],
+  },
+  payments: {
+    pageKey: 'payments',
+    defaultTitle: 'Payments',
+    defaultColumns: [
+      { key: 'invoice', label: 'Invoice' },
+      { key: 'customer', label: 'Customer' },
+      { key: 'method', label: 'Method' },
+      { key: 'date', label: 'Date' },
+      { key: 'amount', label: 'Amount (֏)' },
+      { key: 'note', label: 'Note' },
+    ],
+  },
+  subscriptions: {
+    pageKey: 'subscriptions',
+    defaultTitle: 'Subscriptions',
+    defaultColumns: [
+      { key: 'customer', label: 'Customer' },
+      { key: 'plan', label: 'Plan' },
+      { key: 'cycle', label: 'Cycle' },
+      { key: 'status', label: 'Status' },
+      { key: 'mrr', label: 'MRR (֏)' },
+    ],
+  },
+  accounts: {
+    pageKey: 'accounts',
+    defaultTitle: 'Accounts',
+    defaultColumns: [
+      { key: 'type', label: 'Type' },
+      { key: 'holder', label: 'Holder' },
+      { key: 'currency', label: 'Currency' },
+      { key: 'cycle', label: 'Cycle' },
+      { key: 'status', label: 'Status' },
+    ],
+  },
 }
 
 // Build the full default descriptor for a page (all columns visible, default labels, default order).

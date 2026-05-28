@@ -83,6 +83,10 @@ const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users
 // page-settings drawer. Template stage: Services only.
 const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   services: 'services',
+  invoices: 'invoices',
+  payments: 'payments',
+  subscriptions: 'subscriptions',
+  accounts: 'accounts',
 }
 
 export default function App() {
@@ -515,13 +519,13 @@ export default function App() {
               : view.type === 'activity'
                 ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
               : view.type === 'invoices'
-                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} />
+                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'payments'
-                ? <PaymentsView token={token} />
+                ? <PaymentsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'gateway'
                 ? <PaymentGatewayView token={token} />
               : view.type === 'subscriptions'
-                ? <SubscriptionsView token={token} />
+                ? <SubscriptionsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'products'
                 ? <ProductsView token={token} />
               : view.type === 'report-builder'
@@ -537,7 +541,7 @@ export default function App() {
               : view.type === 'resource-pools'
                 ? <ResourcePoolsView token={token} />
               : view.type === 'accounts'
-                ? <AccountsView token={token} />
+                ? <AccountsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'parties'
                 ? <PartiesView token={token} />
               : view.type === 'helpdesk'
