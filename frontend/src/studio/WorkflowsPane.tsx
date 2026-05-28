@@ -225,13 +225,13 @@ function TransitionsEditor({
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function WorkflowsPane({ token }: { token: string }) {
+export default function WorkflowsPane({ token, initialSlug }: { token: string; initialSlug?: string }) {
   const [entities, setEntities] = useState<EntitySummary[]>([])
   const [entLoading, setEntLoading] = useState(true)
   const [entError, setEntError] = useState('')
   const [entDenied, setEntDenied] = useState(false)
 
-  const [slug, setSlug] = useState<string | null>(null)
+  const [slug, setSlug] = useState<string | null>(initialSlug ?? null)
 
   const [statuses, setStatuses] = useState<StatusDef[]>([])
   const [transitions, setTransitions] = useState<TransitionDef[]>([])

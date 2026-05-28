@@ -211,13 +211,13 @@ function EditFieldRow({
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function FieldsPane({ token }: { token: string }) {
+export default function FieldsPane({ token, initialSlug }: { token: string; initialSlug?: string }) {
   const [entities, setEntities] = useState<EntitySummary[]>([])
   const [entLoading, setEntLoading] = useState(true)
   const [entError, setEntError] = useState('')
   const [entDenied, setEntDenied] = useState(false)
 
-  const [slug, setSlug] = useState<string | null>(null)
+  const [slug, setSlug] = useState<string | null>(initialSlug ?? null)
 
   const [fields, setFields] = useState<FieldDef[]>([])
   const [fieldsLoading, setFieldsLoading] = useState(false)

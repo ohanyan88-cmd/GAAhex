@@ -28,8 +28,9 @@ type Section =
   | 'appear' | 'perms'
 
 // The SuperAdmin Studio: build a whole entity AS CONFIG from the browser — no SQL, no code.
-export default function StudioView({ token, onCreated }: { token: string; onCreated: () => void }) {
-  const [section, setSection] = useState<Section>('entities')
+export default function StudioView({ token, onCreated, focusSlug }: { token: string; onCreated: () => void; focusSlug?: string }) {
+  // When opened via a page's "Configure page" button, jump straight to Fields for that entity.
+  const [section, setSection] = useState<Section>(focusSlug ? 'fields' : 'entities')
 
   // Entity builder state
   const [key, setKey] = useState('')
@@ -158,8 +159,8 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
               }}
             />
           )}
-          {section === 'fields'    && <FieldsPane token={token} />}
-          {section === 'workflows' && <WorkflowsPane token={token} />}
+          {section === 'fields'    && <FieldsPane token={token} initialSlug={focusSlug} />}
+          {section === 'workflows' && <WorkflowsPane token={token} initialSlug={focusSlug} />}
           {section === 'dashboards'&& <DashboardsPane token={token} />}
           {section === 'views'     && <ViewsPane token={token} />}
           {section === 'reports'   && <ReportsPane token={token} />}
