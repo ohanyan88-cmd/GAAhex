@@ -3,15 +3,15 @@
 // All icons inherit the current text color (stroke="currentColor", fill="none"), so they theme
 // automatically. Size via the `size` prop (default 18).
 
-type IconProps = { size?: number; className?: string }
+type IconProps = { size?: number; className?: string; style?: React.CSSProperties }
 
-function Svg({ size = 18, className, children }: IconProps & { children: React.ReactNode }) {
+function Svg({ size = 18, className, style, children }: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       width={size} height={size} viewBox="0 0 24 24"
       fill="none" stroke="currentColor" strokeWidth={2}
       strokeLinecap="round" strokeLinejoin="round"
-      className={className} aria-hidden focusable="false"
+      className={className} style={style} aria-hidden focusable="false"
     >
       {children}
     </svg>

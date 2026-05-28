@@ -231,6 +231,22 @@ async def add_field(slug: str, payload: dict, user: User = Depends(current_user)
             "required": fld.required, "order": fld.order, "config": fld.config}
 
 
+@router.delete("/entities/{slug}/fields/{field_key}", status_code=204)
+async def delete_field(slug: str, field_key: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Hard-delete a field definition. The field's key will vanish from the schema; any data
+    previously stored under it in records remains in the JSONB `data` column but is no longer
+    surfaced. Gated by config.manage."""
+    await _require_config_manage(s, user)
+    ent = await _get_entity(s, user, slug)
+    fld = (await s.execute(
+        select(FieldDef).where(FieldDef.entity_def_id == ent.id, FieldDef.key == field_key)
+    )).scalar_one_or_none()
+    if not fld:
+        raise HTTPException(404, f"Unknown field '{field_key}' on '{ent.key}'")
+    await s.delete(fld)
+    await s.commit()
+
+
 @router.patch("/entities/{slug}/fields/{field_key}")
 async def update_field(slug: str, field_key: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Edit a field's SAFE attributes only: label, required, order, and (for select/multiselect)

@@ -6,6 +6,14 @@ import {
   InfoIcon, CheckIcon,
 } from './icons'
 import ViewHead from './ViewHead'
+import FieldsPane from './studio/FieldsPane'
+import WorkflowsPane from './studio/WorkflowsPane'
+import DashboardsPane from './studio/DashboardsPane'
+import ViewsPane from './studio/ViewsPane'
+import ReportsPane from './studio/ReportsPane'
+import AutomationsPane from './studio/AutomationsPane'
+import AppearancePane from './studio/AppearancePane'
+import RolesPane from './studio/RolesPane'
 
 const FIELD_TYPES = ['text', 'textarea', 'number', 'money', 'boolean', 'date', 'datetime', 'email', 'phone', 'select', 'ref', 'status']
 
@@ -150,14 +158,14 @@ export default function StudioView({ token, onCreated }: { token: string; onCrea
               }}
             />
           )}
-          {section === 'fields'    && <PlaceholderPane title="Fields" hint="All fields across all entities. Bulk operations supported." />}
-          {section === 'workflows' && <PlaceholderPane title="Statuses / Workflows" hint="Stage definitions and allowed transitions. The WorkItem movement engine enforces them." />}
-          {section === 'dashboards'&& <PlaceholderPane title="Dashboards" hint="Tab definitions and widget placement." />}
-          {section === 'views'     && <PlaceholderPane title="Views" hint="Default list columns, saved views, sort and filter presets per entity." />}
-          {section === 'reports'   && <PlaceholderPane title="Reports" hint="Saved report definitions. Schedules and GXL filters here." />}
-          {section === 'auto'      && <PlaceholderPane title="Automations" hint="Trigger — condition — action. Visual editor renders the underlying JSON rules." />}
-          {section === 'appear'    && <PlaceholderPane title="Appearance" hint="Tenant branding — logo, brand color, default theme." />}
-          {section === 'perms'     && <PlaceholderPane title="Roles and Permissions" hint="Role definitions and per-entity permission matrix." />}
+          {section === 'fields'    && <FieldsPane token={token} />}
+          {section === 'workflows' && <WorkflowsPane token={token} />}
+          {section === 'dashboards'&& <DashboardsPane token={token} />}
+          {section === 'views'     && <ViewsPane token={token} />}
+          {section === 'reports'   && <ReportsPane token={token} />}
+          {section === 'auto'      && <AutomationsPane token={token} />}
+          {section === 'appear'    && <AppearancePane token={token} />}
+          {section === 'perms'     && <RolesPane token={token} />}
         </section>
       </div>
     </>
@@ -490,22 +498,6 @@ function EntityBuilder({ formProps: fp }: { formProps: BuilderFormProps }) {
           </button>
         </div>
       </form>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Placeholder pane — used for sections not yet built out
-// ---------------------------------------------------------------------------
-function PlaceholderPane({ title, hint }: { title: React.ReactNode; hint: React.ReactNode }) {
-  return (
-    <div>
-      <h3 style={{ margin: '0 0 8px' }}>{title}</h3>
-      <p className="hint">{hint}</p>
-      <div style={{ marginTop: 40, textAlign: 'center', color: 'var(--text-3)', opacity: 0.5 }}>
-        <InfoIcon size={28} />
-        <p style={{ marginTop: 12, fontSize: 13 }}>This section is not yet configured.</p>
-      </div>
     </div>
   )
 }

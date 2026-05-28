@@ -164,6 +164,80 @@ async def get_dashboard_data(key: str, user: User = Depends(current_user), s: As
     return {"key": dash.key, "label": dash.label, "widgets": out}
 
 
+@router.patch("/{key}")
+async def update_dashboard(key: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Update dashboard metadata (label, description, order) and optionally REPLACE all widgets.
+    If the body contains a 'widgets' key, all existing WidgetDef rows for this board are deleted
+    and replaced with the payload widgets (same validation as create_dashboard). Requires config.manage."""
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        raise HTTPException(403, "Not allowed to manage configuration")
+    dash = await _get_dashboard(s, user.tenant_id, key)
+
+    if "label" in payload:
+        v = (payload["label"] or "").strip()
+        if not v:
+            raise HTTPException(422, "label cannot be empty")
+        dash.label = v
+    if "description" in payload:
+        dash.description = payload["description"]
+    if "order" in payload:
+        dash.order = int(payload["order"])
+
+    if "widgets" in payload:
+        widgets = payload["widgets"] or []
+        for w in widgets:
+            if not (w.get("key") or "").strip():
+                raise HTTPException(422, "every widget needs a 'key'")
+            if w.get("type") not in ALLOWED_WIDGET_TYPES:
+                raise HTTPException(422, f"Unknown widget type '{w.get('type')}'")
+            metric = (w.get("query") or {}).get("metric", "count")
+            if metric not in ALLOWED_METRICS:
+                raise HTTPException(422, f"Unknown metric '{metric}'")
+
+        # Delete all existing widgets for this dashboard
+        existing = await _widgets(s, dash.id)
+        for w in existing:
+            await s.delete(w)
+        await s.flush()
+
+        # Recreate from payload
+        for i, w in enumerate(widgets, start=1):
+            s.add(WidgetDef(
+                tenant_id=user.tenant_id, dashboard_def_id=dash.id, key=w["key"],
+                label=w.get("label", w["key"]), type=w["type"], order=i, query=w.get("query"),
+            ))
+
+    await s.commit()
+    # Re-fetch widgets after commit for consistent response
+    widgets_out = await _widgets(s, dash.id)
+    return {
+        "key": dash.key,
+        "label": dash.label,
+        "description": dash.description,
+        "order": dash.order,
+        "widgets": [_widget_out(w) for w in widgets_out],
+    }
+
+
+@router.delete("/{key}", status_code=204)
+async def delete_dashboard(key: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Delete a dashboard and all its widget definitions. Requires config.manage."""
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        raise HTTPException(403, "Not allowed to manage configuration")
+    dash = await _get_dashboard(s, user.tenant_id, key)
+
+    # Delete all widgets first (FK dependency)
+    existing = await _widgets(s, dash.id)
+    for w in existing:
+        await s.delete(w)
+    await s.flush()
+
+    await s.delete(dash)
+    await s.commit()
+
+
 @router.post("", status_code=201)
 async def create_dashboard(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Create a dashboard with its widgets AS CONFIG. Requires config.manage (super_admin),

@@ -48,13 +48,29 @@ async def emit(s: AsyncSession, tenant_id, type_: str, entity_key: str, record_i
     # Fan the event out to any subscribed outbound webhooks (fail-soft, lazy import to avoid a
     # router↔workflow import cycle; a no-op when no webhooks are configured for this tenant).
     try:
-        from .routers.webhooks import dispatch_event
-        await dispatch_event(s, tenant_id=tenant_id, event_type=type_, payload={
-            "type": type_, "entity_key": entity_key,
-            "record_id": str(record_id) if record_id else None,
-            "actor_user_id": str(actor_user_id) if actor_user_id else None,
-            "data": data,
-        })
+        async with s.begin_nested():   # savepoint: a webhook-dispatch failure must not abort the caller's txn
+            from .routers.webhooks import dispatch_event
+            await dispatch_event(s, tenant_id=tenant_id, event_type=type_, payload={
+                "type": type_, "entity_key": entity_key,
+                "record_id": str(record_id) if record_id else None,
+                "actor_user_id": str(actor_user_id) if actor_user_id else None,
+                "data": data,
+            })
+    except Exception:
+        pass
+    # Fire automation rules that match this event (fail-soft: a rule failure must not abort the
+    # caller's transaction; wrapped in its own savepoint exactly like webhook dispatch above).
+    try:
+        async with s.begin_nested():
+            await run_automations(
+                s,
+                tenant_id=tenant_id,
+                event_type=type_,
+                entity_key=entity_key,
+                record_id=record_id,
+                actor_user_id=actor_user_id,
+                data=data,
+            )
     except Exception:
         pass
 
@@ -144,22 +160,24 @@ async def run_actions(s: AsyncSession, *, tenant_id, entity_key, record: Record,
     for action in (transition or {}).get("actions") or []:
         atype = (action or {}).get("type")
         try:
-            if atype == "notify":
-                await _action_notify(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
-                                     transition=transition, action=action, actor_user_id=actor_user_id)
-            elif atype == "set_field":
-                _action_set_field(record, action)
-            elif atype == "emit_event":
-                await emit(s, tenant_id, action.get("event_type", "action"), entity_key,
-                           record.id, actor_user_id, action.get("data") or {})
-            else:
-                results.append({"type": atype, "status": "skipped", "reason": "unknown action type"})
-                continue
+            async with s.begin_nested():        # savepoint: one failing action must not abort the txn
+                if atype == "notify":
+                    await _action_notify(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
+                                         transition=transition, action=action, actor_user_id=actor_user_id)
+                elif atype == "set_field":
+                    _action_set_field(record, action)
+                elif atype == "emit_event":
+                    await emit(s, tenant_id, action.get("event_type", "action"), entity_key,
+                               record.id, actor_user_id, action.get("data") or {})
+                else:
+                    results.append({"type": atype, "status": "skipped", "reason": "unknown action type"})
+                    continue
             results.append({"type": atype, "status": "ok"})
         except Exception as e:                  # fail-soft: log + keep going, never break the transition
             try:
-                await emit(s, tenant_id, "action_failed", entity_key, record.id, actor_user_id,
-                           {"action": atype, "error": str(e)})
+                async with s.begin_nested():
+                    await emit(s, tenant_id, "action_failed", entity_key, record.id, actor_user_id,
+                               {"action": atype, "error": str(e)})
             except Exception:
                 pass
             results.append({"type": atype, "status": "error", "error": str(e)})
@@ -262,3 +280,117 @@ async def request_approval(s: AsyncSession, *, tenant_id, entity_key, record: Re
     except Exception:
         pass                                    # a notification failure must never block the request
     return pa
+
+
+# ===========================================================================================
+# Automation rules executor
+# ===========================================================================================
+#
+# Loads active AutomationRule rows matching (tenant, event_type, entity_key), evaluates the
+# optional GXL condition, and runs the action. Mirrors run_actions — each rule is wrapped
+# in its own savepoint so a single failure never poisons the caller's transaction.
+#
+# Called from emit() after webhook dispatch, wrapped in a savepoint there as well.
+
+async def run_automations(
+    s: AsyncSession,
+    *,
+    tenant_id,
+    event_type: str,
+    entity_key: str,
+    record_id,
+    actor_user_id,
+    data: dict,
+) -> None:
+    """Execute active automation rules matching (tenant, event_type, entity_key).
+
+    A lightweight record-context is built from the event data dict (record is not re-fetched
+    for speed/safety — the data payload already carries the relevant field snapshot). The full
+    Record object is needed only for actions that work with it; we lazy-fetch when required.
+
+    Each rule body runs inside its own savepoint. Any exception is swallowed — a rule failure
+    must never poison the caller's transaction.
+    """
+    from .models.automation import AutomationRule
+    from . import gxl as _gxl
+
+    rules = (await s.execute(
+        select(AutomationRule).where(
+            AutomationRule.tenant_id == tenant_id,
+            AutomationRule.event_type == event_type,
+            AutomationRule.entity_key == entity_key,
+            AutomationRule.is_active.is_(True),
+        ).order_by(AutomationRule.order)
+    )).scalars().all()
+
+    if not rules:
+        return
+
+    # Build context from the event data dict + ids for GXL evaluation
+    ctx: dict = dict(data)
+    ctx.setdefault("record_id", str(record_id) if record_id else None)
+    ctx.setdefault("entity_key", entity_key)
+    ctx.setdefault("event_type", event_type)
+
+    for rule in rules:
+        try:
+            async with s.begin_nested():        # savepoint per rule — a failure rolls back this rule only
+                # Evaluate condition if present; skip if false
+                if rule.condition and not _gxl.evaluate(rule.condition, ctx):
+                    continue
+
+                action = rule.action or {}
+                atype = action.get("type")
+                aconfig = action.get("config") or {}
+
+                if atype == "notify":
+                    # Lazy-fetch the record so we can use resolve_recipients + emit_notification
+                    rec = (await s.execute(
+                        select(Record).where(Record.id == record_id, Record.tenant_id == tenant_id)
+                    )).scalar_one_or_none() if record_id else None
+                    if rec is not None:
+                        from .notify_hooks import resolve_recipients
+                        from .routers.notifications import emit_notification
+                        def_key = aconfig.get("def_key") or f"{entity_key}.{event_type}"
+                        recipients = await resolve_recipients(
+                            s, tenant_id=tenant_id, record=rec, role_keys=aconfig.get("roles")
+                        )
+                        for uid in recipients:
+                            if actor_user_id is not None and uid == actor_user_id:
+                                continue
+                            await emit_notification(
+                                s, tenant_id=tenant_id, def_key=def_key, user_id=uid,
+                                entity_key=entity_key, record_id=record_id, context=ctx,
+                            )
+
+                elif atype == "set_field":
+                    rec = (await s.execute(
+                        select(Record).where(Record.id == record_id, Record.tenant_id == tenant_id)
+                    )).scalar_one_or_none() if record_id else None
+                    if rec is not None:
+                        field = aconfig.get("field")
+                        if field:
+                            if "expr" in aconfig:
+                                value = _eval_value(aconfig["expr"], _record_context(rec))
+                            else:
+                                value = aconfig.get("value")
+                            rec_data = dict(rec.data or {})
+                            rec_data[field] = value
+                            rec.data = rec_data
+
+                elif atype == "webhook":
+                    import httpx
+                    url = aconfig.get("url")
+                    if url:
+                        method = (aconfig.get("method") or "POST").upper()
+                        headers = aconfig.get("headers") or {}
+                        async with httpx.AsyncClient(timeout=10.0) as client:
+                            await client.request(method, url, json=ctx, headers=headers)
+
+                elif atype == "emit_event":
+                    custom_event_type = aconfig.get("event_type", "automation")
+                    await emit(s, tenant_id, custom_event_type, entity_key, record_id,
+                               actor_user_id, aconfig.get("data") or {})
+
+        except Exception:
+            pass  # fail-soft: one bad rule must never block the event pipeline

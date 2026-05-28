@@ -35,6 +35,7 @@ from .workitem import WorkItem
 from .payment_gateway import PaymentOrder
 from .customer_user import CustomerUser
 from .portal_ticket_reply import PortalTicketReply
+from .automation import AutomationRule
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -66,4 +67,5 @@ __all__ = [
     "PaymentOrder",
     "CustomerUser",
     "PortalTicketReply",
+    "AutomationRule",
 ]
