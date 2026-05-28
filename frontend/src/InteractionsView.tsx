@@ -8,17 +8,20 @@ import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './State
 import { PhoneIcon, MailIcon, MessageIcon, EditIcon, InfoIcon, PlusIcon } from './icons'
 import { t } from './i18n'
 
-// Interactions log (E14 /api/interactions) — list + "Log interaction" composer. Degrades on 404.
+// Interactions log — config-driven entity (entity_key='interaction') served by /api/interactions.
+// Uses the generic records API. Supports embedded mode (in CustomerView / CustomerBillingModal)
+// by filtering by the customer field via GXL filter param.
 type Interaction = {
   id: string
   channel?: string
   direction?: string
   subject?: string | null
   body?: string
-  agent_user_id?: string | null
-  agent_name?: string | null
   occurred_at?: string | null
   created_at?: string | null
+  // generic record fields stored in data JSONB
+  customer?: string | null
+  ticket?: string | null
 }
 
 const CHANNELS = ['call', 'email', 'chat', 'sms', 'note', 'other']
@@ -46,8 +49,9 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
     const p = new URLSearchParams()
-    if (customerId) p.set('customer', customerId)
-    if (channel) p.set('channel', channel)
+    // Filter by customer using GXL expression if embedded in a customer context
+    if (customerId) p.set('filter', `customer == '${customerId}'`)
+    if (channel) p.set('filter', (p.get('filter') ? p.get('filter') + ` and channel == '${channel}'` : `channel == '${channel}'`))
     const qs = p.toString()
     const res = await bget<Interaction[]>(token, `/api/interactions${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
@@ -102,14 +106,13 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
 
       {list && list.length > 0 && (
         <div className="grid-wrap"><table className="grid">
-          <thead><tr><th scope="col">Channel</th><th scope="col">Direction</th><th scope="col">Subject</th><th scope="col">Agent</th><th scope="col">When</th></tr></thead>
+          <thead><tr><th scope="col">Channel</th><th scope="col">Direction</th><th scope="col">Subject</th><th scope="col">When</th></tr></thead>
           <tbody>
             {list.map((it) => (
               <tr key={it.id}>
                 <td className="cell-meta"><span className="pill">{channelIcon(it.channel)} {it.channel ?? '—'}</span></td>
                 <td className="cell-meta"><span className="pill pill-muted">{it.direction ?? '—'}</span></td>
                 <td className="cell-main">{it.subject || <span className="muted">{(it.body ?? '').slice(0, 60) || '—'}</span>}</td>
-                <td className="cell-meta">{it.agent_name ?? (it.agent_user_id ? it.agent_user_id.slice(0, 8) : '—')}</td>
                 <td className="cell-meta">{timeAgo(it.occurred_at ?? it.created_at ?? null)}</td>
               </tr>
             ))}
@@ -135,9 +138,14 @@ function LogModal({ token, customerId, onClose, onDone }: { token: string; custo
     if (!body.trim() || saving) return
     setSaving(true)
     try {
+      // Post to the generic records API for the interaction entity
       await bpost(token, '/api/interactions', {
-        channel, direction, subject: subject.trim() || undefined, body: body.trim(),
-        customer_id: customerId || undefined,
+        channel,
+        direction,
+        subject: subject.trim() || undefined,
+        body: body.trim(),
+        customer: customerId || undefined,
+        occurred_at: new Date().toISOString(),
       })
       toast.success(t('interactions.logged', 'Interaction logged'))
       onDone()

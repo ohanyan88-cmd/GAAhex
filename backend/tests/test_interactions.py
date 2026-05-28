@@ -1,136 +1,135 @@
-"""Coverage for contact-center interactions (interactions.py).
+"""Coverage for interaction as a config-driven entity (entity_key='interaction').
 
-Logged touchpoints (channel/direction/customer), tenant + org scoped (`interaction.*`), each write
-emits an audit Event. List is newest-first and gated on customer.view when filtered by a customer.
-Edit is author-only. Unique markers per test (shared session DB accumulates).
+Interactions are now stored in the generic `record` table and served by the generic
+/api/{slug} records router at /api/interactions. The dedicated bespoke router has been
+retired. Tests verify CRUD via the generic API and that the config entity was seeded.
 """
 
 import uuid
-from datetime import datetime, timezone
 
 import pytest
+import pytest_asyncio
 from sqlalchemy import select
 
-from app.db import SessionLocal
-from app.models import User, OrgNode, RoleDef, Assignment, Event, Tenant
-from app.models.interaction import Interaction
+from app.db import OwnerSessionLocal
+from app.models import EntityDef, FieldDef, Tenant
+from app.seed_catalog import seed_entity_if_missing
 
+
+@pytest_asyncio.fixture(scope="module", autouse=True)
+async def _seed_interaction_entity():
+    """Seed only the interaction config entity before running these tests. Idempotent."""
+    await seed_entity_if_missing("interaction")
+
+
+# ===================== entity config =====================
+
+async def test_interaction_entity_seeded(client, admin):
+    """The interaction EntityDef must exist for every tenant after seed_catalog runs."""
+    async with OwnerSessionLocal() as s:
+        tenants = (await s.execute(select(Tenant))).scalars().all()
+        for tenant in tenants:
+            ent = (await s.execute(
+                select(EntityDef).where(
+                    EntityDef.tenant_id == tenant.id,
+                    EntityDef.key == "interaction",
+                )
+            )).scalar_one_or_none()
+            assert ent is not None, f"interaction EntityDef missing for tenant {tenant.id}"
+            assert ent.route_slug == "interactions"
+            fields = (await s.execute(
+                select(FieldDef).where(FieldDef.entity_def_id == ent.id)
+            )).scalars().all()
+            field_keys = {f.key for f in fields}
+            assert {"channel", "direction", "body", "customer", "occurred_at"}.issubset(field_keys)
+
+
+# ===================== CRUD via generic records API =====================
 
 async def _customer(client, admin, name):
-    return (await client.post("/api/customers", headers=admin, json={"name": name})).json()["id"]
+    r = await client.post("/api/customers", headers=admin, json={"name": name})
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
 
 
-async def _grant_agent_interaction():
-    """Give the agent interaction.view+create at its team node (isolated; only affects interactions).
-    Idempotent — safe to call from multiple tests."""
-    async with SessionLocal() as s:
-        agent = (await s.execute(select(User).where(User.email == "agent@demo.isp"))).scalar_one()
-        existing = (await s.execute(
-            select(RoleDef).where(RoleDef.tenant_id == agent.tenant_id, RoleDef.key == "interaction_agent_role")
-        )).scalar_one_or_none()
-        if existing:
-            return
-        team = (await s.execute(
-            select(OrgNode).where(OrgNode.tenant_id == agent.tenant_id, OrgNode.code == "sales1"))).scalar_one()
-        role = RoleDef(tenant_id=agent.tenant_id, key="interaction_agent_role", label="interaction agent",
-                       scope="node", permissions=["interaction.view", "interaction.create"])
-        s.add(role)
-        await s.flush()
-        s.add(Assignment(tenant_id=agent.tenant_id, user_id=agent.id, role_id=role.id, node_id=team.id))
-        await s.commit()
+async def test_create_and_list_interaction(client, admin):
+    """POST /api/interactions creates a record; GET /api/interactions lists it."""
+    cust = await _customer(client, admin, "IntGenCust1")
+    r = await client.post("/api/interactions", headers=admin, json={
+        "channel": "call",
+        "direction": "inbound",
+        "body": "Called about billing.",
+        "customer": cust,
+        "occurred_at": "2026-01-01T10:00:00+00:00",
+    })
+    assert r.status_code == 201, r.text
+    created = r.json()
+    assert created["channel"] == "call"
+    assert created["body"] == "Called about billing."
+    assert created["customer"] == cust
+
+    listed = (await client.get("/api/interactions", headers=admin)).json()
+    ids = [x["id"] for x in listed]
+    assert created["id"] in ids
 
 
-# ===================== log + list + audit =====================
+async def test_filter_by_customer(client, admin):
+    """GET /api/interactions?filter=customer=='<id>' returns only that customer's interactions."""
+    cust_a = await _customer(client, admin, "IntGenCustA")
+    cust_b = await _customer(client, admin, "IntGenCustB")
 
-async def test_log_list_filter_newest_first_and_audit(client, admin):
-    cust = await _customer(client, admin, "Int Cust 1")
-    first = (await client.post("/api/interactions", headers=admin, json={
-        "channel": "call", "direction": "inbound", "customer_id": cust, "body": "first",
-        "occurred_at": "2026-01-01T10:00:00+00:00"})).json()
-    second = (await client.post("/api/interactions", headers=admin, json={
-        "channel": "email", "direction": "outbound", "customer_id": cust, "body": "second",
-        "occurred_at": "2026-01-01T11:00:00+00:00"})).json()
+    r_a = await client.post("/api/interactions", headers=admin, json={
+        "channel": "email", "direction": "outbound", "body": "Note for A", "customer": cust_a,
+    })
+    assert r_a.status_code == 201
+    r_b = await client.post("/api/interactions", headers=admin, json={
+        "channel": "chat", "direction": "inbound", "body": "Note for B", "customer": cust_b,
+    })
+    assert r_b.status_code == 201
 
-    listed = (await client.get(f"/api/interactions?customer={cust}", headers=admin)).json()
-    assert [x["id"] for x in listed] == [second["id"], first["id"]]      # newest first
-
-    by_channel = (await client.get(f"/api/interactions?customer={cust}&channel=call", headers=admin)).json()
-    assert [x["id"] for x in by_channel] == [first["id"]]
-
-    # an audit Event was emitted
-    async with SessionLocal() as s:
-        evs = (await s.execute(
-            select(Event).where(Event.record_id == uuid.UUID(first["id"]), Event.entity_key == "interaction")
-        )).scalars().all()
-    assert any(e.type == "create" for e in evs)
+    import urllib.parse
+    filt = urllib.parse.quote(f"customer == '{cust_a}'")
+    listed = (await client.get(f"/api/interactions?filter={filt}", headers=admin)).json()
+    assert all(x.get("customer") == cust_a for x in listed)
+    ids = [x["id"] for x in listed]
+    assert r_a.json()["id"] in ids
+    assert r_b.json()["id"] not in ids
 
 
-async def test_bad_channel_direction_body_422(client, admin):
-    cust = await _customer(client, admin, "Int Cust 2")
-    assert (await client.post("/api/interactions", headers=admin, json={
-        "channel": "smoke", "direction": "inbound", "body": "x", "customer_id": cust})).status_code == 422
-    assert (await client.post("/api/interactions", headers=admin, json={
-        "channel": "call", "direction": "sideways", "body": "x", "customer_id": cust})).status_code == 422
-    assert (await client.post("/api/interactions", headers=admin, json={
-        "channel": "call", "direction": "inbound", "body": "   ", "customer_id": cust})).status_code == 422
+async def test_body_required(client, admin):
+    """Creating an interaction without the required `body` field returns 422."""
+    r = await client.post("/api/interactions", headers=admin, json={
+        "channel": "call", "direction": "inbound",
+    })
+    assert r.status_code == 422, r.text
 
 
-# ===================== edit (author only) + delete =====================
+async def test_get_and_patch_interaction(client, admin):
+    """GET and PATCH a single interaction record."""
+    r = await client.post("/api/interactions", headers=admin, json={
+        "channel": "note", "direction": "internal", "body": "initial note",
+    })
+    assert r.status_code == 201
+    rid = r.json()["id"]
 
-async def test_edit_author_only_and_delete(client, admin, agent):
-    cust = await _customer(client, admin, "Int Cust 3")
-    x = (await client.post("/api/interactions", headers=admin, json={
-        "channel": "note", "direction": "internal", "customer_id": cust, "body": "draft"})).json()
-    xid = x["id"]
+    got = (await client.get(f"/api/interactions/{rid}", headers=admin)).json()
+    assert got["id"] == rid
+    assert got["body"] == "initial note"
 
-    # author edits subject/body
-    edited = await client.patch(f"/api/interactions/{xid}", headers=admin, json={"subject": "Sub", "body": "final"})
-    assert edited.status_code == 200 and edited.json()["body"] == "final"
-    # unknown key / empty body → 422
-    assert (await client.patch(f"/api/interactions/{xid}", headers=admin, json={"channel": "call"})).status_code == 422
-    assert (await client.patch(f"/api/interactions/{xid}", headers=admin, json={"body": " "})).status_code == 422
-    # a non-author cannot edit (author check is independent of perms)
-    assert (await client.patch(f"/api/interactions/{xid}", headers=agent, json={"body": "hax"})).status_code == 403
-
-    # author deletes
-    assert (await client.delete(f"/api/interactions/{xid}", headers=admin)).status_code == 204
-    assert (await client.get(f"/api/interactions/{xid}", headers=admin)).status_code == 404
+    patched = await client.patch(f"/api/interactions/{rid}", headers=admin, json={"body": "updated note"})
+    assert patched.status_code == 200
+    assert patched.json()["body"] == "updated note"
 
 
-# ===================== scope (customer view gate) + tenant isolation =====================
+async def test_delete_interaction(client, admin):
+    """DELETE removes the record; subsequent GET returns 404."""
+    r = await client.post("/api/interactions", headers=admin, json={
+        "channel": "sms", "direction": "outbound", "body": "to delete",
+    })
+    assert r.status_code == 201
+    rid = r.json()["id"]
 
-async def test_list_for_unviewable_customer_403(client, admin, agent):
-    await _grant_agent_interaction()                       # agent now has interaction.view, but not customer.view @ grp
-    hq_cust = await _customer(client, admin, "Int HQ Cust")
-    # listing interactions for a customer the agent can't view → 403 (customer.view gate)
-    assert (await client.get(f"/api/interactions?customer={hq_cust}", headers=agent)).status_code == 403
+    del_r = await client.delete(f"/api/interactions/{rid}", headers=admin)
+    assert del_r.status_code == 204
 
-
-@pytest.mark.xfail(reason="BUG: create_interaction gates interaction.create but never checks "
-                          "customer.view, so an agent can LOG an interaction against a customer "
-                          "outside its scope (list IS gated — the two are inconsistent).",
-                   strict=False)
-async def test_log_for_unviewable_customer_403(client, admin, agent):
-    await _grant_agent_interaction()
-    hq_cust = await _customer(client, admin, "Int HQ Cust 2")
-    # logging against a customer the caller can't view should be refused (403), same as listing
-    r = await client.post("/api/interactions", headers=agent, json={
-        "channel": "call", "direction": "inbound", "body": "x", "customer_id": hq_cust})
-    assert r.status_code == 403
-
-
-async def test_tenant_isolation(client, admin):
-    async with SessionLocal() as s:
-        other = Tenant(name=f"Other ISP {uuid.uuid4().hex[:6]}")
-        s.add(other)
-        await s.flush()
-        u2 = User(tenant_id=other.id, email=f"u2-{uuid.uuid4().hex[:8]}@x.io", name="U2", password_hash="x")
-        s.add(u2)
-        await s.flush()
-        x = Interaction(tenant_id=other.id, agent_user_id=u2.id, channel="call", direction="inbound",
-                        body="foreign", occurred_at=datetime.now(timezone.utc))
-        s.add(x)
-        await s.commit()
-        foreign_id = str(x.id)
-    # never another tenant's data
-    assert (await client.get(f"/api/interactions/{foreign_id}", headers=admin)).status_code == 404
+    assert (await client.get(f"/api/interactions/{rid}", headers=admin)).status_code == 404

@@ -363,6 +363,37 @@ async def reorder_statuses(slug: str, payload: dict, user: User = Depends(curren
     return {"order": order}
 
 
+@router.patch("/entities/{slug}/statuses/{status_key}")
+async def update_status(slug: str, status_key: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Edit a status's label and/or is_initial flag. Setting is_initial=true clears any other initial
+    status (only one is allowed). Gated by config.manage."""
+    await _require_config_manage(s, user)
+    ent = await _get_entity(s, user, slug)
+    st = (await s.execute(
+        select(StatusDef).where(StatusDef.entity_def_id == ent.id, StatusDef.key == status_key)
+    )).scalar_one_or_none()
+    if not st:
+        raise HTTPException(404, f"Unknown status '{status_key}' on '{ent.key}'")
+
+    if "label" in payload:
+        v = (payload["label"] or "").strip()
+        if not v:
+            raise HTTPException(422, "label cannot be empty")
+        st.label = v
+
+    if "is_initial" in payload:
+        new_initial = bool(payload["is_initial"])
+        if new_initial:
+            for o in (await s.execute(
+                select(StatusDef).where(StatusDef.entity_def_id == ent.id, StatusDef.is_initial.is_(True))
+            )).scalars().all():
+                o.is_initial = False
+        st.is_initial = new_initial
+
+    await s.commit()
+    return {"key": st.key, "label": st.label, "order": st.order, "is_initial": st.is_initial}
+
+
 @router.delete("/entities/{slug}/statuses/{status_key}")
 async def delete_status(slug: str, status_key: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Delete a status — but only if it is safe to. Blocked (409) if any record currently sits in it

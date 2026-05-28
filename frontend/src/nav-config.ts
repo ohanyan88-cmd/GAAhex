@@ -57,7 +57,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('crm-accounts',      'Accounts',           BuildingIcon, 'accounts'),
     i('crm-contacts',      'Contacts',           UsersIcon,    'entity', { slug: 'contacts' }),
     i('crm-parties',       'Parties',            UsersIcon,    'parties'),
-    i('crm-activities',    'Activities',         ClockIcon,    'interactions'),
+    i('crm-activities',    'Activities',         ClockIcon,    'entity', { slug: 'interactions' }),
     i('crm-quotes',        'Quotes',             EditIcon),
     i('crm-contracts',     'Contracts',          FolderIcon),
     i('crm-residential',   'Residential Sales',  UsersIcon),

@@ -8,6 +8,7 @@ import DashboardView from './DashboardView'
 import MessagesView from './MessagesView'
 import NotificationCenter from './NotificationCenter'
 import CommandPalette from './CommandPalette'
+import ConfigureDrawer from './ConfigureDrawer'
 import ActivityTimeline from './ActivityTimeline'
 import InvoicesView from './InvoicesView'
 import PaymentsView from './PaymentsView'
@@ -17,7 +18,6 @@ import ReportBuilderView from './ReportBuilderView'
 import OutboundView from './OutboundView'
 import WebhooksView from './WebhooksView'
 import ServicesView from './ServicesView'
-import InteractionsView from './InteractionsView'
 import UsageView from './UsageView'
 import ResourcePoolsView from './ResourcePoolsView'
 import AccountsView from './AccountsView'
@@ -59,7 +59,6 @@ type View =
   | { type: 'outbound' }
   | { type: 'webhooks' }
   | { type: 'services' }
-  | { type: 'interactions' }
   | { type: 'resource-pools' }
   | { type: 'accounts' }
   | { type: 'parties' }
@@ -84,17 +83,12 @@ export default function App() {
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
-  const [studioReturn, setStudioReturn] = useState<View>({ type: 'org' })
+  const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
   const [capabilities, setCapabilities] = useState<Capabilities>(FULL_ACCESS)
 
   function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
 
-  // Superadmin-only "Configure page" → open Studio focused on the current page's entity (or general
-  // Studio if the page isn't a config entity). Undefined for non-superadmins (button never renders).
-  const onConfigure = user?.can_configure
-    ? (slug?: string) => { setStudioReturn(view); setView({ type: 'studio', focusSlug: slug }) }
-    : undefined
-  // The config-entity slug for the current page, or undefined ⇒ open Studio in full mode.
+  // The config-entity slug for the current page (undefined ⇒ not a config-driven page → no in-place config).
   const configSlug: string | undefined =
     view.type === 'entity' ? (view as { type: 'entity'; slug: string }).slug
     : view.type === 'lead-pipeline' ? 'leads'
@@ -342,12 +336,12 @@ export default function App() {
               {breadcrumbLabel.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
             </span>
           </div>
-          {onConfigure && view.type !== 'studio' && (
+          {user?.can_configure && configSlug && view.type !== 'studio' && (
             <button
               className="btn btn-ghost btn-sm"
               style={{ marginLeft: 12 }}
-              onClick={() => onConfigure(configSlug)}
-              title={t('common.configurePageTitle', 'Configure this page in Studio')}
+              onClick={() => setCfgSlug(configSlug ?? null)}
+              title={t('common.configurePageTitle', 'Configure this page')}
             >
               <GearIcon size={13} /> {t('common.configurePage', 'Configure page')}
             </button>
@@ -460,8 +454,6 @@ export default function App() {
                 ? <WebhooksView token={token} />
               : view.type === 'services'
                 ? <ServicesView token={token} />
-              : view.type === 'interactions'
-                ? <InteractionsView token={token} />
               : view.type === 'usage'
                 ? <UsageView token={token} />
               : view.type === 'resource-pools'
@@ -481,7 +473,7 @@ export default function App() {
               : view.type === 'reports'
                 ? <ReportsView token={token} />
               : view.type === 'studio'
-                ? <StudioView token={token} focusSlug={(view as { type: 'studio'; focusSlug?: string }).focusSlug} entities={entities} onBack={() => setView(studioReturn)} onSwitchEntity={(slug) => { setStudioReturn({ type: 'entity', slug }); setView({ type: 'studio', focusSlug: slug }) }} onCreated={async () => setEntities(await getEntities(token))} />
+                ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
               : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
@@ -489,6 +481,18 @@ export default function App() {
         </main>
       </div>
 
+      {cfgSlug && (
+        <ConfigureDrawer
+          token={token}
+          slug={cfgSlug}
+          entities={entities}
+          onClose={() => setCfgSlug(null)}
+          onSwitchPage={(slug) => {
+            setView(slug === 'leads' ? { type: 'lead-pipeline' } : { type: 'entity', slug })
+            setCfgSlug(slug)
+          }}
+        />
+      )}
       {paletteOpen && (
         <CommandPalette
           token={token}

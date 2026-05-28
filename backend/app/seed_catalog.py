@@ -41,6 +41,14 @@ _DRAFT_FLOW = [st("DRAFT", "Draft", True), st("ACTIVE", "Active"), st("ARCHIVED"
 
 ENTITY_CATALOG = [
     # ---- CRM ----
+    e("interaction", "Interaction", "Interactions", "interactions", "phone",
+      [f("customer", "Customer", "ref", target="customer"),
+       f("ticket", "Ticket", "ref", target="ticket"),
+       f("channel", "Channel", "select", True, options=["call", "email", "chat", "sms", "note", "other"]),
+       f("direction", "Direction", "select", True, options=["inbound", "outbound", "internal"]),
+       f("subject", "Subject", "text"),
+       f("body", "Notes", "textarea", True),
+       f("occurred_at", "Occurred At", "datetime")]),
     e("opportunity", "Opportunity", "Opportunities", "opportunities", "arrow-right",
       [f("name", "Name", "text", True), f("customer", "Customer", "ref", target="customer"),
        f("amount", "Amount", "money"), f("close_date", "Close Date", "date")],
@@ -310,6 +318,21 @@ async def seed_catalog_if_missing() -> int:
             for spec in ENTITY_CATALOG:
                 if await _create_entity(s, t.id, spec):
                     created += 1
+        await s.commit()
+    return created
+
+
+async def seed_entity_if_missing(entity_key: str) -> int:
+    """Create a single catalog entity (by key) for every tenant that doesn't already have it. Idempotent."""
+    spec = next((s for s in ENTITY_CATALOG if s["key"] == entity_key), None)
+    if spec is None:
+        raise ValueError(f"No catalog spec found for entity key '{entity_key}'")
+    created = 0
+    async with SessionLocal() as s:
+        tenants = (await s.execute(select(Tenant))).scalars().all()
+        for t in tenants:
+            if await _create_entity(s, t.id, spec):
+                created += 1
         await s.commit()
     return created
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../States'
 import {
-  ArrowRightIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon, ChartIcon,
+  ArrowRightIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon, ChartIcon, EditIcon,
 } from '../icons'
 
 const BASE = 'http://127.0.0.1:8099'
@@ -86,6 +86,73 @@ function AddStatusForm({
         </div>
       </div>
     </form>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Inline edit row for a status (rename label + toggle initial)
+// Saved via PATCH /meta/entities/{slug}/statuses/{statusKey}
+// ---------------------------------------------------------------------------
+function EditStatusRow({
+  slug, token, status, onDone,
+}: { slug: string; token: string; status: StatusDef; onDone: () => void }) {
+  const [label, setLabel] = useState(status.label)
+  const [isInitial, setIsInitial] = useState(status.is_initial)
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function save() {
+    setSaving(true); setErr('')
+    try {
+      await apiFetch(token, `/meta/entities/${slug}/statuses/${status.key}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ label: label.trim() || status.key, is_initial: isInitial }),
+      })
+      onDone()
+    } catch (ex) {
+      setErr((ex as Error).message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      {err && (
+        <tr>
+          <td colSpan={5}><ErrorBanner message={err} /></td>
+        </tr>
+      )}
+      <tr style={{ background: 'var(--surface-2)' }}>
+        {/* Order column — empty while editing */}
+        <td></td>
+        <td><code className="mono">{status.key}</code></td>
+        <td>
+          <input
+            className="inp inp-sm"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            autoFocus
+          />
+        </td>
+        <td>
+          <input
+            type="checkbox"
+            checked={isInitial}
+            onChange={(e) => setIsInitial(e.target.checked)}
+          />
+        </td>
+        <td>
+          <div className="row-actions">
+            <button type="button" className="btn btn-accent btn-sm" onClick={save} disabled={saving}>
+              <CheckIcon size={13} />
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
+              <CloseIcon size={13} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    </>
   )
 }
 
@@ -191,10 +258,10 @@ function TransitionsEditor({
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        aria-label="Remove transition"
+                        aria-label="Delete transition"
                         onClick={() => setRows(rows.filter((_, j) => j !== i))}
                       >
-                        <CloseIcon size={13} />
+                        <TrashIcon size={13} />
                       </button>
                     </div>
                   </td>
@@ -240,6 +307,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
   const [wfDenied, setWfDenied] = useState(false)
 
   const [deletingKey, setDeletingKey] = useState<string | null>(null)
+  const [editingStatusKey, setEditingStatusKey] = useState<string | null>(null)
   const [deleteErr, setDeleteErr] = useState('')
   const [showAddStatus, setShowAddStatus] = useState(false)
   const [reordering, setReordering] = useState(false)
@@ -269,7 +337,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
   function loadWorkflow(s: string) {
     let alive = true
     setWfLoading(true); setWfError(''); setWfDenied(false)
-    setStatuses([]); setTransitions([]); setShowAddStatus(false); setDeleteErr('')
+    setStatuses([]); setTransitions([]); setShowAddStatus(false); setDeleteErr(''); setEditingStatusKey(null)
     apiFetch(token, `/meta/entities/${s}`)
       .then((d: { statuses: StatusDef[]; transitions: TransitionDef[] }) => {
         if (!alive) return
@@ -407,50 +475,69 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                           </tr>
                         </thead>
                         <tbody>
-                          {statuses.map((st, i) => (
-                            <tr key={st.key}>
-                              <td>
-                                <div className="row-actions">
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label="Move up"
-                                    disabled={i === 0 || reordering}
-                                    onClick={() => moveStatus(i, i - 1)}
-                                    title="Move up"
-                                  >
-                                    &#8593;
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label="Move down"
-                                    disabled={i === statuses.length - 1 || reordering}
-                                    onClick={() => moveStatus(i, i + 1)}
-                                    title="Move down"
-                                  >
-                                    &#8595;
-                                  </button>
-                                </div>
-                              </td>
-                              <td><code className="mono">{st.key}</code></td>
-                              <td>{st.label}</td>
-                              <td>{st.is_initial ? <CheckIcon size={14} /> : <span className="hint">—</span>}</td>
-                              <td>
-                                <div className="row-actions">
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label={`Delete status ${st.key}`}
-                                    disabled={deletingKey === st.key}
-                                    onClick={() => deleteStatus(st.key)}
-                                  >
-                                    <TrashIcon size={13} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                          {statuses.map((st, i) =>
+                            editingStatusKey === st.key ? (
+                              <EditStatusRow
+                                key={st.key}
+                                slug={slug}
+                                token={token}
+                                status={st}
+                                onDone={() => { setEditingStatusKey(null); loadWorkflow(slug) }}
+                              />
+                            ) : (
+                              <tr key={st.key}>
+                                <td>
+                                  <div className="row-actions">
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      aria-label="Move up"
+                                      disabled={i === 0 || reordering}
+                                      onClick={() => moveStatus(i, i - 1)}
+                                      title="Move up"
+                                    >
+                                      &#8593;
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      aria-label="Move down"
+                                      disabled={i === statuses.length - 1 || reordering}
+                                      onClick={() => moveStatus(i, i + 1)}
+                                      title="Move down"
+                                    >
+                                      &#8595;
+                                    </button>
+                                  </div>
+                                </td>
+                                <td><code className="mono">{st.key}</code></td>
+                                <td>{st.label}</td>
+                                <td>{st.is_initial ? <CheckIcon size={14} /> : <span className="hint">—</span>}</td>
+                                <td>
+                                  <div className="row-actions">
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      aria-label={`Edit status ${st.key}`}
+                                      disabled={!!editingStatusKey}
+                                      onClick={() => { setEditingStatusKey(st.key); setShowAddStatus(false) }}
+                                    >
+                                      <EditIcon size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost btn-sm"
+                                      aria-label={`Delete status ${st.key}`}
+                                      disabled={deletingKey === st.key || !!editingStatusKey}
+                                      onClick={() => deleteStatus(st.key)}
+                                    >
+                                      <TrashIcon size={13} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          )}
                         </tbody>
                       </table>
                     </div>
