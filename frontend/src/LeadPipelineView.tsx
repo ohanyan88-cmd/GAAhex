@@ -10,6 +10,7 @@ import {
 } from './icons'
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
+import FieldInput, { type Field } from './FieldInput'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the DESIGN prototype:
 // live /api/leads data, token theming, SVG icons, metadata-driven lifecycle
@@ -18,12 +19,11 @@ import ViewHead from './ViewHead'
 
 type Status = { key: string; label: string; order: number; is_initial: boolean }
 type Transition = { from: string; to: string }
-type Def = { statuses: Status[]; transitions: Transition[] }
+type Def = { fields: Field[]; statuses: Status[]; transitions: Transition[] }
 type Lead = { id: string; status: string | null; name?: string; phone?: string; email?: string; source?: string; [k: string]: any }
 type Score = { score: number; band: 'hot' | 'warm' | 'cold'; reasons: string[] }
 
 const SLUG = 'leads'
-const SOURCES = ['Website', 'Referral', 'Cold Call', 'Ad']
 
 // Map a status key to one of the shared .pill variants. Statuses are configurable so this
 // only tints common verbs and never breaks — falls back to the default cobalt pill.
@@ -59,7 +59,7 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
   const [converting, setConverting] = useState<string | null>(null)
   const [convertNA, setConvertNA] = useState(false)   // hide once the endpoint 404s
   const [showNew, setShowNew] = useState(false)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', source: 'Website' })
+  const [form, setForm] = useState<Record<string, any>>({})
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -71,7 +71,7 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
     const r = await bget<any>(token, `/api/${SLUG}`)
     if (r.status === 403) { setDenied(true); setLoading(false); return }
     if (!r.ok) { setError(t('leads.loadError', 'Failed to load the lead pipeline')); setLoading(false); return }
-    setDef({ statuses: d.data.statuses ?? [], transitions: d.data.transitions ?? [] })
+    setDef({ fields: d.data.fields ?? [], statuses: d.data.statuses ?? [], transitions: d.data.transitions ?? [] })
     setLeads(Array.isArray(r.data) ? r.data : (r.data?.items ?? []))
     setLoading(false)
   }
@@ -79,6 +79,9 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
 
   const columns = [...(def?.statuses ?? [])].sort((a, b) => a.order - b.order)
   const nextFrom = (status: string | null) => (def?.transitions ?? []).filter((x) => x.from === status).map((x) => x.to)
+  // Required-field gate for the config-driven create form (skip the workflow-managed status field).
+  const requiredKeys = (def?.fields ?? []).filter((f) => f.required && f.type !== 'status').map((f) => f.key)
+  const canSubmit = requiredKeys.every((k) => String(form[k] ?? '').trim() !== '')
   const labelOf = (key: string) => columns.find((c) => c.key === key)?.label ?? key
 
   async function move(id: string, to: string) {
@@ -130,11 +133,11 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
 
   async function createLead(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name.trim()) return
+    if (!canSubmit) return
     setSaving(true)
     try {
-      await createRecord(token, SLUG, { name: form.name.trim(), phone: form.phone, email: form.email, source: form.source })
-      setShowNew(false); setForm({ name: '', phone: '', email: '', source: 'Website' }); await load()
+      await createRecord(token, SLUG, form)
+      setShowNew(false); setForm({}); await load()
     } catch (e: any) { setError(e?.message || t('leads.createError', 'Could not create the lead')) }
     finally { setSaving(false) }
   }
@@ -205,24 +208,31 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
 
       {error && <ErrorBanner message={error} onRetry={() => { setError(''); load() }} />}
 
-      {/* New lead inline form */}
-      {showNew && (
-        <form className="kan-newform" onSubmit={createLead} style={{ marginBottom: 14 }}>
-          <input className="inp inp-sm" placeholder={t('leads.name', 'Name')} value={form.name}
-                 onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus required aria-label={t('leads.name', 'Name')} />
-          <input className="inp inp-sm" placeholder={t('leads.phone', 'Phone')} value={form.phone}
-                 onChange={(e) => setForm({ ...form, phone: e.target.value })} aria-label={t('leads.phone', 'Phone')} />
-          <input className="inp inp-sm" placeholder={t('leads.email', 'Email')} value={form.email}
-                 onChange={(e) => setForm({ ...form, email: e.target.value })} aria-label={t('leads.email', 'Email')} />
-          <select className="inp inp-sm" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} aria-label={t('leads.source', 'Source')}>
-            {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <button className="btn btn-primary btn-sm" type="submit" disabled={saving || !form.name.trim()}>
-            {saving ? t('common.saving', 'Saving…') : t('common.add', 'Add')}
-          </button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setShowNew(false)} aria-label={t('common.cancel', 'Cancel')}>
-            <CloseIcon size={14} />
-          </button>
+      {/* New lead inline form — fields generated from the lead entity's Studio config (not hand-coded) */}
+      {showNew && def && (
+        <form className="rec-form" onSubmit={createLead} style={{ marginBottom: 14 }}>
+          {def.fields.filter((f) => f.type !== 'status').map((f) => (
+            <FieldInput
+              key={f.key}
+              field={f}
+              token={token}
+              mode="creating"
+              currentStatus={null}
+              errorField={null}
+              errorMsg=""
+              value={form[f.key]}
+              onChange={(v) => setForm({ ...form, [f.key]: v })}
+            />
+          ))}
+          <div className="rec-form-actions">
+            <span className="spacer" />
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setShowNew(false)}>
+              <CloseIcon size={14} /> {t('common.cancel', 'Cancel')}
+            </button>
+            <button className="btn btn-primary btn-sm" type="submit" disabled={saving || !canSubmit}>
+              {saving ? t('common.saving', 'Saving…') : t('common.add', 'Add')}
+            </button>
+          </div>
         </form>
       )}
 
