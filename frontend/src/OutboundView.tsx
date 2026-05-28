@@ -6,6 +6,7 @@ import { InboxIcon, PlusIcon, MailIcon } from './icons'
 import { Modal } from './Modal'
 import { composeOutbound } from './api'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Outbound delivery log (A12 GET /api/outbound) — admin view. Degrades quietly on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -182,7 +183,8 @@ function ComposeModal({
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function OutboundView({ token }: { token: string }) {
+export default function OutboundView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'outbound', configVersion)
   const [list, setList] = useState<Outbound[] | null>(null)
   const [channel, setChannel] = useState('')
   const [status, setStatus] = useState('')
@@ -217,7 +219,7 @@ export default function OutboundView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<MailIcon size={20} />} title="Outbound Messaging"
+      <ViewHead icon={<MailIcon size={20} />} title={cfg.title}
         sub="Adapter registry · LogEmail (dev) | SMTP (prod) · delivery log"
         actions={<button className="btn btn-primary btn-sm" onClick={() => setComposeOpen(true)}><PlusIcon size={13} /> New message</button>} />
 
@@ -241,15 +243,26 @@ export default function OutboundView({ token }: { token: string }) {
             </select>
           </div>
           <table className="grid">
-            <thead><tr><th scope="col">Channel</th><th scope="col">To</th><th scope="col">Message</th><th scope="col">Status</th><th scope="col">When</th></tr></thead>
+            <thead>
+              <tr>
+                {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              </tr>
+            </thead>
             <tbody>
               {list.map((o) => (
                 <tr key={o.id}>
-                  <td><span style={{ display: 'inline-block', padding: '2px 8px', background: 'var(--surface-2)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>{o.channel ?? '—'}</span></td>
-                  <td className="mono" style={{ color: 'var(--text-2)', fontSize: 12 }}>{o.to ?? '—'}</td>
-                  <td className="ob-preview" title={o.error || preview(o)} style={{ color: o.error ? 'var(--danger)' : 'var(--text-2)', fontSize: 12 }}>{o.error ? o.error : (preview(o) || '—')}</td>
-                  <td>{statusPill(o.status)}</td>
-                  <td style={{ fontSize: 12, color: 'var(--text-3)' }}>{timeAgo(o.created_at ?? null)}</td>
+                  {cfg.columns.map((c) => {
+                    let cell: React.ReactNode
+                    switch (c.key) {
+                      case 'channel': cell = <span style={{ display: 'inline-block', padding: '2px 8px', background: 'var(--surface-2)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>{o.channel ?? '—'}</span>; break
+                      case 'to': cell = <span className="mono" style={{ color: 'var(--text-2)', fontSize: 12 }}>{o.to ?? '—'}</span>; break
+                      case 'message': cell = <span className="ob-preview" title={o.error || preview(o)} style={{ color: o.error ? 'var(--danger)' : 'var(--text-2)', fontSize: 12 }}>{o.error ? o.error : (preview(o) || '—')}</span>; break
+                      case 'status': cell = statusPill(o.status); break
+                      case 'when': cell = <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{timeAgo(o.created_at ?? null)}</span>; break
+                      default: cell = '—'
+                    }
+                    return <td key={c.key}>{cell}</td>
+                  })}
                 </tr>
               ))}
             </tbody>

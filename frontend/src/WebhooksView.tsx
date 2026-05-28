@@ -8,6 +8,7 @@ import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './State
 import { InfoIcon, ServerIcon } from './icons'
 import { t } from './i18n'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -41,7 +42,8 @@ function maskSecret(secret: string | null | undefined) {
   return '••••' + secret.slice(-4)
 }
 
-export default function WebhooksView({ token }: { token: string }) {
+export default function WebhooksView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'webhooks', configVersion)
   const [list, setList] = useState<Webhook[] | null>(null)
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -107,7 +109,7 @@ export default function WebhooksView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<ServerIcon size={20} />} title="Webhooks"
+      <ViewHead icon={<ServerIcon size={20} />} title={cfg.title}
         sub="Event subscriptions · signing secrets · delivery log per endpoint"
         actions={!unavailable && <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : <><span>+</span> New webhook</>}</button>} />
 
@@ -130,15 +132,27 @@ export default function WebhooksView({ token }: { token: string }) {
 
       {list && list.length > 0 && (
         <table className="grid">
-          <thead><tr><th scope="col">Name</th><th scope="col">URL</th><th scope="col">Events</th><th scope="col">Secret</th><th scope="col">Active</th><th scope="col"></th></tr></thead>
+          <thead>
+            <tr>
+              {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              <th scope="col"></th>
+            </tr>
+          </thead>
           <tbody>
             {list.map((w) => (
               <tr key={w.id} className={w.active === false ? 'row-muted' : ''}>
-                <td><strong>{w.name ?? '—'}</strong></td>
-                <td className="ob-preview mono" title={w.url} style={{ color: 'var(--text-3)', fontSize: 12 }}>{w.url ?? '—'}</td>
-                <td style={{ fontSize: 12 }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span className="muted">all</span>}</td>
-                <td className="mono" style={{ fontSize: 12 }}>{maskSecret(w.secret)}</td>
-                <td>{w.active === false ? <span className="pill pill-muted">off</span> : <span className="pill pill-success">on</span>}</td>
+                {cfg.columns.map((c) => {
+                  let cell: React.ReactNode
+                  switch (c.key) {
+                    case 'name': cell = <strong>{w.name ?? '—'}</strong>; break
+                    case 'url': cell = <span className="ob-preview mono" title={w.url} style={{ color: 'var(--text-3)', fontSize: 12 }}>{w.url ?? '—'}</span>; break
+                    case 'events': cell = <span style={{ fontSize: 12 }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span className="muted">all</span>}</span>; break
+                    case 'secret': cell = <span className="mono" style={{ fontSize: 12 }}>{maskSecret(w.secret)}</span>; break
+                    case 'active': cell = w.active === false ? <span className="pill pill-muted">off</span> : <span className="pill pill-success">on</span>; break
+                    default: cell = '—'
+                  }
+                  return <td key={c.key}>{cell}</td>
+                })}
                 <td><div className="row-actions">
                   <button className="iconbtn" onClick={() => test(w)} title="Test webhook"><span style={{ fontSize: 13 }}>Test</span></button>
                   <button className="iconbtn" onClick={() => setDeliveriesFor(w)} title="View deliveries"><span style={{ fontSize: 13 }}>Log</span></button>

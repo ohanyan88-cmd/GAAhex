@@ -7,6 +7,7 @@ import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './State
 import { ChartIcon, CheckIcon, ReceiptIcon, DownloadIcon } from './icons'
 import { t } from './i18n'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -24,7 +25,8 @@ type Usage = {
 
 const METRICS = ['gb', 'minutes', 'messages', 'other']
 
-export default function UsageView({ token }: { token: string }) {
+export default function UsageView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'usage', configVersion)
   const [list, setList] = useState<Usage[] | null>(null)
   const [subs, setSubs] = useState<Subscription[]>([])
   const [rated, setRated] = useState('')   // '' | 'true' | 'false'
@@ -56,7 +58,7 @@ export default function UsageView({ token }: { token: string }) {
     <div>
       <ViewHead
         icon={<ChartIcon size={20} />}
-        title="Usage"
+        title={cfg.title}
         sub="Bandwidth & metered records · rated via subscription rules"
         actions={!unavailable && (
           <>
@@ -114,16 +116,29 @@ export default function UsageView({ token }: { token: string }) {
 
       {list && list.length > 0 && (
         <div className="grid-wrap"><table className="grid">
-          <thead><tr><th scope="col">Subscription</th><th scope="col">Metric</th><th scope="col">Quantity</th><th scope="col">Rate</th><th scope="col">Amount</th><th scope="col">Rated</th></tr></thead>
+          <thead>
+            <tr>
+              {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+            </tr>
+          </thead>
           <tbody>
             {list.map((u) => (
               <tr key={u.id}>
-                <td>{subName(u.subscription_id)}</td>
-                <td>{u.metric ?? '—'}</td>
-                <td>{u.quantity ?? '—'}</td>
-                <td>{money(u.unit_rate)}</td>
-                <td>{money(u.amount)}</td>
-                <td>{u.rated ? <span className="pill pill-success"><CheckIcon size={12} /> rated</span> : <span className="pill pill-muted">unrated</span>}</td>
+                {cfg.columns.map((c) => {
+                  let cell: React.ReactNode
+                  switch (c.key) {
+                    case 'subscription': cell = subName(u.subscription_id); break
+                    case 'metric': cell = u.metric ?? '—'; break
+                    case 'quantity': cell = u.quantity ?? '—'; break
+                    case 'rate': cell = money(u.unit_rate); break
+                    case 'amount': cell = money(u.amount); break
+                    case 'rated': cell = u.rated
+                      ? <span className="pill pill-success"><CheckIcon size={12} /> rated</span>
+                      : <span className="pill pill-muted">unrated</span>; break
+                    default: cell = '—'
+                  }
+                  return <td key={c.key}>{cell}</td>
+                })}
               </tr>
             ))}
           </tbody>

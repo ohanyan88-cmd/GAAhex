@@ -88,6 +88,61 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
       { key: 'status', label: 'Status' },
     ],
   },
+  products: {
+    pageKey: 'products',
+    defaultTitle: 'Products',
+    defaultColumns: [
+      { key: 'name', label: 'Name' },
+      { key: 'key', label: 'Key' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'cycle', label: 'Cycle' },
+      { key: 'active', label: 'Active' },
+    ],
+  },
+  usage: {
+    pageKey: 'usage',
+    defaultTitle: 'Usage',
+    defaultColumns: [
+      { key: 'subscription', label: 'Subscription' },
+      { key: 'metric', label: 'Metric' },
+      { key: 'quantity', label: 'Quantity' },
+      { key: 'rate', label: 'Rate' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'rated', label: 'Rated' },
+    ],
+  },
+  webhooks: {
+    pageKey: 'webhooks',
+    defaultTitle: 'Webhooks',
+    defaultColumns: [
+      { key: 'name', label: 'Name' },
+      { key: 'url', label: 'URL' },
+      { key: 'events', label: 'Events' },
+      { key: 'secret', label: 'Secret' },
+      { key: 'active', label: 'Active' },
+    ],
+  },
+  'resource-pools': {
+    pageKey: 'resource-pools',
+    defaultTitle: 'Resource Pools',
+    defaultColumns: [
+      { key: 'name', label: 'Name' },
+      { key: 'kind', label: 'Kind' },
+      { key: 'spec', label: 'Spec' },
+      { key: 'allocations', label: 'Allocations' },
+    ],
+  },
+  outbound: {
+    pageKey: 'outbound',
+    defaultTitle: 'Outbound Messaging',
+    defaultColumns: [
+      { key: 'channel', label: 'Channel' },
+      { key: 'to', label: 'To' },
+      { key: 'message', label: 'Message' },
+      { key: 'status', label: 'Status' },
+      { key: 'when', label: 'When' },
+    ],
+  },
 }
 
 // Build the full default descriptor for a page (all columns visible, default labels, default order).

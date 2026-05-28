@@ -6,6 +6,7 @@ import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from './State
 import { ArrowRightIcon, ChevronLeftIcon, InboxIcon, ServerIcon, EditIcon, PlusIcon } from './icons'
 import { t } from './i18n'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + detail with allocations. Degrades on 404.
 type Pool = { id: string; name?: string; kind?: string; spec?: any; allocation_count?: number; created_at?: string | null }
@@ -25,7 +26,8 @@ function allocCount(p: Pool): string {
   return typeof n === 'number' ? String(n) : '—'
 }
 
-export default function ResourcePoolsView({ token }: { token: string }) {
+export default function ResourcePoolsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'resource-pools', configVersion)
   const [list, setList] = useState<Pool[] | null>(null)
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -65,7 +67,7 @@ export default function ResourcePoolsView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<ServerIcon size={20} />} title="Resource Pools"
+      <ViewHead icon={<ServerIcon size={20} />} title={cfg.title}
         sub="IP allocations, equipment inventories · capacity engine"
         actions={!unavailable && <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Close' : <><PlusIcon size={13} /> New pool</>}</button>} />
 
@@ -118,14 +120,26 @@ export default function ResourcePoolsView({ token }: { token: string }) {
 
       {list && list.length > 0 && (
         <table className="grid">
-          <thead><tr><th scope="col">Name</th><th scope="col">Kind</th><th scope="col">Spec</th><th scope="col">Allocations</th><th scope="col"></th></tr></thead>
+          <thead>
+            <tr>
+              {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              <th scope="col"></th>
+            </tr>
+          </thead>
           <tbody>
             {list.map((p) => (
               <tr key={p.id}>
-                <td><strong>{p.name ?? p.id.slice(0, 8)}</strong></td>
-                <td><span style={{ display: 'inline-block', padding: '2px 8px', background: 'var(--surface-2)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>{p.kind ?? '—'}</span></td>
-                <td className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>{specSummary(p.spec)}</td>
-                <td style={{ fontSize: 12 }}>{allocCount(p)}</td>
+                {cfg.columns.map((c) => {
+                  let cell: React.ReactNode
+                  switch (c.key) {
+                    case 'name': cell = <strong>{p.name ?? p.id.slice(0, 8)}</strong>; break
+                    case 'kind': cell = <span style={{ display: 'inline-block', padding: '2px 8px', background: 'var(--surface-2)', borderRadius: 4, fontSize: 11, fontWeight: 500 }}>{p.kind ?? '—'}</span>; break
+                    case 'spec': cell = <span className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>{specSummary(p.spec)}</span>; break
+                    case 'allocations': cell = <span style={{ fontSize: 12 }}>{allocCount(p)}</span>; break
+                    default: cell = '—'
+                  }
+                  return <td key={c.key}>{cell}</td>
+                })}
                 <td><div className="row-actions"><button className="iconbtn" onClick={() => setDetailId(p.id)} title="Open"><ArrowRightIcon size={13} /></button></div></td>
               </tr>
             ))}

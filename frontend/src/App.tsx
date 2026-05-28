@@ -87,6 +87,11 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   payments: 'payments',
   subscriptions: 'subscriptions',
   accounts: 'accounts',
+  products: 'products',
+  usage: 'usage',
+  webhooks: 'webhooks',
+  'resource-pools': 'resource-pools',
+  outbound: 'outbound',
 }
 
 export default function App() {
@@ -527,19 +532,19 @@ export default function App() {
               : view.type === 'subscriptions'
                 ? <SubscriptionsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'products'
-                ? <ProductsView token={token} />
+                ? <ProductsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'report-builder'
                 ? <ReportBuilderView token={token} entities={entities} />
               : view.type === 'outbound'
-                ? <OutboundView token={token} />
+                ? <OutboundView token={token} configVersion={pageConfigVersion} />
               : view.type === 'webhooks'
-                ? <WebhooksView token={token} />
+                ? <WebhooksView token={token} configVersion={pageConfigVersion} />
               : view.type === 'services'
                 ? <ServicesView token={token} configVersion={pageConfigVersion} />
               : view.type === 'usage'
-                ? <UsageView token={token} />
+                ? <UsageView token={token} configVersion={pageConfigVersion} />
               : view.type === 'resource-pools'
-                ? <ResourcePoolsView token={token} />
+                ? <ResourcePoolsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'accounts'
                 ? <AccountsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'parties'

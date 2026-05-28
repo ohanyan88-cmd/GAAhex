@@ -6,11 +6,26 @@ import { confirmDialog } from './Modal'
 import { EmptyState, ErrorBanner } from './States'
 import { ArchiveIcon } from './icons'
 import ViewHead from './ViewHead'
+import { usePageConfig } from './pageConfig'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
 
-export default function ProductsView({ token }: { token: string }) {
+function renderProductCell(colKey: string, p: Product) {
+  switch (colKey) {
+    case 'name': return p.name ?? '—'
+    case 'key': return <span className="muted">{p.key ?? '—'}</span>
+    case 'amount': return money(p.default_amount)
+    case 'cycle': return p.cycle ?? '—'
+    case 'active': return p.active === false
+      ? <span className="pill pill-muted">retired</span>
+      : <span className="pill pill-success">active</span>
+    default: return '—'
+  }
+}
+
+export default function ProductsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+  const cfg = usePageConfig(token, 'products', configVersion)
   const [list, setList] = useState<Product[] | null>(null)
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -57,7 +72,7 @@ export default function ProductsView({ token }: { token: string }) {
 
   return (
     <div>
-      <ViewHead icon={<ArchiveIcon size={20} />} title="Products" actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : '+ New product'}</button>} />
+      <ViewHead icon={<ArchiveIcon size={20} />} title={cfg.title} actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : '+ New product'}</button>} />
 
       {draft && (
         <div className="rec-form">
@@ -84,15 +99,18 @@ export default function ProductsView({ token }: { token: string }) {
 
       {list && list.length > 0 && (
         <div className="grid-wrap"><table className="grid">
-          <thead><tr><th scope="col">Name</th><th scope="col">Key</th><th scope="col">Amount</th><th scope="col">Cycle</th><th scope="col">Active</th><th scope="col"></th></tr></thead>
+          <thead>
+            <tr>
+              {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              <th scope="col"></th>
+            </tr>
+          </thead>
           <tbody>
             {list.map((p) => (
               <tr key={p.id} className={p.active === false ? 'row-muted' : ''}>
-                <td>{p.name ?? '—'}</td>
-                <td className="muted">{p.key ?? '—'}</td>
-                <td>{money(p.default_amount)}</td>
-                <td>{p.cycle ?? '—'}</td>
-                <td>{p.active === false ? <span className="pill pill-muted">retired</span> : <span className="pill pill-success">active</span>}</td>
+                {cfg.columns.map((c) => (
+                  <td key={c.key}>{renderProductCell(c.key, p)}</td>
+                ))}
                 <td className="row-actions">
                   <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}>Edit</button>
                   {p.active !== false && <button className="btn btn-danger btn-sm" onClick={() => retire(p)}>Retire</button>}
