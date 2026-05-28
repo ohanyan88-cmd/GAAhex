@@ -54,7 +54,11 @@ export default function BillsView() {
     </div>
   )
 
-  const totalBalance = invoices.reduce((s, i) => s + i.balance, 0)
+  // Only payable invoices (ISSUED/OVERDUE) count toward "balance due" — matches /me/summary
+  // and the per-row Pay button. DRAFT invoices are not payable, so they must not trigger dunning.
+  const totalBalance = invoices
+    .filter(i => ['ISSUED', 'OVERDUE'].includes(i.status))
+    .reduce((s, i) => s + i.balance, 0)
 
   return (
     <div>
