@@ -235,10 +235,9 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   position: relative;
 }
 
-/* Desktop collapsed: sidebar is taken out of grid flow via position:absolute,
-   so the content column immediately fills the viewport width */
+/* Desktop collapsed: sidebar shrinks to an icon-only rail */
 .shell.nav-collapsed {
-  grid-template-columns: 1fr;
+  grid-template-columns: 64px 1fr;
 }
 
 .nav-toggle {
@@ -262,18 +261,64 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   box-sizing: border-box;
   overflow: hidden;
   min-width: 0;
+  transition: width var(--dur-slow) var(--ease-decelerate),
+              padding var(--dur-slow) var(--ease-decelerate);
 }
 
-/* Desktop collapsed: hide sidebar — position:absolute takes it out of grid flow
-   so the content column fills the full width immediately */
+/* Desktop collapsed: sidebar becomes a 64px icon-only rail */
 .shell.nav-collapsed .sidebar {
-  position: absolute;
-  width: 0;
-  opacity: 0;
-  padding: 0;
-  border-right: none;
-  pointer-events: none;
-  visibility: hidden;
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  padding: 14px 0;
+  overflow: hidden;
+}
+
+/* Rail: hide text labels, show only icons centered */
+.shell.nav-collapsed .sidebar-brand-name,
+.shell.nav-collapsed .nav-section-chevron,
+.shell.nav-collapsed .sidebar-tenant-name,
+.shell.nav-collapsed .sidebar-tenant-role,
+.shell.nav-collapsed .nav-count {
+  display: none;
+}
+/* Hide the text <span> inside nav buttons and section headers — but keep icon */
+.shell.nav-collapsed .nav > span,
+.shell.nav-collapsed .nav-section-header > span {
+  display: none;
+}
+
+/* Center brand row to the icon only */
+.shell.nav-collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 6px 0 14px;
+  gap: 0;
+}
+
+/* Center nav buttons around the icon */
+.shell.nav-collapsed .nav {
+  justify-content: center;
+  padding: 8px 0;
+  gap: 0;
+}
+
+/* Sub-items: remove left indent on rail */
+.shell.nav-collapsed .nav.nav-sub {
+  padding-left: 0;
+}
+
+/* Center section header around its icon */
+.shell.nav-collapsed .nav-section-header {
+  justify-content: center;
+  padding: 6px 0;
+  gap: 0;
+}
+
+/* Center tenant footer */
+.shell.nav-collapsed .sidebar-tenant {
+  justify-content: center;
+  gap: 0;
+  padding: 10px 0;
 }
 .sidebar-brand {
   display: flex; align-items: center; gap: 10px;
@@ -1605,6 +1650,20 @@ div.studio {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+
+  /* Undo rail label-hiding on mobile — drawer shows full sidebar */
+  .shell.nav-collapsed .sidebar-brand-name,
+  .shell.nav-collapsed .nav-section-chevron,
+  .shell.nav-collapsed .sidebar-tenant-name,
+  .shell.nav-collapsed .sidebar-tenant-role,
+  .shell.nav-collapsed .nav-count,
+  .shell.nav-collapsed .nav > span,
+  .shell.nav-collapsed .nav-section-header > span { display: revert; }
+  .shell.nav-collapsed .sidebar-brand { justify-content: flex-start; padding: 6px 8px 14px; gap: 10px; }
+  .shell.nav-collapsed .nav { justify-content: flex-start; padding: 8px 10px; gap: 10px; }
+  .shell.nav-collapsed .nav.nav-sub { padding-left: 22px; }
+  .shell.nav-collapsed .nav-section-header { justify-content: flex-start; padding: 6px 8px; gap: 7px; }
+  .shell.nav-collapsed .sidebar-tenant { justify-content: flex-start; gap: 9px; padding: 10px; }
 
   .content > main { padding: 14px; }
   .messages { grid-template-columns: 1fr; }
