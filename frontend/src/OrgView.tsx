@@ -14,11 +14,24 @@
 // render from a single nested `OrgTreeNode[]` tree so they stay consistent.
 // -----------------------------------------------------------------------------
 import { useMemo, useState } from 'react'
-import { usePageConfig } from './pageConfig'
+import { usePageConfig, type CustomFieldDef } from './pageConfig'
+import { useCustomFields, CustomFieldChip } from './CustomCells'
 import {
   ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon,
   ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
+  ArrowRightIcon,
 } from './icons'
+
+// The custom-fields hook return, threaded into each layout so nodes can show + edit values.
+type CFApi = ReturnType<typeof useCustomFields>
+
+// Initials for a node's avatar: first letters of up to two words (e.g. "North Region" → "NR").
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase()
+}
 
 export type OrgNode = {
   id: string
@@ -93,8 +106,66 @@ function toneClass(type: string): string {
   return 'org-badge-other'
 }
 
+// Avatar/initials circle for a node, themed per type tone alongside the existing badge.
+function NodeAvatar({ node }: { node: OrgNode }) {
+  return <span className={`org-avatar ${toneClass(node.type)}`} aria-hidden="true">{initials(node.name)}</span>
+}
+
+// A small kebab quick-action affordance (no-op placeholder for now — present, accessible, tidy).
+function NodeKebab({ node }: { node: OrgNode }) {
+  return (
+    <button
+      type="button"
+      className="org-node-kebab"
+      aria-label={`Actions for ${node.name}`}
+      onClick={(e) => { e.stopPropagation() }}
+    >
+      <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+      </svg>
+    </button>
+  )
+}
+
+// Editable label:value chips for a node's custom fields (Cards + Hierarchy boxes). Reuses the
+// shared CustomFieldChip (same field types + same save path as the table cells).
+function NodeCustomFields({ node, defs, cf }: { node: OrgNode; defs: CustomFieldDef[]; cf: CFApi }) {
+  if (defs.length === 0) return null
+  return (
+    <div className="org-cf-list">
+      {defs.map((f) => (
+        <CustomFieldChip
+          key={f.key}
+          def={f}
+          value={cf.value(node.id, f.key)}
+          onSave={(v) => cf.setValue(node.id, f.key, v)}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Read-only compact rendering of custom fields for Outline + Grouped (inline edit is awkward there).
+function NodeCustomFieldsReadonly({ node, defs, cf }: { node: OrgNode; defs: CustomFieldDef[]; cf: CFApi }) {
+  if (defs.length === 0) return null
+  const shown = defs
+    .map((f) => ({ f, v: cf.value(node.id, f.key) }))
+    .filter(({ v }) => v != null && v !== '')
+  if (shown.length === 0) return null
+  return (
+    <span className="org-cf-inline">
+      {shown.map(({ f, v }) => (
+        <span key={f.key} className="org-cf-tag">
+          <span className="org-cf-tag-label">{f.label}</span>
+          <span className="org-cf-tag-value">{f.type === 'boolean' ? (v === true ? 'Yes' : 'No') : String(v)}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 // ── Layout: Outline (collapsible indented tree — dense, keyboard-friendly) ──
-function OutlineNode({ node, depth }: { node: OrgTreeNode; depth: number }) {
+function OutlineNode({ node, depth, defs, cf }: { node: OrgTreeNode; depth: number; defs: CustomFieldDef[]; cf: CFApi }) {
   const [open, setOpen] = useState(true) // default expanded
   const hasKids = node.children.length > 0
   return (
@@ -116,70 +187,83 @@ function OutlineNode({ node, depth }: { node: OrgTreeNode; depth: number }) {
         <span className={`badge ${toneClass(node.type)}`}>{node.type}</span>
         <span className="org-tree-name">{node.name}</span>
         <span className="org-tree-path">/{node.path}/</span>
+        <NodeCustomFieldsReadonly node={node} defs={defs} cf={cf} />
       </div>
       {hasKids && open && (
         <ul className="org-tree-children">
-          {node.children.map((c) => <OutlineNode key={c.id} node={c} depth={depth + 1} />)}
+          {node.children.map((c) => <OutlineNode key={c.id} node={c} depth={depth + 1} defs={defs} cf={cf} />)}
         </ul>
       )}
     </li>
   )
 }
 
-function OutlineLayout({ roots }: { roots: OrgTreeNode[] }) {
-  return <ul className="org-tree">{roots.map((n) => <OutlineNode key={n.id} node={n} depth={0} />)}</ul>
+function OutlineLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
+  return <ul className="org-tree">{roots.map((n) => <OutlineNode key={n.id} node={n} depth={0} defs={defs} cf={cf} />)}</ul>
 }
 
 // ── Layout: Cards (each node a card, nested by level) ──
-function CardNode({ node }: { node: OrgTreeNode }) {
+function CardNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef[]; cf: CFApi }) {
   return (
     <div className={`org-card org-card-${node.type.toLowerCase()}`}>
       <div className="org-card-head">
-        <span className={`badge ${toneClass(node.type)}`}>{node.type}</span>
-        <span className="org-card-name">{node.name}</span>
+        <NodeAvatar node={node} />
+        <div className="org-card-headmain">
+          <div className="org-card-headtop">
+            <span className={`badge ${toneClass(node.type)}`}>{node.type}</span>
+            <span className="org-card-name">{node.name}</span>
+          </div>
+          <div className="org-card-path">/{node.path}/</div>
+        </div>
+        <NodeKebab node={node} />
       </div>
-      <div className="org-card-path">/{node.path}/</div>
+      <NodeCustomFields node={node} defs={defs} cf={cf} />
       {node.children.length > 0 && (
         <div className="org-card-children">
-          {node.children.map((c) => <CardNode key={c.id} node={c} />)}
+          {node.children.map((c) => <CardNode key={c.id} node={c} defs={defs} cf={cf} />)}
         </div>
       )}
     </div>
   )
 }
 
-function CardsLayout({ roots }: { roots: OrgTreeNode[] }) {
+function CardsLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
   return (
     <div className="org-cards">
-      {roots.map((n) => <CardNode key={n.id} node={n} />)}
+      {roots.map((n) => <CardNode key={n.id} node={n} defs={defs} cf={cf} />)}
     </div>
   )
 }
 
 // ── Layout: Hierarchy (top-down org chart, CSS boxes + connectors) ──
-function ChartNode({ node }: { node: OrgTreeNode }) {
+function ChartNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef[]; cf: CFApi }) {
   const hasKids = node.children.length > 0
   return (
     <li className="org-chart-li">
       <div className={`org-chart-box org-chart-${node.type.toLowerCase()}`}>
+        <div className="org-chart-top">
+          <NodeAvatar node={node} />
+          <NodeKebab node={node} />
+        </div>
         <span className={`badge ${toneClass(node.type)}`}>{node.type}</span>
         <span className="org-chart-name">{node.name}</span>
         <span className="org-chart-code">{node.code ?? node.path.split('.').slice(-1)[0]}</span>
+        <NodeCustomFields node={node} defs={defs} cf={cf} />
       </div>
       {hasKids && (
         <ul className="org-chart-children">
-          {node.children.map((c) => <ChartNode key={c.id} node={c} />)}
+          {node.children.map((c) => <ChartNode key={c.id} node={c} defs={defs} cf={cf} />)}
         </ul>
       )}
     </li>
   )
 }
 
-function HierarchyLayout({ roots }: { roots: OrgTreeNode[] }) {
+function HierarchyLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
   return (
     <div className="org-chart-scroll">
       <ul className="org-chart">
-        {roots.map((n) => <ChartNode key={n.id} node={n} />)}
+        {roots.map((n) => <ChartNode key={n.id} node={n} defs={defs} cf={cf} />)}
       </ul>
     </div>
   )
@@ -193,7 +277,7 @@ type SortDir = 'asc' | 'desc'
 // "manager/owner"). Built from the flat list directly so we keep every node.
 type ListRow = { node: OrgNode; parentName: string }
 
-function ListLayout({ nodes }: { nodes: OrgNode[] }) {
+function ListLayout({ nodes, cf }: { nodes: OrgNode[]; cf: CFApi }) {
   const [query, setQuery] = useState('')
   const [sortCol, setSortCol] = useState<SortCol>('name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -264,17 +348,19 @@ function ListLayout({ nodes }: { nodes: OrgNode[] }) {
               <SortHead col="type" label="Type" />
               <SortHead col="path" label="Path / Code" />
               <SortHead col="parent" label="Parent" />
+              {cf.headers()}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={4} className="org-list-empty muted">No nodes match “{query}”.</td></tr>
+              <tr><td colSpan={4 + cf.defs.length} className="org-list-empty muted">No nodes match “{query}”.</td></tr>
             ) : filtered.map((r) => (
               <tr key={r.node.id}>
                 <td className="org-list-name">{r.node.name}</td>
                 <td><span className={`badge ${toneClass(r.node.type)}`}>{r.node.type}</span></td>
                 <td className="org-list-path">{r.node.code ? r.node.code : `/${r.node.path}/`}</td>
                 <td className="org-list-parent">{r.parentName || <span className="muted">—</span>}</td>
+                {cf.cells(r.node.id)}
               </tr>
             ))}
           </tbody>
@@ -285,7 +371,7 @@ function ListLayout({ nodes }: { nodes: OrgNode[] }) {
 }
 
 // ── Layout: Grouped / swimlanes (one lane per top-level division) ──
-function GroupedLayout({ roots }: { roots: OrgTreeNode[] }) {
+function GroupedLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
   return (
     <div className="org-lanes">
       {roots.map((lane) => (
@@ -305,12 +391,14 @@ function GroupedLayout({ roots }: { roots: OrgTreeNode[] }) {
                     <span className={`badge ${toneClass(c.type)}`}>{c.type}</span>
                     <span className="org-lane-card-name">{c.name}</span>
                   </div>
+                  <NodeCustomFieldsReadonly node={c} defs={defs} cf={cf} />
                   {c.children.length > 0 && (
                     <ul className="org-lane-sub">
                       {c.children.map((g) => (
                         <li key={g.id} className="org-lane-sub-item">
                           <span className={`badge ${toneClass(g.type)}`}>{g.type}</span>
                           <span>{g.name}</span>
+                          <NodeCustomFieldsReadonly node={g} defs={defs} cf={cf} />
                         </li>
                       ))}
                     </ul>
@@ -337,6 +425,12 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
   const cfg = usePageConfig(token, 'org', configVersion)
   const [layout, setLayout] = useState<OrgLayout>(loadLayout)
   const roots = useMemo(() => buildTree(nodes), [nodes])
+
+  // Custom fields (superadmin-added on the Org page) carried on every node: editable in List
+  // (table cells) + Cards/Hierarchy (label:value chips); read-only compact in Outline/Grouped.
+  const allNodeIds = useMemo(() => nodes.map((n) => n.id), [nodes])
+  const cf = useCustomFields(token, 'org', cfg.customFields, allNodeIds)
+  const defs = cfg.customFields
 
   const choose = (next: OrgLayout) => {
     setLayout(next)
@@ -373,15 +467,15 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
       {roots.length === 0 ? (
         <div className="org-empty muted">No organization nodes yet.</div>
       ) : layout === 'hierarchy' ? (
-        <HierarchyLayout roots={roots} />
+        <HierarchyLayout roots={roots} defs={defs} cf={cf} />
       ) : layout === 'cards' ? (
-        <CardsLayout roots={roots} />
+        <CardsLayout roots={roots} defs={defs} cf={cf} />
       ) : layout === 'outline' ? (
-        <OutlineLayout roots={roots} />
+        <OutlineLayout roots={roots} defs={defs} cf={cf} />
       ) : layout === 'list' ? (
-        <ListLayout nodes={nodes} />
+        <ListLayout nodes={nodes} cf={cf} />
       ) : (
-        <GroupedLayout roots={roots} />
+        <GroupedLayout roots={roots} defs={defs} cf={cf} />
       )}
     </div>
   )

@@ -1896,6 +1896,52 @@ div.studio {
 
 .org-empty { padding: 40px 0; text-align: center; font-size: 13px; }
 
+/* ── Node chrome: avatar/initials circle + kebab quick-action (Cards + Hierarchy) ── */
+.org-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; width: 30px; height: 30px;
+  border-radius: 50%;
+  font-size: 11px; font-weight: var(--fw-semibold); letter-spacing: 0.3px;
+  text-transform: uppercase; line-height: 1;
+}
+.org-node-kebab {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; width: 24px; height: 24px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: var(--text-3); border-radius: var(--r-sm);
+  transition: color var(--dur-fast), background var(--dur-fast);
+}
+.org-node-kebab:hover { color: var(--text); background: var(--surface-2); }
+
+/* ── Node custom fields: editable label:value chips (Cards + Hierarchy boxes) ── */
+.org-cf-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.org-cf-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface-2); border: 1px solid var(--border-soft);
+  border-radius: var(--pill); padding: 3px 9px;
+  font-size: 11px; max-width: 100%;
+}
+.org-cf-label { color: var(--text-3); font-weight: var(--fw-medium); white-space: nowrap; }
+.org-cf-value {
+  color: var(--text); font-weight: var(--fw-medium); cursor: pointer;
+  border-radius: var(--r-sm); padding: 0 2px;
+  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.org-cf-value:hover { color: var(--accent); }
+.org-cf-edit { display: inline-flex; min-width: 90px; }
+.org-cf-edit .inp-sm { font-size: 11px; padding: 1px 6px; }
+.org-cf-check { accent-color: var(--accent); cursor: pointer; }
+
+/* ── Node custom fields: read-only compact tags (Outline + Grouped) ── */
+.org-cf-inline { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: 4px; }
+.org-cf-tag {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  font-size: 11px; color: var(--text-2);
+  background: var(--surface-2); border-radius: var(--pill); padding: 1px 8px;
+}
+.org-cf-tag-label { color: var(--text-3); }
+.org-cf-tag-value { color: var(--text); font-weight: var(--fw-medium); }
+
 /* ── Switcher (segmented control) ── */
 .org-switcher {
   display: inline-flex; align-items: center;
@@ -1943,7 +1989,9 @@ div.studio {
 .org-card-group  { border-left: 3px solid var(--accent); }
 .org-card-region { background: var(--surface-2); }
 .org-card-team   { background: var(--surface-2); }
-.org-card-head { display: flex; align-items: center; gap: 8px; }
+.org-card-head { display: flex; align-items: flex-start; gap: 10px; }
+.org-card-headmain { flex: 1; min-width: 0; }
+.org-card-headtop { display: flex; align-items: center; gap: 8px; }
 .org-card-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 14px; }
 .org-card-path { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; margin-top: 4px; }
 .org-card-children {
@@ -2001,8 +2049,11 @@ div.studio {
   box-shadow: var(--shadow);
 }
 .org-chart-group  { border-color: var(--accent); background: var(--accent-soft); }
+.org-chart-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
 .org-chart-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 13px; }
 .org-chart-code { color: var(--text-3); font-family: var(--font-mono); font-size: 10px; }
+/* Custom-field chips in the chart box sit left-aligned (the box itself is center-aligned). */
+.org-chart-box .org-cf-list { justify-content: center; }
 
 /* ── Outline layout: collapse/expand chevron (was the static Tree) ── */
 .org-tree-toggle {

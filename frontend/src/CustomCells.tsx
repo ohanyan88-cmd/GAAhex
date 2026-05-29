@@ -44,6 +44,7 @@ export function useCustomFields(token: string, pageKey: string, defs: CustomFiel
 
   return {
     hasFields,
+    defs,                                              // the raw field defs (for non-table rendering)
     // Extra <th> cells to append after the page's built-in headers.
     headers: () => defs.map((f) => <th key={`cf-${f.key}`} scope="col">{f.label}</th>),
     // Extra <td> cells for one row, appended after the page's built-in cells.
@@ -56,7 +57,55 @@ export function useCustomFields(token: string, pageKey: string, defs: CustomFiel
           onSave={(v) => setValue(rowId, f.key, v)}
         />
       )),
+    // Raw value accessor + setter for non-table contexts (cards/boxes). Additive: the table
+    // adopters above are unchanged; these just expose what `cells()` uses internally.
+    value: (rowId: string, fieldKey: string) => (values[rowId] ?? {})[fieldKey],
+    setValue,
   }
+}
+
+// Compact "label: value" chip with click-to-edit — the non-table counterpart of CustomCell, for
+// card / org-box layouts. Same field types + same save path; renders as a small inline editor when
+// editing. Reuses displayValue() so formatting matches the table.
+export function CustomFieldChip({ def, value, onSave }: { def: CustomFieldDef; value: any; onSave: (v: any) => void }) {
+  const [editing, setEditing] = useState(false)
+
+  if (def.type === 'boolean') {
+    return (
+      <span className="org-cf-chip">
+        <span className="org-cf-label">{def.label}</span>
+        <input
+          type="checkbox"
+          className="org-cf-check"
+          checked={value === true}
+          aria-label={def.label}
+          onChange={(e) => onSave(e.target.checked)}
+        />
+      </span>
+    )
+  }
+
+  return (
+    <span className="org-cf-chip">
+      <span className="org-cf-label">{def.label}</span>
+      {editing ? (
+        <span className="org-cf-edit">
+          <CustomCellInput def={def} value={value} onCommit={(v) => { setEditing(false); if (v !== value) onSave(v) }} onCancel={() => setEditing(false)} />
+        </span>
+      ) : (
+        <span
+          className="org-cf-value"
+          tabIndex={0}
+          role="button"
+          aria-label={`Edit ${def.label}`}
+          onClick={() => setEditing(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter') setEditing(true) }}
+        >
+          {displayValue(def, value)}
+        </span>
+      )}
+    </span>
+  )
 }
 
 // One editable cell: click to edit, input matched to the field type; commit on blur/Enter.
