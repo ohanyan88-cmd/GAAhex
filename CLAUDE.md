@@ -1,3 +1,7 @@
+<!-- ⚡ ACTIVE SESSION HANDOFF (account switch): if you're resuming work, READ ./HANDOFF.md FIRST,
+     then `git status`, then continue from its "What's next". Delete this line + HANDOFF.md once the
+     Org module is finished. -->
+
 <!-- ============================================================ -->
 <!-- READ THIS FIRST — before the build, before anything.        -->
 <!-- ============================================================ -->
