@@ -150,12 +150,12 @@
   --shadow-card: 0 6px 24px rgba(17, 24, 39, .10);
   --shadow-pop: 0 12px 34px rgba(17, 24, 39, .16);
   /* Sidebar — light mode: slate background (Gev spec) */
-  --sidebar-bg: #64748B;
+  --sidebar-bg: #586577;
   --sidebar-hover: rgba(255, 255, 255, 0.05);
   --sidebar-border: #1F2A40;
   --sidebar-text: #F8FAFC;
   --sidebar-strong: #FFFFFF;
-  --sidebar-label: #64748B;
+  --sidebar-label: #E2E8F0;
   --sidebar-on: #1E3A8A;
 }
 
