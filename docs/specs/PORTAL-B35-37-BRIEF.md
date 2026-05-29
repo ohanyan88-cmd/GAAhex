@@ -1,7 +1,7 @@
 # B35 / B36 / B37 — Customer Portal Features — SELF-CONTAINED BUILD BRIEF
 
 **For the same second Claude account, AFTER B34 is built.** These three build directly on the B34
-foundation (`handoff/PORTAL-B34-BRIEF.md`). Build them in ORDER (B35 → B36 → B37) in the same repo
+foundation (`docs/specs/PORTAL-B34-BRIEF.md`). Build them in ORDER (B35 → B36 → B37) in the same repo
 folder. When all done (incl. B34), the repo owner hands the folder to the coordinator for a
 security-first review + merge into `main`.
 

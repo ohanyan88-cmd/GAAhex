@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type PortalInvoice, type PortalPayment } from '../api'
+import { api, type PortalInvoice, type PortalPayment } from '../lib/api'
 
 function statusPillClass(status: string): string {
   const map: Record<string, string> = {

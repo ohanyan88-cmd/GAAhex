@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type PortalSummary } from '../api'
+import { api, type PortalSummary } from '../lib/api'
 
 function fmt(luma: number) {
   const drams = luma / 100

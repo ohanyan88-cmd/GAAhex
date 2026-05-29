@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { api, clearToken, type PortalCustomer } from '../api'
-import { IconDashboard, IconBills, IconSupport, IconService, IconLogout } from '../icons'
+import { api, clearToken, type PortalCustomer } from '../lib/api'
+import { IconDashboard, IconBills, IconSupport, IconService, IconLogout } from '../components/icons'
 import type { Theme } from '../App'
 import DashboardView from './DashboardView'
 import BillsView from './BillsView'

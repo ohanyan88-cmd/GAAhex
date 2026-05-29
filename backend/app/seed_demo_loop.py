@@ -1,5 +1,5 @@
 """Demo-loop seed — stand up ONE believable sample customer with the WHOLE daily loop already run,
-so a fresh boot demonstrates a real ISP day (handoff/DAILY-LOOP.md §5 "Demo-loop seed SPEC").
+so a fresh boot demonstrates a real ISP day (docs/specs/DAILY-LOOP.md §5 "Demo-loop seed SPEC").
 
 This is purely ADDITIVE business data on top of the three config seeders in `seed.py`
 (`seed_if_empty` + `seed_meta_if_empty` + `seed_access_if_empty`). It inserts data rows only

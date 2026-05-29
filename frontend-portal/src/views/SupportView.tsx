@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type PortalTicket, type PortalReply } from '../api'
+import { api, type PortalTicket, type PortalReply } from '../lib/api'
 
 type View = 'list' | 'new' | 'detail'
 

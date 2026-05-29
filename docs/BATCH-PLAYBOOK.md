@@ -29,7 +29,7 @@ Typical 5-lane split for a new module:
 - **A — backend core** (model + migration + router). The meaty lane.
 - **B — frontend** (the View + its api client + App.tsx wiring).
 - **C — tests** (built against the spec contract; runs concurrent with A).
-- **D — docs** (handoff/<MODULE>.md).
+- **D — docs** (docs/specs/<MODULE>.md).
 - **E — a small adjacent piece** (a helper endpoint, a second small view, seed data).
 
 ## Model tiering (this is the usage win)

@@ -1,7 +1,7 @@
 # GAAex Component Library — Buttons · Inputs · Search
 
 The canonical spec for GAAex's core form components. **4 types each · 3 sizes each (sm/md/lg) ·
-dark + light.** Builds on the design tokens + rules in `../BRAND.md`. The live CSS implementation is
+dark + light.** Builds on the design tokens + rules in `../docs/BRAND.md`. The live CSS implementation is
 in `src/styles.css` (section "Component library"); this file is the design source of truth.
 
 ## GAAex integration notes (read first)

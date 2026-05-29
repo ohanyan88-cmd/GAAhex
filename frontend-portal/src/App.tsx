@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getToken } from './api'
+import { getToken } from './lib/api'
 import LoginView from './views/LoginView'
 import PortalShell from './views/PortalShell'
 

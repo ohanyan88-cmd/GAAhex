@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type PortalService, type PortalSubscription, type PortalUsage } from '../api'
+import { api, type PortalService, type PortalSubscription, type PortalUsage } from '../lib/api'
 
 function servicePillClass(status: string): string {
   const map: Record<string, string> = {
