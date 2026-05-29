@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../States'
+import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ArrowRightIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon, ChartIcon, EditIcon,
-} from '../icons'
+} from '../components/icons'
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: 'Bearer ' + token })

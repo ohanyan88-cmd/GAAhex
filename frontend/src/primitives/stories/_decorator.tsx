@@ -5,8 +5,8 @@ import type { Decorator } from '@storybook/react'
 // import them here. `color-tokens.css` defines the --gx-* palette and
 // `styles.css` defines the unprefixed semantic tokens (--primary, --surface,
 // --text, …) that every primitive consumes.
-import '../../color-tokens.css'
-import '../../styles.css'
+import '../../styles/color-tokens.css'
+import '../../styles/styles.css'
 
 /**
  * Mirrors the app's runtime behaviour (`<html data-theme="dark">`, the app
