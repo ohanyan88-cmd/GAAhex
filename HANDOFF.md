@@ -1,9 +1,22 @@
-# SESSION HANDOFF — resume point (account switch)
+# SESSION HANDOFF — resume point
 
 > Owner = Gev (calls me Ընգեր). Mode = ORCHESTRATOR: delegate ALL building to in-window agents.
-> Read this → `git pull` → `git status` → continue Tasks in order.
+> Read this → `git pull` → `git status` → continue.
 > Repo: `ohanyan88-cmd/GAA`. Demo login: `admin@demo.isp` / `admin123`.
 > Run: `docker compose up -d` → `cd backend && .venv/Scripts/python.exe -m uvicorn app.main:app --port 8099` → `cd frontend && npm run dev`
+
+## ✅ All 5 handoff tasks DONE (2026-05-29, HEAD 3f0f2cf)
+1. Storybook stories — all 7 primitives + Colors/Spacing/Typography galleries (commit 352e9a6)
+2. Sidebar nav section-header color fix (commit fc28421)
+3. Org structure-editing UI — kebab + Add/Rename/Move/Delete modals on org-nodes CRUD (commit 6160a63)
+4. Org node-card polish — StatusPill + Span/Headcount KPI chips (commit 8eeb268)
+5. Org analytical views — Network (force-directed), Heatmap, Timeline, RACI; hand-rolled SVG, no new deps (commit 3f0f2cf)
+
+Org module now has **13 view modes**. RACI uses an honest empty state until a "RACI" custom field is configured.
+**Next big arc:** continue the DESIGN reskin (adopt primitives/tokens across the rest of the app — see `../DESIGN` prototype).
+
+---
+## (Original handoff — completed, kept for reference)
 
 ## State at handoff
 
