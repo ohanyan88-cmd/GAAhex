@@ -1966,6 +1966,48 @@ div.studio {
   box-shadow: var(--shadow);
 }
 
+/* ── Map layout (Leaflet + OpenStreetMap; nodes plotted by their Location field) ── */
+.org-map-wrap { position: relative; }
+.org-map {
+  height: min(70vh, 640px);
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  /* keep tile corners inside the rounded frame */
+  overflow: hidden;
+  background: var(--surface-2);
+  z-index: 0;             /* keep the map below app overlays/menus */
+}
+/* Friendly overlay banner when no node has a valid location yet. */
+.org-map-hint {
+  position: absolute;
+  top: 12px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;           /* above tiles, below Leaflet controls/popups */
+  max-width: min(92%, 560px);
+  padding: 9px 14px;
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: center;
+  pointer-events: none;   /* never block map interaction */
+}
+/* Custom divIcon pin — no default Leaflet PNG, so no bundler 404s. */
+.org-map-divicon { background: transparent; border: 0; }
+.org-map-pin {
+  display: block;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .35));
+}
+/* Popup body (Leaflet styles the bubble; we style our content). */
+.org-map-popup { display: flex; flex-direction: column; gap: 5px; min-width: 120px; }
+.org-map-popup-top { display: flex; align-items: center; gap: 7px; }
+.org-map-popup-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 13px; }
+.org-map-popup-path { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+
 /* ── Tree layout ── */
 .org-tree, .org-tree-children { list-style: none; margin: 0; padding: 0; }
 .org-tree-row {

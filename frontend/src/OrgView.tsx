@@ -13,11 +13,14 @@
 // (the API returns it), otherwise falling back to the dot-path. All layouts
 // render from a single nested `OrgTreeNode[]` tree so they stay consistent.
 // -----------------------------------------------------------------------------
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { usePageConfig, type CustomFieldDef } from './pageConfig'
 import { useCustomFields, CustomFieldChip } from './CustomCells'
 import {
-  ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon, ActivityIcon,
+  ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon, ActivityIcon, GlobeIcon,
   ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
   ArrowRightIcon,
 } from './icons'
@@ -42,7 +45,7 @@ export type OrgNode = {
   parent_id?: string | null
 }
 
-type OrgLayout = 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans'
+type OrgLayout = 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans' | 'map'
 const STORAGE_KEY = 'gaaex-org-view'
 
 function loadLayout(): OrgLayout {
@@ -50,7 +53,7 @@ function loadLayout(): OrgLayout {
     const v = localStorage.getItem(STORAGE_KEY)
     // Migrate the old 'tree' label → the renamed 'outline' layout.
     if (v === 'tree') return 'outline'
-    if (v === 'hierarchy' || v === 'cards' || v === 'outline' || v === 'list' || v === 'grouped' || v === 'spans') return v
+    if (v === 'hierarchy' || v === 'cards' || v === 'outline' || v === 'list' || v === 'grouped' || v === 'spans' || v === 'map') return v
   } catch { /* private mode / unavailable — fall through to default */ }
   return 'hierarchy'
 }
@@ -577,6 +580,140 @@ function SpansLayout({ roots }: { roots: OrgTreeNode[] }) {
   )
 }
 
+// ── Layout: Map (sites on a real map — ties org nodes to ISP coverage) ─────────
+// Plots every node that carries a *Location* — a custom field (keyed `location`, or
+// labeled "Location") holding "lat,lng" text. Read via the existing useCustomFields
+// `value(node.id, key)`. No API key (OpenStreetMap tiles). Markers are L.divIcon
+// pins (token-styled, colored per type) — this DELIBERATELY avoids Leaflet's default
+// PNG marker icon, which 404s under Vite/bundlers.
+
+const YEREVAN: [number, number] = [40.18, 44.51] // default center when nothing is plotted
+
+// Marker pin colors per node type (kept in sync with the badge tones above).
+function pinColor(type: string): string {
+  const t = type.toLowerCase()
+  if (t === 'group') return 'var(--accent)'
+  if (t === 'region') return 'var(--text-2)'
+  if (t === 'team') return 'var(--text-3)'
+  return 'var(--text-3)'
+}
+
+// A token-styled teardrop pin as an inline SVG divIcon (no external assets).
+function makePinIcon(type: string): L.DivIcon {
+  const fill = pinColor(type)
+  const html = `
+    <span class="org-map-pin" style="color:${fill}">
+      <svg width="26" height="34" viewBox="0 0 26 34" aria-hidden="true">
+        <path d="M13 0C5.82 0 0 5.82 0 13c0 9.1 11.5 20.1 12 20.6a1.4 1.4 0 0 0 2 0C14.5 33.1 26 22.1 26 13 26 5.82 20.18 0 13 0z" fill="currentColor"/>
+        <circle cx="13" cy="13" r="5.2" fill="#fff" fill-opacity="0.92"/>
+      </svg>
+    </span>`
+  return L.divIcon({
+    html,
+    className: 'org-map-divicon',
+    iconSize: [26, 34],
+    iconAnchor: [13, 34],     // tip of the teardrop
+    popupAnchor: [0, -30],
+  })
+}
+
+// Find the location field key: prefer an explicit key === 'location', else a field
+// whose label is "Location" (case-insensitive). Returns null if no such field exists.
+function locationFieldKey(defs: CustomFieldDef[]): string | null {
+  const byKey = defs.find((d) => d.key.toLowerCase() === 'location')
+  if (byKey) return byKey.key
+  const byLabel = defs.find((d) => d.label.trim().toLowerCase() === 'location')
+  return byLabel ? byLabel.key : null
+}
+
+// Parse "lat,lng" (tolerating spaces) into a [lat, lng] pair, or null if invalid /
+// out of range.
+function parseLatLng(raw: unknown): [number, number] | null {
+  if (raw == null) return null
+  const parts = String(raw).split(',')
+  if (parts.length !== 2) return null
+  const lat = Number(parts[0].trim())
+  const lng = Number(parts[1].trim())
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  return [lat, lng]
+}
+
+type MapPoint = { node: OrgNode; pos: [number, number] }
+
+// Imperatively fit the map to the plotted markers (react-leaflet has no declarative
+// bounds prop). Re-fits whenever the set of points changes.
+function FitBounds({ points }: { points: MapPoint[] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (points.length === 0) return
+    if (points.length === 1) {
+      map.setView(points[0].pos, 13)
+      return
+    }
+    const bounds = L.latLngBounds(points.map((p) => p.pos))
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 })
+  }, [map, points])
+  return null
+}
+
+function MapLayout({ nodes, defs, cf }: { nodes: OrgNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
+  const locKey = useMemo(() => locationFieldKey(defs), [defs])
+
+  const points = useMemo<MapPoint[]>(() => {
+    if (!locKey) return []
+    const out: MapPoint[] = []
+    for (const node of nodes) {
+      const pos = parseLatLng(cf.value(node.id, locKey))
+      if (pos) out.push({ node, pos })
+    }
+    return out
+  }, [nodes, locKey, cf])
+
+  // Cache one divIcon per node type so markers don't rebuild on every render.
+  const iconCache = useMemo(() => new Map<string, L.DivIcon>(), [])
+  const iconFor = (type: string): L.DivIcon => {
+    let icon = iconCache.get(type)
+    if (!icon) { icon = makePinIcon(type); iconCache.set(type, icon) }
+    return icon
+  }
+
+  return (
+    <div className="org-map-wrap">
+      {points.length === 0 && (
+        <div className="org-map-hint" role="status">
+          Add a 'Location' field (lat,lng) to your org nodes via Configure → Custom fields to plot them on the map.
+        </div>
+      )}
+      <MapContainer
+        className="org-map"
+        center={YEREVAN}
+        zoom={11}
+        scrollWheelZoom
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FitBounds points={points} />
+        {points.map((p) => (
+          <Marker key={p.node.id} position={p.pos} icon={iconFor(p.node.type)}>
+            <Popup>
+              <div className="org-map-popup">
+                <div className="org-map-popup-top">
+                  <span className={`badge ${toneClass(p.node.type)}`}>{p.node.type}</span>
+                  <span className="org-map-popup-name">{p.node.name}</span>
+                </div>
+                <div className="org-map-popup-path">/{p.node.path}/</div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
+  )
+}
+
 const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'hierarchy', label: 'Hierarchy', Icon: ChartIcon },
   { id: 'cards', label: 'Cards', Icon: PackageIcon },
@@ -584,6 +721,7 @@ const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'list', label: 'List', Icon: RowsIcon },
   { id: 'grouped', label: 'Grouped', Icon: MapIcon },
   { id: 'spans', label: 'Spans', Icon: ActivityIcon },
+  { id: 'map', label: 'Map', Icon: GlobeIcon },
 ]
 
 export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNode[]; token: string; configVersion: number }) {
@@ -641,6 +779,8 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
         <ListLayout nodes={nodes} cf={cf} />
       ) : layout === 'spans' ? (
         <SpansLayout roots={roots} />
+      ) : layout === 'map' ? (
+        <MapLayout nodes={nodes} defs={defs} cf={cf} />
       ) : (
         <GroupedLayout roots={roots} defs={defs} cf={cf} />
       )}
