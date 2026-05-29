@@ -149,14 +149,14 @@
   --shadow: 0 1px 3px rgba(17, 24, 39, .08);
   --shadow-card: 0 6px 24px rgba(17, 24, 39, .10);
   --shadow-pop: 0 12px 34px rgba(17, 24, 39, .16);
-  /* Sidebar — light glass */
-  --sidebar-bg: rgba(255, 255, 255, 0.65);
-  --sidebar-hover: rgba(241, 245, 249, 0.7);
-  --sidebar-border: rgba(226, 232, 240, 0.8);
-  --sidebar-text: #64748B;
-  --sidebar-strong: #0F172A;
-  --sidebar-label: #94A3B8;
-  --sidebar-on: rgba(37, 99, 235, 0.12);
+  /* Sidebar — DARK glass even in light mode (GLASS "locked pair": #0F172A @ .7) */
+  --sidebar-bg: rgba(15, 23, 42, 0.7);
+  --sidebar-hover: rgba(30, 41, 59, 0.75);
+  --sidebar-border: rgba(51, 65, 85, 0.6);
+  --sidebar-text: #94A3B8;
+  --sidebar-strong: #F8FAFC;
+  --sidebar-label: #64748B;
+  --sidebar-on: rgba(59, 130, 246, 0.18);
 }
 
 /* ===================== RESET ===================== */
