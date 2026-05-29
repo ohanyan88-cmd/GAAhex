@@ -2252,3 +2252,70 @@ div.studio {
   color: var(--text-3); font-weight: var(--fw-medium); margin-right: 2px;
 }
 .spans-legend-desc { font-size: 11px; margin-right: 10px; }
+
+/* ── Layout: Sunburst (radial hierarchy, custom SVG) ───────────────────────────── */
+.org-sunburst {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 8px 0;
+}
+.org-sunburst-svg {
+  width: 100%; max-width: 560px; height: auto;
+  display: block;
+}
+.org-sun-seg {
+  stroke: var(--surface); stroke-width: 1;
+  cursor: pointer;
+  opacity: 0.88;
+  transition: opacity 0.12s ease, stroke 0.12s ease;
+  outline: none;
+}
+.org-sun-seg:hover,
+.org-sun-seg:focus-visible { opacity: 1; }
+.org-sun-seg.on {
+  opacity: 1;
+  stroke: var(--text); stroke-width: 1.5;
+}
+.org-sun-hub { fill: var(--surface); stroke: var(--border); stroke-width: 1; }
+.org-sun-hub-name {
+  fill: var(--text); font-size: 13px; font-weight: var(--fw-semibold);
+}
+.org-sun-hub-sub {
+  fill: var(--text-3); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.org-sun-legend {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 14px;
+  font-size: 12px; color: var(--text-2);
+}
+.org-sun-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.org-sun-swatch {
+  width: 12px; height: 12px; border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.org-sun-hint { font-size: 11px; }
+
+/* ── Layout: Treemap (nested rectangles, custom SVG) ───────────────────────────── */
+.org-treemap {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 8px 0;
+}
+.org-treemap-svg {
+  width: 100%; height: auto; max-height: 620px;
+  display: block;
+  border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.org-tm-rect {
+  stroke: var(--surface); stroke-width: 1.5;
+  opacity: 0.9;
+  transition: opacity 0.12s ease;
+}
+.org-tm-cell:hover .org-tm-rect { opacity: 1; stroke: var(--text); }
+.org-tm-name {
+  fill: var(--text); font-size: 12px; font-weight: var(--fw-semibold);
+  pointer-events: none;
+}
+.org-tm-metric {
+  fill: var(--text-2); font-size: 10px;
+  pointer-events: none;
+}

@@ -22,7 +22,7 @@ import { useCustomFields, CustomFieldChip } from './CustomCells'
 import {
   ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon, ActivityIcon, GlobeIcon,
   ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
-  ArrowRightIcon,
+  ArrowRightIcon, SunIcon, ServerIcon,
 } from './icons'
 
 // The custom-fields hook return, threaded into each layout so nodes can show + edit values.
@@ -45,7 +45,7 @@ export type OrgNode = {
   parent_id?: string | null
 }
 
-type OrgLayout = 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans' | 'map'
+type OrgLayout = 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans' | 'map' | 'sunburst' | 'treemap'
 const STORAGE_KEY = 'gaaex-org-view'
 
 function loadLayout(): OrgLayout {
@@ -53,7 +53,10 @@ function loadLayout(): OrgLayout {
     const v = localStorage.getItem(STORAGE_KEY)
     // Migrate the old 'tree' label → the renamed 'outline' layout.
     if (v === 'tree') return 'outline'
-    if (v === 'hierarchy' || v === 'cards' || v === 'outline' || v === 'list' || v === 'grouped' || v === 'spans' || v === 'map') return v
+    if (
+      v === 'hierarchy' || v === 'cards' || v === 'outline' || v === 'list' ||
+      v === 'grouped' || v === 'spans' || v === 'map' || v === 'sunburst' || v === 'treemap'
+    ) return v
   } catch { /* private mode / unavailable — fall through to default */ }
   return 'hierarchy'
 }
@@ -714,6 +717,310 @@ function MapLayout({ nodes, defs, cf }: { nodes: OrgNode[]; defs: CustomFieldDef
   )
 }
 
+// ── Shared: node-type → fill color (SVG charts). Mirrors the badge tones above, but
+// needs concrete CSS variables for SVG `fill` (tones recolor with the palette).
+function typeFill(type: string): string {
+  const t = type.toLowerCase()
+  if (t === 'group') return 'var(--accent)'
+  if (t === 'region') return 'var(--primary)'
+  if (t === 'team') return 'var(--text-2)'
+  return 'var(--text-3)'
+}
+
+// ── Layout: Sunburst (radial hierarchy) ─────────────────────────────────────────
+// Root sits at the center; every depth level is a concentric ring. A node's angular
+// width is proportional to its WEIGHT = descendantCount()+1 (its whole subtree), so a
+// branch's slice is shared out among its children by their own weights. Pure SVG: each
+// segment is an annular-sector <path> built from two arcs (`A` commands) + two radial
+// edges. Colored by node type; hover/click highlights a segment and names it in the
+// center. Compact — rings get thinner as depth grows, so deep trees still fit.
+
+type SunSeg = {
+  node: OrgTreeNode
+  depth: number       // 0 = root ring (innermost)
+  a0: number          // start angle (radians, 0 = 12 o'clock, clockwise)
+  a1: number          // end angle
+}
+
+// Flatten the tree into ring segments. Each node owns the angular span [a0,a1]; its
+// children divide that span in proportion to their weight (descendantCount+1).
+function buildSunSegments(roots: OrgTreeNode[]): SunSeg[] {
+  const segs: SunSeg[] = []
+  const weight = (n: OrgTreeNode) => descendantCount(n) + 1
+  const walk = (nodes: OrgTreeNode[], depth: number, a0: number, a1: number) => {
+    const total = nodes.reduce((s, n) => s + weight(n), 0)
+    if (total <= 0) return
+    let a = a0
+    for (const n of nodes) {
+      const frac = weight(n) / total
+      const span = (a1 - a0) * frac
+      const start = a
+      const end = a + span
+      segs.push({ node: n, depth, a0: start, a1: end })
+      if (n.children.length > 0) walk(n.children, depth + 1, start, end)
+      a = end
+    }
+  }
+  // A synthetic full circle is split across the (possibly multiple) roots by weight.
+  walk(roots, 0, 0, Math.PI * 2)
+  return segs
+}
+
+// Annular-sector path: from inner radius r0 to outer r1, between angles a0..a1.
+// Angles measured from 12 o'clock, clockwise. cx/cy = center.
+function arcPath(cx: number, cy: number, r0: number, r1: number, a0: number, a1: number): string {
+  // Point on circle for angle a (0 = up, clockwise positive).
+  const pt = (r: number, a: number): [number, number] => [
+    cx + r * Math.sin(a),
+    cy - r * Math.cos(a),
+  ]
+  const large = a1 - a0 > Math.PI ? 1 : 0
+  const [x0o, y0o] = pt(r1, a0)
+  const [x1o, y1o] = pt(r1, a1)
+  const [x1i, y1i] = pt(r0, a1)
+  const [x0i, y0i] = pt(r0, a0)
+  // outer arc (sweep=1 clockwise) → line in → inner arc (sweep=0 back) → close
+  return [
+    `M ${x0o} ${y0o}`,
+    `A ${r1} ${r1} 0 ${large} 1 ${x1o} ${y1o}`,
+    `L ${x1i} ${y1i}`,
+    `A ${r0} ${r0} 0 ${large} 0 ${x0i} ${y0i}`,
+    'Z',
+  ].join(' ')
+}
+
+function SunburstLayout({ roots }: { roots: OrgTreeNode[] }) {
+  const segs = useMemo(() => buildSunSegments(roots), [roots])
+  const [active, setActive] = useState<string | null>(null)
+
+  const SIZE = 560
+  const cx = SIZE / 2
+  const cy = SIZE / 2
+  const maxDepth = useMemo(() => segs.reduce((m, s) => Math.max(m, s.depth), 0), [segs])
+  // Center hole + thinner rings as we go deeper (keeps deep trees compact).
+  const inner = 46
+  const ringMax = (SIZE / 2) - 18 - inner
+  const ringSpan = ringMax / (maxDepth + 1)
+
+  const activeSeg = active ? segs.find((s) => s.node.id === active) : null
+
+  return (
+    <div className="org-sunburst">
+      <svg
+        className="org-sunburst-svg"
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        role="img"
+        aria-label="Organization sunburst"
+      >
+        {segs.map((s) => {
+          const r0 = inner + s.depth * ringSpan
+          // tiny gap between rings so segments read as distinct
+          const r1 = r0 + ringSpan - 1.5
+          const d = arcPath(cx, cy, r0, r1, s.a0, s.a1)
+          const on = active === s.node.id
+          return (
+            <path
+              key={s.node.id}
+              d={d}
+              className={`org-sun-seg${on ? ' on' : ''}`}
+              style={{ fill: typeFill(s.node.type) }}
+              tabIndex={0}
+              role="button"
+              aria-label={`${s.node.type}: ${s.node.name}`}
+              onMouseEnter={() => setActive(s.node.id)}
+              onMouseLeave={() => setActive((a) => (a === s.node.id ? null : a))}
+              onFocus={() => setActive(s.node.id)}
+              onClick={() => setActive((a) => (a === s.node.id ? null : s.node.id))}
+            >
+              <title>{`${s.node.name} — ${s.node.type} (${descendantCount(s.node) + 1})`}</title>
+            </path>
+          )
+        })}
+        {/* Center label: the hovered/selected node, else a hint. */}
+        <circle cx={cx} cy={cy} r={inner - 4} className="org-sun-hub" />
+        <text x={cx} y={cy - 4} className="org-sun-hub-name" textAnchor="middle">
+          {activeSeg ? activeSeg.node.name : 'Org'}
+        </text>
+        <text x={cx} y={cy + 14} className="org-sun-hub-sub" textAnchor="middle">
+          {activeSeg ? activeSeg.node.type : `${segs.length} nodes`}
+        </text>
+      </svg>
+      <div className="org-sun-legend">
+        {['Group', 'Region', 'Team'].map((t) => (
+          <span key={t} className="org-sun-legend-item">
+            <span className="org-sun-swatch" style={{ background: typeFill(t) }} aria-hidden="true" />
+            {t}
+          </span>
+        ))}
+        <span className="muted org-sun-hint">Hover or click a ring segment to inspect a node.</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Layout: Treemap (nested rectangles, area ∝ metric) ──────────────────────────
+// Each node's METRIC prefers a 'headcount' custom field — Number(cf.value(id,'headcount'))
+// when present and numeric — otherwise falls back to descendantCount()+1 (subtree size).
+// We lay out the LEAVES of the tree (every node with no children) via a squarified
+// treemap so rectangle areas read against each other. Labeled with name + metric,
+// colored by node type. Pure layout math — no dependency.
+
+function metricFor(node: OrgTreeNode, cf: CFApi): number {
+  // Prefer a 'headcount' custom field if it's present and numeric.
+  const raw = cf.value(node.id, 'headcount')
+  if (raw != null && raw !== '') {
+    const n = Number(raw)
+    if (Number.isFinite(n) && n > 0) return n
+  }
+  // Fallback: subtree size (the node itself + all descendants).
+  return descendantCount(node) + 1
+}
+
+// Collect leaves (nodes with no children) — the cells that get rectangles.
+function collectLeaves(roots: OrgTreeNode[]): OrgTreeNode[] {
+  const out: OrgTreeNode[] = []
+  const walk = (nodes: OrgTreeNode[]) => {
+    for (const n of nodes) {
+      if (n.children.length === 0) out.push(n)
+      else walk(n.children)
+    }
+  }
+  walk(roots)
+  return out
+}
+
+type TmRect = { node: OrgTreeNode; metric: number; x: number; y: number; w: number; h: number }
+type TmRow = { x: number; y: number; w: number; h: number }
+
+// Squarified treemap (Bruls/Huizing/van Wijk). Items are pre-sorted descending by
+// metric; we fill the shorter side first to keep aspect ratios near 1.
+function squarify(
+  items: { node: OrgTreeNode; metric: number }[],
+  x: number, y: number, w: number, h: number,
+): TmRect[] {
+  const out: TmRect[] = []
+  const totalArea = w * h
+  const totalMetric = items.reduce((s, it) => s + it.metric, 0)
+  if (totalMetric <= 0 || totalArea <= 0) return out
+  // Scale metrics → pixel area.
+  const scaled = items.map((it) => ({ node: it.node, metric: it.metric, area: (it.metric / totalMetric) * totalArea }))
+
+  const worst = (row: { area: number }[], side: number): number => {
+    const sum = row.reduce((s, r) => s + r.area, 0)
+    const max = Math.max(...row.map((r) => r.area))
+    const min = Math.min(...row.map((r) => r.area))
+    const s2 = side * side
+    const sum2 = sum * sum
+    return Math.max((s2 * max) / sum2, sum2 / (s2 * min))
+  }
+
+  let rect: TmRow = { x, y, w, h }
+  let i = 0
+  while (i < scaled.length) {
+    const side = Math.min(rect.w, rect.h)
+    const row: typeof scaled = [scaled[i]]
+    i++
+    // Greedily add to the current row while it improves (lowers worst aspect ratio).
+    while (i < scaled.length) {
+      const withNext = [...row, scaled[i]]
+      if (worst(withNext, side) <= worst(row, side)) { row.push(scaled[i]); i++ }
+      else break
+    }
+    // Lay the row along the shorter side, advancing the longer side.
+    const rowArea = row.reduce((s, r) => s + r.area, 0)
+    if (rect.w <= rect.h) {
+      const rowH = rowArea / rect.w
+      let cx = rect.x
+      for (const r of row) {
+        const cw = r.area / rowH
+        out.push({ node: r.node, metric: r.metric, x: cx, y: rect.y, w: cw, h: rowH })
+        cx += cw
+      }
+      rect = { x: rect.x, y: rect.y + rowH, w: rect.w, h: rect.h - rowH }
+    } else {
+      const rowW = rowArea / rect.h
+      let cy = rect.y
+      for (const r of row) {
+        const ch = r.area / rowW
+        out.push({ node: r.node, metric: r.metric, x: rect.x, y: cy, w: rowW, h: ch })
+        cy += ch
+      }
+      rect = { x: rect.x + rowW, y: rect.y, w: rect.w - rowW, h: rect.h }
+    }
+  }
+  return out
+}
+
+function TreemapLayout({ roots, cf }: { roots: OrgTreeNode[]; cf: CFApi }) {
+  const W = 1000
+  const H = 560
+  const PAD = 2
+
+  const rects = useMemo(() => {
+    const leaves = collectLeaves(roots)
+    const items = leaves
+      .map((node) => ({ node, metric: metricFor(node, cf) }))
+      .filter((it) => it.metric > 0)
+      .sort((a, b) => b.metric - a.metric)
+    return squarify(items, 0, 0, W, H)
+  }, [roots, cf])
+
+  if (rects.length === 0) {
+    return <div className="org-empty muted">No leaf nodes to lay out.</div>
+  }
+
+  return (
+    <div className="org-treemap">
+      <svg
+        className="org-treemap-svg"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Organization treemap"
+      >
+        {rects.map((r) => {
+          const w = Math.max(0, r.w - PAD)
+          const h = Math.max(0, r.h - PAD)
+          const showLabel = w > 54 && h > 26
+          const showMetric = w > 54 && h > 44
+          return (
+            <g key={r.node.id} className="org-tm-cell" transform={`translate(${r.x + PAD / 2} ${r.y + PAD / 2})`}>
+              <rect
+                width={w}
+                height={h}
+                rx={4}
+                className="org-tm-rect"
+                style={{ fill: typeFill(r.node.type) }}
+              >
+                <title>{`${r.node.name} — ${r.node.type} · metric ${r.metric}`}</title>
+              </rect>
+              {showLabel && (
+                <text x={8} y={18} className="org-tm-name" clipPath="none">
+                  {r.node.name}
+                </text>
+              )}
+              {showMetric && (
+                <text x={8} y={34} className="org-tm-metric">
+                  {r.node.type} · {r.metric}
+                </text>
+              )}
+            </g>
+          )
+        })}
+      </svg>
+      <div className="org-sun-legend">
+        {['Group', 'Region', 'Team'].map((t) => (
+          <span key={t} className="org-sun-legend-item">
+            <span className="org-sun-swatch" style={{ background: typeFill(t) }} aria-hidden="true" />
+            {t}
+          </span>
+        ))}
+        <span className="muted org-sun-hint">Area ∝ headcount (custom field) or subtree size.</span>
+      </div>
+    </div>
+  )
+}
+
 const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'hierarchy', label: 'Hierarchy', Icon: ChartIcon },
   { id: 'cards', label: 'Cards', Icon: PackageIcon },
@@ -722,6 +1029,8 @@ const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'grouped', label: 'Grouped', Icon: MapIcon },
   { id: 'spans', label: 'Spans', Icon: ActivityIcon },
   { id: 'map', label: 'Map', Icon: GlobeIcon },
+  { id: 'sunburst', label: 'Sunburst', Icon: SunIcon },
+  { id: 'treemap', label: 'Treemap', Icon: ServerIcon },
 ]
 
 export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNode[]; token: string; configVersion: number }) {
@@ -781,6 +1090,10 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
         <SpansLayout roots={roots} />
       ) : layout === 'map' ? (
         <MapLayout nodes={nodes} defs={defs} cf={cf} />
+      ) : layout === 'sunburst' ? (
+        <SunburstLayout roots={roots} />
+      ) : layout === 'treemap' ? (
+        <TreemapLayout roots={roots} cf={cf} />
       ) : (
         <GroupedLayout roots={roots} defs={defs} cf={cf} />
       )}
