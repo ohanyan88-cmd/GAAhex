@@ -1960,6 +1960,23 @@ div.studio {
 .org-cf-edit .inp-sm { font-size: 11px; padding: 1px 6px; }
 .org-cf-check { accent-color: var(--accent); cursor: pointer; }
 
+/* ── Node-card meta row: status pill + KPI chips (Cards + Hierarchy boxes) ── */
+.org-card-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin-top: 10px;
+}
+/* Hierarchy boxes are center-aligned, so center their meta row too. */
+.org-chart-meta { justify-content: center; }
+.org-kpi-chips { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.org-kpi-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--surface-2); border: 1px solid var(--border-soft);
+  border-radius: var(--pill); padding: 2px 9px;
+  font-size: 11px; line-height: 1.4;
+}
+.org-kpi-label { color: var(--text-3); font-weight: var(--fw-medium); white-space: nowrap; }
+.org-kpi-value { color: var(--text); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+
 /* ── Node custom fields: read-only compact tags (Outline + Grouped) ── */
 .org-cf-inline { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: 4px; }
 .org-cf-tag {

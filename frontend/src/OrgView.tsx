@@ -19,6 +19,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { usePageConfig, type CustomFieldDef } from './pageConfig'
 import { useCustomFields, CustomFieldChip } from './CustomCells'
+import { StatusPill } from './primitives'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { createOrgNode, renameOrgNode, moveOrgNode, deleteOrgNode, OrgWriteError } from './api'
@@ -121,6 +122,66 @@ function descendantCount(n: OrgTreeNode): number {
   let total = 0
   for (const c of n.children) total += 1 + descendantCount(c)
   return total
+}
+
+// ── Node-card status + KPI chips (Hierarchy + Cards) ────────────────────────────
+// Org nodes carry no built-in status field (OrgNode = id/type/name/path/code/parent_id), so a
+// status pill is only meaningful if the superadmin added a custom "status" field. Find it the same
+// way the Map layout finds its Location field: explicit key === 'status', else label "Status".
+function statusFieldKey(defs: CustomFieldDef[]): string | null {
+  const byKey = defs.find((d) => d.key.toLowerCase() === 'status')
+  if (byKey) return byKey.key
+  const byLabel = defs.find((d) => d.label.trim().toLowerCase() === 'status')
+  return byLabel ? byLabel.key : null
+}
+
+// Map a free-text status value → a StatusPill variant. Conservative: only obvious "good/bad/warn"
+// words drive active/critical/degraded; anything unrecognised stays neutral (never fabricate an
+// alarming 'critical' from unknown data). Returns null for empty values (no pill).
+function statusVariant(raw: unknown): 'active' | 'degraded' | 'critical' | 'neutral' | 'info' | null {
+  if (raw == null || raw === '') return null
+  const s = String(raw).trim().toLowerCase()
+  if (!s) return null
+  if (/^(active|online|operational|healthy|live|ok|up|good|open)$/.test(s)) return 'active'
+  if (/^(degraded|warning|warn|at risk|maintenance|partial|pending|paused)$/.test(s)) return 'degraded'
+  if (/^(critical|down|offline|outage|failed|error|closed|inactive|suspended)$/.test(s)) return 'critical'
+  return 'info' // a known-but-unmapped status string — show it as informational, not alarming
+}
+
+// The status pill for a node. With a status custom field present + a recognised value we colour it;
+// otherwise we fall back to a neutral pill labelled with the node's type (honest, non-alarming).
+function NodeStatusPill({ node, statusKey, cf }: { node: OrgNode; statusKey: string | null; cf: CFApi }) {
+  if (statusKey) {
+    const raw = cf.value(node.id, statusKey)
+    const variant = statusVariant(raw)
+    if (variant) return <StatusPill variant={variant} label={String(raw)} size="sm" />
+  }
+  // No status data → neutral pill carrying the node type, so the pill still reads as a label.
+  return <StatusPill variant="neutral" label={node.type} size="sm" />
+}
+
+// Compact KPI chips for a node card: Span of control (direct children) + Headcount (a numeric
+// 'headcount' custom field, when present — same accessor the Treemap uses). Headcount is omitted
+// when absent rather than faked.
+function NodeKpiChips({ node, cf }: { node: OrgTreeNode; cf: CFApi }) {
+  const span = node.children.length
+  const rawHead = cf.value(node.id, 'headcount')
+  const head = rawHead != null && rawHead !== '' ? Number(rawHead) : NaN
+  const hasHead = Number.isFinite(head)
+  return (
+    <span className="org-kpi-chips">
+      <span className="org-kpi-chip" title="Direct reports (span of control)">
+        <span className="org-kpi-label">Span</span>
+        <span className="org-kpi-value">{span}</span>
+      </span>
+      {hasHead && (
+        <span className="org-kpi-chip" title="Headcount">
+          <span className="org-kpi-label">Headcount</span>
+          <span className="org-kpi-value">{head}</span>
+        </span>
+      )}
+    </span>
+  )
 }
 
 // type → badge tone class (theme-driven via tokens; falls back to neutral).
@@ -279,7 +340,7 @@ function OutlineLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: Custom
 }
 
 // ── Layout: Cards (each node a card, nested by level) ──
-function CardNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef[]; cf: CFApi }) {
+function CardNode({ node, defs, cf, statusKey }: { node: OrgTreeNode; defs: CustomFieldDef[]; cf: CFApi; statusKey: string | null }) {
   return (
     <div className={`org-card org-card-${node.type.toLowerCase()}`}>
       <div className="org-card-head">
@@ -293,10 +354,14 @@ function CardNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef[
         </div>
         <NodeKebab node={node} />
       </div>
+      <div className="org-card-meta">
+        <NodeStatusPill node={node} statusKey={statusKey} cf={cf} />
+        <NodeKpiChips node={node} cf={cf} />
+      </div>
       <NodeCustomFields node={node} defs={defs} cf={cf} />
       {node.children.length > 0 && (
         <div className="org-card-children">
-          {node.children.map((c) => <CardNode key={c.id} node={c} defs={defs} cf={cf} />)}
+          {node.children.map((c) => <CardNode key={c.id} node={c} defs={defs} cf={cf} statusKey={statusKey} />)}
         </div>
       )}
     </div>
@@ -304,15 +369,16 @@ function CardNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef[
 }
 
 function CardsLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
+  const statusKey = useMemo(() => statusFieldKey(defs), [defs])
   return (
     <div className="org-cards">
-      {roots.map((n) => <CardNode key={n.id} node={n} defs={defs} cf={cf} />)}
+      {roots.map((n) => <CardNode key={n.id} node={n} defs={defs} cf={cf} statusKey={statusKey} />)}
     </div>
   )
 }
 
 // ── Layout: Hierarchy (top-down org chart, CSS boxes + connectors) ──
-function ChartNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef[]; cf: CFApi }) {
+function ChartNode({ node, defs, cf, statusKey }: { node: OrgTreeNode; defs: CustomFieldDef[]; cf: CFApi; statusKey: string | null }) {
   const hasKids = node.children.length > 0
   return (
     <li className="org-chart-li">
@@ -324,11 +390,15 @@ function ChartNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef
         <span className={`badge ${toneClass(node.type)}`}>{node.type}</span>
         <span className="org-chart-name">{node.name}</span>
         <span className="org-chart-code">{node.code ?? node.path.split('.').slice(-1)[0]}</span>
+        <div className="org-card-meta org-chart-meta">
+          <NodeStatusPill node={node} statusKey={statusKey} cf={cf} />
+          <NodeKpiChips node={node} cf={cf} />
+        </div>
         <NodeCustomFields node={node} defs={defs} cf={cf} />
       </div>
       {hasKids && (
         <ul className="org-chart-children">
-          {node.children.map((c) => <ChartNode key={c.id} node={c} defs={defs} cf={cf} />)}
+          {node.children.map((c) => <ChartNode key={c.id} node={c} defs={defs} cf={cf} statusKey={statusKey} />)}
         </ul>
       )}
     </li>
@@ -336,10 +406,11 @@ function ChartNode({ node, defs, cf }: { node: OrgTreeNode; defs: CustomFieldDef
 }
 
 function HierarchyLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
+  const statusKey = useMemo(() => statusFieldKey(defs), [defs])
   return (
     <div className="org-chart-scroll">
       <ul className="org-chart">
-        {roots.map((n) => <ChartNode key={n.id} node={n} defs={defs} cf={cf} />)}
+        {roots.map((n) => <ChartNode key={n.id} node={n} defs={defs} cf={cf} statusKey={statusKey} />)}
       </ul>
     </div>
   )
