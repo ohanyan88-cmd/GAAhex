@@ -27,6 +27,7 @@ import {
   ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon, ActivityIcon, GlobeIcon,
   ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
   ArrowRightIcon, SunIcon, ServerIcon, PlusIcon, EditIcon, TrashIcon,
+  UsersIcon, CalendarIcon, ShieldIcon, BuildingIcon,
 } from './icons'
 
 // The custom-fields hook return, threaded into each layout so nodes can show + edit values.
@@ -49,7 +50,9 @@ export type OrgNode = {
   parent_id?: string | null
 }
 
-type OrgLayout = 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans' | 'map' | 'sunburst' | 'treemap'
+type OrgLayout =
+  | 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans' | 'map' | 'sunburst' | 'treemap'
+  | 'network' | 'heatmap' | 'timeline' | 'raci'
 const STORAGE_KEY = 'gaaex-org-view'
 
 function loadLayout(): OrgLayout {
@@ -59,7 +62,8 @@ function loadLayout(): OrgLayout {
     if (v === 'tree') return 'outline'
     if (
       v === 'hierarchy' || v === 'cards' || v === 'outline' || v === 'list' ||
-      v === 'grouped' || v === 'spans' || v === 'map' || v === 'sunburst' || v === 'treemap'
+      v === 'grouped' || v === 'spans' || v === 'map' || v === 'sunburst' || v === 'treemap' ||
+      v === 'network' || v === 'heatmap' || v === 'timeline' || v === 'raci'
     ) return v
   } catch { /* private mode / unavailable — fall through to default */ }
   return 'hierarchy'
@@ -1162,6 +1166,466 @@ function TreemapLayout({ roots, cf }: { roots: OrgTreeNode[]; cf: CFApi }) {
   )
 }
 
+// ── Shared: flatten the tree to (node, depth, parentId) rows in document order ──
+// Used by Network / Heatmap / Timeline — they all need depth + the parent link.
+type FlatRow = { node: OrgTreeNode; depth: number; parentId: string | null }
+function flattenTree(roots: OrgTreeNode[]): FlatRow[] {
+  const out: FlatRow[] = []
+  const walk = (nodes: OrgTreeNode[], depth: number, parentId: string | null) => {
+    for (const n of nodes) {
+      out.push({ node: n, depth, parentId })
+      if (n.children.length > 0) walk(n.children, depth + 1, n.id)
+    }
+  }
+  walk(roots, 0, null)
+  return out
+}
+
+// ── Layout: Network graph (force-directed node-link diagram) ────────────────────
+// Pure SVG + a tiny hand-rolled force simulation (matching the no-dependency pattern the
+// Sunburst/Treemap already set — there is NO d3 in this project). The sim runs on rAF in a
+// ref, mutating x/y in place, and is ALWAYS cancelled on unmount (cancelAnimationFrame) to
+// avoid React-18 leak warnings. Circle radius ∝ subtree size (descendantCount+1); fill by type.
+// Links are the parent→child edges. Layout is the org tree, so this reads as a relationship map.
+
+type SimNode = { id: string; node: OrgTreeNode; x: number; y: number; vx: number; vy: number; r: number }
+type SimLink = { source: string; target: string }
+
+function NetworkLayout({ roots }: { roots: OrgTreeNode[] }) {
+  const W = 1000
+  const H = 600
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [, force] = useState(0) // re-render tick: bump to flush mutated positions to the DOM
+  const [active, setActive] = useState<string | null>(null)
+
+  // Build the (stable) node + link sets from the tree. Radius scales with subtree size.
+  const { simNodes, simLinks } = useMemo(() => {
+    const flat = flattenTree(roots)
+    const maxSub = flat.reduce((m, f) => Math.max(m, descendantCount(f.node) + 1), 1)
+    // Seed positions on a spiral around center so the sim untangles quickly + deterministically.
+    const sn: SimNode[] = flat.map((f, i) => {
+      const sub = descendantCount(f.node) + 1
+      const ang = i * 2.399963 // golden-angle spread
+      const rad = 30 + i * 6
+      return {
+        id: f.node.id,
+        node: f.node,
+        x: W / 2 + Math.cos(ang) * rad,
+        y: H / 2 + Math.sin(ang) * rad,
+        vx: 0, vy: 0,
+        r: 7 + Math.sqrt(sub / maxSub) * 20,
+      }
+    })
+    const sl: SimLink[] = flat
+      .filter((f) => f.parentId != null)
+      .map((f) => ({ source: f.parentId as string, target: f.node.id }))
+    return { simNodes: sn, simLinks: sl }
+  }, [roots])
+
+  // The simulation. Refs (not state) hold the mutating arrays so rAF never restarts the effect.
+  const nodesRef = useRef<SimNode[]>(simNodes)
+  const linksRef = useRef<SimLink[]>(simLinks)
+  nodesRef.current = simNodes
+  linksRef.current = simLinks
+
+  useEffect(() => {
+    const nodes = nodesRef.current
+    const links = linksRef.current
+    if (nodes.length === 0) return
+    const byId = new Map(nodes.map((n) => [n.id, n]))
+    let raf = 0
+    let alpha = 1 // cooling factor: high = lots of movement, decays toward 0
+
+    const tick = () => {
+      const cx = W / 2
+      const cy = H / 2
+      // 1) Mild centering gravity (keeps the graph on-screen).
+      for (const n of nodes) {
+        n.vx += (cx - n.x) * 0.0009 * alpha
+        n.vy += (cy - n.y) * 0.0009 * alpha
+      }
+      // 2) Pairwise repulsion (Coulomb-ish, O(n²) — fine for org sizes).
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i], b = nodes[j]
+          let dx = a.x - b.x, dy = a.y - b.y
+          let d2 = dx * dx + dy * dy
+          if (d2 < 0.01) { dx = (Math.random() - 0.5); dy = (Math.random() - 0.5); d2 = dx * dx + dy * dy }
+          const dist = Math.sqrt(d2)
+          const rep = (2400 * alpha) / d2
+          const fx = (dx / dist) * rep
+          const fy = (dy / dist) * rep
+          a.vx += fx; a.vy += fy
+          b.vx -= fx; b.vy -= fy
+        }
+      }
+      // 3) Spring attraction along parent→child links toward a target length.
+      const LINK = 90
+      for (const l of links) {
+        const s = byId.get(l.source), t = byId.get(l.target)
+        if (!s || !t) continue
+        const dx = t.x - s.x, dy = t.y - s.y
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01
+        const k = (dist - LINK) * 0.045 * alpha
+        const fx = (dx / dist) * k
+        const fy = (dy / dist) * k
+        s.vx += fx; s.vy += fy
+        t.vx -= fx; t.vy -= fy
+      }
+      // 4) Integrate with damping + clamp inside the viewBox.
+      for (const n of nodes) {
+        n.vx *= 0.82; n.vy *= 0.82
+        n.x += n.vx; n.y += n.vy
+        n.x = Math.max(n.r, Math.min(W - n.r, n.x))
+        n.y = Math.max(n.r, Math.min(H - n.r, n.y))
+      }
+      alpha *= 0.992
+      force((c) => c + 1) // flush mutated positions to React
+      if (alpha > 0.02) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    // MUST clean up: cancel the rAF so the cooling loop can't run after unmount.
+    return () => cancelAnimationFrame(raf)
+  }, [simNodes, simLinks])
+
+  if (simNodes.length === 0) {
+    return <div className="org-empty muted">No organization nodes to graph.</div>
+  }
+
+  const byId = new Map(simNodes.map((n) => [n.id, n]))
+
+  return (
+    <div className="org-network">
+      <svg
+        ref={svgRef}
+        className="org-network-svg"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Organization network graph"
+      >
+        <g className="org-net-links">
+          {simLinks.map((l) => {
+            const s = byId.get(l.source), t = byId.get(l.target)
+            if (!s || !t) return null
+            const on = active === l.source || active === l.target
+            return (
+              <line
+                key={`${l.source}-${l.target}`}
+                x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                className={`org-net-link${on ? ' on' : ''}`}
+              />
+            )
+          })}
+        </g>
+        <g className="org-net-nodes">
+          {simNodes.map((n) => {
+            const on = active === n.id
+            return (
+              <g
+                key={n.id}
+                className={`org-net-node${on ? ' on' : ''}`}
+                transform={`translate(${n.x} ${n.y})`}
+                tabIndex={0}
+                role="button"
+                aria-label={`${n.node.type}: ${n.node.name}`}
+                onMouseEnter={() => setActive(n.id)}
+                onMouseLeave={() => setActive((a) => (a === n.id ? null : a))}
+                onFocus={() => setActive(n.id)}
+                onBlur={() => setActive((a) => (a === n.id ? null : a))}
+              >
+                <circle r={n.r} className="org-net-circle" style={{ fill: typeFill(n.node.type) }}>
+                  <title>{`${n.node.name} — ${n.node.type} (${descendantCount(n.node) + 1})`}</title>
+                </circle>
+                {(on || n.r >= 16) && (
+                  <text className="org-net-label" y={n.r + 12} textAnchor="middle">{n.node.name}</text>
+                )}
+              </g>
+            )
+          })}
+        </g>
+      </svg>
+      <div className="org-sun-legend">
+        {['Group', 'Region', 'Team'].map((t) => (
+          <span key={t} className="org-sun-legend-item">
+            <span className="org-sun-swatch" style={{ background: typeFill(t) }} aria-hidden="true" />
+            {t}
+          </span>
+        ))}
+        <span className="muted org-sun-hint">Force-directed parent→child graph. Node size ∝ subtree size. Hover to focus.</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Layout: Heatmap (nodes laid out by depth, colored by a metric) ──────────────
+// Default metric = descendantCount (subtree weight); when a numeric 'headcount' custom field
+// exists, the user can toggle to headcount. Cells are grouped into rows by depth (layer) and
+// tinted along a sequential scale (accent at the high end). A legend shows the scale + range.
+
+type HeatMetric = 'descendants' | 'headcount'
+
+// Mix two hex colors by t∈[0,1]. Used to build the sequential color ramp from a faint
+// surface tint up to the brand accent. Works on #RRGGBB inputs only.
+function mixHex(from: string, to: string, t: number): string {
+  const f = parseInt(from.slice(1), 16)
+  const g = parseInt(to.slice(1), 16)
+  const fr = (f >> 16) & 255, fg = (f >> 8) & 255, fb = f & 255
+  const gr = (g >> 16) & 255, gg = (g >> 8) & 255, gb = g & 255
+  const r = Math.round(fr + (gr - fr) * t)
+  const gn = Math.round(fg + (gg - fg) * t)
+  const b = Math.round(fb + (gb - fb) * t)
+  return `#${((1 << 24) + (r << 16) + (gn << 8) + b).toString(16).slice(1)}`
+}
+
+// Whether a numeric 'headcount' custom field is configured (offers the headcount metric toggle).
+function hasHeadcountField(defs: CustomFieldDef[]): boolean {
+  return defs.some((d) => d.type === 'number' && (d.key.toLowerCase() === 'headcount' || d.label.trim().toLowerCase() === 'headcount'))
+}
+
+function HeatmapLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
+  const offerHeadcount = useMemo(() => hasHeadcountField(defs), [defs])
+  const [metric, setMetric] = useState<HeatMetric>('descendants')
+  const effMetric: HeatMetric = metric === 'headcount' && offerHeadcount ? 'headcount' : 'descendants'
+
+  const flat = useMemo(() => flattenTree(roots), [roots])
+
+  // Value per node for the active metric (headcount falls back to 0 when unset).
+  const valueOf = (n: OrgTreeNode): number => {
+    if (effMetric === 'headcount') {
+      const raw = cf.value(n.id, 'headcount')
+      const v = raw != null && raw !== '' ? Number(raw) : NaN
+      return Number.isFinite(v) ? v : 0
+    }
+    return descendantCount(n)
+  }
+
+  const rowsByDepth = useMemo(() => {
+    const map = new Map<number, FlatRow[]>()
+    for (const f of flat) {
+      const arr = map.get(f.depth) ?? []
+      arr.push(f)
+      map.set(f.depth, arr)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0])
+  }, [flat])
+
+  const max = useMemo(() => flat.reduce((m, f) => Math.max(m, valueOf(f.node)), 0), [flat, effMetric, cf])
+
+  if (flat.length === 0) {
+    return <div className="org-empty muted">No organization nodes to map.</div>
+  }
+
+  // Sequential ramp: faint surface-2 (low) → brand accent (high). Inline so SVG-free CSS vars
+  // aren't needed; the endpoints are the dark-theme tokens' literal hexes.
+  const LOW = '#262D37'  // --surface-2 (dark)
+  const HIGH = '#C5A059' // --accent
+  const tint = (v: number): string => (max <= 0 ? LOW : mixHex(LOW, HIGH, Math.min(1, v / max)))
+  const metricLabel = effMetric === 'headcount' ? 'Headcount' : 'Descendants'
+
+  return (
+    <div className="org-heatmap">
+      <div className="org-heatmap-toolbar">
+        <span className="org-heatmap-metric-label">Metric:</span>
+        <div className="org-heatmap-toggle" role="group" aria-label="Heatmap metric">
+          <button
+            type="button"
+            className={`org-heatmap-toggle-btn${effMetric === 'descendants' ? ' on' : ''}`}
+            onClick={() => setMetric('descendants')}
+          >Descendants</button>
+          {offerHeadcount && (
+            <button
+              type="button"
+              className={`org-heatmap-toggle-btn${effMetric === 'headcount' ? ' on' : ''}`}
+              onClick={() => setMetric('headcount')}
+            >Headcount</button>
+          )}
+        </div>
+      </div>
+
+      <div className="org-heatmap-grid">
+        {rowsByDepth.map(([depth, items]) => (
+          <div key={depth} className="org-heatmap-row">
+            <span className="org-heatmap-rowlabel">Layer {depth + 1}</span>
+            <div className="org-heatmap-cells">
+              {items.map((f) => {
+                const v = valueOf(f.node)
+                // Light text on dark/saturated tints, dark text on faint ones.
+                const lit = max > 0 && v / max > 0.45
+                return (
+                  <div
+                    key={f.node.id}
+                    className="org-heatmap-cell"
+                    style={{ background: tint(v), color: lit ? '#1A1F26' : 'var(--text-2)' }}
+                    title={`${f.node.name} — ${f.node.type} · ${metricLabel} ${v}`}
+                  >
+                    <span className="org-heatmap-cell-name">{f.node.name}</span>
+                    <span className="org-heatmap-cell-val">{v}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="org-heatmap-legend">
+        <span className="org-heatmap-legend-label">{metricLabel}</span>
+        <span className="org-heatmap-legend-min muted">0</span>
+        <span className="org-heatmap-legend-ramp" style={{ background: `linear-gradient(90deg, ${LOW}, ${HIGH})` }} aria-hidden="true" />
+        <span className="org-heatmap-legend-max muted">{max}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Layout: Timeline (v1 — STRUCTURAL progression, not temporal) ────────────────
+// There is no temporal data on org nodes yet, so we deliberately DO NOT fake dates. Instead this
+// v1 sorts nodes by DEPTH (root at the left → deepest at the right) and lays them out along a
+// horizontal axis as a structural-progression placeholder. A caption makes the v1 nature explicit.
+
+function TimelineLayout({ roots }: { roots: OrgTreeNode[] }) {
+  const flat = useMemo(() => flattenTree(roots), [roots])
+  const maxDepth = useMemo(() => flat.reduce((m, f) => Math.max(m, f.depth), 0), [flat])
+
+  const cols = useMemo(() => {
+    const map = new Map<number, FlatRow[]>()
+    for (const f of flat) {
+      const arr = map.get(f.depth) ?? []
+      arr.push(f)
+      map.set(f.depth, arr)
+    }
+    const out: { depth: number; items: FlatRow[] }[] = []
+    for (let d = 0; d <= maxDepth; d++) out.push({ depth: d, items: map.get(d) ?? [] })
+    return out
+  }, [flat, maxDepth])
+
+  if (flat.length === 0) {
+    return <div className="org-empty muted">No organization nodes to place.</div>
+  }
+
+  return (
+    <div className="org-timeline">
+      <p className="org-timeline-caption muted">
+        v1 — structural progression. Nodes are placed by depth (root → leaf), not by date; org nodes
+        carry no temporal data yet. A real time axis arrives once nodes gain start/created dates.
+      </p>
+      <div className="org-timeline-track">
+        <div className="org-timeline-axis" aria-hidden="true" />
+        {cols.map(({ depth, items }) => (
+          <div key={depth} className="org-timeline-col">
+            <div className="org-timeline-tick" aria-hidden="true" />
+            <span className="org-timeline-stage">Depth {depth + 1}</span>
+            <div className="org-timeline-items">
+              {items.map((f) => (
+                <div key={f.node.id} className={`org-timeline-item org-card-${f.node.type.toLowerCase()}`} title={`/${f.node.path}/`}>
+                  <span className={`badge ${toneClass(f.node.type)}`}>{f.node.type}</span>
+                  <span className="org-timeline-item-name">{f.node.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Layout: RACI Matrix (v1 — Responsible / Accountable / Consulted / Informed) ──
+// Gev-authorized. Rows = org nodes, columns = R/A/C/I. We populate cells ONLY from a configured
+// RACI-style custom field; we do NOT fabricate assignments. If none is configured (the likely
+// current state) we render the matrix SCAFFOLD with an honest empty state telling the admin how to
+// wire it up. The RACI field, when present, holds a comma/space-separated set of letters (e.g.
+// "R, A" or "RACI") per node — we just light the matching column.
+
+const RACI_COLS: { key: 'R' | 'A' | 'C' | 'I'; label: string; full: string }[] = [
+  { key: 'R', label: 'R', full: 'Responsible' },
+  { key: 'A', label: 'A', full: 'Accountable' },
+  { key: 'C', label: 'C', full: 'Consulted' },
+  { key: 'I', label: 'I', full: 'Informed' },
+]
+
+// Find a RACI custom field: explicit key === 'raci', else label "RACI" (case-insensitive).
+function raciFieldKey(defs: CustomFieldDef[]): string | null {
+  const byKey = defs.find((d) => d.key.toLowerCase() === 'raci')
+  if (byKey) return byKey.key
+  const byLabel = defs.find((d) => d.label.trim().toLowerCase() === 'raci')
+  return byLabel ? byLabel.key : null
+}
+
+// Parse a node's RACI value into the set of lit columns. Accepts "R,A", "R A", "RACI", etc.
+function parseRaci(raw: unknown): Set<'R' | 'A' | 'C' | 'I'> {
+  const out = new Set<'R' | 'A' | 'C' | 'I'>()
+  if (raw == null) return out
+  const s = String(raw).toUpperCase()
+  for (const ch of ['R', 'A', 'C', 'I'] as const) if (s.includes(ch)) out.add(ch)
+  return out
+}
+
+function RaciLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: CustomFieldDef[]; cf: CFApi }) {
+  const raciKey = useMemo(() => raciFieldKey(defs), [defs])
+  const flat = useMemo(() => flattenTree(roots), [roots])
+
+  if (flat.length === 0) {
+    return <div className="org-empty muted">No organization nodes for the RACI matrix.</div>
+  }
+
+  return (
+    <div className="org-raci">
+      {!raciKey && (
+        <div className="org-raci-empty" role="status">
+          No RACI assignments configured yet — add a <strong>RACI</strong> custom field (a text field
+          keyed/labelled “RACI”) via Configure → Custom fields, then set each node’s value to the
+          letters that apply (e.g. <code>R, A</code>). The matrix scaffold below shows the structure;
+          cells stay empty until that field exists.
+        </div>
+      )}
+      <div className="grid-wrap">
+        <table className="grid org-raci-table">
+          <thead>
+            <tr>
+              <th scope="col">Node</th>
+              <th scope="col">Type</th>
+              {RACI_COLS.map((c) => (
+                <th key={c.key} scope="col" className="org-raci-col" title={c.full}>
+                  <span className="org-raci-colcode">{c.label}</span>
+                  <span className="org-raci-colname">{c.full}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {flat.map((f) => {
+              const lit = raciKey ? parseRaci(cf.value(f.node.id, raciKey)) : new Set<'R' | 'A' | 'C' | 'I'>()
+              return (
+                <tr key={f.node.id}>
+                  <td className="org-raci-node" style={{ paddingLeft: 8 + f.depth * 16 }}>{f.node.name}</td>
+                  <td><span className={`badge ${toneClass(f.node.type)}`}>{f.node.type}</span></td>
+                  {RACI_COLS.map((c) => (
+                    <td key={c.key} className="org-raci-cell">
+                      {lit.has(c.key)
+                        ? <span className={`org-raci-mark org-raci-${c.key}`} title={`${c.full} — ${f.node.name}`}>{c.label}</span>
+                        : <span className="org-raci-dot" aria-hidden="true" />}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="org-raci-legend">
+        {RACI_COLS.map((c) => (
+          <span key={c.key} className="org-raci-legend-item">
+            <span className={`org-raci-mark org-raci-${c.key}`}>{c.label}</span>
+            <span className="muted">{c.full}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Structure-editing modals ────────────────────────────────────────────────────
 // Reuse the shared Modal (Overlay-based, focus-trapped, Esc/click-outside) — same primitive
 // ProfileModal/SecurityModal use. Each modal owns its draft state + busy/error, calls the api
@@ -1465,6 +1929,10 @@ const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'map', label: 'Map', Icon: GlobeIcon },
   { id: 'sunburst', label: 'Sunburst', Icon: SunIcon },
   { id: 'treemap', label: 'Treemap', Icon: ServerIcon },
+  { id: 'network', label: 'Network', Icon: UsersIcon },
+  { id: 'heatmap', label: 'Heatmap', Icon: BuildingIcon },
+  { id: 'timeline', label: 'Timeline', Icon: CalendarIcon },
+  { id: 'raci', label: 'RACI', Icon: ShieldIcon },
 ]
 
 export default function OrgView({ nodes, token, configVersion, canConfigure = false, onRefresh }: {
@@ -1569,6 +2037,14 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
         <SunburstLayout roots={roots} />
       ) : layout === 'treemap' ? (
         <TreemapLayout roots={roots} cf={cf} />
+      ) : layout === 'network' ? (
+        <NetworkLayout roots={roots} />
+      ) : layout === 'heatmap' ? (
+        <HeatmapLayout roots={roots} defs={defs} cf={cf} />
+      ) : layout === 'timeline' ? (
+        <TimelineLayout roots={roots} />
+      ) : layout === 'raci' ? (
+        <RaciLayout roots={roots} defs={defs} cf={cf} />
       ) : (
         <GroupedLayout roots={roots} defs={defs} cf={cf} />
       )}
