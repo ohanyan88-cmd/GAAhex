@@ -5,6 +5,7 @@ import { EmptyState, ErrorBanner } from './States'
 import { CreditCardIcon, ReceiptIcon, DownloadIcon } from './icons'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -23,6 +24,7 @@ function methodPill(method: string | null | undefined) {
 export default function PaymentsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'payments', configVersion)
   const [payments, setPayments] = useState<Payment[] | null>(null)
+  const cf = useCustomFields(token, 'payments', cfg.customFields, (payments ?? []).map((p) => p.id))
   const [invoiceMap, setInvoiceMap] = useState<Record<string, Invoice>>({})
   const [names, setNames] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -119,6 +121,7 @@ export default function PaymentsView({ token, configVersion = 0 }: { token: stri
                   {cfg.columns.map((c) => (
                     <th key={c.key} scope="col" className={c.key === 'amount' ? 'num' : ''}>{c.label}</th>
                   ))}
+                  {cf.headers()}
                 </tr>
               </thead>
               <tbody>
@@ -140,6 +143,7 @@ export default function PaymentsView({ token, configVersion = 0 }: { token: stri
                       if (c.key === 'note') return <td key={c.key} className="muted">{p.note ?? '—'}</td>
                       return <td key={c.key}>—</td>
                     })}
+                    {cf.cells(p.id)}
                   </tr>
                 ))}
               </tbody>

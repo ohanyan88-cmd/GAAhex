@@ -8,6 +8,7 @@ import { ChartIcon, CheckIcon, ReceiptIcon, DownloadIcon } from './icons'
 import { t } from './i18n'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -28,6 +29,7 @@ const METRICS = ['gb', 'minutes', 'messages', 'other']
 export default function UsageView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'usage', configVersion)
   const [list, setList] = useState<Usage[] | null>(null)
+  const cf = useCustomFields(token, 'usage', cfg.customFields, (list ?? []).map((u) => u.id))
   const [subs, setSubs] = useState<Subscription[]>([])
   const [rated, setRated] = useState('')   // '' | 'true' | 'false'
   const [error, setError] = useState('')
@@ -119,6 +121,7 @@ export default function UsageView({ token, configVersion = 0 }: { token: string;
           <thead>
             <tr>
               {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              {cf.headers()}
             </tr>
           </thead>
           <tbody>
@@ -139,6 +142,7 @@ export default function UsageView({ token, configVersion = 0 }: { token: string;
                   }
                   return <td key={c.key}>{cell}</td>
                 })}
+                {cf.cells(u.id)}
               </tr>
             ))}
           </tbody>

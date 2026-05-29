@@ -7,6 +7,7 @@ import { Modal } from './Modal'
 import { composeOutbound } from './api'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // Outbound delivery log (A12 GET /api/outbound) — admin view. Degrades quietly on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -186,6 +187,7 @@ function ComposeModal({
 export default function OutboundView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'outbound', configVersion)
   const [list, setList] = useState<Outbound[] | null>(null)
+  const cf = useCustomFields(token, 'outbound', cfg.customFields, (list ?? []).map((o) => o.id))
   const [channel, setChannel] = useState('')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
@@ -246,6 +248,7 @@ export default function OutboundView({ token, configVersion = 0 }: { token: stri
             <thead>
               <tr>
                 {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+                {cf.headers()}
               </tr>
             </thead>
             <tbody>
@@ -263,6 +266,7 @@ export default function OutboundView({ token, configVersion = 0 }: { token: stri
                     }
                     return <td key={c.key}>{cell}</td>
                   })}
+                  {cf.cells(o.id)}
                 </tr>
               ))}
             </tbody>

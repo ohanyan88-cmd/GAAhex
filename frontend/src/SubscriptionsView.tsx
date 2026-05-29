@@ -6,6 +6,7 @@ import { EmptyState, ErrorBanner } from './States'
 import { ReceiptIcon, PlusIcon, DownloadIcon, PauseIcon, PlayIcon } from './icons'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
@@ -24,6 +25,7 @@ function subStatusPill(status: string | null | undefined) {
 export default function SubscriptionsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'subscriptions', configVersion)
   const [list, setList] = useState<Subscription[] | null>(null)
+  const cf = useCustomFields(token, 'subscriptions', cfg.customFields, (list ?? []).map((s) => s.id))
   const [names, setNames] = useState<Record<string, string>>({})
   const [customers, setCustomers] = useState<{ id: string; label: string }[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -192,6 +194,7 @@ export default function SubscriptionsView({ token, configVersion = 0 }: { token:
                   {cfg.columns.map((c) => (
                     <th key={c.key} scope="col" className={c.key === 'mrr' ? 'num' : ''}>{c.label}</th>
                   ))}
+                  {cf.headers()}
                   <th scope="col"></th>
                 </tr>
               </thead>
@@ -213,6 +216,7 @@ export default function SubscriptionsView({ token, configVersion = 0 }: { token:
                         if (c.key === 'mrr') return <td key={c.key} className="num">֏{(s.amount ?? 0).toLocaleString()}</td>
                         return <td key={c.key}>—</td>
                       })}
+                      {cf.cells(s.id)}
                       <td>
                         <div className="row-actions">
                           {!canceled && (

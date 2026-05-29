@@ -7,6 +7,7 @@ import { ArrowRightIcon, ChevronLeftIcon, BuildingIcon } from './icons'
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // Accounts UI (A17 /api/accounts) — the money/billing layer on a Party. Stage 1 may be dormant
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
@@ -36,6 +37,7 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'accounts', configVersion)
   const [list, setList] = useState<Account[] | null>(null)
+  const cf = useCustomFields(token, 'accounts', cfg.customFields, (list ?? []).map((a) => a.id))
   const [parties, setParties] = useState<Party[]>([])
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -108,6 +110,7 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
         <div className="grid-wrap"><table className="grid">
           <thead><tr>
             {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+            {cf.headers()}
             <th scope="col"></th>
           </tr></thead>
           <tbody>
@@ -121,6 +124,7 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
                   if (c.key === 'status') return <td key={c.key}>{statusPill(a.status)}</td>
                   return <td key={c.key}>—</td>
                 })}
+                {cf.cells(a.id)}
                 <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => setDetailId(a.id)}>{t('common.open', 'Open')} <ArrowRightIcon size={13} /></button></td>
               </tr>
             ))}

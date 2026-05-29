@@ -12,6 +12,7 @@ import {
 import { useI18n } from './i18n'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
 
@@ -133,6 +134,7 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'invoices', configVersion)
   const [list, setList] = useState<Invoice[] | null>(null)
+  const cf = useCustomFields(token, 'invoices', cfg.customFields, (list ?? []).map((inv) => inv.id))
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
@@ -278,6 +280,7 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
             <thead>
               <tr>
                 {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
+                {cf.headers()}
                 <th scope="col"></th>
               </tr>
             </thead>
@@ -289,6 +292,7 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
                       {renderInvoiceCell(c.key, inv, cust)}
                     </td>
                   ))}
+                  {cf.cells(inv.id)}
                   <td>
                     <div className="row-actions">
                       {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (

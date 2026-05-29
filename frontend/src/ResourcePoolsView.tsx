@@ -7,6 +7,7 @@ import { ArrowRightIcon, ChevronLeftIcon, InboxIcon, ServerIcon, EditIcon, PlusI
 import { t } from './i18n'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + detail with allocations. Degrades on 404.
 type Pool = { id: string; name?: string; kind?: string; spec?: any; allocation_count?: number; created_at?: string | null }
@@ -29,6 +30,7 @@ function allocCount(p: Pool): string {
 export default function ResourcePoolsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'resource-pools', configVersion)
   const [list, setList] = useState<Pool[] | null>(null)
+  const cf = useCustomFields(token, 'resource-pools', cfg.customFields, (list ?? []).map((p) => p.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
@@ -123,6 +125,7 @@ export default function ResourcePoolsView({ token, configVersion = 0 }: { token:
           <thead>
             <tr>
               {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              {cf.headers()}
               <th scope="col"></th>
             </tr>
           </thead>
@@ -140,6 +143,7 @@ export default function ResourcePoolsView({ token, configVersion = 0 }: { token:
                   }
                   return <td key={c.key}>{cell}</td>
                 })}
+                {cf.cells(p.id)}
                 <td><div className="row-actions"><button className="iconbtn" onClick={() => setDetailId(p.id)} title="Open"><ArrowRightIcon size={13} /></button></div></td>
               </tr>
             ))}

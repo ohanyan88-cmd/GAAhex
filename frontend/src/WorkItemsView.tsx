@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   listWorkItems, getWorkItem, createWorkItem, patchWorkItem,
   startWorkItem, completeWorkItem, blockWorkItem,
@@ -18,6 +18,7 @@ import {
 } from './icons'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -98,6 +99,7 @@ export default function WorkItemsView({
 }) {
   const cfg = usePageConfig(token, 'workitems', configVersion)
   const [items, setItems] = useState<WorkItem[] | null>(null)
+  const cf = useCustomFields(token, 'workitems', cfg.customFields, (items ?? []).map((item) => item.id))
   const [allItems, setAllItems] = useState<WorkItem[]>([])   // unfiltered, used for counts
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
@@ -268,6 +270,7 @@ export default function WorkItemsView({
                   {cfg.columns.map((col) => (
                     <th key={col.key} scope="col">{col.label}</th>
                   ))}
+                  {cf.headers()}
                   <th scope="col"></th>
                 </tr>
               </thead>
@@ -280,6 +283,7 @@ export default function WorkItemsView({
                     customerNames={customerNames}
                     token={token}
                     columns={cfg.columns}
+                    cfCells={cf.cells(item.id)}
                     onRefresh={loadData}
                     onEdit={() => setDetailId(item.id)}
                   />
@@ -316,13 +320,14 @@ export default function WorkItemsView({
 // ── Row ───────────────────────────────────────────────────────────────────────
 
 function WorkItemRow({
-  item, users, customerNames, token, columns, onRefresh, onEdit,
+  item, users, customerNames, token, columns, cfCells, onRefresh, onEdit,
 }: {
   item: WorkItem
   users: User[]
   customerNames: Record<string, string>
   token: string
   columns: { key: string; label: string; visible: boolean }[]
+  cfCells: ReactNode
   onRefresh: () => void
   onEdit: () => void
 }) {
@@ -363,6 +368,7 @@ function WorkItemRow({
         )
         return null
       })}
+      {cfCells}
       <td className="row-actions" style={{ whiteSpace: 'nowrap' }}>
         {/* Stage actions per current status */}
         {s === 'TODO' && (

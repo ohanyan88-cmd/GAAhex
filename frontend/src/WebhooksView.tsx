@@ -9,6 +9,7 @@ import { InfoIcon, ServerIcon } from './icons'
 import { t } from './i18n'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -45,6 +46,7 @@ function maskSecret(secret: string | null | undefined) {
 export default function WebhooksView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'webhooks', configVersion)
   const [list, setList] = useState<Webhook[] | null>(null)
+  const cf = useCustomFields(token, 'webhooks', cfg.customFields, (list ?? []).map((w) => w.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
@@ -135,6 +137,7 @@ export default function WebhooksView({ token, configVersion = 0 }: { token: stri
           <thead>
             <tr>
               {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              {cf.headers()}
               <th scope="col"></th>
             </tr>
           </thead>
@@ -153,6 +156,7 @@ export default function WebhooksView({ token, configVersion = 0 }: { token: stri
                   }
                   return <td key={c.key}>{cell}</td>
                 })}
+                {cf.cells(w.id)}
                 <td><div className="row-actions">
                   <button className="iconbtn" onClick={() => test(w)} title="Test webhook"><span style={{ fontSize: 13 }}>Test</span></button>
                   <button className="iconbtn" onClick={() => setDeliveriesFor(w)} title="View deliveries"><span style={{ fontSize: 13 }}>Log</span></button>

@@ -7,6 +7,7 @@ import { EmptyState, ErrorBanner } from './States'
 import { ArchiveIcon } from './icons'
 import ViewHead from './ViewHead'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
@@ -27,6 +28,7 @@ function renderProductCell(colKey: string, p: Product) {
 export default function ProductsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
   const cfg = usePageConfig(token, 'products', configVersion)
   const [list, setList] = useState<Product[] | null>(null)
+  const cf = useCustomFields(token, 'products', cfg.customFields, (list ?? []).map((p) => p.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)   // open create/edit form when set
@@ -102,6 +104,7 @@ export default function ProductsView({ token, configVersion = 0 }: { token: stri
           <thead>
             <tr>
               {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+              {cf.headers()}
               <th scope="col"></th>
             </tr>
           </thead>
@@ -111,6 +114,7 @@ export default function ProductsView({ token, configVersion = 0 }: { token: stri
                 {cfg.columns.map((c) => (
                   <td key={c.key}>{renderProductCell(c.key, p)}</td>
                 ))}
+                {cf.cells(p.id)}
                 <td className="row-actions">
                   <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}>Edit</button>
                   {p.active !== false && <button className="btn btn-danger btn-sm" onClick={() => retire(p)}>Retire</button>}

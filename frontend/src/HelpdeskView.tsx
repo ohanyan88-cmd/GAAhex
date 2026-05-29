@@ -12,6 +12,7 @@ import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
 import { InboxIcon, PlusIcon, ClockIcon, CheckIcon, CloseIcon, ArrowRightIcon } from './icons'
 import { usePageConfig } from './pageConfig'
+import { useCustomFields } from './CustomCells'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -96,6 +97,7 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
   const cfg = usePageConfig(token, 'helpdesk', configVersion)
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
+  const cf = useCustomFields(token, 'helpdesk', cfg.customFields, (tickets ?? []).map((t) => t.id))
   const [names, setNames] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -259,12 +261,13 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
                     {cfg.columns.map((col) => (
                       <th key={col.key} scope="col">{col.label}</th>
                     ))}
+                    {cf.headers()}
                     <th scope="col"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {tickets.map((t) => (
-                    <tr key={t.id} className="row-link" onClick={() => setDetailId(t.id)} style={{ cursor: 'pointer' }}>
+                    <tr key={t.id} className="row-link" onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }} style={{ cursor: 'pointer' }}>
                       {cfg.columns.map((col) => {
                         if (col.key === 'subject') return <td key={col.key} className="cell-main">{t.subject}</td>
                         if (col.key === 'customer') return <td key={col.key} className="cell-meta">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</td>
@@ -274,6 +277,7 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
                         if (col.key === 'sla') return <td key={col.key} className="cell-meta"><SlaBadge ticket={t} /></td>
                         return null
                       })}
+                      {cf.cells(t.id)}
                       <td className="cell-action">
                         <ArrowRightIcon size={14} />
                       </td>
