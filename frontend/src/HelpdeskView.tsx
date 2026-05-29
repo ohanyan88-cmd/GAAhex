@@ -10,9 +10,11 @@ import ViewHead from './ViewHead'
 import { Modal } from './Modal'
 import { toast } from './Toast'
 import { EmptyState, ErrorBanner } from './States'
-import { InboxIcon, PlusIcon, ClockIcon, CheckIcon, CloseIcon, ArrowRightIcon } from './icons'
+import { InboxIcon, ArrowRightIcon } from './icons'
+import { Plus, Check, X as XIcon, UserPlus } from 'lucide-react'
 import { usePageConfig } from './pageConfig'
 import { useCustomFields } from './CustomCells'
+import { Button, StatusPill, Input, FormField, DataTableCell } from './primitives'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,56 +30,47 @@ function fmtDateShort(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-// Priority pill: urgent=danger, high=warning, normal=default, low=muted
+// Priority → StatusPill variant. Mapping (real values: low | normal | high | urgent):
+//   urgent → critical · high → degraded · normal → info · low → neutral
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+
 function priorityPill(priority: string | null | undefined) {
-  const p = (priority ?? '').toLowerCase()
-  const cls = p === 'urgent' ? 'pill pill-danger'
-    : p === 'high' ? 'pill pill-warning'
-    : p === 'low' ? 'pill pill-muted'
-    : 'pill'
-  return priority ? <span className={cls}>{priority}</span> : <span className="muted">—</span>
+  if (!priority) return <span className="muted">—</span>
+  const p = priority.toLowerCase()
+  const variant: PillVariant = p === 'urgent' ? 'critical'
+    : p === 'high' ? 'degraded'
+    : p === 'low' ? 'neutral'
+    : 'info'
+  return <StatusPill variant={variant} label={priority} size="sm" />
 }
 
-// Status pill
+// Status → StatusPill variant. Mapping (real values: open | in_progress | pending | resolved | closed):
+//   open → info · in_progress → active · pending → degraded · resolved → neutral · closed → neutral
 function statusPill(status: string | null | undefined) {
-  const s = (status ?? '').toLowerCase()
-  const cls = s === 'resolved' ? 'pill pill-success'
-    : s === 'closed' ? 'pill pill-muted'
-    : s === 'open' ? 'pill pill-info'
-    : s === 'in_progress' ? 'pill'
-    : s === 'pending' ? 'pill pill-warning'
-    : 'pill'
-  const label = s === 'in_progress' ? 'In Progress' : (status ?? '—')
-  return status
-    ? <span className={cls}>{label}</span>
-    : <span className="muted">—</span>
+  if (!status) return <span className="muted">—</span>
+  const s = status.toLowerCase()
+  const variant: PillVariant = s === 'in_progress' ? 'active'
+    : s === 'pending' ? 'degraded'
+    : s === 'resolved' || s === 'closed' ? 'neutral'
+    : 'info'
+  const label = s === 'in_progress' ? 'In Progress' : status
+  return <StatusPill variant={variant} label={label} size="sm" />
 }
 
 // SLA badge per spec:
-//   sla_breached → pill-danger
-//   due within 1h → pill-warning
-//   no sla_due_at → em-dash (muted)
-//   otherwise → muted
+//   sla_breached → critical · due within 1h → degraded · no sla_due_at → em-dash (muted) · otherwise → muted date
 function SlaBadge({ ticket }: { ticket: Ticket }) {
   if (!ticket.sla_due_at) return <span className="muted">—</span>
   if (ticket.sla_breached) {
-    return (
-      <span className="pill pill-danger" title={fmtDate(ticket.sla_due_at)}>
-        <ClockIcon size={11} /> Breached
-      </span>
-    )
+    return <span title={fmtDate(ticket.sla_due_at)}><StatusPill variant="critical" label="Breached" size="sm" /></span>
   }
   const dueMs = new Date(ticket.sla_due_at).getTime()
   const nowMs = Date.now()
   const hourMs = 60 * 60 * 1000
   if (dueMs - nowMs <= hourMs && dueMs > nowMs) {
-    return (
-      <span className="pill pill-warning" title={fmtDate(ticket.sla_due_at)}>
-        <ClockIcon size={11} /> Due soon
-      </span>
-    )
+    return <span title={fmtDate(ticket.sla_due_at)}><StatusPill variant="degraded" label="Due soon" size="sm" /></span>
   }
-  return <span className="pill pill-muted" title={fmtDate(ticket.sla_due_at)}>{fmtDateShort(ticket.sla_due_at)}</span>
+  return <span className="muted" title={fmtDate(ticket.sla_due_at)}>{fmtDateShort(ticket.sla_due_at)}</span>
 }
 
 const STATUSES: { value: string; label: string }[] = [
@@ -172,11 +165,11 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
       <aside style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)', paddingRight: 0 }}>
         <div style={{ padding: '14px 12px 8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)' }}>Queues</span>
+            <span style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 'var(--gx-tracking-wider)', color: 'var(--text-3)' }}>Queues</span>
             {canConfigure && (
-              <button className="btn btn-ghost btn-sm" style={{ padding: '1px 6px', fontSize: 12 }} onClick={() => setCreateQueueOpen(true)} title="Create queue">
-                <PlusIcon size={12} />
-              </button>
+              <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setCreateQueueOpen(true)}>
+                <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Create queue</span>
+              </Button>
             )}
           </div>
           <button
@@ -211,9 +204,9 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
           title={cfg.title}
           sub={selectedQueue ? queues.find((q) => q.id === selectedQueue)?.name : undefined}
           actions={
-            <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-              <PlusIcon size={13} /> New ticket
-            </button>
+            <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>
+              New ticket
+            </Button>
           }
         />
 
@@ -249,7 +242,7 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
               icon={<InboxIcon size={40} />}
               title="No tickets yet"
               message="Create a ticket or adjust your filters."
-              action={<button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>New ticket</button>}
+              action={<Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>New ticket</Button>}
             />
           )}
 
@@ -267,20 +260,23 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
                 </thead>
                 <tbody>
                   {tickets.map((t) => (
+                    // NOTE: kept as a plain row (not <DataTableRow>) because the click guard below —
+                    // ignore clicks that land on an inline-edit custom-field cell (td[role="button"]) —
+                    // needs the click event, which DataTableRow's onClick() signature doesn't expose.
                     <tr key={t.id} className="row-link" onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }} style={{ cursor: 'pointer' }}>
                       {cfg.columns.map((col) => {
-                        if (col.key === 'subject') return <td key={col.key} className="cell-main">{t.subject}</td>
-                        if (col.key === 'customer') return <td key={col.key} className="cell-meta">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</td>
-                        if (col.key === 'priority') return <td key={col.key} className="cell-meta">{priorityPill(t.priority)}</td>
-                        if (col.key === 'status') return <td key={col.key} className="cell-meta">{statusPill(t.status)}</td>
-                        if (col.key === 'assignee') return <td key={col.key} className="cell-meta">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</td>
-                        if (col.key === 'sla') return <td key={col.key} className="cell-meta"><SlaBadge ticket={t} /></td>
+                        if (col.key === 'subject') return <DataTableCell key={col.key} variant="default" width="260px"><span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{t.subject}</span></DataTableCell>
+                        if (col.key === 'customer') return <DataTableCell key={col.key} variant="mono">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</DataTableCell>
+                        if (col.key === 'priority') return <DataTableCell key={col.key} variant="default">{priorityPill(t.priority)}</DataTableCell>
+                        if (col.key === 'status') return <DataTableCell key={col.key} variant="default">{statusPill(t.status)}</DataTableCell>
+                        if (col.key === 'assignee') return <DataTableCell key={col.key} variant="id">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</DataTableCell>
+                        if (col.key === 'sla') return <DataTableCell key={col.key} variant="default"><SlaBadge ticket={t} /></DataTableCell>
                         return null
                       })}
                       {cf.cells(t.id)}
-                      <td className="cell-action">
+                      <DataTableCell variant="muted" align="right" width="32px">
                         <ArrowRightIcon size={14} />
-                      </td>
+                      </DataTableCell>
                     </tr>
                   ))}
                 </tbody>
@@ -387,7 +383,7 @@ function TicketDetailModal({
       title={ticket ? ticket.subject : 'Ticket'}
       size="lg"
       footer={
-        <button className="btn btn-ghost btn-md" onClick={onClose}>Close</button>
+        <Button variant="ghost" size="md" onClick={onClose}>Close</Button>
       }
     >
       {error && <ErrorBanner message={error} onRetry={load} />}
@@ -413,11 +409,11 @@ function TicketDetailModal({
             </div>
           )}
 
-          {/* Assign */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+          {/* Assign — UserPicker is a SHARED <select> component (out of scope to reskin); wrapped in a
+              FormField primitive for the label, with the Assign action as a <Button>. */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <label className="field" style={{ margin: 0 }}>
-                <span style={{ fontSize: 12 }}>Assignee</span>
+              <FormField label="Assignee" htmlFor="hd-assignee">
                 <UserPicker
                   token={token}
                   value={agentId}
@@ -425,29 +421,29 @@ function TicketDetailModal({
                   className="inp inp-sm"
                   aria-label="Agent to assign"
                 />
-              </label>
+              </FormField>
             </div>
-            <button className="btn btn-primary btn-sm" disabled={busy || !agentId.trim()} onClick={handleAssign}>
+            <Button variant="primary" size="sm" leftIcon={UserPlus} disabled={busy || !agentId.trim()} onClick={handleAssign}>
               Assign
-            </button>
+            </Button>
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
             {canResolve && (
-              <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => handleAction('resolve')}>
-                <CheckIcon size={13} /> Resolve
-              </button>
+              <Button variant="primary" size="sm" leftIcon={Check} disabled={busy} onClick={() => handleAction('resolve')}>
+                Resolve
+              </Button>
             )}
             {canReopen && (
-              <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => handleAction('reopen')}>
+              <Button variant="secondary" size="sm" disabled={busy} onClick={() => handleAction('reopen')}>
                 Reopen
-              </button>
+              </Button>
             )}
             {canClose && (
-              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleAction('close')}>
-                <CloseIcon size={13} /> Close
-              </button>
+              <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
+                Close
+              </Button>
             )}
           </div>
         </div>
@@ -501,27 +497,26 @@ function CreateTicketModal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-md" disabled={saving || !subject.trim()} onClick={submit}>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="md" loading={saving} disabled={saving || !subject.trim()} onClick={submit}>
             {saving ? 'Creating…' : 'Create'}
-          </button>
+          </Button>
         </>
       }
     >
-      <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
-        <label className="field">
-          <span>Subject <span style={{ color: 'var(--danger)' }}>*</span></span>
-          <input
-            className="inp inp-md"
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
+        <FormField label="Subject" required htmlFor="hd-create-subject">
+          <Input
+            id="hd-create-subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="What's the issue?"
-            autoFocus
           />
-        </label>
-        <label className="field">
-          <span>Description</span>
+        </FormField>
+        {/* textarea has no primitive yet — kept as the themed .inp control inside the FormField label. */}
+        <FormField label="Description" htmlFor="hd-create-body">
           <textarea
+            id="hd-create-body"
             className="inp inp-md"
             rows={4}
             style={{ resize: 'vertical' }}
@@ -529,30 +524,28 @@ function CreateTicketModal({
             onChange={(e) => setBody(e.target.value)}
             placeholder="Optional details…"
           />
-        </label>
-        <label className="field">
-          <span>Priority</span>
-          <select className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | '')}>
+        </FormField>
+        {/* select has no primitive yet — kept as the themed .inp control inside the FormField label. */}
+        <FormField label="Priority" htmlFor="hd-create-priority">
+          <select id="hd-create-priority" className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | '')}>
             <option value="">Default</option>
             {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
           </select>
-        </label>
-        <label className="field">
-          <span>Queue</span>
-          <select className="inp inp-md" value={queueId} onChange={(e) => setQueueId(e.target.value)}>
+        </FormField>
+        <FormField label="Queue" htmlFor="hd-create-queue">
+          <select id="hd-create-queue" className="inp inp-md" value={queueId} onChange={(e) => setQueueId(e.target.value)}>
             <option value="">None</option>
             {queues.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
           </select>
-        </label>
-        <label className="field">
-          <span>Customer ID</span>
-          <input
-            className="inp inp-md"
+        </FormField>
+        <FormField label="Customer ID" htmlFor="hd-create-customer">
+          <Input
+            id="hd-create-customer"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
             placeholder="optional"
           />
-        </label>
+        </FormField>
       </div>
     </Modal>
   )
@@ -598,44 +591,40 @@ function CreateQueueModal({
       size="sm"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-md" disabled={saving || !name.trim()} onClick={submit}>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="md" loading={saving} disabled={saving || !name.trim()} onClick={submit}>
             {saving ? 'Creating…' : 'Create'}
-          </button>
+          </Button>
         </>
       }
     >
-      <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
-        <label className="field">
-          <span>Name <span style={{ color: 'var(--danger)' }}>*</span></span>
-          <input
-            className="inp inp-md"
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
+        <FormField label="Name" required htmlFor="hd-queue-name">
+          <Input
+            id="hd-queue-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Billing Support"
-            autoFocus
           />
-        </label>
-        <label className="field">
-          <span>Description</span>
-          <input
-            className="inp inp-md"
+        </FormField>
+        <FormField label="Description" htmlFor="hd-queue-desc">
+          <Input
+            id="hd-queue-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="optional"
           />
-        </label>
-        <label className="field">
-          <span>Default SLA (minutes)</span>
-          <input
-            className="inp inp-md inp-numeric"
+        </FormField>
+        <FormField label="Default SLA (minutes)" htmlFor="hd-queue-sla">
+          <Input
+            id="hd-queue-sla"
             type="number"
-            min={1}
+            variant="numeric"
             value={slaMins}
             onChange={(e) => setSlaMins(e.target.value)}
             placeholder="e.g. 480 (8 hours)"
           />
-        </label>
+        </FormField>
       </div>
     </Modal>
   )
