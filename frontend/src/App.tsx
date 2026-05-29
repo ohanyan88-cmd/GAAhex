@@ -31,6 +31,7 @@ import WorkItemsView from './WorkItemsView'
 import CalendarView from './CalendarView'
 import CreateTenantWizard from './CreateTenantWizard'
 import SettingsView from './SettingsView'
+import OrgView from './OrgView'
 import { NAV_SECTIONS, type NavItemDef } from './nav-config'
 import { bget, bpost } from './billing'
 import { useI18n, initI18n, type Lang } from './i18n'
@@ -40,11 +41,10 @@ import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './capabilitie
 import ProfileModal from './ProfileModal'
 import SecurityModal from './SecurityModal'
 import { ShortcutsModal, DocsModal, WhatsNewModal } from './SupportModals'
-import { usePageConfig } from './pageConfig'
 
 type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
-type OrgNode = { id: string; type: string; name: string; path: string }
+type OrgNode = { id: string; type: string; name: string; path: string; code?: string; parent_id?: string | null }
 type View =
   | { type: 'org' }
   | { type: 'entity'; slug: string }
@@ -576,7 +576,7 @@ export default function App() {
           )}
           <ErrorBoundary>
             {view.type === 'org'
-              ? <OrgTreeView nodes={orgNodes} configVersion={pageConfigVersion} token={token} />
+              ? <OrgView nodes={orgNodes} configVersion={pageConfigVersion} token={token} />
               : view.type === 'dashboards'
                 ? <DashboardView token={token} configVersion={pageConfigVersion} />
               : view.type === 'analytics'
@@ -678,22 +678,6 @@ export default function App() {
       <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
       <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
       <WhatsNewModal open={accountModal === 'whatsnew'} onClose={() => setAccountModal(null)} />
-    </div>
-  )
-}
-
-function OrgTreeView({ nodes, token, configVersion }: { nodes: OrgNode[]; token: string; configVersion: number }) {
-  const cfg = usePageConfig(token, 'org', configVersion)
-  return (
-    <div>
-      <h2>{cfg.title}</h2>
-      <ul className="tree">
-        {nodes.map((n) => (
-          <li key={n.id} style={{ marginLeft: (n.path.split('.').length - 1) * 22 }}>
-            <span className="badge">{n.type}</span>{n.name} <span className="muted">/{n.path}/</span>
-          </li>
-        ))}
-      </ul>
     </div>
   )
 }

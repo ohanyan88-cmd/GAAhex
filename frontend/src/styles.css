@@ -1883,3 +1883,123 @@ div.studio {
 
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* ═══════════════════════ ORG VIEW (Tree | Cards | Hierarchy) ═══════════════════════
+   Phase 1: three switchable layouts for the org hierarchy. All theme via tokens. */
+
+/* Type badges — recolor with the active accent; neutral tones keep them readable
+   in any palette / light+dark. */
+.org-badge-group  { background: var(--accent-soft); color: var(--accent); font-weight: var(--fw-semibold); }
+.org-badge-region { background: var(--surface-2); color: var(--text-2); }
+.org-badge-team   { background: var(--surface-2); color: var(--text-3); }
+.org-badge-other  { background: var(--surface-2); color: var(--text-3); }
+
+.org-empty { padding: 40px 0; text-align: center; font-size: 13px; }
+
+/* ── Switcher (segmented control) ── */
+.org-switcher {
+  display: inline-flex; align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 2px;
+  gap: 2px;
+}
+.org-switcher-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; color: var(--text-3);
+  border: 0; cursor: pointer;
+  padding: 6px 12px; border-radius: var(--r-sm);
+  font-size: 12px; font-weight: var(--fw-medium);
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.org-switcher-btn:hover { color: var(--text); }
+.org-switcher-btn.on {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+/* ── Tree layout ── */
+.org-tree, .org-tree-children { list-style: none; margin: 0; padding: 0; }
+.org-tree-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  transition: background var(--dur-fast);
+}
+.org-tree-row:hover { background: var(--surface-2); }
+.org-tree-name { color: var(--text); font-weight: var(--fw-medium); }
+.org-tree-path { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+
+/* ── Cards layout (nested by level) ── */
+.org-cards { display: flex; flex-direction: column; gap: 14px; }
+.org-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px;
+}
+.org-card-group  { border-left: 3px solid var(--accent); }
+.org-card-region { background: var(--surface-2); }
+.org-card-team   { background: var(--surface-2); }
+.org-card-head { display: flex; align-items: center; gap: 8px; }
+.org-card-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 14px; }
+.org-card-path { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; margin-top: 4px; }
+.org-card-children {
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin-top: 12px;
+}
+/* nested cards shrink a notch so depth reads clearly */
+.org-card-children .org-card { padding: 11px; }
+.org-card-children .org-card-name { font-size: 13px; }
+.org-card-children .org-card-children { grid-template-columns: 1fr; }
+
+/* ── Hierarchy layout (top-down org chart, CSS connectors) ── */
+.org-chart-scroll { overflow-x: auto; padding: 12px 4px 20px; }
+.org-chart, .org-chart-children {
+  display: flex; justify-content: center; align-items: flex-start;
+  list-style: none; margin: 0; padding: 0;
+}
+.org-chart-li {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 18px 10px 0;
+}
+/* vertical connector down from a parent into the children band */
+.org-chart-children { position: relative; }
+.org-chart-li > .org-chart-children::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 18px; background: var(--border);
+  transform: translateX(-50%);
+}
+/* connectors above each child: a stub up + the horizontal bar between siblings */
+.org-chart-children > .org-chart-li::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  width: 2px; height: 18px; background: var(--border);
+  transform: translateX(-50%);
+}
+.org-chart-children > .org-chart-li::after {
+  content: ''; position: absolute; top: 0; height: 2px; background: var(--border);
+  left: 0; right: 0;
+}
+/* trim the horizontal bar to the outermost child centers (no overhang) */
+.org-chart-children > .org-chart-li:first-child::after { left: 50%; }
+.org-chart-children > .org-chart-li:last-child::after  { right: 50%; }
+.org-chart-children > .org-chart-li:only-child::after { display: none; }
+
+.org-chart-box {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px 16px;
+  min-width: 130px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.org-chart-group  { border-color: var(--accent); background: var(--accent-soft); }
+.org-chart-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 13px; }
+.org-chart-code { color: var(--text-3); font-family: var(--font-mono); font-size: 10px; }
