@@ -149,8 +149,8 @@
   --shadow: 0 1px 3px rgba(17, 24, 39, .08);
   --shadow-card: 0 6px 24px rgba(17, 24, 39, .10);
   --shadow-pop: 0 12px 34px rgba(17, 24, 39, .16);
-  /* Sidebar — solid near-black, identical in both themes (Gev spec, locked pair) */
-  --sidebar-bg: #0A0F1C;
+  /* Sidebar — light mode: slate background (Gev spec) */
+  --sidebar-bg: #64748B;
   --sidebar-hover: rgba(255, 255, 255, 0.05);
   --sidebar-border: #1F2A40;
   --sidebar-text: #F8FAFC;
