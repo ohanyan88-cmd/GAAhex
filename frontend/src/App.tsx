@@ -521,7 +521,13 @@ export default function App() {
           )}
           <ErrorBoundary>
             {view.type === 'org'
-              ? <OrgView nodes={orgNodes} configVersion={pageConfigVersion} token={token} />
+              ? <OrgView
+                  nodes={orgNodes}
+                  configVersion={pageConfigVersion}
+                  token={token}
+                  canConfigure={!!user?.can_configure}
+                  onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
+                />
               : view.type === 'dashboards'
                 ? <DashboardView token={token} configVersion={pageConfigVersion} />
               : view.type === 'analytics'

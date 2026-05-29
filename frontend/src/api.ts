@@ -24,6 +24,61 @@ export async function orgTree() {
   return r.json()
 }
 
+// ── Org structure WRITE endpoints (gated on config.manage). Shape mirrors backend/app/routers/
+// org_nodes.py: create POST /api/org/nodes {type,name,code?,parent_id?}; update PATCH
+// /api/org/nodes/{id} {name?,code?,parent_id?} (parent_id present ⇒ move; null/"" ⇒ root);
+// delete DELETE /api/org/nodes/{id} → {ok,id}, or 409 with a detail message if the node has children.
+export type OrgNodeOut = {
+  id: string
+  type: string
+  name: string
+  code: string | null
+  path: string
+  parent_id: string | null
+}
+
+// A write error that carries the HTTP status so callers can branch on it (e.g. delete 409 = has children).
+export class OrgWriteError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'OrgWriteError'
+    this.status = status
+  }
+}
+
+async function orgWrite(token: string, path: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown) {
+  const r = await fetch(`${BASE}/api/org/${path}`, {
+    method,
+    headers: { ...authH(token), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: 'Error' }))
+    throw new OrgWriteError(r.status, e.detail || 'Error')
+  }
+  return r.json()
+}
+
+export async function createOrgNode(
+  token: string,
+  data: { type: string; name: string; code?: string; parent_id?: string | null },
+): Promise<OrgNodeOut> {
+  return orgWrite(token, 'nodes', 'POST', data)
+}
+
+export async function renameOrgNode(token: string, id: string, name: string): Promise<OrgNodeOut> {
+  return orgWrite(token, `nodes/${id}`, 'PATCH', { name })
+}
+
+export async function moveOrgNode(token: string, id: string, parent_id: string | null): Promise<OrgNodeOut> {
+  return orgWrite(token, `nodes/${id}`, 'PATCH', { parent_id })
+}
+
+export async function deleteOrgNode(token: string, id: string): Promise<{ ok: boolean; id: string }> {
+  return orgWrite(token, `nodes/${id}`, 'DELETE')
+}
+
 export async function getEntities(token: string) {
   const r = await fetch(`${BASE}/meta/entities`, { headers: authH(token) })
   if (!r.ok) throw new Error('Failed to load entities')

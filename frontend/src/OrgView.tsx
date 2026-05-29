@@ -13,16 +13,19 @@
 // (the API returns it), otherwise falling back to the dot-path. All layouts
 // render from a single nested `OrgTreeNode[]` tree so they stay consistent.
 // -----------------------------------------------------------------------------
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { usePageConfig, type CustomFieldDef } from './pageConfig'
 import { useCustomFields, CustomFieldChip } from './CustomCells'
+import { Modal } from './Modal'
+import { toast } from './Toast'
+import { createOrgNode, renameOrgNode, moveOrgNode, deleteOrgNode, OrgWriteError } from './api'
 import {
   ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon, ActivityIcon, GlobeIcon,
   ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
-  ArrowRightIcon, SunIcon, ServerIcon,
+  ArrowRightIcon, SunIcon, ServerIcon, PlusIcon, EditIcon, TrashIcon,
 } from './icons'
 
 // The custom-fields hook return, threaded into each layout so nodes can show + edit values.
@@ -63,6 +66,23 @@ function loadLayout(): OrgLayout {
 
 // A node plus its resolved children — what every layout consumes.
 type OrgTreeNode = OrgNode & { children: OrgTreeNode[] }
+
+// ── Structure editing (kebab → Rename / Add child / Move / Delete) ──────────────
+// The kebab menu lives deep inside the recursive layouts, so rather than thread a fat
+// callback bundle through every layout we publish the open-modal handlers via context.
+// Editing is gated on config.manage (the same gate the backend write endpoints enforce);
+// when editing is off the kebab/Add-node controls are simply not rendered.
+type OrgEditAction = (node: OrgNode) => void
+type OrgEdit = {
+  rename: OrgEditAction
+  addChild: OrgEditAction
+  move: OrgEditAction
+  remove: OrgEditAction
+}
+const OrgEditContext = createContext<OrgEdit | null>(null)
+function useOrgEdit(): OrgEdit | null {
+  return useContext(OrgEditContext)
+}
 
 // Build a nested tree from the flat list. Prefer explicit parent_id (unambiguous);
 // otherwise reconstruct from the dot-path within document order (paths can collide
@@ -117,19 +137,68 @@ function NodeAvatar({ node }: { node: OrgNode }) {
   return <span className={`org-avatar ${toneClass(node.type)}`} aria-hidden="true">{initials(node.name)}</span>
 }
 
-// A small kebab quick-action affordance (no-op placeholder for now — present, accessible, tidy).
+// The kebab quick-action menu: Rename · Add child · Move · Delete. Renders only when structure
+// editing is enabled (config.manage) — i.e. an OrgEdit is published on the context. Closes on
+// outside-click and Escape; absolutely positioned under the trigger.
 function NodeKebab({ node }: { node: OrgNode }) {
+  const edit = useOrgEdit()
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  if (!edit) return null
+
+  const run = (fn: OrgEditAction) => (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setOpen(false)
+    fn(node)
+  }
+
   return (
-    <button
-      type="button"
-      className="org-node-kebab"
-      aria-label={`Actions for ${node.name}`}
-      onClick={(e) => { e.stopPropagation() }}
-    >
-      <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
-      </svg>
-    </button>
+    <span className="org-kebab-wrap" ref={wrapRef}>
+      <button
+        type="button"
+        className={'org-node-kebab' + (open ? ' on' : '')}
+        aria-label={`Actions for ${node.name}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}
+      >
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" />
+        </svg>
+      </button>
+      {open && (
+        <div className="org-kebab-menu" role="menu" aria-label={`Actions for ${node.name}`}>
+          <button type="button" className="org-kebab-item" role="menuitem" onClick={run(edit.rename)}>
+            <EditIcon size={15} /><span>Rename</span>
+          </button>
+          <button type="button" className="org-kebab-item" role="menuitem" onClick={run(edit.addChild)}>
+            <PlusIcon size={15} /><span>Add child</span>
+          </button>
+          <button type="button" className="org-kebab-item" role="menuitem" onClick={run(edit.move)}>
+            <ArrowRightIcon size={15} /><span>Move…</span>
+          </button>
+          <div className="org-kebab-divider" />
+          <button type="button" className="org-kebab-item org-kebab-danger" role="menuitem" onClick={run(edit.remove)}>
+            <TrashIcon size={15} /><span>Delete</span>
+          </button>
+        </div>
+      )}
+    </span>
   )
 }
 
@@ -194,6 +263,7 @@ function OutlineNode({ node, depth, defs, cf }: { node: OrgTreeNode; depth: numb
         <span className="org-tree-name">{node.name}</span>
         <span className="org-tree-path">/{node.path}/</span>
         <NodeCustomFieldsReadonly node={node} defs={defs} cf={cf} />
+        <NodeKebab node={node} />
       </div>
       {hasKids && open && (
         <ul className="org-tree-children">
@@ -1021,6 +1091,299 @@ function TreemapLayout({ roots, cf }: { roots: OrgTreeNode[]; cf: CFApi }) {
   )
 }
 
+// ── Structure-editing modals ────────────────────────────────────────────────────
+// Reuse the shared Modal (Overlay-based, focus-trapped, Esc/click-outside) — same primitive
+// ProfileModal/SecurityModal use. Each modal owns its draft state + busy/error, calls the api
+// client, then onDone() (which re-fetches via OrgView's onRefresh) and closes.
+
+// What the editing layer is acting on: a structure op + the node it targets (null for top-level add).
+type EditState =
+  | { kind: 'add'; parent: OrgNode | null }
+  | { kind: 'rename'; node: OrgNode }
+  | { kind: 'move'; node: OrgNode }
+  | { kind: 'delete'; node: OrgNode }
+  | null
+
+// Add / Add-child: type + name + code. `parent` is locked when adding a child (shown read-only).
+function AddNodeModal({ token, parent, onClose, onDone }: {
+  token: string; parent: OrgNode | null; onClose: () => void; onDone: () => Promise<void>
+}) {
+  const [type, setType] = useState('')
+  const [name, setName] = useState('')
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!type.trim() || !name.trim()) { setErr('Type and name are required.'); return }
+    setBusy(true); setErr('')
+    try {
+      await createOrgNode(token, {
+        type: type.trim(),
+        name: name.trim(),
+        code: code.trim() || undefined,
+        parent_id: parent ? parent.id : null,
+      })
+      toast.success(`Created “${name.trim()}”`)
+      await onDone()
+      onClose()
+    } catch (e2) {
+      setErr((e2 as Error).message || 'Failed to create node.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title={parent ? `Add child to “${parent.name}”` : 'Add node'} size="sm">
+      <form className="org-edit-form" onSubmit={submit}>
+        {parent && (
+          <label className="field-block">
+            <span className="field-label">Parent</span>
+            <input className="inp inp-md" value={parent.name} disabled aria-label="Parent" />
+          </label>
+        )}
+        <label className="field-block">
+          <span className="field-label">Type</span>
+          <input
+            className="inp inp-md" value={type} autoFocus
+            onChange={(e) => setType(e.target.value)}
+            placeholder="e.g. Region, Team, Department"
+            aria-label="Type"
+          />
+        </label>
+        <label className="field-block">
+          <span className="field-label">Name</span>
+          <input
+            className="inp inp-md" value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Display name"
+            aria-label="Name"
+          />
+        </label>
+        <label className="field-block">
+          <span className="field-label">Code <span className="muted">(optional)</span></span>
+          <input
+            className="inp inp-md" value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Defaults to a slug of the name"
+            aria-label="Code"
+          />
+        </label>
+        {err && <p className="err" role="alert">{err}</p>}
+        <div className="org-edit-foot">
+          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="submit" className="btn btn-primary btn-md" disabled={busy || !type.trim() || !name.trim()}>
+            {busy ? 'Creating…' : 'Create'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+// Rename: single name field, prefilled.
+function RenameNodeModal({ token, node, onClose, onDone }: {
+  token: string; node: OrgNode; onClose: () => void; onDone: () => Promise<void>
+}) {
+  const [name, setName] = useState(node.name)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) { setErr('Name cannot be empty.'); return }
+    setBusy(true); setErr('')
+    try {
+      await renameOrgNode(token, node.id, trimmed)
+      toast.success('Renamed')
+      await onDone()
+      onClose()
+    } catch (e2) {
+      setErr((e2 as Error).message || 'Failed to rename node.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Rename node" size="sm">
+      <form className="org-edit-form" onSubmit={submit}>
+        <label className="field-block">
+          <span className="field-label">Name</span>
+          <input
+            className="inp inp-md" value={name} autoFocus
+            onChange={(e) => setName(e.target.value)}
+            aria-label="Name"
+          />
+        </label>
+        {err && <p className="err" role="alert">{err}</p>}
+        <div className="org-edit-foot">
+          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="submit" className="btn btn-primary btn-md" disabled={busy || !name.trim() || name.trim() === node.name}>
+            {busy ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+// Set of a node's own id + every descendant id — the candidates a Move must EXCLUDE so a node can
+// never be moved under itself or its own subtree (which the backend also rejects, but excluding
+// them keeps illegal targets out of the picker entirely).
+function selfAndDescendantIds(rootId: string, nodes: OrgNode[]): Set<string> {
+  const childrenOf = new Map<string, string[]>()
+  for (const n of nodes) {
+    if (n.parent_id != null) {
+      const arr = childrenOf.get(n.parent_id) ?? []
+      arr.push(n.id)
+      childrenOf.set(n.parent_id, arr)
+    }
+  }
+  const out = new Set<string>([rootId])
+  const stack = [rootId]
+  while (stack.length) {
+    const cur = stack.pop()!
+    for (const child of childrenOf.get(cur) ?? []) {
+      if (!out.has(child)) { out.add(child); stack.push(child) }
+    }
+  }
+  return out
+}
+
+// Move: searchable parent picker. Excludes the node itself + its descendants (no cycles) AND the
+// node's current parent (a no-op). A "Top level (root)" option moves the node to the root.
+function MoveNodeModal({ token, node, nodes, onClose, onDone }: {
+  token: string; node: OrgNode; nodes: OrgNode[]; onClose: () => void; onDone: () => Promise<void>
+}) {
+  const [query, setQuery] = useState('')
+  const [target, setTarget] = useState<string | null>(null) // null = nothing chosen; '' = root
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  // byId for path display; banned = cycle-creating targets.
+  const banned = useMemo(() => selfAndDescendantIds(node.id, nodes), [node.id, nodes])
+  const candidates = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return nodes
+      .filter((n) => !banned.has(n.id) && n.id !== node.parent_id)
+      .filter((n) => !q || n.name.toLowerCase().includes(q) || n.path.toLowerCase().includes(q))
+      .sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' }))
+  }, [nodes, banned, node.parent_id, query])
+
+  const rootAllowed = node.parent_id != null // already at root ⇒ moving to root is a no-op
+
+  async function doMove() {
+    if (target === null) return
+    setBusy(true); setErr('')
+    try {
+      await moveOrgNode(token, node.id, target === '' ? null : target)
+      toast.success(`Moved “${node.name}”`)
+      await onDone()
+      onClose()
+    } catch (e2) {
+      setErr((e2 as Error).message || 'Failed to move node.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title={`Move “${node.name}”`} size="sm">
+      <div className="org-edit-form">
+        <div className="org-search org-move-search">
+          <SearchIcon size={15} />
+          <input
+            type="text" className="org-search-input" value={query} autoFocus
+            placeholder="Search a new parent…"
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search parent nodes"
+          />
+        </div>
+        <div className="org-move-list" role="listbox" aria-label="Candidate parents">
+          {rootAllowed && (!query.trim() || 'top level root'.includes(query.trim().toLowerCase())) && (
+            <button
+              type="button" role="option" aria-selected={target === ''}
+              className={'org-move-opt' + (target === '' ? ' on' : '')}
+              onClick={() => setTarget('')}
+            >
+              <span className="org-move-opt-name">Top level (root)</span>
+              <span className="org-move-opt-path muted">no parent</span>
+            </button>
+          )}
+          {candidates.length === 0 ? (
+            <div className="org-move-empty muted">No eligible parent matches.</div>
+          ) : candidates.map((n) => (
+            <button
+              key={n.id} type="button" role="option" aria-selected={target === n.id}
+              className={'org-move-opt' + (target === n.id ? ' on' : '')}
+              onClick={() => setTarget(n.id)}
+            >
+              <span className={`badge ${toneClass(n.type)}`}>{n.type}</span>
+              <span className="org-move-opt-name">{n.name}</span>
+              <span className="org-move-opt-path muted">/{n.path}/</span>
+            </button>
+          ))}
+        </div>
+        <p className="hint">A node can’t move under itself or its own descendants — those are hidden.</p>
+        {err && <p className="err" role="alert">{err}</p>}
+        <div className="org-edit-foot">
+          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className="btn btn-primary btn-md" onClick={doMove} disabled={busy || target === null}>
+            {busy ? 'Moving…' : 'Move here'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// Delete: confirmation. The backend returns 409 when the node has children — surface that message
+// inline instead of failing silently.
+function DeleteNodeModal({ token, node, onClose, onDone }: {
+  token: string; node: OrgNode; onClose: () => void; onDone: () => Promise<void>
+}) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function doDelete() {
+    setBusy(true); setErr('')
+    try {
+      await deleteOrgNode(token, node.id)
+      toast.success(`Deleted “${node.name}”`)
+      await onDone()
+      onClose()
+    } catch (e2) {
+      // 409 = node still has children; show the backend's clear message rather than a silent failure.
+      const msg = e2 instanceof OrgWriteError && e2.status === 409
+        ? e2.message
+        : (e2 as Error).message || 'Failed to delete node.'
+      setErr(msg)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Delete node" size="sm">
+      <div className="org-edit-form">
+        <p>Delete <strong>{node.name}</strong>? This can’t be undone.</p>
+        <p className="hint">A node that still has children can’t be deleted — delete or move its children first.</p>
+        {err && <p className="err" role="alert">{err}</p>}
+        <div className="org-edit-foot">
+          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className="btn btn-danger btn-md" onClick={doDelete} disabled={busy}>
+            {busy ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'hierarchy', label: 'Hierarchy', Icon: ChartIcon },
   { id: 'cards', label: 'Cards', Icon: PackageIcon },
@@ -1033,7 +1396,13 @@ const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'treemap', label: 'Treemap', Icon: ServerIcon },
 ]
 
-export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNode[]; token: string; configVersion: number }) {
+export default function OrgView({ nodes, token, configVersion, canConfigure = false, onRefresh }: {
+  nodes: OrgNode[]
+  token: string
+  configVersion: number
+  canConfigure?: boolean        // config.manage — gates the structure-editing controls
+  onRefresh?: () => Promise<void>  // re-fetch the org tree after a successful write
+}) {
   const cfg = usePageConfig(token, 'org', configVersion)
   const [layout, setLayout] = useState<OrgLayout>(loadLayout)
   const roots = useMemo(() => buildTree(nodes), [nodes])
@@ -1044,12 +1413,28 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
   const cf = useCustomFields(token, 'org', cfg.customFields, allNodeIds)
   const defs = cfg.customFields
 
+  // Structure editing: which op the user opened (or null). Published to the kebabs via context.
+  const [editState, setEditState] = useState<EditState>(null)
+  const editing = canConfigure && !!onRefresh
+  const edit = useMemo<OrgEdit | null>(() => {
+    if (!editing) return null
+    return {
+      rename: (node) => setEditState({ kind: 'rename', node }),
+      addChild: (node) => setEditState({ kind: 'add', parent: node }),
+      move: (node) => setEditState({ kind: 'move', node }),
+      remove: (node) => setEditState({ kind: 'delete', node }),
+    }
+  }, [editing])
+  // After any successful write, re-fetch the tree (onRefresh is supplied by the parent).
+  const refresh = async () => { if (onRefresh) await onRefresh() }
+
   const choose = (next: OrgLayout) => {
     setLayout(next)
     try { localStorage.setItem(STORAGE_KEY, next) } catch { /* ignore */ }
   }
 
   return (
+    <OrgEditContext.Provider value={edit}>
     <div className="org-view">
       <div className="view-head">
         <div className="view-icon"><LayersIcon size={20} /></div>
@@ -1058,6 +1443,15 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
           <span className="view-sub">Organization hierarchy</span>
         </div>
         <div className="view-head-actions">
+          {editing && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm org-add-node-btn"
+              onClick={() => setEditState({ kind: 'add', parent: null })}
+            >
+              <PlusIcon size={14} /> <span>Add node</span>
+            </button>
+          )}
           <div className="org-switcher" role="tablist" aria-label="Org view layout">
             {SWITCHER.map(({ id, label, Icon }) => (
               <button
@@ -1077,7 +1471,17 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
       </div>
 
       {roots.length === 0 ? (
-        <div className="org-empty muted">No organization nodes yet.</div>
+        <div className="org-empty muted">
+          No organization nodes yet.
+          {editing && (
+            <>
+              {' '}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditState({ kind: 'add', parent: null })}>
+                <PlusIcon size={14} /> Add the first node
+              </button>
+            </>
+          )}
+        </div>
       ) : layout === 'hierarchy' ? (
         <HierarchyLayout roots={roots} defs={defs} cf={cf} />
       ) : layout === 'cards' ? (
@@ -1097,6 +1501,21 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
       ) : (
         <GroupedLayout roots={roots} defs={defs} cf={cf} />
       )}
+
+      {/* Structure-editing modals — one mounted at a time per editState. */}
+      {editState?.kind === 'add' && (
+        <AddNodeModal token={token} parent={editState.parent} onClose={() => setEditState(null)} onDone={refresh} />
+      )}
+      {editState?.kind === 'rename' && (
+        <RenameNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
+      )}
+      {editState?.kind === 'move' && (
+        <MoveNodeModal token={token} node={editState.node} nodes={nodes} onClose={() => setEditState(null)} onDone={refresh} />
+      )}
+      {editState?.kind === 'delete' && (
+        <DeleteNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
+      )}
     </div>
+    </OrgEditContext.Provider>
   )
 }

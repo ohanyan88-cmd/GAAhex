@@ -1884,7 +1884,62 @@ div.studio {
   color: var(--text-3); border-radius: var(--r-sm);
   transition: color var(--dur-fast), background var(--dur-fast);
 }
-.org-node-kebab:hover { color: var(--text); background: var(--surface-2); }
+.org-node-kebab:hover, .org-node-kebab.on { color: var(--text); background: var(--surface-2); }
+
+/* ── Node kebab dropdown menu (Rename / Add child / Move / Delete) ── */
+.org-kebab-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+.org-kebab-menu {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  z-index: var(--z-dropdown);
+  min-width: 168px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+  padding: 6px;
+  animation: overlay-fade var(--dur-base) var(--ease-decelerate);
+}
+.org-kebab-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: transparent; border: 0; cursor: pointer;
+  padding: 8px; border-radius: var(--r-sm, 6px);
+  color: var(--text); font-size: 13px; text-align: left;
+}
+.org-kebab-item:hover { background: var(--surface-2); }
+.org-kebab-item:focus-visible { box-shadow: 0 0 0 3px var(--focus-ring); }
+.org-kebab-item svg { flex: 0 0 auto; color: var(--text-3); }
+.org-kebab-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+.org-kebab-danger { color: var(--danger); }
+.org-kebab-danger:hover { background: var(--danger-soft, rgba(229,72,77,0.12)); color: var(--danger); }
+.org-kebab-danger svg { color: var(--danger); }
+
+/* ── Structure-editing modals (Add / Rename / Move / Delete) ── */
+.org-add-node-btn { gap: 6px; }
+.org-edit-form { display: flex; flex-direction: column; }
+.org-edit-form > p { font-size: 13px; color: var(--text-2); margin: 0 0 8px; }
+.org-edit-foot {
+  display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+  margin-top: 6px;
+}
+.org-move-search { margin-bottom: 10px; }
+.org-move-list {
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 260px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 6px; background: var(--surface-2);
+}
+.org-move-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: transparent; border: 0; cursor: pointer;
+  padding: 7px 8px; border-radius: var(--r-sm, 6px);
+  color: var(--text); font-size: 13px; text-align: left;
+}
+.org-move-opt:hover { background: var(--surface); }
+.org-move-opt.on { background: var(--accent-soft); }
+.org-move-opt:focus-visible { box-shadow: 0 0 0 3px var(--focus-ring); }
+.org-move-opt-name { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.org-move-opt-path { flex: 1 1 auto; font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.org-move-empty { padding: 12px 8px; font-size: 12px; text-align: center; }
 
 /* ── Node custom fields: editable label:value chips (Cards + Hierarchy boxes) ── */
 .org-cf-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
