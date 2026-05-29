@@ -1988,8 +1988,11 @@ div.studio {
 .org-cf-tag-value { color: var(--text); font-weight: var(--fw-medium); }
 
 /* ── Switcher (segmented control) ── */
+/* The switcher carries 13 tabs, far wider than the header actions slot — it lives on
+   its own full-width row below the title so it can never wrap on top of the heading. */
+.org-switcher-row { margin-bottom: 14px; }
 .org-switcher {
-  display: inline-flex; align-items: center;
+  display: inline-flex; align-items: center; flex-wrap: wrap;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-md);

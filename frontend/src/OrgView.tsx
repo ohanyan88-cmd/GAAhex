@@ -1981,8 +1981,8 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
           <h2>{cfg.title}</h2>
           <span className="view-sub">Organization hierarchy</span>
         </div>
-        <div className="view-head-actions">
-          {editing && (
+        {editing && (
+          <div className="view-head-actions">
             <button
               type="button"
               className="btn btn-primary btn-sm org-add-node-btn"
@@ -1990,22 +1990,29 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
             >
               <PlusIcon size={14} /> <span>Add node</span>
             </button>
-          )}
-          <div className="org-switcher" role="tablist" aria-label="Org view layout">
-            {SWITCHER.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={layout === id}
-                className={`org-switcher-btn${layout === id ? ' on' : ''}`}
-                onClick={() => choose(id)}
-              >
-                <Icon size={15} />
-                <span>{label}</span>
-              </button>
-            ))}
           </div>
+        )}
+      </div>
+
+      {/* The layout switcher is a wide 13-tab segmented control, so it gets its own
+          full-width row below the title rather than being crammed into the header
+          actions slot (which is sized for a single button and would otherwise wrap
+          on top of the title). */}
+      <div className="org-switcher-row">
+        <div className="org-switcher" role="tablist" aria-label="Org view layout">
+          {SWITCHER.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={layout === id}
+              className={`org-switcher-btn${layout === id ? ' on' : ''}`}
+              onClick={() => choose(id)}
+            >
+              <Icon size={15} />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
