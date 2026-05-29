@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { ToastHost } from './Toast'
 import { ConfirmHost } from './Modal'
+import './tailwind.css'
 import './color-tokens.css'
 import './styles.css'
 

@@ -9,3 +9,6 @@ dist/
 .DS_Store
 brand/
 TASKS/
+
+*storybook.log
+storybook-static

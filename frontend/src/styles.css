@@ -1656,33 +1656,6 @@ div.studio {
 .swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); }
 .swatch-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: var(--text-3); }
 
-/* ===================== GX PALETTE CHOOSER (profile menu) ===================== */
-.gx-palette-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 2px;
-}
-.gx-palette-opt {
-  display: flex; align-items: center; gap: 9px;
-  width: 100%;
-  background: transparent; border: 1px solid transparent; cursor: pointer;
-  padding: 6px 8px; border-radius: var(--r-sm, 6px);
-  color: var(--text); font-size: 12.5px; text-align: left;
-  transition: background var(--dur-fast), border-color var(--dur-fast);
-}
-.gx-palette-opt:hover { background: var(--surface-2); }
-.gx-palette-opt:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
-.gx-palette-opt.on { background: var(--surface-2); border-color: var(--accent); }
-.gx-palette-swatch {
-  width: 22px; height: 22px; border-radius: 50%;
-  flex: none; display: grid; place-items: center;
-  border: 1px solid var(--border-strong, var(--border));
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-}
-.gx-palette-dot { width: 10px; height: 10px; border-radius: 50%; }
-.gx-palette-opt.on .gx-palette-swatch { box-shadow: 0 0 0 2px var(--accent-soft); }
-.gx-palette-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ===================== DROPDOWN MENU ===================== */
 .dd-menu {
