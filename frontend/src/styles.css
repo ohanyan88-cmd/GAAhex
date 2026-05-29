@@ -2003,3 +2003,78 @@ div.studio {
 .org-chart-group  { border-color: var(--accent); background: var(--accent-soft); }
 .org-chart-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 13px; }
 .org-chart-code { color: var(--text-3); font-family: var(--font-mono); font-size: 10px; }
+
+/* ── Outline layout: collapse/expand chevron (was the static Tree) ── */
+.org-tree-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; width: 18px; height: 18px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: var(--text-3); border-radius: var(--r-sm);
+  transition: color var(--dur-fast), background var(--dur-fast);
+}
+.org-tree-toggle:hover { color: var(--text); background: var(--surface-2); }
+.org-tree-toggle-leaf { cursor: default; visibility: hidden; }
+
+/* ── List / Table layout (flat, sortable + searchable) ── */
+.org-list { display: flex; flex-direction: column; gap: 12px; }
+.org-list-toolbar { display: flex; align-items: center; gap: 12px; }
+.org-search {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 7px 11px;
+  color: var(--text-3); flex: 0 1 320px;
+}
+.org-search:focus-within { border-color: var(--accent); color: var(--text); }
+.org-search-input {
+  flex: 1; min-width: 0; background: transparent; border: 0; outline: none;
+  color: var(--text); font-size: 13px;
+}
+.org-search-input::placeholder { color: var(--text-3); }
+.org-list-count { font-size: 12px; margin-left: auto; }
+.org-th-sort {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
+  color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit;
+}
+.org-th-sort:hover { color: var(--text); }
+.org-th-sort.on { color: var(--accent); }
+.org-list-name { font-weight: var(--fw-medium); }
+.org-list-path { color: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
+.org-list-parent { color: var(--text-2); }
+.org-list-empty { padding: 26px 0; text-align: center; font-size: 13px; }
+
+/* ── Grouped / swimlanes layout (one lane per top-level division) ── */
+.org-lanes {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  align-items: start;
+}
+.org-lane {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.org-lane-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.org-lane-name { color: var(--text); font-weight: var(--fw-semibold); font-size: 14px; flex: 1; min-width: 0; }
+.org-lane-count {
+  flex: 0 0 auto; min-width: 22px; text-align: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: var(--fw-semibold);
+  padding: 2px 8px; border-radius: var(--pill);
+}
+.org-lane-body { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.org-lane-empty { padding: 16px; text-align: center; font-size: 12px; }
+.org-lane-card {
+  background: var(--surface-2); border: 1px solid var(--border-soft);
+  border-radius: var(--r-md); padding: 10px 12px;
+}
+.org-lane-card-head { display: flex; align-items: center; gap: 8px; }
+.org-lane-card-name { color: var(--text); font-weight: var(--fw-medium); font-size: 13px; }
+.org-lane-sub { list-style: none; margin: 8px 0 0; padding: 0 0 0 4px; display: flex; flex-direction: column; gap: 5px; }
+.org-lane-sub-item {
+  display: flex; align-items: center; gap: 7px;
+  color: var(--text-2); font-size: 12px;
+}

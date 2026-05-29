@@ -1,19 +1,24 @@
 // -----------------------------------------------------------------------------
 // OrgView — the Org page (view.type === 'org'). Renders the org hierarchy in one
-// of THREE switchable layouts (Tree | Cards | Hierarchy). The chosen layout is a
-// pure presentation preference, persisted to localStorage ('gaaex-org-view') and
-// applied on load (default 'tree').
+// of FIVE switchable layouts (Hierarchy | Cards | Outline | List | Grouped). The
+// chosen layout is a pure presentation preference, persisted to localStorage
+// ('gaaex-org-view') and applied on load (default 'hierarchy').
 //
 // PHASE 1 (this file): view layouts + switcher ONLY. No node custom-fields,
-// node-type/look config, or structure editing yet (later phases).
+// node-type/look config, or structure editing yet (later phases). The List view's
+// columns work strictly from the current node fields (richer columns — role /
+// headcount / manager — arrive in a later phase).
 //
 // The hierarchy is derived from the flat node list: parent_id when present
-// (the API returns it), otherwise falling back to the dot-path. All three layouts
+// (the API returns it), otherwise falling back to the dot-path. All layouts
 // render from a single nested `OrgTreeNode[]` tree so they stay consistent.
 // -----------------------------------------------------------------------------
 import { useMemo, useState } from 'react'
 import { usePageConfig } from './pageConfig'
-import { LayersIcon, PackageIcon, ChartIcon } from './icons'
+import {
+  ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon,
+  ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
+} from './icons'
 
 export type OrgNode = {
   id: string
@@ -24,15 +29,17 @@ export type OrgNode = {
   parent_id?: string | null
 }
 
-type OrgLayout = 'tree' | 'cards' | 'hierarchy'
+type OrgLayout = 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped'
 const STORAGE_KEY = 'gaaex-org-view'
 
 function loadLayout(): OrgLayout {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
-    if (v === 'tree' || v === 'cards' || v === 'hierarchy') return v
+    // Migrate the old 'tree' label → the renamed 'outline' layout.
+    if (v === 'tree') return 'outline'
+    if (v === 'hierarchy' || v === 'cards' || v === 'outline' || v === 'list' || v === 'grouped') return v
   } catch { /* private mode / unavailable — fall through to default */ }
-  return 'tree'
+  return 'hierarchy'
 }
 
 // A node plus its resolved children — what every layout consumes.
@@ -69,6 +76,14 @@ function buildTree(nodes: OrgNode[]): OrgTreeNode[] {
   return roots
 }
 
+// Count every descendant of a node (children, grandchildren, …) — the lane's
+// "headcount-for-now" badge in the Grouped layout.
+function descendantCount(n: OrgTreeNode): number {
+  let total = 0
+  for (const c of n.children) total += 1 + descendantCount(c)
+  return total
+}
+
 // type → badge tone class (theme-driven via tokens; falls back to neutral).
 function toneClass(type: string): string {
   const t = type.toLowerCase()
@@ -78,21 +93,41 @@ function toneClass(type: string): string {
   return 'org-badge-other'
 }
 
-// ── Layout: Tree (indented nested list — the original look, now a real tree) ──
-function TreeLayout({ roots }: { roots: OrgTreeNode[] }) {
-  const render = (n: OrgTreeNode, depth: number): React.ReactNode => (
-    <li key={n.id} className="org-tree-li">
-      <div className="org-tree-row" style={{ marginLeft: depth * 22 }}>
-        <span className={`badge ${toneClass(n.type)}`}>{n.type}</span>
-        <span className="org-tree-name">{n.name}</span>
-        <span className="org-tree-path">/{n.path}/</span>
+// ── Layout: Outline (collapsible indented tree — dense, keyboard-friendly) ──
+function OutlineNode({ node, depth }: { node: OrgTreeNode; depth: number }) {
+  const [open, setOpen] = useState(true) // default expanded
+  const hasKids = node.children.length > 0
+  return (
+    <li className="org-tree-li">
+      <div className="org-tree-row" style={{ paddingLeft: 8 + depth * 22 }}>
+        {hasKids ? (
+          <button
+            type="button"
+            className="org-tree-toggle"
+            aria-expanded={open}
+            aria-label={open ? `Collapse ${node.name}` : `Expand ${node.name}`}
+            onClick={() => setOpen((o) => !o)}
+          >
+            {open ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
+          </button>
+        ) : (
+          <span className="org-tree-toggle org-tree-toggle-leaf" aria-hidden="true" />
+        )}
+        <span className={`badge ${toneClass(node.type)}`}>{node.type}</span>
+        <span className="org-tree-name">{node.name}</span>
+        <span className="org-tree-path">/{node.path}/</span>
       </div>
-      {n.children.length > 0 && (
-        <ul className="org-tree-children">{n.children.map((c) => render(c, depth + 1))}</ul>
+      {hasKids && open && (
+        <ul className="org-tree-children">
+          {node.children.map((c) => <OutlineNode key={c.id} node={c} depth={depth + 1} />)}
+        </ul>
       )}
     </li>
   )
-  return <ul className="org-tree">{roots.map((n) => render(n, 0))}</ul>
+}
+
+function OutlineLayout({ roots }: { roots: OrgTreeNode[] }) {
+  return <ul className="org-tree">{roots.map((n) => <OutlineNode key={n.id} node={n} depth={0} />)}</ul>
 }
 
 // ── Layout: Cards (each node a card, nested by level) ──
@@ -150,10 +185,152 @@ function HierarchyLayout({ roots }: { roots: OrgTreeNode[] }) {
   )
 }
 
+// ── Layout: List / Table (flat, sortable + searchable) ──
+type SortCol = 'name' | 'type' | 'path' | 'parent'
+type SortDir = 'asc' | 'desc'
+
+// Flatten the original node list with each node's parent name resolved (its
+// "manager/owner"). Built from the flat list directly so we keep every node.
+type ListRow = { node: OrgNode; parentName: string }
+
+function ListLayout({ nodes }: { nodes: OrgNode[] }) {
+  const [query, setQuery] = useState('')
+  const [sortCol, setSortCol] = useState<SortCol>('name')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+
+  const rows = useMemo<ListRow[]>(() => {
+    const byId = new Map(nodes.map((n) => [n.id, n]))
+    return nodes.map((n) => ({
+      node: n,
+      parentName: n.parent_id != null ? (byId.get(n.parent_id)?.name ?? '') : '',
+    }))
+  }, [nodes])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const base = q
+      ? rows.filter((r) => r.node.name.toLowerCase().includes(q) || r.node.path.toLowerCase().includes(q))
+      : rows
+    const val = (r: ListRow): string => {
+      switch (sortCol) {
+        case 'name': return r.node.name
+        case 'type': return r.node.type
+        case 'path': return r.node.path
+        case 'parent': return r.parentName
+      }
+    }
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...base].sort((a, b) => val(a).localeCompare(val(b), undefined, { numeric: true, sensitivity: 'base' }) * dir)
+  }, [rows, query, sortCol, sortDir])
+
+  const sortBy = (col: SortCol) => {
+    if (col === sortCol) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortCol(col); setSortDir('asc') }
+  }
+
+  const SortHead = ({ col, label }: { col: SortCol; label: string }) => {
+    const active = sortCol === col
+    return (
+      <th>
+        <button type="button" className={`org-th-sort${active ? ' on' : ''}`} onClick={() => sortBy(col)} aria-label={`Sort by ${label}`}>
+          <span>{label}</span>
+          {active && (sortDir === 'asc' ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />)}
+        </button>
+      </th>
+    )
+  }
+
+  return (
+    <div className="org-list">
+      <div className="org-list-toolbar">
+        <div className="org-search">
+          <SearchIcon size={15} />
+          <input
+            type="text"
+            className="org-search-input"
+            placeholder="Filter by name or path…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Filter nodes"
+          />
+        </div>
+        <span className="org-list-count muted">{filtered.length} node{filtered.length === 1 ? '' : 's'}</span>
+      </div>
+      <div className="grid-wrap">
+        <table className="grid org-list-table">
+          <thead>
+            <tr>
+              <SortHead col="name" label="Name" />
+              <SortHead col="type" label="Type" />
+              <SortHead col="path" label="Path / Code" />
+              <SortHead col="parent" label="Parent" />
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={4} className="org-list-empty muted">No nodes match “{query}”.</td></tr>
+            ) : filtered.map((r) => (
+              <tr key={r.node.id}>
+                <td className="org-list-name">{r.node.name}</td>
+                <td><span className={`badge ${toneClass(r.node.type)}`}>{r.node.type}</span></td>
+                <td className="org-list-path">{r.node.code ? r.node.code : `/${r.node.path}/`}</td>
+                <td className="org-list-parent">{r.parentName || <span className="muted">—</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Layout: Grouped / swimlanes (one lane per top-level division) ──
+function GroupedLayout({ roots }: { roots: OrgTreeNode[] }) {
+  return (
+    <div className="org-lanes">
+      {roots.map((lane) => (
+        <section key={lane.id} className="org-lane">
+          <header className="org-lane-head">
+            <span className={`badge ${toneClass(lane.type)}`}>{lane.type}</span>
+            <span className="org-lane-name">{lane.name}</span>
+            <span className="org-lane-count" title="Descendant nodes">{descendantCount(lane)}</span>
+          </header>
+          {lane.children.length === 0 ? (
+            <div className="org-lane-empty muted">No child nodes.</div>
+          ) : (
+            <div className="org-lane-body">
+              {lane.children.map((c) => (
+                <div key={c.id} className="org-lane-card">
+                  <div className="org-lane-card-head">
+                    <span className={`badge ${toneClass(c.type)}`}>{c.type}</span>
+                    <span className="org-lane-card-name">{c.name}</span>
+                  </div>
+                  {c.children.length > 0 && (
+                    <ul className="org-lane-sub">
+                      {c.children.map((g) => (
+                        <li key={g.id} className="org-lane-sub-item">
+                          <span className={`badge ${toneClass(g.type)}`}>{g.type}</span>
+                          <span>{g.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  )
+}
+
 const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
-  { id: 'tree', label: 'Tree', Icon: LayersIcon },
-  { id: 'cards', label: 'Cards', Icon: PackageIcon },
   { id: 'hierarchy', label: 'Hierarchy', Icon: ChartIcon },
+  { id: 'cards', label: 'Cards', Icon: PackageIcon },
+  { id: 'outline', label: 'Outline', Icon: LayersIcon },
+  { id: 'list', label: 'List', Icon: RowsIcon },
+  { id: 'grouped', label: 'Grouped', Icon: MapIcon },
 ]
 
 export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNode[]; token: string; configVersion: number }) {
@@ -195,12 +372,16 @@ export default function OrgView({ nodes, token, configVersion }: { nodes: OrgNod
 
       {roots.length === 0 ? (
         <div className="org-empty muted">No organization nodes yet.</div>
-      ) : layout === 'tree' ? (
-        <TreeLayout roots={roots} />
+      ) : layout === 'hierarchy' ? (
+        <HierarchyLayout roots={roots} />
       ) : layout === 'cards' ? (
         <CardsLayout roots={roots} />
+      ) : layout === 'outline' ? (
+        <OutlineLayout roots={roots} />
+      ) : layout === 'list' ? (
+        <ListLayout nodes={nodes} />
       ) : (
-        <HierarchyLayout roots={roots} />
+        <GroupedLayout roots={roots} />
       )}
     </div>
   )
