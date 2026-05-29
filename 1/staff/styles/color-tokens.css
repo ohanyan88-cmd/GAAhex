@@ -1,0 +1,111 @@
+/* GAAex Color Tokens — GLASS dark palette (slate surfaces · BLUE primary · gold + cobalt marks) */
+
+:root {
+  --gx-bg: #0F172A;
+  --gx-surface: rgba(30, 41, 59, 0.55);
+  --gx-raised: rgba(23, 32, 51, 0.7);
+  --gx-border: rgba(51, 65, 85, 0.7);
+  --gx-border-strong: rgba(71, 85, 105, 0.8);
+  --gx-text-1: #F8FAFC;
+  --gx-text-2: #94A3B8;
+  --gx-text-3: #64748B;
+  /* Primary = BLUE (the interactive/brand color) — NOT gold */
+  --gx-primary: #3B82F6;
+  --gx-primary-hover: #60A5FA;
+  --gx-primary-active: #2563EB;
+  --gx-on-primary: #FFFFFF;
+  --gx-ring: rgba(59, 130, 246, 0.45);
+  --gx-hover: rgba(148, 163, 184, 0.08);
+  --gx-active: rgba(59, 130, 246, 0.18);
+  --gx-success: #22C55E;
+  --gx-success-soft: rgba(34, 197, 94, 0.16);
+  --gx-warning: #F59E0B;
+  --gx-warning-soft: rgba(245, 158, 11, 0.16);
+  --gx-danger: #EF4444;
+  --gx-danger-soft: rgba(239, 68, 68, 0.16);
+  --gx-info: #3B82F6;
+  --gx-info-soft: rgba(59, 130, 246, 0.16);
+  /* Brand marks (logo + tiny accents only) */
+  --gx-cobalt: #1C3B68;
+  --gx-gold: #C5A059;
+}
+
+/* ── SPACING ─────────────────────────────────────────── */
+:root {
+  --gx-space-1:  2px;
+  --gx-space-2:  4px;
+  --gx-space-3:  6px;
+  --gx-space-4:  8px;
+  --gx-space-5:  10px;
+  --gx-space-6:  12px;
+  --gx-space-7:  14px;
+  --gx-space-8:  16px;
+  --gx-space-10: 20px;
+  --gx-space-12: 24px;
+  --gx-space-16: 32px;
+  --gx-space-20: 40px;
+
+  /* ── RADIUS ── */
+  --gx-radius-none: 0px;
+  --gx-radius-sm:   2px;
+  --gx-radius-md:   3px;
+  --gx-radius-lg:   4px;
+  --gx-radius-xl:   6px;
+  --gx-radius-full: 9999px;
+
+  /* ── TYPOGRAPHY ── */
+  --gx-text-9:  9px;
+  --gx-text-10: 10px;
+  --gx-text-11: 11px;
+  --gx-text-12: 12px;
+  --gx-text-13: 13px;
+  --gx-text-14: 14px;
+  --gx-text-16: 16px;
+  --gx-text-18: 18px;
+  --gx-text-22: 22px;
+  --gx-text-28: 28px;
+  --gx-tracking-tight:   -0.01em;
+  --gx-tracking-normal:   0em;
+  --gx-tracking-wider:    0.08em;
+  --gx-tracking-widest:   0.12em;
+  --gx-leading-none:   1;
+  --gx-leading-tight:  1.25;
+  --gx-leading-snug:   1.4;
+  --gx-leading-normal: 1.5;
+  --gx-weight-normal:   400;
+  --gx-weight-medium:   500;
+  --gx-weight-semibold: 600;
+  --gx-weight-bold:     700;
+
+  /* ── SHADOW ── */
+  --gx-shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04);
+  --gx-shadow-md:    0 2px 8px rgba(15, 23, 42, 0.06);
+  --gx-shadow-lg:    0 8px 24px rgba(15, 23, 42, 0.08);
+  --gx-shadow-focus: 0 0 0 2px var(--primary-soft, rgba(58,111,181,0.16)), 0 0 0 3px var(--primary, #3A6FB5);
+
+  /* ── MOTION ── */
+  --gx-duration-instant: 0ms;
+  --gx-duration-fast:    120ms;
+  --gx-duration-base:    180ms;
+  --gx-duration-slow:    240ms;
+  --gx-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --gx-ease-emphasis:  cubic-bezier(0.3, 0, 0, 1);
+
+  /* ── Z-INDEX ── */
+  --gx-z-dropdown: 100;
+  --gx-z-sticky:   200;
+  --gx-z-overlay:  300;
+  --gx-z-modal:    400;
+  --gx-z-toast:    500;
+
+  /* ── COMPONENT TOKENS ── */
+  --gx-input-height-sm: 24px;
+  --gx-input-height-md: 28px;
+  --gx-input-height-lg: 32px;
+  --gx-btn-height-sm:   24px;
+  --gx-btn-height-md:   28px;
+  --gx-btn-height-lg:   32px;
+  --gx-btn-px-sm: var(--gx-space-4);
+  --gx-btn-px-md: var(--gx-space-6);
+  --gx-btn-px-lg: var(--gx-space-8);
+}
