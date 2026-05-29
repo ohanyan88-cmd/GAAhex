@@ -6,48 +6,49 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --bg: #0D0F12;
-  --surface: #1F242C;
-  --surface-2: #262D37;
-  --border: #2A313B;
-  --border-soft: rgba(244, 246, 249, 0.08);
+  /* Surfaces — GLASS (translucent rgba so backdrop-blur shows the ambient gradient) */
+  --bg: #0F172A;
+  --surface: rgba(30, 41, 59, 0.55);
+  --surface-2: rgba(23, 32, 51, 0.7);
+  --border: rgba(51, 65, 85, 0.7);
+  --border-soft: rgba(71, 85, 105, 0.35);
 
   /* Text */
-  --text: #F4F6F9;
-  --text-2: #AEB7C2;
-  --text-3: #7C8794;
-  --text-inv: #0D0F12;
+  --text: #F8FAFC;
+  --text-2: #94A3B8;
+  --text-3: #64748B;
+  --text-inv: #0F172A;
 
-  /* Brand */
+  /* Brand / primary — interactive color is BLUE; cobalt is a brand mark only */
   --brand: #1C3B68;
-  --primary: #3A6FB5;
-  --primary-hover: #4A82CC;
-  --primary-soft: rgba(58, 111, 181, 0.16);
+  --primary: #3B82F6;
+  --primary-hover: #60A5FA;
+  --primary-soft: rgba(30, 58, 138, 0.5);
 
+  /* Accent — gold, used only for small marks/accents (NOT primary buttons) */
   --accent: #C5A059;
   --accent-hover: #D4B26C;
   --accent-soft: rgba(197, 160, 89, 0.16);
-  --accent-text: #0D0F12;
+  --accent-text: #0F172A;
 
   /* Signals */
-  --success: #2ECC71;
-  --success-soft: rgba(46, 204, 113, 0.16);
-  --warning: #F5A623;
-  --warning-soft: rgba(245, 166, 35, 0.16);
-  --danger: #E63946;
-  --danger-soft: rgba(230, 57, 70, 0.16);
+  --success: #22C55E;
+  --success-soft: rgba(20, 83, 45, 0.6);
+  --warning: #F59E0B;
+  --warning-soft: rgba(120, 53, 15, 0.6);
+  --danger: #EF4444;
+  --danger-soft: rgba(127, 29, 29, 0.6);
 
-  --focus-ring: rgba(197, 160, 89, 0.55);
+  --focus-ring: rgba(59, 130, 246, 0.45);
 
-  /* Sidebar (never overridden) */
-  --sidebar-bg: #1F242C;
-  --sidebar-hover: #262D37;
-  --sidebar-border: #2A313B;
-  --sidebar-text: #AEB7C2;
-  --sidebar-strong: #F4F6F9;
-  --sidebar-label: #7C8794;
-  --sidebar-on: rgba(58, 111, 181, 0.22);
+  /* Sidebar — near-black glass */
+  --sidebar-bg: rgba(10, 15, 28, 0.65);
+  --sidebar-hover: rgba(20, 26, 42, 0.7);
+  --sidebar-border: rgba(31, 42, 64, 0.7);
+  --sidebar-text: #94A3B8;
+  --sidebar-strong: #F8FAFC;
+  --sidebar-label: #64748B;
+  --sidebar-on: rgba(59, 130, 246, 0.18);
 
   /* Typography */
   --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -118,139 +119,58 @@
 /* ===================== LIGHT THEME ===================== */
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #F8F9FA;
-  --surface: #FFFFFF;
-  --surface-2: #F1F3F5;
-  --border: #E2E8F0;
-  --border-soft: rgba(17, 24, 39, 0.06);
-  --text: #111827;
-  --text-2: #4B5563;
-  --text-3: #6B7280;
+  /* Surfaces — GLASS (translucent) */
+  --bg: #F8FAFC;
+  --surface: rgba(255, 255, 255, 0.55);
+  --surface-2: rgba(241, 245, 249, 0.65);
+  --border: rgba(226, 232, 240, 0.8);
+  --border-soft: rgba(203, 213, 225, 0.5);
+  --text: #0F172A;
+  --text-2: #64748B;
+  --text-3: #94A3B8;
   --text-inv: #FFFFFF;
+  /* Brand / primary — interactive color is BLUE */
   --brand: #1C3B68;
-  --primary: #1C3B68;
-  --primary-hover: #16314F;
-  --primary-soft: rgba(28, 59, 104, 0.10);
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-soft: rgba(219, 234, 254, 0.7);
+  /* Accent — gold marks only */
   --accent: #C5A059;
-  --accent-hover: #B68F47;
+  --accent-hover: #B0894A;
   --accent-soft: rgba(197, 160, 89, 0.14);
   --accent-text: #111827;
-  --success: #10B981;
-  --success-soft: rgba(16, 185, 129, 0.12);
-  --warning: #E65F00;
-  --warning-soft: rgba(230, 95, 0, 0.12);
-  --danger: #D90429;
-  --danger-soft: rgba(217, 4, 41, 0.10);
-  --focus-ring: rgba(28, 59, 104, 0.45);
+  --success: #16A34A;
+  --success-soft: rgba(220, 252, 231, 0.8);
+  --warning: #D97706;
+  --warning-soft: rgba(254, 243, 199, 0.8);
+  --danger: #DC2626;
+  --danger-soft: rgba(254, 226, 226, 0.8);
+  --focus-ring: rgba(37, 99, 235, 0.4);
   --shadow: 0 1px 3px rgba(17, 24, 39, .08);
   --shadow-card: 0 6px 24px rgba(17, 24, 39, .10);
   --shadow-pop: 0 12px 34px rgba(17, 24, 39, .16);
-}
-
-/* ===================== GX PALETTE BRIDGE =====================
-   Maps the app's semantic design tokens onto the 10-palette `--gx-*` system
-   (defined in color-tokens.css, set by `<html data-gx-palette data-gx-theme>`).
-   Every app var falls back to its original hardcoded value if the matching
-   `--gx-*` token is ever missing, so nothing renders undefined.
-
-   This block is keyed on `[data-gx-theme]` so it has the SAME specificity as
-   the `[data-theme="light"]` block above and, sitting later in source order,
-   wins the tie in BOTH dark and light — the gx palette drives the colors while
-   `--gx-theme` (set in lockstep with `--theme`) decides dark vs light. */
-[data-gx-theme="dark"],
-[data-gx-theme="light"] {
-  /* Surfaces */
-  --bg: var(--gx-bg, #0D0F12);
-  --surface: var(--gx-surface, #1F242C);
-  --surface-2: var(--gx-raised, #262D37);
-  --border: var(--gx-border, #2A313B);
-  --border-soft: var(--gx-hover, rgba(244, 246, 249, 0.08));
-
-  /* Text */
-  --text: var(--gx-text-1, #F4F6F9);
-  --text-2: var(--gx-text-2, #AEB7C2);
-  --text-3: var(--gx-text-3, #7C8794);
-  --text-inv: var(--gx-on-primary, #0D0F12);
-
-  /* Brand / primary — gx has a single primary; map both brand & primary to it.
-     --brand drives heavy primary buttons/tabs; keep it readable on the primary
-     by using primary-active (a darker shade) as the solid brand fill. */
-  --brand: var(--gx-primary-active, #1C3B68);
-  --primary: var(--gx-primary, #3A6FB5);
-  --primary-hover: var(--gx-primary-hover, #4A82CC);
-  --primary-soft: var(--gx-primary, rgba(58, 111, 181, 0.16));
-
-  --accent: var(--gx-primary, #C5A059);
-  --accent-hover: var(--gx-primary-hover, #D4B26C);
-  --accent-soft: var(--gx-primary, rgba(197, 160, 89, 0.16));
-  --accent-text: var(--gx-on-primary, #0D0F12);
-
-  /* Signals */
-  --success: var(--gx-success, #2ECC71);
-  --success-soft: var(--gx-success-soft, rgba(46, 204, 113, 0.16));
-  --warning: var(--gx-warning, #F5A623);
-  --warning-soft: var(--gx-warning-soft, rgba(245, 166, 35, 0.16));
-  --danger: var(--gx-danger, #E63946);
-  --danger-soft: var(--gx-danger-soft, rgba(230, 57, 70, 0.16));
-
-  --focus-ring: var(--gx-ring, rgba(197, 160, 89, 0.55));
-
-  /* Sidebar — was "never overridden" (fixed dark). Re-point it at the palette so
-     the whole chrome recolors coherently with the chosen palette + theme. */
-  --sidebar-bg: var(--gx-surface, #1F242C);
-  --sidebar-hover: var(--gx-hover, #262D37);
-  --sidebar-border: var(--gx-border, #2A313B);
-  --sidebar-text: var(--gx-text-2, #AEB7C2);
-  --sidebar-strong: var(--gx-text-1, #F4F6F9);
-  --sidebar-label: var(--gx-text-3, #7C8794);
-  --sidebar-on: var(--gx-active, rgba(58, 111, 181, 0.22));
-}
-
-/* `--primary-soft` / `--accent-soft` are used as translucent fills behind text.
-   gx exposes no soft-primary token, so derive a tinted layer from the opaque
-   primary via color-mix where supported (graceful: the solid fallbacks above
-   still apply in engines without color-mix). */
-@supports (background: color-mix(in srgb, red, blue)) {
-  [data-gx-theme="dark"],
-  [data-gx-theme="light"] {
-    --primary-soft: color-mix(in srgb, var(--gx-primary) 18%, transparent);
-    --accent-soft: color-mix(in srgb, var(--gx-primary) 16%, transparent);
-  }
-}
-
-/* ===================== PALETTE VARIANTS ===================== */
-[data-palette="midnight"] {
-  --bg: #060809;
-  --surface: #0F1318;
-  --surface-2: #161B22;
-  --border: #1F262F;
-  --primary: #4FADF7;
-  --primary-hover: #6CBDFD;
-  --primary-soft: rgba(79, 173, 247, 0.18);
-}
-[data-palette="forest"] {
-  --bg: #0B1610;
-  --surface: #142019;
-  --surface-2: #1A2A22;
-  --border: #1F2E25;
-  --primary: #22C55E;
-  --primary-hover: #34D575;
-  --primary-soft: rgba(34, 197, 94, 0.18);
-}
-[data-palette="slate"] {
-  --bg: #111827;
-  --surface: #1B2435;
-  --surface-2: #1E2A3D;
-  --border: #2A364B;
-  --accent: #94A3B8;
-  --accent-hover: #B0BCC9;
+  /* Sidebar — light glass */
+  --sidebar-bg: rgba(255, 255, 255, 0.65);
+  --sidebar-hover: rgba(241, 245, 249, 0.7);
+  --sidebar-border: rgba(226, 232, 240, 0.8);
+  --sidebar-text: #64748B;
+  --sidebar-strong: #0F172A;
+  --sidebar-label: #94A3B8;
+  --sidebar-on: rgba(37, 99, 235, 0.12);
 }
 
 /* ===================== RESET ===================== */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  background: var(--bg);
+  /* GLASS ambient backdrop — base bg + colored gradient blobs that the
+     translucent/blurred surfaces refract. Fixed so it stays put while scrolling. */
+  background:
+    radial-gradient(circle 700px at -8% -15%, rgba(28, 59, 104, 0.55), transparent 70%),
+    radial-gradient(circle 500px at 108% 118%, rgba(197, 160, 89, 0.18), transparent 70%),
+    radial-gradient(circle 420px at 48% 45%, rgba(59, 130, 246, 0.22), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-body);
   font-size: var(--fs-body);
@@ -258,6 +178,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
+}
+[data-theme="light"] body {
+  background:
+    radial-gradient(circle 700px at -8% -15%, rgba(37, 99, 235, 0.18), transparent 70%),
+    radial-gradient(circle 500px at 108% 118%, rgba(197, 160, 89, 0.22), transparent 70%),
+    radial-gradient(circle 420px at 48% 45%, rgba(28, 59, 104, 0.12), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
 }
 button { font-family: inherit; }
 input, textarea, select { font-family: inherit; color: inherit; }
@@ -277,6 +205,54 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
 *::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: padding-box; border: 2px solid transparent; }
+
+/* ═══════════════════════ GLASS SURFACES ═══════════════════════
+   The semantic --surface / --surface-2 tokens are now translucent (rgba), so
+   the ambient gradient on <body> glows through. These rules add the shared
+   glass recipe — backdrop blur + the soft inset/drop shadow — to the real
+   surface classes the app uses for chrome, cards, panels, tables, modals and
+   popovers. Each class already paints `background: var(--surface)` (or -2) via
+   its own rule; here we only layer the blur + glass shadow on top.
+   (Sidebar + header are handled in their own rules with a stronger blur.) */
+.widget,
+.grid,
+.rec-form,
+.card,
+.studio-nav,
+.studio-pane,
+.messages,
+.kcol,
+.org-card,
+.org-lane,
+.org-map,
+.spans-stat,
+.spans-legend,
+.org-heatmap-legend,
+.org-raci-legend,
+.cal-side,
+.cal-main,
+.empty-state,
+.overlay-panel,
+.notif-pop,
+.user-pop,
+.dd-menu,
+.org-kebab-menu,
+.emoji-pop,
+.icon-picker-pop,
+.toast {
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+/* Popovers/modals keep their stronger elevation drop shadow but gain the glass
+   inset highlight + blur (their own rule sets --shadow-pop / --shadow-card). */
+.overlay-panel { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-card); }
+.notif-pop,
+.user-pop,
+.dd-menu,
+.org-kebab-menu,
+.emoji-pop,
+.icon-picker-pop { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-pop); }
 
 /* ===================== TYPOGRAPHY HELPERS ===================== */
 .muted { color: var(--text-3); }
@@ -338,6 +314,10 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   box-sizing: border-box;
   overflow: hidden;
   min-width: 0;
+  /* GLASS sidebar — stronger blur for the near-black glass surface */
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.06);
   transition: width var(--dur-slow) var(--ease-decelerate),
               padding var(--dur-slow) var(--ease-decelerate);
 }
@@ -505,8 +485,8 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 .nav:hover { background: var(--sidebar-hover); color: var(--sidebar-strong); }
 .nav .nav-icon { width: 16px; height: 16px; flex: none; color: var(--sidebar-text); }
 .nav:hover .nav-icon { color: var(--sidebar-strong); }
-.nav.on { background: var(--sidebar-on); color: var(--sidebar-strong); box-shadow: inset 2px 0 0 var(--accent); }
-.nav.on .nav-icon { color: var(--accent); }
+.nav.on { background: var(--sidebar-on); color: var(--sidebar-strong); box-shadow: inset 2px 0 0 var(--primary); }
+.nav.on .nav-icon { color: var(--primary); }
 .nav-count {
   margin-left: auto;
   font-size: 10px; font-family: var(--font-mono);
@@ -553,7 +533,8 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   display: flex;
   flex-direction: column;
   min-width: 0;
-  background: var(--bg);
+  /* transparent so the fixed ambient gradient on <body> glows through the content */
+  background: transparent;
   background-image: var(--content-bg-image);
 }
 .content > header {
@@ -564,6 +545,13 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   border-bottom: 1px solid var(--border);
   height: 56px;
   min-height: 56px;
+  /* GLASS chrome */
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 .content > main {
   padding: 20px 24px;
@@ -709,8 +697,9 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 .btn-md { height: 36px; font-size: 13px; padding: 0 14px; border-radius: 8px; }
 .btn-lg { height: 44px; font-size: 14px; padding: 0 18px; border-radius: 10px; }
 
-.btn-primary { background: var(--brand); color: var(--text); border-color: var(--brand); }
-.btn-primary:hover:not(:disabled) { background: #244879; border-color: #244879; }
+/* Primary = BLUE interactive color (GLASS). White text on the solid blue fill. */
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
 .btn-primary:disabled { background: var(--surface); color: rgba(244,246,249,0.30); border-color: var(--border); }
 
 .btn-accent { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
@@ -925,9 +914,9 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
 }
 .tab:hover { border-color: var(--accent); }
 .tab.on {
-  background: var(--brand);
-  color: var(--text);
-  border-color: var(--brand);
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 .tab-count {
   font-size: 11px; font-family: var(--font-mono);
@@ -1546,7 +1535,7 @@ div.studio {
   font-size: 12px; padding: 5px 12px; border-radius: 6px;
   cursor: pointer; font-weight: var(--fw-medium);
 }
-.cal-view-tab.on { background: var(--brand); color: #fff; }
+.cal-view-tab.on { background: var(--primary); color: #fff; }
 
 .cal-month {
   display: grid;
