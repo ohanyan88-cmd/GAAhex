@@ -249,7 +249,7 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
     const grid = buildGrid(year, month)
     const todayIso = todayStr()
     return (
-      <div>
+      <div className="minical">
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontWeight: 600, fontSize: 13 }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
           <span className="spacer" />
@@ -346,7 +346,7 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
     .slice(0, 6)
 
   return (
-    <div className="comms-shell fade">
+    <div className="gx-comms comms-shell fade">
       <div className="comms-head">
         <div className="vh-ic"><CalendarIcon size={20} /></div>
         <div>
@@ -434,7 +434,7 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
           )}
         </aside>
 
-        <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           {calView === 'month' && (
             <div className="cal-grid full">
               {DAY_HEADERS.map(d => (

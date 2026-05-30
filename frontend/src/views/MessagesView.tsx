@@ -201,7 +201,7 @@ export default function MessagesView({ token }: { token: string }) {
   )
 
   return (
-    <div className="comms-shell fade">
+    <div className="gx-comms comms-shell fade">
       <div className="comms-head">
         <div className="vh-ic"><MessageIcon size={20} /></div>
         <div>

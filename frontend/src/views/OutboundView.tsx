@@ -278,7 +278,7 @@ export default function OutboundView({ token, configVersion = 0 }: { token: stri
   if (denied) return <PermissionDenied message="Outbound delivery is admin-only." />
 
   return (
-    <div className="comms-shell fade">
+    <div className="gx-comms comms-shell fade">
       <div className="comms-head">
         <div className="vh-ic"><MailIcon size={20} /></div>
         <div>

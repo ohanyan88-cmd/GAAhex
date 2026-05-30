@@ -88,7 +88,7 @@ export default function AskGaaexView({ token }: { token: string }) {
     : t('ask.brainLocal', 'Built-in (no external AI configured)')
 
   return (
-    <div className="comms-shell fade">
+    <div className="gx-comms comms-shell fade">
       <div className="comms-head">
         <div className="vh-ic"><SparkleIcon size={20} /></div>
         <div>
