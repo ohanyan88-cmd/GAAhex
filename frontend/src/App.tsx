@@ -465,11 +465,7 @@ export default function App() {
               : view.type === 'activity'
                 ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
               : view.type === 'invoices'
-<<<<<<< HEAD
-                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
-=======
                 ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} />
->>>>>>> origin/home/wire-real-data
               : view.type === 'payments'
                 ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'gateway'
@@ -495,11 +491,7 @@ export default function App() {
               : view.type === 'parties'
                 ? <PartiesView token={token} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'helpdesk'
-<<<<<<< HEAD
-                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
-=======
                 ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} initialOpenTicketId={view.initialOpenTicketId} />
->>>>>>> origin/home/wire-real-data
               : view.type === 'workitems'
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'mytasks'
