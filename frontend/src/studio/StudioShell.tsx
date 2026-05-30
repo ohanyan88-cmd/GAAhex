@@ -9,6 +9,8 @@
 import { useEffect } from 'react'
 import { Eye, Rocket, Shield } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
+import StudioTree, { type StudioPick } from './StudioTree'
+import { LEAF_BY_ID } from './tree'
 
 export type StudioRoute = { group?: string; module?: string; leaf?: string }
 
@@ -56,6 +58,20 @@ export default function StudioShell({
     return () => window.removeEventListener('popstate', onPop)
   }, [onRoute])
 
+  // Resolve the current selection: 'overview' when there's no leaf, or the canonical leaf id
+  // (groupId[.moduleId].leafId) which the tree highlights with a gold rail.
+  const leafIdGuess = route.leaf
+    ? (route.module
+        ? `${route.group}.${route.module}.${route.leaf}`
+        : `${route.group}.${route.leaf}`)
+    : null
+  const leaf = leafIdGuess ? LEAF_BY_ID[leafIdGuess] : undefined
+  const activeId = leaf ? leaf.id : 'overview'
+
+  function onPick(p: StudioPick) {
+    onRoute({ group: p.group, module: p.module, leaf: p.leaf })
+  }
+
   if (!canConfigure) {
     // Defense-in-depth: server is primary, but never render the shell without the flag.
     return (
@@ -98,13 +114,30 @@ export default function StudioShell({
         }
       />
       <div className="studio tree-studio">
-        <aside className="studio-nav tree">
-          {/* P2 fills this with STUDIO_TREE + search. */}
-          <div className="studio-empty">Tree (Prompt 2)</div>
-        </aside>
+        <StudioTree activeId={activeId} onPick={onPick} />
         <section className="studio-pane">
-          {/* P3 renders StudioOverview here when no leaf is selected; P2 wires leaf panes. */}
-          <div className="studio-empty">Pane (Prompt 3)</div>
+          {leaf ? (
+            <div className="studio-pane-placeholder">
+              <div className="crumbs" style={{ margin: 0 }}>
+                <span>{leaf.groupLabel}</span>
+                {leaf.moduleLabel && (
+                  <>
+                    <span className="sep">/</span>
+                    <span>{leaf.moduleLabel}</span>
+                  </>
+                )}
+                <span className="sep">/</span>
+                <span style={{ color: 'var(--gx-text-1)' }}>{leaf.leafLabel}</span>
+              </div>
+              <div>Leaf pane (rich builder or archetype) comes in Prompts 4 &amp; 5.</div>
+              <span className="label">{leaf.id}</span>
+            </div>
+          ) : (
+            // P3 fills this with StudioOverview (the relational 9-layer landing).
+            <div className="studio-pane-placeholder">
+              <div>Overview landing comes in Prompt 3.</div>
+            </div>
+          )}
         </section>
       </div>
     </div>
