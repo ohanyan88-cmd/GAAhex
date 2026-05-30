@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { bget, bpatch, bput } from '../lib/billing'
 import { getEntities, getEntityDef } from '../lib/api'
+import { timeAgo } from '../lib/time'
+import { PermissionDenied, ErrorBanner, EmptyState, SkeletonRows } from '../components/States'
 import {
   ArrowRight,
   BarChart3,
@@ -1188,28 +1190,393 @@ export function PreviewMode() {
   )
 }
 
-// ── 9  VERSION HISTORY ────────────────────────────────────────────────────────
+// ── 9  AUDIT LOG (Governance) ─────────────────────────────────────────────────
+// Wired to GET /api/audit-log (admin-scoped, gated on audit.view permission).
+// Surfaces the real Event trail of who/what/when for every config + record change.
+// The component name stays VersionHistory because RICH_PANE_MAP still routes
+// "Versioning" / "Workflow Versions" / "Page Versioning" through it — visually
+// it is the Governance audit trail.
 
-export function VersionHistory() {
+type AuditEvent = {
+  id: string
+  type: string
+  entity_key: string | null
+  record_id: string | null
+  actor_user_id: string | null
+  actor_name: string | null
+  data: any
+  created_at: string | null
+}
+
+type AuditResp = { items: AuditEvent[]; total: number }
+
+// Fallback event-type catalog used if /api/events/types is unavailable or returns 403.
+const FALLBACK_EVENT_TYPES: { type: string; label: string }[] = [
+  { type: 'create',     label: 'Create' },
+  { type: 'update',     label: 'Update' },
+  { type: 'transition', label: 'Transition' },
+  { type: 'delete',     label: 'Delete' },
+]
+
+// Map an event type → StatusPill variant for consistent colour coding.
+function eventVariant(type: string): 'active' | 'degraded' | 'critical' | 'neutral' | 'info' {
+  if (type === 'delete' || type === 'action_failed' || type === 'approval_rejected') return 'critical'
+  if (type === 'create' || type === 'approval_approved') return 'active'
+  if (type === 'transition' || type === 'approval_requested') return 'degraded'
+  if (type === 'update') return 'info'
+  return 'neutral'
+}
+
+function actorLabel(ev: AuditEvent): string {
+  if (ev.actor_name) return ev.actor_name
+  if (ev.actor_user_id) return ev.actor_user_id.slice(0, 8)
+  return 'system'
+}
+
+// Render an event's `data` payload as a compact key:value list. Nested objects
+// are JSON-stringified so the row stays scannable.
+function DataDetail({ data }: { data: any }) {
+  if (data === null || data === undefined) {
+    return <div className="hint" style={{ fontSize: 12 }}>No payload</div>
+  }
+  if (typeof data !== 'object') {
+    return <div className="mono" style={{ fontSize: 12 }}>{String(data)}</div>
+  }
+  const entries = Object.entries(data)
+  if (entries.length === 0) {
+    return <div className="hint" style={{ fontSize: 12 }}>Empty payload</div>
+  }
   return (
-    <div>
-      <Sec
-        icon={<GitCommitHorizontal size={15} />}
-        title="Version History"
-        hint="save drafts, publish, rollback, compare"
-        right={
-          <button className="btn btn-secondary btn-sm" type="button" disabled>
-            <GitCompare size={13} />Compare
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
+      {entries.flatMap(([k, v]) => [
+        <span key={`${k}-k`} className="mono" style={{ color: 'var(--gx-text-3)' }}>{k}</span>,
+        <span key={`${k}-v`} className="mono" style={{ color: 'var(--gx-text-1)', wordBreak: 'break-word' }}>
+          {v === null || v === undefined
+            ? 'null'
+            : typeof v === 'object'
+              ? JSON.stringify(v)
+              : String(v)}
+        </span>,
+      ])}
+    </div>
+  )
+}
+
+const PAGE_SIZE = 50
+
+export function VersionHistory({ token }: { token?: string } = {}) {
+  const [items, setItems] = useState<AuditEvent[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [denied, setDenied] = useState(false)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  // Filter inputs — applied via a small "Apply" button so we don't refetch on every keystroke.
+  const [filterEventType, setFilterEventType] = useState('')
+  const [filterEntity, setFilterEntity] = useState('')
+  const [filterSince, setFilterSince] = useState('')
+  // The applied (latched) filter values that actually drive the query.
+  const [appliedType, setAppliedType] = useState('')
+  const [appliedEntity, setAppliedEntity] = useState('')
+  const [appliedSince, setAppliedSince] = useState('')
+
+  // Event-type catalog for the filter dropdown (best-effort; falls back if 403/404).
+  const [eventTypes, setEventTypes] = useState<{ type: string; label: string }[]>(FALLBACK_EVENT_TYPES)
+
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    bget<{ type: string; label: string }[]>(token, '/api/events/types').then(res => {
+      if (!alive) return
+      if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+        setEventTypes(res.data.map(t => ({ type: t.type, label: t.label })))
+      }
+    })
+    return () => { alive = false }
+  }, [token])
+
+  // Build the audit-log query string from the latched filter state.
+  const buildQuery = useCallback((offset: number): string => {
+    const p = new URLSearchParams()
+    p.set('limit', String(PAGE_SIZE))
+    p.set('offset', String(offset))
+    if (appliedType)   p.set('event_type', appliedType)
+    if (appliedEntity) p.set('entity', appliedEntity)
+    if (appliedSince) {
+      // <input type="date"> gives YYYY-MM-DD; backend expects ISO + Z.
+      p.set('since', `${appliedSince}T00:00:00Z`)
+    }
+    return p.toString()
+  }, [appliedType, appliedEntity, appliedSince])
+
+  const load = useCallback(async () => {
+    if (!token) return
+    setLoading(true); setError(null); setDenied(false); setExpanded(new Set())
+    const res = await bget<AuditResp>(token, `/api/audit-log?${buildQuery(0)}`)
+    if (res.status === 403) {
+      setDenied(true)
+      setItems([]); setTotal(0)
+      setLoading(false)
+      return
+    }
+    if (!res.ok || !res.data) {
+      setError(`Failed to load audit log (${res.status})`)
+      setItems([]); setTotal(0)
+      setLoading(false)
+      return
+    }
+    setItems(Array.isArray(res.data.items) ? res.data.items : [])
+    setTotal(typeof res.data.total === 'number' ? res.data.total : 0)
+    setLoading(false)
+  }, [token, buildQuery])
+
+  useEffect(() => { load() }, [load])
+
+  const loadMore = async () => {
+    if (!token) return
+    setLoadingMore(true)
+    const res = await bget<AuditResp>(token, `/api/audit-log?${buildQuery(items.length)}`)
+    if (res.ok && res.data && Array.isArray(res.data.items)) {
+      setItems(prev => [...prev, ...res.data!.items])
+      if (typeof res.data.total === 'number') setTotal(res.data.total)
+    }
+    setLoadingMore(false)
+  }
+
+  const applyFilters = () => {
+    setAppliedType(filterEventType)
+    setAppliedEntity(filterEntity.trim())
+    setAppliedSince(filterSince)
+  }
+
+  const clearFilters = () => {
+    setFilterEventType(''); setFilterEntity(''); setFilterSince('')
+    setAppliedType('');    setAppliedEntity('');   setAppliedSince('')
+  }
+
+  const toggleExpanded = (id: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  // ── header (always rendered) ────────────────────────────────────────────────
+  const filtersActive = appliedType || appliedEntity || appliedSince
+  const header = (
+    <Sec
+      icon={<GitCommitHorizontal size={15} />}
+      title="Audit Log"
+      hint="who changed what, and when"
+      right={
+        <span className="hint" style={{ fontSize: 11.5 }}>
+          {loading ? '' : `${items.length} of ${total}`}
+        </span>
+      }
+    />
+  )
+
+  const filterBar = (
+    <div
+      className="card"
+      style={{ padding: 10, marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}
+    >
+      <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
+        <span style={{ fontSize: 11 }}>Event type</span>
+        <select
+          className="inp inp-sm"
+          value={filterEventType}
+          onChange={e => setFilterEventType(e.target.value)}
+        >
+          <option value="">All types</option>
+          {eventTypes.map(t => (
+            <option key={t.type} value={t.type}>{t.label}</option>
+          ))}
+        </select>
+      </label>
+      <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
+        <span style={{ fontSize: 11 }}>Entity</span>
+        <input
+          className="inp inp-sm mono"
+          placeholder="e.g. customer"
+          value={filterEntity}
+          onChange={e => setFilterEntity(e.target.value)}
+        />
+      </label>
+      <label className="field" style={{ flex: '1 1 140px', minWidth: 120, margin: 0 }}>
+        <span style={{ fontSize: 11 }}>Since</span>
+        <input
+          className="inp inp-sm"
+          type="date"
+          value={filterSince}
+          onChange={e => setFilterSince(e.target.value)}
+        />
+      </label>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button className="btn btn-primary btn-sm" type="button" onClick={applyFilters} disabled={loading}>
+          Apply
+        </button>
+        {filtersActive ? (
+          <button className="btn btn-ghost btn-sm" type="button" onClick={clearFilters} disabled={loading}>
+            Clear
           </button>
-        }
-      />
-      <div className="timeline" style={{ minHeight: 160 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '50px 0', color: 'var(--gx-text-3)', fontSize: 13, gap: 8 }}>
-          <GitCommitHorizontal size={28} style={{ opacity: 0.3 }} />
-          <span>No versions yet — publish to create version 1</span>
-        </div>
+        ) : null}
       </div>
     </div>
+  )
+
+  // ── state branches ──────────────────────────────────────────────────────────
+  if (!token) {
+    return (
+      <div>
+        {header}
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+          Sign in to view the audit log.
+        </div>
+      </div>
+    )
+  }
+
+  if (denied) {
+    return (
+      <div>
+        {header}
+        <PermissionDenied message="You do not have audit.view — required to read the governance audit trail." />
+      </div>
+    )
+  }
+
+  if (loading && items.length === 0) {
+    return (
+      <div>
+        {header}
+        {filterBar}
+        <SkeletonRows rows={6} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div>
+        {header}
+        {filterBar}
+        <ErrorBanner message={error} onRetry={load} />
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {header}
+      {filterBar}
+      {items.length === 0 ? (
+        <EmptyState
+          title="No audit events"
+          message={
+            filtersActive
+              ? 'No audit events match these filters.'
+              : 'Audit events will appear here as users create, update, or transition records.'
+          }
+        />
+      ) : (
+        <>
+          <div className="timeline" style={{ minHeight: 160 }}>
+            {items.map(ev => {
+              const isOpen = expanded.has(ev.id)
+              const entitySuffix = ev.entity_key
+                ? ev.record_id
+                  ? `${ev.entity_key} · ${ev.record_id.slice(0, 8)}`
+                  : ev.entity_key
+                : null
+              return (
+                <div key={ev.id} className="tl-item" style={{ flexDirection: 'column', alignItems: 'stretch', padding: '10px 0' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(ev.id)}
+                    aria-expanded={isOpen}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      color: 'inherit',
+                    }}
+                  >
+                    <StatusPillLite variant={eventVariant(ev.type)} label={ev.type} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>
+                      {actorLabel(ev)}
+                    </span>
+                    {entitySuffix && (
+                      <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+                        {entitySuffix}
+                      </span>
+                    )}
+                    <span style={{ flex: 1 }} />
+                    <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ev.created_at)}</span>
+                    {isOpen
+                      ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} />
+                      : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
+                  </button>
+                  {isOpen && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: 10,
+                        background: 'var(--gx-surface-2)',
+                        border: '1px solid var(--gx-border-subtle)',
+                        borderRadius: 'var(--gx-radius-md)',
+                      }}
+                    >
+                      <DataDetail data={ev.data} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {items.length < total && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// Small inline pill used by the audit timeline so we don't have to pull StatusPill
+// into StudioRichPanes (keeps the import surface flat). Uses kit pill classes.
+function StatusPillLite({ variant, label }: {
+  variant: 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+  label: string
+}) {
+  const kit =
+    variant === 'active'   ? 'pill-success' :
+    variant === 'degraded' ? 'pill-warning' :
+    variant === 'critical' ? 'pill-danger'  :
+    variant === 'info'     ? 'pill-info'    : 'pill-neutral'
+  return (
+    <span className={`pill ${kit} pill-sm`} style={{ textTransform: 'lowercase' }}>
+      <span className="d" style={{ background: 'currentColor' }} />
+      {label}
+    </span>
   )
 }
 
