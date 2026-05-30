@@ -97,31 +97,24 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // 5. Network & Operations — network, provisioning, field, inventory
+  // Wave A pruning (2026-05-30): 12 dead items removed (no backend, or redundant with
+  // Resource Pools / warehouses / suppliers): net-noc, net-monitoring, net-coverage,
+  // net-topology, net-provisioning, net-field, net-dispatch, net-routes, net-mobile,
+  // net-capacity, net-inventory, net-ipam. Survivors wired to live /api routes or
+  // seeded entity views (net-alarms → alarms, net-assetmgmt → assets).
   s('netops', 'Network & Operations', ServerIcon, [
-    i('net-noc',          'NOC Dashboard',          ActivityIcon),
-    i('net-monitoring',   'Monitoring',             ActivityIcon),
-    i('net-alarms',       'Alarms',                 InboxIcon),
+    i('net-alarms',       'Alarms',                 InboxIcon,    'entity', { slug: 'alarms' }),
     i('net-incidents',    'Incidents & Outages',    InboxIcon),
-    i('net-coverage',     'Coverage & GIS',         MapIcon),
-    i('net-topology',     'Network Topology',       MapIcon),
     i('net-sites',        'Sites',                  ServerIcon),
     i('net-devices',      'Devices',                ServerIcon),
-    i('net-provisioning', 'Provisioning',           ArrowRightIcon),
     i('net-svc-inv',      'Service Inventory',      ServerIcon,   'services'),
     i('net-res-inv',      'Resource Inventory',     PackageIcon,  'resource-pools'),
-    i('net-inventory',    'Inventory',              PackageIcon),
     i('net-warehouses',   'Warehouses',             BuildingIcon),
     i('net-fleet',        'Fleet',                  TruckIcon),
-    i('net-ipam',         'IP Management',          LayersIcon),
-    i('net-field',        'Field Operations',       TruckIcon),
-    i('net-dispatch',     'Dispatch Board',         UsersIcon),
     i('net-scheduling',   'Scheduling',             CalendarIcon),
-    i('net-routes',       'Routes',                 MapIcon),
-    i('net-mobile',       'Mobile Workforce',       UsersIcon),
     i('net-workorders',   'Work Orders',            RowsIcon),
     i('net-maintenance',  'Maintenance',            GearIcon),
-    i('net-capacity',     'Capacity Planning',      ChartIcon),
-    i('net-assetmgmt',    'Asset Management',       PackageIcon),
+    i('net-assetmgmt',    'Asset Management',       PackageIcon,  'entity', { slug: 'assets' }),
   ]),
 
   // 6. Analytics & AI — reporting, intelligence, automation

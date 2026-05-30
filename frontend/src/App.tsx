@@ -507,7 +507,7 @@ export default function App() {
               : view.type === 'webhooks'
                 ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'services'
-                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} capabilities={capabilities} />
               : view.type === 'usage'
                 ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'resource-pools'

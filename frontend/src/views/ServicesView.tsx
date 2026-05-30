@@ -2,18 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, bdel, loadCustomers } from '../lib/billing'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
-import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChevronLeftIcon, InboxIcon, SearchIcon, DownloadIcon, PlusIcon, GearIcon,
+  ChevronLeftIcon, InboxIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
+import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
 type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
@@ -38,17 +39,6 @@ function mapServiceStatus(s: string | null | undefined): PillVariant {
   return 'neutral'
 }
 
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
-}
-
 function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) {
   switch (colKey) {
     case 'name': return <span className="mono">{sv.name ?? sv.id.slice(0, 8)}</span>
@@ -62,7 +52,7 @@ function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) 
   }
 }
 
-export default function ServicesView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+export default function ServicesView({ token, canConfigure = false, configVersion = 0, onConfigure, capabilities = FULL_ACCESS }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void; capabilities?: Capabilities }) {
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -71,15 +61,17 @@ export default function ServicesView({ token, canConfigure = false, configVersio
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const page = usePageConfig(token, 'services', configVersion)
   const cf = useCustomFields(token, 'services', page.customFields, (list ?? []).map((sv) => sv.id))
+
+  const canCreate = can(capabilities, 'service', 'create')
 
   // Interaction state for reskin.
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pg, setPg] = useState(1)
   const PAGE_SIZE = 25
 
@@ -98,7 +90,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
   }
 
   useEffect(() => { load() }, [token, status, type])
-  useEffect(() => { setPg(1); setSelected(new Set()) }, [status, type, query, sortKey, sortDir])
+  useEffect(() => { setPg(1) }, [status, type, query, sortKey, sortDir])
 
   const cust = (sv: Service) => (sv.customer_id ? (names[sv.customer_id] ?? sv.customer_id.slice(0, 8)) : '—')
 
@@ -143,22 +135,10 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((pg - 1) * PAGE_SIZE, pg * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   const activeCount = all.filter(s => (s.status ?? '').toUpperCase() === 'ACTIVE').length
@@ -184,12 +164,11 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} service(s)`)}>
-                <Download size={14} /> Export
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={() => toast.info('New service — wiring TBD')}>
-                <Plus size={14} /> New service
-              </button>
+              {canCreate && (
+                <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
+                  <Plus size={14} /> New service
+                </button>
+              )}
             </>
           }
         />
@@ -235,7 +214,11 @@ export default function ServicesView({ token, canConfigure = false, configVersio
         </div>
 
         {error && <ErrorBanner message={error} onRetry={load} />}
-        {list === null && !error && <p className="muted">Loading…</p>}
+        {list === null && !error && (
+          <div className="card" style={{ padding: 14 }}>
+            <SkeletonRows rows={6} />
+          </div>
+        )}
         {unavailable && <EmptyState icon={<InboxIcon size={40} />} title="Services aren't available yet" message="Provisioned services will appear here once the service inventory is enabled." />}
         {list && !unavailable && list.length === 0 && !error && (
           <EmptyState icon={<InboxIcon size={40} />} title="No services" message="Nothing matches this filter." />
@@ -243,20 +226,6 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[services] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} service(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -267,9 +236,6 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <select className="inp inp-sm" aria-label="Filter by type" value={type} onChange={(e) => setType(e.target.value)} style={{ marginLeft: 8 }}>
                 <option value="">All types</option>
                 {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -281,9 +247,6 @@ export default function ServicesView({ token, canConfigure = false, configVersio
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
-                    </th>
                     {page.columns.map((c) => (
                       <th
                         key={c.key}
@@ -300,44 +263,21 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 32 }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.map((sv) => (
                     <tr
                       key={sv.id}
-                      className={selected.has(sv.id) ? 'sel' : ''}
                       onClick={() => setDetailId(sv.id)}
                     >
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(sv.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(sv.id)}
-                          onChange={() => toggleRow(sv.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select service ${sv.name ?? sv.id.slice(0, 8)}`}
-                        />
-                      </td>
                       {page.columns.map((c) => <td key={c.key}>{renderCell(c.key, sv, cust)}</td>)}
                       {cf.cells(sv.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
-                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          <button
-                            className="iconbtn"
-                            aria-label="Row menu"
-                            title="Row actions"
-                            onClick={(e) => { e.stopPropagation(); console.log('[services] row menu', sv.id) }}
-                          >
-                            <MoreVerticalIcon size={15} />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={page.columns.length + 2 + page.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={page.columns.length + page.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching services.
                       </td>
                     </tr>
@@ -367,8 +307,51 @@ export default function ServicesView({ token, canConfigure = false, configVersio
             </div>
           </div>
         )}
+
+        {createOpen && (
+          <CreateServiceModal
+            token={token}
+            onClose={() => setCreateOpen(false)}
+            onDone={() => { setCreateOpen(false); load() }}
+          />
+        )}
       </div>
     </div>
+  )
+}
+
+function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose: () => void; onDone: () => void }) {
+  const [name, setName] = useState('')
+  const [type, setType] = useState('internet')
+  const [saving, setSaving] = useState(false)
+
+  async function submit() {
+    if (!name.trim() || saving) return
+    setSaving(true)
+    try {
+      await bpost(token, '/api/services', { name: name.trim(), type })
+      toast.success('Service created')
+      onDone()
+    } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="New service" size="sm"
+      footer={<>
+        <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+        <button className="btn btn-accent btn-md" disabled={saving || !name.trim()} onClick={submit}>{saving ? 'Saving…' : 'Create'}</button>
+      </>}>
+      <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
+        <label className="field"><span>Name *</span>
+          <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Fiber 1Gbps · Site A" autoFocus />
+        </label>
+        <label className="field"><span>Type</span>
+          <select className="inp inp-md" value={type} onChange={(e) => setType(e.target.value)}>
+            {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </label>
+      </div>
+    </Modal>
   )
 }
 

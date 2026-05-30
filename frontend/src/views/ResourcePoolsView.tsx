@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { bget, bpost, bdel } from '../lib/billing'
+import { bget, bpost } from '../lib/billing'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChevronLeftIcon, InboxIcon, ServerIcon, PlusIcon, DownloadIcon, SearchIcon, GearIcon,
+  ChevronLeftIcon, InboxIcon, ServerIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
@@ -17,34 +17,22 @@ import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + detail with allocations. Degrades on 404.
-type Pool = { id: string; name?: string; kind?: string; spec?: any; allocation_count?: number; status?: string | null; created_at?: string | null }
+// Backend serializes the live allocation tally as `allocated_count` (see respool.py _pool()).
+type Pool = { id: string; name?: string; kind?: string; spec?: any; allocated_count?: number; status?: string | null; created_at?: string | null }
 type Allocation = { id: string; value?: string; service_id?: string | null; status?: string | null; allocated_at?: string | null }
 type Svc = { id: string; name?: string }
 
 const KINDS = ['ipv4', 'ipv6', 'vlan', 'phone', 'other']
 
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
-function mapPoolStatus(p: Pool): { label: string; variant: PillVariant } {
-  // Default status derivation: AVAILABLE/RESERVED/EXHAUSTED/DISABLED.
-  // No status field on most pools today, so derive from allocation count if missing.
-  const raw = (p.status ?? '').toUpperCase()
-  if (raw === 'AVAILABLE') return { label: 'available', variant: 'active' }
-  if (raw === 'RESERVED') return { label: 'reserved', variant: 'info' }
-  if (raw === 'EXHAUSTED') return { label: 'exhausted', variant: 'critical' }
-  if (raw === 'DISABLED') return { label: 'disabled', variant: 'neutral' }
-  // Fallback: treat as available.
-  return { label: 'available', variant: 'active' }
-}
-
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
+// Map only real status enums; missing status → caller renders nothing (no fake "available" default).
+function mapPoolStatus(raw: string): { label: string; variant: PillVariant } | null {
+  const v = raw.toUpperCase()
+  if (v === 'AVAILABLE') return { label: 'available', variant: 'active' }
+  if (v === 'RESERVED') return { label: 'reserved', variant: 'info' }
+  if (v === 'EXHAUSTED') return { label: 'exhausted', variant: 'critical' }
+  if (v === 'DISABLED') return { label: 'disabled', variant: 'neutral' }
+  return null
 }
 
 function specSummary(spec: any): string {
@@ -54,7 +42,7 @@ function specSummary(spec: any): string {
   return JSON.stringify(spec)
 }
 function allocCount(p: Pool): string {
-  const n = p.allocation_count ?? (p as any).allocated_count ?? (p as any).allocations_count
+  const n = p.allocated_count
   return typeof n === 'number' ? String(n) : '—'
 }
 
@@ -76,7 +64,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -90,7 +77,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
   }
 
   useEffect(() => { load() }, [token])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
   async function create() {
     if (!name.trim()) return
@@ -127,7 +114,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
         case 'name': return p.name ?? ''
         case 'kind': return p.kind ?? ''
         case 'spec': return specSummary(p.spec)
-        case 'allocations': return Number(p.allocation_count ?? 0)
+        case 'allocations': return typeof p.allocated_count === 'number' ? p.allocated_count : -1
         case 'status': return p.status ?? ''
         default: return ''
       }
@@ -141,7 +128,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function colThClass(colKey: string): string { return colKey === 'allocations' ? 'num' : '' }
   function colTdClass(colKey: string): string { return colKey === 'allocations' ? 'num' : '' }
@@ -150,25 +136,21 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
   }
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
-  }
 
-  const byKind = all.reduce<Record<string, { count: number; allocs: number }>>((acc, p) => {
-    const k = p.kind ?? 'other'
-    if (!acc[k]) acc[k] = { count: 0, allocs: 0 }
-    acc[k].count++
-    acc[k].allocs += typeof p.allocation_count === 'number' ? p.allocation_count : 0
-    return acc
-  }, {})
+  // KPI strip aggregates ONLY real, server-provided allocation counts. Pools without the field
+  // contribute to the count of pools-of-that-kind but NOT to the allocations total.
+  const byKind = useMemo(() => {
+    return all.reduce<Record<string, { count: number; allocs: number; hasAllocData: boolean }>>((acc, p) => {
+      const k = p.kind ?? 'other'
+      if (!acc[k]) acc[k] = { count: 0, allocs: 0, hasAllocData: false }
+      acc[k].count++
+      if (typeof p.allocated_count === 'number') {
+        acc[k].allocs += p.allocated_count
+        acc[k].hasAllocData = true
+      }
+      return acc
+    }, {})
+  }, [all])
 
   if (denied) return <PermissionDenied message={t('pools.denied', 'Resource pools are admin-only.')} />
   if (detailId) return <PoolDetail token={token} id={detailId} onBack={() => { setDetailId(null); load() }} />
@@ -181,7 +163,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
         <ViewHead
           icon={<ServerIcon size={18} />}
           title={cfg.title}
-          sub={`${all.length} pool${all.length !== 1 ? 's' : ''} · IP allocations · capacity engine`}
+          sub={`${all.length} pool${all.length !== 1 ? 's' : ''}`}
           actions={!unavailable && (
             <>
               {canConfigure && onConfigure && (
@@ -189,9 +171,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} pool(s)`)}>
-                <Download size={14} /> Export
-              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
                 <Plus size={14} /> {creating ? 'Close' : 'New pool'}
               </button>
@@ -205,7 +184,9 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
               <div key={k} className={i === 0 ? 'kpi kpi--marquee' : 'kpi'}>
                 <span className="klbl">{k.toUpperCase()}</span>
                 <div className="kval tnum" style={{ fontSize: 24, color: i === 0 ? 'var(--gx-gold)' : undefined }}>{info.count}</div>
-                <span className="hint" style={{ fontSize: 11 }}>{info.allocs} allocation{info.allocs !== 1 ? 's' : ''}</span>
+                {info.hasAllocData && (
+                  <span className="hint" style={{ fontSize: 11 }}>{info.allocs} allocation{info.allocs !== 1 ? 's' : ''}</span>
+                )}
               </div>
             ))}
           </div>
@@ -239,20 +220,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[pools] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} pool(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -263,9 +230,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 
@@ -273,9 +237,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
-                    </th>
                     {cfg.columns.map((c) => (
                       <th
                         key={c.key}
@@ -293,25 +254,14 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 32 }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.map((p) => (
                     <tr
                       key={p.id}
-                      className={selected.has(p.id) ? 'sel' : ''}
                       onClick={() => setDetailId(p.id)}
                     >
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(p.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(p.id)}
-                          onChange={() => toggleRow(p.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select pool ${p.name ?? p.id.slice(0, 8)}`}
-                        />
-                      </td>
                       {cfg.columns.map((c) => {
                         let cell: React.ReactNode
                         switch (c.key) {
@@ -320,8 +270,8 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                           case 'spec': cell = <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{specSummary(p.spec)}</span>; break
                           case 'allocations': cell = <span className="mono tnum">{allocCount(p)}</span>; break
                           case 'status': {
-                            const sp = mapPoolStatus(p)
-                            cell = <StatusPill variant={sp.variant} label={sp.label} size="sm" />
+                            const sp = p.status ? mapPoolStatus(p.status) : null
+                            cell = sp ? <StatusPill variant={sp.variant} label={sp.label} size="sm" /> : <span>—</span>
                             break
                           }
                           default: cell = '—'
@@ -329,23 +279,11 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                         return <td key={c.key} className={colTdClass(c.key)}>{cell}</td>
                       })}
                       {cf.cells(p.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
-                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          <button
-                            className="iconbtn"
-                            aria-label="Row menu"
-                            title="Row actions"
-                            onClick={(e) => { e.stopPropagation(); console.log('[pools] row menu', p.id) }}
-                          >
-                            <MoreVerticalIcon size={15} />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching pools.
                       </td>
                     </tr>
@@ -404,7 +342,8 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
     const ok = await confirmDialog({ title: 'Release value', message: 'Release this allocated value back to the pool?', confirmLabel: 'Release', danger: true })
     if (!ok) return
     try {
-      await bdel(token, `/api/resource-pools/${id}/allocations/${aid}`)
+      // Backend exposes release as POST .../allocations/{alloc_id}/release (not DELETE).
+      await bpost(token, `/api/resource-pools/${id}/allocations/${aid}/release`, {})
       toast.success(t('pools.valueReleased', 'Value released'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -475,7 +414,8 @@ function AllocateModal({ token, poolId, services, onClose, onDone }: { token: st
     if (!value.trim() || saving) return
     setSaving(true)
     try {
-      await bpost(token, `/api/resource-pools/${poolId}/allocations`, { value: value.trim(), service_id: serviceId || undefined })
+      // Backend route is POST .../allocate (not .../allocations).
+      await bpost(token, `/api/resource-pools/${poolId}/allocate`, { value: value.trim(), service_id: serviceId || undefined })
       toast.success(t('pools.valueAllocated', 'Value allocated'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
