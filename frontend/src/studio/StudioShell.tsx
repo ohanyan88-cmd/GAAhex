@@ -11,6 +11,7 @@ import { Eye, Rocket, Shield } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import StudioTree, { type StudioPick } from './StudioTree'
 import StudioOverview from './StudioOverview'
+import StudioGenericPane from './StudioGenericPane'
 import { LEAF_BY_ID } from './tree'
 
 export type StudioRoute = { group?: string; module?: string; leaf?: string }
@@ -118,21 +119,7 @@ export default function StudioShell({
         <StudioTree activeId={activeId} onPick={onPick} />
         <section className="studio-pane">
           {leaf ? (
-            <div className="studio-pane-placeholder">
-              <div className="crumbs" style={{ margin: 0 }}>
-                <span>{leaf.groupLabel}</span>
-                {leaf.moduleLabel && (
-                  <>
-                    <span className="sep">/</span>
-                    <span>{leaf.moduleLabel}</span>
-                  </>
-                )}
-                <span className="sep">/</span>
-                <span style={{ color: 'var(--gx-text-1)' }}>{leaf.leafLabel}</span>
-              </div>
-              <div>Leaf pane (rich builder or archetype) comes in Prompts 4 &amp; 5.</div>
-              <span className="label">{leaf.id}</span>
-            </div>
+            <StudioGenericPane leaf={leaf} />
           ) : (
             <StudioOverview onPick={onPick} />
           )}
