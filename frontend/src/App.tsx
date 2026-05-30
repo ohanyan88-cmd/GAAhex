@@ -598,33 +598,33 @@ export default function App() {
               : view.type === 'invoices'
                 ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'payments'
-                ? <PaymentsView token={token} configVersion={pageConfigVersion} />
+                ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'gateway'
                 ? <PaymentGatewayView token={token} configVersion={pageConfigVersion} />
               : view.type === 'subscriptions'
-                ? <SubscriptionsView token={token} configVersion={pageConfigVersion} />
+                ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'products'
-                ? <ProductsView token={token} configVersion={pageConfigVersion} />
+                ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'report-builder'
                 ? <ReportBuilderView token={token} entities={entities} />
               : view.type === 'outbound'
                 ? <OutboundView token={token} configVersion={pageConfigVersion} />
               : view.type === 'webhooks'
-                ? <WebhooksView token={token} configVersion={pageConfigVersion} />
+                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'services'
-                ? <ServicesView token={token} configVersion={pageConfigVersion} />
+                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'usage'
-                ? <UsageView token={token} configVersion={pageConfigVersion} />
+                ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'resource-pools'
-                ? <ResourcePoolsView token={token} configVersion={pageConfigVersion} />
+                ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'accounts'
-                ? <AccountsView token={token} configVersion={pageConfigVersion} />
+                ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'parties'
-                ? <PartiesView token={token} />
+                ? <PartiesView token={token} canConfigure={!!user?.can_configure} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'helpdesk'
                 ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'workitems'
-                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'calendar'
                 ? <CalendarView token={token} configVersion={pageConfigVersion} />
               : view.type === 'settings'

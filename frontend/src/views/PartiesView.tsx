@@ -4,8 +4,11 @@ import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   UsersIcon, SearchIcon, PlusIcon, DownloadIcon,
-  ArrowUpIcon, ArrowDownIcon, ArrowRightIcon, ChevronLeftIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { StatusPill } from '../primitives'
@@ -35,7 +38,7 @@ function MoreVerticalIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-export default function PartiesView({ token }: { token: string }) {
+export default function PartiesView({ token, canConfigure = false, onGoStudio }: { token: string; canConfigure?: boolean; onGoStudio?: () => void }) {
   const { t } = useI18n()
   const [list, setList] = useState<Party[] | null>(null)
   const [error, setError] = useState('')
@@ -149,12 +152,58 @@ export default function PartiesView({ token }: { token: string }) {
           sub={`${all.length} record${all.length !== 1 ? 's' : ''} · individuals · organizations · carriers`}
           actions={
             !unavailable && (
-              <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
-                <PlusIcon size={13} /> {creating ? t('common.close', 'Close') : t('parties.new', 'New party')}
-              </button>
+              <>
+                {canConfigure && onGoStudio && (
+                  <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                    <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                  </button>
+                )}
+                <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} part${sorted.length !== 1 ? 'ies' : 'y'}`)}>
+                  <Download size={14} /> Export
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
+                  <Plus size={14} /> {creating ? t('common.close', 'Close') : t('parties.new', 'New party')}
+                </button>
+              </>
             )
           }
         />
+
+        {all.length > 0 && (() => {
+          const indivCount = all.filter(p => (p.type ?? '').toLowerCase() === 'individual').length
+          const orgCount = all.filter(p => (p.type ?? '').toLowerCase() === 'organization').length
+          const carrierCount = all.filter(p => (p.type ?? '').toLowerCase() === 'carrier').length
+          return (
+            <div className="kpi-strip">
+              <div className="kpi kpi--marquee">
+                <span className="klbl">Total</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{all.length}</div>
+                <span className="hint" style={{ fontSize: 11 }}>parties on record</span>
+              </div>
+              {indivCount > 0 && (
+                <div className="kpi">
+                  <span className="klbl">Individuals</span>
+                  <div className="kval tnum" style={{ fontSize: 24 }}>{indivCount}</div>
+                  <span className="hint" style={{ fontSize: 11 }}>people</span>
+                </div>
+              )}
+              {orgCount > 0 && (
+                <div className="kpi">
+                  <span className="klbl">Organizations</span>
+                  <div className="kval tnum" style={{ fontSize: 24 }}>{orgCount}</div>
+                  <span className="hint" style={{ fontSize: 11 }}>companies</span>
+                </div>
+              )}
+              {carrierCount > 0 && (
+                <div className="kpi">
+                  <span className="klbl">Carriers</span>
+                  <div className="kval tnum" style={{ fontSize: 24 }}>{carrierCount}</div>
+                  <span className="hint" style={{ fontSize: 11 }}>upstream</span>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {creating && (
           <div className="rec-form">
@@ -205,13 +254,10 @@ export default function PartiesView({ token }: { token: string }) {
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[parties] export all'); toast.success(`Export queued for ${sorted.length} part${sorted.length !== 1 ? 'ies' : 'y'}`) }}
-              >
-                <DownloadIcon size={13} /> Export
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
               </button>
+              <span className="spacer" />
             </div>
 
             <div className="grid-wrap">
@@ -238,7 +284,9 @@ export default function PartiesView({ token }: { token: string }) {
                            : k === 'name' ? t('common.name', 'Name')
                            : k === 'parent' ? t('parties.parent', 'Parent')
                            : t('common.status', 'Status')}
-                          {sortKey === k && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === k
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -294,19 +342,23 @@ export default function PartiesView({ token }: { token: string }) {
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 parties'
+                  ? '0 records'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}

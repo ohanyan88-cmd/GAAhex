@@ -6,8 +6,11 @@ import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
   ArchiveIcon, PlusIcon, DownloadIcon, SearchIcon,
-  ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon, ArrowRightIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
@@ -51,7 +54,7 @@ function renderProductCell(colKey: string, p: Product) {
   }
 }
 
-export default function ProductsView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function ProductsView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
   const cfg = usePageConfig(token, 'products', configVersion)
   const [list, setList] = useState<Product[] | null>(null)
   const cf = useCustomFields(token, 'products', cfg.customFields, (list ?? []).map((p) => p.id))
@@ -181,33 +184,38 @@ export default function ProductsView({ token, canConfigure = false, configVersio
           sub={`${all.length} product${all.length !== 1 ? 's' : ''} · catalog drives subscription pricing`}
           actions={!unavailable && (
             <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[products] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              {canConfigure && onGoStudio && (
+                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                </button>
               )}
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} product(s)`)}>
+                <Download size={14} /> Export
+              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
-                <PlusIcon size={13} /> {draft ? 'Close' : 'New product'}
+                <Plus size={14} /> {draft ? 'Close' : 'New product'}
               </button>
             </>
           )}
         />
 
         {all.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Catalog size</div>
-              <div className="kpi">{all.length}</div>
-              <div className="kpi-sub">{activeCount} active</div>
+          <div className="kpi-strip">
+            <div className="kpi">
+              <span className="klbl">Catalog size</span>
+              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
+              <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
             </div>
-            <div className="widget">
-              <div className="widget-label">Active</div>
-              <div className="kpi" style={{ color: 'var(--success)' }}>{activeCount}</div>
-              <div className="kpi-sub">offerable</div>
+            <div className="kpi kpi--marquee">
+              <span className="klbl">Active</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
+              <span className="hint" style={{ fontSize: 11 }}>offerable</span>
             </div>
             {retiredCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Retired</div>
-                <div className="kpi" style={{ color: 'var(--gx-text-3)' }}>{retiredCount}</div>
-                <div className="kpi-sub">read-only</div>
+              <div className="kpi">
+                <span className="klbl">Retired</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-text-3)' }}>{retiredCount}</div>
+                <span className="hint" style={{ fontSize: 11 }}>read-only</span>
               </div>
             )}
           </div>
@@ -262,13 +270,10 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[products] export all'); toast.success(`Export queued for ${sorted.length} product(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
               </button>
+              <span className="spacer" />
             </div>
 
             <div className="grid-wrap">
@@ -288,7 +293,9 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
-                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === c.key
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -347,19 +354,23 @@ export default function ProductsView({ token, canConfigure = false, configVersio
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 products'
+                  ? '0 records'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -4,9 +4,12 @@ import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  ArrowRightIcon, ChevronLeftIcon, InboxIcon, SearchIcon, DownloadIcon, PlusIcon,
-  ArrowUpIcon, ArrowDownIcon,
+  ChevronLeftIcon, InboxIcon, SearchIcon, DownloadIcon, PlusIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
@@ -59,7 +62,7 @@ function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) 
   }
 }
 
-export default function ServicesView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function ServicesView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -176,40 +179,45 @@ export default function ServicesView({ token, canConfigure = false, configVersio
           sub={`${all.length} service${all.length !== 1 ? 's' : ''} · provisioned inventory · lifecycle engine`}
           actions={
             <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[services] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              {canConfigure && onGoStudio && (
+                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                </button>
               )}
-              <button className="btn btn-primary btn-sm" onClick={() => { console.log('[services] new'); toast.success('New service — wiring TBD') }}>
-                <PlusIcon size={13} /> New service
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} service(s)`)}>
+                <Download size={14} /> Export
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => toast.info('New service — wiring TBD')}>
+                <Plus size={14} /> New service
               </button>
             </>
           }
         />
 
         {all.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Total</div>
-              <div className="kpi">{all.length}</div>
-              <div className="kpi-sub">{activeCount} active</div>
+          <div className="kpi-strip">
+            <div className="kpi">
+              <span className="klbl">Total</span>
+              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
+              <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
             </div>
-            <div className="widget">
-              <div className="widget-label">Active</div>
-              <div className="kpi" style={{ color: 'var(--success)' }}>{activeCount}</div>
-              <div className="kpi-sub">delivering</div>
+            <div className="kpi kpi--marquee">
+              <span className="klbl">Active</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
+              <span className="hint" style={{ fontSize: 11 }}>delivering</span>
             </div>
             {suspendedCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Suspended</div>
-                <div className="kpi" style={{ color: 'var(--warning)' }}>{suspendedCount}</div>
-                <div className="kpi-sub">action required</div>
+              <div className="kpi">
+                <span className="klbl">Suspended</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{suspendedCount}</div>
+                <span className="hint" style={{ fontSize: 11 }}>action required</span>
               </div>
             )}
             {terminatedCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Terminated</div>
-                <div className="kpi" style={{ color: 'var(--danger)' }}>{terminatedCount}</div>
-                <div className="kpi-sub">closed</div>
+              <div className="kpi">
+                <span className="klbl">Terminated</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-danger-fg)' }}>{terminatedCount}</div>
+                <span className="hint" style={{ fontSize: 11 }}>closed</span>
               </div>
             )}
           </div>
@@ -259,17 +267,14 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
+              </button>
               <select className="inp inp-sm" aria-label="Filter by type" value={type} onChange={(e) => setType(e.target.value)} style={{ marginLeft: 8 }}>
                 <option value="">All types</option>
                 {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
               <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[services] export all'); toast.success(`Export queued for ${sorted.length} service(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
-              </button>
             </div>
 
             <div className="grid-wrap">
@@ -288,7 +293,9 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
-                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === c.key
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -340,19 +347,23 @@ export default function ServicesView({ token, canConfigure = false, configVersio
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 services'
+                  ? '0 records'
                   : `Showing ${(pg - 1) * PAGE_SIZE + 1}–${Math.min(pg * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={pg <= 1} onClick={() => setPg((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {pg} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={pg >= pageCount} onClick={() => setPg((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={pg <= 1} onClick={() => setPg(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === pg ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPg(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={pg >= pageCount} onClick={() => setPg(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}

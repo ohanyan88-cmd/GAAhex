@@ -13,10 +13,14 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  PlusIcon, EditIcon, CheckIcon, CloseIcon,
-  PlayIcon, PauseIcon, ChevronLeftIcon, ArrowRightIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
-  SearchIcon, DownloadIcon, ArrowUpIcon, ArrowDownIcon,
+  PlusIcon, CheckIcon, CloseIcon,
+  PlayIcon, PauseIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
+  SearchIcon, DownloadIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
@@ -93,10 +97,12 @@ export default function WorkItemsView({
   token,
   canConfigure = false,
   configVersion = 0,
+  onGoStudio,
 }: {
   token: string
   canConfigure?: boolean
   configVersion?: number
+  onGoStudio?: () => void
 }) {
   const cfg = usePageConfig(token, 'workitems', configVersion)
   const [items, setItems] = useState<WorkItem[] | null>(null)
@@ -273,35 +279,43 @@ export default function WorkItemsView({
                   <GearIcon size={13} /> Workflow
                 </button>
               )}
+              {canConfigure && onGoStudio && (
+                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                </button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} work item(s)`)}>
+                <Download size={14} /> Export
+              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                <PlusIcon size={13} /> New work item
+                <Plus size={14} /> New work item
               </button>
             </>
           }
         />
 
         {allItems.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Active</div>
-              <div className="kpi">{activeCount}</div>
-              <div className="kpi-sub">of {allCount} work item{allCount !== 1 ? 's' : ''}</div>
+          <div className="kpi-strip">
+            <div className="kpi">
+              <span className="klbl">Active</span>
+              <div className="kval tnum" style={{ fontSize: 24 }}>{activeCount}</div>
+              <span className="hint" style={{ fontSize: 11 }}>of {allCount} work item{allCount !== 1 ? 's' : ''}</span>
             </div>
-            <div className="widget">
-              <div className="widget-label">In progress</div>
-              <div className="kpi" style={{ color: 'var(--warning)' }}>{inProgressCount}</div>
-              <div className="kpi-sub">currently being worked</div>
+            <div className="kpi">
+              <span className="klbl">In progress</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{inProgressCount}</div>
+              <span className="hint" style={{ fontSize: 11 }}>currently being worked</span>
             </div>
-            <div className="widget">
-              <div className="widget-label">Done</div>
-              <div className="kpi" style={{ color: 'var(--success)' }}>{doneCount}</div>
-              <div className="kpi-sub">completed</div>
+            <div className="kpi kpi--marquee">
+              <span className="klbl">Done</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{doneCount}</div>
+              <span className="hint" style={{ fontSize: 11 }}>completed</span>
             </div>
             {blockedCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Blocked</div>
-                <div className="kpi" style={{ color: 'var(--danger)' }}>{blockedCount}</div>
-                <div className="kpi-sub">action required</div>
+              <div className="kpi">
+                <span className="klbl">Blocked</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-danger-fg)' }}>{blockedCount}</div>
+                <span className="hint" style={{ fontSize: 11 }}>action required</span>
               </div>
             )}
           </div>
@@ -366,6 +380,9 @@ export default function WorkItemsView({
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
+              </button>
               <select
                 className="inp inp-sm"
                 aria-label="Filter by kind"
@@ -379,15 +396,6 @@ export default function WorkItemsView({
                 ))}
               </select>
               <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[workitems] export all'); toast.success(`Export queued for ${sorted.length} work item(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                <PlusIcon size={13} /> New work item
-              </button>
             </div>
 
             <div className="grid-wrap">
@@ -411,7 +419,9 @@ export default function WorkItemsView({
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {col.label}
-                          {sortKey === col.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === col.key
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -447,19 +457,23 @@ export default function WorkItemsView({
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 work items'
+                  ? '0 records'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -4,9 +4,13 @@ import { money } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  ArrowRightIcon, ChevronLeftIcon, BuildingIcon,
-  SearchIcon, PlusIcon, DownloadIcon, ArrowUpIcon, ArrowDownIcon,
+  ChevronLeftIcon, BuildingIcon,
+  SearchIcon, PlusIcon, DownloadIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -64,7 +68,7 @@ function MoreVerticalIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-export default function AccountsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+export default function AccountsView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'accounts', configVersion)
   const [list, setList] = useState<Account[] | null>(null)
@@ -200,12 +204,56 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
           sub={`${all.length} record${all.length !== 1 ? 's' : ''} · billing accounts on parties`}
           actions={
             !unavailable && (
-              <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
-                <PlusIcon size={13} /> {creating ? t('common.close', 'Close') : t('accounts.new', 'New account')}
-              </button>
+              <>
+                {canConfigure && onGoStudio && (
+                  <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                    <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                  </button>
+                )}
+                <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} account(s)`)}>
+                  <Download size={14} /> Export
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
+                  <Plus size={14} /> {creating ? t('common.close', 'Close') : t('accounts.new', 'New account')}
+                </button>
+              </>
             )
           }
         />
+
+        {all.length > 0 && (() => {
+          const activeCount = all.filter(a => (a.status ?? '').toUpperCase() === 'ACTIVE').length
+          const suspendedCount = all.filter(a => (a.status ?? '').toUpperCase() === 'SUSPENDED').length
+          const typeCount = new Set(all.map(a => a.type).filter(Boolean)).size
+          return (
+            <div className="kpi-strip">
+              <div className="kpi">
+                <span className="klbl">Accounts</span>
+                <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
+                <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
+              </div>
+              <div className="kpi kpi--marquee">
+                <span className="klbl">Active</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
+                <span className="hint" style={{ fontSize: 11 }}>billable</span>
+              </div>
+              {suspendedCount > 0 && (
+                <div className="kpi">
+                  <span className="klbl">Suspended</span>
+                  <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{suspendedCount}</div>
+                  <span className="hint" style={{ fontSize: 11 }}>action required</span>
+                </div>
+              )}
+              {typeCount > 0 && (
+                <div className="kpi">
+                  <span className="klbl">Types</span>
+                  <div className="kval tnum" style={{ fontSize: 24 }}>{typeCount}</div>
+                  <span className="hint" style={{ fontSize: 11 }}>residential · business · wholesale</span>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {creating && (
           <div className="rec-form">
@@ -259,13 +307,10 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[accounts] export all'); toast.success(`Export queued for ${sorted.length} account(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
               </button>
+              <span className="spacer" />
             </div>
 
             <div className="grid-wrap">
@@ -289,7 +334,9 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
-                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === c.key
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -343,19 +390,23 @@ export default function AccountsView({ token, configVersion = 0 }: { token: stri
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 accounts'
+                  ? '0 records'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}

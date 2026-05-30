@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { bget, loadCustomers, type Payment, type Invoice } from '../lib/billing'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  CreditCardIcon, ReceiptIcon, DownloadIcon, SearchIcon, PlusIcon,
-  ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon, ArrowRightIcon,
+  CreditCardIcon, ReceiptIcon, DownloadIcon, SearchIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
@@ -39,7 +42,7 @@ function MoreVerticalIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-export default function PaymentsView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function PaymentsView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
   const cfg = usePageConfig(token, 'payments', configVersion)
   const [payments, setPayments] = useState<Payment[] | null>(null)
   const cf = useCustomFields(token, 'payments', cfg.customFields, (payments ?? []).map((p) => p.id))
@@ -201,29 +204,37 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
           sub={`Inbound payments · adapters: Card, Bank, Cash · ${pList.length} record${pList.length !== 1 ? 's' : ''}`}
           actions={
             <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[payments] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
-              )}
               <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[payments] reconcile'); toast.success('Reconcile triggered') }}>
                 <DownloadIcon size={13} /> Reconcile
+              </button>
+              {canConfigure && onGoStudio && (
+                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                </button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} payment(s)`)}>
+                <Download size={14} /> Export
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => toast.info('Record payment — wiring TBD')}>
+                <Plus size={14} /> New payment
               </button>
             </>
           }
         />
 
         {pList.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Total collected</div>
-              <div className="kpi"><span className="kpi-cur">֏</span>{(totalSettled / 1000).toFixed(1)}k</div>
-              <div className="kpi-sub">{pList.length} settlement{pList.length !== 1 ? 's' : ''}</div>
+          <div className="kpi-strip">
+            <div className="kpi kpi--marquee">
+              <span className="klbl">Total collected</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{`֏${(totalSettled / 1000).toFixed(1)}k`}</div>
+              <span className="hint" style={{ fontSize: 11 }}>{pList.length} settlement{pList.length !== 1 ? 's' : ''}</span>
             </div>
-            <div className="widget">
-              <div className="widget-label">Methods</div>
-              <div className="kpi" style={{ fontSize: 22 }}>
+            <div className="kpi">
+              <span className="klbl">Methods</span>
+              <div className="kval tnum" style={{ fontSize: 22 }}>
                 {[...new Set(pList.map(p => (p as any).method).filter(Boolean))].join(' · ') || '—'}
               </div>
-              <div className="kpi-sub">adapters active</div>
+              <span className="hint" style={{ fontSize: 11 }}>adapters active</span>
             </div>
           </div>
         )}
@@ -265,19 +276,10 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
+              </button>
               <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[payments] export all'); toast.success(`Export queued for ${sorted.length} payment(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => { console.log('[payments] new payment'); toast.success('Record payment — wiring TBD') }}
-              >
-                <PlusIcon size={13} /> Record payment
-              </button>
             </div>
 
             <div className="grid-wrap">
@@ -302,7 +304,9 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
-                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === c.key
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -357,19 +361,23 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 payments'
+                  ? '0 records'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}

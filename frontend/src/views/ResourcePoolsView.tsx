@@ -4,9 +4,12 @@ import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ArrowRightIcon, ChevronLeftIcon, InboxIcon, ServerIcon, PlusIcon, DownloadIcon, SearchIcon,
-  ArrowUpIcon, ArrowDownIcon,
+  ChevronLeftIcon, InboxIcon, ServerIcon, PlusIcon, DownloadIcon, SearchIcon,
 } from '../components/icons'
+import {
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight,
+} from 'lucide-react'
 import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -55,7 +58,7 @@ function allocCount(p: Pool): string {
   return typeof n === 'number' ? String(n) : '—'
 }
 
-export default function ResourcePoolsView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function ResourcePoolsView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
   const cfg = usePageConfig(token, 'resource-pools', configVersion)
   const [list, setList] = useState<Pool[] | null>(null)
   const cf = useCustomFields(token, 'resource-pools', cfg.customFields, (list ?? []).map((p) => p.id))
@@ -181,23 +184,28 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
           sub={`${all.length} pool${all.length !== 1 ? 's' : ''} · IP allocations · capacity engine`}
           actions={!unavailable && (
             <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[pools] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              {canConfigure && onGoStudio && (
+                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                </button>
               )}
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} pool(s)`)}>
+                <Download size={14} /> Export
+              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
-                <PlusIcon size={13} /> {creating ? 'Close' : 'New pool'}
+                <Plus size={14} /> {creating ? 'Close' : 'New pool'}
               </button>
             </>
           )}
         />
 
         {all.length > 0 && Object.keys(byKind).length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            {Object.entries(byKind).map(([k, info]) => (
-              <div key={k} className="widget">
-                <div className="widget-label">{k.toUpperCase()}</div>
-                <div className="kpi">{info.count}</div>
-                <div className="kpi-sub">{info.allocs} allocation{info.allocs !== 1 ? 's' : ''}</div>
+          <div className="kpi-strip">
+            {Object.entries(byKind).map(([k, info], i) => (
+              <div key={k} className={i === 0 ? 'kpi kpi--marquee' : 'kpi'}>
+                <span className="klbl">{k.toUpperCase()}</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: i === 0 ? 'var(--gx-gold)' : undefined }}>{info.count}</div>
+                <span className="hint" style={{ fontSize: 11 }}>{info.allocs} allocation{info.allocs !== 1 ? 's' : ''}</span>
               </div>
             ))}
           </div>
@@ -255,13 +263,10 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[pools] export all'); toast.success(`Export queued for ${sorted.length} pool(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
               </button>
+              <span className="spacer" />
             </div>
 
             <div className="grid-wrap">
@@ -281,7 +286,9 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                       >
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
-                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                          {sortKey === c.key
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
                     ))}
@@ -348,19 +355,23 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span className="hint">
                 {sorted.length === 0
-                  ? '0 pools'
+                  ? '0 records'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft size={15} />
+                </button>
+                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
+                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
             </div>
           </div>
         )}
