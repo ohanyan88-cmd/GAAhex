@@ -1,0 +1,68 @@
+/* ============================================================================
+   GAAex Portal — shared primitives. Copied VERBATIM from
+   design-system/ui_kits/portal/app.css lines 18-57 (the canonical
+   .btn / .inp / .field / .pill / .badge rule set), followed by a small
+   extensions block to cover Portal component APIs the kit doesn't model
+   (Button link/gold, Input lg/error, FormField hint/error, StatusPill sm).
+   ============================================================================ */
+
+/* ---- buttons / inputs / pills (shared) — VERBATIM from app.css ---- */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; font-family:var(--gx-font-sans); font-weight:600; font-size:13px; height:var(--gx-control-md); padding:0 15px; border-radius:var(--gx-radius-md); border:1px solid transparent; cursor:pointer; transition:all var(--gx-dur-quick) var(--gx-ease-standard); white-space:nowrap; }
+.btn:focus-visible { outline:none; box-shadow:0 0 0 2px var(--gx-ring-offset), 0 0 0 4px var(--gx-ring); }
+.btn:active { transform:translateY(.5px); }
+.btn-primary { background:var(--gx-primary); color:var(--gx-on-primary); }
+.btn-primary:hover { background:var(--gx-primary-hover); }
+.btn-secondary { background:var(--gx-surface-2); color:var(--gx-text-1); border-color:var(--gx-border-strong); }
+.btn-secondary:hover { background:var(--gx-elevated); }
+.btn-ghost { background:transparent; color:var(--gx-text-2); }
+.btn-ghost:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+.btn-gold { background:var(--gx-gold); color:var(--gx-text-on-gold); }
+.btn-gold:hover { filter:brightness(1.06); }
+.btn-danger { background:var(--gx-danger); color:#fff; }
+.btn[disabled] { opacity:.5; cursor:not-allowed; }
+.btn-sm { height:var(--gx-control-sm); font-size:12px; padding:0 11px; }
+.btn-lg { height:var(--gx-control-lg); font-size:14px; padding:0 22px; }
+.btn-icon { width:var(--gx-control-md); padding:0; }
+.btn-icon.btn-sm { width:var(--gx-control-sm); }
+
+.inp { width:100%; height:var(--gx-control-md); padding:0 11px; background:var(--gx-bg-subtle); color:var(--gx-text-1); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); font-family:var(--gx-font-sans); font-size:13px; transition:all var(--gx-dur-quick) var(--gx-ease-standard); }
+.inp::placeholder { color:var(--gx-text-placeholder); }
+.inp:hover { border-color:var(--gx-border-strong); }
+.inp:focus { outline:none; border-color:var(--gx-primary); box-shadow:0 0 0 3px var(--gx-primary-soft); }
+.inp-sm { height:var(--gx-control-sm); font-size:12px; }
+select.inp { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23748' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; padding-right:28px; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field > span { font-size:12px; font-weight:500; color:var(--gx-text-2); }
+
+.pill { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:var(--gx-radius-full); font-size:11px; font-weight:600; line-height:1; white-space:nowrap; }
+.pill .d { width:6px; height:6px; border-radius:50%; }
+.pill-success { background:var(--gx-success-soft); color:var(--gx-success-fg); }
+.pill-warning { background:var(--gx-warning-soft); color:var(--gx-warning-fg); }
+.pill-danger  { background:var(--gx-danger-soft);  color:var(--gx-danger-fg); }
+.pill-info    { background:var(--gx-info-soft);    color:var(--gx-info-fg); }
+.pill-neutral { background:var(--gx-neutral-soft); color:var(--gx-text-2); }
+.pill-gold    { background:var(--gx-gold-soft);    color:var(--gx-gold); }
+.badge { display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:var(--gx-primary); color:#fff; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+.mono { font-family:var(--gx-font-mono); }
+.tnum { font-variant-numeric:tabular-nums; }
+.spacer { flex:1; }
+
+/* ---- Portal extensions (not in kit) ---- */
+
+/* extension: link variant (our API has Button variant: 'link'; kit doesn't) */
+.btn-link { background:transparent; color:var(--gx-primary); border:none; padding:0; height:auto; }
+.btn-link:hover { color:var(--gx-primary-hover); text-decoration:underline; }
+
+/* extension: large input (our API has Input size: 'lg'; kit doesn't) */
+.inp-lg { height:var(--gx-control-lg); font-size:14px; padding:0 14px; }
+
+/* extension: error state for input (our API has Input error prop) */
+.inp-error { border-color:var(--gx-danger); }
+.inp-error:focus { border-color:var(--gx-danger); box-shadow:0 0 0 3px var(--gx-danger-soft); }
+
+/* extension: small pill (our API has StatusPill size: 'sm'; kit doesn't) */
+.pill-sm { height:18px; font-size:10px; padding:0 7px; }
+
+/* extension: field hint + error (our FormField API exposes hint and error) */
+.field-hint { font-size:11px; color:var(--gx-text-3); margin-top:2px; }
+.field-error { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--gx-danger-fg); margin-top:4px; }
