@@ -527,7 +527,7 @@ export default function App() {
               : view.type === 'settings'
                 ? <SettingsView token={token} />
               : view.type === 'reports'
-                ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
+                ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'orders'
                 ? <OrdersView token={token} />
               : view.type === 'revenue-assurance'

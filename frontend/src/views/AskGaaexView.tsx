@@ -3,6 +3,11 @@ import { bget, bpost } from '../lib/billing'
 import { PermissionDenied } from '../components/States'
 import { SparkleIcon, SendHorizontalIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
+// Ask GAAex (AI Copilot — §6 Analytics & AI). Real wiring:
+//   GET  /api/ai/status  → which brain is live; 403 ⇒ PermissionDenied (rule 6)
+//   POST /api/ai/chat    → answer | proposal (rule 5: real source, no mock)
+//   POST /api/ai/act     → execute a CONFIRMED action via the records engine (rule 4)
+// Doctrine: only --gx-* tokens; missing source ⇒ render nothing; no inert buttons.
 
 // Ask GAAex — a talk-to-your-ISP assistant. Sends a question to /api/ai/ask, which answers grounded
 // in the caller's live, scoped business context. Works with no provider (deterministic readout) and
@@ -32,7 +37,6 @@ export default function AskGaaexView({ token }: { token: string }) {
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
-  const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight
@@ -87,8 +91,10 @@ export default function AskGaaexView({ token }: { token: string }) {
 
   if (denied) return <PermissionDenied message={t('ask.denied', "You don't have permission to use the assistant.")} />
 
+  // Default carries the {p} placeholder so the translation contract matches the fallback contract;
+  // the in-flight '…' is a UX placeholder (not data) — actual answers always come from /api/ai/chat.
   const brain = !status ? '…'
-    : status.live ? t('ask.brainLive', `Live · ${status.provider}`).replace('{p}', status.provider)
+    : status.live ? t('ask.brainLive', 'Live · {p}').replace('{p}', status.provider)
     : t('ask.brainLocal', 'Built-in (no external AI configured)')
 
   return (
@@ -139,7 +145,7 @@ export default function AskGaaexView({ token }: { token: string }) {
                               <button className="btn btn-ghost btn-sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</button>
                             </div>
                           ) : m.state === 'done' ? (
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-success-fg, var(--success))', marginTop: 8 }}>{m.result}</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-success-fg)', marginTop: 8 }}>{m.result}</div>
                           ) : (
                             <div style={{ fontSize: 12.5, color: 'var(--gx-text-3)', marginTop: 8 }}>{t('ask.cancelled', 'Cancelled.')}</div>
                           )}
@@ -166,7 +172,6 @@ export default function AskGaaexView({ token }: { token: string }) {
                   </div>
                 </div>
               )}
-              <div ref={endRef} />
             </div>
           </div>
 

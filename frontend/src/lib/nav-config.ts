@@ -118,22 +118,14 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // 6. Analytics & AI — reporting, intelligence, automation
+  // Wave A pruning (2026-05-30): 11 dead items removed (no backend): ana-kpi,
+  // ana-forecast, ana-agents, ana-automations, ana-insights, ana-governance,
+  // ana-churn, ana-fraud, ana-anomaly, ana-predictive, ana-export.
   s('analytics', 'Analytics & AI', ChartIcon, [
     i('ana-exec',        'Executive Dashboard',         ChartIcon,    'dashboards'),
-    i('ana-kpi',         'KPI Center',                  ChartIcon),
     i('ana-reports',     'Reports',                     BookmarkIcon, 'reports'),
     i('ana-builder',     'Report Builder',              EditIcon,     'report-builder'),
-    i('ana-forecast',    'Forecasting',                 ChartIcon),
     i('ana-copilot',     'AI Copilot',                  SparkleIcon,  'ask'),
-    i('ana-agents',      'AI Agents',                   SparkleIcon),
-    i('ana-automations', 'AI Automations',              SparkleIcon),
-    i('ana-insights',    'AI Insights',                 SparkleIcon),
-    i('ana-governance',  'AI Governance',               ShieldIcon),
-    i('ana-churn',       'Churn Prediction',            ChartIcon),
-    i('ana-fraud',       'Fraud Detection',             ShieldIcon),
-    i('ana-anomaly',     'Network Anomaly Detection',   ServerIcon),
-    i('ana-predictive',  'Predictive Maintenance',      GearIcon),
-    i('ana-export',      'Export Center',               FolderIcon),
   ]),
 
   // 7. Enterprise — internal company operations

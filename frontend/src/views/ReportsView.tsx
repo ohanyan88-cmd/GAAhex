@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
-import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { SkeletonRows, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { DownloadIcon, GearIcon } from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
-import { Spark } from '../components/charts/Spark'
+import { can, type Capabilities } from '../lib/capabilities'
 
 // Reports — consumes the Reports API (Task A). Re-laid into the kit's `gx-dash` dashboard
 // pattern: a KPI strip of entity counts (each tile is clickable — selecting one drives the
 // drill-down), then a two-column card body for "by status" — donut on the left, bar table
 // on the right. Self-contained fetch (same base + Authorization pattern as api.ts); does
 // NOT touch shared api.ts. No charting library; no new CSS.
+// Doctrine: real data only — we don't have a historical series for entity counts, so no
+// sparkline is rendered (rule 3: missing → hide; never fake a trend).
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 type Summary = { entity_key: string; route_slug: string; label_plural: string; count: number }
-type StatusCount = { status: string; count: number }
+type StatusCount = { status: string; label: string; count: number }
 
 class FetchError extends Error {
   status: number
@@ -34,20 +36,50 @@ async function fetchJson(token: string, path: string) {
   return r.json()
 }
 
-// The by-status endpoint may return [{status, count}] or {status: count}. Normalize both.
+// The by-status endpoint returns {entity_key, label_plural, by_status: [{status, label, count}]}.
+// Tolerate older array / dict shapes too in case other deployments differ. Always returns the
+// normalized [{status, label, count}] used by the donut/bar chart.
 function normalizeByStatus(raw: any): StatusCount[] {
+  // canonical shape from backend/app/routers/reports.py
+  if (raw && typeof raw === 'object' && Array.isArray(raw.by_status)) {
+    return raw.by_status.map((r: any) => ({
+      status: String(r.status ?? ''),
+      label: String(r.label ?? r.status ?? ''),
+      count: Number(r.count ?? 0),
+    }))
+  }
   if (Array.isArray(raw)) {
-    return raw.map((r) => ({ status: String(r.status ?? ''), count: Number(r.count ?? 0) }))
+    return raw.map((r) => ({
+      status: String(r.status ?? ''),
+      label: String(r.label ?? r.status ?? ''),
+      count: Number(r.count ?? 0),
+    }))
   }
   if (raw && typeof raw === 'object') {
-    return Object.entries(raw).map(([status, count]) => ({ status, count: Number(count) }))
+    return Object.entries(raw).map(([status, count]) => ({
+      status,
+      label: status,
+      count: Number(count),
+    }))
   }
   return []
 }
 
 const fmtNum = (n: number) => n.toLocaleString('en-US')
 
-export default function ReportsView({ token, configVersion = 0, canConfigure = false, onConfigure }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
+export default function ReportsView({
+  token,
+  configVersion = 0,
+  canConfigure = false,
+  capabilities,
+  onConfigure,
+}: {
+  token: string
+  configVersion?: number
+  canConfigure?: boolean
+  capabilities?: Capabilities
+  onConfigure?: () => void
+}) {
   const cfg = usePageConfig(token, 'reports', configVersion)
   const [summary, setSummary] = useState<Summary[]>([])
   const [loading, setLoading] = useState(true)
@@ -63,17 +95,29 @@ export default function ReportsView({ token, configVersion = 0, canConfigure = f
     let alive = true
     setLoading(true); setError(''); setDenied(false)
     fetchJson(token, '/reports/summary')
-      .then((data) => { if (alive) setSummary(Array.isArray(data) ? data : []) })
+      .then((data) => {
+        // Doctrine rule 6: client-side capability gate matches server-side filter,
+        // so we never even surface entities the user can't `view`.
+        const rows: Summary[] = Array.isArray(data) ? data : []
+        const filtered = capabilities
+          ? rows.filter((r) => can(capabilities, r.entity_key, 'view'))
+          : rows
+        if (alive) setSummary(filtered)
+      })
       .catch((err) => {
         if (!alive) return
         if (err instanceof FetchError && err.status === 403) { setDenied(true) }
-        else { setError((err as Error).message) }
+        else {
+          // eslint-disable-next-line no-console
+          console.error('[Reports] /reports/summary failed:', err)
+          setError((err as Error).message)
+        }
       })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }
 
-  useEffect(loadSummary, [token])
+  useEffect(loadSummary, [token, capabilities])
 
   async function openEntity(slug: string) {
     setSelected(slug)
@@ -82,6 +126,8 @@ export default function ReportsView({ token, configVersion = 0, canConfigure = f
       const raw = await fetchJson(token, `/reports/${slug}/by-status`)
       setByStatus(normalizeByStatus(raw))
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[Reports] /reports/${slug}/by-status failed:`, err)
       setStatusError((err as Error).message)
     } finally {
       setStatusLoading(false)
@@ -97,14 +143,13 @@ export default function ReportsView({ token, configVersion = 0, canConfigure = f
   const selectedLabel = summary.find((s) => s.route_slug === selected)?.label_plural ?? selected
   const totalReportable = summary.reduce((s, e) => s + e.count, 0)
 
-  // Donut data for the selected entity's by-status breakdown.
+  // Donut data for the selected entity's by-status breakdown — use real backend label.
   const donutData: DonutDatum[] = useMemo(
-    () => byStatus.map((s) => ({ label: s.status || '—', value: s.count })),
+    () => byStatus.map((s) => ({ label: s.label || s.status || '—', value: s.count })),
     [byStatus],
   )
   const byStatusTotal = byStatus.reduce((s, x) => s + x.count, 0)
 
-  if (loading) return <LoadingState />
   if (denied) return <PermissionDenied message="You don't have permission to view reports." />
 
   return (
@@ -128,11 +173,13 @@ export default function ReportsView({ token, configVersion = 0, canConfigure = f
 
         {error && <ErrorBanner message={error} onRetry={loadSummary} />}
 
-        {!error && summary.length === 0 && (
+        {loading && <SkeletonRows rows={4} />}
+
+        {!loading && !error && summary.length === 0 && (
           <EmptyState title="No entities to report on yet." message="Configure entity types in Studio to see reports here." />
         )}
 
-        {!error && summary.length > 0 && (
+        {!loading && !error && summary.length > 0 && (
           <>
             {/* KPI strip — each entity is a clickable tile. The first tile gets the gold
                 marquee accent (kit convention: headline metric first). */}
@@ -156,7 +203,7 @@ export default function ReportsView({ token, configVersion = 0, canConfigure = f
                     <h3>{selectedLabel} · by status</h3>
                   </div>
                   <div className="card-pad">
-                    {statusLoading && <LoadingState />}
+                    {statusLoading && <SkeletonRows rows={3} />}
                     {statusError && <ErrorBanner message={statusError} />}
                     {!statusLoading && !statusError && byStatus.length === 0 && (
                       <p className="muted">No records yet.</p>
@@ -200,6 +247,8 @@ function EntityKpi({
   onClick: () => void
 }) {
   const cls = 'kpi' + (marquee ? ' kpi--marquee' : '') + (active ? ' on' : '')
+  // Doctrine rule 3: no historical series → no sparkline / no delta. The kit's `.kfoot`
+  // slot is intentionally empty here; we'll fill it once a real time-series endpoint exists.
   return (
     <button
       type="button"
@@ -218,22 +267,22 @@ function EntityKpi({
     >
       <div className="klbl">{label}</div>
       <div className="kval tnum">{fmtNum(value)}</div>
-      <div className="kfoot">
-        <span className="kdelta" style={{ color: 'var(--gx-text-3)' }}>—</span>
-        <Spark color={marquee ? 'var(--gx-gold)' : 'var(--gx-primary)'} />
-      </div>
     </button>
   )
 }
 
-// By-status as a kit `.bars` table.
+// By-status as a kit `.bars` table. Uses the backend-supplied human label, not the raw key.
 function StatusBars({ data }: { data: StatusCount[] }) {
   const max = data.reduce((m, s) => Math.max(m, s.count), 0)
   return (
     <div className="bars">
       {data.map((s) => (
         <div key={s.status} className="bar-row">
-          <span className="bar-label">{s.status ? <span className="pill pill-neutral pill-sm">{s.status}</span> : <span className="muted">—</span>}</span>
+          <span className="bar-label">
+            {s.label || s.status
+              ? <span className="pill pill-neutral pill-sm">{s.label || s.status}</span>
+              : <span className="muted">—</span>}
+          </span>
           <div className="bar-track">
             <div className="bar-fill" style={{ width: (max > 0 ? (s.count / max) * 100 : 0) + '%' }} />
           </div>

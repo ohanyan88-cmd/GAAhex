@@ -7,7 +7,7 @@ import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import ReportSchedulePanel from '../modals/ReportSchedulePanel'
-import { DownloadIcon, EditIcon, PlusIcon, CloseIcon, TrashIcon } from '../components/icons'
+import { EditIcon, PlusIcon, CloseIcon, TrashIcon } from '../components/icons'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
 
 // Report Builder — form-heavy wizard that pairs a builder form with a runner/preview.
@@ -15,6 +15,12 @@ import { Donut, type DonutDatum } from '../components/charts/Donut'
 // then a two-column body (`.cols`): builder/list on the left, run preview on the right.
 // Form sections use the kit's `.rec-form` + `.field`; preview uses `.card` + `.kpis`/
 // charts. Data hooks (bget/bpost against /api/reports-builder/*) are UNCHANGED.
+//
+// NOTE on exports: the saved-report run endpoint (/api/reports-builder/{id}/run) returns
+// aggregated JSON only — it does NOT accept ?format=csv|xlsx|pdf. Per-format file export
+// lives on the per-entity records route (/api/{slug}/export) and is surfaced from the
+// EntityView. We therefore do NOT show export buttons here (no inert UI — see doctrine
+// rule 4: "If a button has no real action yet, REMOVE it rather than fake it").
 
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type Field = { key: string; label: string; type: string }
@@ -22,34 +28,6 @@ type Query = { entity: string; metric: string; field?: string; group_by?: string
 type Report = { id: string; key: string; name: string; description?: string | null; query: Query; shared: boolean; mine: boolean }
 type RunResult = { id: string; name: string; matched?: number; result?: any; error?: string }
 type Group = { group: string; value: number }
-
-// Export format availability probe: check once whether XLSX and PDF are supported.
-// If the relevant endpoint 404s for a format, hide that button silently.
-type ExportFormats = { csv: boolean; xlsx: boolean; pdf: boolean }
-
-async function probeExportFormats(token: string, reportId: string): Promise<ExportFormats> {
-  // We do HEAD probes — if the server doesn't support HEAD we fall back to a small
-  // GET probe that we abort quickly. Any 404 ⇒ hide; everything else ⇒ show.
-  async function probe(format: string): Promise<boolean> {
-    try {
-      const ctrl = new AbortController()
-      const tid = setTimeout(() => ctrl.abort(), 3000)
-      const r = await fetch(`${BASE}/api/reports-builder/${reportId}/run?format=${format}`, {
-        method: 'HEAD',
-        headers: authH(token),
-        signal: ctrl.signal,
-      })
-      clearTimeout(tid)
-      return r.status !== 404
-    } catch {
-      // Network error or abort = treat as available (show button, real download will surface the error)
-      return true
-    }
-  }
-  // CSV is already working (no probe needed); probe XLSX + PDF in parallel
-  const [xlsx, pdf] = await Promise.all([probe('xlsx'), probe('pdf')])
-  return { csv: true, xlsx, pdf }
-}
 
 const METRICS = ['count', 'sum', 'avg']
 const slugify = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -140,6 +118,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
     <div className="view-inner gx-dash fade">
         <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>Report Builder</span></div>
 
+
         <ViewHead
           icon={<EditIcon size={20} />}
           title="Report Builder"
@@ -160,12 +139,12 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
             <div className="card-pad">
               <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
                 <label className="field">
-                  <span>Name <span style={{ color: 'var(--danger)' }}>*</span></span>
+                  <span>Name <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
                   <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Leads by status" />
                 </label>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <label className="field" style={{ flex: 1, minWidth: 200 }}>
-                    <span>Entity <span style={{ color: 'var(--danger)' }}>*</span></span>
+                    <span>Entity <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
                     <select className="inp inp-md" value={entity} onChange={(e) => { setEntity(e.target.value); setField(''); setGroupBy('') }}>
                       <option value="">— pick —</option>
                       {entities.map((en) => <option key={en.key} value={en.key}>{en.label_plural}</option>)}
@@ -239,9 +218,9 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 10px',
-                      borderRadius: 'var(--gx-radius-md, 6px)',
-                      background: run?.id === r.id ? 'var(--gx-bg-3, var(--surface-2))' : 'transparent',
-                      border: '1px solid ' + (run?.id === r.id ? 'var(--gx-primary)' : 'var(--gx-border, var(--border))'),
+                      borderRadius: 'var(--gx-radius-md)',
+                      background: run?.id === r.id ? 'var(--gx-surface-2)' : 'transparent',
+                      border: '1px solid ' + (run?.id === r.id ? 'var(--gx-primary)' : 'var(--gx-border)'),
                     }}
                   >
                     <button
@@ -268,7 +247,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                         aria-label="Delete report"
                         title="Delete report"
                         onClick={() => remove(r)}
-                        style={{ color: 'var(--danger)' }}
+                        style={{ color: 'var(--gx-danger-fg)' }}
                       >
                         <TrashIcon size={14} />
                       </button>
@@ -285,7 +264,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
               <div className="card-pad">
                 {!run && <p className="muted">Select a report to run it.</p>}
                 {run && run.error && <ErrorBanner message={run.error === 'forbidden' ? "You can't view this report's data." : run.error} />}
-                {run && !run.error && <RunView run={run} token={token} />}
+                {run && !run.error && <RunView run={run} />}
               </div>
             </div>
           </div>
@@ -302,48 +281,10 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
   )
 }
 
-function RunView({ run, token }: { run: RunResult; token: string }) {
+function RunView({ run }: { run: RunResult }) {
   const result = run.result
   const groups = asGroups(result)
   const isValue = result && typeof result === 'object' && 'value' in result
-
-  // B24 — export format availability (probe on mount when a report is selected)
-  const [formats, setFormats] = useState<ExportFormats | null>(null)
-  const [exporting, setExporting] = useState<string | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    probeExportFormats(token, run.id).then((f) => { if (alive) setFormats(f) })
-    return () => { alive = false }
-  }, [token, run.id])
-
-  // Trigger a file download for the chosen format. Opens a blob URL so the
-  // Authorization header can be passed (a plain <a> link cannot carry it).
-  async function doExport(format: string) {
-    setExporting(format)
-    try {
-      const r = await fetch(`${BASE}/api/reports-builder/${run.id}/run?format=${format}`, {
-        headers: authH(token),
-      })
-      if (!r.ok) {
-        const detail = await r.json().catch(() => null)
-        throw new Error(detail?.detail || t('export.error', 'Export failed'))
-      }
-      const blob = await r.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${run.name}.${format}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 60_000)
-    } catch (e) {
-      toast.error((e as Error).message || t('export.error', 'Export failed'))
-    } finally {
-      setExporting(null)
-    }
-  }
 
   // Donut for grouped result (categorical), bars for the table view underneath.
   const donutData: DonutDatum[] = useMemo(
@@ -380,46 +321,6 @@ function RunView({ run, token }: { run: RunResult; token: string }) {
             })()}
           </div>
         </>
-      )}
-
-      {/* B24 — export-format buttons; hidden until probe resolves; hides per-format if 404 */}
-      {formats !== null && (formats.csv || formats.xlsx || formats.pdf) && (
-        <div className="toolbar" style={{ padding: '8px 0 0', margin: 0, justifyContent: 'flex-end' }} role="group" aria-label={t('export.label', 'Export')}>
-          <span className="muted" style={{ fontSize: 12 }}>{t('export.label', 'Export')}</span>
-          {formats.csv && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              disabled={exporting !== null}
-              onClick={() => doExport('csv')}
-              aria-label={t('export.csv', 'CSV')}
-            >
-              <DownloadIcon size={12} aria-hidden /> {t('export.csv', 'CSV')}
-            </button>
-          )}
-          {formats.xlsx && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              disabled={exporting !== null}
-              onClick={() => doExport('xlsx')}
-              aria-label={t('export.xlsx', 'XLSX')}
-            >
-              <DownloadIcon size={12} aria-hidden /> {t('export.xlsx', 'XLSX')}
-            </button>
-          )}
-          {formats.pdf && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              disabled={exporting !== null}
-              onClick={() => doExport('pdf')}
-              aria-label={t('export.pdf', 'PDF')}
-            >
-              <DownloadIcon size={12} aria-hidden /> {t('export.pdf', 'PDF')}
-            </button>
-          )}
-        </div>
       )}
     </div>
   )
