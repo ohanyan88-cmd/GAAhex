@@ -595,7 +595,7 @@ export default function App() {
                   onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
                 />
               : view.type === 'dashboards'
-                ? <DashboardView token={token} configVersion={pageConfigVersion} />
+                ? <DashboardView token={token} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
               : view.type === 'analytics'
                 ? <AnalyticsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'lead-pipeline'

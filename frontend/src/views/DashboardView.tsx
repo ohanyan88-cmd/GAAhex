@@ -1,361 +1,362 @@
-import { useEffect, useMemo, useState } from 'react'
-import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import ViewHead from '../components/ViewHead'
-import { ChartIcon, ArrowUpIcon, ArrowDownIcon } from '../components/icons'
-import { usePageConfig } from '../lib/pageConfig'
-import { Donut, type DonutDatum } from '../components/charts/Donut'
-import { LineChart } from '../components/charts/LineChart'
+import { useEffect, useState } from 'react'
+import {
+  Users, Banknote, Inbox, Activity, TrendingUp, TrendingDown, BarChart3,
+  Wand2, Download, ArrowRight,
+} from 'lucide-react'
 import { Spark } from '../components/charts/Spark'
+import { StatusPill } from '../primitives/StatusPill'
 
-// Dashboards — picks a board and renders its config-driven widgets from /dashboards/{key}/data.
-// Self-contained inline fetch (same pattern as api.ts / ReportsView). No chart library: KPIs are
-// big numbers, bar/donut/line are hand-rolled inline-SVG (lifted from the GAAex design kit), and
-// the table is a plain grid. A widget that returns {error} is shown gracefully and never crashes
-// the board.
-//
-// PROMPT 7 reskin (Portal sandbox) — fetch logic + widget config flow is UNCHANGED. Markup is
-// re-laid into the kit's `ModuleDashboard` idiom: a .gx-dash root wrapping a KPI strip
-// (.kpis/.kpi tiles with Space Grotesk numerals, delta pills, sparklines, and a gold marquee
-// accent on the first KPI) and a two-column body (.cols) for the breakdown / chart widgets.
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
-type Board = { key: string; label: string; description?: string | null; order: number }
-type WidgetOut = { widget_key: string; type: string; label: string; result?: any; error?: string }
-type BoardData = { key: string; label: string; widgets: WidgetOut[] }
-type Group = { group: string; value: number }
 type Range = '30d' | 'qtd' | 'ytd'
 
-class FetchError extends Error {
-  status: number
-  constructor(message: string, status: number) {
-    super(message)
-    this.status = status
-  }
+interface KpiData {
+  label: string
+  value: string | null
+  delta: string | null
+  up: boolean
+  icon: React.ReactNode
+  accent: boolean
+  spark: number[] | null
+  unavailable?: string
 }
 
-async function jget(token: string, path: string) {
-  const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
-  if (!r.ok) {
-    const e = await r.json().catch(() => ({ detail: 'Error' }))
-    throw new FetchError(e.detail || `Failed to load ${path}`, r.status)
-  }
-  return r.json()
+interface WorkRow {
+  id: string
+  subject: string
+  status: string
+  sla: string
+  prio: string
+  assignee: string
 }
 
-// Normalize either {value} or [{group,value}] into grouped rows.
-function asGroups(result: any): Group[] {
-  if (Array.isArray(result)) return result.map((d) => ({ group: String(d.group ?? '—'), value: Number(d.value) || 0 }))
-  if (result && typeof result === 'object' && 'value' in result) return [{ group: 'Total', value: Number(result.value) || 0 }]
-  return []
-}
-function kpiValue(result: any): number {
-  if (Array.isArray(result)) return result.reduce((s, d) => s + (Number(d.value) || 0), 0)
-  return Number(result?.value) || 0
-}
-const fmtNum = (n: number) => n.toLocaleString()
-
-function friendlyError(e: string): string {
-  if (e === 'forbidden') return "You don't have access to this widget's data."
-  return e
+interface ActivityRow {
+  who: string
+  act: string
+  obj: string
+  t: string
 }
 
-export default function DashboardView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
-  const cfg = usePageConfig(token, 'dashboards', configVersion)
-  const [boards, setBoards] = useState<Board[]>([])
-  const [selected, setSelected] = useState<string | null>(null)
-  const [data, setData] = useState<BoardData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [denied, setDenied] = useState(false)
-  const [boardLoading, setBoardLoading] = useState(false)
-  const [boardError, setBoardError] = useState('')
-  // Range toggle (kit's .seg). The backend currently returns one set of values per board
-  // (no period parameter), so the toggle is visual-only for now — TODO below.
+function fmtMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 10_000) return `$${(n / 1000).toFixed(1)}K`
+  return `$${n.toLocaleString()}`
+}
+function initials(s: string): string {
+  if (!s) return '??'
+  return s.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+function mapWorkStatus(s: string) {
+  const v = (s || '').toUpperCase()
+  if (v === 'RESOLVED' || v === 'DONE' || v === 'CLOSED') return 'active'
+  if (v === 'IN_PROGRESS' || v === 'IN PROGRESS') return 'degraded'
+  if (v === 'BLOCKED') return 'critical'
+  return 'neutral'
+}
+function mapPriority(p: string) {
+  const v = (p || '').toUpperCase()
+  if (v === 'CRITICAL') return 'critical'
+  if (v === 'HIGH') return 'degraded'
+  if (v === 'NORMAL') return 'info'
+  return 'neutral'
+}
+
+export default function DashboardView({
+  token, onGoStudio,
+}: { token: string; configVersion?: number; onGoStudio?: () => void }) {
   const [range, setRange] = useState<Range>('30d')
-
-  function loadBoards() {
-    let alive = true
-    setLoading(true); setError(''); setDenied(false)
-    jget(token, '/dashboards')
-      .then((d: Board[]) => {
-        if (!alive) return
-        const list = Array.isArray(d) ? d : []
-        setBoards(list)
-        if (list.length) setSelected(list[0].key)
-      })
-      .catch((e) => {
-        if (!alive) return
-        if (e instanceof FetchError && e.status === 403) { setDenied(true) }
-        else { setError((e as Error).message) }
-      })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
-  }
-
-  useEffect(loadBoards, [token])
+  const [kpis, setKpis] = useState<KpiData[]>([
+    { label: 'Active subscribers', value: null, delta: null, up: true, icon: <Users size={16} />, accent: false, spark: null },
+    { label: 'MRR', value: null, delta: null, up: true, icon: <Banknote size={16} />, accent: true, spark: null },
+    { label: 'Open tickets', value: null, delta: null, up: false, icon: <Inbox size={16} />, accent: false, spark: null },
+    { label: 'Network uptime', value: null, delta: null, up: true, icon: <Activity size={16} />, accent: false, spark: null, unavailable: 'No uptime monitor wired yet' },
+  ])
+  const [workItems, setWorkItems] = useState<WorkRow[] | null>(null)
+  const [workItemsErr, setWorkItemsErr] = useState<string | null>(null)
+  const [activity, setActivity] = useState<ActivityRow[] | null>(null)
+  const [activityErr, setActivityErr] = useState<string | null>(null)
+  const [revenue, setRevenue] = useState<number[] | null>(null)
+  const [revenueErr, setRevenueErr] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!selected) { setData(null); return }
     let alive = true
-    setBoardLoading(true); setBoardError(''); setData(null)
-    jget(token, `/dashboards/${selected}/data`)
-      .then((d: BoardData) => { if (alive) setData(d) })
-      .catch((e) => { if (alive) setBoardError((e as Error).message) })
-      .finally(() => { if (alive) setBoardLoading(false) })
+
+    // KPI 1 — Active subscribers
+    fetch(`${BASE}/api/subscriptions?status=ACTIVE`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: any) => {
+        if (!alive) return
+        const count = Array.isArray(d) ? d.length : (d?.total ?? d?.count ?? null)
+        if (typeof count === 'number') {
+          setKpis(k => k.map((x, i) => i === 0 ? { ...x, value: count.toLocaleString() } : x))
+        } else {
+          setKpis(k => k.map((x, i) => i === 0 ? { ...x, unavailable: 'No subscribers data' } : x))
+        }
+      })
+      .catch(() => alive && setKpis(k => k.map((x, i) => i === 0 ? { ...x, unavailable: 'Subscribers endpoint unreachable' } : x)))
+
+    // KPI 2 — MRR (sum of active subscription monthly amounts via invoices)
+    fetch(`${BASE}/api/invoices?status=OPEN`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: any) => {
+        if (!alive) return
+        const arr = Array.isArray(d) ? d : (d?.items ?? [])
+        if (Array.isArray(arr) && arr.length) {
+          const sum = arr.reduce((s: number, i: any) => s + (Number(i.total ?? i.amount) || 0), 0)
+          setKpis(k => k.map((x, i) => i === 1 ? { ...x, value: fmtMoney(sum) } : x))
+        } else {
+          setKpis(k => k.map((x, i) => i === 1 ? { ...x, unavailable: 'No invoice data' } : x))
+        }
+      })
+      .catch(() => alive && setKpis(k => k.map((x, i) => i === 1 ? { ...x, unavailable: 'Invoices endpoint unreachable' } : x)))
+
+    // KPI 3 — Open tickets
+    fetch(`${BASE}/api/work-items?status=OPEN`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: any) => {
+        if (!alive) return
+        const arr = Array.isArray(d) ? d : (d?.items ?? [])
+        if (Array.isArray(arr)) {
+          setKpis(k => k.map((x, i) => i === 2 ? { ...x, value: arr.length.toLocaleString() } : x))
+        } else {
+          setKpis(k => k.map((x, i) => i === 2 ? { ...x, unavailable: 'No tickets data' } : x))
+        }
+      })
+      .catch(() => alive && setKpis(k => k.map((x, i) => i === 2 ? { ...x, unavailable: 'Tickets endpoint unreachable' } : x)))
+
+    // Tickets needing attention — top 4
+    fetch(`${BASE}/api/work-items?limit=4`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: any) => {
+        if (!alive) return
+        const arr = Array.isArray(d) ? d : (d?.items ?? [])
+        const rows: WorkRow[] = arr.slice(0, 4).map((w: any) => ({
+          id: String(w.code ?? w.id ?? '—'),
+          subject: w.subject ?? w.title ?? '(no subject)',
+          status: w.status ?? 'Open',
+          sla: w.sla ?? w.sla_remaining ?? '—',
+          prio: w.priority ?? 'Normal',
+          assignee: initials(w.assignee_name ?? w.owner_name ?? ''),
+        }))
+        setWorkItems(rows)
+      })
+      .catch((e) => alive && setWorkItemsErr(typeof e === 'number' ? `HTTP ${e}` : 'Work items endpoint unreachable'))
+
+    // Activity feed — try common endpoint, fall back to err state
+    fetch(`${BASE}/api/audit/recent?limit=5`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: any) => {
+        if (!alive) return
+        const arr = Array.isArray(d) ? d : (d?.items ?? [])
+        const rows: ActivityRow[] = arr.slice(0, 5).map((a: any) => ({
+          who: a.actor_name ?? a.user_name ?? 'System',
+          act: a.action ?? a.event ?? 'updated',
+          obj: a.target ?? a.object ?? a.entity ?? '—',
+          t: a.relative_time ?? a.created_at ?? '—',
+        }))
+        setActivity(rows)
+      })
+      .catch(() => alive && setActivityErr('Activity feed endpoint not wired yet'))
+
+    // Revenue/churn — needs a real /api/metrics/revenue endpoint; show empty state for now
+    fetch(`${BASE}/api/metrics/revenue?range=${range}`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: any) => {
+        if (!alive) return
+        const arr = Array.isArray(d?.values) ? d.values : (Array.isArray(d) ? d : null)
+        if (Array.isArray(arr) && arr.length) {
+          setRevenue(arr.map((v: any) => Number(v) || 0))
+        } else {
+          setRevenueErr('No revenue data')
+        }
+      })
+      .catch(() => alive && setRevenueErr('Revenue metrics endpoint not wired yet'))
+
     return () => { alive = false }
-  }, [token, selected])
-
-  if (loading) return <LoadingState />
-  if (denied) return <PermissionDenied message="You don't have permission to view dashboards." />
-  if (error) return <ErrorBanner message={error} onRetry={loadBoards} />
-
-  const activeBoard = boards.find((b) => b.key === selected)
-
-  // Split widgets by type so we can render KPIs in the .kpis strip and everything
-  // else (donut/line/bar/table) into the .cols / full-width cards below. Order is
-  // preserved within each bucket so the board author's intent stays visible.
-  const widgets = data?.widgets ?? []
-  const kpiWidgets = widgets.filter((w) => w.type === 'kpi')
-  const otherWidgets = widgets.filter((w) => w.type !== 'kpi')
+  }, [token, range])
 
   return (
     <div className="view">
       <div className="view-inner gx-dash fade">
-        <ViewHead
-          icon={<ChartIcon size={20} />}
-          title={cfg.title}
-          sub={activeBoard?.description ?? activeBoard?.label ?? 'Live metrics and KPIs'}
-          actions={
-            <div className="seg" role="tablist" aria-label="Range">
-              <button
-                type="button"
-                className={range === '30d' ? 'on' : ''}
-                onClick={() => setRange('30d')}
-                aria-pressed={range === '30d'}
-              >30d</button>
-              <button
-                type="button"
-                className={range === 'qtd' ? 'on' : ''}
-                onClick={() => setRange('qtd')}
-                aria-pressed={range === 'qtd'}
-                title="TODO — backend endpoint does not yet accept a period; QTD/YTD currently show the same data as 30d."
-              >QTD</button>
-              <button
-                type="button"
-                className={range === 'ytd' ? 'on' : ''}
-                onClick={() => setRange('ytd')}
-                aria-pressed={range === 'ytd'}
-                title="TODO — backend endpoint does not yet accept a period; QTD/YTD currently show the same data as 30d."
-              >YTD</button>
-            </div>
-          }
-        />
-
-        {boards.length === 0 && <EmptyState title="No dashboards configured yet." message="Ask an admin to configure a dashboard for your role." />}
-
-        {boards.length > 0 && (
-          <div className="tabs">
-            {boards.map((b) => (
-              <button
-                key={b.key}
-                className={'tab' + (selected === b.key ? ' on' : '')}
-                onClick={() => setSelected(b.key)}
-                title={b.description ?? ''}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {boardLoading && <LoadingState />}
-        {boardError && <ErrorBanner message={boardError} />}
-
-        {!boardLoading && !boardError && data && widgets.length === 0 && (
-          <EmptyState
-            title="This board has no widgets."
-            message="Add widgets in Studio to populate this dashboard."
-          />
-        )}
-
-        {/* KPI strip — first KPI gets the gold marquee accent. Why first?
-            Board authors place their headline metric first by convention (see
-            kit's ModuleDashboard, which marks index 1 of 4 with the gold mark;
-            we follow the same instinct: the first KPI is the one a viewer
-            looks at first, so it earns the accent). */}
-        {kpiWidgets.length > 0 && (
-          <div className="kpis">
-            {kpiWidgets.map((w, i) => (
-              <KpiTile key={w.widget_key} w={w} marquee={i === 0} />
-            ))}
-          </div>
-        )}
-
-        {/* Body — donuts/lines/bars/tables. Two-column when there are at least
-            two non-KPI widgets, otherwise a single full-width card. The kit's
-            `.cols` is 1.6fr / 1fr (chart-heavy on the left, breakdown on the
-            right). Widgets beyond two cascade into additional rows. */}
-        {otherWidgets.length === 1 && (
-          <div className="card" style={{ marginTop: 4 }}>
-            <WidgetCard w={otherWidgets[0]} />
-          </div>
-        )}
-        {otherWidgets.length >= 2 && (
-          <>
-            <div className="cols">
-              <div className="card"><WidgetCard w={otherWidgets[0]} /></div>
-              <div className="card"><WidgetCard w={otherWidgets[1]} /></div>
-            </div>
-            {otherWidgets.slice(2).map((w) => (
-              <div className="card" key={w.widget_key} style={{ marginTop: 18 }}>
-                <WidgetCard w={w} />
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ───────────────────────── KPI tile ─────────────────────────
-// Reads {value, delta?, deltaPositive?, sparkValues?} from the widget result.
-// All extra fields are optional — if the backend only returns {value}, we render
-// the value and skip the delta/spark. (TODO: standardize the KPI payload shape
-// so deltas are returned consistently from every widget evaluator.)
-function KpiTile({ w, marquee }: { w: WidgetOut; marquee?: boolean }) {
-  if (w.error) {
-    return (
-      <div className={'kpi' + (marquee ? ' kpi--marquee' : '')}>
-        <div className="klbl">{w.label}</div>
-        <ErrorBanner message={friendlyError(w.error)} />
-      </div>
-    )
-  }
-  const v = kpiValue(w.result)
-  const r: any = w.result || {}
-  const delta: string | undefined = typeof r.delta === 'string' ? r.delta : undefined
-  const deltaPositive: boolean | undefined =
-    typeof r.deltaPositive === 'boolean' ? r.deltaPositive : undefined
-  const sparkValues: number[] | undefined = Array.isArray(r.sparkValues)
-    ? r.sparkValues.map((n: any) => Number(n) || 0)
-    : undefined
-  const cls = 'kpi' + (marquee ? ' kpi--marquee' : '')
-  return (
-    <div className={cls}>
-      <div className="klbl">{w.label}</div>
-      <div className="kval tnum">{fmtNum(v)}</div>
-      <div className="kfoot">
-        {delta ? (
-          <span className={'kdelta ' + (deltaPositive ? 'up' : 'down')}>
-            {deltaPositive ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />}
-            {delta}
-          </span>
-        ) : (
-          <span className="kdelta" style={{ color: 'var(--gx-text-3)' }}>—</span>
-        )}
-        <Spark
-          values={sparkValues}
-          color={
-            marquee
-              ? 'var(--gx-gold)'
-              : deltaPositive === false
-                ? 'var(--gx-danger)'
-                : 'var(--gx-success)'
-          }
-        />
-      </div>
-    </div>
-  )
-}
-
-// ───────────────────────── Non-KPI widget card ─────────────────────────
-// Wraps a donut/line/bar/table widget with the kit's .card-head + .card-pad chrome.
-function WidgetCard({ w }: { w: WidgetOut }) {
-  return (
-    <>
-      <div className="card-head">
-        <h3>{w.label}</h3>
-      </div>
-      <div className="card-pad">
-        <NonKpiWidget w={w} />
-      </div>
-    </>
-  )
-}
-
-function NonKpiWidget({ w }: { w: WidgetOut }) {
-  if (w.error) return <ErrorBanner message={friendlyError(w.error)} />
-
-  const groups = asGroups(w.result)
-  if (groups.length === 0) return <EmptyState title="No data." />
-
-  if (w.type === 'donut') return <DonutWidget groups={groups} />
-  if (w.type === 'line') return <LineWidget groups={groups} />
-  if (w.type === 'bar') return <BarWidget groups={groups} />
-  if (w.type === 'table') return <GroupTable data={groups} />
-
-  // unknown widget type → safe fallback to bars (same as the previous behaviour)
-  return <BarWidget groups={groups} />
-}
-
-function DonutWidget({ groups }: { groups: Group[] }) {
-  const data: DonutDatum[] = useMemo(
-    () => groups.map((g) => ({ label: g.group, value: g.value })),
-    [groups],
-  )
-  const total = groups.reduce((s, g) => s + g.value, 0)
-  return (
-    <Donut data={data} centerLabel={fmtNum(total)} centerCaption="total" />
-  )
-}
-
-// Renders bar/line widgets as a LineChart for visual consistency with the kit.
-// "Current" is the live series; "Prior" is a stubbed comparison until the backend
-// returns prior-period data. We mark Prior as dashed so it's visually distinct
-// without claiming it's real data.
-function LineWidget({ groups }: { groups: Group[] }) {
-  const values = groups.map((g) => g.value)
-  const prior = values.map((v) => Math.round(v * 0.86)) // TODO: real prior-period series
-  return (
-    <LineChart
-      series={[
-        { label: 'Current', values, color: 'var(--viz-1)', fillUnder: true },
-        { label: 'Prior (stub)', values: prior, color: 'var(--viz-2)', dashed: true },
-      ]}
-    />
-  )
-}
-
-// Keeps the original "bars" feel for `bar` widgets (categorical breakdown) by
-// reusing the inline CSS `.bars` rules that already exist in styles.css.
-function BarWidget({ groups }: { groups: Group[] }) {
-  const max = groups.reduce((m, d) => Math.max(m, d.value), 0)
-  return (
-    <div className="bars">
-      {groups.map((d, i) => (
-        <div key={i} className="bar-row">
-          <span className="bar-label" title={d.group}>{d.group}</span>
-          <div className="bar-track">
-            <div className="bar-fill" style={{ width: (max > 0 ? (d.value / max) * 100 : 0) + '%' }} />
-          </div>
-          <span className="bar-val">{fmtNum(d.value)}</span>
+        <div className="crumbs">
+          <span>Home</span>
+          <span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>Operations Dashboard</span>
         </div>
-      ))}
+
+        <div className="view-head">
+          <div className="vh-ic"><BarChart3 size={20} /></div>
+          <div>
+            <h1>Operations Dashboard</h1>
+            <div className="sub">Live across all modules</div>
+          </div>
+          <span className="spacer" />
+          <div className="seg">
+            <button className={range === '30d' ? 'on' : ''} onClick={() => setRange('30d')}>30d</button>
+            <button className={range === 'qtd' ? 'on' : ''} onClick={() => setRange('qtd')}>QTD</button>
+            <button className={range === 'ytd' ? 'on' : ''} onClick={() => setRange('ytd')}>YTD</button>
+          </div>
+          {onGoStudio && (
+            <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+              <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
+            </button>
+          )}
+          <button className="btn btn-secondary btn-sm"><Download size={14} />Export</button>
+        </div>
+
+        <div className="kpis">
+          {kpis.map(k => (
+            <div className="kpi" key={k.label}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span className="klbl">{k.label}</span>
+                <span className="spacer" />
+                <span style={{ color: k.accent ? 'var(--gx-gold)' : 'var(--gx-text-3)' }}>{k.icon}</span>
+              </div>
+              <div className="kval tnum">
+                {k.value ?? (k.unavailable ? <span style={{ color: 'var(--gx-text-3)', fontSize: 18 }}>—</span> : <span className="kpi-skeleton" />)}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 22 }}>
+                {k.delta ? (
+                  <span className={'pill ' + (k.up ? 'pill-success' : 'pill-danger')}>
+                    {k.up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}{k.delta}
+                  </span>
+                ) : k.unavailable ? (
+                  <span className="hint" style={{ fontSize: 11 }}>{k.unavailable}</span>
+                ) : null}
+                {k.spark && k.spark.length > 0 && (
+                  <Spark
+                    values={k.spark}
+                    color={k.accent ? 'var(--gx-gold)' : (k.up ? 'var(--gx-success)' : 'var(--gx-danger)')}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="cols">
+          <div className="card">
+            <div className="card-head">
+              <BarChart3 size={16} style={{ color: 'var(--gx-text-3)' }} />
+              <h3>Revenue vs. churn</h3>
+              <span className="spacer" />
+              <span className="pill pill-neutral">{range}</span>
+            </div>
+            <div className="card-pad">
+              {revenue ? <RevenueBars data={revenue} /> : (
+                <div className="stub">
+                  <div className="si"><BarChart3 size={26} /></div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{revenueErr ?? 'Loading…'}</div>
+                  <p className="hint" style={{ maxWidth: 320, lineHeight: 1.6 }}>
+                    Wire <code className="mono">/api/metrics/revenue?range=…</code> to populate this chart.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head">
+              <Activity size={16} style={{ color: 'var(--gx-text-3)' }} />
+              <h3>Recent activity</h3>
+            </div>
+            <div style={{ padding: '6px 0', minHeight: 180 }}>
+              {activity === null && activityErr === null && <div className="stub" style={{ padding: 24 }}><p className="hint">Loading…</p></div>}
+              {activity && activity.length === 0 && <div className="stub" style={{ padding: 24 }}><p className="hint">No recent activity.</p></div>}
+              {activity && activity.length > 0 && activity.map((a, i) => (
+                <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '10px 18px' }}>
+                  <span style={{
+                    width: 28, height: 28, borderRadius: 'var(--gx-radius-sm)',
+                    background: 'var(--gx-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--gx-text-2)', flexShrink: 0,
+                  }}><Activity size={15} /></span>
+                  <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                    <span style={{ fontWeight: 600 }}>{a.who}</span>{' '}
+                    <span style={{ color: 'var(--gx-text-2)' }}>{a.act}</span>{' '}
+                    <span className="mono" style={{ color: 'var(--gx-link)' }}>{a.obj}</span>
+                    <div className="hint" style={{ fontSize: 11 }}>{a.t}</div>
+                  </div>
+                </div>
+              ))}
+              {activityErr && (
+                <div className="stub" style={{ padding: 24 }}>
+                  <div className="si"><Activity size={26} /></div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{activityErr}</div>
+                  <p className="hint" style={{ maxWidth: 320, lineHeight: 1.6 }}>
+                    Wire <code className="mono">/api/audit/recent</code> to populate this feed.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 18 }}>
+          <div className="card-head">
+            <Inbox size={16} style={{ color: 'var(--gx-text-3)' }} />
+            <h3>Tickets needing attention</h3>
+            <span className="spacer" />
+            <button className="btn btn-ghost btn-sm">View all<ArrowRight size={14} /></button>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            {workItems === null && !workItemsErr && <div className="stub" style={{ padding: 24 }}><p className="hint">Loading…</p></div>}
+            {workItemsErr && (
+              <div className="stub" style={{ padding: 24 }}>
+                <div className="si"><Inbox size={26} /></div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{workItemsErr}</div>
+              </div>
+            )}
+            {workItems && workItems.length === 0 && (
+              <div className="stub" style={{ padding: 24 }}>
+                <div className="si"><Inbox size={26} /></div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>No open tickets.</div>
+              </div>
+            )}
+            {workItems && workItems.length > 0 && (
+              <table className="grid">
+                <thead><tr>
+                  <th>Ticket</th><th>Subject</th><th>Status</th><th>SLA</th><th>Priority</th><th>Owner</th>
+                </tr></thead>
+                <tbody>
+                  {workItems.map(r => (
+                    <tr key={r.id}>
+                      <td className="mono" style={{ color: 'var(--gx-link)' }}>{r.id}</td>
+                      <td style={{ maxWidth: 320 }}>{r.subject}</td>
+                      <td><StatusPill variant={mapWorkStatus(r.status)} label={r.status} size="sm" /></td>
+                      <td className="mono tnum" style={{
+                        color: r.sla === '—' ? 'var(--gx-text-3)' : (r.sla < '01:00' ? 'var(--gx-danger-fg)' : 'var(--gx-text-2)'),
+                      }}>{r.sla}</td>
+                      <td><StatusPill variant={mapPriority(r.prio)} label={r.prio} size="sm" /></td>
+                      <td><span className="avatar" style={{ width: 24, height: 24, fontSize: 10 }}>{r.assignee}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-function GroupTable({ data }: { data: Group[] }) {
+function RevenueBars({ data }: { data: number[] }) {
+  const max = Math.max(...data, 1)
   return (
-    <div className="grid-wrap"><table className="grid">
-      <thead><tr><th scope="col">Group</th><th scope="col">Value</th></tr></thead>
-      <tbody>
-        {data.map((d, i) => (
-          <tr key={i}><td>{d.group}</td><td>{fmtNum(d.value)}</td></tr>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 160, padding: '4px 0' }}>
+        {data.map((v, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 2, height: '100%' }}>
+            <div style={{ height: (v / max * 100) + '%', background: 'linear-gradient(180deg,var(--azure-400),var(--azure-600))', borderRadius: '4px 4px 0 0' }} />
+          </div>
         ))}
-      </tbody>
-    </table></div>
+      </div>
+      <div style={{ display: 'flex', gap: 18, marginTop: 12, fontSize: 11, color: 'var(--gx-text-3)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--azure-500)' }} />Revenue
+        </span>
+      </div>
+    </div>
   )
 }
