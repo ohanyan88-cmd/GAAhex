@@ -4,6 +4,35 @@
 > Read this → `git pull` → `git status` → continue from "What's next".
 > Repo: `ohanyan88-cmd/Portal` (sandbox copy of GAAex).
 
+## ⚠️ ACTIVE: REPORT-ALL.md in progress (2026-05-31, second attempt)
+
+7 parallel agents were launched to produce per-section reports. Each agent commits its file
+to `handoff/REPORT-S*.md` before returning. **Check git log first:**
+
+```
+git log --oneline -20 | grep "REPORT-S"
+ls handoff/REPORT-S*.md
+```
+
+**Expected files (one per agent):**
+- `handoff/REPORT-S1-WORKSPACE.md` — §1 Workspace (6 pages)
+- `handoff/REPORT-S2-CRM.md` — §2 CRM & Commercial (13 pages)
+- `handoff/REPORT-S3-ORDERS.md` — §3 Orders & Revenue (5 pages)
+- `handoff/REPORT-S4-CARE.md` — §4 Customer Care (9 pages)
+- `handoff/REPORT-S5-NETOPS.md` — §5 Network & Ops (12 pages)
+- `handoff/REPORT-S6S7-ANALYTICS-ENTERPRISE.md` — §6+§7 (11 pages)
+- `handoff/REPORT-S8S9-SYSTEM-STUDIO.md` — §8+§9 (5 pages + Studio)
+
+**If some are missing:** re-run only the missing sections (see agent prompts in the previous
+session's HANDOFF context), then synthesize.
+
+**Synthesis step (after all 7 files exist):**
+Read all 7 REPORT-S*.md files, concatenate them in section order, prepend a master summary
+table (every page → ✅/⚠️/❌/🚫 + one-line note), write to `handoff/REPORT-ALL.md`,
+commit + push.
+
+Backend is at http://127.0.0.1:8099 · login admin@demo.isp / admin123
+
 ## Stack-up commands
 ```
 docker start gaaex-db gaaex-redis
