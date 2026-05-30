@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
 import { createRecord, transitionRecord } from '../lib/api'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+// StatusPill removed — using inline kit board-card pattern instead
 import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import {
   PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon,
-  CloseIcon, UsersIcon, SearchIcon,
+  CloseIcon, UsersIcon, SearchIcon, EditIcon, FilterIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import FieldInput, { type Field } from '../components/FieldInput'
-import { StatusPill } from '../primitives'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the DESIGN prototype:
 // live /api/leads data, token theming, SVG icons, metadata-driven lifecycle
@@ -25,17 +25,6 @@ type Lead = { id: string; status: string | null; name?: string; phone?: string; 
 type Score = { score: number; band: 'hot' | 'warm' | 'cold'; reasons: string[] }
 
 const SLUG = 'leads'
-
-// Map a lead status key to a StatusPill variant. Statuses are configurable so this only
-// tints common verbs; everything unknown falls through to `info` (the neutral cobalt pill).
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
-function mapLeadStatus(key: string | null | undefined): PillVariant {
-  const k = (key ?? '').toUpperCase()
-  if (['QUALIFIED', 'CONVERTED', 'ACTIVE', 'WON'].includes(k)) return 'active'
-  if (['LOST', 'CHURNED', 'CANCELLED'].includes(k)) return 'critical'
-  if (['NEW', 'DRAFT', 'PROSPECT', 'OPEN'].includes(k)) return 'neutral'
-  return 'info'
-}
 
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
@@ -136,22 +125,12 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
   }
 
   if (denied) return <PermissionDenied message={t('leads.denied', "You don't have permission to view leads.")} />
-  if (loading) {
-    return (
-      <div className="view">
-        <div className="view-inner fade">
-          <div className="muted" style={{ padding: 24 }}>{t('common.loading', 'Loading…')}</div>
-        </div>
-      </div>
-    )
-  }
 
   const allLeads = leads ?? []
   const open = allLeads.filter((l) => !['CONVERTED', 'LOST'].includes((l.status || '').toUpperCase())).length
   const converted = allLeads.filter((l) => (l.status || '').toUpperCase() === 'CONVERTED').length
   const lost = allLeads.filter((l) => (l.status || '').toUpperCase() === 'LOST').length
 
-  // Client-side search filter
   const q = search.trim().toLowerCase()
   const filteredLeads = q
     ? allLeads.filter((l) =>
@@ -162,228 +141,180 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
       )
     : allLeads
 
+  const COL_TONE: Record<string, string> = {
+    NEW: 'var(--gx-info)', OPEN: 'var(--gx-neutral)', QUALIFIED: 'var(--gx-info)',
+    NEGOTIATION: 'var(--gx-warning)', WON: 'var(--gx-success)', CONVERTED: 'var(--gx-success)',
+    LOST: 'var(--gx-danger)',
+  }
+
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs">
-          <span>CRM</span><span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{t('leads.pipeline', 'Lead Pipeline')}</span>
-        </div>
-
-        <ViewHead
-          icon={<ArrowRightIcon size={18} />}
-          title={t('leads.pipeline', 'Lead Pipeline')}
-          sub={t('leads.pipelineSub', `Workflow configured in Studio › Statuses › lead · ${columns.length} stages`)}
-          actions={
-            <button className="btn btn-primary btn-sm" onClick={() => setShowNew((v) => !v)}>
-              <PlusIcon size={13} /> {t('leads.new', 'New lead')}
-            </button>
-          }
-        />
-
-        {/* KPI strip — quick counts derived from the loaded list */}
-        {allLeads.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">{t('leads.open', 'Open')}</div>
-              <div className="kpi" style={{ fontSize: 28 }}>{open}</div>
-              <div className="kpi-sub">in pipeline</div>
-            </div>
-            <div className="widget">
-              <div className="widget-label">{t('leads.converted', 'Converted')}</div>
-              <div className="kpi" style={{ fontSize: 28, color: 'var(--success)' }}>{converted}</div>
-              <div className="kpi-sub">won</div>
-            </div>
-            <div className="widget">
-              <div className="widget-label">{t('leads.lost', 'Lost')}</div>
-              <div className="kpi" style={{ fontSize: 28, color: 'var(--danger)' }}>{lost}</div>
-              <div className="kpi-sub">closed-lost</div>
-            </div>
-          </div>
-        )}
-
-        {/* Toolbar — search row */}
-        <div className="toolbar">
-          <div className="tb-search" style={{ width: 320 }}>
-            <SearchIcon size={14} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('leads.search', 'Search leads…')}
-              aria-label={t('leads.search', 'Search leads')}
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                aria-label={t('common.clear', 'Clear search')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gx-text-3)', display: 'flex', alignItems: 'center' }}
-              >
-                <CloseIcon size={12} />
-              </button>
-            )}
-          </div>
-          <span className="spacer" />
-        </div>
-
-        {error && <ErrorBanner message={error} onRetry={() => { setError(''); load() }} />}
-
-        {/* New lead inline form — fields generated from the lead entity's Studio config (not hand-coded) */}
-        {showNew && def && (
-          <form className="rec-form" onSubmit={createLead} style={{ marginBottom: 14 }}>
-            {def.fields.filter((f) => f.type !== 'status').map((f) => (
-              <FieldInput
-                key={f.key}
-                field={f}
-                token={token}
-                mode="creating"
-                currentStatus={null}
-                errorField={null}
-                errorMsg=""
-                value={form[f.key]}
-                onChange={(v) => setForm({ ...form, [f.key]: v })}
-              />
-            ))}
-            <div className="rec-form-actions">
-              <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setShowNew(false)}>
-                <CloseIcon size={14} /> {t('common.cancel', 'Cancel')}
-              </button>
-              <button className="btn btn-primary btn-sm" type="submit" disabled={saving || !canSubmit}>
-                {saving ? t('common.saving', 'Saving…') : t('common.add', 'Add')}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {filteredLeads.length === 0 && !showNew
-          ? (
-            <EmptyState
-              title={t('leads.emptyTitle', 'No leads yet')}
-              message={t('leads.empty', 'Create the first one to start the pipeline.')}
-            />
-          )
-          : (
-            /* DESIGN kanban: .kanban grid > .kcol columns > .kcard cards */
-            <div className="kanban">
-              {columns.map((col) => {
-                const items = filteredLeads.filter((l) => (l.status ?? (col.is_initial ? col.key : null)) === col.key)
-                return (
-                  <div className="kcol" key={col.key}>
-                    {/* Column header: StatusPill + count badge */}
-                    <div className="kcol-head">
-                      <StatusPill variant={mapLeadStatus(col.key)} label={col.label} size="sm" />
-                      <span className="kcol-count">{items.length}</span>
-                    </div>
-
-                    <div className="kcol-body">
-                      {items.map((lead) => {
-                        const sc = scores[lead.id]
-                        return (
-                          <div className="kcard" key={lead.id}>
-                            {/* Card title row: avatar + name + AI score badge */}
-                            <div className="kcard-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span
-                                className="kcard-avatar"
-                                style={{ width: 26, height: 26, fontSize: 10, fontWeight: 700, flexShrink: 0 }}
-                              >
-                                {initials(lead.name || '')}
-                              </span>
-                              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {lead.name || t('leads.unnamed', 'Unnamed lead')}
-                              </span>
-                              {sc && sc !== 'loading' && sc !== 'error' && (
-                                <span
-                                  className={`score-badge score-${sc.band}`}
-                                  title={(sc.reasons ?? []).join(' · ')}
-                                  style={{ flexShrink: 0 }}
-                                >
-                                  {sc.score}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Contact meta row */}
-                            <div className="kcard-meta">
-                              {lead.source && <span>{lead.source}</span>}
-                              {lead.phone && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                  <PhoneIcon size={11} /> <span className="mono">{lead.phone}</span>
-                                </span>
-                              )}
-                              {lead.email && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                  <MailIcon size={11} /> <span className="mono">{lead.email}</span>
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Card footer: actions */}
-                            <div className="kcard-foot" style={{ flexWrap: 'wrap', gap: 6 }}>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => scoreLead(lead.id)}
-                                disabled={sc === 'loading'}
-                                title={t('leads.aiScore', 'AI lead score')}
-                                style={{ fontSize: 11 }}
-                              >
-                                <SparkleIcon size={12} />
-                                {sc === 'loading'
-                                  ? t('common.loading', 'Loading…')
-                                  : sc === 'error'
-                                  ? t('leads.scoreNA', 'n/a')
-                                  : sc
-                                  ? sc.band
-                                  : t('leads.score', 'Score')}
-                              </button>
-                              {nextFrom(lead.status).map((to) => (
-                                <button
-                                  key={to}
-                                  className="btn btn-ghost btn-sm"
-                                  onClick={() => move(lead.id, to)}
-                                  disabled={busy === lead.id}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  <ArrowRightIcon size={12} /> {labelOf(to)}
-                                </button>
-                              ))}
-                              {!convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
-                                <button
-                                  className="btn btn-primary btn-sm"
-                                  onClick={() => convert(lead)}
-                                  disabled={converting === lead.id}
-                                  title={t('leads.convert', 'Convert to customer')}
-                                  style={{ fontSize: 11 }}
-                                >
-                                  <UsersIcon size={12} />
-                                  {converting === lead.id
-                                    ? t('leads.converting', 'Converting…')
-                                    : t('leads.convert', 'Convert')}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                      {items.length === 0 && (
-                        <div style={{
-                          padding: 16,
-                          textAlign: 'center',
-                          color: 'var(--gx-text-3)',
-                          fontSize: 12,
-                          borderRadius: 6,
-                          border: '1px dashed var(--gx-border)',
-                        }}>
-                          {t('leads.dropHere', 'No leads in this stage')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+    <div className="view-inner fade">
+      <div className="crumbs">
+        <span>CRM</span><span className="sep">/</span>
+        <span style={{ color: 'var(--gx-text-1)' }}>{t('leads.pipeline', 'Lead Pipeline')}</span>
       </div>
+
+      <ViewHead
+        icon={<ArrowRightIcon size={18} />}
+        title={t('leads.pipeline', 'Lead Pipeline')}
+        sub={loading ? 'Loading…' : `${columns.length} stage${columns.length === 1 ? '' : 's'} · workflow configured in Studio`}
+        actions={
+          <>
+            <button className="btn btn-ghost btn-sm hide-sm" onClick={() => {/* wire configure page */}}>
+              <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
+            </button>
+            <button className="btn btn-secondary btn-sm hide-sm" onClick={() => {/* wire filter */}}>
+              <FilterIcon size={14} />Filter
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowNew((v) => !v)}>
+              <PlusIcon size={13} />{t('leads.new', 'New lead')}
+            </button>
+          </>
+        }
+      />
+
+      {/* KPI strip — real counts from loaded data */}
+      {!loading && allLeads.length > 0 && (
+        <div className="kpis" style={{ marginBottom: 18 }}>
+          <div className="kpi">
+            <div className="klbl">{t('leads.open', 'Open')}</div>
+            <div className="kval tnum">{open}</div>
+            <div className="kfoot"><span className="hint" style={{ fontSize: 11 }}>in pipeline</span></div>
+          </div>
+          <div className="kpi kpi--marquee">
+            <div className="klbl">{t('leads.converted', 'Converted')}</div>
+            <div className="kval tnum">{converted}</div>
+            <div className="kfoot"><span className="hint" style={{ fontSize: 11 }}>won</span></div>
+          </div>
+          <div className="kpi">
+            <div className="klbl">{t('leads.lost', 'Lost')}</div>
+            <div className="kval tnum">{lost}</div>
+            <div className="kfoot"><span className="hint" style={{ fontSize: 11 }}>closed-lost</span></div>
+          </div>
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div className="tb-search" style={{ width: 280 }}>
+          <SearchIcon size={15} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('leads.search', 'Search leads…')}
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
+          />
+          {search && <button onClick={() => setSearch('')} className="tb-icon" style={{ width: 22, height: 22 }}><CloseIcon size={12} /></button>}
+        </div>
+        <span className="spacer" />
+      </div>
+
+      {error && <ErrorBanner message={error} onRetry={() => { setError(''); load() }} />}
+      {loading && <div className="hint" style={{ padding: 24 }}>{t('common.loading', 'Loading…')}</div>}
+
+      {/* New lead inline form — config-driven from Studio entity fields */}
+      {showNew && def && (
+        <form className="rec-form" onSubmit={createLead} style={{ marginBottom: 14 }}>
+          {def.fields.filter((f) => f.type !== 'status').map((f) => (
+            <FieldInput
+              key={f.key}
+              field={f}
+              token={token}
+              mode="creating"
+              currentStatus={null}
+              errorField={null}
+              errorMsg=""
+              value={form[f.key]}
+              onChange={(v) => setForm({ ...form, [f.key]: v })}
+            />
+          ))}
+          <div className="rec-form-actions">
+            <span className="spacer" />
+            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setShowNew(false)}>
+              <CloseIcon size={14} />{t('common.cancel', 'Cancel')}
+            </button>
+            <button className="btn btn-primary btn-sm" type="submit" disabled={saving || !canSubmit}>
+              {saving ? t('common.saving', 'Saving…') : t('common.add', 'Add')}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {!loading && filteredLeads.length === 0 && !showNew && (
+        <EmptyState
+          title={t('leads.emptyTitle', 'No leads yet')}
+          message={t('leads.empty', 'Create the first one to start the pipeline.')}
+        />
+      )}
+
+      {!loading && (filteredLeads.length > 0 || showNew) && columns.length > 0 && (
+        <div className="board-grid">
+          {columns.map((col) => {
+            const items = filteredLeads.filter((l) => (l.status ?? (col.is_initial ? col.key : null)) === col.key)
+            const tone = COL_TONE[col.key.toUpperCase()] ?? 'var(--gx-neutral)'
+            return (
+              <div key={col.key} className="board-col">
+                <div className="board-col-head">
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: tone }} />
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{col.label}</span>
+                  <span className="badge" style={{ background: 'var(--gx-surface-2)', color: 'var(--gx-text-3)', marginLeft: 'auto' }}>{items.length}</span>
+                  <button className="btn btn-ghost btn-sm btn-icon" style={{ width: 22, height: 22 }} onClick={() => setShowNew(true)}>
+                    <PlusIcon size={13} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {items.map((lead) => {
+                    const sc = scores[lead.id]
+                    return (
+                      <div key={lead.id} className="board-card">
+                        <div className="mono" style={{ fontSize: 11, color: 'var(--gx-link)', marginBottom: 6 }}>
+                          {lead.id?.slice(0, 12)}
+                        </div>
+                        <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 10 }}>
+                          {lead.name || t('leads.unnamed', 'Unnamed lead')}
+                        </div>
+                        {(lead.source || lead.phone || lead.email) && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
+                            {lead.source && <span>{lead.source}</span>}
+                            {lead.phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><PhoneIcon size={10} /><span className="mono">{lead.phone}</span></span>}
+                            {lead.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><MailIcon size={10} /><span className="mono">{lead.email}</span></span>}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>{initials(lead.name || '')}</span>
+                          {sc && sc !== 'loading' && sc !== 'error' && (
+                            <span className={'pill ' + (sc.band === 'hot' ? 'pill-danger' : sc.band === 'warm' ? 'pill-warning' : 'pill-muted')} style={{ height: 18, marginLeft: 'auto' }} title={(sc.reasons ?? []).join(' · ')}>
+                              {sc.band}
+                            </span>
+                          )}
+                          <button className="btn btn-ghost btn-sm btn-icon" title={t('leads.aiScore', 'AI score')} onClick={() => scoreLead(lead.id)} disabled={sc === 'loading'} style={{ width: 22, height: 22 }}>
+                            <SparkleIcon size={12} />
+                          </button>
+                          {nextFrom(lead.status).map((to) => (
+                            <button key={to} className="btn btn-ghost btn-sm" onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 11 }}>
+                              <ArrowRightIcon size={11} />{labelOf(to)}
+                            </button>
+                          ))}
+                          {!convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
+                            <button className="btn btn-primary btn-sm" onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 11 }}>
+                              <UsersIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {items.length === 0 && (
+                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 12, borderRadius: 6, border: '1px dashed var(--gx-border)' }}>
+                      No leads in this stage
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
