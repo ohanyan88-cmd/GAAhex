@@ -3,10 +3,10 @@ import { bget, bpost, type Party } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  UsersIcon, SearchIcon, PlusIcon, DownloadIcon,
+  UsersIcon, SearchIcon, PlusIcon, DownloadIcon, GearIcon,
 } from '../components/icons'
 import {
-  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
@@ -38,7 +38,7 @@ function MoreVerticalIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-export default function PartiesView({ token, canConfigure = false, onGoStudio }: { token: string; canConfigure?: boolean; onGoStudio?: () => void }) {
+export default function PartiesView({ token, canConfigure = false, onConfigure }: { token: string; canConfigure?: boolean; onConfigure?: () => void }) {
   const { t } = useI18n()
   const [list, setList] = useState<Party[] | null>(null)
   const [error, setError] = useState('')
@@ -153,9 +153,9 @@ export default function PartiesView({ token, canConfigure = false, onGoStudio }:
           actions={
             !unavailable && (
               <>
-                {canConfigure && onGoStudio && (
-                  <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-                    <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                {canConfigure && onConfigure && (
+                  <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
                   </button>
                 )}
                 <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} part${sorted.length !== 1 ? 'ies' : 'y'}`)}>

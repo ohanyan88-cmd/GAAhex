@@ -5,9 +5,9 @@ import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
-import { ReceiptIcon, PrinterIcon, CreditCardIcon } from '../components/icons'
+import { ReceiptIcon, PrinterIcon, CreditCardIcon, GearIcon } from '../components/icons'
 import {
-  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight, Search, X,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
@@ -147,7 +147,7 @@ function colTdClass(colKey: string): string {
   return ''
 }
 
-export default function InvoicesView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
+export default function InvoicesView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'invoices', configVersion)
   const [list, setList] = useState<Invoice[] | null>(null)
@@ -308,9 +308,9 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
                   {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
                 </button>
               )}
-              {canConfigure && onGoStudio && (
-                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title={t('common.configurePageTitle', 'Configure this page')}>
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> {t('common.configurePage', 'Configure page')}
                 </button>
               )}
               <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} invoice(s)`)}>

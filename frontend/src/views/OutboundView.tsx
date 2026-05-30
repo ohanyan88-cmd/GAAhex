@@ -214,7 +214,9 @@ function ComposeModal({
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function OutboundView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+// P1 note: OutboundView has no `.view-head`/ViewHead surface today, so the Configure
+// gear isn't rendered here yet — props are accepted so App.tsx can wire it uniformly.
+export default function OutboundView({ token, configVersion = 0, canConfigure: _canConfigure = false, onConfigure: _onConfigure }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'outbound', configVersion)
   const [list, setList] = useState<Outbound[] | null>(null)
   const [channel, setChannel] = useState('')

@@ -6,10 +6,10 @@ import { timeAgo } from '../lib/time'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  InfoIcon, ServerIcon, SearchIcon, PlusIcon, DownloadIcon,
+  InfoIcon, ServerIcon, SearchIcon, PlusIcon, DownloadIcon, GearIcon,
 } from '../components/icons'
 import {
-  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
@@ -67,7 +67,7 @@ function maskSecret(secret: string | null | undefined) {
   return '••••' + secret.slice(-4)
 }
 
-export default function WebhooksView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
+export default function WebhooksView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'webhooks', configVersion)
   const [list, setList] = useState<Webhook[] | null>(null)
   const cf = useCustomFields(token, 'webhooks', cfg.customFields, (list ?? []).map((w) => w.id))
@@ -209,9 +209,9 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
           sub={`${all.length} endpoint${all.length !== 1 ? 's' : ''} · event subscriptions · signed deliveries`}
           actions={!unavailable && (
             <>
-              {canConfigure && onGoStudio && (
-                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
                 </button>
               )}
               <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} webhook(s)`)}>

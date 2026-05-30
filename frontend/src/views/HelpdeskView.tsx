@@ -12,7 +12,7 @@ import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
   InboxIcon, ArrowRightIcon, ChevronLeftIcon, SearchIcon, PlusIcon,
-  DownloadIcon, ArrowUpIcon, ArrowDownIcon, CheckIcon, CloseIcon,
+  DownloadIcon, ArrowUpIcon, ArrowDownIcon, CheckIcon, CloseIcon, GearIcon,
 } from '../components/icons'
 import { UserPlus } from 'lucide-react'
 import { usePageConfig } from '../lib/pageConfig'
@@ -110,7 +110,7 @@ const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function HelpdeskView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function HelpdeskView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'helpdesk', configVersion)
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
@@ -278,6 +278,11 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
           sub={`${totalAll} record${totalAll === 1 ? '' : 's'} · ${queues.length} queue${queues.length === 1 ? '' : 's'}${selectedQueue ? ` · ${queues.find((q) => q.id === selectedQueue)?.name ?? ''}` : ''}`}
           actions={
             <>
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                </button>
+              )}
               {canConfigure && (
                 <Button variant="ghost" size="sm" leftIcon={PlusIcon} onClick={() => setCreateQueueOpen(true)}>
                   New queue

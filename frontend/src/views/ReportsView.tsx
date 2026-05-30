@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { DownloadIcon, EditIcon } from '../components/icons'
+import { DownloadIcon, GearIcon } from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
@@ -47,7 +47,7 @@ function normalizeByStatus(raw: any): StatusCount[] {
 
 const fmtNum = (n: number) => n.toLocaleString('en-US')
 
-export default function ReportsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+export default function ReportsView({ token, configVersion = 0, canConfigure = false, onConfigure }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'reports', configVersion)
   const [summary, setSummary] = useState<Summary[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,9 +118,11 @@ export default function ReportsView({ token, configVersion = 0 }: { token: strin
             ? `${summary.length} entity type${summary.length === 1 ? '' : 's'} · ${fmtNum(totalReportable)} record${totalReportable === 1 ? '' : 's'}`
             : 'Reports across configured entities'}
           actions={
-            <button className="btn btn-ghost btn-sm hide-sm" onClick={() => {/* wire configure page */}}>
-              <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
-            </button>
+            canConfigure && onConfigure ? (
+              <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
+                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+              </button>
+            ) : null
           }
         />
 

@@ -32,11 +32,10 @@ import CalendarView from './views/CalendarView'
 import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
-import { useI18n, initI18n, type Lang } from './lib/i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, SparkleIcon,
-  ChevronRightIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon,
-  ArrowRightIcon, ReceiptIcon, InboxIcon, CalendarIcon, EditIcon } from './components/icons'
-import { PanelLeft, Search, Plus, Bell, HelpCircle, Wand, LogIn, Shield } from 'lucide-react'
+import { useI18n, initI18n } from './lib/i18n'
+import { RowsIcon, SparkleIcon,
+  ChevronRightIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon } from './components/icons'
+import { PanelLeft, Wand, LogIn, Shield } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
@@ -143,16 +142,23 @@ export default function App() {
   // Either kind of config makes the header "Configure page" button appear.
   const canConfigureThisPage = configSlug != null || pageConfigKey != null
 
+  // P1: each view renders its own Configure-page button in its `.view-head`; the click
+  // is wired here so the same drawer logic (entity-config vs bespoke page-config) lives
+  // in one place. The callback only resolves at click time — no stale closure issues.
+  const openConfigure = () => {
+    if (configSlug) setCfgSlug(configSlug)
+    else if (pageConfigKey) setCfgPageKey(pageConfigKey)
+  }
+
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [createMenuOpen, setCreateMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   // Account-menu modals (My Profile, Security, and SUPPORT items).
   const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
-  const { t, lang, setLang } = useI18n()
+  const { t } = useI18n()
 
   // Collapsible nav section state — pre-open sections marked defaultOpen in nav-config
   const [openSections, setOpenSections] = useState<Set<string>>(
@@ -211,14 +217,7 @@ export default function App() {
     }
   }, [userMenuOpen])
 
-  // Close create menu on Escape
-  useEffect(() => {
-    if (!createMenuOpen) return
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setCreateMenuOpen(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [createMenuOpen])
-
+  // theme + setTheme are consumed by the user-menu theme toggle (P5 UserMenu).
   const [theme, setTheme] = useState<'dark' | 'light'>(
     () => (localStorage.getItem('gaaex-theme') === 'light' ? 'light' : 'dark'),
   )
@@ -423,74 +422,16 @@ export default function App() {
             <PanelLeft size={18} />
           </button>
 
-          <button className="tb-search" onClick={() => { /* TODO command palette */ }}>
-            <Search size={15} />
-            <span style={{ fontSize: 13 }}>Search or run a command…</span>
-            <span className="kbd">⌘K</span>
-          </button>
-
           <span className="spacer" />
 
-          {user?.can_configure && canConfigureThisPage && view.type !== 'studio' && (
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => { if (configSlug) setCfgSlug(configSlug); else if (pageConfigKey) setCfgPageKey(pageConfigKey) }}
-              title={t('common.configurePageTitle', 'Configure this page')}
-            >
-              <GearIcon size={13} /> {t('common.configurePage', 'Configure page')}
-            </button>
-          )}
-
-          <div style={{ position: 'relative' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => setCreateMenuOpen(v => !v)}>
-              <Plus size={14} /> Create
-            </button>
-            {createMenuOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 'var(--gx-z-modal)' }} onClick={() => setCreateMenuOpen(false)} />
-                <div className="menu fade-fast" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, minWidth: 200, zIndex: 'var(--gx-z-modal)' }} onClick={() => setCreateMenuOpen(false)}>
-                  <div className="menu-label">Quick create</div>
-                  <button className="menu-item" onClick={() => { setView({ type: 'lead-pipeline' }); }}><ArrowRightIcon size={15} />New lead</button>
-                  <button className="menu-item" onClick={() => { setView({ type: 'entity', slug: 'customers' }); }}><UsersIcon size={15} />New customer</button>
-                  <button className="menu-item" onClick={() => { setView({ type: 'invoices' }); }}><ReceiptIcon size={15} />New invoice</button>
-                  <button className="menu-item" onClick={() => { setView({ type: 'helpdesk' }); }}><InboxIcon size={15} />New ticket</button>
-                  <button className="menu-item" onClick={() => { setView({ type: 'calendar' }); }}><CalendarIcon size={15} />New event</button>
-                  <div className="menu-sep" />
-                  <button className="menu-item" onClick={() => { setView({ type: 'studio' }); }}><EditIcon size={15} />New entity in Studio</button>
-                </div>
-              </>
-            )}
-          </div>
-
-          <button
-            className="tb-icon"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
-            aria-label={t('common.toggleTheme', 'Toggle theme')}
-          >
-            {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-          </button>
-
-          <button className="tb-icon" aria-label="Help">
-            <HelpCircle size={18} />
-          </button>
-
-          {/* Notifications — wraps the existing NotificationCenter; visual is a tb-icon with red dot. */}
+          {/* Notifications — wraps the existing NotificationCenter; visual is a tb-icon with red dot.
+              P1 keeps this entry as-is; P4 replaces it with the new NotificationBell component. */}
           <div className="tb-icon" style={{ position: 'relative' }} aria-label="Notifications">
             <NotificationCenter
               token={token}
               entities={entities}
               onOpen={(slug) => setView({ type: 'entity', slug })}
             />
-          </div>
-
-          {/* Language — kept inline next to the user chip so all existing locale UX is preserved. */}
-          <div className="lang-switch" role="group" aria-label={t('common.language', 'Language')}>
-            {([['en', 'EN'], ['hy', 'AM'], ['ru', 'RU']] as Array<[Lang, string]>).map(([l, label]) => (
-              <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
-                {label}
-              </button>
-            ))}
           </div>
 
           <div id="user-menu" className="user-menu" style={{ position: 'relative' }}>
@@ -511,7 +452,9 @@ export default function App() {
               {userMenuOpen && (
                 /* Account menu — PERSONAL scope only. Boundary rule: anything that affects OTHER
                    users, billing, system config, or tenant administration does NOT belong here —
-                   route those to a dedicated Settings module instead. */
+                   route those to a dedicated Settings module instead.
+                   P1 keeps this menu inline; P5 replaces it with the UserMenu component (theme +
+                   language live inside there, alongside the existing profile/security/support items). */
                 <div className="menu user-menu-pop" role="menu" aria-label={t('common.accountMenu', 'Account menu')}>
                   <div className="menu-head">
                     <span className="user-avatar">
@@ -573,15 +516,16 @@ export default function App() {
                   token={token}
                   canConfigure={!!user?.can_configure}
                   onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
+                  onConfigure={canConfigureThisPage ? openConfigure : undefined}
                 />
               : view.type === 'dashboards'
-                ? <DashboardView token={token} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <DashboardView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'analytics'
-                ? <AnalyticsView token={token} configVersion={pageConfigVersion} />
+                ? <AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'lead-pipeline'
-                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} />
+                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'customer'
-                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} />
+                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'ask'
                 ? <AskGaaexView token={token} />
               : view.type === 'messages'
@@ -589,46 +533,46 @@ export default function App() {
               : view.type === 'activity'
                 ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
               : view.type === 'invoices'
-                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'payments'
-                ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'gateway'
-                ? <PaymentGatewayView token={token} configVersion={pageConfigVersion} />
+                ? <PaymentGatewayView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'subscriptions'
-                ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'products'
-                ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'report-builder'
                 ? <ReportBuilderView token={token} entities={entities} />
               : view.type === 'outbound'
-                ? <OutboundView token={token} configVersion={pageConfigVersion} />
+                ? <OutboundView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'webhooks'
-                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'services'
-                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'usage'
-                ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'resource-pools'
-                ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'accounts'
-                ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'parties'
-                ? <PartiesView token={token} canConfigure={!!user?.can_configure} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <PartiesView token={token} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'helpdesk'
-                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'workitems'
-                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onGoStudio={() => setView({ type: 'studio' })} />
+                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'calendar'
-                ? <CalendarView token={token} configVersion={pageConfigVersion} />
+                ? <CalendarView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'settings'
                 ? <SettingsView token={token} />
               : view.type === 'reports'
-                ? <ReportsView token={token} configVersion={pageConfigVersion} />
+                ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'studio'
                 ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
-              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} />}
+              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />}
           </ErrorBoundary>
         </main>
       </div>

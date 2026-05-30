@@ -1779,9 +1779,6 @@ div.studio {
 /* ---- topbar ---- */
 .main { display:flex; flex-direction:column; overflow:hidden; }
 .tb { display:flex; align-items:center; gap:12px; height:var(--gx-header-h); padding:0 18px; flex-shrink:0; background:var(--gx-topbar); backdrop-filter:blur(var(--gx-backdrop-blur)); border-bottom:1px solid var(--gx-border-subtle); position:relative; z-index:var(--gx-z-sticky); }
-.tb-search { display:flex; align-items:center; gap:8px; height:34px; width:320px; max-width:38vw; padding:0 11px; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); color:var(--gx-text-3); cursor:text; transition:border-color var(--gx-dur-fast); }
-.tb-search:hover { border-color:var(--gx-border-strong); }
-.tb-search .kbd { margin-left:auto; font-family:var(--gx-font-mono); font-size:10px; background:var(--gx-surface-2); border:1px solid var(--gx-border); border-radius:4px; padding:1px 5px; color:var(--gx-text-3); }
 .tb-icon { width:34px; height:34px; border-radius:var(--gx-radius-md); border:none; background:transparent; color:var(--gx-text-2); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; position:relative; transition:all var(--gx-dur-fast); }
 .tb-icon:hover { background:var(--gx-hover); color:var(--gx-text-1); }
 .tb-icon .ndot { position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--gx-danger); border:1.5px solid var(--gx-topbar); }

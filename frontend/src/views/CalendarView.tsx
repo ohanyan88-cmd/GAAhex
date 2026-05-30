@@ -43,7 +43,9 @@ function todayStr(): string {
   return isoDate(new Date())
 }
 
-export default function CalendarView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+// P1 note: CalendarView has no `.view-head`/ViewHead surface today, so the Configure
+// gear isn't rendered here yet — props are accepted so App.tsx can wire it uniformly.
+export default function CalendarView({ token, configVersion = 0, canConfigure: _canConfigure = false, onConfigure: _onConfigure }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'calendar', configVersion)
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())

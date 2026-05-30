@@ -9,7 +9,7 @@ import InteractionsView from './InteractionsView'
 import ViewHead from '../components/ViewHead'
 import {
   ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
-  ClockIcon, CreditCardIcon, DownloadIcon,
+  ClockIcon, CreditCardIcon, DownloadIcon, GearIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
@@ -59,11 +59,13 @@ function mapCustomerStatus(s: string | null | undefined): PillVariant {
   return 'info'
 }
 
-export default function CustomerView({ token, customerId, onBack, configVersion = 0 }: {
+export default function CustomerView({ token, customerId, onBack, configVersion = 0, canConfigure = false, onConfigure }: {
   token: string
   customerId: string
   onBack: () => void
   configVersion?: number
+  canConfigure?: boolean
+  onConfigure?: () => void
 }) {
   const { t } = useI18n()
   // Hook called so the Configure button (via BESPOKE_PAGE_KEYS) lights up for this page.
@@ -132,9 +134,16 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
             p?.id ? <span className="mono" style={{ color: 'var(--gx-text-3)' }}>{p.id.slice(0, 8)}</span> : undefined
           }
           actions={
-            <button className="btn btn-ghost btn-sm" onClick={onBack}>
-              <ChevronLeftIcon size={13} /> {t('nav.customers', 'Customers')}
-            </button>
+            <>
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                </button>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={onBack}>
+                <ChevronLeftIcon size={13} /> {t('nav.customers', 'Customers')}
+              </button>
+            </>
           }
         />
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../lib/billing'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { ChartIcon, ArrowUpIcon, ArrowDownIcon, EditIcon } from '../components/icons'
+import { ChartIcon, ArrowUpIcon, ArrowDownIcon, GearIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -28,7 +28,7 @@ function pick(o: Overview, key: string): { value: number; prev?: number } {
   return { value: Number(raw) || 0, prev: p != null ? Number(p) : undefined }
 }
 
-export default function AnalyticsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+export default function AnalyticsView({ token, configVersion = 0, canConfigure = false, onConfigure }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'analytics', configVersion)
   const [overview, setOverview] = useState<Overview | null>(null)
@@ -80,9 +80,11 @@ export default function AnalyticsView({ token, configVersion = 0 }: { token: str
                 <button type="button" className={range === 'qtd' ? 'on' : ''} onClick={() => setRange('qtd')}>QTD</button>
                 <button type="button" className={range === 'ytd' ? 'on' : ''} onClick={() => setRange('ytd')}>YTD</button>
               </div>
-              <button className="btn btn-ghost btn-sm hide-sm" onClick={() => {/* wire configure page */}}>
-                <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
-              </button>
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                </button>
+              )}
             </>
           }
         />

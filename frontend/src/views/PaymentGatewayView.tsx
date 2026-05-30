@@ -8,7 +8,7 @@ import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
   CreditCardIcon, ReceiptIcon, SearchIcon, DownloadIcon, ArrowRightIcon,
-  ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon,
+  ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, GearIcon,
 } from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -50,7 +50,7 @@ function MoreVerticalIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-export default function PaymentGatewayView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function PaymentGatewayView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'gateway', configVersion)
   const [orders, setOrders] = useState<PaymentOrder[] | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
@@ -171,8 +171,10 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
           sub={`${all.length} order${all.length !== 1 ? 's' : ''} · gateway adapters · reconciliation engine`}
           actions={
             <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[gateway] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                </button>
               )}
               <button
                 className="btn btn-primary btn-sm"

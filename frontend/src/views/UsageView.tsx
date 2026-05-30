@@ -5,10 +5,10 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChartIcon, ReceiptIcon, DownloadIcon, PlusIcon, SearchIcon,
+  ChartIcon, ReceiptIcon, DownloadIcon, PlusIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
@@ -44,7 +44,7 @@ function MoreVerticalIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-export default function UsageView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
+export default function UsageView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'usage', configVersion)
   const [list, setList] = useState<Usage[] | null>(null)
   const cf = useCustomFields(token, 'usage', cfg.customFields, (list ?? []).map((u) => u.id))
@@ -165,9 +165,9 @@ export default function UsageView({ token, canConfigure = false, configVersion =
           sub={`${all.length} record${all.length !== 1 ? 's' : ''} · metered · rated via subscription rules`}
           actions={!unavailable && (
             <>
-              {canConfigure && onGoStudio && (
-                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
                 </button>
               )}
               <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} record(s)`)}>

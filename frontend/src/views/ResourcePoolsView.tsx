@@ -4,10 +4,10 @@ import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChevronLeftIcon, InboxIcon, ServerIcon, PlusIcon, DownloadIcon, SearchIcon,
+  ChevronLeftIcon, InboxIcon, ServerIcon, PlusIcon, DownloadIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
@@ -58,7 +58,7 @@ function allocCount(p: Pool): string {
   return typeof n === 'number' ? String(n) : '—'
 }
 
-export default function ResourcePoolsView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
+export default function ResourcePoolsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'resource-pools', configVersion)
   const [list, setList] = useState<Pool[] | null>(null)
   const cf = useCustomFields(token, 'resource-pools', cfg.customFields, (list ?? []).map((p) => p.id))
@@ -184,9 +184,9 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
           sub={`${all.length} pool${all.length !== 1 ? 's' : ''} · IP allocations · capacity engine`}
           actions={!unavailable && (
             <>
-              {canConfigure && onGoStudio && (
-                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
                 </button>
               )}
               <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} pool(s)`)}>

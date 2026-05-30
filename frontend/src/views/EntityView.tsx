@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon } from '../components/icons'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import CommentsModal from '../modals/CommentsModal'
@@ -98,7 +98,7 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 }
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack, canConfigure = false }: {
+export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
   token: string
   slug: string
   onOpenCustomer?: (id: string) => void
@@ -106,8 +106,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   capabilities?: Capabilities
   /** B21: handler for "back to dashboard" in NoAccess panel. */
   onBack?: () => void
-  /** Gates the "Configure page" header action (Studio entry). */
+  /** Gates the "Configure page" header action (opens ConfigureDrawer for this entity). */
   canConfigure?: boolean
+  /** P1: opens the ConfigureDrawer for this entity (set by parent — see App.tsx). */
+  onConfigure?: () => void
 }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
@@ -571,12 +573,13 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   )}
                 </div>
               )}
-              {canConfigure && (
+              {canConfigure && onConfigure && (
                 <button
                   className="btn btn-ghost btn-sm hide-sm"
-                  onClick={() => { toast.success(t('common.configureWiringTbd', 'Configure page — wiring TBD')) }}
+                  onClick={onConfigure}
+                  title={t('common.configurePageTitle', 'Configure this page')}
                 >
-                  <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />{t('common.configurePage', 'Configure page')}
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />{t('common.configurePage', 'Configure page')}
                 </button>
               )}
               {/* B21: New button — only when can create; Close button when form is open */}

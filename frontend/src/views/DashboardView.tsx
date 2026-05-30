@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Users, Banknote, Inbox, Activity, TrendingUp, TrendingDown, BarChart3,
-  Wand2, Download, ArrowRight,
+  Download, ArrowRight,
 } from 'lucide-react'
+import { GearIcon } from '../components/icons'
 import { Spark } from '../components/charts/Spark'
 import { StatusPill } from '../primitives/StatusPill'
 
@@ -63,8 +64,8 @@ function mapPriority(p: string) {
 }
 
 export default function DashboardView({
-  token, onGoStudio,
-}: { token: string; configVersion?: number; onGoStudio?: () => void }) {
+  token, canConfigure = false, onConfigure,
+}: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
   const [range, setRange] = useState<Range>('30d')
   const [kpis, setKpis] = useState<KpiData[]>([
     { label: 'Active subscribers', value: null, delta: null, up: true, icon: <Users size={16} />, accent: false, spark: null },
@@ -197,9 +198,9 @@ export default function DashboardView({
             <button className={range === 'qtd' ? 'on' : ''} onClick={() => setRange('qtd')}>QTD</button>
             <button className={range === 'ytd' ? 'on' : ''} onClick={() => setRange('ytd')}>YTD</button>
           </div>
-          {onGoStudio && (
-            <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-              <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
+          {canConfigure && onConfigure && (
+            <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+              <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
             </button>
           )}
           <button className="btn btn-secondary btn-sm"><Download size={14} />Export</button>

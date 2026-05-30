@@ -7,7 +7,7 @@ import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import {
   PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon,
-  CloseIcon, UsersIcon, SearchIcon, EditIcon, FilterIcon,
+  CloseIcon, UsersIcon, SearchIcon, GearIcon, FilterIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
@@ -29,7 +29,7 @@ const SLUG = 'leads'
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 
-export default function LeadPipelineView({ token, onOpenCustomer }: { token: string; onOpenCustomer?: (id: string) => void }) {
+export default function LeadPipelineView({ token, onOpenCustomer, canConfigure = false, onConfigure }: { token: string; onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [leads, setLeads] = useState<Lead[] | null>(null)
@@ -160,9 +160,11 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
         sub={loading ? 'Loading…' : `${columns.length} stage${columns.length === 1 ? '' : 's'} · workflow configured in Studio`}
         actions={
           <>
-            <button className="btn btn-ghost btn-sm hide-sm" onClick={() => {/* wire configure page */}}>
-              <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
-            </button>
+            {canConfigure && onConfigure && (
+              <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
+                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+              </button>
+            )}
             <button className="btn btn-secondary btn-sm hide-sm" onClick={() => {/* wire filter */}}>
               <FilterIcon size={14} />Filter
             </button>

@@ -4,10 +4,10 @@ import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  ChevronLeftIcon, InboxIcon, SearchIcon, DownloadIcon, PlusIcon,
+  ChevronLeftIcon, InboxIcon, SearchIcon, DownloadIcon, PlusIcon, GearIcon,
 } from '../components/icons'
 import {
-  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
@@ -62,7 +62,7 @@ function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) 
   }
 }
 
-export default function ServicesView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
+export default function ServicesView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -179,9 +179,9 @@ export default function ServicesView({ token, canConfigure = false, configVersio
           sub={`${all.length} service${all.length !== 1 ? 's' : ''} · provisioned inventory · lifecycle engine`}
           actions={
             <>
-              {canConfigure && onGoStudio && (
-                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
-                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+              {canConfigure && onConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
                 </button>
               )}
               <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} service(s)`)}>

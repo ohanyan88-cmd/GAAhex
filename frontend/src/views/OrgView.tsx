@@ -28,7 +28,7 @@ import {
   ChartIcon, PackageIcon, LayersIcon, RowsIcon, MapIcon, ActivityIcon, GlobeIcon,
   ChevronRightIcon, ChevronDownIcon, SearchIcon, ArrowUpIcon, ArrowDownIcon,
   ArrowRightIcon, SunIcon, ServerIcon, PlusIcon, EditIcon, TrashIcon,
-  UsersIcon, CalendarIcon, ShieldIcon, BuildingIcon,
+  UsersIcon, CalendarIcon, ShieldIcon, BuildingIcon, GearIcon,
 } from '../components/icons'
 
 // The custom-fields hook return, threaded into each layout so nodes can show + edit values.
@@ -1936,12 +1936,13 @@ const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'raci', label: 'RACI', Icon: ShieldIcon },
 ]
 
-export default function OrgView({ nodes, token, configVersion, canConfigure = false, onRefresh }: {
+export default function OrgView({ nodes, token, configVersion, canConfigure = false, onRefresh, onConfigure }: {
   nodes: OrgNode[]
   token: string
   configVersion: number
   canConfigure?: boolean        // config.manage — gates the structure-editing controls
   onRefresh?: () => Promise<void>  // re-fetch the org tree after a successful write
+  onConfigure?: () => void      // P1: opens the page-config drawer for this page
 }) {
   const cfg = usePageConfig(token, 'org', configVersion)
   const [layout, setLayout] = useState<OrgLayout>(loadLayout)
@@ -1988,15 +1989,24 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
             icon={<LayersIcon size={18} />}
             title={cfg.title}
             sub={`${nodeCount} node${nodeCount === 1 ? '' : 's'}${activeLabel ? ` · ${activeLabel}` : ''}`}
-            actions={editing ? (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm org-add-node-btn"
-                onClick={() => setEditState({ kind: 'add', parent: null })}
-              >
-                <PlusIcon size={14} /> <span>Add node</span>
-              </button>
-            ) : undefined}
+            actions={(
+              <>
+                {canConfigure && onConfigure && (
+                  <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
+                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                  </button>
+                )}
+                {editing && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm org-add-node-btn"
+                    onClick={() => setEditState({ kind: 'add', parent: null })}
+                  >
+                    <PlusIcon size={14} /> <span>Add node</span>
+                  </button>
+                )}
+              </>
+            )}
           />
 
           {/* The layout switcher is a wide 13-tab segmented control, so it gets its own
