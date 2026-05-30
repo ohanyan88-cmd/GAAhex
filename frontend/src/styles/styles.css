@@ -157,7 +157,8 @@
 
 /* ===================== RESET ===================== */
 *, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; height: 100%; }
+#root { height: 100%; }
 body {
   /* GLASS ambient backdrop — base bg + colored gradient blobs that the
      translucent/blurred surfaces refract. Fixed so it stays put while scrolling. */
@@ -1755,7 +1756,7 @@ div.studio {
 .app.collapsed .sb-items { display:none; }
 
 /* ---- topbar ---- */
-.main { display:flex; flex-direction:column; overflow:hidden; }
+.main { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
 .tb { display:flex; align-items:center; gap:12px; height:var(--gx-header-h); padding:0 18px; flex-shrink:0; background:var(--gx-topbar); backdrop-filter:blur(var(--gx-backdrop-blur)); border-bottom:1px solid var(--gx-border-subtle); position:relative; z-index:var(--gx-z-sticky); }
 .tb-icon { width:34px; height:34px; border-radius:var(--gx-radius-md); border:none; background:transparent; color:var(--gx-text-2); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; position:relative; transition:all var(--gx-dur-fast); }
 .tb-icon:hover { background:var(--gx-hover); color:var(--gx-text-1); }
@@ -1813,7 +1814,7 @@ div.studio {
    across every dashboard. KPI strip styling lives under `.kpi-strip` only.
    ========================================================================= */
 .view { flex:1; overflow-y:auto; overflow-x:hidden; }
-.view-inner { padding:22px 26px 40px; max-width:1320px; }
+.view-inner { padding:22px 26px 40px; width:100%; box-sizing:border-box; }
 .crumbs { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--gx-text-3); margin-bottom:14px; }
 .crumbs .sep { opacity:.5; }
 

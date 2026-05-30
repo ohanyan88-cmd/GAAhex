@@ -95,7 +95,7 @@ export default function StudioShell({
   }
 
   return (
-    <div className="view-inner fade" style={{ maxWidth: 1320 }}>
+    <div className="view-inner fade">
       <ViewHead
         icon={<Shield size={20} />}
         title="Studio"
