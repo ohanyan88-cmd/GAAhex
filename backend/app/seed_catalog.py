@@ -7,6 +7,7 @@ Run standalone:  python -m app.seed_catalog   (also called from main.py lifespan
 The matching nav-id -> slug wiring lives in frontend/src/nav-config.ts (ENTITY_SLUGS).
 """
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasses RLS
 from .models import (
@@ -339,9 +340,29 @@ async def _create_entity(s, tenant_id, spec) -> bool:
     if spec["transitions"]:
         s.add(WorkflowDef(tenant_id=tenant_id, entity_def_id=ent.id, key=f'{spec["key"]}_lifecycle',
                           label=f'{spec["label"]} Lifecycle', config={"transitions": spec["transitions"]}))
-    for verb in ("view", "create", "edit", "delete"):
-        s.add(PermissionDef(tenant_id=tenant_id, key=f'{spec["key"]}.{verb}',
-                            label=f'{verb} {spec["key"]}', group=spec["key"]))
+    # Root-cause guard: `seed_access_if_empty` (run earlier in main.py lifespan) also creates
+    # PermissionDefs for the `request` entity via build_access_config. Without this check, the
+    # catalog seed would re-insert request.{view,create,edit,delete} for the same tenant and
+    # hit `uq_permission_def_key (tenant_id, key)`. We check-before-insert per key.
+    perm_keys = [f'{spec["key"]}.{verb}' for verb in ("view", "create", "edit", "delete")]
+    existing_keys = set((await s.execute(
+        select(PermissionDef.key).where(
+            PermissionDef.tenant_id == tenant_id,
+            PermissionDef.key.in_(perm_keys),
+        )
+    )).scalars().all())
+    new_perms = [
+        {"tenant_id": tenant_id, "key": k, "label": f'{k.split(".", 1)[1]} {spec["key"]}', "group": spec["key"]}
+        for k in perm_keys if k not in existing_keys
+    ]
+    if new_perms:
+        # Defense-in-depth: even after the check-before-insert above, swallow any race or
+        # partial-state duplicate via ON CONFLICT DO NOTHING on the unique (tenant_id, key) index.
+        await s.execute(
+            pg_insert(PermissionDef).values(new_perms).on_conflict_do_nothing(
+                index_elements=["tenant_id", "key"]
+            )
+        )
     return True
 
 
