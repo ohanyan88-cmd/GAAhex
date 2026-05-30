@@ -1,7 +1,7 @@
 // B24 — Schedule-a-report panel.
 // Surfaces GET/POST /api/report-schedules (A24 endpoint).
 // Degrades gracefully: if the endpoint 404s the whole panel is hidden.
-// Rules: zero emoji, BRAND tokens only, all strings via t(), a11y.
+// Rules: zero emoji, --gx-* tokens only, all strings via t(), a11y.
 
 import { useEffect, useState } from 'react'
 import { bget, bpost, authH, BASE } from '../lib/billing'
@@ -10,10 +10,14 @@ import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { CalendarIcon, PauseIcon, PlayIcon, TrashIcon, CloseIcon } from '../components/icons'
+import { StatusPill } from '../primitives'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type Report = { id: string; name: string }
+
+// Backend (report_schedules.py): status is uppercase ACTIVE|PAUSED, recipients is a list[str].
+type ScheduleStatus = 'ACTIVE' | 'PAUSED'
 
 type Schedule = {
   id: string
@@ -21,8 +25,8 @@ type Schedule = {
   report_name?: string | null
   cadence: 'daily' | 'weekly' | 'monthly'
   channel: 'email' | 'slack' | 'webhook'
-  recipients?: string | null
-  status: 'active' | 'paused'
+  recipients?: string[] | null
+  status: ScheduleStatus
   next_run_at?: string | null
   created_at?: string | null
 }
@@ -31,8 +35,10 @@ type CreatePayload = {
   report_id: string
   cadence: string
   channel: string
-  recipients: string
+  recipients: string[]
 }
+
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +61,17 @@ function fmtNextRun(iso: string | null | undefined): string {
   return d.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
 }
 
+// Backend stores status uppercase (ACTIVE | PAUSED). Map to a StatusPill variant + label.
+function mapStatus(status: ScheduleStatus): { label: string; variant: PillVariant } {
+  if (status === 'PAUSED') return { label: t('sched.paused_label', 'Paused'), variant: 'neutral' }
+  return { label: t('sched.active', 'Active'), variant: 'active' }
+}
+
+// Comma-separated input → trimmed, de-empty'd array (what the backend requires).
+function parseRecipients(raw: string): string[] {
+  return raw.split(',').map((s) => s.trim()).filter(Boolean)
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function ScheduleItem({
@@ -67,10 +84,12 @@ function ScheduleItem({
   onMutate: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const isPaused = sched.status === 'PAUSED'
+  const pill = mapStatus(sched.status)
 
   async function togglePause() {
     setBusy(true)
-    const action = sched.status === 'active' ? 'pause' : 'resume'
+    const action = isPaused ? 'resume' : 'pause'
     try {
       const r = await fetch(`${BASE}/api/report-schedules/${sched.id}/${action}`, {
         method: 'POST',
@@ -105,33 +124,24 @@ function ScheduleItem({
     }
   }
 
-  const isPaused = sched.status === 'paused'
-
   return (
-    <div className="sched-item" role="listitem">
-      <CalendarIcon size={16} aria-hidden />
-
-      <div className="sched-item-info">
-        <div className="sched-item-name" title={sched.report_name ?? sched.report_id}>
-          {sched.report_name ?? sched.report_id}
-        </div>
-        <div className="sched-item-meta">
-          <span>{t(CADENCE_LABELS[sched.cadence] ?? 'sched.cadence', sched.cadence)}</span>
-          <span>{t(CHANNEL_LABELS[sched.channel] ?? 'sched.channel', sched.channel)}</span>
-          {sched.next_run_at && (
-            <span>{t('sched.nextRun', 'Next')} {fmtNextRun(sched.next_run_at)}</span>
-          )}
-        </div>
-      </div>
-
-      <span
-        className={'pill ' + (isPaused ? 'sched-pill-paused' : 'sched-pill-active')}
-        aria-label={t('sched.status', 'Status')}
-      >
-        {isPaused ? t('sched.paused_label', 'Paused') : t('sched.active', 'Active')}
-      </span>
-
-      <div className="sched-item-actions">
+    <tr>
+      <td>
+        <strong>{sched.report_name ?? sched.report_id}</strong>
+      </td>
+      <td style={{ color: 'var(--gx-text-2)', fontSize: 12 }}>
+        {t(CADENCE_LABELS[sched.cadence] ?? 'sched.cadence', sched.cadence)}
+      </td>
+      <td style={{ color: 'var(--gx-text-2)', fontSize: 12 }}>
+        {t(CHANNEL_LABELS[sched.channel] ?? 'sched.channel', sched.channel)}
+      </td>
+      <td style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+        {sched.next_run_at ? fmtNextRun(sched.next_run_at) : '—'}
+      </td>
+      <td>
+        <StatusPill variant={pill.variant} label={pill.label} size="sm" />
+      </td>
+      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
@@ -139,6 +149,7 @@ function ScheduleItem({
           onClick={togglePause}
           aria-label={isPaused ? t('sched.resume', 'Resume') : t('sched.pause', 'Pause')}
           title={isPaused ? t('sched.resume', 'Resume') : t('sched.pause', 'Pause')}
+          style={{ marginRight: 6 }}
         >
           {isPaused ? <PlayIcon size={13} /> : <PauseIcon size={13} />}
         </button>
@@ -152,8 +163,8 @@ function ScheduleItem({
         >
           <TrashIcon size={13} />
         </button>
-      </div>
-    </div>
+      </td>
+    </tr>
   )
 }
 
@@ -181,7 +192,12 @@ function ScheduleForm({
     if (!reportId) return
     setSaving(true)
     try {
-      const payload: CreatePayload = { report_id: reportId, cadence, channel, recipients }
+      const payload: CreatePayload = {
+        report_id: reportId,
+        cadence,
+        channel,
+        recipients: parseRecipients(recipients),
+      }
       await bpost(token, '/api/report-schedules', payload)
       toast.success(t('sched.created', 'Schedule created'))
       onCreated()
@@ -193,7 +209,7 @@ function ScheduleForm({
   }
 
   return (
-    <form className="sched-form" onSubmit={submit} aria-label={t('sched.new', '+ Schedule')}>
+    <form className="rec-form" onSubmit={submit} aria-label={t('sched.new', '+ Schedule')}>
       {/* Report picker */}
       <label className="field">
         <span>{t('sched.report', 'Report')} *</span>
@@ -237,7 +253,7 @@ function ScheduleForm({
         </select>
       </label>
 
-      {/* Recipients */}
+      {/* Recipients — comma-separated; submitted as a list[str] per backend contract. */}
       <label className="field">
         <span>{t('sched.recipients', 'Recipients')}</span>
         <input
@@ -250,7 +266,7 @@ function ScheduleForm({
       </label>
 
       {/* Actions — spans full grid width */}
-      <div className="rec-form-actions" style={{ gap: 8 }}>
+      <div className="rec-form-actions">
         <button
           type="submit"
           className="btn btn-accent btn-md"
@@ -300,19 +316,20 @@ export default function ReportSchedulePanel({
   if (unavailable) return null
 
   return (
-    <section className="sched-section" aria-label={t('sched.title', 'Schedules')}>
-      <div className="sched-section-head">
+    <section className="card" aria-label={t('sched.title', 'Schedules')}>
+      <div className="view-head" style={{ marginBottom: 0 }}>
         <CalendarIcon size={18} aria-hidden />
-        <h3>{t('sched.title', 'Schedules')}</h3>
+        <h3 style={{ margin: 0 }}>{t('sched.title', 'Schedules')}</h3>
         {!showForm && reports.length > 0 && (
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => setShowForm(true)}
-            style={{ marginLeft: 'auto' }}
-          >
-            {t('sched.new', '+ Schedule')}
-          </button>
+          <div className="view-head-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowForm(true)}
+            >
+              {t('sched.new', '+ Schedule')}
+            </button>
+          </div>
         )}
       </div>
 
@@ -337,10 +354,24 @@ export default function ReportSchedulePanel({
       )}
 
       {schedules !== null && schedules.length > 0 && (
-        <div className="sched-list" role="list">
-          {schedules.map((s) => (
-            <ScheduleItem key={s.id} sched={s} token={token} onMutate={load} />
-          ))}
+        <div className="grid-wrap">
+          <table className="grid" role="list">
+            <thead>
+              <tr>
+                <th scope="col">{t('sched.report', 'Report')}</th>
+                <th scope="col">{t('sched.cadence', 'Cadence')}</th>
+                <th scope="col">{t('sched.channel', 'Channel')}</th>
+                <th scope="col">{t('sched.nextRun', 'Next')}</th>
+                <th scope="col">{t('sched.status', 'Status')}</th>
+                <th scope="col" style={{ width: 1 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {schedules.map((s) => (
+                <ScheduleItem key={s.id} sched={s} token={token} onMutate={load} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>
