@@ -4,7 +4,7 @@
 // Icons: lucide-react only. State: internal useState only. No backend calls.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { bget, bpatch, bput } from '../lib/billing'
+import { bget, bpatch, bpost, bput } from '../lib/billing'
 import { getEntities, getEntityDef } from '../lib/api'
 import { timeAgo } from '../lib/time'
 import { PermissionDenied, ErrorBanner, EmptyState, SkeletonRows } from '../components/States'
@@ -881,6 +881,20 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
   )
 }
 
+// ── shared studio-page helpers ────────────────────────────────────────────────
+
+type StudioPage = { id: string; key: string; label: string; created_at: string }
+type StudioVersion = {
+  id: string
+  version_no: number
+  status: string       // 'draft' | 'published'
+  snapshot: any
+  created_at: string
+  author_user_id: string | null
+}
+type StudioPageDetail = { page: StudioPage; version: StudioVersion | null }
+type StudioDiff = { added: string[]; changed: string[]; removed: string[] }
+
 // ── 7  PERMISSIONS ────────────────────────────────────────────────────────────
 // Wired to the RBAC kernel: GET /api/roles, GET /api/permissions, PATCH /api/roles/{id}.
 // Rows = "scopes" derived from permission registry (entity prefix from `entity.action`
@@ -1190,12 +1204,12 @@ export function PreviewMode() {
   )
 }
 
-// ── 9  AUDIT LOG (Governance) ─────────────────────────────────────────────────
-// Wired to GET /api/audit-log (admin-scoped, gated on audit.view permission).
-// Surfaces the real Event trail of who/what/when for every config + record change.
+// ── 9  VERSION HISTORY + AUDIT LOG (Governance) ──────────────────────────────
+// Tab 1 — Page versions: GET /api/studio/pages + /api/studio/pages/{id}/versions
+//          with per-version diff expand and rollback.
+// Tab 2 — Audit log: GET /api/audit-log (existing implementation, preserved as-is).
 // The component name stays VersionHistory because RICH_PANE_MAP still routes
-// "Versioning" / "Workflow Versions" / "Page Versioning" through it — visually
-// it is the Governance audit trail.
+// "Versioning" / "Workflow Versions" / "Page Versioning" through it.
 
 type AuditEvent = {
   id: string
@@ -1264,7 +1278,253 @@ function DataDetail({ data }: { data: any }) {
 
 const PAGE_SIZE = 50
 
-export function VersionHistory({ token }: { token?: string } = {}) {
+// ── Page versions sub-pane (tab 1 of VersionHistory) ─────────────────────────
+
+function PageVersionsTab({ token }: { token?: string }) {
+  const [pages, setPages] = useState<StudioPage[]>([])
+  const [loadingPages, setLoadingPages] = useState(false)
+  const [pagesErr, setPagesErr] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string>('')
+
+  const [versions, setVersions] = useState<StudioVersion[]>([])
+  const [loadingVer, setLoadingVer] = useState(false)
+  const [verErr, setVerErr] = useState<string | null>(null)
+
+  // Per-version diff state: versionId → diff data or 'loading'
+  const [diffs, setDiffs] = useState<Record<string, StudioDiff | 'loading' | 'error'>>({})
+  const [expandedVer, setExpandedVer] = useState<Set<string>>(new Set())
+
+  const [rollbackMsg, setRollbackMsg] = useState<string | null>(null)
+  const [rollbackErr, setRollbackErr] = useState<string | null>(null)
+
+  // Load page list
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    setLoadingPages(true); setPagesErr(null)
+    bget<StudioPage[]>(token, '/api/studio/pages').then(res => {
+      if (!alive) return
+      if (!res.ok) { setPagesErr(`Failed to load pages (${res.status})`); setLoadingPages(false); return }
+      setPages(Array.isArray(res.data) ? res.data : [])
+      setLoadingPages(false)
+    }).catch((e: Error) => { if (alive) { setPagesErr(e.message); setLoadingPages(false) } })
+    return () => { alive = false }
+  }, [token])
+
+  // Load versions when page selected
+  useEffect(() => {
+    if (!token || !selectedId) { setVersions([]); return }
+    let alive = true
+    setLoadingVer(true); setVerErr(null); setExpandedVer(new Set()); setDiffs({})
+    bget<StudioVersion[]>(token, `/api/studio/pages/${selectedId}/versions`).then(res => {
+      if (!alive) return
+      if (!res.ok) { setVerErr(`Failed to load versions (${res.status})`); setLoadingVer(false); return }
+      setVersions(Array.isArray(res.data) ? res.data : [])
+      setLoadingVer(false)
+    }).catch((e: Error) => { if (alive) { setVerErr(e.message); setLoadingVer(false) } })
+    return () => { alive = false }
+  }, [token, selectedId])
+
+  const toggleVersion = async (ver: StudioVersion) => {
+    const id = ver.id
+    const isOpen = expandedVer.has(id)
+    setExpandedVer(prev => {
+      const next = new Set(prev)
+      if (isOpen) next.delete(id); else next.add(id)
+      return next
+    })
+    // Lazy-load diff when opening
+    if (!isOpen && !diffs[id] && token && selectedId) {
+      setDiffs(prev => ({ ...prev, [id]: 'loading' }))
+      try {
+        const res = await bget<StudioDiff>(token, `/api/studio/pages/${selectedId}/versions/${id}/diff`)
+        setDiffs(prev => ({ ...prev, [id]: res.ok && res.data ? res.data : 'error' }))
+      } catch {
+        setDiffs(prev => ({ ...prev, [id]: 'error' }))
+      }
+    }
+  }
+
+  const rollback = async (ver: StudioVersion) => {
+    if (!token || !selectedId) return
+    if (!window.confirm(`Roll back to v${ver.version_no}? The current published version will be replaced.`)) return
+    try {
+      await bpost(token, `/api/studio/pages/${selectedId}/versions/${ver.id}/rollback`)
+      // Refresh versions
+      const res = await bget<StudioVersion[]>(token, `/api/studio/pages/${selectedId}/versions`)
+      if (res.ok && Array.isArray(res.data)) setVersions(res.data)
+      setRollbackMsg(`Rolled back to v${ver.version_no}.`)
+      setRollbackErr(null)
+      setTimeout(() => setRollbackMsg(null), 4000)
+    } catch (e) {
+      setRollbackErr((e as Error).message || 'Rollback failed')
+      setRollbackMsg(null)
+      setTimeout(() => setRollbackErr(null), 4000)
+    }
+  }
+
+  if (!token) {
+    return (
+      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        Sign in to view page versions.
+      </div>
+    )
+  }
+
+  // Find the current published version (first one with status === 'published')
+  const publishedVer = versions.find(v => v.status === 'published')
+
+  return (
+    <div>
+      {/* Page picker */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+        <label className="lbl" style={{ margin: 0, flexShrink: 0 }}>Page</label>
+        {loadingPages ? (
+          <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
+        ) : pagesErr ? (
+          <span style={{ fontSize: 12, color: 'var(--gx-danger-fg)' }}>{pagesErr}</span>
+        ) : pages.length === 0 ? (
+          <span className="hint" style={{ fontSize: 12 }}>No pages yet.</span>
+        ) : (
+          <select
+            className="inp inp-sm"
+            style={{ minWidth: 220 }}
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+          >
+            <option value="">— select a page —</option>
+            {pages.map(p => (
+              <option key={p.id} value={p.id}>{p.label} ({p.key})</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {rollbackErr && (
+        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{rollbackErr}</div>
+        </div>
+      )}
+      {rollbackMsg && (
+        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-success-fg)' }}>{rollbackMsg}</div>
+        </div>
+      )}
+
+      {selectedId && (
+        loadingVer ? (
+          <SkeletonRows rows={4} />
+        ) : verErr ? (
+          <ErrorBanner message={verErr} />
+        ) : versions.length === 0 ? (
+          <EmptyState title="No versions" message="No versions saved yet for this page." />
+        ) : (
+          <div className="timeline">
+            {versions.map(ver => {
+              const isOpen = expandedVer.has(ver.id)
+              const diff = diffs[ver.id]
+              const isCurrentPublished = publishedVer?.id === ver.id
+              return (
+                <div key={ver.id} className="tl-item" style={{ flexDirection: 'column', alignItems: 'stretch', padding: '10px 0' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleVersion(ver)}
+                    aria-expanded={isOpen}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      color: 'inherit',
+                    }}
+                  >
+                    <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)', minWidth: 36 }}>
+                      v{ver.version_no}
+                    </span>
+                    <span className={`pill ${ver.status === 'published' ? 'pill-success' : 'pill-neutral'}`}>
+                      {ver.status}
+                    </span>
+                    {ver.author_user_id && (
+                      <span className="hint mono" style={{ fontSize: 11.5 }}>{ver.author_user_id.slice(0, 8)}</span>
+                    )}
+                    <span style={{ flex: 1 }} />
+                    <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ver.created_at)}</span>
+                    {!isCurrentPublished && (
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        type="button"
+                        onClick={e => { e.stopPropagation(); rollback(ver) }}
+                        title={`Rollback to v${ver.version_no}`}
+                      >
+                        <RotateCcw size={13} />Rollback
+                      </button>
+                    )}
+                    {isOpen
+                      ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} />
+                      : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
+                  </button>
+                  {isOpen && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: 10,
+                        background: 'var(--gx-surface-2)',
+                        border: '1px solid var(--gx-border-subtle)',
+                        borderRadius: 'var(--gx-radius-md)',
+                        fontSize: 12,
+                      }}
+                    >
+                      {diff === 'loading' ? (
+                        <span className="hint">Loading diff…</span>
+                      ) : diff === 'error' ? (
+                        <span style={{ color: 'var(--gx-danger-fg)' }}>Failed to load diff.</span>
+                      ) : diff ? (
+                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                          {diff.added.length > 0 && (
+                            <div>
+                              <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-success)', marginBottom: 4 }}>Added</div>
+                              {diff.added.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-success-fg)' }}>+ {k}</div>)}
+                            </div>
+                          )}
+                          {diff.changed.length > 0 && (
+                            <div>
+                              <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-warning)', marginBottom: 4 }}>Changed</div>
+                              {diff.changed.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-warning-fg)' }}>~ {k}</div>)}
+                            </div>
+                          )}
+                          {diff.removed.length > 0 && (
+                            <div>
+                              <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-danger)', marginBottom: 4 }}>Removed</div>
+                              {diff.removed.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-danger-fg)' }}>- {k}</div>)}
+                            </div>
+                          )}
+                          {diff.added.length === 0 && diff.changed.length === 0 && diff.removed.length === 0 && (
+                            <span className="hint">No changes recorded in this version.</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="hint">No diff available.</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      )}
+    </div>
+  )
+}
+
+// ── Audit log sub-pane (tab 2 of VersionHistory) ─────────────────────────────
+
+function AuditLogTab({ token }: { token?: string }) {
   const [items, setItems] = useState<AuditEvent[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -1273,16 +1533,14 @@ export function VersionHistory({ token }: { token?: string } = {}) {
   const [denied, setDenied] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
-  // Filter inputs — applied via a small "Apply" button so we don't refetch on every keystroke.
+  // Filter inputs
   const [filterEventType, setFilterEventType] = useState('')
   const [filterEntity, setFilterEntity] = useState('')
   const [filterSince, setFilterSince] = useState('')
-  // The applied (latched) filter values that actually drive the query.
   const [appliedType, setAppliedType] = useState('')
   const [appliedEntity, setAppliedEntity] = useState('')
   const [appliedSince, setAppliedSince] = useState('')
 
-  // Event-type catalog for the filter dropdown (best-effort; falls back if 403/404).
   const [eventTypes, setEventTypes] = useState<{ type: string; label: string }[]>(FALLBACK_EVENT_TYPES)
 
   useEffect(() => {
@@ -1297,17 +1555,13 @@ export function VersionHistory({ token }: { token?: string } = {}) {
     return () => { alive = false }
   }, [token])
 
-  // Build the audit-log query string from the latched filter state.
   const buildQuery = useCallback((offset: number): string => {
     const p = new URLSearchParams()
     p.set('limit', String(PAGE_SIZE))
     p.set('offset', String(offset))
     if (appliedType)   p.set('event_type', appliedType)
     if (appliedEntity) p.set('entity', appliedEntity)
-    if (appliedSince) {
-      // <input type="date"> gives YYYY-MM-DD; backend expects ISO + Z.
-      p.set('since', `${appliedSince}T00:00:00Z`)
-    }
+    if (appliedSince)  p.set('since', `${appliedSince}T00:00:00Z`)
     return p.toString()
   }, [appliedType, appliedEntity, appliedSince])
 
@@ -1315,18 +1569,8 @@ export function VersionHistory({ token }: { token?: string } = {}) {
     if (!token) return
     setLoading(true); setError(null); setDenied(false); setExpanded(new Set())
     const res = await bget<AuditResp>(token, `/api/audit-log?${buildQuery(0)}`)
-    if (res.status === 403) {
-      setDenied(true)
-      setItems([]); setTotal(0)
-      setLoading(false)
-      return
-    }
-    if (!res.ok || !res.data) {
-      setError(`Failed to load audit log (${res.status})`)
-      setItems([]); setTotal(0)
-      setLoading(false)
-      return
-    }
+    if (res.status === 403) { setDenied(true); setItems([]); setTotal(0); setLoading(false); return }
+    if (!res.ok || !res.data) { setError(`Failed to load audit log (${res.status})`); setItems([]); setTotal(0); setLoading(false); return }
     setItems(Array.isArray(res.data.items) ? res.data.items : [])
     setTotal(typeof res.data.total === 'number' ? res.data.total : 0)
     setLoading(false)
@@ -1364,20 +1608,7 @@ export function VersionHistory({ token }: { token?: string } = {}) {
     })
   }
 
-  // ── header (always rendered) ────────────────────────────────────────────────
   const filtersActive = appliedType || appliedEntity || appliedSince
-  const header = (
-    <Sec
-      icon={<GitCommitHorizontal size={15} />}
-      title="Audit Log"
-      hint="who changed what, and when"
-      right={
-        <span className="hint" style={{ fontSize: 11.5 }}>
-          {loading ? '' : `${items.length} of ${total}`}
-        </span>
-      }
-    />
-  )
 
   const filterBar = (
     <div
@@ -1386,101 +1617,52 @@ export function VersionHistory({ token }: { token?: string } = {}) {
     >
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
         <span style={{ fontSize: 11 }}>Event type</span>
-        <select
-          className="inp inp-sm"
-          value={filterEventType}
-          onChange={e => setFilterEventType(e.target.value)}
-        >
+        <select className="inp inp-sm" value={filterEventType} onChange={e => setFilterEventType(e.target.value)}>
           <option value="">All types</option>
-          {eventTypes.map(t => (
-            <option key={t.type} value={t.type}>{t.label}</option>
-          ))}
+          {eventTypes.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
         </select>
       </label>
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
         <span style={{ fontSize: 11 }}>Entity</span>
-        <input
-          className="inp inp-sm mono"
-          placeholder="e.g. customer"
-          value={filterEntity}
-          onChange={e => setFilterEntity(e.target.value)}
-        />
+        <input className="inp inp-sm mono" placeholder="e.g. customer" value={filterEntity} onChange={e => setFilterEntity(e.target.value)} />
       </label>
       <label className="field" style={{ flex: '1 1 140px', minWidth: 120, margin: 0 }}>
         <span style={{ fontSize: 11 }}>Since</span>
-        <input
-          className="inp inp-sm"
-          type="date"
-          value={filterSince}
-          onChange={e => setFilterSince(e.target.value)}
-        />
+        <input className="inp inp-sm" type="date" value={filterSince} onChange={e => setFilterSince(e.target.value)} />
       </label>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button className="btn btn-primary btn-sm" type="button" onClick={applyFilters} disabled={loading}>
-          Apply
-        </button>
+        <button className="btn btn-primary btn-sm" type="button" onClick={applyFilters} disabled={loading}>Apply</button>
         {filtersActive ? (
-          <button className="btn btn-ghost btn-sm" type="button" onClick={clearFilters} disabled={loading}>
-            Clear
-          </button>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={clearFilters} disabled={loading}>Clear</button>
         ) : null}
       </div>
     </div>
   )
 
-  // ── state branches ──────────────────────────────────────────────────────────
   if (!token) {
     return (
-      <div>
-        {header}
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
-          Sign in to view the audit log.
-        </div>
+      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        Sign in to view the audit log.
       </div>
     )
   }
 
-  if (denied) {
-    return (
-      <div>
-        {header}
-        <PermissionDenied message="You do not have audit.view — required to read the governance audit trail." />
-      </div>
-    )
-  }
+  if (denied) return <PermissionDenied message="You do not have audit.view — required to read the governance audit trail." />
 
-  if (loading && items.length === 0) {
-    return (
-      <div>
-        {header}
-        {filterBar}
-        <SkeletonRows rows={6} />
-      </div>
-    )
-  }
+  if (loading && items.length === 0) return <>{filterBar}<SkeletonRows rows={6} /></>
 
-  if (error) {
-    return (
-      <div>
-        {header}
-        {filterBar}
-        <ErrorBanner message={error} onRetry={load} />
-      </div>
-    )
-  }
+  if (error) return <>{filterBar}<ErrorBanner message={error} onRetry={load} /></>
 
   return (
-    <div>
-      {header}
+    <>
       {filterBar}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+        <span className="hint" style={{ fontSize: 11.5 }}>{loading ? '' : `${items.length} of ${total}`}</span>
+      </div>
       {items.length === 0 ? (
         <EmptyState
           title="No audit events"
-          message={
-            filtersActive
-              ? 'No audit events match these filters.'
-              : 'Audit events will appear here as users create, update, or transition records.'
-          }
+          message={filtersActive ? 'No audit events match these filters.' : 'Audit events will appear here as users create, update, or transition records.'}
         />
       ) : (
         <>
@@ -1498,44 +1680,19 @@ export function VersionHistory({ token }: { token?: string } = {}) {
                     type="button"
                     onClick={() => toggleExpanded(ev.id)}
                     aria-expanded={isOpen}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      width: '100%',
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      color: 'inherit',
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
                   >
                     <StatusPillLite variant={eventVariant(ev.type)} label={ev.type} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>
-                      {actorLabel(ev)}
-                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>{actorLabel(ev)}</span>
                     {entitySuffix && (
-                      <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
-                        {entitySuffix}
-                      </span>
+                      <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{entitySuffix}</span>
                     )}
                     <span style={{ flex: 1 }} />
                     <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ev.created_at)}</span>
-                    {isOpen
-                      ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} />
-                      : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
+                    {isOpen ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} /> : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
                   </button>
                   {isOpen && (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        padding: 10,
-                        background: 'var(--gx-surface-2)',
-                        border: '1px solid var(--gx-border-subtle)',
-                        borderRadius: 'var(--gx-radius-md)',
-                      }}
-                    >
+                    <div style={{ marginTop: 8, padding: 10, background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border-subtle)', borderRadius: 'var(--gx-radius-md)' }}>
                       <DataDetail data={ev.data} />
                     </div>
                   )}
@@ -1545,18 +1702,43 @@ export function VersionHistory({ token }: { token?: string } = {}) {
           </div>
           {items.length < total && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                type="button"
-                onClick={loadMore}
-                disabled={loadingMore}
-              >
+              <button className="btn btn-secondary btn-sm" type="button" onClick={loadMore} disabled={loadingMore}>
                 {loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}
               </button>
             </div>
           )}
         </>
       )}
+    </>
+  )
+}
+
+// ── VersionHistory: top-level two-tab shell ────────────────────────────────────
+
+export function VersionHistory({ token }: { token?: string } = {}) {
+  const [tab, setTab] = useState<'versions' | 'audit'>('versions')
+
+  return (
+    <div>
+      <Sec
+        icon={<GitCommitHorizontal size={15} />}
+        title="Version History"
+        hint="page versions · audit log"
+        right={
+          <div className="seg">
+            <button className={tab === 'versions' ? 'on' : ''} type="button" onClick={() => setTab('versions')}>
+              Page versions
+            </button>
+            <button className={tab === 'audit' ? 'on' : ''} type="button" onClick={() => setTab('audit')}>
+              Audit log
+            </button>
+          </div>
+        }
+      />
+      {tab === 'versions'
+        ? <PageVersionsTab token={token} />
+        : <AuditLogTab token={token} />
+      }
     </div>
   )
 }
@@ -1619,79 +1801,278 @@ export function Templates() {
 
 // ── 11  PUBLISH SETTINGS ──────────────────────────────────────────────────────
 
-export function PublishSettings() {
-  const [status, setStatus] = useState('Draft')
-  const [access, setAccess] = useState('Authenticated')
-  const [code, setCode] = useState(false)
+export function PublishSettings({ token }: { token?: string } = {}) {
+  const [pages, setPages] = useState<StudioPage[]>([])
+  const [loadingPages, setLoadingPages] = useState(false)
+  const [pagesError, setPagesError] = useState<string | null>(null)
+  const [pagesDenied, setPagesDenied] = useState(false)
+
+  const [selectedId, setSelectedId] = useState<string>('')
+  const [detail, setDetail] = useState<StudioPageDetail | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
+
+  // Inline create-page form
+  const [creating, setCreating] = useState(false)
+  const [newKey, setNewKey] = useState('')
+  const [newLabel, setNewLabel] = useState('')
+  const [createSaving, setCreateSaving] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  // Draft save / publish
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const [actionErr, setActionErr] = useState<string | null>(null)
+
+  // Load page list
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    setLoadingPages(true); setPagesError(null); setPagesDenied(false)
+    bget<StudioPage[]>(token, '/api/studio/pages').then(res => {
+      if (!alive) return
+      if (res.status === 403) { setPagesDenied(true); setLoadingPages(false); return }
+      if (!res.ok) { setPagesError(`Failed to load pages (${res.status})`); setLoadingPages(false); return }
+      setPages(Array.isArray(res.data) ? res.data : [])
+      setLoadingPages(false)
+    }).catch((e: Error) => { if (alive) { setPagesError(e.message); setLoadingPages(false) } })
+    return () => { alive = false }
+  }, [token])
+
+  // Load page detail when selection changes
+  useEffect(() => {
+    if (!token || !selectedId) { setDetail(null); return }
+    let alive = true
+    setLoadingDetail(true); setActionMsg(null); setActionErr(null)
+    bget<StudioPageDetail>(token, `/api/studio/pages/${selectedId}`).then(res => {
+      if (!alive) return
+      setDetail(res.ok && res.data ? res.data : null)
+      setLoadingDetail(false)
+    }).catch(() => { if (alive) setLoadingDetail(false) })
+    return () => { alive = false }
+  }, [token, selectedId])
+
+  const flash = (msg: string, isErr = false) => {
+    if (isErr) { setActionErr(msg); setActionMsg(null) }
+    else { setActionMsg(msg); setActionErr(null) }
+    setTimeout(() => { setActionMsg(null); setActionErr(null) }, 4000)
+  }
+
+  const createPage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!token || !newKey.trim() || !newLabel.trim()) return
+    setCreateSaving(true); setCreateError(null)
+    try {
+      const created = await bpost<StudioPage>(token, '/api/studio/pages', { key: newKey.trim(), label: newLabel.trim() })
+      setPages(prev => [...prev, created])
+      setSelectedId(created.id)
+      setCreating(false); setNewKey(''); setNewLabel('')
+    } catch (e) {
+      setCreateError((e as Error).message || 'Failed to create page')
+    } finally {
+      setCreateSaving(false)
+    }
+  }
+
+  const saveDraft = async () => {
+    if (!token || !selectedId || savingDraft) return
+    setSavingDraft(true); setActionErr(null)
+    try {
+      const ver = await bpost<StudioVersion>(token, `/api/studio/pages/${selectedId}/versions`, {
+        snapshot: { _saved_at: new Date().toISOString(), _note: 'manual save' },
+      })
+      setDetail(prev => prev ? { ...prev, version: ver } : prev)
+      flash(`Draft v${ver.version_no} saved.`)
+    } catch (e) {
+      flash((e as Error).message || 'Save failed', true)
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  const publish = async () => {
+    if (!token || !selectedId || !detail?.version || publishing) return
+    setPublishing(true); setActionErr(null)
+    try {
+      const ver = await bpost<StudioVersion>(token, `/api/studio/pages/${selectedId}/versions/${detail.version.id}/publish`)
+      setDetail(prev => prev ? { ...prev, version: ver } : prev)
+      flash(`Published as v${ver.version_no}.`)
+    } catch (e) {
+      flash((e as Error).message || 'Publish failed', true)
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  // "Publish now" is enabled when there's a draft version that isn't already published.
+  const canPublish = !!detail?.version && detail.version.status !== 'published'
+
+  const header = <Sec icon={<Rocket size={15} />} title="Publish Settings" hint="page picker, save draft, publish" />
+
+  if (!token) {
+    return (
+      <div>
+        {header}
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+          Sign in to manage page publishing.
+        </div>
+      </div>
+    )
+  }
+
+  if (pagesDenied) {
+    return (
+      <div>
+        {header}
+        <PermissionDenied message="You need config.manage permission to access page publish settings." />
+      </div>
+    )
+  }
+
+  if (pagesError) {
+    return (
+      <div>
+        {header}
+        <ErrorBanner message={pagesError} />
+      </div>
+    )
+  }
 
   return (
     <div>
-      <Sec icon={<Rocket size={15} />} title="Publish Settings" hint="slug, status, access, language, metadata, custom code" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 680 }}>
-        <label className="field">
-          <span>URL slug</span>
-          <input className="inp inp-sm mono" placeholder="/page-slug" />
-        </label>
-        <label className="field">
-          <span>Status</span>
-          <div className="seg" style={{ width: '100%' }}>
-            {/* TODO: bind to /api/pages/statuses (workflow status registry) */}
-            {['Draft', 'In review', 'Published'].map(s => (
-              <button key={s} className={status === s ? 'on' : ''} type="button" onClick={() => setStatus(s)} style={{ flex: 1 }}>
-                {s}
-              </button>
+      {header}
+
+      {/* Page picker */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+        <label className="lbl" style={{ margin: 0, flexShrink: 0 }}>Page</label>
+        {loadingPages ? (
+          <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
+        ) : pages.length === 0 && !creating ? (
+          <span className="hint" style={{ fontSize: 12 }}>No pages yet.</span>
+        ) : !creating ? (
+          <select
+            className="inp inp-sm"
+            style={{ minWidth: 220 }}
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+          >
+            <option value="">— select a page —</option>
+            {pages.map(p => (
+              <option key={p.id} value={p.id}>{p.label} ({p.key})</option>
             ))}
+          </select>
+        ) : null}
+        {!creating && (
+          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setCreating(true)}>
+            <Plus size={13} />Create page
+          </button>
+        )}
+      </div>
+
+      {/* Inline create-page form */}
+      {creating && (
+        <form
+          onSubmit={createPage}
+          className="card"
+          style={{ padding: '12px 14px', marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}
+        >
+          <label className="field" style={{ flex: '1 1 140px', margin: 0 }}>
+            <span style={{ fontSize: 11 }}>Key *</span>
+            <input
+              className="inp inp-sm mono"
+              placeholder="my-page"
+              value={newKey}
+              onChange={e => setNewKey(e.target.value)}
+              required
+            />
+          </label>
+          <label className="field" style={{ flex: '1 1 180px', margin: 0 }}>
+            <span style={{ fontSize: 11 }}>Label *</span>
+            <input
+              className="inp inp-sm"
+              placeholder="My Page"
+              value={newLabel}
+              onChange={e => setNewLabel(e.target.value)}
+              required
+            />
+          </label>
+          {createError && (
+            <span style={{ fontSize: 12, color: 'var(--gx-danger-fg)' }}>{createError}</span>
+          )}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-primary btn-sm" type="submit" disabled={createSaving}>
+              {createSaving ? 'Creating…' : 'Create'}
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              onClick={() => { setCreating(false); setNewKey(''); setNewLabel(''); setCreateError(null) }}
+            >
+              Cancel
+            </button>
           </div>
-        </label>
-        <label className="field">
-          <span>Access level</span>
-          {/* TODO: bind to /api/auth/access-levels (access-level registry from auth kernel) */}
-          <select className="inp inp-sm" value={access} onChange={e => setAccess(e.target.value)}>
-            {['Public', 'Authenticated', 'Role-restricted', 'Admin only'].map(a => <option key={a}>{a}</option>)}
-          </select>
-        </label>
-        <label className="field">
-          <span>Language</span>
-          {/* TODO: bind to /api/tenant/settings/locales (enabled locales) */}
-          <select className="inp inp-sm">
-            {['Հայերեն (hy-AM)', 'English (en)', 'Русский (ru)'].map(l => <option key={l}>{l}</option>)}
-          </select>
-        </label>
-        <label className="field" style={{ gridColumn: '1 / -1' }}>
-          <span>Page metadata (title / description)</span>
-          <input className="inp inp-sm" placeholder="Page title" style={{ marginBottom: 8 }} />
-          <textarea
-            className="inp"
-            rows={2}
-            style={{ height: 'auto', padding: '10px 11px', lineHeight: 1.6, resize: 'vertical' }}
-            placeholder="Meta description"
-          />
-        </label>
-      </div>
-      <div className="section-head">
-        <Settings size={15} className="section-icon" />
-        Custom code
-        <span style={{ flex: 1 }} />
-        <button onClick={() => setCode(c => !c)} className={'gx-toggle' + (code ? ' on' : '')} type="button" aria-label="Toggle custom code">
-          <span className="knob" />
-        </button>
-      </div>
-      {code && (
-        <textarea
-          className="inp mono"
-          rows={4}
-          style={{ height: 'auto', padding: '10px 11px', lineHeight: 1.6, resize: 'vertical', fontSize: 12 }}
-          placeholder="<!-- custom head/script injected on publish -->"
-        />
+        </form>
       )}
-      <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-        {/* TODO: wire onClick to /api/pages/{pageId}/publish (POST) — disabled until backend exists */}
-        <button className="btn btn-primary" type="button" disabled>
-          <Rocket size={14} />Publish now
+
+      {/* Page detail — only when a page is selected */}
+      {selectedId && (
+        loadingDetail ? (
+          <SkeletonRows rows={3} />
+        ) : (
+          <div className="card card-pad" style={{ marginBottom: 14 }}>
+            {detail?.version ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span className="lbl" style={{ margin: 0 }}>Current version</span>
+                  <span className="mono" style={{ fontSize: 13 }}>v{detail.version.version_no}</span>
+                  <span className={`pill ${detail.version.status === 'published' ? 'pill-success' : 'pill-neutral'}`}>
+                    {detail.version.status}
+                  </span>
+                  {detail.version.author_user_id && (
+                    <span className="hint" style={{ fontSize: 11.5 }}>
+                      by {detail.version.author_user_id.slice(0, 8)}
+                    </span>
+                  )}
+                  <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(detail.version.created_at)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="hint" style={{ margin: 0, fontSize: 13 }}>No versions yet — save a draft to get started.</p>
+            )}
+          </div>
+        )
+      )}
+
+      {/* Feedback messages */}
+      {actionErr && (
+        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{actionErr}</div>
+        </div>
+      )}
+      {actionMsg && (
+        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-success-fg)' }}>{actionMsg}</div>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+        <button
+          className="btn btn-secondary"
+          type="button"
+          disabled={!selectedId || savingDraft}
+          onClick={saveDraft}
+        >
+          <Save size={14} />{savingDraft ? 'Saving…' : 'Save draft'}
         </button>
-        {/* TODO: wire onClick to /api/pages/{pageId}/draft (PUT) — disabled until backend exists */}
-        <button className="btn btn-secondary" type="button" disabled>
-          <Save size={14} />Save draft
+        <button
+          className="btn btn-primary"
+          type="button"
+          disabled={!canPublish || publishing}
+          onClick={publish}
+          title={!canPublish ? 'No unpublished draft to promote' : 'Publish this draft'}
+        >
+          <Rocket size={14} />{publishing ? 'Publishing…' : 'Publish now'}
         </button>
       </div>
     </div>
