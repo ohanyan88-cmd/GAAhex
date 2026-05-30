@@ -153,7 +153,6 @@ export default function App() {
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   // Account-menu modals (My Profile, Security, and SUPPORT items).
@@ -198,24 +197,6 @@ export default function App() {
   }
 
   useEffect(() => { initI18n(token) }, [token])
-
-  // Close the user-profile menu on outside click or Escape
-  useEffect(() => {
-    if (!userMenuOpen) return
-    function onMouseDown(e: MouseEvent) {
-      const el = document.getElementById('user-menu')
-      if (el && !el.contains(e.target as Node)) setUserMenuOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setUserMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onMouseDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onMouseDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [userMenuOpen])
 
   // theme + setTheme are consumed by the user-menu theme toggle (P5 UserMenu).
   const [theme, setTheme] = useState<'dark' | 'light'>(
@@ -408,6 +389,9 @@ export default function App() {
       </aside>
 
       <div className="main">
+        {/* P2: new topbar layout — [sidebar toggle][OrgIdentity] ...spacer... [Bell][UserMenu].
+            The three right-of-toggle slots render placeholder skeletons here; they get real
+            implementations in P3 (OrgIdentity), P4 (NotificationBell), P5 (UserMenu). */}
         <header className="tb">
           <button
             className="tb-icon"
@@ -422,90 +406,16 @@ export default function App() {
             <PanelLeft size={18} />
           </button>
 
+          {/* OrgIdentity placeholder — implemented in P3 */}
+          <div className="tb-icon" aria-hidden="true" title="Company identity (wiring in P3)" />
+
           <span className="spacer" />
 
-          {/* Notifications — wraps the existing NotificationCenter; visual is a tb-icon with red dot.
-              P1 keeps this entry as-is; P4 replaces it with the new NotificationBell component. */}
-          <div className="tb-icon" style={{ position: 'relative' }} aria-label="Notifications">
-            <NotificationCenter
-              token={token}
-              entities={entities}
-              onOpen={(slug) => setView({ type: 'entity', slug })}
-            />
-          </div>
+          {/* NotificationBell placeholder — implemented in P4 */}
+          <div className="tb-icon" aria-hidden="true" title="Notifications (wiring in P4)" />
 
-          <div id="user-menu" className="user-menu" style={{ position: 'relative' }}>
-            <button
-              className="avatar"
-              onClick={() => setUserMenuOpen((o) => !o)}
-              aria-haspopup="menu"
-              aria-expanded={userMenuOpen}
-              aria-label={t('common.accountMenu', 'Account menu')}
-              title={user?.name}
-              style={{ border: 'none', cursor: 'pointer' }}
-            >
-              {user?.avatar_url
-                ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                : initialsOf(user?.name)}
-            </button>
-
-              {userMenuOpen && (
-                /* Account menu — PERSONAL scope only. Boundary rule: anything that affects OTHER
-                   users, billing, system config, or tenant administration does NOT belong here —
-                   route those to a dedicated Settings module instead.
-                   P1 keeps this menu inline; P5 replaces it with the UserMenu component (theme +
-                   language live inside there, alongside the existing profile/security/support items). */
-                <div className="menu user-menu-pop" role="menu" aria-label={t('common.accountMenu', 'Account menu')}>
-                  <div className="menu-head">
-                    <span className="user-avatar">
-                      {user?.avatar_url
-                        ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                        : initialsOf(user?.name)}
-                    </span>
-                    <div style={{ minWidth: 0 }}>
-                      <div className="menu-head-name">{user?.name}</div>
-                      <div className="menu-head-email">{user?.email}</div>
-                      <span className="menu-head-rolebadge">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
-                    </div>
-                  </div>
-
-                  <div className="menu-label">{t('account.section', 'Account')}</div>
-                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('profile') }}>
-                    <UsersIcon size={16} />
-                    <span>{t('profile.title', 'My Profile')}</span>
-                  </button>
-                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('security') }}>
-                    <ShieldIcon size={16} />
-                    <span>{t('security.title', 'Security & Sign-in')}</span>
-                  </button>
-
-                  <div className="menu-sep" />
-
-                  <div className="menu-label">{t('support.section', 'Support')}</div>
-                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('shortcuts') }}>
-                    <InfoIcon size={16} />
-                    <span>{t('shortcuts.title', 'Keyboard shortcuts')}</span>
-                  </button>
-                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('docs') }}>
-                    <GlobeIcon size={16} />
-                    <span>{t('docs.title', 'Documentation')}</span>
-                  </button>
-                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('whatsnew') }}>
-                    <SparkleIcon size={16} />
-                    <span>{t('whatsnew.title', "What's new")}</span>
-                  </button>
-
-                  <div className="menu-sep" />
-                  <button
-                    className="menu-item danger"
-                    role="menuitem"
-                    onClick={() => { setUserMenuOpen(false); logout() }}
-                  >
-                    <span>{t('common.signout', 'Sign out')}</span>
-                  </button>
-                </div>
-              )}
-            </div>
+          {/* UserMenu placeholder — implemented in P5 */}
+          <div className="tb-icon" aria-hidden="true" title="Account menu (wiring in P5)" />
         </header>
         <main id="main-content" className="view">
           <ErrorBoundary>
