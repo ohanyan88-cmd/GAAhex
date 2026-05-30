@@ -346,15 +346,14 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
     .slice(0, 6)
 
   return (
-    <div className="gx-comms comms-shell">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+    <div className="comms-shell fade">
       <div className="comms-head">
-        <div className="vh-ic"><CalendarIcon size={18} /></div>
+        <div className="vh-ic"><CalendarIcon size={20} /></div>
         <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 20, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
+          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
             {cfg.title}
           </h1>
-          <div className="hint" style={{ fontSize: 12 }}>
+          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
             {calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)}
             {loading ? ' · loading…' : ''}
           </div>
@@ -362,46 +361,31 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
         <span className="spacer" />
         <div className="cal-nav">
           <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
-            <ChevronLeftIcon size={16} />
+            <ChevronLeftIcon size={18} />
           </button>
           <button className="btn btn-secondary btn-sm" onClick={goToday}>Today</button>
           <button className="tb-icon" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
-            <ChevronRightIcon size={16} />
+            <ChevronRightIcon size={18} />
           </button>
         </div>
-        <div className="cal-view-tabs">
-          <button
-            type="button"
-            className={`cal-view-tab${calView === 'month' ? ' on' : ''}`}
-            onClick={() => setCalView('month')}
-          >Month</button>
-          <button
-            type="button"
-            className={`cal-view-tab${calView === 'week' ? ' on' : ''}`}
-            onClick={() => setCalView('week')}
-          >Week</button>
+        <div className="seg hide-sm">
+          <button type="button" className={calView === 'month' ? 'on' : ''} onClick={() => setCalView('month')}>Month</button>
+          <button type="button" className={calView === 'week' ? 'on' : ''} onClick={() => setCalView('week')}>Week</button>
+          <button type="button" disabled>Day</button>
         </div>
-        <button
-          className="btn btn-primary btn-sm"
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          onClick={() => openNew()}
-          type="button"
-        >
-          <PlusIcon size={13} /> New event
+        <button className="btn btn-primary btn-sm" onClick={() => openNew()} type="button">
+          <PlusIcon size={14} />New event
         </button>
       </div>
 
-      {/* ── Layout: mini-cal + filters + upcoming · main grid ──────────── */}
       <div className="cal-layout">
-        <aside className="cal-rail">
+        <aside className="cal-rail hide-sm">
           <MiniCal />
 
           {/* Calendar filters (toggle visibility) */}
           {cals.length > 0 && (
             <>
-              <div className="hint" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>
-                Calendars
-              </div>
+              <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Calendars</div>
               {cals.map(cal => {
                 const on = !hiddenCals.has(cal.id)
                 return (
@@ -427,9 +411,7 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
           {/* Upcoming list */}
           {upcoming.length > 0 && (
             <>
-              <div className="hint" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>
-                Upcoming
-              </div>
+              <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Upcoming</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {upcoming.map(e => {
                   const tone = calColor(e)
@@ -452,8 +434,7 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
           )}
         </aside>
 
-        {/* Main calendar grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-lg)', background: 'var(--gx-surface)' }}>
+        <div className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {calView === 'month' && (
             <div className="cal-grid full">
               {DAY_HEADERS.map(d => (
