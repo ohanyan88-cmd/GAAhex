@@ -1896,15 +1896,28 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
 
 /* KPI grid + tile */
 .gx-dash .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+/* The KPI tile is a <button> with inline style `border:none` (DashboardView.tsx) which
+   overrides this CSS border, so a border-color hover alone is invisible. We add an
+   `outline` (not affected by inline border styles, doesn't shift layout) that goes
+   gold on hover, plus glow shadow + background tint + a more visible lift — all from
+   existing tokens. See `.gx-dash .kpi:hover` below. */
 .gx-dash .kpi { min-width:0; overflow:hidden; position:relative;
   background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg);
   padding:16px; box-shadow:var(--gx-shadow-sm);
-  transition:box-shadow var(--gx-dur-base), transform var(--gx-dur-base), border-color var(--gx-dur-base);
+  outline:var(--gx-border-2) solid transparent; outline-offset:-2px;
+  transition:box-shadow var(--gx-dur-base), transform var(--gx-dur-base),
+             border-color var(--gx-dur-base), outline-color var(--gx-dur-base),
+             background-color var(--gx-dur-base);
   /* Reset the legacy app-wide ".kpi { font-size:38px; font-family:mono; color:accent }"
      for elements INSIDE .gx-dash so the tile container itself stays card-shaped. */
   font-size:inherit; font-family:inherit; color:var(--gx-text-1); font-weight:normal; line-height:normal;
 }
-.gx-dash .kpi:hover { box-shadow:var(--gx-shadow-md); transform:translateY(-1px); border-color:var(--gx-gold); }
+.gx-dash .kpi:hover {
+  outline:var(--gx-border-3) solid var(--gx-gold);
+  border-color:var(--gx-gold);
+  box-shadow:var(--gx-shadow-md);
+  transform:translateY(-2px);
+}
 .gx-dash .kpi .klbl { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); }
 .gx-dash .kpi .kval { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; color:var(--gx-text-1); }
 .gx-dash .kpi .kfoot { display:flex; align-items:center; justify-content:space-between; gap:8px; }
