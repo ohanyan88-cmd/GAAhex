@@ -297,6 +297,145 @@
   padding: 3px 8px;
 }
 
+/* ============================================================================
+   P3 — Relational 9-layer Overview (kit handoff/studio-kit-app.css lines 244-265)
+   ============================================================================ */
+
+/* `section-icon` overrides the default gold tint for Overview's Layers/Puzzle icons —
+   keeps the headings cohesive when reused inside the pane. The base .section-head
+   class already exists in styles.css line 1929 (kit ports). */
+
+.layer-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 680px;
+}
+.layer-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--gx-border);
+  border-left: 3px solid var(--lt, var(--gx-primary));
+  background: var(--gx-surface);
+  border-radius: var(--gx-radius-lg);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  font-family: var(--gx-font-sans);
+  text-align: left;
+  box-shadow: var(--gx-shadow-xs);
+  width: 100%;
+}
+.layer-card:hover {
+  box-shadow: var(--gx-shadow-md);
+  transform: translateX(2px);
+  border-color: var(--gx-border-strong);
+}
+.layer-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gx-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.layer-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.layer-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gx-text-1);
+}
+.layer-what {
+  font-size: 12px;
+  color: var(--gx-text-3);
+  margin-top: 1px;
+}
+.layer-count {
+  font-size: 11px;
+  color: var(--gx-text-3);
+  font-family: var(--gx-font-mono);
+  flex-shrink: 0;
+}
+.layer-go {
+  color: var(--gx-text-3);
+  flex-shrink: 0;
+  transition: transform var(--gx-dur-fast);
+}
+.layer-card:hover .layer-go {
+  transform: translateX(3px);
+  color: var(--gx-primary);
+}
+.layer-rel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 0;
+  color: var(--gx-text-3);
+}
+.layer-rel-line {
+  width: 2px;
+  height: 10px;
+  background: var(--gx-border-strong);
+}
+.layer-rel-verb {
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: var(--gx-text-3);
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  max-width: 700px;
+}
+.support-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid var(--gx-border);
+  background: var(--gx-surface);
+  border-radius: var(--gx-radius-md);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  font-family: var(--gx-font-sans);
+  text-align: left;
+}
+.support-card:hover {
+  border-color: var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-sm);
+  transform: translateY(-1px);
+}
+.support-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-gold-soft);
+  color: var(--gx-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Section-icon: small gold accent used by the Overview headings. .section-head itself
+   is already defined in styles.css (kit ports); we add the icon-color hook here so
+   Overview doesn't inherit the gx-studio override. */
+.studio-pane .section-head .section-icon {
+  color: var(--gx-gold);
+}
+
 /* ---- Responsive (kit lines 239-242, 322-328): collapse to single column at 1180px ---- */
 @media (max-width: 1180px) {
   .studio.tree-studio {

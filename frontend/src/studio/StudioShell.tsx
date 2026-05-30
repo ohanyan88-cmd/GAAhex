@@ -10,6 +10,7 @@ import { useEffect } from 'react'
 import { Eye, Rocket, Shield } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import StudioTree, { type StudioPick } from './StudioTree'
+import StudioOverview from './StudioOverview'
 import { LEAF_BY_ID } from './tree'
 
 export type StudioRoute = { group?: string; module?: string; leaf?: string }
@@ -133,10 +134,7 @@ export default function StudioShell({
               <span className="label">{leaf.id}</span>
             </div>
           ) : (
-            // P3 fills this with StudioOverview (the relational 9-layer landing).
-            <div className="studio-pane-placeholder">
-              <div>Overview landing comes in Prompt 3.</div>
-            </div>
+            <StudioOverview onPick={onPick} />
           )}
         </section>
       </div>
