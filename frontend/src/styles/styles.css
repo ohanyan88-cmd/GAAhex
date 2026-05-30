@@ -2975,7 +2975,7 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
 .gx-comms .cal-check { width:16px; height:16px; border-radius:4px; border:1.5px solid; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .gx-comms .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
 .gx-comms .cal-grid.full { flex:1; grid-template-rows:auto repeat(6,1fr); height:100%; }
-.gx-comms .cal-h { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--gx-text-3); padding:8px 10px; border-bottom:1px solid var(--gx-border-subtle); }
+.gx-comms .cal-h { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--gx-text-2); padding:8px 10px; border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
 .gx-comms .cal-cell { border-right:1px solid var(--gx-border-subtle); border-bottom:1px solid var(--gx-border-subtle); padding:6px; display:flex; flex-direction:column; gap:3px; overflow:hidden; cursor:pointer; transition:background var(--gx-dur-fast); }
 .gx-comms .cal-cell:hover { background:var(--gx-hover); }
 .gx-comms .cal-cell.off { background:var(--gx-bg-subtle); color:var(--gx-text-3); cursor:default; }

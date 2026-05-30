@@ -28,6 +28,7 @@ type Outbound = {
 }
 
 const CHANNELS = ['email', 'sms', 'push', 'webhook', 'inapp']
+const CHANNEL_LABEL: Record<string, string> = { email: 'Email', sms: 'SMS', push: 'Push', webhook: 'Webhook', inapp: 'In-app' }
 const COMPOSE_CHANNELS = ['email', 'sms']
 const STATUSES = ['queued', 'sent', 'delivered', 'failed']
 
@@ -315,8 +316,8 @@ export default function OutboundView({ token, configVersion = 0 }: { token: stri
             {CHANNELS.map(c => {
               const tone = c === 'email' ? 'var(--azure-400)' : c === 'sms' ? 'var(--gx-warning)' : c === 'push' ? 'var(--gx-success)' : c === 'webhook' ? 'var(--gx-gold)' : 'var(--gx-text-3)'
               return (
-                <button key={c} className={'mail-folder' + (channel === c ? ' on' : '')} onClick={() => setChannel(channel === c ? '' : c)} style={{ textTransform: 'capitalize' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: tone }} /><span>{c}</span>
+                <button key={c} className={'mail-folder' + (channel === c ? ' on' : '')} onClick={() => setChannel(channel === c ? '' : c)}>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, background: tone }} /><span>{CHANNEL_LABEL[c] ?? c}</span>
                 </button>
               )
             })}

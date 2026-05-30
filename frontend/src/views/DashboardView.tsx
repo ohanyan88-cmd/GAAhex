@@ -141,7 +141,7 @@ export default function DashboardView({
         }))
         setWorkItems(rows)
       })
-      .catch((e) => alive && setWorkItemsErr(typeof e === 'number' ? `HTTP ${e}` : 'Work items endpoint unreachable'))
+      .catch(() => alive && setWorkItemsErr('Work items endpoint not wired yet'))
 
     // Activity feed — try common endpoint, fall back to err state
     fetch(`${BASE}/api/audit/recent?limit=5`, { headers: authH(token) })
