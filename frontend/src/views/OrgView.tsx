@@ -1993,7 +1993,7 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
               <>
                 {canConfigure && onConfigure && (
                   <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                   </button>
                 )}
                 {editing && (

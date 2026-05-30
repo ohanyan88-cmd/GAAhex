@@ -579,7 +579,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   onClick={onConfigure}
                   title={t('common.configurePageTitle', 'Configure this page')}
                 >
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />{t('common.configurePage', 'Configure page')}
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
               {/* B21: New button — only when can create; Close button when form is open */}

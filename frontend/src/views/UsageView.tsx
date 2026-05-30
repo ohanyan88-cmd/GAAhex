@@ -167,7 +167,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
             <>
               {canConfigure && onConfigure && (
                 <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
               <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} record(s)`)}>

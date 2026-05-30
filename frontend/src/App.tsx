@@ -137,13 +137,8 @@ export default function App() {
   // Either kind of config makes the header "Configure page" button appear.
   const canConfigureThisPage = configSlug != null || pageConfigKey != null
 
-  // P1: each view renders its own Configure-page button in its `.view-head`; the click
-  // is wired here so the same drawer logic (entity-config vs bespoke page-config) lives
-  // in one place. The callback only resolves at click time — no stale closure issues.
-  const openConfigure = () => {
-    if (configSlug) setCfgSlug(configSlug)
-    else if (pageConfigKey) setCfgPageKey(pageConfigKey)
-  }
+  // Gear button on every page → open Studio so the user can edit the page's config there.
+  const openConfigure = () => setView({ type: 'studio' })
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -405,6 +400,18 @@ export default function App() {
 
           <span className="spacer" />
 
+          {canConfigureThisPage && !!user?.can_configure && (
+            <button
+              className="tb-icon"
+              aria-label="Configure page"
+              title="Configure this page in Studio"
+              onClick={openConfigure}
+              style={{ color: 'var(--gx-gold)' }}
+            >
+              <Wand size={16} />
+            </button>
+          )}
+
           <NotificationBell
             token={token!}
             entities={entities}
@@ -432,14 +439,14 @@ export default function App() {
                   token={token}
                   canConfigure={!!user?.can_configure}
                   onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
-                  onConfigure={canConfigureThisPage ? openConfigure : undefined}
+                 
                 />
               : view.type === 'dashboards'
                 ? <DashboardView
                     token={token}
                     configVersion={pageConfigVersion}
                     canConfigure={!!user?.can_configure}
-                    onConfigure={canConfigureThisPage ? openConfigure : undefined}
+                   
                     onNavigate={(target) => {
                       if (target.type === 'subscriptions') {
                         setView({ type: 'subscriptions' })
@@ -455,11 +462,11 @@ export default function App() {
                     }}
                   />
               : view.type === 'analytics'
-                ? <AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'lead-pipeline'
-                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} canConfigure={!!user?.can_configure} />
               : view.type === 'customer'
-                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'ask'
                 ? <AskGaaexView token={token} />
               : view.type === 'messages'
@@ -469,41 +476,41 @@ export default function App() {
               : view.type === 'invoices'
                 ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} />
               : view.type === 'payments'
-                ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'gateway'
-                ? <PaymentGatewayView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <PaymentGatewayView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'subscriptions'
-                ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'products'
-                ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'report-builder'
                 ? <ReportBuilderView token={token} entities={entities} />
               : view.type === 'outbound'
-                ? <OutboundView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <OutboundView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'webhooks'
-                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'services'
-                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'usage'
-                ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'resource-pools'
-                ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'accounts'
-                ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'parties'
-                ? <PartiesView token={token} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <PartiesView token={token} canConfigure={!!user?.can_configure} />
               : view.type === 'helpdesk'
                 ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} initialOpenTicketId={view.initialOpenTicketId} />
               : view.type === 'workitems'
-                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'mytasks'
-                ? <MyTasksView token={token} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <MyTasksView token={token} canConfigure={!!user?.can_configure} />
               : view.type === 'calendar'
-                ? <CalendarView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <CalendarView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'settings'
                 ? <SettingsView token={token} />
               : view.type === 'reports'
-                ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'studio'
                 ? <StudioShell
                     token={token}
@@ -513,7 +520,7 @@ export default function App() {
                   />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
-              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />}
+              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} />}
           </ErrorBoundary>
         </main>
       </div>

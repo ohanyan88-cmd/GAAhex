@@ -162,7 +162,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
           <>
             {canConfigure && onConfigure && (
               <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
-                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
               </button>
             )}
             <button className="btn btn-secondary btn-sm hide-sm" onClick={() => {/* wire filter */}}>

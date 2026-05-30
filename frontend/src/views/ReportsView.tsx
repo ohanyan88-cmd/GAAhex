@@ -120,7 +120,7 @@ export default function ReportsView({ token, configVersion = 0, canConfigure = f
           actions={
             canConfigure && onConfigure ? (
               <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
-                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
+                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
               </button>
             ) : null
           }
