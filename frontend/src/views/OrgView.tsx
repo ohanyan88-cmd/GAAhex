@@ -21,6 +21,7 @@ import { usePageConfig, type CustomFieldDef } from '../lib/pageConfig'
 import { useCustomFields, CustomFieldChip } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
 import { Modal } from '../components/Modal'
+import ViewHead from '../components/ViewHead'
 import { toast } from '../components/Toast'
 import { createOrgNode, renameOrgNode, moveOrgNode, deleteOrgNode, OrgWriteError } from '../lib/api'
 import {
@@ -1972,104 +1973,117 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
     try { localStorage.setItem(STORAGE_KEY, next) } catch { /* ignore */ }
   }
 
+  const activeLabel = SWITCHER.find((s) => s.id === layout)?.label ?? ''
+  const nodeCount = nodes.length
+
   return (
     <OrgEditContext.Provider value={edit}>
-    <div className="org-view">
-      <div className="view-head">
-        <div className="view-icon"><LayersIcon size={20} /></div>
-        <div className="view-title-wrap">
-          <h2>{cfg.title}</h2>
-          <span className="view-sub">Organization hierarchy</span>
-        </div>
-        {editing && (
-          <div className="view-head-actions">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm org-add-node-btn"
-              onClick={() => setEditState({ kind: 'add', parent: null })}
-            >
-              <PlusIcon size={14} /> <span>Add node</span>
-            </button>
+      <div className="view">
+        <div className="view-inner fade">
+          <div className="crumbs">
+            <span>System</span><span className="sep">/</span>
+            <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
           </div>
-        )}
-      </div>
 
-      {/* The layout switcher is a wide 13-tab segmented control, so it gets its own
-          full-width row below the title rather than being crammed into the header
-          actions slot (which is sized for a single button and would otherwise wrap
-          on top of the title). */}
-      <div className="org-switcher-row">
-        <div className="org-switcher" role="tablist" aria-label="Org view layout">
-          {SWITCHER.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={layout === id}
-              className={`org-switcher-btn${layout === id ? ' on' : ''}`}
-              onClick={() => choose(id)}
-            >
-              <Icon size={15} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {roots.length === 0 ? (
-        <div className="org-empty muted">
-          No organization nodes yet.
-          {editing && (
-            <>
-              {' '}
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditState({ kind: 'add', parent: null })}>
-                <PlusIcon size={14} /> Add the first node
+          <ViewHead
+            icon={<LayersIcon size={18} />}
+            title={cfg.title}
+            sub={`${nodeCount} node${nodeCount === 1 ? '' : 's'}${activeLabel ? ` · ${activeLabel}` : ''}`}
+            actions={editing ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm org-add-node-btn"
+                onClick={() => setEditState({ kind: 'add', parent: null })}
+              >
+                <PlusIcon size={14} /> <span>Add node</span>
               </button>
-            </>
+            ) : undefined}
+          />
+
+          {/* The layout switcher is a wide 13-tab segmented control, so it gets its own
+              full-width row below the title rather than being crammed into the header
+              actions slot (which is sized for a single button and would otherwise wrap
+              on top of the title). Uses the kit's existing .org-switcher segmented-control
+              styling tuned to fit 13 tabs (.seg in this codebase is scoped to .gx-dash). */}
+          <div className="org-switcher-row">
+            <div className="org-switcher" role="tablist" aria-label="Org view layout">
+              {SWITCHER.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={layout === id}
+                  className={`org-switcher-btn${layout === id ? ' on' : ''}`}
+                  onClick={() => choose(id)}
+                >
+                  <Icon size={15} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {roots.length === 0 ? (
+            <div className="card">
+              <div className="org-empty muted">
+                No organization nodes yet.
+                {editing && (
+                  <>
+                    {' '}
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditState({ kind: 'add', parent: null })}>
+                      <PlusIcon size={14} /> Add the first node
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="card">
+              {layout === 'hierarchy' ? (
+                <HierarchyLayout roots={roots} defs={defs} cf={cf} />
+              ) : layout === 'cards' ? (
+                <CardsLayout roots={roots} defs={defs} cf={cf} />
+              ) : layout === 'outline' ? (
+                <OutlineLayout roots={roots} defs={defs} cf={cf} />
+              ) : layout === 'list' ? (
+                <ListLayout nodes={nodes} cf={cf} />
+              ) : layout === 'spans' ? (
+                <SpansLayout roots={roots} />
+              ) : layout === 'map' ? (
+                <MapLayout nodes={nodes} defs={defs} cf={cf} />
+              ) : layout === 'sunburst' ? (
+                <SunburstLayout roots={roots} />
+              ) : layout === 'treemap' ? (
+                <TreemapLayout roots={roots} cf={cf} />
+              ) : layout === 'network' ? (
+                <NetworkLayout roots={roots} />
+              ) : layout === 'heatmap' ? (
+                <HeatmapLayout roots={roots} defs={defs} cf={cf} />
+              ) : layout === 'timeline' ? (
+                <TimelineLayout roots={roots} />
+              ) : layout === 'raci' ? (
+                <RaciLayout roots={roots} defs={defs} cf={cf} />
+              ) : (
+                <GroupedLayout roots={roots} defs={defs} cf={cf} />
+              )}
+            </div>
+          )}
+
+          {/* Structure-editing modals — one mounted at a time per editState. */}
+          {editState?.kind === 'add' && (
+            <AddNodeModal token={token} parent={editState.parent} onClose={() => setEditState(null)} onDone={refresh} />
+          )}
+          {editState?.kind === 'rename' && (
+            <RenameNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
+          )}
+          {editState?.kind === 'move' && (
+            <MoveNodeModal token={token} node={editState.node} nodes={nodes} onClose={() => setEditState(null)} onDone={refresh} />
+          )}
+          {editState?.kind === 'delete' && (
+            <DeleteNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
           )}
         </div>
-      ) : layout === 'hierarchy' ? (
-        <HierarchyLayout roots={roots} defs={defs} cf={cf} />
-      ) : layout === 'cards' ? (
-        <CardsLayout roots={roots} defs={defs} cf={cf} />
-      ) : layout === 'outline' ? (
-        <OutlineLayout roots={roots} defs={defs} cf={cf} />
-      ) : layout === 'list' ? (
-        <ListLayout nodes={nodes} cf={cf} />
-      ) : layout === 'spans' ? (
-        <SpansLayout roots={roots} />
-      ) : layout === 'map' ? (
-        <MapLayout nodes={nodes} defs={defs} cf={cf} />
-      ) : layout === 'sunburst' ? (
-        <SunburstLayout roots={roots} />
-      ) : layout === 'treemap' ? (
-        <TreemapLayout roots={roots} cf={cf} />
-      ) : layout === 'network' ? (
-        <NetworkLayout roots={roots} />
-      ) : layout === 'heatmap' ? (
-        <HeatmapLayout roots={roots} defs={defs} cf={cf} />
-      ) : layout === 'timeline' ? (
-        <TimelineLayout roots={roots} />
-      ) : layout === 'raci' ? (
-        <RaciLayout roots={roots} defs={defs} cf={cf} />
-      ) : (
-        <GroupedLayout roots={roots} defs={defs} cf={cf} />
-      )}
-
-      {/* Structure-editing modals — one mounted at a time per editState. */}
-      {editState?.kind === 'add' && (
-        <AddNodeModal token={token} parent={editState.parent} onClose={() => setEditState(null)} onDone={refresh} />
-      )}
-      {editState?.kind === 'rename' && (
-        <RenameNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
-      )}
-      {editState?.kind === 'move' && (
-        <MoveNodeModal token={token} node={editState.node} nodes={nodes} onClose={() => setEditState(null)} onDone={refresh} />
-      )}
-      {editState?.kind === 'delete' && (
-        <DeleteNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
-      )}
-    </div>
+      </div>
     </OrgEditContext.Provider>
   )
 }

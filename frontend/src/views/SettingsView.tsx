@@ -6,6 +6,7 @@ import { GearIcon } from '../components/icons'
 import { useI18n, setLang, type Lang } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import SystemStatusChip from '../components/SystemStatusChip'
+import { Button } from '../primitives'
 
 // Tenant settings (E19): GET/PUT /api/tenant/settings. Edits name/currency/locale/logo_text with a
 // saved toast. Degrades to "not available yet" on 404 and "denied" on 403 (lanes land together).
@@ -64,51 +65,69 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
   if (denied) return <PermissionDenied message={t('settings.denied', "You don't have permission to manage settings.")} />
 
   return (
-    <div>
-      <ViewHead
-        icon={<GearIcon size={20} />}
-        title={t('nav.settings', 'Settings')}
-        actions={<SystemStatusChip />}
-      />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs">
+          <span>System</span><span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{t('nav.settings', 'Settings')}</span>
+        </div>
 
-      {unavailable && (
-        <EmptyState icon={<GearIcon size={40} />} title={t('settings.unavailable', "Settings aren't available yet")}
-                    message={t('settings.unavailableMsg', 'Tenant settings will appear here once enabled.')} />
-      )}
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {!loaded && !unavailable && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+        <ViewHead
+          icon={<GearIcon size={18} />}
+          title={t('nav.settings', 'Settings')}
+          sub={t('settings.sub', 'Tenant preferences')}
+          actions={<SystemStatusChip />}
+        />
 
-      {loaded && (
-        <>
-          <div className="bill-meta">
-            <div><span className="muted">{t('settings.logoText', 'Logo text')}</span><div>{loaded.logo_text || 'GAAex'}</div></div>
-            <div><span className="muted">{t('wizard.locale', 'Language')}</span><div>{(loaded.locale ?? 'en') === 'hy' ? 'Հայերեն' : 'English'}</div></div>
-          </div>
+        {unavailable && (
+          <EmptyState icon={<GearIcon size={40} />} title={t('settings.unavailable', "Settings aren't available yet")}
+                      message={t('settings.unavailableMsg', 'Tenant settings will appear here once enabled.')} />
+        )}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {!loaded && !unavailable && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
-          <div className="rec-form">
-            <label className="field"><span>{t('common.name', 'Name')}</span>
-              <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} aria-label={t('common.name', 'Name')} />
-            </label>
-            <label className="field"><span>{t('wizard.currency', 'Currency')}</span>
-              <input className="inp inp-md" value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label={t('wizard.currency', 'Currency')} />
-            </label>
-            <label className="field"><span>{t('wizard.locale', 'Language')}</span>
-              <select className="inp inp-md" value={locale} onChange={(e) => setLocale(e.target.value)} aria-label={t('wizard.locale', 'Language')}>
-                <option value="en">English</option>
-                <option value="hy">Հայերեն</option>
-              </select>
-            </label>
-            <label className="field"><span>{t('settings.logoText', 'Logo text')}</span>
-              <input className="inp inp-md" value={logoText} onChange={(e) => setLogoText(e.target.value)} aria-label={t('settings.logoText', 'Logo text')} />
-            </label>
-            <div className="rec-form-actions">
-              <button className="btn btn-primary btn-md" onClick={save} disabled={saving}>
-                {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
-              </button>
+        {loaded && (
+          <>
+            {/* Current values summary */}
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div className="bill-meta">
+                <div><span className="muted">{t('settings.logoText', 'Logo text')}</span><div>{loaded.logo_text || 'GAAex'}</div></div>
+                <div><span className="muted">{t('wizard.locale', 'Language')}</span><div>{(loaded.locale ?? 'en') === 'hy' ? 'Հայերեն' : 'English'}</div></div>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+
+            {/* Tenant preferences form */}
+            <div className="card">
+              <div className="section-head">
+                <GearIcon size={16} className="section-icon" />
+                {t('settings.tenantPrefs', 'Tenant preferences')}
+              </div>
+              <div className="rec-form">
+                <label className="field"><span>{t('common.name', 'Name')}</span>
+                  <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} aria-label={t('common.name', 'Name')} />
+                </label>
+                <label className="field"><span>{t('wizard.currency', 'Currency')}</span>
+                  <input className="inp inp-md" value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label={t('wizard.currency', 'Currency')} />
+                </label>
+                <label className="field"><span>{t('wizard.locale', 'Language')}</span>
+                  <select className="inp inp-md" value={locale} onChange={(e) => setLocale(e.target.value)} aria-label={t('wizard.locale', 'Language')}>
+                    <option value="en">English</option>
+                    <option value="hy">Հայերեն</option>
+                  </select>
+                </label>
+                <label className="field"><span>{t('settings.logoText', 'Logo text')}</span>
+                  <input className="inp inp-md" value={logoText} onChange={(e) => setLogoText(e.target.value)} aria-label={t('settings.logoText', 'Logo text')} />
+                </label>
+                <div className="rec-form-actions">
+                  <Button variant="primary" size="md" onClick={save} loading={saving} disabled={saving}>
+                    {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

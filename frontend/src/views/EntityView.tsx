@@ -14,6 +14,7 @@ import { useI18n } from '../lib/i18n'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import ViewHead from '../components/ViewHead'
+import { StatusPill } from '../primitives'
 
 const PAGE_SIZE = 50
 
@@ -97,7 +98,7 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 }
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack }: {
+export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack, canConfigure = false }: {
   token: string
   slug: string
   onOpenCustomer?: (id: string) => void
@@ -105,6 +106,8 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   capabilities?: Capabilities
   /** B21: handler for "back to dashboard" in NoAccess panel. */
   onBack?: () => void
+  /** Gates the "Configure page" header action (Studio entry). */
+  canConfigure?: boolean
 }) {
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
@@ -516,65 +519,80 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       : def.label_plural.toLowerCase()
 
   return (
-    <div>
-      {/* ── Page header ───────────────────────────────────────────── */}
-      <ViewHead
-        icon={<RowsIcon size={20} />}
-        title={def.label_plural}
-        sub={countLabel}
-        actions={
-          <>
-            {/* Export button (ghost, always visible in header when formats are available) */}
-            {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
-              <div className="saved-views" role="group" aria-label={t('export.label', 'Export')}>
-                {exportFormats.csv && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={exporting !== null}
-                    onClick={() => doExport('csv')}
-                    aria-label={t('export.csv', 'Export CSV')}
-                  >
-                    <DownloadIcon size={13} aria-hidden /> CSV
-                  </button>
-                )}
-                {exportFormats.xlsx && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={exporting !== null}
-                    onClick={() => doExport('xlsx')}
-                    aria-label={t('export.xlsx', 'Export XLSX')}
-                  >
-                    <DownloadIcon size={13} aria-hidden /> XLSX
-                  </button>
-                )}
-                {exportFormats.pdf && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={exporting !== null}
-                    onClick={() => doExport('pdf')}
-                    aria-label={t('export.pdf', 'Export PDF')}
-                  >
-                    <DownloadIcon size={13} aria-hidden /> PDF
-                  </button>
-                )}
-              </div>
-            )}
-            {/* B21: New button — only when can create; Close button when form is open */}
-            {formOpen ? (
-              <button className="btn btn-ghost btn-sm" onClick={closeForm}>
-                <CloseIcon size={13} aria-hidden /> {t('common.close', 'Close')}
-              </button>
-            ) : canCreate ? (
-              <button className="btn btn-primary btn-sm" onClick={openCreate}>
-                <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
-              </button>
-            ) : null}
-          </>
-        }
-      />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs">
+          <span>Records</span>
+          <span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{def.label_plural}</span>
+        </div>
+
+        {/* ── Page header ───────────────────────────────────────────── */}
+        <ViewHead
+          icon={<RowsIcon size={18} />}
+          title={def.label_plural}
+          sub={countLabel}
+          actions={
+            <>
+              {/* Export button (ghost, always visible in header when formats are available) */}
+              {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
+                <div className="saved-views" role="group" aria-label={t('export.label', 'Export')}>
+                  {exportFormats.csv && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={exporting !== null}
+                      onClick={() => doExport('csv')}
+                      aria-label={t('export.csv', 'Export CSV')}
+                    >
+                      <DownloadIcon size={13} aria-hidden /> CSV
+                    </button>
+                  )}
+                  {exportFormats.xlsx && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={exporting !== null}
+                      onClick={() => doExport('xlsx')}
+                      aria-label={t('export.xlsx', 'Export XLSX')}
+                    >
+                      <DownloadIcon size={13} aria-hidden /> XLSX
+                    </button>
+                  )}
+                  {exportFormats.pdf && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={exporting !== null}
+                      onClick={() => doExport('pdf')}
+                      aria-label={t('export.pdf', 'Export PDF')}
+                    >
+                      <DownloadIcon size={13} aria-hidden /> PDF
+                    </button>
+                  )}
+                </div>
+              )}
+              {canConfigure && (
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[entity] configure', slug); toast.success(t('common.configureWiringTbd', 'Configure page — wiring TBD')) }}
+                >
+                  {t('common.configurePage', 'Configure page')}
+                </button>
+              )}
+              {/* B21: New button — only when can create; Close button when form is open */}
+              {formOpen ? (
+                <button className="btn btn-ghost btn-sm" onClick={closeForm}>
+                  <CloseIcon size={13} aria-hidden /> {t('common.close', 'Close')}
+                </button>
+              ) : canCreate ? (
+                <button className="btn btn-primary btn-sm" onClick={openCreate}>
+                  <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
+                </button>
+              ) : null}
+            </>
+          }
+        />
 
       {/* B21: read-only hint */}
       {readOnly && (
@@ -721,27 +739,50 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           ) : undefined}
         />
       ) : (
-        <>
-          {/* ── List toolbar ──────────────────────────────────────── */}
-          <div className="list-toolbar">
-            <div className="search search-md">
-              <SearchIcon className="search-icon" size={14} aria-hidden />
+        <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+          {/* ── Bulk action bar (overlays toolbar when selection > 0) ── */}
+          {selected.size > 0 && (
+            <div className="bulkbar">
+              <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+              <span className="spacer" />
+              {/* B21: only show transition controls if user can edit */}
+              {canEdit && transitionTargets.length > 0 && (
+                <>
+                  <select className="inp inp-sm" value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} aria-label="Move to status">
+                    <option value="">Move to…</option>
+                    {transitionTargets.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
+                </>
+              )}
+              {/* B21: only show bulk delete if user can delete */}
+              {canDelete && (
+                <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+            </div>
+          )}
+
+          {/* ── List toolbar (search + saved views) ────────────────── */}
+          <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+            <div className="tb-search" style={{ width: 280 }}>
+              <SearchIcon size={14} />
               <input
-                className="search-input"
-                placeholder={`Search ${def.label_plural.toLowerCase()}…`}
-                aria-label={`Search ${def.label_plural}`}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
+                placeholder={`Search ${def.label_plural.toLowerCase()}`}
+                aria-label={`Search ${def.label_plural}`}
+                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
               />
               {q && (
-                <button className="search-clear" aria-label="Clear search" onClick={() => setQ('')}>
+                <button className="iconbtn" aria-label="Clear search" onClick={() => setQ('')} style={{ width: 22, height: 22 }}>
                   <CloseIcon size={12} />
                 </button>
               )}
             </div>
-
+            <span className="spacer" />
             {viewsAvailable && (
-              <div className="saved-views">
+              <div className="saved-views" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="muted" style={{ fontSize: 12 }}>View:</span>
                 <select
                   className="inp inp-sm"
@@ -761,28 +802,6 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
               </div>
             )}
           </div>
-
-          {/* ── Bulk action bar ───────────────────────────────────── */}
-          {selected.size > 0 && (
-            <div className="bulk-bar">
-              <span className="bulk-count">{selected.size} selected</span>
-              {/* B21: only show transition controls if user can edit */}
-              {canEdit && transitionTargets.length > 0 && (
-                <span className="bulk-move">
-                  <select className="inp inp-sm" value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} aria-label="Move to status">
-                    <option value="">Move to…</option>
-                    {transitionTargets.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
-                </span>
-              )}
-              {/* B21: only show bulk delete if user can delete */}
-              {canDelete && (
-                <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
-              )}
-              <button className="btn btn-ghost btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
-            </div>
-          )}
 
           {/* ── Records grid ──────────────────────────────────────── */}
           <div className="grid-wrap">
@@ -840,10 +859,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                     ))}
                     <td>
                       {r.status ? (
-                        <span className={`pill ${statusPillVariant(r.status)}`}>
-                          <span className="pill-dot" />
-                          {r.status}
-                        </span>
+                        <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" />
                       ) : ''}
                     </td>
                     {/* B21: workflow transition column only shown when canEdit */}
@@ -912,34 +928,33 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
 
           {/* B22: pager — only shown when X-Total-Count was returned and total > PAGE_SIZE */}
           {total !== null && total > PAGE_SIZE && (
-            <div className="pager" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
+            <div className="table-foot" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }} aria-live="polite">
+                {t('pager.info', '{from}–{to} / {total}')
+                  .replace('{from}', String(offset + 1))
+                  .replace('{to}', String(Math.min(offset + PAGE_SIZE, total)))
+                  .replace('{total}', String(total))}
+              </span>
+              <span className="spacer" />
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
                 disabled={offset === 0 || loading}
                 aria-label={t('pager.prev', 'Previous page')}
               >
-                <ChevronLeftIcon size={14} />
-                {t('pager.prev', 'Prev')}
+                <ChevronLeftIcon size={13} /> {t('pager.prev', 'Prev')}
               </button>
-              <span className="pager-info" aria-live="polite">
-                {t('pager.info', '{from}–{to} / {total}')
-                  .replace('{from}', String(offset + 1))
-                  .replace('{to}', String(Math.min(offset + PAGE_SIZE, total)))
-                  .replace('{total}', String(total))}
-              </span>
               <button
                 className="btn btn-ghost btn-sm"
                 onClick={() => goToPage(offset + PAGE_SIZE)}
                 disabled={offset + PAGE_SIZE >= total || loading}
                 aria-label={t('pager.next', 'Next page')}
               >
-                {t('pager.next', 'Next')}
-                <ChevronRightIcon size={14} />
+                {t('pager.next', 'Next')} <ChevronRightIcon size={13} />
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {commentsRow && (
@@ -976,20 +991,30 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           onClose={() => setAiRow(null)}
         />
       )}
+      </div>
     </div>
   )
 }
 
-// Map a status string to a pill CSS variant.
-// Well-known semantic statuses → colours; unknown → neutral pill.
-function statusPillVariant(status: string): string {
-  const s = status.toLowerCase()
-  if (['active', 'paid', 'done', 'won', 'completed', 'resolved'].includes(s)) return 'pill-success'
-  if (['suspended', 'blocked', 'warning', 'on_hold', 'on hold'].includes(s)) return 'pill-warning'
-  if (['cancelled', 'canceled', 'churned', 'lost', 'void', 'failed', 'rejected'].includes(s)) return 'pill-danger'
-  if (['prospect', 'pending', 'new', 'open', 'sent', 'draft', 'qualified'].includes(s)) return 'pill-primary'
-  if (['in_progress', 'in progress', 'negotiation', 'processing'].includes(s)) return 'pill-accent'
-  return 'pill-muted'
+// Map a status string to a StatusPill variant. Heuristic by name; the entity definition
+// (`def.transitions` / `def.statuses`) is used as a backstop so terminal statuses with no
+// well-known name still pill as `neutral` (history) rather than degraded.
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapEntityStatus(status: string, def?: Def): PillVariant {
+  const s = String(status ?? '').toLowerCase().replace(/[\s-]+/g, '_')
+  if (['done', 'closed', 'active', 'paid', 'resolved', 'won', 'succeeded', 'enabled', 'completed'].includes(s)) return 'active'
+  if (['cancelled', 'canceled', 'void', 'expired', 'failed', 'critical', 'lost', 'error', 'disabled', 'rejected', 'churned'].includes(s)) return 'critical'
+  if (['pending', 'draft', 'new', 'prospect', 'open', 'qualified', 'sent', 'issued'].includes(s)) return 'info'
+  if (['suspended', 'degraded', 'past_due', 'throttled', 'on_hold', 'blocked', 'warning'].includes(s)) return 'degraded'
+  if (['in_progress', 'negotiation', 'processing'].includes(s)) return 'info'
+  // Backstop via config: terminal status (no outgoing transitions) → neutral, initial → info
+  if (def) {
+    const meta = (def.statuses ?? []).find((x) => x.key === status)
+    if (meta?.is_initial) return 'info'
+    const hasOutgoing = (def.transitions ?? []).some((t) => t.from === status)
+    if (!hasOutgoing && meta) return 'neutral'
+  }
+  return 'neutral'
 }
 
 function FieldInput({ field, value, onChange, token, mode, currentStatus, errorField, errorMsg }: {
