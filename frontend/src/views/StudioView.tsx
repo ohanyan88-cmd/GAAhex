@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Database, ListPlus, Workflow, LayoutDashboard, Table2, BarChart3,
-  Zap, Palette, Shield, Wand2,
+  Zap, Shield, Wand2,
 } from 'lucide-react'
 import { createEntity } from '../lib/api'
 import {
@@ -15,7 +15,6 @@ import DashboardsPane from '../studio/DashboardsPane'
 import ViewsPane from '../studio/ViewsPane'
 import ReportsPane from '../studio/ReportsPane'
 import AutomationsPane from '../studio/AutomationsPane'
-import AppearancePane from '../studio/AppearancePane'
 import RolesPane from '../studio/RolesPane'
 
 // All 12 kit field types. Order matches Studio.jsx FIELD_TYPES.
@@ -28,8 +27,7 @@ type TransitionRow = { from: string; to: string; guard: string }
 type Section =
   | 'entities' | 'fields' | 'workflows'
   | 'dashboards' | 'views' | 'reports'
-  | 'auto'
-  | 'appear' | 'perms'
+  | 'auto' | 'perms'
 
 // The SuperAdmin Studio: build a whole entity AS CONFIG from the browser — no SQL, no code.
 // PROMPT 8 reskin: adopt kit structural patterns (grouped rail, kit `.banner`, kit `.rec-form`,
@@ -83,7 +81,7 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
     }
   }
 
-  // Grouped left rail — Schema · UI · Logic · Tenant — matches kit STUDIO_NAV.
+  // Grouped left rail — Schema · UI · Logic — matches kit STUDIO_NAV.
   const navSchema: { id: Section; label: string; Icon: typeof Database }[] = [
     { id: 'entities',   label: 'Entities',              Icon: Database },
     { id: 'fields',     label: 'Fields',                Icon: ListPlus },
@@ -93,10 +91,6 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
     { id: 'dashboards', label: 'Dashboards',            Icon: LayoutDashboard },
     { id: 'views',      label: 'Views',                 Icon: Table2 },
     { id: 'reports',    label: 'Reports',               Icon: BarChart3 },
-  ]
-  const navTenant: { id: Section; label: string; Icon: typeof Database }[] = [
-    { id: 'appear',     label: 'Appearance',            Icon: Palette },
-    { id: 'perms',      label: 'Roles & Permissions',   Icon: Shield },
   ]
 
   // Focused "Configure page" mode — scoped to one entity (fields + workflow), with a searchable
@@ -200,17 +194,12 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
           >
             <Zap size={14} />Automations
           </button>
-
-          <div className="studio-nav-sec">Tenant</div>
-          {navTenant.map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              className={'studio-nav-item' + (section === id ? ' on' : '')}
-              onClick={() => setSection(id)}
-            >
-              <Icon size={14} />{label}
-            </button>
-          ))}
+          <button
+            className={'studio-nav-item' + (section === 'perms' ? ' on' : '')}
+            onClick={() => setSection('perms')}
+          >
+            <Shield size={14} />Roles & Permissions
+          </button>
         </aside>
 
         <section className="studio-pane">
@@ -230,7 +219,6 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
           {section === 'views'     && <ViewsPane token={token} />}
           {section === 'reports'   && <ReportsPane token={token} />}
           {section === 'auto'      && <AutomationsPane token={token} />}
-          {section === 'appear'    && <AppearancePane token={token} />}
           {section === 'perms'     && <RolesPane token={token} />}
         </section>
       </div>

@@ -29,14 +29,12 @@ import HelpdeskView from './views/HelpdeskView'
 import PaymentGatewayView from './views/PaymentGatewayView'
 import WorkItemsView from './views/WorkItemsView'
 import CalendarView from './views/CalendarView'
-import CreateTenantWizard from './modals/CreateTenantWizard'
 import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
-import { bget, bpost } from './lib/billing'
 import { useI18n, initI18n, type Lang } from './lib/i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, CloseIcon, SparkleIcon,
-  ChevronRightIcon, ChevronDownIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon,
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, SparkleIcon,
+  ChevronRightIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon,
   ArrowRightIcon, ReceiptIcon, InboxIcon, CalendarIcon, EditIcon } from './components/icons'
 import { PanelLeft, Search, Plus, Bell, HelpCircle, Wand, LogIn, Shield } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
@@ -44,7 +42,7 @@ import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
 import { ShortcutsModal, DocsModal, WhatsNewModal } from './modals/SupportModals'
 
-type Me = { email: string; name: string; tenant_id: string; can_configure?: boolean; avatar_url?: string | null }
+type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string; code?: string; parent_id?: string | null }
 type View =
@@ -81,6 +79,14 @@ type View =
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
 const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users'])
 
+// "Demo Admin" → "DA", "Admin" → "A", "" → "U".
+function initialsOf(name: string | null | undefined, fallback = 'U'): string {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return fallback
+  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase()
+  return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase()
+}
+
 // Bespoke (non-entity) views that opt into "configure in place" — view.type → page-config key.
 // Add a view.type here (and register the page in pageConfig.ts) to light up its Configure button +
 // page-settings drawer. Template stage: Services only.
@@ -112,7 +118,6 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<Me | null>(null)
-  const [tenantName, setTenantName] = useState<string>('')
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
@@ -145,8 +150,6 @@ export default function App() {
   const [createMenuOpen, setCreateMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [wizardOpen, setWizardOpen] = useState(false)
-  const [nudge, setNudge] = useState(false)
   // Account-menu modals (My Profile, Security, and SUPPORT items).
   const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
   const { t, lang, setLang } = useI18n()
@@ -189,24 +192,6 @@ export default function App() {
   }
 
   useEffect(() => { initI18n(token) }, [token])
-
-  useEffect(() => {
-    if (!token) { setNudge(false); return }
-    bget<{ onboarded?: boolean; name?: string }>(token, '/api/tenant/settings')
-      .then((r) => {
-        if (r.ok && r.data) {
-          if (r.data.onboarded === false) setNudge(true)
-          if (r.data.name) setTenantName(r.data.name)
-        }
-      })
-      .catch(() => {})
-  }, [token])
-
-  function finishSetup() {
-    if (token) bpost(token, '/api/tenant/onboarded', {}).catch(() => {})
-    setNudge(false)
-    setView({ type: 'settings' })
-  }
 
   // Close the user-profile menu on outside click or Escape
   useEffect(() => {
@@ -267,7 +252,7 @@ export default function App() {
   }
 
   function logout() {
-    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS); setTenantName('')
+    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS)
   }
 
   if (!token) {
@@ -320,12 +305,8 @@ export default function App() {
             </div>
             <button className="btn btn-secondary btn-lg" style={{ width: '100%' }} type="button"><Shield size={16} />Continue with SSO</button>
             <p className="hint" style={{ marginTop: 18, fontSize: 11, textAlign: 'center' }}>demo: admin@demo.isp / admin123</p>
-            <button type="button" className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 8 }} onClick={() => setWizardOpen(true)}>
-              {t('wizard.cta', 'Set up a new ISP')} <span aria-hidden>→</span>
-            </button>
           </form>
         </div>
-        <CreateTenantWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       </div>
     )
   }
@@ -503,11 +484,6 @@ export default function App() {
             />
           </div>
 
-          <div className="tenant" title={tenantName || 'Tenant'} onClick={() => setView({ type: 'settings' })}>
-            <span style={{ fontSize: 12.5, fontWeight: 600 }}>{tenantName || 'GAAex'}</span>
-            <ChevronDownIcon size={14} />
-          </div>
-
           {/* Language — kept inline next to the user chip so all existing locale UX is preserved. */}
           <div className="lang-switch" role="group" aria-label={t('common.language', 'Language')}>
             {([['en', 'EN'], ['hy', 'AM'], ['ru', 'RU']] as Array<[Lang, string]>).map(([l, label]) => (
@@ -529,7 +505,7 @@ export default function App() {
             >
               {user?.avatar_url
                 ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                : (user?.name || 'U').slice(0, 1).toUpperCase()}
+                : initialsOf(user?.name)}
             </button>
 
               {userMenuOpen && (
@@ -541,7 +517,7 @@ export default function App() {
                     <span className="user-avatar">
                       {user?.avatar_url
                         ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                        : (user?.name || 'U').slice(0, 1).toUpperCase()}
+                        : initialsOf(user?.name)}
                     </span>
                     <div style={{ minWidth: 0 }}>
                       <div className="menu-head-name">{user?.name}</div>
@@ -589,16 +565,6 @@ export default function App() {
             </div>
         </header>
         <main id="main-content" className="view">
-          {nudge && (
-            <div className="onboard-nudge" role="status"
-                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', marginBottom: 14,
-                          border: '1px solid var(--border)', borderRadius: 'var(--r-md, 8px)', background: 'var(--accent-soft)' }}>
-              <GearIcon size={16} />
-              <span style={{ flex: 1 }}>{t('onboard.nudge', 'Finish setting up your ISP.')}</span>
-              <button className="btn btn-primary btn-sm" onClick={finishSetup}>{t('onboard.finish', 'Finish setting up')}</button>
-              <button className="iconbtn" aria-label={t('common.close', 'Close')} onClick={() => setNudge(false)}><CloseIcon size={16} /></button>
-            </div>
-          )}
           <ErrorBoundary>
             {view.type === 'org'
               ? <OrgView
@@ -655,7 +621,7 @@ export default function App() {
               : view.type === 'calendar'
                 ? <CalendarView token={token} configVersion={pageConfigVersion} />
               : view.type === 'settings'
-                ? <SettingsView token={token} onSaved={() => setNudge(false)} />
+                ? <SettingsView token={token} />
               : view.type === 'reports'
                 ? <ReportsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'studio'

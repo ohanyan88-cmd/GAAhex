@@ -6,7 +6,7 @@ import { GearIcon, CheckIcon, EditIcon } from '../components/icons'
 import { useI18n, setLang, type Lang } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 
-type TenantSettings = {
+type AppSettings = {
   name?: string
   currency?: string
   locale?: string
@@ -31,9 +31,9 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   )
 }
 
-export default function SettingsView({ token, onSaved }: { token: string; onSaved?: (s: TenantSettings) => void }) {
+export default function SettingsView({ token, onSaved }: { token: string; onSaved?: (s: AppSettings) => void }) {
   const { t } = useI18n()
-  const [loaded, setLoaded] = useState<TenantSettings | null>(null)
+  const [loaded, setLoaded] = useState<AppSettings | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -58,7 +58,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
 
   async function load() {
     setUnavailable(false); setDenied(false); setLoaded(null)
-    const res = await bget<TenantSettings>(token, '/api/tenant/settings')
+    const res = await bget<AppSettings>(token, '/api/tenant/settings')
     if (res.status === 404) { setUnavailable(true); return }
     if (res.status === 403) { setDenied(true); return }
     if (!res.ok || !res.data) return
@@ -83,7 +83,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
   async function save() {
     setSaving(true)
     try {
-      const updated = await bput<TenantSettings>(token, '/api/tenant/settings', {
+      const updated = await bput<AppSettings>(token, '/api/tenant/settings', {
         name: name.trim(), currency: currency.trim(), locale, logo_text: logoText.trim(),
         timezone: timezone.trim() || undefined,
         require_2fa: require2fa, auto_assign: autoAssign,
@@ -180,7 +180,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
       <ViewHead
         icon={<GearIcon size={20} />}
         title={t('nav.settings', 'Settings')}
-        sub="Tenant configuration · enforced by the kernel"
+        sub="Configuration · enforced by the kernel"
         actions={
           <>
             <button className="btn btn-ghost btn-sm" onClick={() => toast.info('Open Studio — configure entities and workflows')}>
