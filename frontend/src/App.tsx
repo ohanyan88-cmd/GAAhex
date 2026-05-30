@@ -7,6 +7,7 @@ import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
 import NotificationCenter from './components/NotificationCenter'
+import OrgIdentity from './components/OrgIdentity'
 import ConfigureDrawer from './modals/ConfigureDrawer'
 import ActivityTimeline from './components/ActivityTimeline'
 import InvoicesView from './views/InvoicesView'
@@ -406,8 +407,7 @@ export default function App() {
             <PanelLeft size={18} />
           </button>
 
-          {/* OrgIdentity placeholder — implemented in P3 */}
-          <div className="tb-icon" aria-hidden="true" title="Company identity (wiring in P3)" />
+          <OrgIdentity token={token!} />
 
           <span className="spacer" />
 

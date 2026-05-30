@@ -34,9 +34,25 @@ def _serialize(t: Tenant) -> dict:
         "currency": t.currency or "AMD",
         "locale": t.locale or "en",
         "logo_text": t.logo_text,
+        "logo_url": t.logo_url,
         "onboarded": t.onboarded_at is not None,
         "onboarded_at": t.onboarded_at.isoformat() if t.onboarded_at else None,
     }
+
+
+def _validate_logo_url(v: str | None) -> str | None:
+    """Accept either a data:image/...;base64,... URL or a clean http(s) URL. Anything else → 422."""
+    if v is None or v == "":
+        return None
+    v = v.strip()
+    if v.startswith("data:image/"):
+        # Same shape as app_user.avatar_url (see me.py:71).
+        if ";base64," not in v:
+            raise HTTPException(422, "logo_url data URL must be base64-encoded (data:image/...;base64,...)")
+        return v
+    if v.startswith("http://") or v.startswith("https://"):
+        return v
+    raise HTTPException(422, "logo_url must be a data:image/...;base64,... URL or an http(s) URL")
 
 
 async def _require_settings(s: AsyncSession, user: User) -> None:
@@ -57,7 +73,7 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
     await _require_settings(s, user)
     t = await _tenant(s, user)
 
-    allowed = {"name", "currency", "locale", "logo_text"}
+    allowed = {"name", "currency", "locale", "logo_text", "logo_url"}
     unknown = set(payload) - allowed
     if unknown:
         raise HTTPException(422, f"Cannot set {sorted(unknown)}; allowed: {sorted(allowed)}")
@@ -81,6 +97,10 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
     if "logo_text" in payload:
         t.logo_text = (payload["logo_text"] or None)
         changed["logo_text"] = t.logo_text
+    if "logo_url" in payload:
+        t.logo_url = _validate_logo_url(payload["logo_url"])
+        # Don't log the full base64 in the audit Event — record only that the logo changed.
+        changed["logo_url"] = "<set>" if t.logo_url else None
 
     await workflow.emit(s, user.tenant_id, "update", "tenant", t.id, user.id, {"changed": changed})
     await s.commit()
