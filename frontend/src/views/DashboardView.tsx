@@ -126,7 +126,7 @@ export default function DashboardView({
       .catch(() => alive && setKpis(k => k.map((x, i) => i === 2 ? { ...x, unavailable: 'Tickets endpoint unreachable' } : x)))
 
     // Tickets needing attention — top 4
-    fetch(`${BASE}/api/work-items?limit=4`, { headers: authH(token) })
+    fetch(`${BASE}/api/workitems?limit=4`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then((d: any) => {
         if (!alive) return
