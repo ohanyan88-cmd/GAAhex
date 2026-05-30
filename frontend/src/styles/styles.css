@@ -2599,3 +2599,36 @@ div.studio {
   .tenant span, .tb .btn span { display:none; }
   .tb .btn-primary { padding:0; width:34px; }
 }
+
+/* =========================================================================
+   PROMPT 5 — Data tables / list views (Invoices first)
+   Verbatim from design-system/ui_kits/portal/app.css (lines 103-178, 408-409),
+   scoped to the kit's tokens. NOTE: .kpis / .kpi / .cols intentionally NOT
+   copied — the live app already uses a local `.widgets` / `.widget` pattern
+   (with a conflicting local `.kpi { font-size:38px; font-family:mono }` for
+   the big number). Importing the kit's container `.kpi` would clobber that
+   across every dashboard. KPI strip styling lives under `.kpi-strip` only.
+   ========================================================================= */
+.view { flex:1; overflow-y:auto; overflow-x:hidden; }
+.view-inner { padding:22px 26px 40px; max-width:1320px; }
+.crumbs { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--gx-text-3); margin-bottom:14px; }
+.crumbs .sep { opacity:.5; }
+
+/* table */
+table.grid { width:100%; border-collapse:collapse; font-size:12.5px; }
+table.grid th { text-align:left; padding:10px 14px; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-3); border-bottom:1px solid var(--gx-border); white-space:nowrap; }
+table.grid td { padding:11px 14px; border-bottom:1px solid var(--gx-border-subtle); color:var(--gx-text-1); }
+table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }
+table.grid tbody tr:hover { background:var(--gx-hover); }
+table.grid tbody tr.sel { background:var(--gx-selected); }
+
+/* entity pages: kpi strip / toolbar / table footer */
+.kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:16px; }
+.kpi-strip .kpi { padding:14px 16px; }
+.kpi-strip .kval { margin:6px 0 8px; }
+.toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.toolbar .tb-search { height:34px; }
+.table-foot { display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid var(--gx-border-subtle); }
+
+/* bulk action bar */
+.bulkbar { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--gx-elevated); border-bottom:1px solid var(--gx-primary); box-shadow:var(--gx-shadow-sm); }

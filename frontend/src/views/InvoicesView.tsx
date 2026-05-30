@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
 import { initiatePayment, confirmDevPayment, isDevFlow } from '../lib/paymentgw'
 import { money, toMinor } from '../lib/money'
@@ -7,14 +7,13 @@ import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
   ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
-  CreditCardIcon, DownloadIcon,
+  CreditCardIcon, SearchIcon, PlusIcon, DownloadIcon, ArrowUpIcon, ArrowDownIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-
-const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
+import { StatusPill } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -22,15 +21,28 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-// Status → pill style
-function statusPill(status: string | null | undefined) {
-  const s = (status ?? '').toUpperCase()
-  const cls = s === 'PAID' ? 'pill pill-success'
-    : s === 'OVERDUE' ? 'pill pill-danger'
-    : s === 'VOID' ? 'pill pill-muted'
-    : s === 'ISSUED' ? 'pill pill-accent'
-    : 'pill'
-  return status ? <span className={cls}><span className="pill-dot" />{status}</span> : <span>—</span>
+// Invoice status → StatusPill primitive variant. Default mapping from PROMPT 5 spec.
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapInvoiceStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'PAID') return 'active'
+  if (v === 'DRAFT') return 'neutral'
+  if (v === 'SENT' || v === 'OPEN' || v === 'ISSUED') return 'info'
+  if (v === 'OVERDUE' || v === 'LATE') return 'critical'
+  if (v === 'VOID' || v === 'CANCELLED') return 'neutral'
+  return 'info'
+}
+
+// 3-dot row-menu icon (inline; no emoji rule — inline SVG only).
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
 }
 
 // ── Pay online button ─────────────────────────────────────────────────────────
@@ -103,29 +115,27 @@ function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceI
   )
 }
 
-// renderCell for configurable columns. Custom cells keep their styling via helpers below.
+// renderCell for configurable columns. Status now goes through the StatusPill primitive.
 function renderInvoiceCell(colKey: string, inv: Invoice, cust: (inv: Invoice) => string) {
   switch (colKey) {
-    case 'number': return inv.number ?? inv.id.slice(0, 8)
+    case 'number': return <span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span>
     case 'customer': return cust(inv)
-    case 'issued': return fmtDate(inv.issued_at ?? inv.created_at)
-    case 'due': return fmtDate(inv.due_at)
-    case 'status': return statusPill(inv.status)
-    case 'amount': return `֏${(inv.total ?? 0).toLocaleString()}`
+    case 'issued': return <span className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</span>
+    case 'due': return <span className="mono">{fmtDate(inv.due_at)}</span>
+    case 'status': return inv.status
+      ? <StatusPill variant={mapInvoiceStatus(inv.status)} label={inv.status} size="sm" />
+      : <span>—</span>
+    case 'amount': return <span className="mono tnum">{`֏${(inv.total ?? 0).toLocaleString()}`}</span>
     default: return '—'
   }
 }
 
-// Columns that get special class treatment in their <th>/<td>
-const COL_CLASS: Record<string, string> = { amount: 'num' }
-// Columns that get special inline styling on their <td>
-function colTdStyle(colKey: string): React.CSSProperties | undefined {
-  if (colKey === 'number') return { color: 'var(--accent)', fontWeight: 600 }
-  return undefined
+// Columns that get extra alignment on their <th>/<td>
+function colThClass(colKey: string): string {
+  if (colKey === 'amount') return 'num'
+  return ''
 }
-// Columns that get extra className on their <td>
 function colTdClass(colKey: string): string {
-  if (colKey === 'number' || colKey === 'issued' || colKey === 'due') return 'mono'
   if (colKey === 'amount') return 'num'
   return ''
 }
@@ -143,6 +153,14 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
   const [cycleNA, setCycleNA] = useState(false)
   const [cycleBusy, setCycleBusy] = useState(false)
 
+  // Interaction state added for the reskin (client-only — no new fetches).
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
+
   async function load() {
     setError(''); setUnavailable(false); setList(null)
     const p = new URLSearchParams()
@@ -156,6 +174,8 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
   }
 
   useEffect(() => { load() }, [token, status])
+  // Reset paging + selection whenever the filter/search/sort changes.
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [status, query, sortKey, sortDir])
 
   async function runDunning() {
     try {
@@ -203,112 +223,290 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
     ['VOID', 'Void'],
   ]
 
+  // Client-side search + sort applied on top of the server filter (status).
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((inv) => {
+      const fields = [
+        inv.number ?? '',
+        inv.id ?? '',
+        cust(inv),
+        inv.status ?? '',
+        String(inv.total ?? ''),
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, query, names])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (inv: Invoice): string | number => {
+      switch (k) {
+        case 'number': return inv.number ?? inv.id ?? ''
+        case 'customer': return cust(inv)
+        case 'issued': return inv.issued_at ?? inv.created_at ?? ''
+        case 'due': return inv.due_at ?? ''
+        case 'amount': return inv.total ?? 0
+        case 'status': return inv.status ?? ''
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey, sortDir, names])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+  function openRow(inv: Invoice) {
+    // PROMPT 5: wire row click to existing detail logic (drawer is PROMPT 6).
+    setDetailId(inv.id)
+  }
+
   if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
 
   return (
-    <div>
-      <ViewHead
-        icon={<ReceiptIcon size={18} />}
-        title={cfg.title}
-        sub={`${all.length} records · currency AMD (֏) · billing engine`}
-        actions={
-          <>
-            <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
-            {canConfigure && !cycleNA && (
-              <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>
-                {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
-              </button>
-            )}
-          </>
-        }
-      />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      {all.length > 0 && (
-        <div className="widgets" style={{ marginBottom: 18 }}>
-          <div className="widget">
-            <div className="widget-label">Total billed</div>
-            <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 1000).toFixed(1)}k</div>
-            <div className="kpi-sub">{all.length} invoice{all.length !== 1 ? 's' : ''}</div>
-          </div>
-          <div className="widget">
-            <div className="widget-label">Outstanding</div>
-            <div className="kpi" style={{ color: outstanding > 0 ? 'var(--warning)' : 'var(--text)' }}>
-              <span className="kpi-cur">֏</span>{(outstanding / 1000).toFixed(1)}k
-            </div>
-            <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
-          </div>
-          <div className="widget">
-            <div className="widget-label">Paid</div>
-            <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
-            <div className="kpi-sub">of {all.length} invoices</div>
-          </div>
-          {overdueCount > 0 && (
+        <ViewHead
+          icon={<ReceiptIcon size={18} />}
+          title={cfg.title}
+          sub={`${all.length} records · currency AMD (֏) · billing engine`}
+          actions={
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
+              {canConfigure && !cycleNA && (
+                <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>
+                  {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
+                </button>
+              )}
+            </>
+          }
+        />
+
+        {all.length > 0 && (
+          <div className="widgets" style={{ marginBottom: 18 }}>
             <div className="widget">
-              <div className="widget-label">Overdue</div>
-              <div className="kpi" style={{ color: 'var(--danger)' }}>{overdueCount}</div>
-              <div className="kpi-sub">action required</div>
+              <div className="widget-label">Total billed</div>
+              <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 1000).toFixed(1)}k</div>
+              <div className="kpi-sub">{all.length} invoice{all.length !== 1 ? 's' : ''}</div>
             </div>
-          )}
+            <div className="widget">
+              <div className="widget-label">Outstanding</div>
+              <div className="kpi" style={{ color: outstanding > 0 ? 'var(--warning)' : 'var(--text)' }}>
+                <span className="kpi-cur">֏</span>{(outstanding / 1000).toFixed(1)}k
+              </div>
+              <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Paid</div>
+              <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
+              <div className="kpi-sub">of {all.length} invoices</div>
+            </div>
+            {overdueCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Overdue</div>
+                <div className="kpi" style={{ color: 'var(--danger)' }}>{overdueCount}</div>
+                <div className="kpi-sub">action required</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="tabs">
+          {TAB_DEFS.map(([val, label]) => {
+            const count = val === '' ? all.length : countFor(val)
+            return (
+              <button
+                key={val}
+                className={'tab' + (status === val ? ' on' : '')}
+                onClick={() => setStatus(val)}
+              >
+                {label} <span className="tab-count">{count}</span>
+              </button>
+            )
+          })}
         </div>
-      )}
 
-      <div className="tabs">
-        {TAB_DEFS.map(([val, label]) => {
-          const count = val === '' ? all.length : countFor(val)
-          return (
-            <button
-              key={val}
-              className={'tab' + (status === val ? ' on' : '')}
-              onClick={() => setStatus(val)}
-            >
-              {label} <span className="tab-count">{count}</span>
-            </button>
-          )
-        })}
-      </div>
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <p className="muted">Loading…</p>}
+        {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Invoices will appear here once the billing service is enabled." />}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<ReceiptIcon size={40} />} title="No invoices" message="No invoices match this filter." />
+        )}
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Invoices will appear here once the billing service is enabled." />}
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<ReceiptIcon size={40} />} title="No invoices" message="No invoices match this filter." />
-      )}
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[invoices] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} invoice(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[invoices] bulk mark paid', Array.from(selected)); toast.success('Mark-paid action — backend wiring TBD') }}
+                >
+                  Mark paid
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
 
-      {list && list.length > 0 && (
-        <div className="grid-wrap">
-          <table className="grid">
-            <thead>
-              <tr>
-                {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
-                {cf.headers()}
-                <th scope="col"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((inv) => (
-                <tr key={inv.id}>
-                  {cfg.columns.map((c) => (
-                    <td key={c.key} className={colTdClass(c.key)} style={colTdStyle(c.key)}>
-                      {renderInvoiceCell(c.key, inv, cust)}
-                    </td>
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search invoices"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[invoices] export all'); toast.success(`Export queued for ${sorted.length} invoice(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => { console.log('[invoices] new invoice'); toast.success('New invoice — wiring TBD') }}>
+                <PlusIcon size={13} /> New invoice
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input
+                        type="checkbox"
+                        checked={allOnPageSelected}
+                        onChange={togglePageAll}
+                        aria-label="Select all rows on this page"
+                      />
+                    </th>
+                    {cfg.columns.map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={colThClass(c.key)}
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((inv) => (
+                    <tr
+                      key={inv.id}
+                      className={selected.has(inv.id) ? 'sel' : ''}
+                      onClick={() => openRow(inv)}
+                    >
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(inv.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(inv.id)}
+                          onChange={() => toggleRow(inv.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select invoice ${inv.number ?? inv.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      {cfg.columns.map((c) => (
+                        <td key={c.key} className={colTdClass(c.key)}>
+                          {renderInvoiceCell(c.key, inv, cust)}
+                        </td>
+                      ))}
+                      {cf.cells(inv.id)}
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
+                            <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
+                          )}
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[invoices] row menu', inv.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   ))}
-                  {cf.cells(inv.id)}
-                  <td>
-                    <div className="row-actions">
-                      {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
-                        <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
-                      )}
-                      <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
-                        <ArrowRightIcon size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching invoices.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 invoices'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -371,7 +569,10 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
         <>
           <div className="bill-meta">
             <div><span className="muted">Customer</span><div>{cust}</div></div>
-            <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
+            <div>
+              <span className="muted">Status</span>
+              <div>{inv.status ? <StatusPill variant={mapInvoiceStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</div>
+            </div>
             <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
             <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
             <div className="bill-actions">
