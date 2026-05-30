@@ -9,9 +9,9 @@ import {
   HomeIcon, ChartIcon, UsersIcon, ArchiveIcon, InboxIcon, ReceiptIcon,
   ServerIcon, TruckIcon, PackageIcon, BriefcaseIcon,
   SparkleIcon, MessageIcon, FolderIcon, LayersIcon, ShieldIcon,
-  GearIcon, MapIcon, ActivityIcon, BuildingIcon, CalendarIcon,
+  GearIcon, ActivityIcon, BuildingIcon, CalendarIcon,
   ClockIcon, RowsIcon, EditIcon, BookmarkIcon, MailIcon,
-  CreditCardIcon, LockIcon, ArrowRightIcon, CheckIcon,
+  CreditCardIcon, ArrowRightIcon, CheckIcon,
 } from '../components/icons'
 
 export type NavItemDef = {
@@ -144,32 +144,17 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // 8. System — platform management and configuration (admin-only)
+  // Wave A pruning (2026-05-30): 21 dead items removed per CLAUDE_CODE_ALL_PAGES_PROMPTS doctrine
+  // rule #4. Tenants omitted (single-tenant install). Items with no backend dropped:
+  // sys-teams, sys-workflows, sys-api, sys-comm-center, sys-monitoring, sys-eventbus, sys-queues,
+  // sys-logs, sys-traces, sys-adapters, sys-deploy, sys-regions, sys-flags, sys-secrets,
+  // sys-audit, sys-security, sys-backup. Items with backend but no view yet: sys-roles,
+  // sys-notif, sys-metrics. Survivors are all wired to live /api routes or entity views.
   s('system', 'System', GearIcon, [
     i('sys-org',         'Organization',         BuildingIcon,   'org'),
-    i('sys-tenants',     'Tenants',              BuildingIcon),
     i('sys-users',       'Users',                UsersIcon,      'entity', { slug: 'users' }),
-    i('sys-roles',       'Roles & Permissions',  LockIcon),
-    i('sys-teams',       'Teams',                UsersIcon),
-    i('sys-workflows',   'Workflows',            ArrowRightIcon),
     i('sys-integrations','Integrations',         LayersIcon),
-    i('sys-api',         'API Management',       ServerIcon),
     i('sys-webhooks',    'Webhooks',             ArrowRightIcon, 'webhooks'),
-    i('sys-notif',       'Notifications',        InboxIcon),
-    i('sys-comm-center', 'Communication Center', MessageIcon),
-    i('sys-monitoring',  'Monitoring',           ActivityIcon),
-    i('sys-eventbus',    'Event Bus',            ArrowRightIcon),
-    i('sys-queues',      'Queue Monitoring',     RowsIcon),
-    i('sys-logs',        'Runtime Logs',         EditIcon),
-    i('sys-metrics',     'Metrics',              ChartIcon),
-    i('sys-traces',      'Traces',               ActivityIcon),
-    i('sys-adapters',    'Adapter Health',       ServerIcon),
-    i('sys-deploy',      'Deployments',          ArrowRightIcon),
-    i('sys-regions',     'Regions',              MapIcon),
-    i('sys-flags',       'Feature Flags',        SparkleIcon),
-    i('sys-secrets',     'Secrets Vault',        LockIcon),
-    i('sys-audit',       'Audit Logs',           ClockIcon),
-    i('sys-security',    'Security',             ShieldIcon),
-    i('sys-backup',      'Backup & Recovery',    ArchiveIcon),
     i('sys-settings',    'System Settings',      GearIcon,       'settings'),
   ], { adminOnly: true }),
 

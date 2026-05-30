@@ -505,7 +505,7 @@ export default function App() {
               : view.type === 'outbound'
                 ? <OutboundView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'webhooks'
-                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />
               : view.type === 'services'
                 ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} capabilities={capabilities} />
               : view.type === 'usage'

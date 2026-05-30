@@ -6,10 +6,10 @@ import { timeAgo } from '../lib/time'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  InfoIcon, ServerIcon, SearchIcon, PlusIcon, DownloadIcon, GearIcon,
+  InfoIcon, ServerIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
@@ -22,8 +22,10 @@ import { StatusPill } from '../primitives'
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
-type Webhook = { id: string; name?: string; url?: string; events?: string[]; active?: boolean; secret?: string | null; created_at?: string | null }
-type Delivery = { id: string; event?: string; status?: string | null; code?: number | null; created_at?: string | null; error?: string | null }
+// Backend never returns the secret value — only `has_secret: bool` — so the column is a presence indicator.
+type Webhook = { id: string; name?: string; url?: string; events?: string[]; active?: boolean; has_secret?: boolean; created_at?: string | null }
+// Backend delivery shape (J95): event_type + status (QUEUED|SENT|FAILED) + status_code.
+type Delivery = { id: string; event_type?: string; status?: string | null; status_code?: number | null; attempts?: number; created_at?: string | null; error?: string | null }
 type Draft = { id?: string; name: string; url: string; events: string[]; active: boolean }
 
 const EVENT_OPTIONS = ['create', 'update', 'delete', 'transition', 'comment', 'payment',
@@ -35,24 +37,14 @@ function mapWebhookStatus(w: Webhook): { label: string; variant: PillVariant } {
   if (w.active === false) return { label: 'disabled', variant: 'neutral' }
   return { label: 'enabled', variant: 'active' }
 }
-function mapDeliveryStatus(status: string | null | undefined, code?: number | null): { label: string; variant: PillVariant } {
-  const ok = (typeof code === 'number' && code >= 200 && code < 300) || (status ?? '').toLowerCase() === 'success'
-  const failed = (status ?? '').toLowerCase() === 'failed' || (typeof code === 'number' && code >= 400)
-  const label = status ?? (code != null ? String(code) : '—')
-  if (failed) return { label, variant: 'critical' }
-  if (ok) return { label, variant: 'active' }
+function mapDeliveryStatus(status: string | null | undefined): { label: string; variant: PillVariant } {
+  // Backend status: QUEUED | SENT | FAILED
+  const s = (status ?? '').toUpperCase()
+  const label = status ?? '—'
+  if (s === 'SENT') return { label, variant: 'active' }
+  if (s === 'FAILED') return { label, variant: 'critical' }
+  if (s === 'QUEUED') return { label, variant: 'info' }
   return { label, variant: 'neutral' }
-}
-
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
 }
 
 async function jfetch(token: string, path: string, init?: RequestInit) {
@@ -60,11 +52,6 @@ async function jfetch(token: string, path: string, init?: RequestInit) {
   let data: any = null
   try { data = await r.json() } catch { /* 204 / empty */ }
   return { r, data }
-}
-
-function maskSecret(secret: string | null | undefined) {
-  if (!secret) return '—'
-  return '••••' + secret.slice(-4)
 }
 
 export default function WebhooksView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
@@ -75,13 +62,11 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
-  const [newSecret, setNewSecret] = useState<string | null>(null)
   const [deliveriesFor, setDeliveriesFor] = useState<Webhook | null>(null)
 
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -99,7 +84,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
   }
 
   useEffect(() => { load() }, [token])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
   async function save() {
     if (!draft || !draft.name.trim() || !draft.url.trim()) return
@@ -113,7 +98,6 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
         const { r, data } = await jfetch(token, '/api/webhooks', { method: 'POST', body: JSON.stringify(body) })
         if (!r.ok) throw new Error(data?.detail || `Create failed (${r.status})`)
         toast.success(t('webhooks.created', 'Webhook created'))
-        if (data?.secret) setNewSecret(data.secret)
       }
       setDraft(null)
       await load()
@@ -178,22 +162,10 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   if (denied) return <PermissionDenied message={t('webhooks.denied', 'Webhooks are admin-only.')} />
@@ -214,12 +186,11 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} webhook(s)`)}>
-                <Download size={14} /> Export
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
-                <Plus size={14} /> {draft ? 'Close' : 'New webhook'}
-              </button>
+              {canConfigure && (
+                <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
+                  <Plus size={14} /> {draft ? 'Close' : 'New webhook'}
+                </button>
+              )}
             </>
           )}
         />
@@ -265,20 +236,6 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[webhooks] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} webhook(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -289,9 +246,6 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 
@@ -299,9 +253,6 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
-                    </th>
                     {cfg.columns.map((c) => (
                       <th
                         key={c.key}
@@ -318,28 +269,22 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 32 }}></th>
+                    <th style={{ width: 1 }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.map((w) => (
-                    <tr key={w.id} className={selected.has(w.id) ? 'sel' : ''}>
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(w.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(w.id)}
-                          onChange={() => toggleRow(w.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select webhook ${w.name ?? w.id.slice(0, 8)}`}
-                        />
-                      </td>
+                    <tr key={w.id}>
                       {cfg.columns.map((c) => {
                         let cell: React.ReactNode
                         switch (c.key) {
                           case 'name': cell = <strong>{w.name ?? '—'}</strong>; break
                           case 'url': cell = <span className="mono" title={w.url} style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>{w.url ?? '—'}</span>; break
                           case 'events': cell = <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span style={{ color: 'var(--gx-text-3)' }}>all</span>}</span>; break
-                          case 'secret': cell = <span className="mono" style={{ fontSize: 12 }}>{maskSecret(w.secret)}</span>; break
+                          case 'secret': cell = w.has_secret
+                            ? <StatusPill variant="active" label="signed" size="sm" />
+                            : <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>none</span>
+                            ; break
                           case 'active': {
                             const sp = mapWebhookStatus(w)
                             cell = <StatusPill variant={sp.variant} label={sp.label} size="sm" />
@@ -350,27 +295,19 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                         return <td key={c.key}>{cell}</td>
                       })}
                       {cf.cells(w.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 1, whiteSpace: 'nowrap' }}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => test(w)} title="Test webhook">Test</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => setDeliveriesFor(w)} title="View deliveries">Log</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: w.id, name: w.name ?? '', url: w.url ?? '', events: w.events ?? [], active: w.active !== false })}>Edit</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => remove(w)}>Delete</button>
-                          <button
-                            className="iconbtn"
-                            aria-label="Row menu"
-                            title="Row actions"
-                            onClick={(e) => { e.stopPropagation(); console.log('[webhooks] row menu', w.id) }}
-                          >
-                            <MoreVerticalIcon size={15} />
-                          </button>
+                          {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => test(w)} title="Test webhook">Test</button>}
+                          {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: w.id, name: w.name ?? '', url: w.url ?? '', events: w.events ?? [], active: w.active !== false })}>Edit</button>}
+                          {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => remove(w)}>Delete</button>}
                         </div>
                       </td>
                     </tr>
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching webhooks.
                       </td>
                     </tr>
@@ -399,14 +336,6 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
               </div>
             </div>
           </div>
-        )}
-
-        {newSecret && (
-          <Modal open onClose={() => setNewSecret(null)} title="Signing secret" size="sm"
-            footer={<button className="btn btn-primary btn-md" onClick={() => setNewSecret(null)}>Done</button>}>
-            <p>Copy this signing secret now — it won't be shown again.</p>
-            <div className="secret-box mono">{newSecret}</div>
-          </Modal>
         )}
 
         {deliveriesFor && (
@@ -439,15 +368,19 @@ function DeliveriesModal({ token, webhook, onClose }: { token: string; webhook: 
       {list && list.length === 0 && !error && <p className="muted">{t('common.noneYet', 'No deliveries yet.')}</p>}
       {list && list.length > 0 && (
         <table className="grid">
-          <thead><tr><th>Event</th><th>Status</th><th>Code</th><th>When</th></tr></thead>
+          <thead><tr><th>Event</th><th>Status</th><th>Code</th><th>Attempts</th><th>When</th></tr></thead>
           <tbody>
             {list.map((d) => {
-              const sp = mapDeliveryStatus(d.status, d.code)
+              const sp = mapDeliveryStatus(d.status)
               return (
                 <tr key={d.id}>
-                  <td>{d.event ?? '—'}</td>
-                  <td><StatusPill variant={sp.variant} label={sp.label} size="sm" /></td>
-                  <td className="mono">{d.code ?? '—'}</td>
+                  <td>{d.event_type ?? '—'}</td>
+                  <td>
+                    <StatusPill variant={sp.variant} label={sp.label} size="sm" />
+                    {d.error && <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginTop: 2 }} title={d.error}>{d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}</div>}
+                  </td>
+                  <td className="mono">{d.status_code ?? '—'}</td>
+                  <td className="tnum">{d.attempts ?? '—'}</td>
                   <td>{timeAgo(d.created_at ?? null)}</td>
                 </tr>
               )
