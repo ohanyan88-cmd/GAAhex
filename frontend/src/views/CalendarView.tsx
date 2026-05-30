@@ -446,9 +446,8 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
                     <div
                       key={`pad-${idx}`}
                       className="cal-cell big off"
-                    >
-                      <span className="cal-day">&nbsp;</span>
-                    </div>
+                      aria-hidden="true"
+                    />
                   )
                 }
                 const dateStr = isoDate(cell)

@@ -5,20 +5,14 @@ import { useFocusTrap } from '../lib/useFocusTrap'
 
 // Overlay — the single portal/overlay primitive every modal-family component sits on:
 // a body-portaled backdrop (--z-modal) + a focus-trapped panel with Esc-to-close, click-outside,
-// and body scroll-lock. Theme-aware (inherits the :root / [data-theme] CSS vars) and
-// reduced-motion aware (animations collapse via the global media query).
-//
-// `backdropClassName` defaults to the legacy `.overlay-backdrop`. PROMPT 9 lets Modal swap in
-// the design-kit `.gx-scrim` chrome without losing the focus-trap/Esc/scroll-lock behavior.
-// `panelTag` lets callers opt out of the legacy `.overlay-panel` padding/background — Modal
-// renders its own `.gx-dialog` panel inside.
+// and body scroll-lock. Theme-aware and reduced-motion aware.
 export default function Overlay({
   onClose,
   children,
   className = '',
   labelledBy,
   role = 'dialog',
-  backdropClassName = 'overlay-backdrop',
+  backdropClassName = 'gx-scrim',
   bare = false,
 }: {
   onClose: () => void
@@ -45,7 +39,7 @@ export default function Overlay({
     >
       <div
         ref={ref}
-        className={(bare ? '' : 'overlay-panel ') + className}
+        className={(bare ? '' : 'gx-dialog ') + className}
         role={role}
         aria-modal="true"
         aria-labelledby={labelledBy}

@@ -5,14 +5,11 @@ import { CloseIcon } from './icons'
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'fullscreen'
 
-// PROMPT 9 — Modal now renders with the design-kit `.gx-scrim` + `.gx-dialog` chrome.
-// Public API is UNCHANGED (open/onClose/title/size/children/footer). Sizing maps to the
-// kit's max-width pattern (kit `.gx-dialog` is width:100% with a max-width on the panel).
 const SIZE_MAX: Record<ModalSize, number | undefined> = {
   sm: 420,
   md: 560,
   lg: 860,
-  fullscreen: undefined, // fullscreen → no max, the .gx-dialog-fullscreen class fills the scrim
+  fullscreen: undefined,
 }
 
 // Modal — built on the Overlay primitive. Kit chrome: scrim backdrop, .gx-dialog panel,
@@ -38,7 +35,7 @@ export function Modal({ open, onClose, title, size = 'md', children, footer }: {
     <Overlay
       onClose={onClose}
       backdropClassName="gx-scrim"
-      className={`gx-dialog modal-${size}`}
+      className="gx-dialog"
       labelledBy={titleId}
       bare
     >
