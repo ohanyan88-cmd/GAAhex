@@ -7,7 +7,8 @@ NOTE on namespacing: fixed paths under /api/workitems, so this router MUST be re
 records.router in main.py.  See the coordinator paste-lines at the bottom of the Lane A report.
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -99,6 +100,7 @@ async def list_workitems(
     kind: str | None = None,
     scheduled_from: str | None = None,
     scheduled_to: str | None = None,
+    since: Optional[date] = None,
     limit: int = 200,
     offset: int = 0,
     user: User = Depends(current_user),
@@ -126,6 +128,10 @@ async def list_workitems(
     st = _parse_dt(scheduled_to, "scheduled_to")
     if st is not None:
         q = q.where(WorkItem.scheduled_at <= st)
+
+    if since is not None:
+        since_dt = datetime.combine(since, time.min, tzinfo=timezone.utc)
+        q = q.where(WorkItem.created_at >= since_dt)
 
     q = q.order_by(WorkItem.created_at.desc())
     rows = (await s.execute(q)).scalars().all()

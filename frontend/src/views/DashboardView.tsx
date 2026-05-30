@@ -24,6 +24,23 @@ import { fetchRevenueSeries, type RevenueBucket, type RevenueRange } from '../li
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
+function sinceDate(range: RevenueRange): string {
+  const now = new Date()
+  if (range === '7d') {
+    const d = new Date(now); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10)
+  }
+  if (range === '30d') {
+    const d = new Date(now); d.setDate(d.getDate() - 30); return d.toISOString().slice(0, 10)
+  }
+  if (range === 'qtd') {
+    const month = now.getMonth()
+    const quarterStart = Math.floor(month / 3) * 3
+    return new Date(now.getFullYear(), quarterStart, 1).toISOString().slice(0, 10)
+  }
+  // ytd
+  return new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10)
+}
+
 // What a click on a Home widget asks the host App to do. Shape mirrors the View union
 // in App.tsx + an optional initial-state hint (filter / detail-open).
 export type HomeNavTarget =
@@ -121,7 +138,7 @@ export default function DashboardView({
   // Backing table can be empty in dev; if the fetch SUCCEEDS with 0, we show 0.
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/subscriptions?status=ACTIVE`, { headers: authH(token) })
+    fetch(`${BASE}/api/subscriptions?status=ACTIVE&since=${sinceDate(range)}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`subscriptions ${r.status}`)))
       .then((d: any) => {
         if (!alive) return
@@ -131,14 +148,14 @@ export default function DashboardView({
       })
       .catch(err => { console.error('[home] subscribers:', err); if (alive) setSubs({ state: 'hide' }) })
     return () => { alive = false }
-  }, [token])
+  }, [token, range])
 
   // KPI 2: MRR — sum of outstanding invoices (ISSUED). Backend status enum is
   // DRAFT|ISSUED|PAID|OVERDUE|VOID; ISSUED is the "open / not paid" set. money()
   // converts luma -> AMD for display.
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/invoices?status=ISSUED`, { headers: authH(token) })
+    fetch(`${BASE}/api/invoices?status=ISSUED&since=${sinceDate(range)}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`invoices ${r.status}`)))
       .then((d: any) => {
         if (!alive) return
@@ -149,7 +166,7 @@ export default function DashboardView({
       })
       .catch(err => { console.error('[home] mrr:', err); if (alive) setMrr({ state: 'hide' }) })
     return () => { alive = false }
-  }, [token])
+  }, [token, range])
 
   // KPI 3: Open helpdesk tickets — count of tickets in status=OPEN.
   // Sourced from /api/helpdesk/tickets so the count, the table below, and the
@@ -157,7 +174,7 @@ export default function DashboardView({
   // pre-filtered to OPEN).
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/helpdesk/tickets?status=OPEN`, { headers: authH(token) })
+    fetch(`${BASE}/api/helpdesk/tickets?status=OPEN&since=${sinceDate(range)}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`helpdesk tickets ${r.status}`)))
       .then((d: any) => {
         if (!alive) return
@@ -167,12 +184,12 @@ export default function DashboardView({
       })
       .catch(err => { console.error('[home] open tickets:', err); if (alive) setOpenTickets({ state: 'hide' }) })
     return () => { alive = false }
-  }, [token])
+  }, [token, range])
 
   // KPI 4: Open work items — count of items in active statuses assigned to this tenant.
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/workitems?status=TODO,IN_PROGRESS,BLOCKED`, { headers: authH(token) })
+    fetch(`${BASE}/api/workitems?status=TODO,IN_PROGRESS,BLOCKED&since=${sinceDate(range)}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`workitems ${r.status}`)))
       .then((d: any) => {
         if (!alive) return
@@ -182,7 +199,7 @@ export default function DashboardView({
       })
       .catch(err => { console.error('[home] open work items:', err); if (alive) setOpenWorkItems({ state: 'hide' }) })
     return () => { alive = false }
-  }, [token])
+  }, [token, range])
 
   // Revenue/churn series — new backend endpoint added in this PR. Re-fetches when range
   // toggles, which is also the chart-toggle action (no separate refetch wiring needed).

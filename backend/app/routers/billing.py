@@ -11,9 +11,10 @@ records.router in main.py. See the wiring report.
 """
 import calendar
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -200,6 +201,7 @@ async def _next_invoice_number(s, tenant_id) -> str:
 
 @router.get("/subscriptions")
 async def list_subscriptions(customer: uuid.UUID | None = None, status: str | None = None,
+                             since: Optional[date] = None,
                              limit: int = 200, offset: int = 0,
                              user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await load_grants(s, user)
@@ -211,6 +213,9 @@ async def list_subscriptions(customer: uuid.UUID | None = None, status: str | No
         q = q.where(Subscription.customer_id == customer)
     if status:
         q = q.where(Subscription.status == status)
+    if since is not None:
+        since_dt = datetime.combine(since, time.min, tzinfo=timezone.utc)
+        q = q.where(Subscription.created_at >= since_dt)
     rows = (await s.execute(q.order_by(Subscription.created_at))).scalars().all()
     visible = [r for r in rows
                if can(grants, "subscription", "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)]
@@ -374,6 +379,7 @@ async def generate_invoice(sub_id: uuid.UUID, user: User = Depends(current_user)
 
 @router.get("/invoices")
 async def list_invoices(customer: uuid.UUID | None = None, status: str | None = None,
+                        since: Optional[date] = None,
                         limit: int = 200, offset: int = 0,
                         user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await load_grants(s, user)
@@ -385,6 +391,9 @@ async def list_invoices(customer: uuid.UUID | None = None, status: str | None = 
         q = q.where(Invoice.customer_id == customer)
     if status:
         q = q.where(Invoice.status == status)
+    if since is not None:
+        since_dt = datetime.combine(since, time.min, tzinfo=timezone.utc)
+        q = q.where(Invoice.created_at >= since_dt)
     rows = (await s.execute(q.order_by(Invoice.created_at))).scalars().all()
     visible = [r for r in rows
                if can(grants, "invoice", "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)]
