@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   listWorkItems, getWorkItem, createWorkItem, patchWorkItem,
   startWorkItem, completeWorkItem, blockWorkItem,
@@ -13,18 +13,18 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  PlusIcon, CheckIcon, CloseIcon,
+  CheckIcon, CloseIcon,
   PlayIcon, PauseIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
   SearchIcon, DownloadIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight,
+  Download, Plus, Filter, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
+import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -34,15 +34,8 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleString()
 }
 
-function fmtDateShort(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
-
-// WorkItem status → StatusPill primitive variant.
-// Mapping per spec: OPEN/TODO → info · IN_PROGRESS → degraded · DONE/CLOSED → active ·
-// BLOCKED → critical · CANCELLED → neutral
+// WorkItem status → StatusPill primitive variant — kept here for the detail
+// modal (table/board use their own copy of this mapping).
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 function mapWorkItemStatus(s: string | null | undefined): PillVariant {
   const v = (s ?? '').toUpperCase()
@@ -50,7 +43,7 @@ function mapWorkItemStatus(s: string | null | undefined): PillVariant {
   if (v === 'IN_PROGRESS') return 'degraded'
   if (v === 'BLOCKED') return 'critical'
   if (v === 'CANCELLED') return 'neutral'
-  return 'info' // OPEN / TODO / default
+  return 'info'
 }
 function statusLabel(s: string | null | undefined): string {
   const v = (s ?? '').toUpperCase()
@@ -62,7 +55,6 @@ function statusLabel(s: string | null | undefined): string {
   return s ?? '—'
 }
 
-// Priority pill — kept inline (priority is not a status). Uses semantic pill classes from the kit.
 function priorityPill(priority: string | null | undefined) {
   const p = (priority ?? '').toUpperCase()
   if (!priority) return <span className="muted">—</span>
@@ -72,18 +64,6 @@ function priorityPill(priority: string | null | undefined) {
     : 'info'
   const label = p === 'URGENT' ? 'Urgent' : p === 'HIGH' ? 'High' : p === 'LOW' ? 'Low' : 'Normal'
   return <StatusPill variant={variant} label={label} size="sm" />
-}
-
-// 3-dot row-menu icon (inline; no emoji rule — inline SVG only).
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
 }
 
 const KINDS: WorkItemKind[] = ['task', 'install', 'repair', 'survey']
@@ -398,63 +378,25 @@ export default function WorkItemsView({
               <span className="spacer" />
             </div>
 
-            <div className="grid-wrap">
-              <table className="grid">
-                <thead>
-                  <tr>
-                    <th style={{ width: 32 }}>
-                      <input
-                        type="checkbox"
-                        checked={allOnPageSelected}
-                        onChange={togglePageAll}
-                        aria-label="Select all rows on this page"
-                      />
-                    </th>
-                    {cfg.columns.map((col) => (
-                      <th
-                        key={col.key}
-                        scope="col"
-                        onClick={() => toggleSort(col.key)}
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          {col.label}
-                          {sortKey === col.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
-                            : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
-                        </span>
-                      </th>
-                    ))}
-                    {cf.headers()}
-                    <th style={{ width: 32 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.map((item) => (
-                    <WorkItemRow
-                      key={item.id}
-                      item={item}
-                      users={users}
-                      customerNames={customerNames}
-                      token={token}
-                      columns={cfg.columns}
-                      cfCells={cf.cells(item.id)}
-                      onRefresh={loadData}
-                      onEdit={() => setDetailId(item.id)}
-                      selected={selected.has(item.id)}
-                      onToggleSelect={() => toggleRow(item.id)}
-                    />
-                  ))}
-                  {pageRows.length === 0 && (
-                    <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
-                        No matching work items.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <WorkItemsTable
+              items={pageRows}
+              columns={cfg.columns}
+              users={users}
+              customerNames={customerNames}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSortChange={toggleSort}
+              onRowClick={(item) => setDetailId(item.id)}
+              onStatusChange={makeStatusChangeHandler(token, loadData)}
+              selectable
+              selected={selected}
+              onToggleSelect={toggleRow}
+              onTogglePageAll={togglePageAll}
+              allOnPageSelected={allOnPageSelected}
+              cfHeaders={cf.headers()}
+              cfCellsFor={(id) => cf.cells(id)}
+              customFieldCount={cfg.customFields.length}
+            />
 
             <div className="table-foot">
               <span className="hint">
@@ -499,117 +441,6 @@ export default function WorkItemsView({
         )}
       </div>
     </div>
-  )
-}
-
-// ── Row ───────────────────────────────────────────────────────────────────────
-
-function WorkItemRow({
-  item, users, customerNames, token, columns, cfCells, onRefresh, onEdit,
-  selected, onToggleSelect,
-}: {
-  item: WorkItem
-  users: User[]
-  customerNames: Record<string, string>
-  token: string
-  columns: { key: string; label: string; visible: boolean }[]
-  cfCells: ReactNode
-  onRefresh: () => void
-  onEdit: () => void
-  selected: boolean
-  onToggleSelect: () => void
-}) {
-  const [busy, setBusy] = useState(false)
-  const s = (item.status ?? 'TODO') as WorkItemStatus
-
-  async function act(action: () => Promise<WorkItem>) {
-    if (busy) return
-    setBusy(true)
-    try { await action(); onRefresh() }
-    catch (e) { toast.error((e as Error).message) }
-    finally { setBusy(false) }
-  }
-
-  const cust = item.customer_id
-    ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8))
-    : '—'
-
-  return (
-    <tr className={selected ? 'sel' : ''} onClick={onEdit} style={{ cursor: 'pointer' }}>
-      <td onClick={(e) => { e.stopPropagation(); onToggleSelect() }} style={{ cursor: 'default' }}>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggleSelect}
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`Select work item ${item.title}`}
-        />
-      </td>
-      {columns.map((col) => {
-        if (col.key === 'title') return (
-          <td key={col.key} style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {item.title}
-          </td>
-        )
-        if (col.key === 'kind') return <td key={col.key} className="muted">{item.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : '—'}</td>
-        if (col.key === 'customer') return <td key={col.key}>{cust}</td>
-        if (col.key === 'status') return (
-          <td key={col.key}>
-            {item.status
-              ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabel(item.status)} size="sm" />
-              : <span className="muted">—</span>}
-          </td>
-        )
-        if (col.key === 'priority') return <td key={col.key}>{priorityPill(item.priority)}</td>
-        if (col.key === 'assignee') return <td key={col.key} className="muted">{resolveUserDisplay(item.assigned_user_id, users)}</td>
-        if (col.key === 'due') return <td key={col.key} className="mono" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(item.due_at)}</td>
-        if (col.key === 'scheduled') return (
-          <td key={col.key} className="mono" style={{ whiteSpace: 'nowrap' }}>
-            {item.scheduled_at ? fmtDateShort(item.scheduled_at) : '—'}
-            {item.location ? <span title={item.location}> {item.location.length > 16 ? item.location.slice(0, 14) + '…' : item.location}</span> : null}
-          </td>
-        )
-        return null
-      })}
-      {cfCells}
-      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
-        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-          {s === 'TODO' && (
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => startWorkItem(token, item.id))} title="Start">
-              <PlayIcon size={12} /> Start
-            </button>
-          )}
-          {s === 'IN_PROGRESS' && (
-            <>
-              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => completeWorkItem(token, item.id))} title="Complete">
-                <CheckIcon size={12} /> Done
-              </button>
-              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => blockWorkItem(token, item.id))} title="Block">
-                <PauseIcon size={12} />
-              </button>
-            </>
-          )}
-          {s === 'BLOCKED' && (
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => startWorkItem(token, item.id))} title="Resume">
-              <PlayIcon size={12} /> Resume
-            </button>
-          )}
-          {(s === 'DONE' || s === 'CANCELLED') && (
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => reopenWorkItem(token, item.id))} title="Reopen">
-              Reopen
-            </button>
-          )}
-          <button
-            className="iconbtn"
-            aria-label="Row menu"
-            title="Row actions"
-            onClick={(e) => { e.stopPropagation(); console.log('[workitems] row menu', item.id) }}
-          >
-            <MoreVerticalIcon size={15} />
-          </button>
-        </div>
-      </td>
-    </tr>
   )
 }
 

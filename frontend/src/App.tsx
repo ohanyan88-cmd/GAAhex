@@ -30,6 +30,7 @@ import AskGaaexView from './views/AskGaaexView'
 import HelpdeskView from './views/HelpdeskView'
 import PaymentGatewayView from './views/PaymentGatewayView'
 import WorkItemsView from './views/WorkItemsView'
+import MyTasksView from './views/MyTasksView'
 import CalendarView from './views/CalendarView'
 import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
@@ -73,6 +74,7 @@ type View =
   | { type: 'calendar' }
   | { type: 'helpdesk' }
   | { type: 'workitems' }
+  | { type: 'mytasks' }
   | { type: 'gateway' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
@@ -476,6 +478,8 @@ export default function App() {
                 ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'workitems'
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+              : view.type === 'mytasks'
+                ? <MyTasksView token={token} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'calendar'
                 ? <CalendarView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'settings'
