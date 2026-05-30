@@ -2739,3 +2739,39 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
    container: nothing to override here — the global .tabs/.tab styles already
    cover it. The board picker stays as-is. */
 
+/* =========================================================================
+   PROMPT 8 — Studio (config + design surface)
+   Verbatim from design-system/ui_kits/portal/app.css (lines 137-152 and the
+   responsive @media block on lines 207-211). EVERY rule is scoped under
+   `.gx-studio` because the live app already has legacy `.studio*` rules
+   (`div.studio { grid-template-columns:220px 1fr; gap:18px }`, gold-tinted
+   `.studio-nav-item.on`, padded `.studio-pane`, surface-card `.rec-form`,
+   15px `.section-head`) that fight the kit's compact / blue-tinted /
+   borderless-pane treatment. Scoping to `.gx-studio` lets the legacy live
+   on for any code outside StudioView while this view adopts the kit look.
+   StudioView opts in by adding `gx-studio` to its outer `.studio` div.
+   ========================================================================= */
+.gx-studio { display:grid; grid-template-columns:208px 1fr; gap:0; border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); overflow:hidden; background:var(--gx-surface); min-height:520px; }
+.gx-studio .studio-nav { border-right:1px solid var(--gx-border-subtle); padding:14px 10px; background:var(--gx-bg-subtle); }
+.gx-studio .studio-nav-sec { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); padding:14px 8px 6px; }
+.gx-studio .studio-nav-sec:first-child { padding-top:0; }
+.gx-studio .studio-nav-item { width:100%; display:flex; align-items:center; gap:9px; height:32px; padding:0 10px; border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12.5px; cursor:pointer; border-radius:var(--gx-radius-sm); transition:all var(--gx-dur-fast); }
+.gx-studio .studio-nav-item:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+.gx-studio .studio-nav-item.on { background:var(--gx-primary-soft); color:var(--gx-info-fg); font-weight:600; }
+.gx-studio .studio-pane { padding:20px 22px; overflow-y:auto; }
+.gx-studio .section-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--gx-text-1); margin:22px 0 12px; }
+.gx-studio .section-head .section-icon { color:var(--gx-gold); }
+.gx-studio .hint { color:var(--gx-text-3); font-size:12px; }
+.gx-studio .rec-form { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.gx-studio .banner { display:flex; gap:11px; padding:12px 14px; border-radius:var(--gx-radius-md); border:1px solid var(--gx-border); border-left:3px solid var(--gx-primary); background:var(--gx-primary-soft); }
+.gx-studio .banner .bt { font-weight:600; font-size:12.5px; }
+.gx-studio .banner .bm { font-size:12px; color:var(--gx-text-2); margin-top:2px; }
+.gx-studio code.codez { font-family:var(--gx-font-mono); font-size:11.5px; background:var(--gx-code-bg); border:1px solid var(--gx-border); border-radius:4px; padding:1px 5px; color:var(--gx-gold); }
+
+/* Responsive: under 1180px the rail collapses to a horizontal chip row.
+   Verbatim from kit app.css lines 207-211, scoped to .gx-studio. */
+@media (max-width:1180px) {
+  .gx-studio { grid-template-columns:1fr; }
+  .gx-studio .studio-nav { border-right:none; border-bottom:1px solid var(--gx-border-subtle); display:flex; flex-wrap:wrap; gap:4px; padding:10px; }
+  .gx-studio .studio-nav-sec { width:100%; padding:6px 8px 2px; }
+}
