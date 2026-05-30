@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <title>GAAex · Operations Console</title>
+  <link rel="icon" href="../../assets/logo/GAAex-mark.svg" />
+  <link rel="stylesheet" href="../../colors_and_type.css?v=9" />
+  <link rel="stylesheet" href="app.css?v=9" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="data.jsx?v=9"></script>
+  <script type="text/babel" src="Shell.jsx?v=9"></script>
+  <script type="text/babel" src="Login.jsx?v=9"></script>
+  <script type="text/babel" src="Views.jsx?v=9"></script>
+  <script type="text/babel" src="Studio.jsx?v=9"></script>
+  <script type="text/babel" src="pages.jsx?v=9"></script>
+  <script type="text/babel" src="interactions.jsx?v=9"></script>
+  <script type="text/babel" src="renderers.jsx?v=9"></script>
+  <script type="text/babel" src="comms.jsx?v=9"></script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [authed, setAuthed] = useState(() => new URLSearchParams(location.search).get('preview') === '1');
+      const [collapsed, setCollapsed] = useState(false);
+      const [navOpen, setNavOpen] = useState(false);
+      const [active, setActive] = useState({ id:'home-dashboard', label:'Dashboard', kind:'home', icon:'home' });
+      const [theme, setTheme] = useState('dark');
+      const [cmd, setCmd] = useState(false);
+
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+      useEffect(() => {
+        const h = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setCmd(c => !c); } };
+        window.addEventListener('keydown', h);
+        return () => window.removeEventListener('keydown', h);
+      }, []);
+
+      if (!authed) return <Login onLogin={() => setAuthed(true)} />;
+
+      const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+      const nav = (it) => { setActive(it); setNavOpen(false); };
+      window.gxGoStudio = () => nav({ id:'adm-studio', label:'Studio', kind:'studio', icon:'wand-2' });
+      const toggleSidebar = () => { if (isMobile()) setNavOpen(o => !o); else setCollapsed(c => !c); };
+      const k = active.kind;
+      const Page = k === 'home' ? <Dashboard crumb={active.label} />
+        : k === 'work' ? <WorkItems />
+        : k === 'studio' ? <Studio />
+        : k === 'dash' ? <ModuleDashboard item={active} />
+        : k === 'map' ? <MapView item={active} />
+        : k === 'cal' ? <CalendarView item={active} />
+        : k === 'msgr' ? <Messenger item={active} />
+        : k === 'email' ? <EmailView item={active} />
+        : k === 'settings' ? <SettingsPage item={active} />
+        : (k === 'list' || k === 'board') ? <EntityPage item={active} />
+        : <Stub item={active} />;
+
+      return (
+        <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
+          {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
+          <Sidebar collapsed={collapsed} activeId={active.id} onNav={nav} />
+          <div className="main">
+            <TopBar onToggleSidebar={toggleSidebar} onCommand={() => setCmd(true)}
+              theme={theme} onTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} />
+            <div className="view" key={active.id}>{Page}</div>
+          </div>
+          <CommandPalette open={cmd} onClose={() => setCmd(false)} onNav={nav} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+/* Reusable component styles for preview cards + UI kit reference. */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; font-family:var(--gx-font-sans); font-weight:600; font-size:13px; height:var(--gx-control-md); padding:0 16px; border-radius:var(--gx-radius-md); border:1px solid transparent; cursor:pointer; transition:all var(--gx-dur-quick) var(--gx-ease-standard); white-space:nowrap; }
+.btn:focus-visible { outline:none; box-shadow:0 0 0 2px var(--gx-ring-offset), 0 0 0 4px var(--gx-ring); }
+.btn:active { transform:translateY(.5px); }
+.btn svg { width:15px; height:15px; }
+.btn-primary { background:var(--gx-primary); color:var(--gx-on-primary); }
+.btn-primary:hover { background:var(--gx-primary-hover); }
+.btn-secondary { background:var(--gx-surface-2); color:var(--gx-text-1); border-color:var(--gx-border-strong); }
+.btn-secondary:hover { background:var(--gx-elevated); }
+.btn-ghost { background:transparent; color:var(--gx-text-2); }
+.btn-ghost:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+.btn-gold { background:var(--gx-gold); color:var(--gx-text-on-gold); }
+.btn-gold:hover { filter:brightness(1.06); }
+.btn-danger { background:var(--gx-danger); color:#fff; }
+.btn-outline { background:transparent; color:var(--gx-primary); border-color:var(--gx-primary); }
+.btn-link { background:none; border:none; color:var(--gx-link); padding:0; height:auto; text-decoration:none; }
+.btn-link:hover { color:var(--gx-link-hover); text-decoration:underline; }
+.btn[disabled] { opacity:.5; cursor:not-allowed; }
+.btn-sm { height:var(--gx-control-sm); font-size:12px; padding:0 11px; }
+.btn-lg { height:var(--gx-control-lg); font-size:14px; padding:0 22px; }
+.btn-icon { width:var(--gx-control-md); padding:0; }
+
+.inp { width:100%; height:var(--gx-control-md); padding:0 11px; background:var(--gx-bg-subtle); color:var(--gx-text-1); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); font-family:var(--gx-font-sans); font-size:13px; transition:all var(--gx-dur-quick) var(--gx-ease-standard); }
+.inp::placeholder { color:var(--gx-text-placeholder); }
+.inp:hover { border-color:var(--gx-border-strong); }
+.inp:focus { outline:none; border-color:var(--gx-primary); box-shadow:0 0 0 3px var(--gx-primary-soft); }
+.inp[aria-invalid="true"] { border-color:var(--gx-danger); box-shadow:0 0 0 3px var(--gx-danger-soft); }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field > span { font-size:12px; font-weight:500; color:var(--gx-text-2); }
+
+.pill { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:var(--gx-radius-full); font-size:11px; font-weight:600; line-height:1; }
+.pill .d { width:6px; height:6px; border-radius:50%; }
+.pill-success { background:var(--gx-success-soft); color:var(--gx-success-fg); }
+.pill-warning { background:var(--gx-warning-soft); color:var(--gx-warning-fg); }
+.pill-danger  { background:var(--gx-danger-soft);  color:var(--gx-danger-fg); }
+.pill-info    { background:var(--gx-info-soft);    color:var(--gx-info-fg); }
+.pill-neutral { background:var(--gx-neutral-soft); color:var(--gx-text-2); }
+.pill-gold    { background:var(--gx-gold-soft);    color:var(--gx-gold); }
+
+.badge { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:var(--gx-radius-full); background:var(--gx-primary); color:#fff; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+.tag { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 8px; border-radius:var(--gx-radius-sm); background:var(--gx-surface-2); border:1px solid var(--gx-border); font-size:12px; color:var(--gx-text-2); }
+.mono-chip { font-family:var(--gx-font-mono); font-size:12px; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-sm); padding:2px 7px; color:var(--gx-text-1); display:inline-flex; gap:7px; align-items:center; }

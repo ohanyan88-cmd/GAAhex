@@ -1,0 +1,31 @@
+/* Shared chrome for Design System preview cards. Each card links
+   ../colors_and_type.css then this file, and sets data-theme on <html>. */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--gx-bg);
+  color: var(--gx-text-1);
+  font-family: var(--gx-font-sans);
+  font-size: var(--gx-text-base);
+  -webkit-font-smoothing: antialiased;
+  padding: 18px;
+}
+.card-wrap { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.wrap { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.muted { color: var(--gx-text-3); }
+.sec  { color: var(--gx-text-2); }
+.mono { font-family: var(--gx-font-mono); }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* swatch grids */
+.scale { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-radius: var(--gx-radius-md); overflow: hidden; }
+.scale .sw { height: 64px; display: flex; align-items: flex-end; padding: 6px; font-size: 10px; font-family: var(--gx-font-mono); }
+.swatch { border-radius: var(--gx-radius-md); border: 1px solid var(--gx-border); padding: 10px 12px; min-width: 120px; }
+.swatch .dot { width: 100%; height: 40px; border-radius: var(--gx-radius-sm); margin-bottom: 8px; }
+.swatch .nm { font-size: 12px; font-weight: 600; }
+.swatch .hx { font-size: 10px; font-family: var(--gx-font-mono); color: var(--gx-text-3); }
+
+.tile { background: var(--gx-surface); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-lg); padding: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--gx-radius-full); font-size: 11px; font-weight: 600; }
+.lbl { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--gx-text-3); }
