@@ -8,6 +8,7 @@ import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
 import NotificationBell from './components/NotificationBell'
 import OrgIdentity from './components/OrgIdentity'
+import UserMenu from './components/UserMenu'
 import ConfigureDrawer from './modals/ConfigureDrawer'
 import ActivityTimeline from './components/ActivityTimeline'
 import InvoicesView from './views/InvoicesView'
@@ -34,8 +35,7 @@ import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
 import { useI18n, initI18n } from './lib/i18n'
-import { RowsIcon, SparkleIcon,
-  ChevronRightIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon } from './components/icons'
+import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
 import { PanelLeft, Wand, LogIn, Shield } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import ProfileModal from './modals/ProfileModal'
@@ -78,14 +78,6 @@ type View =
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
 const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users'])
-
-// "Demo Admin" → "DA", "Admin" → "A", "" → "U".
-function initialsOf(name: string | null | undefined, fallback = 'U'): string {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return fallback
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase()
-  return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase()
-}
 
 // Bespoke (non-entity) views that opt into "configure in place" — view.type → page-config key.
 // Add a view.type here (and register the page in pageConfig.ts) to light up its Configure button +
@@ -158,7 +150,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false)
   // Account-menu modals (My Profile, Security, and SUPPORT items).
   const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
-  const { t } = useI18n()
+  const { t, lang, setLang } = useI18n()
 
   // Collapsible nav section state — pre-open sections marked defaultOpen in nav-config
   const [openSections, setOpenSections] = useState<Set<string>>(
@@ -417,8 +409,17 @@ export default function App() {
             onOpen={(slug) => setView({ type: 'entity', slug })}
           />
 
-          {/* UserMenu placeholder — implemented in P5 */}
-          <div className="tb-icon" aria-hidden="true" title="Account menu (wiring in P5)" />
+          {user && (
+            <UserMenu
+              user={user}
+              theme={theme}
+              onThemeChange={setTheme}
+              onSignOut={logout}
+              onOpenModal={(k) => setAccountModal(k)}
+              lang={lang}
+              onLangChange={setLang}
+            />
+          )}
         </header>
         <main id="main-content" className="view">
           <ErrorBoundary>
