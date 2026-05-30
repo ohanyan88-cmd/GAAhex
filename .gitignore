@@ -12,3 +12,5 @@ TASKS/
 
 *storybook.log
 storybook-static
+backend/boot-test.log
+backend/*.log
