@@ -4,11 +4,12 @@
 > Read this → `git pull` → `git status` → continue from "What's next".
 > Repo: `ohanyan88-cmd/Portal` (sandbox copy of GAAex).
 
-## ⚠️ ACTIVE: REPORT-ALL.md in progress (2026-05-31, second attempt)
+## ⚠️ ACTIVE: REPORT-ALL.md in progress (2026-05-31, third attempt — account cut at 80%)
 
-7 parallel agents were launched to produce per-section reports. Each agent commits its file
-to `handoff/REPORT-S*.md` before returning. **Check git log first:**
+7 parallel agents were launched. Session cut at ~80% usage. **§1 Workspace is confirmed
+committed (`f5c7ec7`). The other 6 may or may not have committed before the cut.**
 
+Check what landed:
 ```
 git log --oneline -20 | grep "REPORT-S"
 ls handoff/REPORT-S*.md
