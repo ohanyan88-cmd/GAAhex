@@ -1978,8 +1978,7 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
 
   return (
     <OrgEditContext.Provider value={edit}>
-      <div className="view">
-        <div className="view-inner fade">
+      <div className="view-inner fade">
           <div className="crumbs">
             <span>System</span><span className="sep">/</span>
             <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
@@ -2082,7 +2081,6 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
           {editState?.kind === 'delete' && (
             <DeleteNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
           )}
-        </div>
       </div>
     </OrgEditContext.Provider>
   )
