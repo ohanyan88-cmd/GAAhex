@@ -35,8 +35,9 @@ import OrgView from './views/OrgView'
 import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
 import { bget, bpost } from './lib/billing'
 import { useI18n, initI18n, type Lang } from './lib/i18n'
-import { GearIcon, SunIcon, MoonIcon, RowsIcon, MenuIcon, CloseIcon, SparkleIcon,
+import { GearIcon, SunIcon, MoonIcon, RowsIcon, CloseIcon, SparkleIcon,
   ChevronRightIcon, ChevronDownIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon } from './components/icons'
+import { PanelLeft, Search, Plus, Bell, HelpCircle, Wand } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
@@ -140,6 +141,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const [nudge, setNudge] = useState(false)
   // Account-menu modals (My Profile, Security, and SUPPORT items).
@@ -288,49 +290,55 @@ export default function App() {
       : view.type
 
   return (
-    <div className={'shell' + (navOpen ? ' nav-collapsed' : '')}>
+    <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
       <a href="#main-content" className="skip-link">Skip to content</a>
-      {navOpen && <div className="nav-backdrop" onClick={() => setNavOpen(false)} />}
-      <aside className={'sidebar' + (navOpen ? ' open' : '')} onClick={() => setNavOpen(false)}>
-        <div className="sidebar-brand">
-          <div className="sidebar-logo">
-            <img src="/favicon/favicon.svg" alt="" width="22" height="22" />
-          </div>
-          <div className="sidebar-brand-name">GAAex<small>ISP Platform</small></div>
+      {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
+      <aside className="sb">
+        <div className="sb-head">
+          {/* TODO: PROMPT 4 logo swap — GAAex-mark.svg not yet in /logo/, using favicon as fallback for collapsed state */}
+          <img
+            src={collapsed ? '/favicon/favicon.svg' : '/logo/GAAex-logo-reversed.svg'}
+            alt="GAAex"
+            className="wm"
+          />
         </div>
 
-        <nav className="sidebar-scroll">
+        <div className="sb-scroll">
           {/* Studio — its own top-level item, superadmin only (config.manage). */}
           {user?.can_configure && (
-            <button
-              className={'nav nav-standalone' + (view.type === 'studio' ? ' on' : '')}
-              onClick={() => setView({ type: 'studio' })}
-            >
-              <GearIcon className="nav-icon" size={14} /><span>Studio</span>
-            </button>
+            <div className="sb-sec">
+              <button
+                className={'sb-item' + (view.type === 'studio' ? ' on' : '')}
+                style={{ paddingLeft: 10 }}
+                onClick={() => setView({ type: 'studio' })}
+              >
+                <span className="ic"><GearIcon size={15} /></span>
+                <span>Studio</span>
+              </button>
+            </div>
           )}
           {NAV_SECTIONS.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
             const isOpen = openSections.has(sec.id)
             return (
-              <div key={sec.id} className="nav-section">
+              <div key={sec.id} className="sb-sec">
                 <button
-                  className={'nav-section-header' + (isOpen ? ' open' : '')}
+                  className={'sb-sec-btn' + (isOpen ? ' open' : '')}
                   onClick={(e) => toggleSection(sec.id, e)}
                   aria-expanded={isOpen}
                 >
-                  <sec.icon size={13} className="nav-section-icon" />
+                  <sec.icon size={16} />
                   <span>{sec.label}</span>
-                  <ChevronRightIcon size={11} className="nav-section-chevron" />
+                  <ChevronRightIcon size={14} className="chev" />
                 </button>
                 {isOpen && (
-                  <div className="nav-section-items">
+                  <div className="sb-items">
                     {sec.items.map((item) => (
                       <button
                         key={item.id}
-                        className={'nav nav-sub' + (isItemActive(item) ? ' on' : '')}
+                        className={'sb-item' + (isItemActive(item) ? ' on' : '')}
                         onClick={(e) => navItemClick(item, e)}
                       >
-                        <item.icon size={13} className="nav-icon" />
+                        <span className="ic"><item.icon size={15} /></span>
                         <span>{item.label}</span>
                       </button>
                     ))}
@@ -341,111 +349,141 @@ export default function App() {
           })}
 
           {extraEntities.length > 0 && (
-            <div className="nav-section">
+            <div className="sb-sec">
               <button
-                className={'nav-section-header' + (openSections.has('records') ? ' open' : '')}
+                className={'sb-sec-btn' + (openSections.has('records') ? ' open' : '')}
                 onClick={(e) => toggleSection('records', e)}
                 aria-expanded={openSections.has('records')}
               >
-                <RowsIcon size={13} className="nav-section-icon" />
+                <RowsIcon size={16} />
                 <span>Records</span>
-                <ChevronRightIcon size={11} className="nav-section-chevron" />
+                <ChevronRightIcon size={14} className="chev" />
               </button>
               {openSections.has('records') && (
-                <div className="nav-section-items">
+                <div className="sb-items">
                   {extraEntities.map((en) => (
                     <button
                       key={en.key}
-                      className={'nav nav-sub' + (view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === en.route_slug ? ' on' : '')}
+                      className={'sb-item' + (view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === en.route_slug ? ' on' : '')}
                       onClick={() => setView({ type: 'entity', slug: en.route_slug })}
                     >
-                      <RowsIcon className="nav-icon" size={13} /><span>{en.label_plural}</span>
+                      <span className="ic"><RowsIcon size={15} /></span>
+                      <span>{en.label_plural}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
           )}
-        </nav>
+        </div>
 
-        <div className="sidebar-tenant">
-          <div className="sidebar-tenant-avatar">
-            {user?.avatar_url
-              ? <img src={user.avatar_url} alt="" className="avatar-img" />
-              : (user?.name || 'G').slice(0, 1).toUpperCase()}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div className="sidebar-tenant-name">{user?.name || 'GAAex'}</div>
-            <div className="sidebar-tenant-role">{user?.email}</div>
-          </div>
+        <div className="sb-foot">
+          <button
+            className="sb-item"
+            style={{ paddingLeft: 10 }}
+            onClick={() => user?.can_configure && setView({ type: 'studio' })}
+            title={user?.can_configure ? 'Open Studio' : 'Studio (admin only)'}
+          >
+            <span className="ic"><Wand size={15} /></span>
+            <span>Studio</span>
+            <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>config</span>
+          </button>
         </div>
       </aside>
 
-      <div className="content">
-        <header>
-          <button className="iconbtn nav-toggle" aria-label="Menu" onClick={() => setNavOpen((o) => !o)}><MenuIcon /></button>
-          <div className="header-bcrumb">
-            <span style={{ color: 'var(--text-3)' }}>GAAex</span>
-            <ChevronRightIcon size={14} className="header-bcrumb-sep" />
-            <span className="header-bcrumb-cur">
-              {breadcrumbLabel.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-            </span>
-          </div>
+      <div className="main">
+        <header className="tb">
+          <button
+            className="tb-icon"
+            aria-label="Toggle sidebar"
+            onClick={() => {
+              // On narrow screens the sidebar is an off-canvas drawer (navOpen).
+              // On wide screens it collapses to the icon rail (collapsed).
+              if (window.matchMedia('(max-width: 900px)').matches) setNavOpen((o) => !o)
+              else setCollapsed((c) => !c)
+            }}
+          >
+            <PanelLeft size={18} />
+          </button>
+
+          <button className="tb-search" onClick={() => { /* TODO command palette */ }}>
+            <Search size={15} />
+            <span style={{ fontSize: 13 }}>Search or run a command…</span>
+            <span className="kbd">⌘K</span>
+          </button>
+
+          <span className="spacer" />
+
           {user?.can_configure && canConfigureThisPage && view.type !== 'studio' && (
             <button
               className="btn btn-ghost btn-sm"
-              style={{ marginLeft: 12 }}
               onClick={() => { if (configSlug) setCfgSlug(configSlug); else if (pageConfigKey) setCfgPageKey(pageConfigKey) }}
               title={t('common.configurePageTitle', 'Configure this page')}
             >
               <GearIcon size={13} /> {t('common.configurePage', 'Configure page')}
             </button>
           )}
-          <div className="header-right">
-            {/* Theme toggle — moved inline next to the bell (was inside the dropdown). */}
-            <button
-              className="iconbtn"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
-              aria-label={t('common.toggleTheme', 'Toggle theme')}
-            >
-              {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-            </button>
 
-            {/* Language — EN / AM / RU inline. The Armenian locale value stays 'hy'; the button is
-                just labelled "AM". RU has no catalog yet → falls back to English via t(). */}
-            <div className="lang-switch" role="group" aria-label={t('common.language', 'Language')}>
-              {([['en', 'EN'], ['hy', 'AM'], ['ru', 'RU']] as Array<[Lang, string]>).map(([l, label]) => (
-                <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
-                  {label}
-                </button>
-              ))}
-            </div>
+          <button className="btn btn-primary btn-sm">
+            <Plus size={14} /> Create
+          </button>
 
+          <button
+            className="tb-icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
+            aria-label={t('common.toggleTheme', 'Toggle theme')}
+          >
+            {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+          </button>
+
+          <button className="tb-icon" aria-label="Help">
+            <HelpCircle size={18} />
+          </button>
+
+          {/* Notifications — wraps the existing NotificationCenter; visual is a tb-icon with red dot. */}
+          <div className="tb-icon" style={{ position: 'relative' }} aria-label="Notifications">
             <NotificationCenter
               token={token}
               entities={entities}
               onOpen={(slug) => setView({ type: 'entity', slug })}
             />
-            <div id="user-menu" className="user-menu">
-              <button
-                className={'user-chip' + (userMenuOpen ? ' on' : '')}
-                onClick={() => setUserMenuOpen((o) => !o)}
-                aria-haspopup="menu"
-                aria-expanded={userMenuOpen}
-                aria-label={t('common.accountMenu', 'Account menu')}
-              >
-                <span className="user-avatar">
-                  {user?.avatar_url
-                    ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                    : (user?.name || 'U').slice(0, 1).toUpperCase()}
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span className="user-chip-name">{user?.name}</span>
-                  <span className="user-chip-role">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
-                </div>
-                <ChevronDownIcon size={14} className="user-chip-caret" />
+          </div>
+
+          <div className="tenant" title={user?.tenant_id ?? 'Tenant'}>
+            <span
+              className="avatar"
+              style={{ width: 22, height: 22, fontSize: 10, borderRadius: 6, background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))', color: '#2A1E07' }}
+            >
+              {(user?.tenant_id || 'GA').slice(0, 2).toUpperCase()}
+            </span>
+            <span style={{ fontSize: 12.5, fontWeight: 600 }}>{user?.tenant_id || 'GAAex'}</span>
+            <ChevronDownIcon size={14} />
+          </div>
+
+          {/* Language — kept inline next to the user chip so all existing locale UX is preserved. */}
+          <div className="lang-switch" role="group" aria-label={t('common.language', 'Language')}>
+            {([['en', 'EN'], ['hy', 'AM'], ['ru', 'RU']] as Array<[Lang, string]>).map(([l, label]) => (
+              <button key={l} className={'lang-opt' + (lang === l ? ' on' : '')} onClick={() => setLang(l)} aria-pressed={lang === l}>
+                {label}
               </button>
+            ))}
+          </div>
+
+          <div id="user-menu" className="user-menu" style={{ position: 'relative' }}>
+            <button
+              className="avatar"
+              onClick={() => setUserMenuOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              aria-label={t('common.accountMenu', 'Account menu')}
+              title={user?.name}
+              style={{ border: 'none', cursor: 'pointer' }}
+            >
+              {user?.avatar_url
+                ? <img src={user.avatar_url} alt="" className="avatar-img" />
+                : (user?.name || 'U').slice(0, 1).toUpperCase()}
+            </button>
 
               {userMenuOpen && (
                 /* Account menu — PERSONAL scope only. Boundary rule: anything that affects OTHER
@@ -506,9 +544,8 @@ export default function App() {
                 </div>
               )}
             </div>
-          </div>
         </header>
-        <main id="main-content">
+        <main id="main-content" className="view">
           {nudge && (
             <div className="onboard-nudge" role="status"
                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', marginBottom: 14,
