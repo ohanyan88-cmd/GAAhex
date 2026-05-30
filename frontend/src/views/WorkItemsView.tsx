@@ -15,10 +15,10 @@ import { EmptyState, ErrorBanner } from '../components/States'
 import {
   CheckIcon, CloseIcon,
   PlayIcon, PauseIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
-  SearchIcon, DownloadIcon,
+  SearchIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronLeft, ChevronRight,
+  Plus, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -99,11 +99,10 @@ export default function WorkItemsView({
   const [detailId, setDetailId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
 
-  // Reskin: client-only search/sort/select/page state (no new fetches).
+  // Reskin: client-only search/sort/page state (no new fetches).
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -139,8 +138,8 @@ export default function WorkItemsView({
 
   useEffect(() => { loadUsers() }, [token])
   useEffect(() => { loadData() }, [token, tab, kindFilter])
-  // Reset paging + selection whenever filter/search/sort changes.
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [tab, kindFilter, query, sortKey, sortDir])
+  // Reset paging whenever filter/search/sort changes.
+  useEffect(() => { setPage(1) }, [tab, kindFilter, query, sortKey, sortDir])
 
   const custName = (item: WorkItem) =>
     item.customer_id ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8)) : '—'
@@ -201,26 +200,10 @@ export default function WorkItemsView({
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id); else n.add(id)
-      return n
-    })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   if (unavailable) {
@@ -264,9 +247,6 @@ export default function WorkItemsView({
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} work item(s)`)}>
-                <Download size={14} /> Export
-              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
                 <Plus size={14} /> New work item
               </button>
@@ -336,20 +316,6 @@ export default function WorkItemsView({
 
         {items && items.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[workitems] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} work item(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -360,9 +326,6 @@ export default function WorkItemsView({
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <select
                 className="inp inp-sm"
                 aria-label="Filter by kind"
@@ -388,11 +351,6 @@ export default function WorkItemsView({
               onSortChange={toggleSort}
               onRowClick={(item) => setDetailId(item.id)}
               onStatusChange={makeStatusChangeHandler(token, loadData)}
-              selectable
-              selected={selected}
-              onToggleSelect={toggleRow}
-              onTogglePageAll={togglePageAll}
-              allOnPageSelected={allOnPageSelected}
               cfHeaders={cf.headers()}
               cfCellsFor={(id) => cf.cells(id)}
               customFieldCount={cfg.customFields.length}

@@ -3,10 +3,10 @@ import { bget, bpost, type Party } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  UsersIcon, SearchIcon, PlusIcon, DownloadIcon, GearIcon,
+  UsersIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
@@ -53,7 +53,6 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -67,7 +66,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
   }
 
   useEffect(() => { load() }, [token])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
   const parentName = (p: Party) => p.parent_name ?? (p.parent_party_id ? (list?.find((x) => x.id === p.parent_party_id)?.name ?? p.parent_party_id.slice(0, 8)) : '')
 
@@ -118,22 +117,10 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   if (denied) return <PermissionDenied message={t('parties.denied', "You don't have permission to view parties.")} />
@@ -158,9 +145,6 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                     <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                   </button>
                 )}
-                <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} part${sorted.length !== 1 ? 'ies' : 'y'}`)}>
-                  <Download size={14} /> Export
-                </button>
                 <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
                   <Plus size={14} /> {creating ? t('common.close', 'Close') : t('parties.new', 'New party')}
                 </button>
@@ -230,20 +214,6 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[parties] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} part${selected.size !== 1 ? 'ies' : 'y'}`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -254,9 +224,6 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 
@@ -264,14 +231,6 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input
-                        type="checkbox"
-                        checked={allOnPageSelected}
-                        onChange={togglePageAll}
-                        aria-label="Select all rows on this page"
-                      />
-                    </th>
                     {(['type', 'name', 'parent', 'status'] as const).map((k) => (
                       <th
                         key={k}
@@ -299,18 +258,8 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                     return (
                       <tr
                         key={p.id}
-                        className={selected.has(p.id) ? 'sel' : ''}
                         onClick={() => console.log('[parties] open', p.id)}
                       >
-                        <td onClick={(e) => { e.stopPropagation(); toggleRow(p.id) }} style={{ cursor: 'default' }}>
-                          <input
-                            type="checkbox"
-                            checked={selected.has(p.id)}
-                            onChange={() => toggleRow(p.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`Select party ${p.name ?? p.id.slice(0, 8)}`}
-                          />
-                        </td>
                         <td>{p.type ?? '—'}</td>
                         <td>{pn ? <span className="party-child">{p.name ?? '—'}</span> : (p.name ?? '—')}</td>
                         <td>{pn || <span style={{ color: 'var(--gx-text-3)' }}>—</span>}</td>
@@ -332,7 +281,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                   })}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching parties.
                       </td>
                     </tr>

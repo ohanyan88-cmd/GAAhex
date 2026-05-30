@@ -5,10 +5,10 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChartIcon, ReceiptIcon, DownloadIcon, PlusIcon, SearchIcon, GearIcon,
+  ChartIcon, ReceiptIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
@@ -58,7 +58,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -76,7 +75,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
   useEffect(() => { load() }, [token, rated])
   useEffect(() => { bget<Subscription[]>(token, '/api/subscriptions').then((r) => setSubs(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [rated, query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [rated, query, sortKey, sortDir])
 
   const subName = (sid: string | null | undefined) => (sid ? (subs.find((s) => s.id === sid)?.plan_name ?? sid.slice(0, 8)) : '—')
 
@@ -122,7 +121,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function colThClass(colKey: string): string {
     return ['quantity', 'rate', 'amount'].includes(colKey) ? 'num' : ''
@@ -134,17 +132,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   const ratedCount = all.filter(u => u.rated).length
@@ -170,9 +157,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} record(s)`)}>
-                <Download size={14} /> Export
-              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
                 <Plus size={14} /> Record usage
               </button>
@@ -223,20 +207,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[usage] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} record(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -247,9 +217,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 
@@ -257,9 +224,6 @@ export default function UsageView({ token, canConfigure = false, configVersion =
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
-                    </th>
                     {cfg.columns.map((c) => (
                       <th
                         key={c.key}
@@ -282,16 +246,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                 </thead>
                 <tbody>
                   {pageRows.map((u) => (
-                    <tr key={u.id} className={selected.has(u.id) ? 'sel' : ''}>
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(u.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(u.id)}
-                          onChange={() => toggleRow(u.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select usage ${u.id.slice(0, 8)}`}
-                        />
-                      </td>
+                    <tr key={u.id}>
                       {cfg.columns.map((c) => {
                         let cell: React.ReactNode
                         switch (c.key) {
@@ -324,7 +279,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching usage records.
                       </td>
                     </tr>

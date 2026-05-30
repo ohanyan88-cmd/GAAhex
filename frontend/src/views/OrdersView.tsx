@@ -23,7 +23,7 @@ import {
   ArchiveIcon, SearchIcon, GearIcon, CheckIcon, CloseIcon, ArrowRightIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
@@ -230,9 +230,6 @@ export default function OrdersView({ token }: { token: string }) {
           actions={
             !unavailable ? (
               <>
-                <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} order(s)`)}>
-                  <Download size={14} /> Export
-                </button>
                 {canCreate && (
                   <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
                     <Plus size={14} /> New order
@@ -316,13 +313,6 @@ export default function OrdersView({ token }: { token: string }) {
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
-              <button
-                className="btn btn-secondary btn-sm"
-                title="Filter builder — configure in Studio"
-                onClick={() => toast.info('Filter builder — configure in Studio')}
-              >
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 

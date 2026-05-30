@@ -7,7 +7,7 @@ import { money } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  CreditCardIcon, ReceiptIcon, SearchIcon, DownloadIcon, ArrowRightIcon,
+  CreditCardIcon, ReceiptIcon, SearchIcon, ArrowRightIcon,
   ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, GearIcon,
 } from '../components/icons'
 import ViewHead from '../components/ViewHead'
@@ -61,7 +61,6 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -74,7 +73,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
   }
 
   useEffect(() => { load() }, [token, statusFilter])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [statusFilter, query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [statusFilter, query, sortKey, sortDir])
 
   async function handleReconcile() {
     if (reconciling) return
@@ -142,22 +141,10 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   return (
@@ -252,20 +239,6 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
 
         {orders && orders.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[gateway] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} order(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -277,21 +250,12 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                 />
               </div>
               <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[gateway] export all'); toast.success(`Export queued for ${sorted.length} order(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
-              </button>
             </div>
 
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
-                    </th>
                     {[
                       { key: 'id', label: 'Order ID' },
                       { key: 'invoice', label: 'Invoice' },
@@ -319,16 +283,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                 </thead>
                 <tbody>
                   {pageRows.map((o) => (
-                    <tr key={o.id} className={selected.has(o.id) ? 'sel' : ''}>
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(o.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(o.id)}
-                          onChange={() => toggleRow(o.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select order ${o.id.slice(0, 8)}`}
-                        />
-                      </td>
+                    <tr key={o.id}>
                       <td><span className="mono" style={{ fontSize: 12 }}>{o.id.slice(0, 8)}</span></td>
                       <td><span className="mono" style={{ color: 'var(--gx-text-3)' }}>{o.invoice_id ? o.invoice_id.slice(0, 8) : '—'}</span></td>
                       <td className="num"><span className="mono tnum">{money(o.amount)}</span></td>
@@ -364,7 +319,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={9} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching orders.
                       </td>
                     </tr>

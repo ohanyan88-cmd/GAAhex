@@ -5,10 +5,10 @@ import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  ArchiveIcon, PlusIcon, DownloadIcon, SearchIcon, GearIcon,
+  ArchiveIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
@@ -65,7 +65,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -78,7 +77,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   }
 
   useEffect(() => { load() }, [token])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
   async function save() {
     if (!draft || !draft.name.trim() || (!draft.id && !draft.key.trim())) return
@@ -150,7 +149,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function colThClass(colKey: string): string { return colKey === 'amount' ? 'num' : '' }
   function colTdClass(colKey: string): string { return colKey === 'amount' ? 'num' : '' }
@@ -158,19 +156,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => {
-      const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n
-    })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   return (
@@ -189,9 +174,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} product(s)`)}>
-                <Download size={14} /> Export
-              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
                 <Plus size={14} /> {draft ? 'Close' : 'New product'}
               </button>
@@ -246,20 +228,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[products] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} product(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -270,9 +238,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 
@@ -280,9 +245,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
-                    </th>
                     {cfg.columns.map((c) => (
                       <th
                         key={c.key}
@@ -305,16 +267,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                 </thead>
                 <tbody>
                   {pageRows.map((p) => (
-                    <tr key={p.id} className={selected.has(p.id) ? 'sel' : ''}>
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(p.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(p.id)}
-                          onChange={() => toggleRow(p.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select product ${p.name ?? p.id.slice(0, 8)}`}
-                        />
-                      </td>
+                    <tr key={p.id}>
                       {cfg.columns.map((c) => (
                         <td key={c.key} className={colTdClass(c.key)}>
                           {renderProductCell(c.key, p)}
@@ -344,7 +297,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching products.
                       </td>
                     </tr>
