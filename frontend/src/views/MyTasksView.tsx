@@ -1,41 +1,59 @@
+// MyTasksView — the Workspace → My Tasks page.
+//
+// SCOPE: only the CURRENT user's work items. Always calls listWorkItems(token,
+// { mine: true }) so the backend's per-user filter (workitems.py:118) is the
+// source of truth. The view never falls back to mock/illustrative data — if the
+// fetch yields nothing or fails, the page renders the empty / 403 / nothing state.
+//
+// DOCTRINE: empty source → render nothing. A real fetched 0 → show "0 open".
+// Errors hide the table/board entirely and log to console (no banner).
+
 import { useEffect, useMemo, useState } from 'react'
+import ViewHead from '../components/ViewHead'
+import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
+import WorkItemsBoard from '../components/WorkItemsBoard'
+import { EmptyState, PermissionDenied, SkeletonRows, ErrorBanner } from '../components/States'
+import { CheckIcon, GearIcon, InboxIcon, SearchIcon, PlayIcon, PauseIcon, TrashIcon, CloseIcon } from '../components/icons'
+import { Plus, Rows3, Columns3 } from 'lucide-react'
 import {
   listWorkItems, getWorkItem, createWorkItem, patchWorkItem,
-  startWorkItem, completeWorkItem, blockWorkItem,
-  cancelWorkItem, reopenWorkItem, deleteWorkItem,
-  type WorkItem, type WorkItemCreate, type WorkItemFilters,
-  type WorkItemKind, type WorkItemPriority, type WorkItemStatus,
+  startWorkItem, completeWorkItem, blockWorkItem, cancelWorkItem, reopenWorkItem, deleteWorkItem,
+  type WorkItem, type WorkItemCreate, type WorkItemKind, type WorkItemPriority, type WorkItemStatus,
 } from '../lib/workitems'
 import { listUsers, type User } from '../lib/users'
 import { loadCustomers } from '../lib/billing'
-import UserPicker, { resolveUserDisplay } from '../components/UserPicker'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
-import { EmptyState, ErrorBanner } from '../components/States'
-import {
-  CheckIcon, CloseIcon,
-  PlayIcon, PauseIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
-  SearchIcon, DownloadIcon,
-} from '../components/icons'
-import {
-  Download, Plus, Filter, ChevronLeft, ChevronRight,
-} from 'lucide-react'
-import ViewHead from '../components/ViewHead'
-import { usePageConfig } from '../lib/pageConfig'
-import { useCustomFields } from '../components/CustomCells'
+import UserPicker from '../components/UserPicker'
 import { StatusPill } from '../primitives'
-import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Default column set for My Tasks. SLA is intentionally absent — WorkItem has
+// no `sla_due_at`. We surface `due_at` as the closest real proxy.
+const MY_TASKS_COLUMNS = [
+  { key: 'title',     label: 'Title',    visible: true },
+  { key: 'kind',      label: 'Kind',     visible: true },
+  { key: 'status',    label: 'Status',   visible: true },
+  { key: 'priority',  label: 'Priority', visible: true },
+  { key: 'due',       label: 'Due',      visible: true },
+  { key: 'scheduled', label: 'Scheduled', visible: true },
+]
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
+const OPEN_STATUSES: WorkItemStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED']
+const PRIORITIES: WorkItemPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT']
+const STATUS_FILTERS: WorkItemStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'CANCELLED']
+const KINDS: WorkItemKind[] = ['task', 'install', 'repair', 'survey']
 
-// WorkItem status → StatusPill primitive variant — kept here for the detail
-// modal (table/board use their own copy of this mapping).
+type ViewMode = 'table' | 'board'
+
+// Internal load state. `null` means fetch hasn't completed yet (show skeleton).
+type LoadState =
+  | { kind: 'loading' }
+  | { kind: 'ok'; items: WorkItem[] }
+  | { kind: 'forbidden' }
+  | { kind: 'error' }    // hides table/board entirely and console.error per spec
+
+// ── Pill helpers (local — same mapping as WorkItemsView) ──────────────────────
+
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 function mapWorkItemStatus(s: string | null | undefined): PillVariant {
   const v = (s ?? '').toUpperCase()
@@ -45,7 +63,7 @@ function mapWorkItemStatus(s: string | null | undefined): PillVariant {
   if (v === 'CANCELLED') return 'neutral'
   return 'info'
 }
-function statusLabel(s: string | null | undefined): string {
+function statusLabelFull(s: string | null | undefined): string {
   const v = (s ?? '').toUpperCase()
   if (v === 'TODO') return 'To Do'
   if (v === 'IN_PROGRESS') return 'In Progress'
@@ -54,7 +72,11 @@ function statusLabel(s: string | null | undefined): string {
   if (v === 'CANCELLED') return 'Cancelled'
   return s ?? '—'
 }
-
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
+}
 function priorityPill(priority: string | null | undefined) {
   const p = (priority ?? '').toUpperCase()
   if (!priority) return <span className="muted">—</span>
@@ -66,178 +88,135 @@ function priorityPill(priority: string | null | undefined) {
   return <StatusPill variant={variant} label={label} size="sm" />
 }
 
-const KINDS: WorkItemKind[] = ['task', 'install', 'repair', 'survey']
-const PRIORITIES: WorkItemPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT']
-
-type Tab = 'active' | 'all' | 'mine'
-
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function WorkItemsView({
+export default function MyTasksView({
   token,
   canConfigure = false,
-  configVersion = 0,
   onConfigure,
 }: {
   token: string
   canConfigure?: boolean
-  configVersion?: number
   onConfigure?: () => void
 }) {
-  const cfg = usePageConfig(token, 'workitems', configVersion)
-  const [items, setItems] = useState<WorkItem[] | null>(null)
-  const cf = useCustomFields(token, 'workitems', cfg.customFields, (items ?? []).map((item) => item.id))
-  const [allItems, setAllItems] = useState<WorkItem[]>([])   // unfiltered, used for counts
+  const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
-  const [error, setError] = useState('')
-  const [unavailable, setUnavailable] = useState(false)
+  const [mode, setMode] = useState<ViewMode>('table')
+  const [query, setQuery] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState<WorkItemPriority | ''>('')
+  const [statusFilter, setStatusFilter] = useState<WorkItemStatus | ''>('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
 
-  const [tab, setTab] = useState<Tab>('active')
-  const [kindFilter, setKindFilter] = useState('')
-
+  // P3 mutation state
   const [detailId, setDetailId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
 
-  // Reskin: client-only search/sort/select/page state (no new fetches).
-  const [query, setQuery] = useState('')
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [page, setPage] = useState(1)
-  const PAGE_SIZE = 25
-
-  async function loadUsers() {
-    const res = await listUsers(token)
-    if (res.ok && Array.isArray(res.data)) setUsers(res.data)
-  }
-
   async function loadData() {
-    setError('')
-    setUnavailable(false)
-    setItems(null)
-
-    const filters: WorkItemFilters = {}
-    if (tab === 'mine') filters.mine = true
-    if (kindFilter) filters.kind = kindFilter
-
-    // Load all items once for tab counts, then filter per tab
-    const res = await listWorkItems(token, filters)
-    if (res.status === 404) { setUnavailable(true); setItems([]); setAllItems([]); return }
-    if (!res.ok) { setError('Failed to load work items'); setItems([]); setAllItems([]); return }
-    let list = Array.isArray(res.data) ? res.data : []
-
-    setAllItems(list)
-
-    if (tab === 'active') {
-      list = list.filter((i) => i.status !== 'DONE' && i.status !== 'CANCELLED')
+    setState({ kind: 'loading' })
+    const res = await listWorkItems(token, { mine: true })
+    if (res.status === 403) { setState({ kind: 'forbidden' }); return }
+    if (!res.ok) {
+      console.error('[mytasks] listWorkItems failed', res.status)
+      setState({ kind: 'error' })
+      return
     }
-
-    setItems(list)
-    setCustomerNames(await loadCustomers(token))
+    setState({ kind: 'ok', items: Array.isArray(res.data) ? res.data : [] })
   }
 
-  useEffect(() => { loadUsers() }, [token])
-  useEffect(() => { loadData() }, [token, tab, kindFilter])
-  // Reset paging + selection whenever filter/search/sort changes.
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [tab, kindFilter, query, sortKey, sortDir])
+  useEffect(() => { loadData() }, [token])
 
-  const custName = (item: WorkItem) =>
-    item.customer_id ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8)) : '—'
+  // Users + customer names are auxiliary; failures are non-blocking (table just
+  // falls back to displaying IDs/dashes for unresolved values).
+  useEffect(() => {
+    (async () => {
+      const res = await listUsers(token)
+      if (res.ok && Array.isArray(res.data)) setUsers(res.data)
+    })()
+    ;(async () => {
+      try { setCustomerNames(await loadCustomers(token)) } catch { /* hide-if-missing */ }
+    })()
+  }, [token])
 
-  // Tab counts derived from allItems
-  const activeCount = allItems.filter((i) => i.status !== 'DONE' && i.status !== 'CANCELLED').length
-  const allCount = allItems.length
+  // ── Derived data ───────────────────────────────────────────────────────────
 
-  // KPI aggregates (from loaded list — no extra API).
-  const doneCount = allItems.filter((i) => i.status === 'DONE').length
-  const blockedCount = allItems.filter((i) => i.status === 'BLOCKED').length
-  const inProgressCount = allItems.filter((i) => i.status === 'IN_PROGRESS').length
+  const items = state.kind === 'ok' ? state.items : []
 
-  // Client-side search applied on top of tab/kind filter.
-  const list = items ?? []
+  // Real counts: backend gave us this user's items only, so .filter on status
+  // is doctrine-compliant (every value is a true fetched field).
+  const openCount = items.filter((i) => i.status && OPEN_STATUSES.includes(i.status as WorkItemStatus)).length
+  const overdueCount = items.filter((i) => {
+    if (!i.due_at) return false
+    if (i.status && (i.status === 'DONE' || i.status === 'CANCELLED')) return false
+    const due = new Date(i.due_at)
+    return !isNaN(due.getTime()) && due.getTime() < Date.now()
+  }).length
+
+  // Client-side filters. priority / status dropdowns hide nothing if "All".
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return list
-    return list.filter((item) => {
-      const fields = [
-        item.title ?? '',
-        item.id ?? '',
-        item.kind ?? '',
-        item.status ?? '',
-        item.priority ?? '',
-        custName(item),
-        resolveUserDisplay(item.assigned_user_id, users) ?? '',
-      ].join(' ').toLowerCase()
-      return fields.includes(q)
+    return items.filter((it) => {
+      if (priorityFilter && it.priority !== priorityFilter) return false
+      if (statusFilter && it.status !== statusFilter) return false
+      if (q) {
+        const hay = [it.title ?? '', it.id ?? '', it.kind ?? ''].join(' ').toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list, query, customerNames, users])
+  }, [items, query, priorityFilter, statusFilter])
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered
-    const k = sortKey
-    const dir = sortDir
-    const get = (item: WorkItem): string | number => {
-      switch (k) {
-        case 'title': return item.title ?? ''
-        case 'kind': return item.kind ?? ''
-        case 'customer': return custName(item)
-        case 'status': return item.status ?? ''
-        case 'priority': return item.priority ?? ''
-        case 'assignee': return resolveUserDisplay(item.assigned_user_id, users) ?? ''
-        case 'due': return item.due_at ?? ''
-        case 'scheduled': return item.scheduled_at ?? ''
+    const get = (it: WorkItem): string => {
+      switch (sortKey) {
+        case 'title': return it.title ?? ''
+        case 'kind': return it.kind ?? ''
+        case 'status': return it.status ?? ''
+        case 'priority': return it.priority ?? ''
+        case 'due': return it.due_at ?? ''
+        case 'scheduled': return it.scheduled_at ?? ''
+        case 'assignee': return it.assigned_user_id ?? ''
         default: return ''
       }
     }
-    return [...filtered].sort((a, b) => {
-      const x = get(a), y = get(b)
-      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
-      return String(x).localeCompare(String(y)) * dir
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered, sortKey, sortDir, customerNames, users])
-
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+    return [...filtered].sort((a, b) => get(a).localeCompare(get(b)) * sortDir)
+  }, [filtered, sortKey, sortDir])
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
   }
-  function toggleRow(id: string) {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id); else n.add(id)
-      return n
-    })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
+
+  // ── P3: mutation handlers ──────────────────────────────────────────────────
+
+  function handleRowClick(item: WorkItem) {
+    setDetailId(item.id)
   }
 
-  if (unavailable) {
+  const handleStatusChange = makeStatusChangeHandler(token, loadData)
+
+  // ── Subtitle (built from real counts) ──────────────────────────────────────
+  // Per doctrine: 0 IS a real fetched value → show it. A failed/forbidden fetch
+  // → no subtitle (we can't honestly report counts).
+  const subtitle: string | undefined = state.kind === 'ok'
+    ? (overdueCount > 0 ? `${openCount} open · ${overdueCount} overdue` : `${openCount} open`)
+    : undefined
+
+  // ── Render branches ────────────────────────────────────────────────────────
+
+  if (state.kind === 'forbidden') {
     return (
       <div className="view">
         <div className="view-inner fade">
-          <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-          <ViewHead
-            icon={<RowsIcon size={18} />}
-            title={cfg.title}
-            sub="Driven by the WorkItem movement engine · stages configured in Studio"
-          />
-          <EmptyState
-            icon={<InboxIcon size={40} />}
-            title="Work Items aren't available yet"
-            message="This service will appear here once the work items module is enabled."
-          />
+          <div className="crumbs">
+            <span>Workspace</span>
+            <span className="sep">/</span>
+            <span style={{ color: 'var(--gx-text-1)' }}>My Tasks</span>
+          </div>
+          <ViewHead icon={<CheckIcon size={18} />} title="My Tasks" />
+          <PermissionDenied />
         </div>
       </div>
     )
@@ -246,183 +225,131 @@ export default function WorkItemsView({
   return (
     <div className="view">
       <div className="view-inner fade">
-        <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
+        <div className="crumbs">
+          <span>Workspace</span>
+          <span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>My Tasks</span>
+        </div>
 
         <ViewHead
-          icon={<RowsIcon size={18} />}
-          title={cfg.title}
-          sub={`${allCount} records · driven by the WorkItem movement engine`}
+          icon={<CheckIcon size={18} />}
+          title="My Tasks"
+          sub={subtitle}
           actions={
             <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm">
-                  <GearIcon size={13} /> Workflow
+              <div className="seg" role="tablist" aria-label="View mode">
+                <button
+                  role="tab"
+                  aria-selected={mode === 'table'}
+                  className={mode === 'table' ? 'on' : ''}
+                  onClick={() => setMode('table')}
+                >
+                  <Rows3 size={13} /> Table
                 </button>
-              )}
+                <button
+                  role="tab"
+                  aria-selected={mode === 'board'}
+                  className={mode === 'board' ? 'on' : ''}
+                  onClick={() => setMode('board')}
+                >
+                  <Columns3 size={13} /> Board
+                </button>
+              </div>
               {canConfigure && onConfigure && (
                 <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
                   <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} /> Configure page
                 </button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} work item(s)`)}>
-                <Download size={14} /> Export
-              </button>
               <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                <Plus size={14} /> New work item
+                <Plus size={14} /> New
               </button>
             </>
           }
         />
 
-        {allItems.length > 0 && (
-          <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Active</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{activeCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>of {allCount} work item{allCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="kpi">
-              <span className="klbl">In progress</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{inProgressCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>currently being worked</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Done</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{doneCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>completed</span>
-            </div>
-            {blockedCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Blocked</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-danger-fg)' }}>{blockedCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>action required</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tabs — kit .tabs/.tab/.tab-count */}
-        <div className="tabs">
-          {([
-            ['active', 'Active', activeCount],
-            ['all', 'All', allCount],
-            ['mine', 'Mine', null],
-          ] as [Tab, string, number | null][]).map(([t, label, count]) => (
-            <button
-              key={t}
-              className={'tab' + (tab === t ? ' on' : '')}
-              onClick={() => setTab(t)}
-            >
-              {label}
-              {count !== null && <span className="tab-count">{count}</span>}
-            </button>
-          ))}
-        </div>
-
-        {error && <ErrorBanner message={error} onRetry={loadData} />}
-        {items === null && !error && <p className="muted">Loading…</p>}
-        {items && items.length === 0 && !error && (
-          <EmptyState
-            icon={<InboxIcon size={40} />}
-            title="No work items"
-            message="Create a work item or adjust your filters."
-            action={
-              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                New item
-              </button>
-            }
-          />
-        )}
-
-        {items && items.length > 0 && (
-          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[workitems] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} work item(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
+        {/* Error: hide the table/board entirely. Nothing rendered + console.error in loadData. */}
+        {state.kind === 'error' ? null : (
+          <div className="card" style={{ overflow: 'hidden' }}>
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
+              <div className="tb-search" style={{ width: 320 }}>
                 <SearchIcon size={14} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search work items"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                  placeholder="Search my tasks"
+                  style={{
+                    flex: 1, background: 'none', border: 'none', outline: 'none',
+                    color: 'var(--gx-text-1)', fontSize: 13,
+                  }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <select
                 className="inp inp-sm"
-                aria-label="Filter by kind"
-                value={kindFilter}
-                onChange={(e) => setKindFilter(e.target.value)}
+                aria-label="Filter by priority"
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value as WorkItemPriority | '')}
                 style={{ marginLeft: 8 }}
               >
-                <option value="">All kinds</option>
-                {KINDS.map((k) => (
-                  <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
+                <option value="">All priorities</option>
+                {PRIORITIES.map((p) => (
+                  <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>
+                ))}
+              </select>
+              <select
+                className="inp inp-sm"
+                aria-label="Filter by status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as WorkItemStatus | '')}
+                style={{ marginLeft: 8 }}
+              >
+                <option value="">All statuses</option>
+                {STATUS_FILTERS.map((s) => (
+                  <option key={s} value={s}>{statusLabel(s)}</option>
                 ))}
               </select>
               <span className="spacer" />
             </div>
 
-            <WorkItemsTable
-              items={pageRows}
-              columns={cfg.columns}
-              users={users}
-              customerNames={customerNames}
-              sortKey={sortKey}
-              sortDir={sortDir}
-              onSortChange={toggleSort}
-              onRowClick={(item) => setDetailId(item.id)}
-              onStatusChange={makeStatusChangeHandler(token, loadData)}
-              selectable
-              selected={selected}
-              onToggleSelect={toggleRow}
-              onTogglePageAll={togglePageAll}
-              allOnPageSelected={allOnPageSelected}
-              cfHeaders={cf.headers()}
-              cfCellsFor={(id) => cf.cells(id)}
-              customFieldCount={cfg.customFields.length}
-            />
-
-            <div className="table-foot">
-              <span className="hint">
-                {sorted.length === 0
-                  ? '0 records'
-                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
-                  <ChevronLeft size={15} />
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
-                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
-                ))}
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
-                  <ChevronRight size={15} />
-                </button>
+            {state.kind === 'loading' ? (
+              <div style={{ padding: 14 }}>
+                <SkeletonRows rows={6} />
               </div>
-            </div>
+            ) : sorted.length === 0 ? (
+              <EmptyState
+                icon={<InboxIcon size={40} />}
+                title={items.length === 0 ? 'No tasks assigned to you' : 'No tasks match your filters'}
+                message={items.length === 0
+                  ? 'Tasks assigned to you will appear here.'
+                  : 'Try clearing search or filters.'}
+              />
+            ) : mode === 'table' ? (
+              <WorkItemsTable
+                items={sorted}
+                columns={MY_TASKS_COLUMNS}
+                users={users}
+                customerNames={customerNames}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSortChange={toggleSort}
+                onRowClick={handleRowClick}
+                onStatusChange={handleStatusChange}
+              />
+            ) : (
+              <div style={{ padding: 14 }}>
+                <WorkItemsBoard
+                  items={sorted}
+                  users={users}
+                  onRowClick={handleRowClick}
+                  onStatusChange={handleStatusChange}
+                />
+              </div>
+            )}
           </div>
         )}
 
         {/* Detail/edit modal */}
         {detailId && (
-          <WorkItemDetailModal
+          <MyTaskDetailModal
             token={token}
             id={detailId}
             users={users}
@@ -433,7 +360,7 @@ export default function WorkItemsView({
 
         {/* Create modal */}
         {createOpen && (
-          <CreateWorkItemModal
+          <MyTaskCreateModal
             token={token}
             onClose={() => setCreateOpen(false)}
             onDone={() => { setCreateOpen(false); loadData() }}
@@ -444,9 +371,19 @@ export default function WorkItemsView({
   )
 }
 
-// ── Detail / Edit Modal ───────────────────────────────────────────────────────
+function statusLabel(s: WorkItemStatus): string {
+  if (s === 'TODO') return 'To Do'
+  if (s === 'IN_PROGRESS') return 'In Progress'
+  if (s === 'BLOCKED') return 'Blocked'
+  if (s === 'DONE') return 'Done'
+  return 'Cancelled'
+}
 
-function WorkItemDetailModal({
+// ── Detail / Edit Modal ───────────────────────────────────────────────────────
+// Same pattern as WorkItemDetailModal in WorkItemsView — reused here because
+// those components are not exported from WorkItemsView.
+
+function MyTaskDetailModal({
   token, id, users, customerNames, onClose,
 }: {
   token: string
@@ -470,7 +407,7 @@ function WorkItemDetailModal({
   const [scheduledAt, setScheduledAt] = useState('')
   const [location, setLocation] = useState('')
 
-  // Silence the unused-var warning on `users` — it's threaded through for parity with the parent.
+  // users is threaded through for parity; suppress lint warning
   void users
 
   async function load() {
@@ -580,7 +517,7 @@ function WorkItemDetailModal({
           {/* Status + action bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             {item.status
-              ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabel(item.status)} size="sm" />
+              ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabelFull(item.status)} size="sm" />
               : <span className="muted">—</span>}
             {priorityPill(item.priority)}
             {cust && <span className="muted" style={{ fontSize: 12 }}>{cust}</span>}
@@ -731,7 +668,7 @@ function WorkItemDetailModal({
 
 // ── Create Modal ──────────────────────────────────────────────────────────────
 
-function CreateWorkItemModal({
+function MyTaskCreateModal({
   token, onClose, onDone,
 }: {
   token: string
@@ -778,7 +715,7 @@ function CreateWorkItemModal({
     <Modal
       open
       onClose={onClose}
-      title="New work item"
+      title="New task"
       size="md"
       footer={
         <>

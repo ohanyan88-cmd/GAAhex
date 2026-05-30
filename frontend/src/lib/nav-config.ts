@@ -42,7 +42,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   // 1. Workspace — personal work center
   s('workspace', 'Workspace', HomeIcon, [
     i('ws-home',          'Home',             HomeIcon,       'dashboards'),
-    i('ws-my-tasks',      'My Tasks',         CheckIcon,      'workitems'),
+    i('ws-my-tasks',      'My Tasks',         CheckIcon,      'mytasks'),
     i('ws-approvals',     'My Approvals',     CheckIcon),
     i('ws-calendar',      'Calendar',         CalendarIcon,   'calendar'),
     i('ws-activity',      'Activity Feed',    ActivityIcon,   'activity'),
