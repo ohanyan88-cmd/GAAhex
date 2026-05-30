@@ -4,6 +4,7 @@
 // Icons: lucide-react only. State: internal useState only. No backend calls.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { registerSnapshot, unregisterSnapshot, collectSnapshot } from './publishRegistry'
 import { bget, bpatch, bpost, bput } from '../lib/billing'
 import { getEntities, getEntityDef } from '../lib/api'
 import { timeAgo } from '../lib/time'
@@ -523,6 +524,12 @@ export function DataBinding({ token }: { token?: string } = {}) {
   const [binds, setBinds] = useState<Binding[]>([])
   const [nextId, setNextId] = useState(1)
 
+  // Register snapshot so PublishSettings can capture the current binding state.
+  useEffect(() => {
+    registerSnapshot('data.binding', () => ({ bindings: binds }))
+    return () => unregisterSnapshot('data.binding')
+  }, [binds])
+
   // Load entities once a token is available.
   useEffect(() => {
     if (!token) return
@@ -727,6 +734,12 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
   const [registry, setRegistry] = useState<EventRegistry | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Register snapshot so PublishSettings can capture the current rule state.
+  useEffect(() => {
+    registerSnapshot('logic.actions', () => ({ rules }))
+    return () => unregisterSnapshot('logic.actions')
+  }, [rules])
 
   // Fetch the real event catalog on mount. /types is the always-available source of truth;
   // /registry is best-effort and only enriches the WHEN dropdown with entity transitions —
@@ -1878,8 +1891,9 @@ export function PublishSettings({ token }: { token?: string } = {}) {
     if (!token || !selectedId || savingDraft) return
     setSavingDraft(true); setActionErr(null)
     try {
+      const snapshot = collectSnapshot()
       const ver = await bpost<StudioVersion>(token, `/api/studio/pages/${selectedId}/versions`, {
-        snapshot: { _saved_at: new Date().toISOString(), _note: 'manual save' },
+        snapshot,
       })
       setDetail(prev => prev ? { ...prev, version: ver } : prev)
       flash(`Draft v${ver.version_no} saved.`)
@@ -2503,6 +2517,14 @@ export function AppearancePane({ token }: { token?: string } = {}) {
 
   const working: ThemeWorking = { accent, radius, density, mode }
   const dirty = isDirty(working, baseline)
+
+  // Register snapshot so PublishSettings can capture the working (unsaved) theme state.
+  useEffect(() => {
+    registerSnapshot('appearance.theme', () => ({
+      theme: { accent: accent.name, radius: radiusNameByVal(radius), density, mode },
+    }))
+    return () => unregisterSnapshot('appearance.theme')
+  }, [accent, radius, density, mode])
 
   // Save flow — PUT the full 4-key payload. 422 (allow-list miss) → inline error w/ backend
   // detail; 403 → "Requires tenant.settings permission" toast; success → adopt as new baseline.
