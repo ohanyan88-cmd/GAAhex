@@ -5,10 +5,11 @@ import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
+import { ReceiptIcon, PrinterIcon, CreditCardIcon } from '../components/icons'
 import {
-  ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
-  CreditCardIcon, SearchIcon, PlusIcon, DownloadIcon, ArrowUpIcon, ArrowDownIcon,
-} from '../components/icons'
+  Wand2, Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  ChevronLeft, ChevronRight, Search, X,
+} from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -20,6 +21,11 @@ function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
+}
+
+// AMD currency short-form (kit KPI style): ֏12.4k.
+function fmtAMD(n: number): string {
+  return '֏' + (n / 1000).toFixed(1) + 'k'
 }
 
 // Invoice status → StatusPill primitive variant. Default mapping from PROMPT 5 spec.
@@ -141,7 +147,7 @@ function colTdClass(colKey: string): string {
   return ''
 }
 
-export default function InvoicesView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function InvoicesView({ token, canConfigure = false, configVersion = 0, onGoStudio }: { token: string; canConfigure?: boolean; configVersion?: number; onGoStudio?: () => void }) {
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'invoices', configVersion)
   const [list, setList] = useState<Invoice[] | null>(null)
@@ -215,15 +221,6 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
   const paidCount = countFor('PAID')
   const overdueCount = countFor('OVERDUE')
 
-  const TAB_DEFS: Array<[string, string]> = [
-    ['', 'All'],
-    ['DRAFT', 'Draft'],
-    ['ISSUED', 'Issued'],
-    ['PAID', 'Paid'],
-    ['OVERDUE', 'Overdue'],
-    ['VOID', 'Void'],
-  ]
-
   // Client-side search + sort applied on top of the server filter (status).
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -292,7 +289,8 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
     setDetailId(inv.id)
   }
 
-  // PROMPT 6: detail is now an overlaying right-side drawer; list stays mounted behind it.
+  // PROMPT 14 reskin — JSX replicates the kit's EntityPage (renderers.jsx lines 86-188).
+  // Data hooks/fetches above are unchanged; only the markup is the kit spec.
   return (
     <div className="view">
       <div className="view-inner fade">
@@ -306,57 +304,53 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
             <>
               <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
               {canConfigure && !cycleNA && (
-                <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>
+                <button className="btn btn-ghost btn-sm" onClick={runCycle} disabled={cycleBusy}>
                   {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
                 </button>
               )}
+              {canConfigure && onGoStudio && (
+                <button className="btn btn-ghost btn-sm" onClick={onGoStudio} title="Every screen is config — edit this one in Studio">
+                  <Wand2 size={14} style={{ color: 'var(--gx-gold)' }} /> Configure page
+                </button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} invoice(s)`)}>
+                <Download size={14} /> Export
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => toast.info('New invoice — wiring TBD')}>
+                <Plus size={14} /> New invoice
+              </button>
             </>
           }
         />
 
         {all.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Total billed</div>
-              <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 1000).toFixed(1)}k</div>
-              <div className="kpi-sub">{all.length} invoice{all.length !== 1 ? 's' : ''}</div>
+          <div className="kpi-strip">
+            <div className="kpi">
+              <span className="klbl">Total billed</span>
+              <div className="kval tnum" style={{ fontSize: 24 }}>{fmtAMD(totalBilled)}</div>
+              <span className="hint" style={{ fontSize: 11 }}>{all.length} invoice{all.length !== 1 ? 's' : ''}</span>
             </div>
-            <div className="widget">
-              <div className="widget-label">Outstanding</div>
-              <div className="kpi" style={{ color: outstanding > 0 ? 'var(--warning)' : 'var(--text)' }}>
-                <span className="kpi-cur">֏</span>{(outstanding / 1000).toFixed(1)}k
-              </div>
-              <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
+            <div className="kpi">
+              <span className="klbl">Outstanding</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: outstanding > 0 ? 'var(--gx-warning-fg)' : 'var(--gx-text-1)' }}>{fmtAMD(outstanding)}</div>
+              {outstanding > 0
+                ? <span className="pill pill-warning">{countFor('OVERDUE')} overdue</span>
+                : <span className="hint" style={{ fontSize: 11 }}>nothing due</span>}
             </div>
-            <div className="widget">
-              <div className="widget-label">Paid</div>
-              <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
-              <div className="kpi-sub">of {all.length} invoices</div>
+            <div className="kpi kpi--marquee">
+              <span className="klbl">Paid</span>
+              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{paidCount}</div>
+              <span className="hint" style={{ fontSize: 11 }}>of {all.length}</span>
             </div>
             {overdueCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Overdue</div>
-                <div className="kpi" style={{ color: 'var(--danger)' }}>{overdueCount}</div>
-                <div className="kpi-sub">action required</div>
+              <div className="kpi">
+                <span className="klbl">Overdue</span>
+                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-danger-fg)' }}>{overdueCount}</div>
+                <span className="hint" style={{ fontSize: 11 }}>action required</span>
               </div>
             )}
           </div>
         )}
-
-        <div className="tabs">
-          {TAB_DEFS.map(([val, label]) => {
-            const count = val === '' ? all.length : countFor(val)
-            return (
-              <button
-                key={val}
-                className={'tab' + (status === val ? ' on' : '')}
-                onClick={() => setStatus(val)}
-              >
-                {label} <span className="tab-count">{count}</span>
-              </button>
-            )
-          })}
-        </div>
 
         {error && <ErrorBanner message={error} onRetry={load} />}
         {list === null && !error && <p className="muted">Loading…</p>}
@@ -366,30 +360,10 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
         )}
 
         {list && list.length > 0 && (
-          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[invoices] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} invoice(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[invoices] bulk mark paid', Array.from(selected)); toast.success('Mark-paid action — backend wiring TBD') }}
-                >
-                  Mark paid
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
+          <>
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
+                <Search size={15} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -397,114 +371,144 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
+                <Filter size={14} /> Filter
+              </button>
               <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[invoices] export all'); toast.success(`Export queued for ${sorted.length} invoice(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={() => { console.log('[invoices] new invoice'); toast.success('New invoice — wiring TBD') }}>
-                <PlusIcon size={13} /> New invoice
-              </button>
             </div>
 
-            <div className="grid-wrap">
-              <table className="grid">
-                <thead>
-                  <tr>
-                    <th style={{ width: 32 }}>
-                      <input
-                        type="checkbox"
-                        checked={allOnPageSelected}
-                        onChange={togglePageAll}
-                        aria-label="Select all rows on this page"
-                      />
-                    </th>
-                    {cfg.columns.map((c) => (
-                      <th
-                        key={c.key}
-                        scope="col"
-                        className={colThClass(c.key)}
-                        onClick={() => toggleSort(c.key)}
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          {c.label}
-                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
-                        </span>
-                      </th>
-                    ))}
-                    {cf.headers()}
-                    <th style={{ width: 32 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className={selected.has(inv.id) ? 'sel' : ''}
-                      onClick={() => openRow(inv)}
-                    >
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(inv.id) }} style={{ cursor: 'default' }}>
+            <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+              {selected.size > 0 && (
+                <div className="bulkbar fade-fast">
+                  <span style={{ fontSize: 12.5, fontWeight: 600 }}>{selected.size} selected</span>
+                  <span className="spacer" />
+                  <button className="btn btn-ghost btn-sm" onClick={() => toast.success(`Export queued for ${selected.size} invoice(s)`)}>
+                    <Download size={14} /> Export
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => toast.info('Mark-paid — backend bulk endpoint TBD')}>
+                    Mark paid
+                  </button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--gx-danger-fg)' }} onClick={() => toast.info('Delete — backend bulk endpoint TBD')}>
+                    Delete
+                  </button>
+                  <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSelected(new Set())}>
+                    <X size={15} />
+                  </button>
+                </div>
+              )}
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="grid">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 32 }}>
                         <input
                           type="checkbox"
-                          checked={selected.has(inv.id)}
-                          onChange={() => toggleRow(inv.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select invoice ${inv.number ?? inv.id.slice(0, 8)}`}
+                          checked={allOnPageSelected}
+                          onChange={togglePageAll}
+                          aria-label="Select all rows on this page"
                         />
-                      </td>
+                      </th>
                       {cfg.columns.map((c) => (
-                        <td key={c.key} className={colTdClass(c.key)}>
-                          {renderInvoiceCell(c.key, inv, cust)}
-                        </td>
+                        <th
+                          key={c.key}
+                          scope="col"
+                          className={colThClass(c.key)}
+                          onClick={() => toggleSort(c.key)}
+                          style={{ cursor: 'pointer', userSelect: 'none' }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {c.label}
+                            {sortKey === c.key
+                              ? (sortDir === 1
+                                  ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} />
+                                  : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                              : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
+                          </span>
+                        </th>
                       ))}
-                      {cf.cells(inv.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
-                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
-                            <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
-                          )}
-                          <button
-                            className="iconbtn"
-                            aria-label="Row menu"
-                            title="Row actions"
-                            onClick={(e) => { e.stopPropagation(); console.log('[invoices] row menu', inv.id) }}
-                          >
-                            <MoreVerticalIcon size={15} />
-                          </button>
-                        </div>
-                      </td>
+                      {cf.headers()}
+                      <th style={{ width: 40 }}></th>
                     </tr>
-                  ))}
-                  {pageRows.length === 0 && (
-                    <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
-                        No matching invoices.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((inv) => (
+                      <tr
+                        key={inv.id}
+                        className={selected.has(inv.id) ? 'sel' : ''}
+                        onClick={() => openRow(inv)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td onClick={(e) => { e.stopPropagation(); toggleRow(inv.id) }} style={{ cursor: 'default' }}>
+                          <input
+                            type="checkbox"
+                            checked={selected.has(inv.id)}
+                            onChange={() => toggleRow(inv.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Select invoice ${inv.number ?? inv.id.slice(0, 8)}`}
+                          />
+                        </td>
+                        {cfg.columns.map((c) => (
+                          <td key={c.key} className={colTdClass(c.key)}>
+                            {renderInvoiceCell(c.key, inv, cust)}
+                          </td>
+                        ))}
+                        {cf.cells(inv.id)}
+                        <td onClick={(e) => e.stopPropagation()} style={{ width: 40 }}>
+                          <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                            {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
+                              <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
+                            )}
+                            <button
+                              className="iconbtn"
+                              aria-label="Row menu"
+                              title="Row actions"
+                              onClick={(e) => { e.stopPropagation(); console.log('[invoices] row menu', inv.id) }}
+                            >
+                              <MoreVerticalIcon size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {pageRows.length === 0 && (
+                      <tr>
+                        <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                          No matching invoices.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
-                {sorted.length === 0
-                  ? '0 invoices'
-                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
+              <div className="table-foot">
+                <span className="hint">
+                  {sorted.length === 0
+                    ? '0 invoices'
+                    : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+                </span>
+                <span className="spacer" />
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                    <ChevronLeft size={15} />
+                  </button>
+                  {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map((p) => (
+                    <button
+                      key={p}
+                      className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')}
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* PROMPT 6 — drawer mount; list stays mounted behind it. */}
