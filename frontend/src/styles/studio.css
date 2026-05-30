@@ -546,6 +546,155 @@
   margin-top: 2px;
 }
 
+/* ============================================================================
+   P5 — Rich pane helpers (LayoutBuilder, PageManager, EntityBuilder, etc.)
+   ============================================================================ */
+
+/* .canvas-block — a stacked block row inside LayoutBuilder's drag canvas */
+.canvas-block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  transition: box-shadow var(--gx-dur-fast);
+  min-height: 40px;
+}
+.canvas-block:hover {
+  border-color: var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-sm);
+}
+
+/* .canvas-tag — block type label (left side of a canvas block) */
+.canvas-tag {
+  font-family: var(--gx-font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gx-text-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* .canvas-actions — ↑↓✗ controls (right side, revealed on hover) */
+.canvas-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--gx-dur-fast);
+}
+.canvas-block:hover .canvas-actions {
+  opacity: 1;
+}
+.canvas-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--gx-text-3);
+  cursor: pointer;
+  border-radius: var(--gx-radius-sm);
+  padding: 0;
+  transition: all var(--gx-dur-fast);
+}
+.canvas-actions button:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+}
+
+/* .canvas-add — "Add block" button at the bottom of the canvas */
+.canvas-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  border: 1px dashed var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  background: none;
+  color: var(--gx-text-3);
+  font-family: var(--gx-font-sans);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+}
+.canvas-add:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+  border-color: var(--gx-primary);
+  border-style: solid;
+}
+
+/* .palette-block for LayoutBuilder: icon + label, 2-col grid button */
+/* (base .palette-block already exists from P4 for ArchCanvas) */
+/* P5 extends it so it also works in a 2-col flex-column layout */
+.palette-block {
+  flex-direction: column; /* fallback; ArchCanvas overrides to row inline */
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 11.5px;
+  min-height: 52px;
+}
+
+/* .tpl-card — template gallery card */
+.tpl-card {
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  background: var(--gx-surface);
+  overflow: hidden;
+  transition: box-shadow var(--gx-dur-fast), transform var(--gx-dur-fast);
+}
+.tpl-card:hover {
+  box-shadow: var(--gx-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* .tpl-thumb — thumbnail area in a template card */
+.tpl-thumb {
+  height: 90px;
+  background: var(--gx-bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gx-text-3);
+  border-bottom: 1px solid var(--gx-border-subtle);
+}
+
+/* .tile — mini metric tile used in PreviewMode preview */
+.tile {
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border-subtle);
+  border-radius: var(--gx-radius-sm);
+  padding: 10px 12px;
+}
+
+/* .card-pad — standard padded card (generic; .gx-dash already scopes its own) */
+.card-pad {
+  padding: 18px;
+}
+
+/* .btn-xs — extra-small button (narrower than .btn-sm) */
+.btn-xs {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 11px;
+  border-radius: var(--gx-radius-sm);
+}
+
+/* .mono.muted — faint monospace label used in ArchTokens swatches */
+.muted {
+  color: var(--gx-text-3);
+}
+
 /* ---- Responsive (kit lines 239-242, 322-328): collapse to single column at 1180px ---- */
 @media (max-width: 1180px) {
   .studio.tree-studio {

@@ -11,7 +11,7 @@
 // fetches). Seed data is derived from leaf.leafLabel so each of the 276 leaves
 // looks distinct.
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ComponentType } from 'react'
 import {
   Check,
   Plus,
@@ -21,6 +21,65 @@ import {
 } from 'lucide-react'
 import { type FlatLeaf } from './tree'
 import { iconFor } from './iconMap'
+import {
+  PageManager,
+  LayoutBuilder,
+  ComponentsLibrary,
+  ContentEditor,
+  DataBinding,
+  ActionsLogic,
+  Permissions,
+  PreviewMode,
+  VersionHistory,
+  Templates,
+  PublishSettings,
+  EntityBuilder,
+  AppearancePane,
+} from './StudioRichPanes'
+
+// ── rich-pane router ─────────────────────────────────────────────────────────
+// Maps leaf labels to dedicated builder components (ports of kit studio-tree.jsx richPaneFor).
+// Returns the component or null — caller renders it; null falls through to archetypeFor().
+
+const RICH_PANE_MAP: Record<string, ComponentType> = {
+  'Page Registry': PageManager,
+  'Page Builder': LayoutBuilder,
+  'Dynamic Pages': PageManager,
+  'Page Versioning': VersionHistory,
+  'Component Registry': ComponentsLibrary,
+  'Component Builder': ComponentsLibrary,
+  'Component Marketplace': ComponentsLibrary,
+  'Grid System': LayoutBuilder,
+  'Layout Templates': LayoutBuilder,
+  'Layout Library': Templates,
+  'Custom Templates': Templates,
+  'Brand Identity': AppearancePane,
+  'Colors': AppearancePane,
+  'Design Tokens': AppearancePane,
+  'Theme Inheritance': AppearancePane,
+  'Entities': EntityBuilder,
+  'Fields': EntityBuilder,
+  'External APIs': DataBinding,
+  'REST': DataBinding,
+  'GraphQL': DataBinding,
+  'Triggers': ActionsLogic,
+  'Conditions': ActionsLogic,
+  'Actions': ActionsLogic,
+  'Business Rules': ActionsLogic,
+  'Permissions': Permissions,
+  'Component Permissions': Permissions,
+  'Access Mapping': Permissions,
+  'Preview': PreviewMode,
+  'Versioning': VersionHistory,
+  'Workflow Versions': VersionHistory,
+  'Deployment': PublishSettings,
+  'SEO': ContentEditor,
+  'Meta Tags': ContentEditor,
+}
+
+function richPaneFor(leafLabel: string): ComponentType | null {
+  return RICH_PANE_MAP[leafLabel] ?? null
+}
 
 // ── archetype router ─────────────────────────────────────────────────────────
 
@@ -465,6 +524,11 @@ const ARCH_DESC: Record<Archetype, string> = {
 }
 
 export default function StudioGenericPane({ leaf }: { leaf: FlatLeaf }) {
+  // Rich pane takes priority — if the leaf has a dedicated builder, render it directly.
+  const RichPane = richPaneFor(leaf.leafLabel)
+  if (RichPane) return <RichPane />
+
+  // No rich pane → fall through to the generic archetype.
   const arch = archetypeFor(leaf.leafLabel)
   const desc = ARCH_DESC[arch]
   const IconCmp = iconFor(leaf.moduleIcon ?? leaf.groupIcon)
