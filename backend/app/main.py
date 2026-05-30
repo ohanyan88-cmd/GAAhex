@@ -20,7 +20,7 @@ from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log
 
 
 _log = logging.getLogger("gaaex")
@@ -104,6 +104,7 @@ app.include_router(search.router)
 app.include_router(comm.router)
 app.include_router(export.router)
 app.include_router(activity.router)
+app.include_router(audit_log.router)                # /api/audit-log (governance log; admin-scoped; before records)
 app.include_router(ops.router)
 app.include_router(billing.router)
 app.include_router(bulk.router)

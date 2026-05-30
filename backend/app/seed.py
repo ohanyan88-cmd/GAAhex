@@ -198,6 +198,10 @@ async def build_access_config(s, tenant_id) -> dict:
     for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
         s.add(PermissionDef(tenant_id=tenant_id, key=f"request.{verb}", label=f"{vl} request", group="request"))
 
+    # Governance audit log — SuperAdmin-tier read perm gating /api/audit-log.
+    # NOT bundled into manager/sales_agent: super_admin's "*" already covers it.
+    s.add(PermissionDef(tenant_id=tenant_id, key="audit.view", label="View audit log", group="governance"))
+
     def perms(entities, verbs):
         return [f"{e}.{v}" for e in entities for v in verbs]
 
