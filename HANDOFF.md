@@ -57,26 +57,26 @@ After Gev's pushback, redone with the kit JSX as the literal spec:
 
 ## What's next (in priority order)
 
-### IMMEDIATE — pages Gev will see post-login that still need kit-faithful rewrites
+### Phase C — ALL VIEWS COMPLETE ✅ (2026-05-30)
 
-These views were touched in Phase A's bulk sweep but were NOT properly rebuilt to match the kit JSX. They use kit classes but their visual structure isn't replicating the kit. Each needs a full rewrite of its JSX `return` block to mirror the corresponding kit reference, while preserving its existing data hooks and fetches.
+All 11 priority views have been kit-faithfully rewritten. HEAD = `f5f6bc4`.
 
-| View | Kit reference | Status |
-|---|---|---|
-| **MessagesView** | `comms.jsx Messenger` (lines 24-180) | NEEDS REWRITE — tried with agent, API socket error |
-| **StudioView** | `Studio.jsx` (full file) | NEEDS REWRITE — tried with agent, API socket error |
-| **CalendarView** | `renderers.jsx CalendarView` (lines 293-407) | NEEDS REWRITE |
-| **SettingsView** | `renderers.jsx SettingsPage` (lines 408-440) | NEEDS REWRITE |
-| **OutboundView** | `comms.jsx EmailView` (lines 183-267) | NEEDS REWRITE |
-| **AnalyticsView**, **ReportsView**, **ReportBuilderView** | `renderers.jsx ModuleDashboard` / DashboardView template | NEEDS REWRITE |
-| **LeadPipelineView** | `renderers.jsx KanbanGeneric` (lines 53-82) | NEEDS REWRITE — kanban board |
-| **CustomerView**, **InteractionsView**, **HelpdeskView** | Mostly EntityPage; Customer is a 360 record view | NEEDS REWRITE |
-| **EntityView** | `renderers.jsx EntityPage` (full file) | NEEDS REWRITE — generic config-driven, high leverage |
-| **AskGaaexView** | Custom chat; reuse Messenger bubble patterns | NEEDS REWRITE |
-| **OrgView** | No direct kit ref; 13 view modes (Hierarchy, Cards, Network, etc.) | NEEDS LIGHT REWRITE — keep internal viz |
+| View | Status |
+|---|---|
+| **MessagesView** | ✅ DONE — commit `58aa025` |
+| **OutboundView** | ✅ DONE — commit `58aa025` |
+| **StudioView** | ✅ DONE — commit `5bf0b8a` |
+| **CalendarView** | ✅ DONE — commit `e761e08` |
+| **SettingsView** | ✅ DONE — commit `e761e08` |
+| **AnalyticsView**, **ReportsView**, **ReportBuilderView** | ✅ DONE — commit `7d2ab29` |
+| **LeadPipelineView** | ✅ DONE — commit `f62194e` |
+| **CustomerView**, **InteractionsView**, **HelpdeskView** | ✅ DONE — commit `b4578e2` |
+| **EntityView** | ✅ DONE — commit `b4578e2` |
+| **AskGaaexView** | ✅ DONE — commit `f5f6bc4` |
+| **OrgView** | ✅ DONE — commit `f5f6bc4` |
 
-### After visual = test data → real QA
-Gev's process: when every page is kit-faithful with real fetches, **we** (together) create test data, click through, verify it works with real data, then drop the test data and run real QA. **DO NOT** create test data yet.
+### NEXT — test data → real QA
+Gev's process: now that every page is kit-faithful with real fetches, **we** (together) create test data, click through, verify it works with real data, then drop the test data and run real QA. **DO NOT** create test data yet — wait for Gev to kick off this phase.
 
 ## How to do each rewrite (the recipe that worked for InvoicesView)
 
