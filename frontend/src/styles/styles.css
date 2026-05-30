@@ -1904,7 +1904,7 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
      for elements INSIDE .gx-dash so the tile container itself stays card-shaped. */
   font-size:inherit; font-family:inherit; color:var(--gx-text-1); font-weight:normal; line-height:normal;
 }
-.gx-dash .kpi:hover { box-shadow:var(--gx-shadow-md); transform:translateY(-1px); border-color:var(--gx-primary); }
+.gx-dash .kpi:hover { box-shadow:var(--gx-shadow-md); transform:translateY(-1px); border-color:var(--gx-gold); }
 .gx-dash .kpi .klbl { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); }
 .gx-dash .kpi .kval { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; color:var(--gx-text-1); }
 .gx-dash .kpi .kfoot { display:flex; align-items:center; justify-content:space-between; gap:8px; }
