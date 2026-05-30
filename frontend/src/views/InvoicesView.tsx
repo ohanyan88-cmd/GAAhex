@@ -14,6 +14,7 @@ import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
+import RecordDrawer from '../components/RecordDrawer'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -291,8 +292,7 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
     setDetailId(inv.id)
   }
 
-  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
-
+  // PROMPT 6: detail is now an overlaying right-side drawer; list stays mounted behind it.
   return (
     <div className="view">
       <div className="view-inner fade">
@@ -506,21 +506,36 @@ export default function InvoicesView({ token, canConfigure = false, configVersio
             </div>
           </div>
         )}
+
+        {/* PROMPT 6 — drawer mount; list stays mounted behind it. */}
+        {detailId && (
+          <InvoiceDetailDrawer
+            token={token}
+            id={detailId}
+            names={names}
+            onClose={() => { setDetailId(null); load() }}
+          />
+        )}
       </div>
     </div>
   )
 }
 
-function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string; names: Record<string, string>; onBack: () => void }) {
+// PROMPT 6 — Invoice detail rendered inside RecordDrawer.
+// Replaces the old full-page <InvoiceDetail>. Same data hooks (`bget`/`bpost`
+// against /api/invoices/:id and /:id/payments), same PaymentModal sub-view,
+// reuses StatusPill via RecordDrawer's status prop.
+function InvoiceDetailDrawer({ token, id, names, onClose }: { token: string; id: string; names: Record<string, string>; onClose: () => void }) {
   const [inv, setInv] = useState<Invoice | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
-  const [error, setError] = useState('')
   const [payOpen, setPayOpen] = useState(false)
 
   async function load() {
-    setError('')
     const res = await bget<Invoice>(token, `/api/invoices/${id}`)
-    if (!res.ok) { setError(res.status === 404 ? 'Invoice not found' : 'Failed to load invoice'); return }
+    if (!res.ok) {
+      toast.error(res.status === 404 ? 'Invoice not found' : 'Failed to load invoice')
+      return
+    }
     setInv(res.data)
     const pr = await bget<Payment[]>(token, `/api/invoices/${id}/payments`)
     if (pr.ok && Array.isArray(pr.data)) setPayments(pr.data)
@@ -529,149 +544,88 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
   useEffect(() => { load() }, [token, id])
 
   async function issue() {
-    try {
-      await bpost(token, `/api/invoices/${id}/issue`)
-      toast.success('Invoice issued')
-      await load()
-    } catch (e) { toast.error((e as Error).message) }
+    try { await bpost(token, `/api/invoices/${id}/issue`); toast.success('Invoice issued'); await load() }
+    catch (e) { toast.error((e as Error).message) }
   }
-
   async function voidInvoice() {
     if (!window.confirm('Void this invoice? This cannot be undone.')) return
-    try {
-      await bpost(token, `/api/invoices/${id}/void`)
-      toast.success('Invoice voided')
-      await load()
-    } catch (e) { toast.error((e as Error).message) }
+    try { await bpost(token, `/api/invoices/${id}/void`); toast.success('Invoice voided'); await load() }
+    catch (e) { toast.error((e as Error).message) }
   }
 
-  const lines = inv?.lines ?? []
   const status = (inv?.status ?? '').toUpperCase()
   const cust = inv?.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—'
+  const number = inv?.number ?? id.slice(0, 8)
+
+  // Build the Overview fields list from the invoice data.
+  const fields = inv ? [
+    { key: 'customer', label: 'Customer', value: cust },
+    { key: 'issued',   label: 'Issued',   value: <span className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</span> },
+    { key: 'due',      label: 'Due',      value: <span className="mono">{fmtDate(inv.due_at)}</span> },
+    { key: 'total',    label: 'Total',    value: <span className="mono tnum">{money(inv.total)}</span> },
+    ...(inv.balance !== undefined ? [
+      { key: 'paid',    label: 'Paid',         value: <span className="mono tnum">{money(inv.paid_total)}</span> },
+      { key: 'balance', label: 'Balance due',  value: (
+          <span className="mono tnum" style={{ color: (inv.balance ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
+            {money(inv.balance)}
+          </span>
+        ) },
+    ] : []),
+    { key: 'lines', label: 'Line items', value: `${(inv.lines ?? []).length} line${(inv.lines ?? []).length === 1 ? '' : 's'}` },
+  ] : []
+
+  // Recorded payments surface in the Activity timeline (best-effort; full
+  // audit-log feed is a TODO — backend endpoint not surfaced yet).
+  const activity = payments.map((p) => ({
+    ts: fmtDate(p.paid_at),
+    title: `Payment recorded · ${money(p.amount)}`,
+    detail: p.method ? p.method.charAt(0).toUpperCase() + p.method.slice(1) : undefined,
+  }))
+
+  const actions = inv ? (
+    <>
+      {status === 'DRAFT' && (
+        <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
+      )}
+      {(status === 'ISSUED' || status === 'OVERDUE') && (
+        <PayOnlineButton token={token} invoiceId={id} onDone={load} />
+      )}
+      {(status === 'ISSUED' || status === 'OVERDUE') && (
+        <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
+      )}
+      {(status === 'ISSUED' || status === 'OVERDUE') && (
+        <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
+      )}
+      <button
+        className="btn btn-ghost btn-sm"
+        onClick={async () => {
+          const e = await openDocument(token, `/api/invoices/${id}/document`)
+          if (e) toast.error(e)
+        }}
+      >
+        <PrinterIcon size={14} /> Print / Download
+      </button>
+    </>
+  ) : null
 
   return (
-    <div>
-      <ViewHead
-        icon={<ChevronLeftIcon size={16} />}
-        title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
-        sub={inv ? `Customer: ${cust}` : undefined}
-        actions={
-          <button className="btn btn-ghost btn-sm" onClick={onBack}>
-            <ChevronLeftIcon size={14} /> Invoices
-          </button>
-        }
+    <>
+      <RecordDrawer
+        open
+        onClose={onClose}
+        entityKey="invoices"
+        id={number}
+        title={cust}
+        subtitle={inv ? `Issued ${fmtDate(inv.issued_at ?? inv.created_at)} · Due ${fmtDate(inv.due_at)}` : 'Loading…'}
+        status={inv?.status ? { label: inv.status, variant: mapInvoiceStatus(inv.status) } : undefined}
+        fields={fields}
+        activity={activity}
+        // TODO: related records — wire to /api/customers/:id/* and /api/work-items?invoice= once those surfaces land.
+        related={[]}
+        // TODO: notes — no backend endpoint today; wire to /api/invoices/:id/notes when available.
+        notes={[]}
+        actions={actions}
       />
-
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {!inv && !error && <p className="muted">Loading…</p>}
-
-      {inv && (
-        <>
-          <div className="bill-meta">
-            <div><span className="muted">Customer</span><div>{cust}</div></div>
-            <div>
-              <span className="muted">Status</span>
-              <div>{inv.status ? <StatusPill variant={mapInvoiceStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</div>
-            </div>
-            <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
-            <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
-            <div className="bill-actions">
-              {status === 'DRAFT' && (
-                <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
-              )}
-              {(status === 'ISSUED' || status === 'OVERDUE') && (
-                <PayOnlineButton token={token} invoiceId={id} onDone={load} />
-              )}
-              {(status === 'ISSUED' || status === 'OVERDUE') && (
-                <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
-              )}
-              {(status === 'ISSUED' || status === 'OVERDUE') && (
-                <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
-              )}
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={async () => {
-                  const e = await openDocument(token, `/api/invoices/${id}/document`)
-                  if (e) toast.error(e)
-                }}
-              >
-                <PrinterIcon size={14} /> Print / Download
-              </button>
-            </div>
-          </div>
-
-          <table className="grid bill-lines">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th className="num">Qty</th>
-                <th className="num">Unit (֏)</th>
-                <th className="num">Amount (֏)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((l, i) => {
-                const negative = (l.line_total ?? 0) < 0
-                return (
-                  <tr key={l.id ?? i}>
-                    <td>{l.description ?? '—'}</td>
-                    <td className="num">{l.quantity ?? 1}</td>
-                    <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
-                    <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
-                  </tr>
-                )
-              })}
-              {lines.length === 0 && (
-                <tr><td colSpan={4} className="muted">No line items.</td></tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="bill-totals">
-            <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
-            {inv.balance !== undefined && (
-              <>
-                <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
-                <div className="bill-total-row">
-                  <span>Balance due</span>
-                  <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
-                    {money(inv.balance)}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-
-          {payments.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                Payments recorded
-              </div>
-              <table className="grid">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Method</th>
-                    <th className="num">Amount (֏)</th>
-                    <th>Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map(p => (
-                    <tr key={p.id}>
-                      <td className="mono">{fmtDate(p.paid_at)}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
-                      <td className="num">{money(p.amount)}</td>
-                      <td className="muted">{p.note ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-
       {payOpen && (
         <PaymentModal
           token={token}
@@ -680,7 +634,7 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
           onDone={() => { setPayOpen(false); load() }}
         />
       )}
-    </div>
+    </>
   )
 }
 
