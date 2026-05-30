@@ -2775,3 +2775,55 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
   .gx-studio .studio-nav { border-right:none; border-bottom:1px solid var(--gx-border-subtle); display:flex; flex-wrap:wrap; gap:4px; padding:10px; }
   .gx-studio .studio-nav-sec { width:100%; padding:6px 8px 2px; }
 }
+
+/* =========================================================================
+   PROMPT 9 — Global overlays (toasts, modals, menus)
+   Verbatim from design-system/ui_kits/portal/app.css:
+     - .menu / .menu-item / .menu-sep        (lines 376-383)
+     - .gx-dialog / .gx-dialog-head           (lines 388-389)
+     - .gx-toast-host / .gx-toast / variants  (lines 416-432)
+     - responsive @media (max-width:560px)    (lines 434-438)
+   `.gx-scrim` is intentionally NOT re-declared — already added in PROMPT 6.
+   No collisions: project never used `.menu`, `.gx-toast*`, `.gx-dialog*`.
+   The legacy `.toast-region` / `.toast` / `.overlay-backdrop` / `.modal-*`
+   selectors are left alive (no orphaned markup uses them after this prompt's
+   Toast.tsx + Modal.tsx + Overlay.tsx refactor; safe-but-quiet retired).
+   ========================================================================= */
+
+/* dropdown menu */
+.menu { background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-radius:var(--gx-radius-md); box-shadow:var(--gx-shadow-lg); padding:5px; min-width:178px; z-index:var(--gx-z-popover); }
+.menu-item { display:flex; align-items:center; gap:10px; width:100%; padding:8px 10px; border:none; background:none; color:var(--gx-text-1); font-family:var(--gx-font-sans); font-size:12.5px; border-radius:var(--gx-radius-sm); cursor:pointer; text-align:left; transition:background var(--gx-dur-fast); }
+.menu-item:hover { background:var(--gx-hover); }
+.menu-item.danger { color:var(--gx-danger-fg); }
+.menu-item .lic { color:var(--gx-text-3); }
+.menu-item.danger .lic { color:var(--gx-danger-fg); }
+.menu-sep { height:1px; background:var(--gx-border-subtle); margin:5px 2px; }
+
+/* dialogs (scrim already declared in PROMPT 6 above) */
+.gx-dialog { width:100%; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-radius:var(--gx-radius-xl); box-shadow:var(--gx-shadow-xl); overflow:hidden; }
+.gx-dialog-head { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
+
+/* toasts */
+.gx-toast-host { position:fixed; bottom:20px; right:20px; z-index:var(--gx-z-toast); display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+.gx-toast { display:flex; align-items:center; gap:10px; min-width:240px; max-width:360px; padding:11px 12px 11px 14px; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-left:3px solid var(--gx-primary); border-radius:var(--gx-radius-md); box-shadow:var(--gx-shadow-lg); font-size:13px; color:var(--gx-text-1); animation:gxtoastin .24s var(--gx-ease-emphasis); }
+.gx-toast.success { border-left-color:var(--gx-success); }
+.gx-toast.danger  { border-left-color:var(--gx-danger); }
+.gx-toast.warning { border-left-color:var(--gx-warning); }
+.gx-toast.info    { border-left-color:var(--gx-primary); }
+.gx-toast > i:first-child, .gx-toast .lic { flex-shrink:0; width:17px; height:17px; }
+.gx-toast.success > i:first-child, .gx-toast.success > svg:first-of-type { color:var(--gx-success); }
+.gx-toast.danger  > i:first-child, .gx-toast.danger  > svg:first-of-type { color:var(--gx-danger); }
+.gx-toast.warning > i:first-child, .gx-toast.warning > svg:first-of-type { color:var(--gx-warning); }
+.gx-toast.info    > i:first-child, .gx-toast.info    > svg:first-of-type { color:var(--gx-primary); }
+.gx-toast span { flex:1; }
+.gx-toast button { border:none; background:none; color:var(--gx-text-3); cursor:pointer; padding:2px; display:flex; border-radius:4px; }
+.gx-toast button:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+.gx-toast i { width:15px; height:15px; }
+@keyframes gxtoastin { from { transform:translateX(20px) scale(.98); } to { transform:none; } }
+@keyframes gxtoastout { to { opacity:0; transform:translateX(20px); } }
+
+@media (max-width:560px) {
+  .gx-toast-host { left:12px; right:12px; bottom:12px; }
+  .gx-toast { max-width:none; }
+  .gx-dialog { margin:0 4px; }
+}

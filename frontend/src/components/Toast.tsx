@@ -39,8 +39,11 @@ export const toast = {
 export function useToast() { return toast }
 
 const ICONS = { success: CheckIcon, error: WarningIcon, warning: WarningIcon, info: InfoIcon }
+// Kit uses `.gx-toast.danger` for the error variant; map app-level "error" → "danger".
+const VARIANT_CLASS: Record<ToastKind, string> = { success: 'success', error: 'danger', warning: 'warning', info: 'info' }
 
 // Mount ONCE. Renders the live toast queue into a body portal (aria-live for screen readers).
+// Markup follows the kit `.gx-toast-host` / `.gx-toast` spec (PROMPT 9).
 export function ToastHost() {
   const [list, setList] = useState<ToastItem[]>(items)
 
@@ -52,15 +55,15 @@ export function ToastHost() {
   }, [])
 
   return createPortal(
-    <div className="toast-region" role="region" aria-live="polite" aria-label="Notifications">
+    <div className="gx-toast-host" role="region" aria-live="polite" aria-label="Notifications">
       {list.map((t) => {
         const Icon = ICONS[t.kind]
         return (
-          <div key={t.id} className={`toast toast-${t.kind}`} role={t.kind === 'error' ? 'alert' : 'status'}>
-            <span className="toast-icon"><Icon size={17} /></span>
-            <span className="toast-msg">{t.message}</span>
-            <button type="button" className="toast-close" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
-              <CloseIcon size={14} />
+          <div key={t.id} className={`gx-toast ${VARIANT_CLASS[t.kind]}`} role={t.kind === 'error' ? 'alert' : 'status'}>
+            <Icon size={17} aria-hidden />
+            <span>{t.message}</span>
+            <button type="button" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
+              <CloseIcon size={14} aria-hidden />
             </button>
           </div>
         )
