@@ -85,6 +85,40 @@ d3e4f5a6b7c8  page_binding table
 - `backend/*.log` gitignored
 - Studio Prompt 7 API QA: all backend checks pass; visual browser QA was confirmed OK by Gev
 
+## ⚠️ PENDING TASK (interrupted mid-flight — do this first)
+
+**Produce `handoff/REPORT-ALL.md`** — a consolidated per-page completion report covering ALL pages across §1–§9 + Studio, following the template at `C:\Users\Admin\Downloads\CLAUDE_CODE_REPORT_TEMPLATE.md` EXACTLY.
+
+The template requires per page:
+1. Header (page name, route, file, commit)
+2. Widget → data wiring table (endpoint + evidence of real data)
+3. Button → action table (ZERO inert buttons)
+4. Non-negotiables checklist (grep for hardcoded values + states + permissions)
+5. Anything NOT done
+
+End with a master summary table: every page → ✅ verified / ⚠️ partial / ❌ not done / 🚫 N/A → one-line note.
+
+**How to produce it:** spin up 7 parallel agents (one per section pair, as was in progress):
+- Agent A: §1 WORKSPACE (6 active pages)
+- Agent B: §2 CRM (13 active pages)
+- Agent C: §3 ORDERS (5 active pages)
+- Agent D: §4 CARE (9 active pages)
+- Agent E: §5 NETWORK (12 active pages)
+- Agent F: §6 ANALYTICS + §7 ENTERPRISE (4+7 active pages)
+- Agent G: §8 SYSTEM + §9 STUDIO (5 active + Studio subsystem)
+
+Each agent: read view files, hit real endpoints (backend at :8099, login admin@demo.isp/admin123), grep for hardcoded values, produce section report text. Then synthesize all 7 into `handoff/REPORT-ALL.md` and commit+push.
+
+**Dropped pages (🚫 N/A in summary) — removed from nav, no backend:**
+§1: Recent Items, Team Workspace, Announcements
+§2: Pipeline, Retention, Churn, Sales Channels, Customer 360 (nav)
+§3: Qualification, Cart&CPQ, Fulfillment, Activations, Change Orders, Billing Accounts, Discounts, Collections, Dunning, Reconciliation, Credit Notes, Tariff Plans, Prepaid, Postpaid
+§4: Agent Console, Customer 360 (nav), Omnichannel Inbox, Call Center, Live Chat, Technical Support, Retention Desk
+§5: NOC, Monitoring, Coverage, Topology, Provisioning, IPAM, Field Ops, Dispatch, Routes, Mobile, Capacity, Inventory
+§6: KPI Center, Forecasting, AI Agents, AI Automations, AI Insights, AI Governance, Churn Prediction, Fraud Detection, Network Anomaly, Predictive Maintenance, Export Center
+§7: Finance, Accounting, Procurement, HR, Attendance, Onboarding, Time Tracking, Legal, E-Signatures, Assets (dup)
+§8: Tenants, Roles (nav), Teams, Workflows, API Mgmt, Notifications, Comm Center, Monitoring, Event Bus, Queues, Logs, Metrics, Traces, Adapters, Deployments, Regions, Feature Flags (nav), Secrets, Audit Logs (nav), Security, Backup
+
 ## What's left
 
 ### Studio Prompt 7 visual QA (quick, browser)
