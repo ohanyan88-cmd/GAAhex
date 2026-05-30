@@ -256,23 +256,20 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
 
   if (unavailable) {
     return (
-      <div className="view">
-        <div className="view-inner fade">
+      <div className="view-inner fade">
           <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
           <ViewHead icon={<InboxIcon size={18} />} title={cfg.title} />
           <EmptyState
             icon={<InboxIcon size={40} />}
             title="Helpdesk isn't available yet"
-            message="Ticket support will appear here once the helpdesk service is enabled."
+            message="Wire /api/helpdesk/tickets to populate."
           />
-        </div>
       </div>
     )
   }
 
   return (
-    <div className="view">
-      <div className="view-inner fade">
+    <div className="view-inner fade">
         <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead
@@ -537,7 +534,6 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
             onDone={() => { setCreateQueueOpen(false); loadQueues() }}
           />
         )}
-      </div>
     </div>
   )
 }

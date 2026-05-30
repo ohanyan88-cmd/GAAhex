@@ -112,8 +112,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   const related = Object.entries(data?.related ?? {})
 
   return (
-    <div className="view">
-      <div className="view-inner fade">
+    <div className="view-inner fade">
         <div className="crumbs">
           <span>CRM</span><span className="sep">/</span>
           <a onClick={onBack} style={{ cursor: 'pointer' }}>{t('nav.customers', 'Customers')}</a>
@@ -324,7 +323,6 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
         {payInvoice && (
           <PaymentModal token={token} invoiceId={payInvoice.id} onClose={() => setPayInvoice(null)} onDone={() => { setPayInvoice(null); load() }} />
         )}
-      </div>
     </div>
   )
 }

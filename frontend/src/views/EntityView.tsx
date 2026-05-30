@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon } from '../components/icons'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import CommentsModal from '../modals/CommentsModal'
@@ -519,8 +519,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       : def.label_plural.toLowerCase()
 
   return (
-    <div className="view">
-      <div className="view-inner fade">
+    <div className="view-inner fade">
         <div className="crumbs">
           <span>Records</span>
           <span className="sep">/</span>
@@ -574,10 +573,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
               )}
               {canConfigure && (
                 <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[entity] configure', slug); toast.success(t('common.configureWiringTbd', 'Configure page — wiring TBD')) }}
+                  className="btn btn-ghost btn-sm hide-sm"
+                  onClick={() => { toast.success(t('common.configureWiringTbd', 'Configure page — wiring TBD')) }}
                 >
-                  {t('common.configurePage', 'Configure page')}
+                  <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />{t('common.configurePage', 'Configure page')}
                 </button>
               )}
               {/* B21: New button — only when can create; Close button when form is open */}
@@ -991,7 +990,6 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           onClose={() => setAiRow(null)}
         />
       )}
-      </div>
     </div>
   )
 }

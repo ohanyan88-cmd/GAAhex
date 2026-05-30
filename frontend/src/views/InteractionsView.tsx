@@ -209,8 +209,7 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
 
   // === STANDALONE MODE === — the InvoicesView template (crumbs · view-head · toolbar · grid · foot).
   return (
-    <div className="view">
-      <div className="view-inner fade">
+    <div className="view-inner fade">
         <div className="crumbs">
           <span>CRM</span><span className="sep">/</span>
           <span style={{ color: 'var(--gx-text-1)' }}>{t('interactions.title', 'Interactions')}</span>
@@ -380,7 +379,6 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
         {logOpen && (
           <LogModal token={token} customerId={customerId} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />
         )}
-      </div>
     </div>
   )
 }
