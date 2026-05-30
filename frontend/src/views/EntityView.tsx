@@ -608,11 +608,11 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
             gap: 6,
             padding: '6px 12px',
             marginBottom: 10,
-            background: 'var(--warning-soft)',
-            border: '1px solid var(--warning)',
-            borderRadius: 'var(--r-md)',
-            color: 'var(--text-2)',
-            fontSize: 'var(--fs-sm)',
+            background: 'var(--gx-warning-soft)',
+            border: '1px solid var(--gx-warning)',
+            borderRadius: 'var(--gx-radius-md)',
+            color: 'var(--gx-text-2)',
+            fontSize: 12,
           }}
         >
           <LockIcon size={14} aria-hidden />
@@ -904,7 +904,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                           </button>
                         )}
                         {canDelete && (
-                          <button className="iconbtn" style={{ color: 'var(--danger)' }} aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')} onClick={() => doDelete(r)}>
+                          <button className="iconbtn" style={{ color: 'var(--gx-danger)' }} aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')} onClick={() => doDelete(r)}>
                             <CloseIcon size={14} />
                           </button>
                         )}

@@ -9,11 +9,12 @@ import InteractionsView from './InteractionsView'
 import ViewHead from '../components/ViewHead'
 import {
   ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
-  ClockIcon, CreditCardIcon, DownloadIcon, GearIcon,
+  ClockIcon, CreditCardIcon, GearIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
 import { StatusPill } from '../primitives'
+import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
 // to see ONE customer's whole life: header money summary, services, subscriptions, invoices (with
@@ -59,14 +60,19 @@ function mapCustomerStatus(s: string | null | undefined): PillVariant {
   return 'info'
 }
 
-export default function CustomerView({ token, customerId, onBack, configVersion = 0, canConfigure = false, onConfigure }: {
+export default function CustomerView({ token, customerId, onBack, configVersion = 0, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, onOpenInvoices }: {
   token: string
   customerId: string
   onBack: () => void
   configVersion?: number
   canConfigure?: boolean
   onConfigure?: () => void
+  /** Per-entity caps; Issue / Record Payment buttons gate on invoice.edit. */
+  capabilities?: Capabilities
+  /** Optional: jump to the Invoices list filtered by this customer's status (clickable invoice number). */
+  onOpenInvoices?: (initialStatus?: string) => void
 }) {
+  const canEditInvoice = can(capabilities, 'invoice', 'edit')
   const { t } = useI18n()
   // Hook called so the Configure button (via BESPOKE_PAGE_KEYS) lights up for this page.
   usePageConfig(token, 'customer', configVersion)
@@ -148,7 +154,30 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
         />
 
         {error && <ErrorBanner message={error} onRetry={load} />}
-        {!data && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+        {!data && !error && (
+          <>
+            {/* Per-section loading skeletons — mirrors the rendered layout below */}
+            <div className="widgets" style={{ marginBottom: 22 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+              {[0, 1, 2].map((i) => (
+                <div className="widget" key={i}>
+                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '40%', marginBottom: 10 }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 26, width: '70%', marginBottom: 8 }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 10, width: '30%' }} />
+                </div>
+              ))}
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div key={i}>
+                <div className="kpi-tile-skeleton" style={{ height: 14, width: 140, margin: '18px 0 10px' }} />
+                <div className="card" style={{ padding: 14 }}>
+                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '92%', marginBottom: 8 }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 8 }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '60%' }} />
+                </div>
+              </div>
+            ))}
+          </>
+        )}
 
         {data && (
           <>
@@ -270,10 +299,6 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
             <div className="section-head">
               <ReceiptIcon size={16} className="section-icon" />
               {t('nav.invoices', 'Invoices')}
-              <span className="spacer" />
-              <button className="btn btn-ghost btn-sm">
-                <DownloadIcon size={13} /> {t('cust.statement', 'Statement')}
-              </button>
             </div>
             {invoices.length === 0
               ? <p className="muted">{t('cust.noInvoices', 'No invoices yet.')}</p>
@@ -291,15 +316,20 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                       <tbody>
                         {invoices.map((inv) => {
                           const st = (inv.status ?? '').toUpperCase()
+                          const num = inv.number ?? inv.id.slice(0, 8)
                           return (
                             <tr key={inv.id}>
-                              <td><span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span></td>
+                              <td>
+                                {onOpenInvoices
+                                  ? <a className="mono" style={{ cursor: 'pointer', color: 'var(--gx-link)' }} onClick={() => onOpenInvoices(inv.status ?? undefined)}>{num}</a>
+                                  : <span className="mono">{num}</span>}
+                              </td>
                               <td>{inv.status ? <StatusPill variant={mapCustomerStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</td>
                               <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
                               <td><span className="mono">{fmtDate(inv.due_at)}</span></td>
                               <td className="row-actions">
-                                {st === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</button>}
-                                {(st === 'ISSUED' || st === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</button>}
+                                {canEditInvoice && st === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</button>}
+                                {canEditInvoice && (st === 'ISSUED' || st === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</button>}
                               </td>
                             </tr>
                           )

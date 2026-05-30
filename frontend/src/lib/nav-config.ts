@@ -56,7 +56,6 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   s('crm', 'CRM & Commercial', UsersIcon, [
     i('crm-leads',       'Leads',           ArrowRightIcon, 'lead-pipeline'),
     i('crm-opps',        'Opportunities',   ArrowRightIcon),
-    i('crm-pipeline',    'Pipeline',        RowsIcon),
     i('crm-customers',   'Customers',       UsersIcon,      'entity', { slug: 'customers' }),
     i('crm-accounts',    'Accounts',        BuildingIcon,   'accounts'),
     i('crm-contacts',    'Contacts',        UsersIcon,      'entity', { slug: 'contacts' }),
@@ -66,12 +65,8 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('crm-promotions',  'Promotions',      SparkleIcon),
     i('crm-segments',    'Segments',        LayersIcon),
     i('crm-loyalty',     'Loyalty',         BookmarkIcon),
-    i('crm-retention',   'Retention',       UsersIcon),
-    i('crm-churn',       'Churn Management',ChartIcon),
     i('crm-campaigns',   'Campaigns',       MailIcon),
     i('crm-partners',    'Partners',        BuildingIcon),
-    i('crm-channels',    'Sales Channels',  ArrowRightIcon),
-    i('crm-cust360',     'Customer 360',    UsersIcon),
   ]),
 
   // 3. Orders & Revenue — qualification to cash collection

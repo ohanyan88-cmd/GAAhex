@@ -7,11 +7,12 @@ import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import {
   PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon,
-  CloseIcon, UsersIcon, SearchIcon, GearIcon, FilterIcon,
+  CloseIcon, UsersIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import FieldInput, { type Field } from '../components/FieldInput'
+import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the DESIGN prototype:
 // live /api/leads data, token theming, SVG icons, metadata-driven lifecycle
@@ -29,7 +30,9 @@ const SLUG = 'leads'
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 
-export default function LeadPipelineView({ token, onOpenCustomer, canConfigure = false, onConfigure }: { token: string; onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void }) {
+export default function LeadPipelineView({ token, onOpenCustomer, canConfigure = false, onConfigure, capabilities = FULL_ACCESS }: { token: string; onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void; capabilities?: Capabilities }) {
+  const canCreate = can(capabilities, 'lead', 'create')
+  const canEdit   = can(capabilities, 'lead', 'edit')
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [leads, setLeads] = useState<Lead[] | null>(null)
@@ -165,12 +168,11 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                 <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
               </button>
             )}
-            <button className="btn btn-secondary btn-sm hide-sm" onClick={() => {/* wire filter */}}>
-              <FilterIcon size={14} />Filter
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowNew((v) => !v)}>
-              <PlusIcon size={13} />{t('leads.new', 'New lead')}
-            </button>
+            {canCreate && (
+              <button className="btn btn-primary btn-sm" onClick={() => setShowNew((v) => !v)}>
+                <PlusIcon size={13} />{t('leads.new', 'New lead')}
+              </button>
+            )}
           </>
         }
       />
@@ -260,9 +262,11 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: tone, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 600 }}>{col.label}</span>
                   <span className="kcol-count">{items.length}</span>
-                  <button className="btn btn-ghost btn-sm btn-icon" style={{ width: 22, height: 22 }} onClick={() => setShowNew(true)}>
-                    <PlusIcon size={13} />
-                  </button>
+                  {canCreate && (
+                    <button className="btn btn-ghost btn-sm btn-icon" style={{ width: 22, height: 22 }} onClick={() => setShowNew(true)}>
+                      <PlusIcon size={13} />
+                    </button>
+                  )}
                 </div>
                 <div className="kcol-body">
                   {items.map((lead) => {
@@ -292,12 +296,12 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                           <button className="btn btn-ghost btn-sm btn-icon" title={t('leads.aiScore', 'AI score')} onClick={() => scoreLead(lead.id)} disabled={sc === 'loading'} style={{ width: 22, height: 22 }}>
                             <SparkleIcon size={12} />
                           </button>
-                          {nextFrom(lead.status).map((to) => (
+                          {canEdit && nextFrom(lead.status).map((to) => (
                             <button key={to} className="btn btn-ghost btn-sm" onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 11 }}>
                               <ArrowRightIcon size={11} />{labelOf(to)}
                             </button>
                           ))}
-                          {!convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
+                          {canEdit && !convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
                             <button className="btn btn-primary btn-sm" onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 11 }}>
                               <UsersIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert')}
                             </button>
