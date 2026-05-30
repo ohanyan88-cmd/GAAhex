@@ -20,7 +20,7 @@ from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings
 
 
 _log = logging.getLogger("gaaex")
@@ -149,6 +149,7 @@ app.include_router(page_config.router)              # /api/page-config/* (config
 app.include_router(org_nodes.router)                # /api/org/nodes (org-structure CRUD; fixed path, before records)
 app.include_router(studio_pages.router)             # /api/studio/pages (page versioning; fixed path, before records)
 app.include_router(feature_flags.router)             # /api/feature-flags (DB-backed flags; before records)
+app.include_router(page_bindings.router)             # /api/page-bindings (Studio data binding; before records)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
 app.include_router(records.router)
 app.include_router(reports.router)

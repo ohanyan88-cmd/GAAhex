@@ -19,6 +19,7 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react'
+import { registerSnapshot, unregisterSnapshot } from '../studio/publishRegistry'
 import { type FlatLeaf } from './tree'
 import { iconFor } from './iconMap'
 import { richPaneFor } from './StudioRichPanes'
@@ -360,6 +361,10 @@ const INITIAL_NODES: CanvasNode[] = [
 function ArchCanvas({ leaf }: { leaf: FlatLeaf }) {
   const [nodes, setNodes] = useState<CanvasNode[]>(INITIAL_NODES)
   useEffect(() => { setNodes([...INITIAL_NODES]) }, [leaf.id])
+  useEffect(() => {
+    registerSnapshot('layout.canvas', () => ({ nodes }))
+    return () => { unregisterSnapshot('layout.canvas') }
+  }, [nodes])
 
   const addNode = (node: CanvasNode) => {
     setNodes(ns => {
@@ -423,8 +428,15 @@ function ArchCanvas({ leaf }: { leaf: FlatLeaf }) {
 function ArchForm({ leaf }: { leaf: FlatLeaf }) {
   const danger = /danger|emergency|disaster|maintenance/i.test(leaf.leafLabel)
   const [saved, setSaved] = useState(false)
+  const [scope, setScope] = useState('This environment')
+  const [mode, setMode] = useState('Standard')
+  const [owner, setOwner] = useState('Platform Team')
   // TODO: wire onClick to /api/config/{leafId} (PUT — currently only flips local saved flag)
   const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000) }
+  useEffect(() => {
+    registerSnapshot('config.form', () => ({ form: { scope, mode, owner } }))
+    return () => { unregisterSnapshot('config.form') }
+  }, [scope, mode, owner])
 
   return (
     <div style={{ maxWidth: 620 }}>
@@ -450,7 +462,7 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         <label className="field">
           <span>Scope</span>
           {/* TODO: bind to /api/environments (scope dropdown options) */}
-          <select className="inp inp-sm">
+          <select className="inp inp-sm" value={scope} onChange={e => setScope(e.target.value)}>
             <option>This environment</option>
             <option>All environments</option>
           </select>
@@ -458,7 +470,7 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         <label className="field">
           <span>Mode</span>
           {/* TODO: bind to /api/config/{leafId}/modes (allowed modes per leaf) */}
-          <select className="inp inp-sm">
+          <select className="inp inp-sm" value={mode} onChange={e => setMode(e.target.value)}>
             <option>Standard</option>
             <option>Strict</option>
             <option>Permissive</option>
@@ -467,7 +479,7 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         <label className="field">
           <span>Owner</span>
           {/* TODO: bind to /api/teams (owner picker) */}
-          <input className="inp inp-sm" defaultValue="Platform Team" />
+          <input className="inp inp-sm" value={owner} onChange={e => setOwner(e.target.value)} />
         </label>
         <label className="field" style={{ gridColumn: '1 / -1' }}>
           <span>Notes</span>

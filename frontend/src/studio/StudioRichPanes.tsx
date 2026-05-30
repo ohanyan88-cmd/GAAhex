@@ -502,8 +502,7 @@ export function ContentEditor() {
 
 // ── 5  DATA BINDING ───────────────────────────────────────────────────────────
 // Wired to real entities/fields (GET /meta/entities, GET /meta/entities/{slug}).
-// Persistence layer for the bindings list itself does not exist yet — "Save bindings"
-// stays disabled until a /api/page-bindings endpoint lands.
+// "Save bindings" POSTs each complete binding row to /api/page-bindings.
 
 type EntityRef = { key: string; label: string; label_plural?: string; route_slug: string }
 type FieldRef  = { key: string; label: string; type: string }
@@ -523,6 +522,8 @@ export function DataBinding({ token }: { token?: string } = {}) {
   const [fieldsBySrc, setFieldsBySrc] = useState<Record<string, FieldRef[]>>({})
   const [binds, setBinds] = useState<Binding[]>([])
   const [nextId, setNextId] = useState(1)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   // Register snapshot so PublishSettings can capture the current binding state.
   useEffect(() => {
@@ -564,6 +565,34 @@ export function DataBinding({ token }: { token?: string } = {}) {
   const upd = (id: number, patch: Partial<Binding>) =>
     setBinds(b => b.map(x => x.id === id ? { ...x, ...patch } : x))
   const del = (id: number) => setBinds(b => b.filter(x => x.id !== id))
+
+  const saveBindings = async () => {
+    if (!token) return
+    const ready = binds.filter(b => b.src && b.field)
+    if (ready.length === 0) {
+      setSaveState('ok')
+      setTimeout(() => setSaveState('idle'), 2000)
+      return
+    }
+    setSaveState('saving')
+    setSaveError(null)
+    try {
+      await Promise.all(
+        ready.map(b =>
+          bpost(token, '/api/page-bindings', {
+            component_key: b.id.toString(),
+            entity_slug: b.src,
+            field_key: b.field,
+          })
+        )
+      )
+      setSaveState('ok')
+      setTimeout(() => setSaveState('idle'), 2500)
+    } catch (e: any) {
+      setSaveState('err')
+      setSaveError(e?.message || 'Save failed')
+    }
+  }
 
   // If no token yet (e.g. logged-out), keep the empty mock-free shell.
   if (!token) {
@@ -670,6 +699,16 @@ export function DataBinding({ token }: { token?: string } = {}) {
             : <>No bindings yet — click <strong>Bind a component</strong> to connect data.</>}
         </div>
       )}
+      {saveState === 'ok' && (
+        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-success-fg)' }}>Bindings saved.</div>
+        </div>
+      )}
+      {saveState === 'err' && saveError && (
+        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{saveError}</div>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8 }}>
         <button
           className="btn btn-primary btn-sm"
@@ -679,9 +718,13 @@ export function DataBinding({ token }: { token?: string } = {}) {
         >
           <Plus size={13} />Bind a component
         </button>
-        {/* TODO: wire to /api/page-bindings (POST/PATCH) — no backend persist layer yet. */}
-        <button className="btn btn-ghost btn-sm" type="button" disabled title="Persistence layer pending">
-          <Check size={13} />Save bindings
+        <button
+          className="btn btn-ghost btn-sm"
+          type="button"
+          onClick={saveBindings}
+          disabled={saveState === 'saving'}
+        >
+          <Check size={13} />{saveState === 'saving' ? 'Saving…' : 'Save bindings'}
         </button>
       </div>
     </div>

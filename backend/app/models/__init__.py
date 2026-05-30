@@ -40,6 +40,7 @@ from .page_config import PageConfig
 from .page_field_value import PageFieldValue
 from .studio_page import StudioPage, StudioPageVersion
 from .feature_flag import FeatureFlag
+from .page_binding import PageBinding
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -77,4 +78,5 @@ __all__ = [
     "StudioPage",
     "StudioPageVersion",
     "FeatureFlag",
+    "PageBinding",
 ]
