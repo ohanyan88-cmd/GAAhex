@@ -37,7 +37,7 @@ import { bget, bpost } from './lib/billing'
 import { useI18n, initI18n, type Lang } from './lib/i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, CloseIcon, SparkleIcon,
   ChevronRightIcon, ChevronDownIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon } from './components/icons'
-import { PanelLeft, Search, Plus, Bell, HelpCircle, Wand } from 'lucide-react'
+import { PanelLeft, Search, Plus, Bell, HelpCircle, Wand, LogIn, Shield } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
@@ -256,25 +256,59 @@ export default function App() {
 
   if (!token) {
     return (
-      <div className="center">
-        <form className="card" onSubmit={handleLogin}>
-          {/* The login banner is always dark, so always use the reversed (platinum+gold)
-              lockup — the cobalt lockup would vanish into the dark banner in light theme. */}
-          <img
-            src="/logo/GAAex-logo-reversed.svg"
-            alt="GAAex"
-            className="logo-lg"
-          />
-          <p className="muted">{t('auth.signin', 'Sign in')}</p>
-          <input className={'inp inp-md' + (error ? ' is-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.email', 'email')} aria-label={t('auth.email', 'email')} />
-          <input className={'inp inp-md' + (error ? ' is-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('auth.password', 'password')} aria-label={t('auth.password', 'password')} />
-          <button type="submit" className="btn btn-primary btn-md">{t('auth.signin', 'Sign in')}</button>
-          {error && <p className="err">{error}</p>}
-          <p className="hint">demo: admin@demo.isp / admin123</p>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setWizardOpen(true)}>
-            {t('wizard.cta', 'Set up a new ISP')} <span aria-hidden>→</span>
-          </button>
-        </form>
+      <div className="login-wrap">
+        <div className="login-brand">
+          <img src="/logo/GAAex-logo-reversed.svg" alt="GAAex" style={{ height: 34, position: 'relative', zIndex: 1 }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div className="gx-eyebrow" style={{ marginBottom: 14 }}>THE OPERATING SYSTEM FOR ISPs</div>
+            <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 40, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-.03em', margin: 0, maxWidth: 420 }}>
+              Every department.<br />Every role.<br /><span style={{ color: 'var(--gx-gold)' }}>One system.</span>
+            </h1>
+            <p style={{ color: 'var(--gx-text-2)', fontSize: 14, marginTop: 18, maxWidth: 380, lineHeight: 1.6 }}>
+              CRM, billing, network, field ops, finance &amp; more — rendered from configuration, built in Studio.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 22, position: 'relative', zIndex: 1 }}>
+            {[['18', 'modules'], ['99.98%', 'uptime'], ['0', 'hardcoded screens']].map(s => (
+              <div key={s[1]}>
+                <div style={{ fontFamily: 'var(--gx-font-display)', fontSize: 22, fontWeight: 600, color: '#fff' }}>{s[0]}</div>
+                <div style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>{s[1]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="login-card">
+          <form className="login-form fade" onSubmit={handleLogin}>
+            <h2 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 24, fontWeight: 600, margin: '0 0 6px', letterSpacing: '-.02em' }}>{t('auth.signin', 'Sign in')}</h2>
+            <p className="hint" style={{ margin: '0 0 24px' }}>Welcome back. Use your tenant credentials.</p>
+            <label className="field" style={{ marginBottom: 14 }}>
+              <span>{t('auth.email', 'Email')}</span>
+              <input className={'inp' + (error ? ' inp-error' : '')} value={email} onChange={(e) => setEmail(e.target.value)} aria-label={t('auth.email', 'Email')} />
+            </label>
+            <label className="field" style={{ marginBottom: 8 }}>
+              <span>{t('auth.password', 'Password')}</span>
+              <input className={'inp' + (error ? ' inp-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} aria-label={t('auth.password', 'Password')} />
+            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0 22px' }}>
+              <label style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, color: 'var(--gx-text-2)' }}>
+                <input type="checkbox" defaultChecked /> Remember me
+              </label>
+              <a className="btn-link" style={{ fontSize: 12.5, cursor: 'pointer' }}>Forgot password?</a>
+            </div>
+            {error && <p className="err" style={{ marginTop: -10, marginBottom: 14, color: 'var(--gx-danger-fg)', fontSize: 12.5 }}>{error}</p>}
+            <button className="btn btn-primary btn-lg" style={{ width: '100%' }} type="submit"><LogIn size={16} />{t('auth.signin', 'Sign in')}</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
+              <span className="hint" style={{ fontSize: 11 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
+            </div>
+            <button className="btn btn-secondary btn-lg" style={{ width: '100%' }} type="button"><Shield size={16} />Continue with SSO</button>
+            <p className="hint" style={{ marginTop: 18, fontSize: 11, textAlign: 'center' }}>demo: admin@demo.isp / admin123</p>
+            <button type="button" className="btn btn-ghost btn-sm" style={{ width: '100%', marginTop: 8 }} onClick={() => setWizardOpen(true)}>
+              {t('wizard.cta', 'Set up a new ISP')} <span aria-hidden>→</span>
+            </button>
+          </form>
+        </div>
         <CreateTenantWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       </div>
     )
