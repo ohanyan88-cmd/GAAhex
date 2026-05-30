@@ -504,12 +504,6 @@ export default function App() {
           </div>
 
           <div className="tenant" title={tenantName || 'Tenant'} onClick={() => setView({ type: 'settings' })}>
-            <span
-              className="avatar"
-              style={{ width: 22, height: 22, fontSize: 10, borderRadius: 6, background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))', color: '#2A1E07' }}
-            >
-              {tenantName ? tenantName.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase() || tenantName.slice(0,2).toUpperCase() : 'GA'}
-            </span>
             <span style={{ fontSize: 12.5, fontWeight: 600 }}>{tenantName || 'GAAex'}</span>
             <ChevronDownIcon size={14} />
           </div>

@@ -114,6 +114,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('care-retention',   'Retention Desk',         UsersIcon),
     i('care-kb',          'Knowledge Base',         BookmarkIcon),
     i('care-comms',       'Service Communications', MessageIcon,  'messages'),
+    i('care-outbound',    'Outbound',               MailIcon,     'outbound'),
   ]),
 
   // 5. Network & Operations — network, provisioning, field, inventory

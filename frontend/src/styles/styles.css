@@ -1626,6 +1626,12 @@ div.studio {
 }
 .toggle.on .toggle-thumb { transform: translateX(16px); }
 
+/* Kit toggle switch (.gx-toggle + .knob) — used in SettingsView and anywhere kit-rendered */
+.gx-toggle { position:relative; width:38px; height:22px; border-radius:11px; background:var(--gx-border-strong); border:0; padding:0; cursor:pointer; transition:background var(--gx-dur-base); flex:none; }
+.gx-toggle.on { background:var(--gx-primary); }
+.gx-toggle .knob { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform var(--gx-dur-base); box-shadow:0 1px 3px rgba(0,0,0,.25); }
+.gx-toggle.on .knob { transform:translateX(16px); }
+
 /* ===================== SECTION HEADING ===================== */
 .section-head {
   display: flex; align-items: center; gap: 10px;
@@ -2714,12 +2720,14 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
 .gx-dash .card-head .hint { color:var(--gx-text-3); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
 .gx-dash .card-pad { padding:18px; }
 
-/* Segmented range toggle (kit's .seg) — scoped so we don't clobber any
-   other .seg in the app. Visuals from app.css lines 168-170. */
-.gx-dash .seg { display:inline-flex; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); padding:2px; gap:2px; }
-.gx-dash .seg button { border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12px; font-weight:500; padding:5px 12px; border-radius:var(--gx-radius-sm); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-.gx-dash .seg button:hover { color:var(--gx-text-1); }
-.gx-dash .seg button.on { background:var(--gx-surface); color:var(--gx-text-1); box-shadow:var(--gx-shadow-xs); }
+/* Segmented control (.seg) — global base, used in calendar, studio, settings, dashboard */
+.seg { display:inline-flex; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); padding:2px; gap:2px; }
+.seg button { border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12px; font-weight:500; padding:5px 12px; border-radius:var(--gx-radius-sm); cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all var(--gx-dur-fast); }
+.seg button:hover { color:var(--gx-text-1); }
+.seg button.on { background:var(--gx-surface); color:var(--gx-text-1); box-shadow:var(--gx-shadow-xs); }
+.seg button:disabled { opacity:0.4; cursor:default; }
+/* Alias for backward compat with .gx-dash scope */
+.gx-dash .seg { background:var(--gx-bg-subtle); }
 
 /* Donut component layout (Donut.tsx) */
 .gx-dash .gx-donut { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
