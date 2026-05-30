@@ -20,6 +20,17 @@ router = APIRouter(prefix="/api/tenant", tags=["tenant-settings"])
 
 LOCALES = {"en", "hy"}
 
+# ----- Theme (Studio AppearancePane → design tokens) ---------------------------------------------
+# Keep these allow-lists in lock-step with frontend/src/studio/StudioRichPanes.tsx
+# (ACCENTS / RADII / density buttons / theme buttons around AppearancePane). When the
+# kit grows a new option, add it BOTH places — the SettingsView bug we just fixed was a
+# backend allow-list that lagged what the frontend could send.
+THEME_ACCENTS = {"Azure", "Cobalt", "Gold", "Emerald", "Violet", "Teal"}
+THEME_RADII = {"Sharp", "Soft", "Rounded", "Pill"}
+THEME_DENSITIES = {"Compact", "Comfortable", "Spacious"}
+THEME_MODES = {"Dark", "Light", "Auto"}
+THEME_FIELDS = {"accent", "radius", "density", "mode"}
+
 
 async def _tenant(s: AsyncSession, user: User) -> Tenant:
     t = (await s.execute(select(Tenant).where(Tenant.id == user.tenant_id))).scalar_one_or_none()
@@ -106,3 +117,73 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
     await s.commit()
     await s.refresh(t)
     return _serialize(t)
+
+
+# ---- theme (Studio AppearancePane) -----------------------------------------------------------
+def _serialize_theme(t: Tenant) -> dict:
+    """Returns the saved theme dict; missing keys are returned as null so the frontend
+    can apply its own defaults (we never invent a default server-side)."""
+    saved = t.theme or {}
+    return {f: saved.get(f) for f in THEME_FIELDS}
+
+
+@router.get("/settings/theme")
+async def get_theme(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """The tenant's design tokens (accent / radius / density / mode). Readable by any
+    authenticated tenant user — every rendered screen reads this to apply branding.
+
+    Missing fields come back as null (NOT defaults). The frontend AppearancePane decides
+    what to render when a token is unset.
+    """
+    return _serialize_theme(await _tenant(s, user))
+
+
+@router.put("/settings/theme")
+async def update_theme(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Update one or more design tokens. Gated on tenant.settings; emits an audit Event.
+
+    Accepts a partial dict (only keys present are updated). Each enum-y field is validated
+    against an explicit allow-list — invalid value ⇒ 422 with the allowed set echoed back.
+    Passing `null` for a field clears it (frontend will fall back to its default).
+    """
+    await _require_settings(s, user)
+    t = await _tenant(s, user)
+
+    if not isinstance(payload, dict):
+        raise HTTPException(422, "body must be a JSON object")
+
+    unknown = set(payload) - THEME_FIELDS
+    if unknown:
+        raise HTTPException(422, f"Cannot set {sorted(unknown)}; allowed: {sorted(THEME_FIELDS)}")
+
+    # Start from the saved theme so a partial PUT preserves untouched fields.
+    next_theme: dict = dict(t.theme or {})
+    changed: dict = {}
+
+    def _check(field: str, allowed: set[str]) -> None:
+        if field not in payload:
+            return
+        v = payload[field]
+        if v is None or v == "":
+            next_theme.pop(field, None)
+            changed[field] = None
+            return
+        if not isinstance(v, str):
+            raise HTTPException(422, f"{field} must be a string, one of {sorted(allowed)}")
+        if v not in allowed:
+            raise HTTPException(422, f"{field} must be one of {sorted(allowed)}")
+        next_theme[field] = v
+        changed[field] = v
+
+    _check("accent", THEME_ACCENTS)
+    _check("radius", THEME_RADII)
+    _check("density", THEME_DENSITIES)
+    _check("mode", THEME_MODES)
+
+    # Persist the full dict (or None when every field was cleared) so JSONB stays compact.
+    t.theme = next_theme or None
+
+    await workflow.emit(s, user.tenant_id, "update", "tenant", t.id, user.id, {"theme": changed})
+    await s.commit()
+    await s.refresh(t)
+    return _serialize_theme(t)

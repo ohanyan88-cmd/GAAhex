@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import String, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -21,4 +21,9 @@ class Tenant(Base):
     logo_text: Mapped[str | None] = mapped_column(String(40), nullable=True)                # short company mark, e.g. "GA·ex"
     logo_url: Mapped[str | None] = mapped_column(Text, nullable=True)                        # uploaded company logo: data:image/<mime>;base64,... OR https URL
     onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # set when onboarding finishes
+    # ---- Studio AppearancePane → design tokens (Prompt 6 sub-area 4); JSONB so the kit can grow ----
+    # tokens without a per-field migration. Shape (any/all keys optional; missing ⇒ frontend default):
+    #   {"accent": "Azure", "radius": "Soft", "density": "Comfortable", "mode": "Dark"}
+    # Allow-lists live in routers/tenant_settings.py — keep them in sync with StudioRichPanes.tsx.
+    theme: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
