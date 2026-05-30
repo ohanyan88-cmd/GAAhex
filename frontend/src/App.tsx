@@ -6,7 +6,7 @@ import StudioView from './views/StudioView'
 import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
-import NotificationCenter from './components/NotificationCenter'
+import NotificationBell from './components/NotificationBell'
 import OrgIdentity from './components/OrgIdentity'
 import ConfigureDrawer from './modals/ConfigureDrawer'
 import ActivityTimeline from './components/ActivityTimeline'
@@ -411,8 +411,11 @@ export default function App() {
 
           <span className="spacer" />
 
-          {/* NotificationBell placeholder — implemented in P4 */}
-          <div className="tb-icon" aria-hidden="true" title="Notifications (wiring in P4)" />
+          <NotificationBell
+            token={token!}
+            entities={entities}
+            onOpen={(slug) => setView({ type: 'entity', slug })}
+          />
 
           {/* UserMenu placeholder — implemented in P5 */}
           <div className="tb-icon" aria-hidden="true" title="Account menu (wiring in P5)" />
