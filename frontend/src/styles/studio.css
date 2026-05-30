@@ -1,0 +1,117 @@
+/* ============================================================================
+   GAAex Studio — P1 shell styles
+   ----------------------------------------------------------------------------
+   Ports the kit's .studio* / .tree-studio container rules so the SuperAdmin
+   builder gets its own 248px tree + pane layout (kit handoff/studio-kit-app.css
+   lines 217-242, 320-328). Uses --gx-* tokens only. Loaded AFTER styles.css from
+   main.tsx so it wins on collisions with the legacy gx-studio scaffolding.
+
+   P2 will add .tree-g / .tree-m / .tree-leaf / .tree-search rules.
+   P3 will add .layer-stack / .layer-card / .layer-rel / .support-grid rules.
+   ============================================================================ */
+
+/* ---- Studio container (kit lines 173-181, overridden width for tree variant 218) ---- */
+.studio.tree-studio {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  gap: 0;
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  overflow: hidden;
+  background: var(--gx-surface);
+  min-height: 520px;
+}
+
+.studio.tree-studio .studio-nav.tree {
+  padding: 10px 8px;
+  display: block;
+  overflow-y: auto;
+  max-height: 640px;
+  border-right: 1px solid var(--gx-border-subtle);
+  background: var(--gx-bg-subtle);
+}
+
+.studio.tree-studio .studio-pane {
+  padding: 20px 22px;
+  overflow-y: auto;
+}
+
+/* ---- Studio pills + draft/live status (kit pill styling for SuperAdmin header) ---- */
+.studio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--gx-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.studio-pill .d {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.studio-pill.draft {
+  background: var(--gx-warning-soft);
+  color: var(--gx-warning-fg);
+}
+.studio-pill.draft .d {
+  background: var(--gx-warning);
+}
+.studio-pill.live {
+  background: var(--gx-success-soft);
+  color: var(--gx-success-fg);
+}
+.studio-pill.live .d {
+  background: var(--gx-success);
+}
+
+/* ---- Inline placeholder used by P1 only (deleted in P2/P3) ---- */
+.studio-empty {
+  padding: 18px 14px;
+  font-size: 12px;
+  color: var(--gx-text-3);
+  font-style: italic;
+}
+
+/* ---- 403-style restricted state (non-SuperAdmin fallback) ---- */
+.studio-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 70px 20px;
+  color: var(--gx-text-3);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  background: var(--gx-surface);
+}
+.studio-empty-state h3 {
+  margin: 4px 0 0;
+  font-family: var(--gx-font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gx-text-1);
+}
+.studio-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  max-width: 360px;
+}
+
+/* ---- Responsive (kit lines 239-242, 322-328): collapse to single column at 1180px ---- */
+@media (max-width: 1180px) {
+  .studio.tree-studio {
+    grid-template-columns: 1fr;
+  }
+  .studio.tree-studio .studio-nav.tree {
+    max-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid var(--gx-border-subtle);
+  }
+}

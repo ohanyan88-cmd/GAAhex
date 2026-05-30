@@ -215,29 +215,11 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('sys-settings',    'System Settings',      GearIcon,       'settings'),
   ], { adminOnly: true }),
 
-  // 9. Studio — the operating system builder (FIRST-CLASS, not hidden under System)
+  // 9. Studio — the operating system builder (FIRST-CLASS, not hidden under System).
+  // Single entry: the new Studio shell owns its own 15-group tree internally (frontend/src/studio/
+  // tree.ts, P2), so we collapse the old 21 sub-items down to a single jump-into-Studio link.
   s('studio', 'Studio', SparkleIcon, [
-    i('std-overview',    'Overview',                 ChartIcon,      'studio'),
-    i('std-app',         'App Builder',              LayersIcon),
-    i('std-nav',         'Navigation Builder',       RowsIcon),
-    i('std-module',      'Module Builder',           PackageIcon),
-    i('std-datamodel',   'Data Model Builder',       ServerIcon),
-    i('std-screen',      'Screen Designer',          EditIcon),
-    i('std-form',        'Form Builder',             EditIcon),
-    i('std-view',        'View Builder',             RowsIcon),
-    i('std-dashboard',   'Dashboard Builder',        ChartIcon),
-    i('std-workflow',    'Workflow Builder',         ArrowRightIcon),
-    i('std-automation',  'Automation Builder',       SparkleIcon),
-    i('std-ai',          'AI Builder',               SparkleIcon),
-    i('std-comm',        'Communication Builder',    MessageIcon),
-    i('std-api',         'API Builder',              ServerIcon),
-    i('std-integration', 'Integration Builder',      LayersIcon),
-    i('std-permission',  'Permission Builder',       ShieldIcon),
-    i('std-theme',       'Theme Builder',            SparkleIcon),
-    i('std-marketplace', 'Template Marketplace',     ArchiveIcon),
-    i('std-env',         'Environment Manager',      ServerIcon),
-    i('std-versions',    'Versioning & Releases',    BookmarkIcon),
-    i('std-history',     'Audit & Change History',   ClockIcon),
+    i('std-overview',    'Studio',                   SparkleIcon,    'studio'),
   ], { adminOnly: true }),
 ]
 
