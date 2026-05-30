@@ -14,6 +14,29 @@ from .models.customer_user import CustomerUser
 from .security import hash_password
 
 
+async def _upsert_new_permissions(s, tenant_id) -> None:
+    """Insert permissions that were added to build_access_config after initial tenant creation.
+
+    build_access_config uses s.add() which skips on duplicate PK conflicts in a fresh session.
+    This idempotent helper fetches existing permission keys and inserts only the missing ones,
+    so new perms (e.g. audit.view) appear in existing demo deployments on next startup.
+    """
+    existing_keys = {
+        row[0]
+        for row in (await s.execute(
+            select(PermissionDef.key).where(PermissionDef.tenant_id == tenant_id)
+        )).all()
+    }
+    # Canonical set of extra perms that build_access_config inserts beyond the entity CRUD loop.
+    extra_perms = [
+        ("audit.view", "View audit log", "governance"),
+    ]
+    for key, label, group in extra_perms:
+        if key not in existing_keys:
+            s.add(PermissionDef(tenant_id=tenant_id, key=key, label=label, group=group))
+    await s.commit()
+
+
 async def seed_if_empty() -> None:
     """Demo tenant + 2-level org tree + demo admin user.
 
@@ -26,6 +49,8 @@ async def seed_if_empty() -> None:
         if existing is not None:
             # Idempotent: pre-warm the cache so the rest of the app shares the same id.
             _set_the_tenant_id(existing.id)
+            # Upsert any permissions added after initial tenant creation (e.g. audit.view).
+            await _upsert_new_permissions(s, existing.id)
             return
 
         pinned_id_str = os.environ.get("GAAEX_TENANT_ID")
