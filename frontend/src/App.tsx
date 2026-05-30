@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { login, me, getEntities, orgTree } from './lib/api'
 import ErrorBoundary from './components/ErrorBoundary'
 import EntityView from './views/EntityView'
-import StudioView from './views/StudioView'
+import StudioShell, { type StudioRoute } from './studio/StudioShell'
 import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
@@ -49,7 +49,7 @@ type OrgNode = { id: string; type: string; name: string; path: string; code?: st
 type View =
   | { type: 'org' }
   | { type: 'entity'; slug: string }
-  | { type: 'studio'; focusSlug?: string }
+  | { type: 'studio'; focusSlug?: string; group?: string; module?: string; leaf?: string }
   | { type: 'reports' }
   | { type: 'dashboards' }
   | { type: 'messages' }
@@ -511,7 +511,12 @@ export default function App() {
               : view.type === 'reports'
                 ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'studio'
-                ? <StudioView token={token} onCreated={async () => setEntities(await getEntities(token))} />
+                ? <StudioShell
+                    token={token}
+                    canConfigure={!!user?.can_configure}
+                    route={{ group: view.group, module: view.module, leaf: view.leaf }}
+                    onRoute={(r: StudioRoute) => setView({ type: 'studio', group: r.group, module: r.module, leaf: r.leaf })}
+                  />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
               : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />}

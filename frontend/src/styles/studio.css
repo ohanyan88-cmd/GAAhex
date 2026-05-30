@@ -1,0 +1,818 @@
+/* ============================================================================
+   GAAex Studio — P1 shell styles
+   ----------------------------------------------------------------------------
+   Ports the kit's .studio* / .tree-studio container rules so the SuperAdmin
+   builder gets its own 248px tree + pane layout (kit handoff/studio-kit-app.css
+   lines 217-242, 320-328). Uses --gx-* tokens only. Loaded AFTER styles.css from
+   main.tsx so it wins on collisions with the legacy gx-studio scaffolding.
+
+   P2 will add .tree-g / .tree-m / .tree-leaf / .tree-search rules.
+   P3 will add .layer-stack / .layer-card / .layer-rel / .support-grid rules.
+   ============================================================================ */
+
+/* ---- Studio container (kit lines 173-181, overridden width for tree variant 218) ---- */
+.studio.tree-studio {
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  gap: 0;
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  overflow: hidden;
+  background: var(--gx-surface);
+  min-height: 520px;
+}
+
+.studio.tree-studio .studio-nav.tree {
+  padding: 10px 8px;
+  display: block;
+  overflow-y: auto;
+  max-height: 640px;
+  border-right: 1px solid var(--gx-border-subtle);
+  background: var(--gx-bg-subtle);
+}
+
+.studio.tree-studio .studio-pane {
+  padding: 20px 22px;
+  overflow-y: auto;
+}
+
+/* ---- Studio pills + draft/live status (kit pill styling for SuperAdmin header) ---- */
+.studio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--gx-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.studio-pill .d {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.studio-pill.draft {
+  background: var(--gx-warning-soft);
+  color: var(--gx-warning-fg);
+}
+.studio-pill.draft .d {
+  background: var(--gx-warning);
+}
+.studio-pill.live {
+  background: var(--gx-success-soft);
+  color: var(--gx-success-fg);
+}
+.studio-pill.live .d {
+  background: var(--gx-success);
+}
+
+/* ---- Inline placeholder used by P1 only (deleted in P2/P3) ---- */
+.studio-empty {
+  padding: 18px 14px;
+  font-size: 12px;
+  color: var(--gx-text-3);
+  font-style: italic;
+}
+
+/* ---- 403-style restricted state (non-SuperAdmin fallback) ---- */
+.studio-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 70px 20px;
+  color: var(--gx-text-3);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  background: var(--gx-surface);
+}
+.studio-empty-state h3 {
+  margin: 4px 0 0;
+  font-family: var(--gx-font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gx-text-1);
+}
+.studio-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  max-width: 360px;
+}
+
+/* ============================================================================
+   P2 — Tree nav (kit handoff/studio-kit-app.css lines 220-237)
+   ============================================================================ */
+
+.tree-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 9px;
+  margin-bottom: 8px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  color: var(--gx-text-3);
+}
+.tree-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--gx-text-1);
+  font-size: 12.5px;
+  font-family: var(--gx-font-sans);
+}
+.tree-search button {
+  border: none;
+  background: none;
+  color: var(--gx-text-3);
+  cursor: pointer;
+  display: flex;
+  padding: 2px;
+}
+.tree-search button:hover {
+  color: var(--gx-text-1);
+}
+
+/* Pinned Overview row above the tree groups. */
+.tree-overview {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--gx-text-1);
+  font-family: var(--gx-font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--gx-radius-sm);
+  text-align: left;
+  margin-bottom: 4px;
+  transition: all var(--gx-dur-fast);
+}
+.tree-overview:hover {
+  background: var(--gx-hover);
+}
+.tree-overview.on {
+  background: var(--gx-primary-soft);
+  color: var(--gx-info-fg);
+}
+
+.tree-group {
+  margin-bottom: 1px;
+}
+.tree-g,
+.tree-m {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--gx-font-sans);
+  border-radius: var(--gx-radius-sm);
+  transition: background var(--gx-dur-fast);
+  text-align: left;
+}
+.tree-g {
+  height: 32px;
+  padding: 0 8px;
+  color: var(--gx-text-1);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.tree-g:hover {
+  background: var(--gx-hover);
+}
+/* Gold tint for the group icon — matches the kit's `.tree-g .lic:first-child` rule. */
+.tree-g > svg:first-of-type {
+  color: var(--gx-gold);
+}
+.tree-m {
+  height: 29px;
+  padding: 0 8px 0 30px;
+  color: var(--gx-text-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+.tree-m:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+}
+.tree-g .chev,
+.tree-m .chev {
+  margin-left: auto;
+  color: var(--gx-text-3);
+  transition: transform var(--gx-dur-base) var(--gx-ease-standard);
+}
+.tree-g.open .chev,
+.tree-m.open .chev {
+  transform: rotate(90deg);
+}
+
+.tree-leaf {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px 0 42px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--gx-text-2);
+  font-family: var(--gx-font-sans);
+  font-size: 12px;
+  border-radius: var(--gx-radius-sm);
+  text-align: left;
+  transition: all var(--gx-dur-fast);
+  position: relative;
+}
+.tree-leaf:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+}
+.tree-leaf.on {
+  background: var(--gx-primary-soft);
+  color: var(--gx-info-fg);
+  font-weight: 600;
+}
+/* Gold active rail — kit lines 234-235. */
+.tree-leaf.on::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  border-radius: 99px;
+  background: var(--gx-gold);
+}
+.tree-leaf > span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-leaf-ctx {
+  font-size: 10px;
+  color: var(--gx-text-3);
+  flex-shrink: 0;
+}
+
+/* P2 — Pane placeholder used until P4/P5 wire real builder/archetype panes. */
+.studio-pane-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  min-height: 320px;
+  color: var(--gx-text-3);
+  font-size: 13px;
+}
+.studio-pane-placeholder .label {
+  font-family: var(--gx-font-mono);
+  font-size: 11px;
+  color: var(--gx-text-2);
+  background: var(--gx-bg-subtle);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-sm);
+  padding: 3px 8px;
+}
+
+/* ============================================================================
+   P3 — Relational 9-layer Overview (kit handoff/studio-kit-app.css lines 244-265)
+   ============================================================================ */
+
+/* `section-icon` overrides the default gold tint for Overview's Layers/Puzzle icons —
+   keeps the headings cohesive when reused inside the pane. The base .section-head
+   class already exists in styles.css line 1929 (kit ports). */
+
+.layer-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 680px;
+}
+.layer-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--gx-border);
+  border-left: 3px solid var(--lt, var(--gx-primary));
+  background: var(--gx-surface);
+  border-radius: var(--gx-radius-lg);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  font-family: var(--gx-font-sans);
+  text-align: left;
+  box-shadow: var(--gx-shadow-xs);
+  width: 100%;
+}
+.layer-card:hover {
+  box-shadow: var(--gx-shadow-md);
+  transform: translateX(2px);
+  border-color: var(--gx-border-strong);
+}
+.layer-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gx-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.layer-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.layer-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gx-text-1);
+}
+.layer-what {
+  font-size: 12px;
+  color: var(--gx-text-3);
+  margin-top: 1px;
+}
+.layer-count {
+  font-size: 11px;
+  color: var(--gx-text-3);
+  font-family: var(--gx-font-mono);
+  flex-shrink: 0;
+}
+.layer-go {
+  color: var(--gx-text-3);
+  flex-shrink: 0;
+  transition: transform var(--gx-dur-fast);
+}
+.layer-card:hover .layer-go {
+  transform: translateX(3px);
+  color: var(--gx-primary);
+}
+.layer-rel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 0;
+  color: var(--gx-text-3);
+}
+.layer-rel-line {
+  width: 2px;
+  height: 10px;
+  background: var(--gx-border-strong);
+}
+.layer-rel-verb {
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: var(--gx-text-3);
+}
+
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  max-width: 700px;
+}
+.support-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border: 1px solid var(--gx-border);
+  background: var(--gx-surface);
+  border-radius: var(--gx-radius-md);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  font-family: var(--gx-font-sans);
+  text-align: left;
+}
+.support-card:hover {
+  border-color: var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-sm);
+  transform: translateY(-1px);
+}
+.support-ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-gold-soft);
+  color: var(--gx-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Section-icon: small gold accent used by the Overview headings. .section-head itself
+   is already defined in styles.css (kit ports); we add the icon-color hook here so
+   Overview doesn't inherit the gx-studio override. */
+.studio-pane .section-head .section-icon {
+  color: var(--gx-gold);
+}
+
+/* ============================================================================
+   P4 — Archetype pane helpers (table / tokens / monitor / canvas / form)
+   ============================================================================ */
+
+/* .wrap — flex-wrap container for token swatches and other tile rows */
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+/* .lbl — uppercase label used by ArchCanvas palette section header */
+.lbl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gx-text-3);
+  font-family: var(--gx-font-mono);
+}
+
+/* .palette-block — clickable node-palette button in ArchCanvas */
+.palette-block {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  background: var(--gx-surface);
+  color: var(--gx-text-2);
+  font-family: var(--gx-font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  white-space: nowrap;
+}
+.palette-block:hover {
+  border-color: var(--gx-border-strong);
+  color: var(--gx-text-1);
+  background: var(--gx-hover);
+}
+
+/* .flow-node — canvas node pill in ArchCanvas */
+.flow-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: 2px solid var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  background: var(--gx-surface);
+  font-family: var(--gx-font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gx-text-1);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  user-select: none;
+}
+.flow-node:hover {
+  opacity: 0.8;
+  box-shadow: var(--gx-shadow-sm);
+}
+
+/* .flow-x — the × icon inside a flow node */
+.flow-x {
+  color: var(--gx-text-3);
+  opacity: 0;
+  transition: opacity var(--gx-dur-fast);
+}
+.flow-node:hover .flow-x {
+  opacity: 1;
+}
+
+/* .card-head — header bar used in ArchMonitor log card (also covers .gx-dash cards) */
+.studio-pane .card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--gx-border-subtle);
+}
+.studio-pane .card-head h3 {
+  font-family: var(--gx-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--gx-text-1);
+}
+
+/* .banner — inline alert used by ArchForm danger leaves */
+.studio-pane .banner {
+  display: flex;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: var(--gx-radius-md);
+  border: 1px solid var(--gx-border);
+  border-left: 3px solid var(--gx-primary);
+  background: var(--gx-primary-soft);
+}
+.studio-pane .banner .bt {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.studio-pane .banner .bm {
+  font-size: 12px;
+  color: var(--gx-text-2);
+  margin-top: 2px;
+}
+
+/* ============================================================================
+   P5 — Rich pane helpers (LayoutBuilder, PageManager, Rules, Permissions, etc.)
+   ============================================================================ */
+
+/* .canvas-block — a block tile on the LayoutBuilder canvas */
+.canvas-block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  min-height: 52px;
+  transition: border-color var(--gx-dur-fast);
+}
+.canvas-block:hover {
+  border-color: var(--gx-border-strong);
+}
+.canvas-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gx-text-2);
+  font-family: var(--gx-font-sans);
+  pointer-events: none;
+}
+.canvas-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--gx-dur-fast);
+}
+.canvas-block:hover .canvas-actions {
+  opacity: 1;
+}
+.canvas-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-bg-subtle);
+  color: var(--gx-text-2);
+  cursor: pointer;
+  transition: background var(--gx-dur-fast);
+}
+.canvas-actions button:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+}
+
+/* .canvas-add — dashed "Add block" button at the bottom of the canvas */
+.canvas-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  border: 1.5px dashed var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  background: transparent;
+  color: var(--gx-text-3);
+  font-size: 12.5px;
+  font-family: var(--gx-font-sans);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+}
+.canvas-add:hover {
+  border-color: var(--gx-primary);
+  color: var(--gx-primary);
+  background: var(--gx-primary-soft);
+}
+
+/* .rule-card — a single WHEN/IF/DO rule row in ActionsLogic */
+.rule-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 11px 14px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  font-family: var(--gx-font-sans);
+  transition: border-color var(--gx-dur-fast);
+}
+.rule-card:hover {
+  border-color: var(--gx-border-strong);
+}
+
+/* .rule-pill — colored badge inside a rule card */
+.rule-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--gx-radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: var(--gx-font-mono);
+  flex-shrink: 0;
+}
+
+/* .comp-card — component library card */
+.comp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  font-family: var(--gx-font-sans);
+}
+.comp-card:hover {
+  border-color: var(--gx-primary);
+  background: var(--gx-primary-soft);
+  transform: translateY(-1px);
+  box-shadow: var(--gx-shadow-sm);
+}
+.comp-ic {
+  color: var(--gx-text-3);
+  display: inline-flex;
+}
+.comp-card:hover .comp-ic {
+  color: var(--gx-primary);
+}
+.comp-add {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  color: var(--gx-primary);
+  transition: opacity var(--gx-dur-fast);
+}
+.comp-card:hover .comp-add {
+  opacity: 1;
+}
+
+/* .perm-cell — permission matrix cell button */
+.perm-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--gx-radius-sm);
+  background: transparent;
+  font-family: var(--gx-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--gx-dur-fast);
+}
+.perm-cell:hover {
+  background: var(--gx-hover);
+}
+
+/* .tpl-card — template gallery card */
+.tpl-card {
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  overflow: hidden;
+  transition: all var(--gx-dur-fast);
+}
+.tpl-card:hover {
+  border-color: var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-md);
+  transform: translateY(-2px);
+}
+.tpl-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 90px;
+  background: var(--gx-bg-subtle);
+  border-bottom: 1px solid var(--gx-border-subtle);
+  color: var(--gx-text-3);
+}
+
+/* .timeline / .tl-item / .tl-dot — version history timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.tl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gx-border-subtle);
+}
+.tl-item:last-child {
+  border-bottom: none;
+}
+.tl-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* .rec-form — 2-col entity identity form grid */
+.rec-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+  max-width: 680px;
+}
+
+/* .tb-search — toolbar search box variant used by ComponentsLibrary */
+.tb-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  color: var(--gx-text-3);
+}
+.tb-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--gx-text-1);
+  font-size: 12.5px;
+  font-family: var(--gx-font-sans);
+}
+
+/* .seo-preview — search engine result preview box */
+.seo-preview {
+  padding: 12px 14px;
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  background: var(--gx-bg-subtle);
+}
+
+/* ---- Responsive (kit lines 239-242, 322-328): collapse to single column at 1180px ---- */
+@media (max-width: 1180px) {
+  .studio.tree-studio {
+    grid-template-columns: 1fr;
+  }
+  .studio.tree-studio .studio-nav.tree {
+    max-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid var(--gx-border-subtle);
+  }
+}

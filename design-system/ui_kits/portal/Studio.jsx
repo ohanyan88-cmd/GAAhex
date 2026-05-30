@@ -1,18 +1,48 @@
-/* GAAex Portal — Studio: the config + design engine (the heart of GAAex). */
+/* GAAex Portal — Studio: visual builder + configuration center + publishing control.
+   12 sections (Page Manager … Publish Settings). Panes live in studio-panes.jsx.
+   EntityBuilder + AppearancePane defined below are reused by Data Binding / Design Settings. */
 
 const STUDIO_NAV = [
-  { group:'Schema', items:[ {id:'entities',label:'Entities',icon:'rows-3'},{id:'fields',label:'Fields',icon:'square-pen'},{id:'workflows',label:'Statuses / Workflows',icon:'arrow-right'} ] },
-  { group:'UI', items:[ {id:'dashboards',label:'Dashboards',icon:'bar-chart-3'},{id:'views',label:'Views',icon:'layout-dashboard'},{id:'reports',label:'Reports',icon:'download'} ] },
-  { group:'Logic', items:[ {id:'auto',label:'Automations',icon:'sparkles'} ] },
-  { group:'Tenant', items:[ {id:'appear',label:'Appearance',icon:'palette'},{id:'perms',label:'Roles & Permissions',icon:'lock'} ] },
+  { group:'Build', items:[
+    { id:'pages', label:'Page Manager', icon:'files' },
+    { id:'layout', label:'Layout Builder', icon:'layout-template' },
+    { id:'components', label:'Components Library', icon:'blocks' },
+    { id:'content', label:'Content Editor', icon:'type' },
+  ]},
+  { group:'Data & Logic', items:[
+    { id:'data', label:'Data Binding', icon:'database' },
+    { id:'actions', label:'Actions & Logic', icon:'zap' },
+    { id:'permissions', label:'Permissions', icon:'lock' },
+  ]},
+  { group:'Design', items:[
+    { id:'design', label:'Design Settings', icon:'palette' },
+  ]},
+  { group:'Ship', items:[
+    { id:'preview', label:'Preview Mode', icon:'eye' },
+    { id:'versions', label:'Version History', icon:'history' },
+    { id:'templates', label:'Templates', icon:'store' },
+    { id:'publish', label:'Publish Settings', icon:'rocket' },
+  ]},
 ];
 
 function Studio() {
-  const [section, setSection] = React.useState('entities');
+  const [section, setSection] = React.useState('pages');
+  const cur = STUDIO_NAV.flatMap(g => g.items).find(i => i.id === section);
+  const PANES = window.StudioPanes || {};
+  const Pane = ({
+    pages: PANES.PageManager, layout: PANES.LayoutBuilder, components: PANES.ComponentsLibrary,
+    content: PANES.ContentEditor, data: PANES.DataBinding, actions: PANES.ActionsLogic,
+    permissions: PANES.Permissions, design: AppearancePane, preview: PANES.PreviewMode,
+    versions: PANES.VersionHistory, templates: PANES.Templates, publish: PANES.PublishSettings,
+  })[section];
   return (
-    <div className="view-inner fade" style={{ maxWidth: 1240 }}>
-      <ViewHead icon="wand-2" title="Studio" sub="Configuration engine · zero-code entity, workflow & UI builder"
-        actions={<button className="btn btn-secondary btn-sm"><Icon name="download" size={14} />Export config</button>} />
+    <div className="view-inner fade" style={{ maxWidth: 1280 }}>
+      <ViewHead icon="wand-2" title="Studio" sub="Visual builder · configuration center · publishing control"
+        actions={<>
+          <span className="pill pill-warning" style={{ marginRight: 2 }}><span className="d" style={{ background:'var(--gx-warning)' }} />Draft</span>
+          <button className="btn btn-secondary btn-sm" onClick={()=>window.gxToast&&gxToast('Preview opened')}><Icon name="eye" size={14} />Preview</button>
+          <button className="btn btn-primary btn-sm" onClick={()=>window.gxToast&&gxToast('Published to production')}><Icon name="rocket" size={14} />Publish</button>
+        </>} />
       <div className="studio">
         <aside className="studio-nav">
           {STUDIO_NAV.map(g => (
@@ -27,9 +57,7 @@ function Studio() {
           ))}
         </aside>
         <section className="studio-pane">
-          {section === 'entities' ? <EntityBuilder />
-            : section === 'appear' ? <AppearancePane />
-            : <StudioPlaceholder section={section} />}
+          {Pane ? <Pane /> : <StudioPlaceholder section={section} title={cur && cur.label} />}
         </section>
       </div>
     </div>
@@ -268,25 +296,14 @@ function AppearancePane() {
   );
 }
 
-function StudioPlaceholder({ section }) {
-  const meta = {
-    fields:['square-pen','Fields','Add, reorder and configure fields for any entity — type, validation, defaults, and conditional visibility (GXL).'],
-    workflows:['arrow-right','Statuses / Workflows','Design status sets and the allowed transitions between them, each gated by an optional GXL guard expression.'],
-    dashboards:['bar-chart-3','Dashboards','Compose KPI tiles, charts and lists onto a grid. Bind each widget to an entity, a metric and a filter — saved as config.'],
-    views:['layout-dashboard','Views','Define table, board and calendar views per entity: columns, density, grouping, default sort and saved filters.'],
-    reports:['download','Reports','Build tabular and pivot reports, schedule them, and pick export formats (CSV / XLSX / PDF).'],
-    auto:['sparkles','Automations','Trigger → condition → action rules. Send notifications, move work items, call webhooks — all without code.'],
-    appear:['palette','Appearance','Tenant branding: logo, accent, density and default theme. Applied across every rendered screen.'],
-    perms:['lock','Roles & Permissions','Roles, field-level permissions and row-level access — enforced by the auth/authz kernel engine.'],
-  }[section] || ['wand-2','Studio',''];
+function StudioPlaceholder({ section, title }) {
   return (
     <div className="stub" style={{ padding:'60px 20px' }}>
-      <div className="si"><Icon name={meta[0]} size={26} /></div>
-      <div style={{ fontSize:16, fontWeight:600, color:'var(--gx-text-1)' }}>{meta[1]}</div>
-      <p className="hint" style={{ maxWidth:440, lineHeight:1.6 }}>{meta[2]}</p>
-      <div className="seg"><button className="on"><Icon name="wand-2" size={13} />Builder</button><button><Icon name="code" size={13} />JSON</button></div>
+      <div className="si"><Icon name="wand-2" size={26} /></div>
+      <div style={{ fontSize:16, fontWeight:600, color:'var(--gx-text-1)' }}>{title || 'Studio'}</div>
+      <p className="hint" style={{ maxWidth:440, lineHeight:1.6 }}>This builder surface is configured here.</p>
     </div>
   );
 }
 
-Object.assign(window, { Studio });
+Object.assign(window, { Studio, EntityBuilder, AppearancePane });
