@@ -1,4 +1,9 @@
-# Topbar P6 — Verify
+# Topbar P6 — Verify ✅ LIVE VERIFIED 2026-05-30
+
+> **Live verification PASSED** (Playwright/Chromium, 22/22 checks). Seed crash fixed.
+> See commit `e9983a8` for seed fix. See commit below for verify record.
+
+
 
 Branch: `topbar/redesign` (off `main`). 5 prior commits (P1–P5) + this verify pass.
 
