@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
-import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { PermissionDenied } from '../components/States'
 import {
   InboxIcon, PlusIcon, MailIcon, SearchIcon, ArchiveIcon,
   ClockIcon, FileIcon, CheckIcon, WarningIcon, SparkleIcon,
+  StarIcon, ReplyIcon, ForwardIcon, RefreshIcon, MoreVerticalIcon,
+  PaperclipIcon,
 } from '../components/icons'
 import { Modal } from '../components/Modal'
 import { composeOutbound } from '../lib/api'
@@ -276,209 +278,145 @@ export default function OutboundView({ token, configVersion = 0 }: { token: stri
   if (denied) return <PermissionDenied message="Outbound delivery is admin-only." />
 
   return (
-    <div className="gx-comms comms-shell">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+    <div className="comms-shell fade">
       <div className="comms-head">
-        <div className="vh-ic"><MailIcon size={18} /></div>
+        <div className="vh-ic"><MailIcon size={20} /></div>
         <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 20, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
-            {cfg.title}
-          </h1>
-          <div className="hint" style={{ fontSize: 12 }}>Email · SMS · push · delivery log</div>
+          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>{cfg.title}</h1>
+          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>Email · campaigns · transactional</div>
         </div>
         <span className="spacer" />
-        <select className="inp inp-sm hide-sm" aria-label="Filter by channel" value={channel} onChange={(e) => setChannel(e.target.value)} style={{ width: 130 }}>
-          <option value="">All channels</option>
-          {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select className="inp inp-sm hide-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)} style={{ width: 130 }}>
-          <option value="">All statuses</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <button className="btn btn-primary btn-sm" onClick={() => setComposeOpen(true)}>
-          <PlusIcon size={13} /> Compose
-        </button>
+        <button className="btn btn-secondary btn-sm hide-sm" onClick={load}><RefreshIcon size={14} />Sync</button>
+        <button className="btn btn-primary btn-sm" onClick={() => setComposeOpen(true)}><PlusIcon size={14} />Compose</button>
       </div>
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && (
-        <EmptyState
-          icon={<InboxIcon size={40} />}
-          title="Outbound log isn't available yet"
-          message="Sent messages will appear here once the delivery service is enabled."
-        />
-      )}
-
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<InboxIcon size={40} />} title="No outbound messages" message="Nothing matches this filter." />
-      )}
-
-      {list && list.length > 0 && !unavailable && (
-        <div className="mail">
-          {/* ── Folder rail ───────────────────────────────────────────── */}
-          <div className="mail-folders">
-            <button
-              className="btn btn-primary btn-sm"
-              style={{ width: '100%', marginBottom: 10 }}
-              onClick={() => setComposeOpen(true)}
-            >
-              <PlusIcon size={13} /> Compose
-            </button>
-            {FOLDERS.map(f => {
-              const Icon = f.icon
-              const count = folderCounts[f.key] ?? 0
-              const active = folder === f.key
+      <div className="mail">
+        {/* ── Folder rail ── */}
+        <div className="mail-folders">
+          <button className="btn btn-gold btn-sm" style={{ width: '100%', marginBottom: 10 }} onClick={() => setComposeOpen(true)}>
+            <PlusIcon size={14} />Compose
+          </button>
+          {FOLDERS.map(f => {
+            const FIcon = f.icon
+            const count = folderCounts[f.key] ?? 0
+            const active = folder === f.key
+            return (
+              <button key={f.key} className={'mail-folder' + (active ? ' on' : '')} onClick={() => { setFolder(f.key); setSelected(null) }}>
+                <FIcon size={15} />
+                <span>{f.label}</span>
+                {count > 0 && (
+                  <span className="badge" style={{ marginLeft: 'auto', background: active ? 'var(--gx-primary)' : 'var(--gx-surface-2)', color: active ? '#fff' : 'var(--gx-text-3)' }}>{count}</span>
+                )}
+              </button>
+            )
+          })}
+          <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: '12px 4px', paddingTop: 12 }}>
+            <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 6px 8px' }}>Channels</div>
+            {CHANNELS.map(c => {
+              const tone = c === 'email' ? 'var(--azure-400)' : c === 'sms' ? 'var(--gx-warning)' : c === 'push' ? 'var(--gx-success)' : c === 'webhook' ? 'var(--gx-gold)' : 'var(--gx-text-3)'
               return (
-                <button
-                  key={f.key}
-                  className={'mail-folder' + (active ? ' on' : '')}
-                  onClick={() => { setFolder(f.key); setSelected(null) }}
-                >
-                  <Icon size={15} />
-                  <span style={{ flex: 1, textAlign: 'left' }}>{f.label}</span>
-                  {count > 0 && (
-                    <span
-                      className="badge"
-                      style={{
-                        background: active ? 'var(--gx-primary)' : 'var(--gx-surface-2)',
-                        color: active ? '#fff' : 'var(--gx-text-3)',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
+                <button key={c} className={'mail-folder' + (channel === c ? ' on' : '')} onClick={() => setChannel(channel === c ? '' : c)} style={{ textTransform: 'capitalize' }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 3, background: tone }} /><span>{c}</span>
                 </button>
               )
             })}
-            {/* Labels section — backend has no label model today.
-                TODO(backend): expose Outbound.labels[] → render colored swatches. */}
-            <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: '12px 4px', paddingTop: 12 }}>
-              <div className="hint" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 6px 8px' }}>
-                Channels
-              </div>
-              {CHANNELS.map((c) => (
-                <button
-                  key={c}
-                  className={'mail-folder' + (channel === c ? ' on' : '')}
-                  onClick={() => setChannel(channel === c ? '' : c)}
-                  style={{ textTransform: 'capitalize' }}
-                >
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--gx-primary-soft)', border: '1px solid var(--gx-border)' }} />
-                  <span>{c}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Message list ──────────────────────────────────────────── */}
-          <div className="mail-list">
-            <div className="msgr-search" style={{ margin: 10 }}>
-              <SearchIcon size={14} />
-              <input
-                placeholder="Search mail"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
-              />
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-              {filtered.length === 0 && (
-                <p className="muted" style={{ padding: 16, textAlign: 'center' }}>No messages match.</p>
-              )}
-              {filtered.map((o) => {
-                const selectedRow = current?.id === o.id
-                const isQueued = (o.status ?? '').toLowerCase() === 'queued'
-                return (
-                  <button
-                    key={o.id}
-                    className={'mail-row' + (selectedRow ? ' on' : '') + (isQueued ? ' unread' : '')}
-                    onClick={() => setSelected(o.id)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <FileIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
-                      <span style={{ fontWeight: isQueued ? 700 : 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {o.to || '(no recipient)'}
-                      </span>
-                      <span className="hint" style={{ marginLeft: 'auto', fontSize: 11 }}>{timeAgo(o.created_at ?? null)}</span>
-                    </div>
-                    <div style={{ fontSize: 12.5, fontWeight: isQueued ? 600 : 400, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {o.subject || o.body?.slice(0, 60) || '(no subject)'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                      <span style={{ fontSize: 11.5, color: 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {o.error ? <span style={{ color: 'var(--gx-danger)' }}>{o.error}</span> : preview(o)}
-                      </span>
-                      <span style={{ fontSize: 10, padding: '1px 6px', background: 'var(--gx-surface-2)', borderRadius: 3, color: 'var(--gx-text-3)', textTransform: 'uppercase' }}>
-                        {o.channel || '—'}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* ── Read pane ─────────────────────────────────────────────── */}
-          <div className="mail-read">
-            {!current && (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
-                Select a message to read.
-              </div>
-            )}
-            {current && (
-              <>
-                <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--gx-border-subtle)' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    <h2 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 19, fontWeight: 600, margin: 0, flex: 1, letterSpacing: '-.01em' }}>
-                      {current.subject || '(no subject)'}
-                    </h2>
-                    {statusPill(current.status)}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
-                    <span className="avatar" style={{ width: 36, height: 36 }}>{initials(current.to)}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        to <span className="mono" style={{ color: 'var(--gx-text-2)', fontWeight: 400, fontSize: 12 }}>{current.to || '—'}</span>
-                      </div>
-                      <div className="hint" style={{ fontSize: 11.5 }}>
-                        {current.channel || '—'} · {timeAgo(current.created_at ?? null)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', fontSize: 13.5, lineHeight: 1.7, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap' }}>
-                  {current.error && (
-                    <div className="banner" style={{ display: 'flex', gap: 11, padding: '12px 14px', borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border)', borderLeft: '3px solid var(--gx-danger)', background: 'var(--gx-danger-soft, var(--gx-surface-2))', marginBottom: 14 }}>
-                      <WarningIcon size={16} style={{ color: 'var(--gx-danger)' }} />
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 12.5 }}>Delivery error</div>
-                        <div style={{ fontSize: 12, color: 'var(--gx-text-2)', marginTop: 2 }}>{current.error}</div>
-                      </div>
-                    </div>
-                  )}
-                  {current.body || <span className="muted">(empty body)</span>}
-                </div>
-                <div style={{ padding: '14px 22px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 10 }}>
-                  <button className="btn btn-primary btn-sm" onClick={() => setComposeOpen(true)}>
-                    <MailIcon size={14} /> New message
-                  </button>
-                  <span className="spacer" />
-                  {/* Reply / Forward / Archive — these are outbound-log entries, not inbound mail.
-                      TODO(backend): true inbound mail (with reply/forward) needs an Inbox model. */}
-                </div>
-              </>
-            )}
           </div>
         </div>
-      )}
 
-      <ComposeModal
-        open={composeOpen}
-        token={token}
-        onClose={() => setComposeOpen(false)}
-        onSent={load}
-      />
+        {/* ── Message list ── */}
+        <div className="mail-list">
+          <div className="msgr-search" style={{ margin: 10 }}>
+            <SearchIcon size={14} />
+            <input
+              placeholder="Search mail"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
+            />
+          </div>
+          <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            {list === null && !error && <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Loading…</div>}
+            {error && <div className="err" style={{ padding: 12 }}>{error} <button className="btn btn-ghost btn-sm" onClick={load}>Retry</button></div>}
+            {unavailable && <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Wire /api/outbound to populate.</div>}
+            {filtered.length === 0 && !error && !unavailable && list !== null && (
+              <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>No messages match.</div>
+            )}
+            {filtered.map(o => {
+              const isActive = current?.id === o.id
+              const isQueued = (o.status ?? '').toLowerCase() === 'queued'
+              const isFailed = (o.status ?? '').toLowerCase() === 'failed'
+              return (
+                <button key={o.id} className={'mail-row' + (isActive ? ' on' : '') + (isQueued ? ' unread' : '')} onClick={() => setSelected(o.id)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <StarIcon size={13} style={{ color: isFailed ? 'var(--gx-danger)' : 'var(--gx-text-3)', fill: 'none' }} />
+                    <span style={{ fontWeight: isQueued ? 700 : 600, fontSize: 13 }}>{o.to || '(no recipient)'}</span>
+                    <span className="hint" style={{ marginLeft: 'auto', fontSize: 11 }}>{timeAgo(o.created_at ?? null)}</span>
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: isQueued ? 600 : 400, marginTop: 3 }}>{o.subject || '(no subject)'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                    <span style={{ fontSize: 11.5, color: 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                      {o.error ? <span style={{ color: 'var(--gx-danger)' }}>{o.error}</span> : preview(o)}
+                    </span>
+                    {o.channel && <PaperclipIcon size={12} style={{ color: 'var(--gx-text-3)', display: 'none' }} />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── Read pane ── */}
+        <div className="mail-read">
+          {!current ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
+              Select a message to read.
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--gx-border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <h2 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 19, fontWeight: 600, margin: 0, flex: 1, letterSpacing: '-.01em' }}>
+                    {current.subject || '(no subject)'}
+                  </h2>
+                  {statusPill(current.status)}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                  <span className="avatar" style={{ width: 36, height: 36 }}>{initials(current.to)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                      to <span className="mono" style={{ color: 'var(--gx-text-3)', fontWeight: 400, fontSize: 12 }}>&lt;{current.to || '—'}&gt;</span>
+                    </div>
+                    <div className="hint" style={{ fontSize: 11.5 }}>{current.channel || '—'} · {timeAgo(current.created_at ?? null)}</div>
+                  </div>
+                  <button className="tb-icon" onClick={() => setComposeOpen(true)}><ReplyIcon size={17} /></button>
+                  <button className="tb-icon" onClick={() => setComposeOpen(true)}><ForwardIcon size={17} /></button>
+                  <button className="tb-icon"><MoreVerticalIcon size={17} /></button>
+                </div>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', fontSize: 13.5, lineHeight: 1.7, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap' }}>
+                {current.error && (
+                  <div style={{ display: 'flex', gap: 11, padding: '12px 14px', borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border)', borderLeft: '3px solid var(--gx-danger)', background: 'var(--gx-surface-2)', marginBottom: 14 }}>
+                    <WarningIcon size={16} style={{ color: 'var(--gx-danger)' }} />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 12.5 }}>Delivery error</div>
+                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)', marginTop: 2 }}>{current.error}</div>
+                    </div>
+                  </div>
+                )}
+                {current.body || <span className="muted">(empty body)</span>}
+              </div>
+              <div style={{ padding: '14px 22px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 10 }}>
+                <button className="btn btn-primary btn-sm" onClick={() => setComposeOpen(true)}><ReplyIcon size={14} />Reply</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setComposeOpen(true)}><ForwardIcon size={14} />Forward</button>
+                <span className="spacer" />
+                <button className="btn btn-ghost btn-sm"><ArchiveIcon size={14} />Archive</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <ComposeModal open={composeOpen} token={token} onClose={() => setComposeOpen(false)} onSent={load} />
     </div>
   )
 }

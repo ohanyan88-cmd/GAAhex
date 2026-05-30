@@ -26,6 +26,7 @@ import {
   Calendar,
   BarChart3,
   Check,
+  CheckCheck,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -34,9 +35,12 @@ import {
   DollarSign,
   Download,
   FileText,
+  Filter,
   Folder,
+  Forward,
   Globe,
   Home,
+  Image,
   Inbox,
   Info,
   Layers,
@@ -44,10 +48,14 @@ import {
   Lock,
   Mail,
   Map,
+  MapPin,
   Menu,
   MessageCircle,
   Moon,
+  MoreVertical,
   Package,
+  PanelRight,
+  Paperclip,
   Pause,
   Pencil,
   Phone,
@@ -56,19 +64,25 @@ import {
   Plus,
   Printer,
   Receipt,
+  RefreshCw,
+  Reply,
   Rows,
   Search,
+  SendHorizontal,
   Server,
   Settings,
   Shield,
   Smile,
   Sparkles,
   AlarmClock,
+  Star,
   Sun,
   Trash2,
   Truck,
+  User,
   Users,
   X,
+  Zap,
 } from 'lucide-react'
 
 export type IconProps = { size?: number; strokeWidth?: number } & React.SVGProps<SVGSVGElement>
@@ -196,3 +210,27 @@ export const FolderIcon = ({ size, strokeWidth, ...r }: IconProps) =>
 export const GlobeIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Globe, size, strokeWidth, r)
 export const ActivityIcon = ({ size, strokeWidth, ...r }: IconProps) =>
   W(Activity, size, strokeWidth, r)
+export const FilterIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(Filter, size, strokeWidth, r)
+export const MoreVerticalIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(MoreVertical, size, strokeWidth, r)
+export const PanelRightIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(PanelRight, size, strokeWidth, r)
+export const PaperclipIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(Paperclip, size, strokeWidth, r)
+export const ZapIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Zap, size, strokeWidth, r)
+export const SendHorizontalIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(SendHorizontal, size, strokeWidth, r)
+export const PictureIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(Image, size, strokeWidth, r)
+export const MapPinIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(MapPin, size, strokeWidth, r)
+export const CheckCheckIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(CheckCheck, size, strokeWidth, r)
+export const UserIcon = ({ size, strokeWidth, ...r }: IconProps) => W(User, size, strokeWidth, r)
+export const StarIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Star, size, strokeWidth, r)
+export const ReplyIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Reply, size, strokeWidth, r)
+export const ForwardIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(Forward, size, strokeWidth, r)
+export const RefreshIcon = ({ size, strokeWidth, ...r }: IconProps) =>
+  W(RefreshCw, size, strokeWidth, r)
