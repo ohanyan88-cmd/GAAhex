@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Modal } from '../components/Modal'
-import ViewHead from '../components/ViewHead'
 import {
   CalendarIcon, ChevronLeftIcon, ChevronRightIcon,
-  PlusIcon, CloseIcon,
+  PlusIcon, CloseIcon, CheckIcon,
 } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
 
@@ -245,38 +244,37 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
     })
   }
 
-  // ── Mini calendar for the sidebar ─────────────────────────────────────────
+  // ── Mini calendar for the sidebar (kit .minical-grid) ────────────────────
   function MiniCal() {
     const grid = buildGrid(year, month)
     const todayIso = todayStr()
     return (
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={prev} aria-label="Previous month">
-            <ChevronLeftIcon size={13} />
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
+          <span className="spacer" />
+          <button className="tb-icon" style={{ width: 26, height: 26 }} onClick={prev} aria-label="Previous month">
+            <ChevronLeftIcon size={15} />
           </button>
-          <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
-            {MONTH_NAMES[month].slice(0, 3)} {year}
-          </span>
-          <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px' }} onClick={next} aria-label="Next month">
-            <ChevronRightIcon size={13} />
+          <button className="tb-icon" style={{ width: 26, height: 26 }} onClick={next} aria-label="Next month">
+            <ChevronRightIcon size={15} />
           </button>
         </div>
-        <div className="cal-mini">
-          {DAY_HEADERS.map(d => (
-            <div key={d} className="cal-mini-dow">{d[0]}</div>
+        <div className="minical-grid">
+          {DAY_HEADERS.map((d, i) => (
+            <div key={`mh-${i}`} className="minical-h">{d[0]}</div>
           ))}
           {grid.flat().map((cell, idx) => {
-            if (!cell) return <div key={`mini-pad-${idx}`} />
+            if (!cell) return <button key={`mini-pad-${idx}`} className="minical-d" style={{ visibility: 'hidden' }} tabIndex={-1} />
             const iso = isoDate(cell)
             const isToday = iso === todayIso
             return (
               <button
                 key={iso}
-                className={['cal-mini-day', isToday ? 'today' : ''].filter(Boolean).join(' ')}
-                style={{ textAlign: 'center' }}
+                className={'minical-d' + (isToday ? ' today' : '')}
                 onClick={() => openNew(iso)}
                 type="button"
+                aria-label={iso}
               >
                 {cell.getDate()}
               </button>
@@ -287,17 +285,15 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
     )
   }
 
-  // ── Week view ──────────────────────────────────────────────────────────────
+  // ── Week view — kit .cal-grid with 7 cells across ────────────────────────
   function WeekView() {
     const days = weekDays()
     const todayIso = todayStr()
     return (
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        background: 'var(--border)',
-        gap: 1,
-      }}>
+      <div className="cal-grid" style={{ gridAutoRows: 'minmax(160px, 1fr)', minHeight: 200 }}>
+        {DAY_HEADERS.map(d => (
+          <div key={`wh-${d}`} className="cal-h">{d}</div>
+        ))}
         {days.map(day => {
           const iso = isoDate(day)
           const dayEvs = events
@@ -308,34 +304,30 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
           return (
             <div
               key={iso}
-              className={['cal-day', isToday ? 'today' : ''].filter(Boolean).join(' ')}
-              style={{ minHeight: 160 }}
+              className={'cal-cell big'}
               onClick={() => openNew(iso)}
             >
-              <div className="cal-dow" style={{ background: 'transparent', padding: '0 0 4px 0', marginBottom: 4 }}>
-                {day.toLocaleDateString('en', { weekday: 'short' })}
+              <span className={'cal-day' + (isToday ? ' today' : '')}>{day.getDate()}</span>
+              <div className="cal-evs">
+                {dayEvs.map(ev => {
+                  const tone = calColor(ev)
+                  return (
+                    <div
+                      key={ev.id}
+                      className="cal-ev"
+                      style={{ background: tone + '22', color: tone, borderLeft: '2px solid ' + tone }}
+                      onClick={e => { e.stopPropagation(); openEdit(ev) }}
+                    >
+                      {!ev.all_day && (
+                        <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 4 }}>
+                          {ev.start_at.slice(11, 16)}
+                        </span>
+                      )}
+                      {ev.title}
+                    </div>
+                  )
+                })}
               </div>
-              <div className={['cal-day-num', isToday ? 'today' : ''].filter(Boolean).join(' ')}>
-                {day.getDate()}
-              </div>
-              {dayEvs.map(ev => (
-                <div
-                  key={ev.id}
-                  className="cal-chip"
-                  style={{ background: calColor(ev), color: 'var(--text)', marginTop: 3 }}
-                  onClick={e => { e.stopPropagation(); openEdit(ev) }}
-                >
-                  {!ev.all_day && (
-                    <span style={{ color: 'var(--text-3)', marginRight: 4, fontSize: 10 }}>
-                      {ev.start_at.slice(11, 16)}
-                    </span>
-                  )}
-                  {ev.title}
-                </div>
-              ))}
-              {dayEvs.length === 0 && (
-                <div style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic', marginTop: 4 }}>—</div>
-              )}
             </div>
           )
         })}
@@ -346,121 +338,136 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
   const grid = buildGrid(year, month)
   const today = todayStr()
 
-  // ── View toggle (goes in ViewHead actions) ─────────────────────────────────
-  const viewToggle = (
-    <div className="row gap-8">
-      {loading && <span className="muted" style={{ fontSize: 12 }}>Loading...</span>}
-      <div className="cal-view-tabs">
-        <button
-          type="button"
-          className={`cal-view-tab${calView === 'month' ? ' on' : ''}`}
-          onClick={() => setCalView('month')}
-        >Month</button>
-        <button
-          type="button"
-          className={`cal-view-tab${calView === 'week' ? ' on' : ''}`}
-          onClick={() => setCalView('week')}
-        >Week</button>
-      </div>
-      <button
-        className="btn btn-primary btn-md"
-        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        onClick={() => openNew()}
-        type="button"
-      >
-        <PlusIcon size={13} /> New event
-      </button>
-    </div>
-  )
+  // Upcoming events (visible/non-hidden, future-only from "today" forward in this month).
+  const upcoming = events
+    .filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
+    .filter(e => e.start_at.slice(0, 10) >= today)
+    .sort((a, b) => a.start_at.localeCompare(b.start_at))
+    .slice(0, 6)
 
   return (
-    <div>
-      <ViewHead
-        icon={<CalendarIcon size={20} />}
-        title={cfg.title}
-        actions={viewToggle}
-      />
+    <div className="gx-comms comms-shell">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="comms-head">
+        <div className="vh-ic"><CalendarIcon size={18} /></div>
+        <div>
+          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 20, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
+            {cfg.title}
+          </h1>
+          <div className="hint" style={{ fontSize: 12 }}>
+            {calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)}
+            {loading ? ' · loading…' : ''}
+          </div>
+        </div>
+        <span className="spacer" />
+        <div className="cal-nav">
+          <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
+            <ChevronLeftIcon size={16} />
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={goToday}>Today</button>
+          <button className="tb-icon" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
+            <ChevronRightIcon size={16} />
+          </button>
+        </div>
+        <div className="cal-view-tabs">
+          <button
+            type="button"
+            className={`cal-view-tab${calView === 'month' ? ' on' : ''}`}
+            onClick={() => setCalView('month')}
+          >Month</button>
+          <button
+            type="button"
+            className={`cal-view-tab${calView === 'week' ? ' on' : ''}`}
+            onClick={() => setCalView('week')}
+          >Week</button>
+        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          onClick={() => openNew()}
+          type="button"
+        >
+          <PlusIcon size={13} /> New event
+        </button>
+      </div>
 
-      <div className="cal-shell">
-
-        {/* ── Sidebar ──────────────────────────────────────────────────── */}
-        <aside className="cal-side">
+      {/* ── Layout: mini-cal + filters + upcoming · main grid ──────────── */}
+      <div className="cal-layout">
+        <aside className="cal-rail">
           <MiniCal />
 
-          {/* Calendar list */}
+          {/* Calendar filters (toggle visibility) */}
           {cals.length > 0 && (
-            <div>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-3)', fontWeight: 600, marginBottom: 8 }}>
-                My Calendars
+            <>
+              <div className="hint" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>
+                Calendars
               </div>
-              {cals.map(cal => (
-                <label
-                  key={cal.id}
-                  className="cal-list-row"
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={!hiddenCals.has(cal.id)}
-                    onChange={() => toggleCal(cal.id)}
-                    style={{ display: 'none' }}
-                  />
-                  <span
-                    className="cal-list-dot"
-                    style={{
-                      background: hiddenCals.has(cal.id) ? 'var(--border)' : cal.color,
-                      outline: hiddenCals.has(cal.id) ? `2px solid ${cal.color}` : 'none',
-                      outlineOffset: -2,
-                    }}
-                  />
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>
-                    {cal.name}
-                  </span>
-                </label>
-              ))}
-            </div>
+              {cals.map(cal => {
+                const on = !hiddenCals.has(cal.id)
+                return (
+                  <label key={cal.id} className="cal-cal" onClick={() => toggleCal(cal.id)}>
+                    <span
+                      className="cal-check"
+                      style={{
+                        background: on ? cal.color : 'transparent',
+                        borderColor: cal.color,
+                      }}
+                    >
+                      {on && <CheckIcon size={11} style={{ color: '#0A1120' }} />}
+                    </span>
+                    <span style={{ fontSize: 12.5, color: on ? 'var(--gx-text-1)' : 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {cal.name}
+                    </span>
+                  </label>
+                )
+              })}
+            </>
+          )}
+
+          {/* Upcoming list */}
+          {upcoming.length > 0 && (
+            <>
+              <div className="hint" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>
+                Upcoming
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {upcoming.map(e => {
+                  const tone = calColor(e)
+                  const d = new Date(e.start_at)
+                  return (
+                    <div key={e.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => openEdit(e)}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: tone, marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ fontSize: 12, minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
+                        <div className="hint" style={{ fontSize: 11 }}>
+                          {MONTH_NAMES[d.getMonth()].slice(0, 3)} {d.getDate()}
+                          {!e.all_day && e.start_at.length > 10 ? ` · ${e.start_at.slice(11, 16)}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           )}
         </aside>
 
-        {/* ── Main panel ───────────────────────────────────────────────── */}
-        <div className="cal-main">
-
-          {/* Navigation header */}
-          <div className="cal-head">
-            <button className="btn btn-ghost btn-sm" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
-              <ChevronLeftIcon size={14} />
-            </button>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
-              {calView === 'month'
-                ? `${MONTH_NAMES[month]} ${year}`
-                : weekRangeLabel(weekStart)
-              }
-            </h3>
-            <button className="btn btn-ghost btn-sm" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
-              <ChevronRightIcon size={14} />
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={goToday} style={{ marginLeft: 4 }}>
-              Today
-            </button>
-          </div>
-
-          {/* Month grid */}
+        {/* Main calendar grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-lg)', background: 'var(--gx-surface)' }}>
           {calView === 'month' && (
-            <div className="cal-month">
-              {/* Day-of-week headers */}
+            <div className="cal-grid full">
               {DAY_HEADERS.map(d => (
-                <div key={d} className="cal-dow">{d}</div>
+                <div key={d} className="cal-h">{d}</div>
               ))}
-
-              {/* Day cells */}
               {grid.flat().map((cell, idx) => {
                 if (!cell) {
                   return (
                     <div
                       key={`pad-${idx}`}
-                      className="cal-day dim"
-                      style={{ opacity: 0.35, cursor: 'default' }}
-                    />
+                      className="cal-cell big off"
+                    >
+                      <span className="cal-day">&nbsp;</span>
+                    </div>
                   )
                 }
                 const dateStr = isoDate(cell)
@@ -468,44 +475,49 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
                 const dayEvents = eventsForDay(cell)
                 const visible = dayEvents.slice(0, 3)
                 const overflow = dayEvents.length - visible.length
-                const isWeekend = cell.getDay() === 0 || cell.getDay() === 6
 
                 return (
                   <div
                     key={dateStr}
-                    className={[
-                      'cal-day',
-                      isToday ? 'today' : '',
-                      isWeekend ? 'weekend' : '',
-                    ].filter(Boolean).join(' ')}
+                    className="cal-cell big"
                     onClick={() => openNew(dateStr)}
                   >
-                    <span className="cal-day-num">{cell.getDate()}</span>
-                    {visible.map(ev => (
-                      <div
-                        key={ev.id}
-                        className="cal-chip"
-                        style={{ background: calColor(ev), color: 'var(--text)' }}
-                        onClick={e => { e.stopPropagation(); openEdit(ev) }}
-                      >
-                        {ev.title}
-                      </div>
-                    ))}
-                    {overflow > 0 && (
-                      <span
-                        style={{ fontSize: 11, color: 'var(--text-3)', padding: '1px 4px', cursor: 'pointer' }}
-                        onClick={e => { e.stopPropagation(); openNew(dateStr) }}
-                      >
-                        +{overflow} more
-                      </span>
-                    )}
+                    <span className={'cal-day' + (isToday ? ' today' : '')}>{cell.getDate()}</span>
+                    <div className="cal-evs">
+                      {visible.map(ev => {
+                        const tone = calColor(ev)
+                        return (
+                          <div
+                            key={ev.id}
+                            className="cal-ev"
+                            style={{ background: tone + '22', color: tone, borderLeft: '2px solid ' + tone, cursor: 'pointer' }}
+                            onClick={e => { e.stopPropagation(); openEdit(ev) }}
+                          >
+                            {!ev.all_day && ev.start_at.length > 10 && (
+                              <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 4 }}>
+                                {ev.start_at.slice(11, 16)}
+                              </span>
+                            )}
+                            {ev.title}
+                          </div>
+                        )
+                      })}
+                      {overflow > 0 && (
+                        <span
+                          className="cal-more"
+                          style={{ cursor: 'pointer' }}
+                          onClick={e => { e.stopPropagation(); openNew(dateStr) }}
+                        >
+                          +{overflow} more
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )
               })}
             </div>
           )}
 
-          {/* Week grid */}
           {calView === 'week' && <WeekView />}
         </div>
       </div>
