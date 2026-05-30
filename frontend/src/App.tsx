@@ -295,9 +295,8 @@ export default function App() {
       {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
       <aside className="sb">
         <div className="sb-head">
-          {/* TODO: PROMPT 4 logo swap — GAAex-mark.svg not yet in /logo/, using favicon as fallback for collapsed state */}
           <img
-            src={collapsed ? '/favicon/favicon.svg' : '/logo/GAAex-logo-reversed.svg'}
+            src={collapsed ? '/logo/GAAex-mark.svg' : '/logo/GAAex-logo-reversed.svg'}
             alt="GAAex"
             className="wm"
           />
