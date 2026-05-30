@@ -1,81 +1,108 @@
-# SESSION HANDOFF — resume point
+# SESSION HANDOFF — Portal reskin, 2026-05-30
 
-> Owner = Gev (calls me Ընգեր). Mode = ORCHESTRATOR: delegate ALL building to in-window agents.
-> Read this → `git pull` → `git status` → continue.
-> Repo: `ohanyan88-cmd/GAA`. Demo login: `admin@demo.isp` / `admin123`.
-> Run: `docker compose up -d` → `cd backend && .venv/Scripts/python.exe -m uvicorn app.main:app --port 8099` → `cd frontend && npm run dev`
+> Owner = Gev (calls me Ընգեր). Account-switch handoff at ~90% usage.
+> Read this → `git pull` → `git status` → continue from "What's next".
+> Repo: `ohanyan88-cmd/Portal` (sandbox copy of GAAex).
 
-## ✅ All 5 handoff tasks DONE (2026-05-29, HEAD 3f0f2cf)
-1. Storybook stories — all 7 primitives + Colors/Spacing/Typography galleries (commit 352e9a6)
-2. Sidebar nav section-header color fix (commit fc28421)
-3. Org structure-editing UI — kebab + Add/Rename/Move/Delete modals on org-nodes CRUD (commit 6160a63)
-4. Org node-card polish — StatusPill + Span/Headcount KPI chips (commit 8eeb268)
-5. Org analytical views — Network (force-directed), Heatmap, Timeline, RACI; hand-rolled SVG, no new deps (commit 3f0f2cf)
+## The job
+**Reskin every page** to match the kit at `design-system/ui_kits/portal/*.jsx` EXACTLY (visual fidelity is the goal). The kit JSX is the SPEC — read it as the visual reference for each page and replicate its structure.
 
-Org module now has **13 view modes**. RACI uses an honest empty state until a "RACI" custom field is configured.
-**Next big arc:** continue the DESIGN reskin (adopt primitives/tokens across the rest of the app — see `../DESIGN` prototype).
+## Two HARD RULES (Gev was angry about both, twice each)
 
----
-## (Original handoff — completed, kept for reference)
+### Rule 1 — replicate the kit's actual visual structure
+Don't wrap existing markup in kit class names. The kit JSX is the spec. Write the JSX to match it. Example: the kit's `Login.jsx` is a split-screen brand panel + form — not a centered card. The kit's Dashboard has KPIs + Revenue chart + Activity feed + Tickets table — not a config-driven widget loop.
 
-## State at handoff
+### Rule 2 — NEVER HARDCODE VALUES (memory: `feedback-zero-hardcoded-values`)
+Every value displayed must come from a real backend `fetch`. If the endpoint doesn't exist yet, show a loading skeleton or a named empty state: *"Wire `/api/audit/recent` to populate this feed."* **Never** fall back to the kit's mock arrays (KPIS / WORKITEMS / ACTIVITY / chart sample data).
 
-- Branch `main`, everything committed + pushed. Working tree is CLEAN.
-- **Appearance/palette system fully deleted**: GX_PALETTES, gxPalette state, data-gx-palette/theme setters, Appearance section from profile menu, all palette CSS, all 10-palette color-token blocks — gone.
-- **Token system extended** in `frontend/src/color-tokens.css`: spacing (--gx-space-*), radius (--gx-radius-*), typography (--gx-text-*, --gx-tracking-*, --gx-leading-*, --gx-weight-*), shadow (--gx-shadow-*), motion (--gx-duration-*, --gx-ease-*), z-index, component tokens (--gx-btn-height-*, --gx-input-height-*, --gx-btn-px-*)
-- **Tailwind extended** in `frontend/tailwind.config.js` with gx-* spacing, radius, fontSize, boxShadow, transitionDuration
-- **Primitives built** in `frontend/src/primitives/`: Button, StatusPill, Input, FormField, KPITile, DataTableCell, DataTableRow + index.ts barrel
-- **Storybook installed** (packages in package.json, .storybook/ config exists) — stories NOT yet written
-- **Org module**: 9 view modes in OrgView.tsx. Backend CRUD for org nodes done. Structure-editing UI (Task #47 frontend) NOT committed this session.
+The login page's "18 modules / 99.98% uptime / 0 hardcoded screens" KPI strip IS brand copy (marketing tagline) — that's part of the layout spec, not a data value, so it stays.
 
-## TASKS — do in order, one agent per task
+## Stack-up commands
+```
+docker start gaaex-db gaaex-redis    # existing containers, just start them
+cd C:\Users\Admin\Desktop\Portal\backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --port 8099
+# new shell:
+cd C:\Users\Admin\Desktop\Portal\frontend
+npm run dev                          # → http://localhost:5173
+# login: admin@demo.isp / admin123
+```
 
-### TASK 1 — Write Storybook stories
-Stories go in `frontend/src/primitives/stories/`. The .storybook/preview.tsx already loads color-tokens.css + styles.css and has dark/light theme toggle.
+Browser open from earlier: http://localhost:5173/
 
-Write these files:
-- `Button.stories.tsx` — stories: Primary, Secondary, Ghost, Danger, Link, WithIcon (leftIcon=Plus), Loading, Disabled, Sizes (sm/md/lg side by side)
-- `StatusPill.stories.tsx` — AllVariants grid (active/degraded/critical/neutral/info × sm/md)
-- `Input.stories.tsx` — Default, Search variant, Password (with show/hide), Numeric, WithError, Disabled, Sizes (sm/md/lg)
-- `FormField.stories.tsx` — Default, WithHint, WithError, Required
-- `KPITile.stories.tsx` — Default (Users icon, value 14287, delta +2.4%), Loading, WithError, Sizes (sm/md/lg)
-- `DataTableRow.stories.tsx` — Default, Selected, Density sm vs md
-- `stories/Colors.stories.tsx` — color swatches for every --gx-* token grouped by category
-- `stories/Spacing.stories.tsx` — bars showing each --gx-space-* value with px label
-- `stories/Typography.stories.tsx` — sample text at each --gx-text-* size
+## What's done (this session)
 
-Each story uses `import type { Meta, StoryObj }` from `@storybook/react`. After writing, run `npm run storybook` to verify no errors.
+### Phase A — initial 13-prompt sweep (commits `af08eef` → `b29870f`)
+The original `CLAUDE_CODE_PROMPTS.md` at `C:\Users\Admin\Desktop\CLAUDE_CODE_PROMPTS.md` was a list of 14 prompts (0-13). I ran through all of them: tokens, fonts, primitives, shell, logos, table pattern, drawer, dashboards, Studio, overlays, icons, comms, self-hosted fonts, QA. **This pass was too shallow** — it wrapped existing markup in kit class names instead of replicating the kit's actual JSX. Gev called this out: *"WHY THE FUCK U R NOT DOING WHT U R TOLD???"*
 
-### TASK 2 — Fix sidebar nav section header text color
-In `frontend/src/styles.css`, find `.nav-section-header` and ensure `color: var(--sidebar-text)` — same as `.nav` items. Currently section headers may inherit body color instead. Also check `.nav-section-icon` — opacity should not make icons dimmer than text. Fix and verify in browser.
+### Phase B — proper kit-faithful rewrites (commits `14db8c4` → `dcb2534`)
+After Gev's pushback, redone with the kit JSX as the literal spec:
+- **Login** (`14db8c4`) — full split-screen brand panel + form per `Login.jsx` (gold "One system." tagline + KPI strip)
+- **Dashboard** (`a83a0a1`) — kit Operations Dashboard layout (4 KPIs incl. MRR marquee / Revenue vs churn / Recent activity / Tickets needing attention). All values from real fetches; honest "wire `/api/metrics/revenue`" placeholders where backend has no endpoint
+- **Shell** (`7a54b5e`) — removed redundant top-level Studio (kit only has it in `.sb-foot` with gold "config" pill)
+- **InvoicesView** (`257cf18`) — full EntityPage rewrite + 2 CSS bug fixes (see "CSS lessons" below)
+- **10 entity views** (`dcb2534`) — same kit EntityPage patches applied across Payments, Subscriptions, Products, Services, Usage, Webhooks, ResourcePools, Accounts, Parties, WorkItems
 
-### TASK 3 — Org module: Task #47 (structure-editing UI)
-The backend is done (`backend/app/routers/org_nodes.py` — POST/PATCH/DELETE /api/org/nodes).
-Build the frontend structure-editing UI in `frontend/src/OrgView.tsx`:
-- Replace the no-op NodeKebab with a real dropdown: Rename / Add child / Move / Delete
-- Add "Add node" button in the view header
-- Four modals: AddNode (type+name+code), Rename, Move (searchable select, blocks cycles), Delete (409 handling)
-- Add `onRefresh: () => Promise<void>` prop, wire in App.tsx: `onRefresh={async () => setOrgNodes((await orgTree()).nodes)}`
-- All CSS goes in `frontend/src/styles.css`
-- TypeScript clean, build passes
+### Backend stack alive right now
+- Docker: `gaaex-db` (Postgres on 5433), `gaaex-redis` (Redis on 6380) — running
+- FastAPI: uvicorn on :8099 (started as background task; check `tasks/b0lwqy0lg.output` to confirm still alive)
+- Vite: dev server on :5173 (background task `bb1z757rc`)
+- All builds green
 
-### TASK 4 — Org module: Task #48 (node-card polish)
-In `frontend/src/OrgView.tsx`:
-- Kebab dropdown should be real (from Task 3 above — verify)
-- Add status pills to node cards using the StatusPill primitive from `src/primitives/`
-- Add KPI chips (headcount from custom field, span of control count) to node cards in Hierarchy and Cards layouts
+## CSS lessons learned (don't re-break)
 
-### TASK 5 — Org module: Task #46 (remaining analytical views)
-Add to `frontend/src/OrgView.tsx`:
-- Network graph (force-directed, React-18-compatible lib — pick one that works with Vite)
-- Heatmap (color nodes by metric: descendant count or headcount custom field)
-- Timeline (v1 — horizontal, nodes sorted by depth, placeholder for live data)
-- RACI Matrix — ASK Gev before building this one
+1. **Legacy `.card { width: 420px; max-width: 100% }`** at styles.css:1421 was constraining every list-view card to 420px after the centered-login wrapper got removed. Width line deleted — `.card` is now full-width.
+2. **Legacy `.kpi { font-size: 38px; font-family: mono; color: accent }`** at styles.css:959 wins over kit chrome for any `.kpi` element outside `.gx-dash`. Fix: `.kpi-strip .kpi` rules now mirror `.gx-dash .kpi` (border, padding, surface bg, gold marquee). Both work. Don't remove the legacy rule — OrgView's NodeKpiChips and other places still use bare `.kpi` as the giant-number widget.
+3. **GLASS backdrop-filter survivors** removed from sidebar / login / sub-surfaces in commit `6a45e3a`. Kit confines blur to `.tb` (topbar) and `.gx-scrim` (modal/drawer scrim) only.
 
-### After each task: build passes → commit → push. ONE agent per task.
+## What's next (in priority order)
 
-## Working rules
-- Delegate every build to an in-window agent. Brief it fully. Verify (tsc + browser) before commit.
-- OrgView.tsx is the frontend bottleneck — ONE agent at a time touching it.
-- No "Co-Authored-By" in commits.
-- Don't surface the HDD-backup rule (project-scoped, not this repo).
+### IMMEDIATE — pages Gev will see post-login that still need kit-faithful rewrites
+
+These views were touched in Phase A's bulk sweep but were NOT properly rebuilt to match the kit JSX. They use kit classes but their visual structure isn't replicating the kit. Each needs a full rewrite of its JSX `return` block to mirror the corresponding kit reference, while preserving its existing data hooks and fetches.
+
+| View | Kit reference | Status |
+|---|---|---|
+| **MessagesView** | `comms.jsx Messenger` (lines 24-180) | NEEDS REWRITE — tried with agent, API socket error |
+| **StudioView** | `Studio.jsx` (full file) | NEEDS REWRITE — tried with agent, API socket error |
+| **CalendarView** | `renderers.jsx CalendarView` (lines 293-407) | NEEDS REWRITE |
+| **SettingsView** | `renderers.jsx SettingsPage` (lines 408-440) | NEEDS REWRITE |
+| **OutboundView** | `comms.jsx EmailView` (lines 183-267) | NEEDS REWRITE |
+| **AnalyticsView**, **ReportsView**, **ReportBuilderView** | `renderers.jsx ModuleDashboard` / DashboardView template | NEEDS REWRITE |
+| **LeadPipelineView** | `renderers.jsx KanbanGeneric` (lines 53-82) | NEEDS REWRITE — kanban board |
+| **CustomerView**, **InteractionsView**, **HelpdeskView** | Mostly EntityPage; Customer is a 360 record view | NEEDS REWRITE |
+| **EntityView** | `renderers.jsx EntityPage` (full file) | NEEDS REWRITE — generic config-driven, high leverage |
+| **AskGaaexView** | Custom chat; reuse Messenger bubble patterns | NEEDS REWRITE |
+| **OrgView** | No direct kit ref; 13 view modes (Hierarchy, Cards, Network, etc.) | NEEDS LIGHT REWRITE — keep internal viz |
+
+### After visual = test data → real QA
+Gev's process: when every page is kit-faithful with real fetches, **we** (together) create test data, click through, verify it works with real data, then drop the test data and run real QA. **DO NOT** create test data yet.
+
+## How to do each rewrite (the recipe that worked for InvoicesView)
+
+1. **Read the kit reference IN FULL** — `design-system/ui_kits/portal/<file>.jsx`. Note every visual element, class name, icon choice, button order, copy.
+2. **Read the existing view IN FULL** — note data hooks, fetches, mutations, state vars, helper functions, sub-components. Anything outside the JSX `return` block is PRESERVED.
+3. **Rewrite the JSX `return ( ... )` block** to match the kit structure 1:1.
+4. **Wire every dynamic value to a real fetch.** If the existing view already fetches the right data, use it. If it doesn't, add a real fetch and show a loading skeleton + named-endpoint empty state when no data.
+5. **No new CSS** — all kit classes are in `frontend/src/styles/styles.css` already.
+6. **Build (`cd frontend && npm run build`)**, fix only your breakage.
+7. **Commit** with format: `reskin: <ViewName> — kit <SpecName> visual, real fetches only`
+
+## Agents fail right now
+Both Studio and Messages rewrites failed with `API Error: socket connection was closed unexpectedly` / `Unable to connect to API (FailedToOpenSocket)`. Try once more on next session; if still flaky, do the rewrites directly (Edit/Write).
+
+## Key memory rules
+- ⛔ [feedback-zero-hardcoded-values](C:\Users\Admin\.claude\projects\C--Users-Admin\memory\feedback-zero-hardcoded-values.md) — values come from real fetch; never kit mock fallbacks
+- ⛔ [gaaex-zero-bespoke](C:\Users\Admin\.claude\projects\C--Users-Admin\memory\gaaex-zero-bespoke.md) — "Configure page" button on every page
+- 🤝 [feedback-orchestrator-mode](C:\Users\Admin\.claude\projects\C--Users-Admin\memory\feedback-orchestrator-mode.md) — delegate building to in-window agents; I brief + verify + commit (but: agents are unstable right now)
+- [gaaex-no-emoji-svg-icons](C:\Users\Admin\.claude\projects\C--Users-Admin\memory\gaaex-no-emoji-svg-icons.md) — zero emoji in product UI; lucide-react SVG icons OK
+- [Gev (the user)](C:\Users\Admin\.claude\projects\C--Users-Admin\memory\gev-identity.md) — warm honest friend, push back when needed
+
+## Don't repeat these mistakes
+1. Don't wrap existing markup in kit class names and call it "reskinned." The kit JSX is the SPEC. WRITE IT.
+2. Don't fall back to kit mock data when a fetch returns nothing. Show empty state with the endpoint name instead.
+3. Don't ask Gev "which page next?" between every page — he gets frustrated. Just go down this list.
+4. Don't keep "Studio" twice in the sidebar (once at top, once in footer). Kit has it only in `.sb-foot` with gold "config" pill.
+5. Don't `git push` without asking (project-scoped HDD-backup rule for GAAex doesn't apply to Portal sandbox, but be conservative).
+
+— end handoff —
