@@ -545,7 +545,7 @@ export default function StudioGenericPane({ leaf, token }: { leaf: FlatLeaf; tok
           <span className="sep">/</span>
           <span style={{ color: 'var(--gx-text-1)' }}>{leaf.leafLabel}</span>
         </div>
-        <RichPane />
+        <RichPane token={token ?? undefined} />
       </div>
     )
   }

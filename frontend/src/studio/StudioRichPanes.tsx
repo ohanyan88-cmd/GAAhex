@@ -3,7 +3,9 @@
 // All panes start in EMPTY / MINIMAL state — no hardcoded mock content.
 // Icons: lucide-react only. State: internal useState only. No backend calls.
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { bget, bpatch } from '../lib/billing'
+import { getEntities, getEntityDef } from '../lib/api'
 import {
   ArrowRight,
   BarChart3,
@@ -496,26 +498,75 @@ export function ContentEditor() {
 }
 
 // ── 5  DATA BINDING ───────────────────────────────────────────────────────────
+// Wired to real entities/fields (GET /meta/entities, GET /meta/entities/{slug}).
+// Persistence layer for the bindings list itself does not exist yet — "Save bindings"
+// stays disabled until a /api/page-bindings endpoint lands.
 
-// TODO: bind to /api/data/sources (tenant-registered entity sources for binding picker)
-const BINDING_SOURCES = ['Customers', 'Orders', 'Invoices', 'Tickets', 'Devices', 'Subscriptions', 'Payments']
+type EntityRef = { key: string; label: string; label_plural?: string; route_slug: string }
+type FieldRef  = { key: string; label: string; type: string }
 
 interface Binding {
   id: number
   comp: string
-  src: string
-  field: string
+  src: string   // route_slug of an entity (empty until picked)
+  field: string // field key (empty until picked)
 }
 
-export function DataBinding() {
+export function DataBinding({ token }: { token?: string } = {}) {
+  const [entities, setEntities] = useState<EntityRef[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  // Cache of entity slug → fields list (lazy-fetched on src selection)
+  const [fieldsBySrc, setFieldsBySrc] = useState<Record<string, FieldRef[]>>({})
   const [binds, setBinds] = useState<Binding[]>([])
-  let _id = { current: 1 }
+  const [nextId, setNextId] = useState(1)
 
-  const add = () =>
-    setBinds(b => [...b, { id: _id.current++, comp: '', src: BINDING_SOURCES[0], field: '' }])
+  // Load entities once a token is available.
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    setLoading(true); setError(null)
+    getEntities(token)
+      .then((data: unknown) => {
+        if (!alive) return
+        setEntities(Array.isArray(data) ? (data as EntityRef[]) : [])
+      })
+      .catch((e: Error) => { if (alive) setError(e.message || 'Failed to load entities') })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [token])
+
+  // Lazy-load fields for a slug, cache them.
+  const ensureFields = useCallback(async (slug: string) => {
+    if (!token || !slug || fieldsBySrc[slug]) return
+    try {
+      const def = await getEntityDef(token, slug)
+      const fields: FieldRef[] = Array.isArray(def?.fields) ? def.fields : []
+      setFieldsBySrc(prev => ({ ...prev, [slug]: fields }))
+    } catch {
+      setFieldsBySrc(prev => ({ ...prev, [slug]: [] }))
+    }
+  }, [token, fieldsBySrc])
+
+  const add = () => {
+    setBinds(b => [...b, { id: nextId, comp: '', src: '', field: '' }])
+    setNextId(n => n + 1)
+  }
   const upd = (id: number, patch: Partial<Binding>) =>
     setBinds(b => b.map(x => x.id === id ? { ...x, ...patch } : x))
   const del = (id: number) => setBinds(b => b.filter(x => x.id !== id))
+
+  // If no token yet (e.g. logged-out), keep the empty mock-free shell.
+  if (!token) {
+    return (
+      <div>
+        <Sec icon={<Database size={15} />} title="Data Binding" hint="connect components to database / API fields" />
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+          Sign in to bind components to real entities.
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -524,63 +575,106 @@ export function DataBinding() {
         title="Data Binding"
         hint="connect components to database / API fields"
       />
-      {binds.length > 0 && (
+      {loading && (
+        <div style={{ padding: '20px 0', color: 'var(--gx-text-3)', fontSize: 13 }}>
+          Loading entities…
+        </div>
+      )}
+      {error && (
+        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{error}</div>
+        </div>
+      )}
+      {!loading && !error && binds.length > 0 && (
         <div className="card" style={{ overflow: 'hidden', marginBottom: 14 }}>
           <table className="grid">
             <thead>
               <tr>
-                <th>Component</th><th>Data source</th><th>Expression</th>
+                <th>Component</th><th>Data source</th><th>Field</th>
                 <th style={{ width: 40 }} />
               </tr>
             </thead>
             <tbody>
-              {binds.map(b => (
-                <tr key={b.id} style={{ cursor: 'default' }}>
-                  <td>
-                    <input
-                      className="inp inp-sm"
-                      placeholder="Component name"
-                      value={b.comp}
-                      onChange={e => upd(b.id, { comp: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className="inp inp-sm"
-                      style={{ width: 140 }}
-                      value={b.src}
-                      onChange={e => upd(b.id, { src: e.target.value })}
-                    >
-                      {BINDING_SOURCES.map(s => <option key={s}>{s}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      className="inp inp-sm mono"
-                      placeholder="e.g. count(status=Active)"
-                      value={b.field}
-                      onChange={e => upd(b.id, { field: e.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <button className="btn btn-ghost btn-sm btn-icon" type="button" onClick={() => del(b.id)}>
-                      <X size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {binds.map(b => {
+                const fields = fieldsBySrc[b.src] ?? []
+                return (
+                  <tr key={b.id} style={{ cursor: 'default' }}>
+                    <td>
+                      <input
+                        className="inp inp-sm"
+                        placeholder="Component name"
+                        value={b.comp}
+                        onChange={e => upd(b.id, { comp: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="inp inp-sm"
+                        style={{ width: 160 }}
+                        value={b.src}
+                        onChange={e => {
+                          const src = e.target.value
+                          upd(b.id, { src, field: '' })
+                          if (src) ensureFields(src)
+                        }}
+                      >
+                        <option value="">— pick entity —</option>
+                        {entities.map(e => (
+                          <option key={e.route_slug} value={e.route_slug}>
+                            {e.label_plural || e.label || e.key}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        className="inp inp-sm mono"
+                        style={{ width: 200 }}
+                        value={b.field}
+                        disabled={!b.src}
+                        onChange={e => upd(b.id, { field: e.target.value })}
+                      >
+                        <option value="">{b.src ? '— pick field —' : '(pick entity first)'}</option>
+                        {fields.map(f => (
+                          <option key={f.key} value={f.key}>
+                            {f.label || f.key} ({f.type})
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button className="btn btn-ghost btn-sm btn-icon" type="button" onClick={() => del(b.id)}>
+                        <X size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
-      {binds.length === 0 && (
+      {!loading && !error && binds.length === 0 && (
         <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
-          No bindings yet — click <strong>Bind a component</strong> to connect data.
+          {entities.length === 0
+            ? 'No entities found. Define an entity first under Data → Models.'
+            : <>No bindings yet — click <strong>Bind a component</strong> to connect data.</>}
         </div>
       )}
-      <button className="btn btn-primary btn-sm" type="button" onClick={add}>
-        <Plus size={13} />Bind a component
-      </button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          className="btn btn-primary btn-sm"
+          type="button"
+          onClick={add}
+          disabled={!!error || entities.length === 0}
+        >
+          <Plus size={13} />Bind a component
+        </button>
+        {/* TODO: wire to /api/page-bindings (POST/PATCH) — no backend persist layer yet. */}
+        <button className="btn btn-ghost btn-sm" type="button" disabled title="Persistence layer pending">
+          <Check size={13} />Save bindings
+        </button>
+      </div>
     </div>
   )
 }
@@ -668,27 +762,131 @@ export function ActionsLogic() {
 }
 
 // ── 7  PERMISSIONS ────────────────────────────────────────────────────────────
-
-// TODO: bind to /api/roles (tenant role catalog from auth kernel)
-const PERM_ROLES = ['Admin', 'Manager', 'Agent', 'Field Tech', 'Guest']
-// TODO: bind to /api/pages (registered pages enforceable by the auth kernel)
-const PERM_PAGES = ['Operations Home', 'Invoices', 'New Order', 'Customer 360', 'Settings']
+// Wired to the RBAC kernel: GET /api/roles, GET /api/permissions, PATCH /api/roles/{id}.
+// Rows = "scopes" derived from permission registry (entity prefix from `entity.action`
+// keys, falling back to the permission's `group` field). Cells show None/View/Edit
+// based on whether the role's permission list contains any read-type or write-type
+// permission for that scope. Cell click cycles + PATCHes the full new permission list
+// optimistically; failures revert + raise a toast.
 
 type PermLevel = 'none' | 'view' | 'edit'
+type PermDef   = { key: string; label: string; group: string }
+type RoleRow   = { id: string; key: string; label: string; permissions: string[] }
 
-export function Permissions() {
-  const [grid, setGrid] = useState<PermLevel[][]>(() =>
-    PERM_PAGES.map(() => PERM_ROLES.map(() => 'none' as PermLevel)),
-  )
+const READ_VERBS  = new Set(['view', 'read', 'list', 'get'])
+const WRITE_VERBS = new Set(['edit', 'create', 'update', 'delete', 'manage', 'write', 'admin', 'configure'])
 
-  const cycle = (pi: number, ri: number) =>
-    setGrid(g =>
-      g.map((row, p) =>
-        p === pi
-          ? row.map((c, r) => r === ri ? (c === 'none' ? 'view' : c === 'view' ? 'edit' : 'none') : c)
-          : row,
-      ),
-    )
+// A "scope" is one row of the matrix — derived from the permission registry.
+type Scope = {
+  key:  string         // canonical scope key (e.g. "customer" or group name)
+  label: string        // human label
+  read:  string[]      // permission keys classified as read for this scope
+  write: string[]      // permission keys classified as write for this scope
+  all:   string[]      // union — used when clearing a cell back to None
+}
+
+function humanize(s: string): string {
+  if (!s) return s
+  return s.replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function buildScopes(perms: PermDef[]): Scope[] {
+  const byKey = new Map<string, Scope>()
+  for (const p of perms) {
+    // Prefer `entity.action` shape — split on the first dot.
+    const dot = p.key.indexOf('.')
+    let scopeKey: string
+    let action: string
+    if (dot > 0) {
+      scopeKey = p.key.slice(0, dot)
+      action = p.key.slice(dot + 1).toLowerCase()
+    } else {
+      scopeKey = p.group || p.key
+      action = p.key.toLowerCase()
+    }
+    let s = byKey.get(scopeKey)
+    if (!s) {
+      s = { key: scopeKey, label: humanize(scopeKey), read: [], write: [], all: [] }
+      byKey.set(scopeKey, s)
+    }
+    s.all.push(p.key)
+    if (WRITE_VERBS.has(action)) s.write.push(p.key)
+    else if (READ_VERBS.has(action)) s.read.push(p.key)
+    else s.read.push(p.key)   // unknown action ⇒ treat as read-tier
+  }
+  return Array.from(byKey.values()).sort((a, b) => a.label.localeCompare(b.label))
+}
+
+function cellLevel(role: RoleRow, scope: Scope): PermLevel {
+  const set = new Set(role.permissions)
+  const hasWrite = scope.write.some(k => set.has(k))
+  if (hasWrite) return 'edit'
+  const hasRead = scope.read.some(k => set.has(k))
+  if (hasRead) return 'view'
+  return 'none'
+}
+
+function nextPerms(role: RoleRow, scope: Scope, level: PermLevel): string[] {
+  // Strip every permission belonging to this scope, then re-add per target level.
+  const stripped = role.permissions.filter(k => !scope.all.includes(k))
+  if (level === 'none') return stripped
+  if (level === 'view') return [...stripped, ...scope.read]
+  return [...stripped, ...scope.read, ...scope.write]   // 'edit'
+}
+
+const LEVEL_CYCLE: Record<PermLevel, PermLevel> = { none: 'view', view: 'edit', edit: 'none' }
+
+export function Permissions({ token }: { token?: string } = {}) {
+  const [roles, setRoles] = useState<RoleRow[]>([])
+  const [perms, setPerms] = useState<PermDef[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  // Initial load.
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    setLoading(true); setError(null)
+    Promise.all([
+      bget<RoleRow[]>(token, '/api/roles'),
+      bget<PermDef[]>(token, '/api/permissions'),
+    ])
+      .then(([rRes, pRes]) => {
+        if (!alive) return
+        if (!rRes.ok || !pRes.ok) {
+          setError(rRes.status === 403 || pRes.status === 403
+            ? 'You do not have permission to view roles.'
+            : `Failed to load (roles ${rRes.status}, permissions ${pRes.status})`)
+          return
+        }
+        setRoles(Array.isArray(rRes.data) ? rRes.data : [])
+        setPerms(Array.isArray(pRes.data) ? pRes.data : [])
+      })
+      .catch((e: Error) => { if (alive) setError(e.message || 'Failed to load') })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [token])
+
+  // Cell click: cycle level + optimistic PATCH; revert on failure.
+  const cycle = async (role: RoleRow, scope: Scope) => {
+    if (!token) return
+    const current = cellLevel(role, scope)
+    const target  = LEVEL_CYCLE[current]
+    const next    = nextPerms(role, scope, target)
+    const prev    = role.permissions
+    // optimistic
+    setRoles(rs => rs.map(r => r.id === role.id ? { ...r, permissions: next } : r))
+    try {
+      await bpatch(token, `/api/roles/${role.id}`, { permissions: next })
+    } catch (e) {
+      // revert
+      setRoles(rs => rs.map(r => r.id === role.id ? { ...r, permissions: prev } : r))
+      const msg = (e as Error).message || 'Save failed'
+      setToast(msg)
+      setTimeout(() => setToast(null), 4000)
+    }
+  }
 
   const dot = (v: PermLevel): [string, string] =>
     v === 'edit'
@@ -697,31 +895,89 @@ export function Permissions() {
       ? ['View', 'var(--gx-warning)']
       : ['—', 'var(--gx-text-3)']
 
+  if (!token) {
+    return (
+      <div>
+        <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+          Sign in to manage role permissions.
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} style={{ height: 22, background: 'var(--gx-surface-2)', borderRadius: 4, opacity: 0.6 }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
+        <div className="banner" style={{ borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{error}</div>
+        </div>
+      </div>
+    )
+  }
+
+  const scopes = buildScopes(perms)
+
+  if (roles.length === 0 || scopes.length === 0) {
+    return (
+      <div>
+        <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+          {roles.length === 0
+            ? 'No roles defined yet. Create roles under Security → Roles.'
+            : 'No permissions registered yet — they are created automatically when entities are added.'}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each page or component" />
-      <div className="card" style={{ overflow: 'hidden' }}>
+      <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
+      {toast && (
+        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+          <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{toast}</div>
+        </div>
+      )}
+      <div className="card" style={{ overflow: 'auto' }}>
         <table className="grid">
           <thead>
             <tr>
-              <th>Page</th>
-              {PERM_ROLES.map(r => <th key={r} style={{ textAlign: 'center' }}>{r}</th>)}
+              <th>Scope</th>
+              {roles.map(r => <th key={r.id} style={{ textAlign: 'center' }}>{r.label}</th>)}
             </tr>
           </thead>
           <tbody>
-            {PERM_PAGES.map((pg, pi) => (
-              <tr key={pg} style={{ cursor: 'default' }}>
-                <td style={{ fontWeight: 600 }}>{pg}</td>
-                {PERM_ROLES.map((_, ri) => {
-                  const [label, color] = dot(grid[pi][ri])
+            {scopes.map(sc => (
+              <tr key={sc.key} style={{ cursor: 'default' }}>
+                <td style={{ fontWeight: 600 }}>{sc.label}</td>
+                {roles.map(role => {
+                  const level = cellLevel(role, sc)
+                  const [label, color] = dot(level)
                   return (
-                    <td key={ri} style={{ textAlign: 'center' }}>
+                    <td key={role.id} style={{ textAlign: 'center' }}>
                       <button
                         className="perm-cell"
                         type="button"
-                        onClick={() => cycle(pi, ri)}
+                        onClick={() => cycle(role, sc)}
                         style={{ color }}
-                        title="Click to cycle"
+                        title="Click to cycle None → View → Edit"
                       >
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
                         {label}
@@ -735,7 +991,7 @@ export function Permissions() {
         </table>
       </div>
       <p className="hint" style={{ fontSize: 11.5, marginTop: 10 }}>
-        Click a cell to cycle None → View → Edit. Enforced server-side by the auth kernel.
+        Click a cell to cycle None → View → Edit. Saved per-click; enforced server-side by the auth kernel.
       </p>
     </div>
   )
@@ -1406,7 +1662,9 @@ export function AppearancePane() {
 
 // ── re-export for convenience ─────────────────────────────────────────────────
 
-export const RICH_PANE_MAP: Record<string, React.ComponentType> = {
+// Pane components may optionally accept a `token` — Permissions + DataBinding use it for
+// backend wiring; the rest ignore the prop. StudioGenericPane passes the bearer for both.
+export const RICH_PANE_MAP: Record<string, React.ComponentType<{ token?: string }>> = {
   'Page Registry':          PageManager,
   'Page Builder':           LayoutBuilder,
   'Dynamic Pages':          PageManager,
@@ -1442,6 +1700,6 @@ export const RICH_PANE_MAP: Record<string, React.ComponentType> = {
   'Meta Tags':              ContentEditor,
 }
 
-export function richPaneFor(leafLabel: string): React.ComponentType | null {
+export function richPaneFor(leafLabel: string): React.ComponentType<{ token?: string }> | null {
   return RICH_PANE_MAP[leafLabel] ?? null
 }
