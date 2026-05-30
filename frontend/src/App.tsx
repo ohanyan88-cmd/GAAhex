@@ -10,7 +10,6 @@ import NotificationBell from './components/NotificationBell'
 import OrgIdentity from './components/OrgIdentity'
 import UserMenu from './components/UserMenu'
 import ConfigureDrawer from './modals/ConfigureDrawer'
-import ActivityTimeline from './components/ActivityTimeline'
 import InvoicesView from './views/InvoicesView'
 import PaymentsView from './views/PaymentsView'
 import SubscriptionsView from './views/SubscriptionsView'
@@ -31,6 +30,9 @@ import HelpdeskView from './views/HelpdeskView'
 import PaymentGatewayView from './views/PaymentGatewayView'
 import WorkItemsView from './views/WorkItemsView'
 import MyTasksView from './views/MyTasksView'
+import MyApprovalsView from './views/MyApprovalsView'
+import SavedViewsView from './views/SavedViewsView'
+import ActivityFeedView from './views/ActivityFeedView'
 import CalendarView from './views/CalendarView'
 import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
@@ -54,6 +56,9 @@ type View =
   | { type: 'dashboards' }
   | { type: 'messages' }
   | { type: 'activity' }
+  | { type: 'my-approvals' }
+  | { type: 'saved-views' }
+  | { type: 'activity-feed' }
   | { type: 'invoices'; initialStatus?: string }
   | { type: 'payments' }
   | { type: 'subscriptions' }
@@ -473,8 +478,12 @@ export default function App() {
                 ? <AskGaaexView token={token} />
               : view.type === 'messages'
                 ? <MessagesView token={token} />
-              : view.type === 'activity'
-                ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
+              : view.type === 'activity' || view.type === 'activity-feed'
+                ? <ActivityFeedView token={token} />
+              : view.type === 'my-approvals'
+                ? <MyApprovalsView token={token} />
+              : view.type === 'saved-views'
+                ? <SavedViewsView token={token} onOpenEntity={(slug) => setView({ type: 'entity', slug })} />
               : view.type === 'invoices'
                 ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} />
               : view.type === 'payments'

@@ -39,17 +39,17 @@ const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavIte
 
 export const NAV_SECTIONS: NavSectionDef[] = [
 
-  // 1. Workspace — personal work center
+  // 1. Workspace — personal work center.
+  // Wave A scaffold: dead items (Recent Items, Team Workspace, Announcements)
+  // removed — no backend. Backed items (My Approvals, Activity Feed, Saved
+  // Views) wired to their dedicated views.
   s('workspace', 'Workspace', HomeIcon, [
     i('ws-home',          'Home',             HomeIcon,       'dashboards'),
     i('ws-my-tasks',      'My Tasks',         CheckIcon,      'mytasks'),
-    i('ws-approvals',     'My Approvals',     CheckIcon),
+    i('ws-approvals',     'My Approvals',     CheckIcon,      'my-approvals'),
     i('ws-calendar',      'Calendar',         CalendarIcon,   'calendar'),
-    i('ws-activity',      'Activity Feed',    ActivityIcon,   'activity'),
-    i('ws-saved',         'Saved Views',      BookmarkIcon),
-    i('ws-recent',        'Recent Items',     ClockIcon),
-    i('ws-team',          'Team Workspace',   UsersIcon),
-    i('ws-announcements', 'Announcements',    MessageIcon),
+    i('ws-activity',      'Activity Feed',    ActivityIcon,   'activity-feed'),
+    i('ws-saved',         'Saved Views',      BookmarkIcon,   'saved-views'),
   ], { defaultOpen: true }),
 
   // 2. CRM & Commercial — sales and customer acquisition
