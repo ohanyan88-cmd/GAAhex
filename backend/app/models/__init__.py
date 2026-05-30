@@ -38,6 +38,8 @@ from .portal_ticket_reply import PortalTicketReply
 from .automation import AutomationRule
 from .page_config import PageConfig
 from .page_field_value import PageFieldValue
+from .studio_page import StudioPage, StudioPageVersion
+from .feature_flag import FeatureFlag
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -72,4 +74,7 @@ __all__ = [
     "AutomationRule",
     "PageConfig",
     "PageFieldValue",
+    "StudioPage",
+    "StudioPageVersion",
+    "FeatureFlag",
 ]
