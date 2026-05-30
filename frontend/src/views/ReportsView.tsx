@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { DownloadIcon } from '../components/icons'
+import { DownloadIcon, EditIcon } from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
@@ -108,8 +108,7 @@ export default function ReportsView({ token, configVersion = 0 }: { token: strin
   if (denied) return <PermissionDenied message="You don't have permission to view reports." />
 
   return (
-    <div className="view">
-      <div className="view-inner gx-dash fade">
+    <div className="view-inner gx-dash fade">
         <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead
@@ -118,6 +117,11 @@ export default function ReportsView({ token, configVersion = 0 }: { token: strin
           sub={summary.length > 0
             ? `${summary.length} entity type${summary.length === 1 ? '' : 's'} · ${fmtNum(totalReportable)} record${totalReportable === 1 ? '' : 's'}`
             : 'Reports across configured entities'}
+          actions={
+            <button className="btn btn-ghost btn-sm hide-sm" onClick={() => {/* wire configure page */}}>
+              <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
+            </button>
+          }
         />
 
         {error && <ErrorBanner message={error} onRetry={loadSummary} />}
@@ -177,7 +181,6 @@ export default function ReportsView({ token, configVersion = 0 }: { token: strin
             )}
           </>
         )}
-      </div>
     </div>
   )
 }

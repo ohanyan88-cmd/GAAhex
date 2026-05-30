@@ -137,8 +137,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
   }
 
   return (
-    <div className="view">
-      <div className="view-inner gx-dash fade">
+    <div className="view-inner gx-dash fade">
         <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>Report Builder</span></div>
 
         <ViewHead
@@ -299,7 +298,6 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
             reports={(reports ?? []).map((r) => ({ id: r.id, name: r.name }))}
           />
         )}
-      </div>
     </div>
   )
 }

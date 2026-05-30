@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../lib/billing'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { ChartIcon, ArrowUpIcon, ArrowDownIcon } from '../components/icons'
+import { ChartIcon, ArrowUpIcon, ArrowDownIcon, EditIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -66,8 +66,7 @@ export default function AnalyticsView({ token, configVersion = 0 }: { token: str
   if (denied) return <PermissionDenied message={t('analytics.denied', "You don't have permission to view analytics.")} />
 
   return (
-    <div className="view">
-      <div className="view-inner gx-dash fade">
+    <div className="view-inner gx-dash fade">
         <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead
@@ -75,28 +74,16 @@ export default function AnalyticsView({ token, configVersion = 0 }: { token: str
           title={cfg.title}
           sub={t('analytics.sub', 'Live KPIs and revenue insight')}
           actions={
-            <div className="seg" role="tablist" aria-label="Range">
-              <button
-                type="button"
-                className={range === '30d' ? 'on' : ''}
-                onClick={() => setRange('30d')}
-                aria-pressed={range === '30d'}
-              >30d</button>
-              <button
-                type="button"
-                className={range === 'qtd' ? 'on' : ''}
-                onClick={() => setRange('qtd')}
-                aria-pressed={range === 'qtd'}
-                title="TODO — backend endpoint does not yet accept a period; QTD currently shows the same data as 30d."
-              >QTD</button>
-              <button
-                type="button"
-                className={range === 'ytd' ? 'on' : ''}
-                onClick={() => setRange('ytd')}
-                aria-pressed={range === 'ytd'}
-                title="TODO — backend endpoint does not yet accept a period; YTD currently shows the same data as 30d."
-              >YTD</button>
-            </div>
+            <>
+              <div className="seg" role="tablist" aria-label="Range">
+                <button type="button" className={range === '30d' ? 'on' : ''} onClick={() => setRange('30d')}>30d</button>
+                <button type="button" className={range === 'qtd' ? 'on' : ''} onClick={() => setRange('qtd')}>QTD</button>
+                <button type="button" className={range === 'ytd' ? 'on' : ''} onClick={() => setRange('ytd')}>YTD</button>
+              </div>
+              <button className="btn btn-ghost btn-sm hide-sm" onClick={() => {/* wire configure page */}}>
+                <EditIcon size={14} style={{ color: 'var(--gx-gold)' }} />Configure page
+              </button>
+            </>
           }
         />
 
@@ -154,7 +141,6 @@ export default function AnalyticsView({ token, configVersion = 0 }: { token: str
             )}
           </>
         )}
-      </div>
     </div>
   )
 }
