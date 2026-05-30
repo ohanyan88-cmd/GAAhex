@@ -86,7 +86,18 @@ const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function HelpdeskView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function HelpdeskView({
+  token, canConfigure = false, configVersion = 0, initialStatus, initialOpenTicketId,
+}: {
+  token: string
+  canConfigure?: boolean
+  configVersion?: number
+  /** Home-page deep link: page mounts with this status preselected in the filter.
+   * The frontend filter expects lowercase (open, in_progress, ...); we normalize. */
+  initialStatus?: string
+  /** Home-page deep link: open the ticket detail modal for this ticket on mount. */
+  initialOpenTicketId?: string
+}) {
   const cfg = usePageConfig(token, 'helpdesk', configVersion)
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
@@ -96,13 +107,13 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
   const [unavailable, setUnavailable] = useState(false)
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState((initialStatus ?? '').toLowerCase())
   const [queueFilter, setQueueFilter] = useState('')
   const [mineOnly, setMineOnly] = useState(false)
 
   // UI state
   const [selectedQueue, setSelectedQueue] = useState<string | null>(null)
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(initialOpenTicketId ?? null)
   const [createOpen, setCreateOpen] = useState(false)
   const [createQueueOpen, setCreateQueueOpen] = useState(false)
 

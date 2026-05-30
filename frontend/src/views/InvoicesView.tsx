@@ -130,13 +130,21 @@ function colTdClass(colKey: string): string {
   return ''
 }
 
-export default function InvoicesView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
+export default function InvoicesView({
+  token, canConfigure = false, configVersion = 0, initialStatus,
+}: {
+  token: string
+  canConfigure?: boolean
+  configVersion?: number
+  /** Home-page deep link: page mounts with this status pre-selected in the filter. */
+  initialStatus?: string
+}) {
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'invoices', configVersion)
   const [list, setList] = useState<Invoice[] | null>(null)
   const cf = useCustomFields(token, 'invoices', cfg.customFields, (list ?? []).map((inv) => inv.id))
   const [names, setNames] = useState<Record<string, string>>({})
-  const [status, setStatus] = useState('')
+  const [status, setStatus] = useState(initialStatus ?? '')
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)

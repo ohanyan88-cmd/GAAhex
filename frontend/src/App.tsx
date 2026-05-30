@@ -53,7 +53,7 @@ type View =
   | { type: 'dashboards' }
   | { type: 'messages' }
   | { type: 'activity' }
-  | { type: 'invoices' }
+  | { type: 'invoices'; initialStatus?: string }
   | { type: 'payments' }
   | { type: 'subscriptions' }
   | { type: 'products' }
@@ -71,7 +71,7 @@ type View =
   | { type: 'ask' }
   | { type: 'settings' }
   | { type: 'calendar' }
-  | { type: 'helpdesk' }
+  | { type: 'helpdesk'; initialStatus?: string; initialOpenTicketId?: string }
   | { type: 'workitems' }
   | { type: 'gateway' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
@@ -529,7 +529,28 @@ export default function App() {
                   onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
                 />
               : view.type === 'dashboards'
-                ? <DashboardView token={token} configVersion={pageConfigVersion} />
+                ? <DashboardView
+                    token={token}
+                    configVersion={pageConfigVersion}
+                    onNavigate={(target) => {
+                      // P2: Home -> deep-link routes. Each branch maps a DashboardView
+                      // nav-target into a View so the host App's existing routing handles
+                      // the actual mount + pre-filter.
+                      if (target.type === 'subscriptions') {
+                        setView({ type: 'subscriptions' })
+                      } else if (target.type === 'invoices') {
+                        setView({ type: 'invoices', initialStatus: target.status })
+                      } else if (target.type === 'helpdesk') {
+                        setView({ type: 'helpdesk', initialStatus: target.status, initialOpenTicketId: target.openTicketId })
+                      } else if (target.type === 'entity') {
+                        // Activity feed -> generic entity routing. We don't have a direct
+                        // "open this record" route in the View union, so we land the user
+                        // on the entity list view; the record id is left for a future
+                        // single-record route to consume.
+                        setView({ type: 'entity', slug: target.slug })
+                      }
+                    }}
+                  />
               : view.type === 'analytics'
                 ? <AnalyticsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'lead-pipeline'
@@ -543,7 +564,7 @@ export default function App() {
               : view.type === 'activity'
                 ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
               : view.type === 'invoices'
-                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} />
               : view.type === 'payments'
                 ? <PaymentsView token={token} configVersion={pageConfigVersion} />
               : view.type === 'gateway'
@@ -569,7 +590,7 @@ export default function App() {
               : view.type === 'parties'
                 ? <PartiesView token={token} />
               : view.type === 'helpdesk'
-                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} initialOpenTicketId={view.initialOpenTicketId} />
               : view.type === 'workitems'
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'calendar'

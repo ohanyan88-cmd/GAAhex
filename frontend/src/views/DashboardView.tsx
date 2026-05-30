@@ -8,6 +8,11 @@
 // Permission scoping: gates each widget on the entity verb its data depends on, via
 // fetchCapabilities() (lib/capabilities.ts). A role without `invoice.view` doesn't even
 // see the MRR tile or the revenue chart.
+//
+// Navigation (P2): every KPI tile is a button that takes the user to its source list
+// pre-filtered. Tickets-needing-attention rows open the real ticket. Activity entries
+// route to their target record when the audit event carries one. There are no inert
+// buttons or "View all" links — those were removed rather than faked.
 import { useEffect, useState } from 'react'
 import { Users, Banknote, Inbox, Activity, BarChart3 } from 'lucide-react'
 import { GearIcon } from '../components/icons'
@@ -19,16 +24,23 @@ import { fetchRevenueSeries, type RevenueBucket, type RevenueRange } from '../li
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
+// What a click on a Home widget asks the host App to do. Shape mirrors the View union
+// in App.tsx + an optional initial-state hint (filter / detail-open).
+export type HomeNavTarget =
+  | { type: 'subscriptions'; status?: string }
+  | { type: 'invoices'; status?: string }
+  | { type: 'helpdesk'; status?: string; openTicketId?: string }
+  | { type: 'entity'; slug: string; recordId?: string }
+
 // Fetch state machine — we distinguish "still loading" from "loaded with a real value"
 // from "give up and hide". Never carries a placeholder.
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
 
-interface WorkRow {
+interface TicketRow {
   id: string
   subject: string
   status: string
   prio: string
-  assignee: string
 }
 
 interface ActivityRow {
@@ -37,29 +49,24 @@ interface ActivityRow {
   act: string
   obj: string
   t: string
+  entity_key: string | null
+  record_id: string | null
 }
 
-// Work-item statuses that count as "open" on the Home page (anything not terminal).
-const OPEN_WORKITEM_STATUSES = ['TODO', 'IN_PROGRESS', 'BLOCKED']
-
-function initials(s: string): string {
-  if (!s) return '--'
-  return s.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
-}
-
-function mapWorkStatus(s: string) {
+function mapTicketStatus(s: string) {
+  // Backend stores helpdesk ticket status in UPPERCASE (OPEN, IN_PROGRESS, ...).
   const v = (s || '').toUpperCase()
-  if (v === 'DONE' || v === 'RESOLVED' || v === 'CLOSED') return 'active'
-  if (v === 'IN_PROGRESS') return 'degraded'
-  if (v === 'BLOCKED') return 'critical'
-  return 'neutral'
+  if (v === 'RESOLVED' || v === 'CLOSED') return 'neutral'
+  if (v === 'IN_PROGRESS') return 'active'
+  if (v === 'PENDING') return 'degraded'
+  return 'info'
 }
 
 function mapPriority(p: string) {
-  const v = (p || '').toUpperCase()
-  if (v === 'URGENT' || v === 'CRITICAL') return 'critical'
-  if (v === 'HIGH') return 'degraded'
-  if (v === 'NORMAL') return 'info'
+  const v = (p || '').toLowerCase()
+  if (v === 'urgent') return 'critical'
+  if (v === 'high') return 'degraded'
+  if (v === 'normal') return 'info'
   return 'neutral'
 }
 
@@ -77,8 +84,15 @@ function relTime(iso: string | null | undefined): string {
 }
 
 export default function DashboardView({
-  token, canConfigure = false, onConfigure,
-}: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
+  token, canConfigure = false, onConfigure, onNavigate,
+}: {
+  token: string
+  configVersion?: number
+  canConfigure?: boolean
+  onConfigure?: () => void
+  /** Called when the user clicks a KPI tile, a ticket row, or an activity entry. */
+  onNavigate?: (target: HomeNavTarget) => void
+}) {
   const [range, setRange] = useState<RevenueRange>('30d')
 
   const [caps, setCaps] = useState<Capabilities>(FULL_ACCESS)
@@ -92,7 +106,7 @@ export default function DashboardView({
   const [openTickets, setOpenTickets] = useState<Fetched<number>>({ state: 'loading' })
   const [revenue, setRevenue] = useState<Fetched<RevenueBucket[]>>({ state: 'loading' })
   const [activity, setActivity] = useState<Fetched<ActivityRow[]>>({ state: 'loading' })
-  const [workItems, setWorkItems] = useState<Fetched<WorkRow[]>>({ state: 'loading' })
+  const [tickets, setTickets] = useState<Fetched<TicketRow[]>>({ state: 'loading' })
 
   // Capabilities once after login (degrades to full-access on 404 per lib/capabilities.ts).
   useEffect(() => {
@@ -117,10 +131,9 @@ export default function DashboardView({
     return () => { alive = false }
   }, [token])
 
-  // KPI 2: MRR — sum of OPEN invoice totals. We treat OPEN as ISSUED+OVERDUE outstanding.
-  // The backend status enum is DRAFT|ISSUED|PAID|OVERDUE|VOID; "OPEN" is shorthand the
-  // existing DashboardView used and the InvoicesView treats as ISSUED. We mirror that:
-  // ask the backend for status=ISSUED (outstanding) and sum totals.
+  // KPI 2: MRR — sum of outstanding invoices (ISSUED). Backend status enum is
+  // DRAFT|ISSUED|PAID|OVERDUE|VOID; ISSUED is the "open / not paid" set. money()
+  // converts luma -> AMD for display.
   useEffect(() => {
     let alive = true
     fetch(`${BASE}/api/invoices?status=ISSUED`, { headers: authH(token) })
@@ -136,27 +149,19 @@ export default function DashboardView({
     return () => { alive = false }
   }, [token])
 
-  // KPI 3: Open tickets — work items in any non-terminal status.
-  // Backend lists workitems at /api/workitems (no hyphen). Earlier this view called
-  // /api/work-items which 404s (real path bug — fixed here).
+  // KPI 3: Open helpdesk tickets — count of tickets in status=OPEN.
+  // Sourced from /api/helpdesk/tickets so the count, the table below, and the
+  // KPI-tile navigation target all match (clicking the tile goes to HelpdeskView
+  // pre-filtered to OPEN).
   useEffect(() => {
     let alive = true
-    // Parallel fetches per open status; sum the counts.
-    Promise.all(
-      OPEN_WORKITEM_STATUSES.map(st =>
-        fetch(`${BASE}/api/workitems?status=${st}&limit=500`, { headers: authH(token) })
-          .then(r => r.ok ? r.json() : Promise.reject(new Error(`workitems[${st}] ${r.status}`))),
-      ),
-    )
-      .then((lists: any[]) => {
+    fetch(`${BASE}/api/helpdesk/tickets?status=OPEN`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`helpdesk tickets ${r.status}`)))
+      .then((d: any) => {
         if (!alive) return
-        let total = 0
-        for (const d of lists) {
-          const arr = Array.isArray(d) ? d : (d?.items ?? [])
-          if (!Array.isArray(arr)) { setOpenTickets({ state: 'hide' }); return }
-          total += arr.length
-        }
-        setOpenTickets({ state: 'ok', value: total })
+        const arr = Array.isArray(d) ? d : (d?.items ?? null)
+        if (!Array.isArray(arr)) { setOpenTickets({ state: 'hide' }); return }
+        setOpenTickets({ state: 'ok', value: arr.length })
       })
       .catch(err => { console.error('[home] open tickets:', err); if (alive) setOpenTickets({ state: 'hide' }) })
     return () => { alive = false }
@@ -169,8 +174,6 @@ export default function DashboardView({
     fetchRevenueSeries(token, range)
       .then(s => {
         if (!alive) return
-        // If every bucket is zero AND the array is empty, treat as "no data, hide".
-        // A non-empty series with some zeros is real — keep it.
         if (s.buckets.length === 0) { setRevenue({ state: 'hide' }); return }
         setRevenue({ state: 'ok', value: s.buckets })
       })
@@ -196,6 +199,8 @@ export default function DashboardView({
           act: a.summary ?? a.type ?? 'updated',
           obj: a.entity_key ?? '',
           t: relTime(a.at),
+          entity_key: a.entity_key ?? null,
+          record_id: a.record_id ?? null,
         }))
         setActivity({ state: 'ok', value: rows })
       })
@@ -203,26 +208,26 @@ export default function DashboardView({
     return () => { alive = false }
   }, [token])
 
-  // Tickets needing attention — top 4 open work items.
+  // Tickets needing attention — top open helpdesk tickets. Same source as KPI 3, so
+  // clicking a row opens the same record the user is already looking at on this page.
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/workitems?limit=4`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(`workitems list ${r.status}`)))
+    fetch(`${BASE}/api/helpdesk/tickets?status=OPEN&limit=4`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`tickets list ${r.status}`)))
       .then((d: any) => {
         if (!alive) return
         const arr = Array.isArray(d) ? d : (d?.items ?? null)
-        if (!Array.isArray(arr)) { setWorkItems({ state: 'hide' }); return }
-        if (arr.length === 0) { setWorkItems({ state: 'hide' }); return }
-        const rows: WorkRow[] = arr.slice(0, 4).map((w: any) => ({
-          id: String(w.id ?? ''),
-          subject: w.title ?? '(untitled)',
-          status: w.status ?? '',
-          prio: w.priority ?? '',
-          assignee: initials(w.assigned_user_id ? '' : ''),
+        if (!Array.isArray(arr)) { setTickets({ state: 'hide' }); return }
+        if (arr.length === 0) { setTickets({ state: 'hide' }); return }
+        const rows: TicketRow[] = arr.slice(0, 4).map((t: any) => ({
+          id: String(t.id ?? ''),
+          subject: t.subject ?? '(untitled)',
+          status: t.status ?? '',
+          prio: t.priority ?? '',
         }))
-        setWorkItems({ state: 'ok', value: rows })
+        setTickets({ state: 'ok', value: rows })
       })
-      .catch(err => { console.error('[home] tickets attention:', err); if (alive) setWorkItems({ state: 'hide' }) })
+      .catch(err => { console.error('[home] tickets attention:', err); if (alive) setTickets({ state: 'hide' }) })
     return () => { alive = false }
   }, [token])
 
@@ -232,9 +237,9 @@ export default function DashboardView({
   // may not be allowed to see.
   const showSubs = capsLoaded && can(caps, 'subscription', 'view')
   const showMrr = capsLoaded && can(caps, 'invoice', 'view')
-  const showOpenTickets = capsLoaded && can(caps, 'workitem', 'view')
+  const showOpenTickets = capsLoaded && can(caps, 'helpdesk_ticket', 'view')
   const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
-  const showWorkItems = capsLoaded && can(caps, 'workitem', 'view')
+  const showTickets = capsLoaded && can(caps, 'helpdesk_ticket', 'view')
   // Activity is org-scoped per record on the backend — no single gating perm. Always
   // candidate-visible; the backend filters out anything the caller can't see.
   const showActivity = capsLoaded
@@ -245,6 +250,21 @@ export default function DashboardView({
     (showSubs && subs.state === 'ok') ||
     (showMrr && mrr.state === 'ok') ||
     (showOpenTickets && openTickets.state === 'ok')
+
+  // Nav helper — silently no-ops if the host hasn't wired onNavigate.
+  const nav = (target: HomeNavTarget) => { if (onNavigate) onNavigate(target) }
+
+  // Decide if an activity row should be clickable. Backend gives us entity_key + record_id;
+  // we only know how to deep-link to entities served by the generic record router.
+  const activityHref = (a: ActivityRow): HomeNavTarget | null => {
+    if (!a.entity_key || !a.record_id) return null
+    if (a.entity_key === 'helpdesk_ticket') {
+      return { type: 'helpdesk', openTicketId: a.record_id }
+    }
+    // For generic entities, the slug matches the key plus an "s". This is a safe pass
+    // to the host App which already has the entities array and will resolve the slug.
+    return { type: 'entity', slug: a.entity_key, recordId: a.record_id }
+  }
 
   return (
     <div className="view">
@@ -282,6 +302,7 @@ export default function DashboardView({
               icon={<Users size={16} />}
               fetched={subs}
               format={(n) => n.toLocaleString()}
+              onClick={() => nav({ type: 'subscriptions', status: 'ACTIVE' })}
             />}
             {showMrr && <KpiTile
               label="MRR"
@@ -289,12 +310,14 @@ export default function DashboardView({
               accent
               fetched={mrr}
               format={(n) => money(n)}
+              onClick={() => nav({ type: 'invoices', status: 'ISSUED' })}
             />}
             {showOpenTickets && <KpiTile
               label="Open tickets"
               icon={<Inbox size={16} />}
               fetched={openTickets}
               format={(n) => n.toLocaleString()}
+              onClick={() => nav({ type: 'helpdesk', status: 'OPEN' })}
             />}
           </div>
         )}
@@ -325,47 +348,65 @@ export default function DashboardView({
                 </div>
                 <div style={{ padding: '6px 0', minHeight: 180 }}>
                   {activity.state === 'loading' && <ActivitySkeleton />}
-                  {activity.state === 'ok' && activity.value.map((a) => (
-                    <div key={a.id} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '10px 18px' }}>
-                      <span style={{
-                        width: 28, height: 28, borderRadius: 'var(--gx-radius-sm)',
-                        background: 'var(--gx-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--gx-text-2)', flexShrink: 0,
-                      }}><Activity size={15} /></span>
-                      <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                        <span style={{ fontWeight: 600 }}>{a.who}</span>{' '}
-                        <span style={{ color: 'var(--gx-text-2)' }}>{a.act}</span>{' '}
-                        {a.obj && <span className="mono" style={{ color: 'var(--gx-link)' }}>{a.obj}</span>}
-                        {a.t && <div className="hint" style={{ fontSize: 11 }}>{a.t}</div>}
+                  {activity.state === 'ok' && activity.value.map((a) => {
+                    const href = activityHref(a)
+                    const onClickRow = href ? () => nav(href) : undefined
+                    return (
+                      <div
+                        key={a.id}
+                        onClick={onClickRow}
+                        role={onClickRow ? 'button' : undefined}
+                        tabIndex={onClickRow ? 0 : undefined}
+                        onKeyDown={onClickRow ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickRow() } } : undefined}
+                        style={{
+                          display: 'flex', gap: 11, alignItems: 'flex-start',
+                          padding: '10px 18px',
+                          cursor: onClickRow ? 'pointer' : 'default',
+                        }}
+                      >
+                        <span style={{
+                          width: 28, height: 28, borderRadius: 'var(--gx-radius-sm)',
+                          background: 'var(--gx-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--gx-text-2)', flexShrink: 0,
+                        }}><Activity size={15} /></span>
+                        <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                          <span style={{ fontWeight: 600 }}>{a.who}</span>{' '}
+                          <span style={{ color: 'var(--gx-text-2)' }}>{a.act}</span>{' '}
+                          {a.obj && <span className="mono" style={{ color: 'var(--gx-link)' }}>{a.obj}</span>}
+                          {a.t && <div className="hint" style={{ fontSize: 11 }}>{a.t}</div>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {showWorkItems && workItems.state !== 'hide' && (
+        {showTickets && tickets.state !== 'hide' && (
           <div className="card" style={{ marginTop: 18 }}>
             <div className="card-head">
               <Inbox size={16} style={{ color: 'var(--gx-text-3)' }} />
               <h3>Tickets needing attention</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              {workItems.state === 'loading' && <TableSkeleton />}
-              {workItems.state === 'ok' && (
+              {tickets.state === 'loading' && <TableSkeleton />}
+              {tickets.state === 'ok' && (
                 <table className="grid">
                   <thead><tr>
-                    <th>Subject</th><th>Status</th><th>Priority</th><th>Owner</th>
+                    <th>Subject</th><th>Status</th><th>Priority</th>
                   </tr></thead>
                   <tbody>
-                    {workItems.value.map(r => (
-                      <tr key={r.id}>
+                    {tickets.value.map(r => (
+                      <tr
+                        key={r.id}
+                        onClick={() => nav({ type: 'helpdesk', openTicketId: r.id })}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <td style={{ maxWidth: 320 }}>{r.subject}</td>
-                        <td>{r.status && <StatusPill variant={mapWorkStatus(r.status)} label={r.status} size="sm" />}</td>
+                        <td>{r.status && <StatusPill variant={mapTicketStatus(r.status)} label={r.status} size="sm" />}</td>
                         <td>{r.prio && <StatusPill variant={mapPriority(r.prio)} label={r.prio} size="sm" />}</td>
-                        <td>{r.assignee && <span className="avatar" style={{ width: 24, height: 24, fontSize: 10 }}>{r.assignee}</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -382,16 +423,32 @@ export default function DashboardView({
 // ---- subcomponents ------------------------------------------------------------------
 
 function KpiTile({
-  label, icon, accent = false, fetched, format,
+  label, icon, accent = false, fetched, format, onClick,
 }: {
   label: string
   icon: React.ReactNode
   accent?: boolean
   fetched: Fetched<number>
   format: (n: number) => string
+  onClick?: () => void
 }) {
+  const interactive = !!onClick && fetched.state === 'ok'
   return (
-    <div className="kpi">
+    <button
+      type="button"
+      className="kpi"
+      onClick={interactive ? onClick : undefined}
+      disabled={!interactive}
+      // The .kpi class targets divs in the kit; make the button render the same.
+      style={{
+        cursor: interactive ? 'pointer' : 'default',
+        textAlign: 'left',
+        font: 'inherit',
+        color: 'inherit',
+        border: 'none',
+        background: 'inherit',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <span className="klbl">{label}</span>
         <span className="spacer" />
@@ -402,7 +459,7 @@ function KpiTile({
         {fetched.state === 'ok' && format(fetched.value)}
         {/* 'hide' state: the tile is omitted by the parent before reaching here. */}
       </div>
-    </div>
+    </button>
   )
 }
 
