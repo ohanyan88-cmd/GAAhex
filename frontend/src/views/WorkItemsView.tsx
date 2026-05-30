@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   listWorkItems, getWorkItem, createWorkItem, patchWorkItem,
   startWorkItem, completeWorkItem, blockWorkItem,
@@ -14,11 +14,13 @@ import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
   PlusIcon, EditIcon, CheckIcon, CloseIcon,
-  PlayIcon, PauseIcon, ArrowRightIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
+  PlayIcon, PauseIcon, ChevronLeftIcon, ArrowRightIcon, InboxIcon, TrashIcon, GearIcon, RowsIcon,
+  SearchIcon, DownloadIcon, ArrowUpIcon, ArrowDownIcon,
 } from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
+import { StatusPill } from '../primitives'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -34,55 +36,54 @@ function fmtDateShort(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-function priorityPill(priority: string | null | undefined) {
-  const p = (priority ?? '').toUpperCase()
-  const cls =
-    p === 'URGENT' ? 'pill pill-danger'
-    : p === 'HIGH' ? 'pill pill-warning'
-    : p === 'LOW' ? 'pill pill-muted'
-    : 'pill'
-  const label =
-    p === 'URGENT' ? 'Urgent'
-    : p === 'HIGH' ? 'High'
-    : p === 'LOW' ? 'Low'
-    : p === 'NORMAL' ? 'Normal'
-    : null
-  return label
-    ? <span className={cls}><span className="pill-dot" />{label}</span>
-    : <span className="muted">—</span>
+// WorkItem status → StatusPill primitive variant.
+// Mapping per spec: OPEN/TODO → info · IN_PROGRESS → degraded · DONE/CLOSED → active ·
+// BLOCKED → critical · CANCELLED → neutral
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapWorkItemStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'DONE' || v === 'CLOSED') return 'active'
+  if (v === 'IN_PROGRESS') return 'degraded'
+  if (v === 'BLOCKED') return 'critical'
+  if (v === 'CANCELLED') return 'neutral'
+  return 'info' // OPEN / TODO / default
+}
+function statusLabel(s: string | null | undefined): string {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'TODO') return 'To Do'
+  if (v === 'IN_PROGRESS') return 'In Progress'
+  if (v === 'BLOCKED') return 'Blocked'
+  if (v === 'DONE') return 'Done'
+  if (v === 'CANCELLED') return 'Cancelled'
+  return s ?? '—'
 }
 
-function statusPill(status: string | null | undefined) {
-  const s = (status ?? '').toUpperCase()
-  const cls =
-    s === 'DONE' ? 'pill pill-success'
-    : s === 'CANCELLED' ? 'pill pill-muted'
-    : s === 'IN_PROGRESS' ? 'pill'
-    : s === 'BLOCKED' ? 'pill pill-danger'
-    : s === 'TODO' ? 'pill pill-muted'
-    : 'pill'
-  const label =
-    s === 'TODO' ? 'To Do'
-    : s === 'IN_PROGRESS' ? 'In Progress'
-    : s === 'BLOCKED' ? 'Blocked'
-    : s === 'DONE' ? 'Done'
-    : s === 'CANCELLED' ? 'Cancelled'
-    : (status ?? '—')
-  return status
-    ? <span className={cls}><span className="pill-dot" />{label}</span>
-    : <span className="muted">—</span>
+// Priority pill — kept inline (priority is not a status). Uses semantic pill classes from the kit.
+function priorityPill(priority: string | null | undefined) {
+  const p = (priority ?? '').toUpperCase()
+  if (!priority) return <span className="muted">—</span>
+  const variant: PillVariant = p === 'URGENT' ? 'critical'
+    : p === 'HIGH' ? 'degraded'
+    : p === 'LOW' ? 'neutral'
+    : 'info'
+  const label = p === 'URGENT' ? 'Urgent' : p === 'HIGH' ? 'High' : p === 'LOW' ? 'Low' : 'Normal'
+  return <StatusPill variant={variant} label={label} size="sm" />
+}
+
+// 3-dot row-menu icon (inline; no emoji rule — inline SVG only).
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
 }
 
 const KINDS: WorkItemKind[] = ['task', 'install', 'repair', 'survey']
 const PRIORITIES: WorkItemPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT']
-const STATUSES: { value: string; label: string }[] = [
-  { value: '', label: 'All' },
-  { value: 'TODO', label: 'To Do' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'BLOCKED', label: 'Blocked' },
-  { value: 'DONE', label: 'Done' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-]
 
 type Tab = 'active' | 'all' | 'mine'
 
@@ -107,11 +108,18 @@ export default function WorkItemsView({
   const [unavailable, setUnavailable] = useState(false)
 
   const [tab, setTab] = useState<Tab>('active')
-  const [statusFilter, setStatusFilter] = useState('')
   const [kindFilter, setKindFilter] = useState('')
 
   const [detailId, setDetailId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+
+  // Reskin: client-only search/sort/select/page state (no new fetches).
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function loadUsers() {
     const res = await listUsers(token)
@@ -125,7 +133,6 @@ export default function WorkItemsView({
 
     const filters: WorkItemFilters = {}
     if (tab === 'mine') filters.mine = true
-    if (statusFilter) filters.status = statusFilter
     if (kindFilter) filters.kind = kindFilter
 
     // Load all items once for tab counts, then filter per tab
@@ -145,110 +152,181 @@ export default function WorkItemsView({
   }
 
   useEffect(() => { loadUsers() }, [token])
-  useEffect(() => { loadData() }, [token, tab, statusFilter, kindFilter])
+  useEffect(() => { loadData() }, [token, tab, kindFilter])
+  // Reset paging + selection whenever filter/search/sort changes.
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [tab, kindFilter, query, sortKey, sortDir])
+
+  const custName = (item: WorkItem) =>
+    item.customer_id ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8)) : '—'
 
   // Tab counts derived from allItems
   const activeCount = allItems.filter((i) => i.status !== 'DONE' && i.status !== 'CANCELLED').length
   const allCount = allItems.length
-  // For "Mine" we can't easily count without a separate request — show the current list length when on that tab
-  const mineCount = tab === 'mine' ? (items?.length ?? 0) : null
+
+  // KPI aggregates (from loaded list — no extra API).
+  const doneCount = allItems.filter((i) => i.status === 'DONE').length
+  const blockedCount = allItems.filter((i) => i.status === 'BLOCKED').length
+  const inProgressCount = allItems.filter((i) => i.status === 'IN_PROGRESS').length
+
+  // Client-side search applied on top of tab/kind filter.
+  const list = items ?? []
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return list
+    return list.filter((item) => {
+      const fields = [
+        item.title ?? '',
+        item.id ?? '',
+        item.kind ?? '',
+        item.status ?? '',
+        item.priority ?? '',
+        custName(item),
+        resolveUserDisplay(item.assigned_user_id, users) ?? '',
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list, query, customerNames, users])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (item: WorkItem): string | number => {
+      switch (k) {
+        case 'title': return item.title ?? ''
+        case 'kind': return item.kind ?? ''
+        case 'customer': return custName(item)
+        case 'status': return item.status ?? ''
+        case 'priority': return item.priority ?? ''
+        case 'assignee': return resolveUserDisplay(item.assigned_user_id, users) ?? ''
+        case 'due': return item.due_at ?? ''
+        case 'scheduled': return item.scheduled_at ?? ''
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey, sortDir, customerNames, users])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
 
   if (unavailable) {
     return (
-      <div>
-        <ViewHead
-          icon={<RowsIcon size={20} />}
-          title={cfg.title}
-          sub="Driven by the WorkItem movement engine · stages configured in Studio"
-        />
-        <EmptyState
-          icon={<InboxIcon size={40} />}
-          title="Work Items aren't available yet"
-          message="This service will appear here once the work items module is enabled."
-        />
+      <div className="view">
+        <div className="view-inner fade">
+          <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
+          <ViewHead
+            icon={<RowsIcon size={18} />}
+            title={cfg.title}
+            sub="Driven by the WorkItem movement engine · stages configured in Studio"
+          />
+          <EmptyState
+            icon={<InboxIcon size={40} />}
+            title="Work Items aren't available yet"
+            message="This service will appear here once the work items module is enabled."
+          />
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      {/* ViewHead — matches DESIGN: RowsIcon, title, sub, actions */}
-      <ViewHead
-        icon={<RowsIcon size={20} />}
-        title={cfg.title}
-        sub="Driven by the WorkItem movement engine · stages configured in Studio"
-        actions={
-          <>
-            {canConfigure && (
-              <button className="btn btn-ghost btn-sm">
-                <GearIcon size={13} /> Workflow
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
+
+        <ViewHead
+          icon={<RowsIcon size={18} />}
+          title={cfg.title}
+          sub={`${allCount} records · driven by the WorkItem movement engine`}
+          actions={
+            <>
+              {canConfigure && (
+                <button className="btn btn-ghost btn-sm">
+                  <GearIcon size={13} /> Workflow
+                </button>
+              )}
+              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
+                <PlusIcon size={13} /> New work item
               </button>
+            </>
+          }
+        />
+
+        {allItems.length > 0 && (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            <div className="widget">
+              <div className="widget-label">Active</div>
+              <div className="kpi">{activeCount}</div>
+              <div className="kpi-sub">of {allCount} work item{allCount !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">In progress</div>
+              <div className="kpi" style={{ color: 'var(--warning)' }}>{inProgressCount}</div>
+              <div className="kpi-sub">currently being worked</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Done</div>
+              <div className="kpi" style={{ color: 'var(--success)' }}>{doneCount}</div>
+              <div className="kpi-sub">completed</div>
+            </div>
+            {blockedCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Blocked</div>
+                <div className="kpi" style={{ color: 'var(--danger)' }}>{blockedCount}</div>
+                <div className="kpi-sub">action required</div>
+              </div>
             )}
-            <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-              <PlusIcon size={13} /> New work item
+          </div>
+        )}
+
+        {/* Tabs — kit .tabs/.tab/.tab-count */}
+        <div className="tabs">
+          {([
+            ['active', 'Active', activeCount],
+            ['all', 'All', allCount],
+            ['mine', 'Mine', null],
+          ] as [Tab, string, number | null][]).map(([t, label, count]) => (
+            <button
+              key={t}
+              className={'tab' + (tab === t ? ' on' : '')}
+              onClick={() => setTab(t)}
+            >
+              {label}
+              {count !== null && <span className="tab-count">{count}</span>}
             </button>
-          </>
-        }
-      />
-
-      {/* Tabs — DESIGN .tabs / .tab / .tab-count pattern */}
-      <div className="tabs">
-        {([
-          ['active', 'Active', activeCount],
-          ['all', 'All', allCount],
-          ['mine', 'Mine', mineCount],
-        ] as [Tab, string, number | null][]).map(([t, label, count]) => (
-          <button
-            key={t}
-            className={'tab' + (tab === t ? ' on' : '')}
-            onClick={() => setTab(t)}
-          >
-            {label}
-            {count !== null && (
-              <span className="tab-count">{count}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Secondary filters — only visible on All/Mine tabs */}
-      {tab !== 'active' && (
-        <div className="list-toolbar" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Status</span>
-            <select
-              className="inp inp-sm"
-              aria-label="Filter by status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Kind</span>
-            <select
-              className="inp inp-sm"
-              aria-label="Filter by kind"
-              value={kindFilter}
-              onChange={(e) => setKindFilter(e.target.value)}
-            >
-              <option value="">All</option>
-              {KINDS.map((k) => (
-                <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
-              ))}
-            </select>
-          </div>
+          ))}
         </div>
-      )}
 
-      {/* Content */}
-      <div style={{ padding: '0 0 24px' }}>
         {error && <ErrorBanner message={error} onRetry={loadData} />}
-        {items === null && !error && <p className="muted" style={{ padding: '12px 0' }}>Loading…</p>}
-
+        {items === null && !error && <p className="muted">Loading…</p>}
         {items && items.length === 0 && !error && (
           <EmptyState
             icon={<InboxIcon size={40} />}
@@ -263,56 +341,149 @@ export default function WorkItemsView({
         )}
 
         {items && items.length > 0 && (
-          <div className="grid-wrap">
-            <table className="grid">
-              <thead>
-                <tr>
-                  {cfg.columns.map((col) => (
-                    <th key={col.key} scope="col">{col.label}</th>
-                  ))}
-                  {cf.headers()}
-                  <th scope="col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <WorkItemRow
-                    key={item.id}
-                    item={item}
-                    users={users}
-                    customerNames={customerNames}
-                    token={token}
-                    columns={cfg.columns}
-                    cfCells={cf.cells(item.id)}
-                    onRefresh={loadData}
-                    onEdit={() => setDetailId(item.id)}
-                  />
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[workitems] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} work item(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search work items"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <select
+                className="inp inp-sm"
+                aria-label="Filter by kind"
+                value={kindFilter}
+                onChange={(e) => setKindFilter(e.target.value)}
+                style={{ marginLeft: 8 }}
+              >
+                <option value="">All kinds</option>
+                {KINDS.map((k) => (
+                  <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[workitems] export all'); toast.success(`Export queued for ${sorted.length} work item(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
+                <PlusIcon size={13} /> New work item
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input
+                        type="checkbox"
+                        checked={allOnPageSelected}
+                        onChange={togglePageAll}
+                        aria-label="Select all rows on this page"
+                      />
+                    </th>
+                    {cfg.columns.map((col) => (
+                      <th
+                        key={col.key}
+                        scope="col"
+                        onClick={() => toggleSort(col.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {col.label}
+                          {sortKey === col.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((item) => (
+                    <WorkItemRow
+                      key={item.id}
+                      item={item}
+                      users={users}
+                      customerNames={customerNames}
+                      token={token}
+                      columns={cfg.columns}
+                      cfCells={cf.cells(item.id)}
+                      onRefresh={loadData}
+                      onEdit={() => setDetailId(item.id)}
+                      selected={selected.has(item.id)}
+                      onToggleSelect={() => toggleRow(item.id)}
+                    />
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching work items.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 work items'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Detail/edit modal */}
+        {detailId && (
+          <WorkItemDetailModal
+            token={token}
+            id={detailId}
+            users={users}
+            customerNames={customerNames}
+            onClose={() => { setDetailId(null); loadData() }}
+          />
+        )}
+
+        {/* Create modal */}
+        {createOpen && (
+          <CreateWorkItemModal
+            token={token}
+            onClose={() => setCreateOpen(false)}
+            onDone={() => { setCreateOpen(false); loadData() }}
+          />
+        )}
       </div>
-
-      {/* Detail/edit modal */}
-      {detailId && (
-        <WorkItemDetailModal
-          token={token}
-          id={detailId}
-          users={users}
-          customerNames={customerNames}
-          onClose={() => { setDetailId(null); loadData() }}
-        />
-      )}
-
-      {/* Create modal */}
-      {createOpen && (
-        <CreateWorkItemModal
-          token={token}
-          onClose={() => setCreateOpen(false)}
-          onDone={() => { setCreateOpen(false); loadData() }}
-        />
-      )}
     </div>
   )
 }
@@ -321,6 +492,7 @@ export default function WorkItemsView({
 
 function WorkItemRow({
   item, users, customerNames, token, columns, cfCells, onRefresh, onEdit,
+  selected, onToggleSelect,
 }: {
   item: WorkItem
   users: User[]
@@ -330,6 +502,8 @@ function WorkItemRow({
   cfCells: ReactNode
   onRefresh: () => void
   onEdit: () => void
+  selected: boolean
+  onToggleSelect: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const s = (item.status ?? 'TODO') as WorkItemStatus
@@ -342,12 +516,21 @@ function WorkItemRow({
     finally { setBusy(false) }
   }
 
-  const custName = item.customer_id
+  const cust = item.customer_id
     ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8))
     : '—'
 
   return (
-    <tr>
+    <tr className={selected ? 'sel' : ''} onClick={onEdit} style={{ cursor: 'pointer' }}>
+      <td onClick={(e) => { e.stopPropagation(); onToggleSelect() }} style={{ cursor: 'default' }}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Select work item ${item.title}`}
+        />
+      </td>
       {columns.map((col) => {
         if (col.key === 'title') return (
           <td key={col.key} style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -355,13 +538,19 @@ function WorkItemRow({
           </td>
         )
         if (col.key === 'kind') return <td key={col.key} className="muted">{item.kind ? item.kind.charAt(0).toUpperCase() + item.kind.slice(1) : '—'}</td>
-        if (col.key === 'customer') return <td key={col.key} className="muted">{custName}</td>
-        if (col.key === 'status') return <td key={col.key}>{statusPill(item.status)}</td>
+        if (col.key === 'customer') return <td key={col.key}>{cust}</td>
+        if (col.key === 'status') return (
+          <td key={col.key}>
+            {item.status
+              ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabel(item.status)} size="sm" />
+              : <span className="muted">—</span>}
+          </td>
+        )
         if (col.key === 'priority') return <td key={col.key}>{priorityPill(item.priority)}</td>
         if (col.key === 'assignee') return <td key={col.key} className="muted">{resolveUserDisplay(item.assigned_user_id, users)}</td>
-        if (col.key === 'due') return <td key={col.key} className="muted" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(item.due_at)}</td>
+        if (col.key === 'due') return <td key={col.key} className="mono" style={{ whiteSpace: 'nowrap' }}>{fmtDateShort(item.due_at)}</td>
         if (col.key === 'scheduled') return (
-          <td key={col.key} className="muted" style={{ whiteSpace: 'nowrap' }}>
+          <td key={col.key} className="mono" style={{ whiteSpace: 'nowrap' }}>
             {item.scheduled_at ? fmtDateShort(item.scheduled_at) : '—'}
             {item.location ? <span title={item.location}> {item.location.length > 16 ? item.location.slice(0, 14) + '…' : item.location}</span> : null}
           </td>
@@ -369,47 +558,42 @@ function WorkItemRow({
         return null
       })}
       {cfCells}
-      <td className="row-actions" style={{ whiteSpace: 'nowrap' }}>
-        {/* Stage actions per current status */}
-        {s === 'TODO' && (
-          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => startWorkItem(token, item.id))} title="Start">
-            <PlayIcon size={12} /> Start
-          </button>
-        )}
-        {s === 'IN_PROGRESS' && (
-          <>
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => completeWorkItem(token, item.id))} title="Complete">
-              <CheckIcon size={12} /> Done
+      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+          {s === 'TODO' && (
+            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => startWorkItem(token, item.id))} title="Start">
+              <PlayIcon size={12} /> Start
             </button>
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => blockWorkItem(token, item.id))} title="Block">
-              <PauseIcon size={12} />
-            </button>
-          </>
-        )}
-        {s === 'BLOCKED' && (
-          <>
+          )}
+          {s === 'IN_PROGRESS' && (
+            <>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => completeWorkItem(token, item.id))} title="Complete">
+                <CheckIcon size={12} /> Done
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => blockWorkItem(token, item.id))} title="Block">
+                <PauseIcon size={12} />
+              </button>
+            </>
+          )}
+          {s === 'BLOCKED' && (
             <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => startWorkItem(token, item.id))} title="Resume">
               <PlayIcon size={12} /> Resume
             </button>
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => cancelWorkItem(token, item.id))} title="Cancel">
-              <CloseIcon size={12} />
+          )}
+          {(s === 'DONE' || s === 'CANCELLED') && (
+            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => reopenWorkItem(token, item.id))} title="Reopen">
+              Reopen
             </button>
-          </>
-        )}
-        {(s === 'TODO' || s === 'IN_PROGRESS') && (
-          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => cancelWorkItem(token, item.id))} title="Cancel">
-            <CloseIcon size={12} />
+          )}
+          <button
+            className="iconbtn"
+            aria-label="Row menu"
+            title="Row actions"
+            onClick={(e) => { e.stopPropagation(); console.log('[workitems] row menu', item.id) }}
+          >
+            <MoreVerticalIcon size={15} />
           </button>
-        )}
-        {(s === 'DONE' || s === 'CANCELLED') && (
-          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => reopenWorkItem(token, item.id))} title="Reopen">
-            Reopen
-          </button>
-        )}
-        {/* Edit */}
-        <button className="btn btn-ghost btn-sm" onClick={onEdit} title="Edit">
-          <EditIcon size={12} /> <ArrowRightIcon size={12} />
-        </button>
+        </div>
       </td>
     </tr>
   )
@@ -440,6 +624,9 @@ function WorkItemDetailModal({
   const [dueAt, setDueAt] = useState('')
   const [scheduledAt, setScheduledAt] = useState('')
   const [location, setLocation] = useState('')
+
+  // Silence the unused-var warning on `users` — it's threaded through for parity with the parent.
+  void users
 
   async function load() {
     setError('')
@@ -508,7 +695,7 @@ function WorkItemDetailModal({
   }
 
   const s = (item?.status ?? 'TODO') as WorkItemStatus
-  const custName = item?.customer_id
+  const cust = item?.customer_id
     ? (customerNames[item.customer_id] ?? item.customer_id.slice(0, 8))
     : null
 
@@ -547,9 +734,11 @@ function WorkItemDetailModal({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Status + action bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {statusPill(item.status)}
+            {item.status
+              ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabel(item.status)} size="sm" />
+              : <span className="muted">—</span>}
             {priorityPill(item.priority)}
-            {custName && <span className="muted" style={{ fontSize: 12 }}>{custName}</span>}
+            {cust && <span className="muted" style={{ fontSize: 12 }}>{cust}</span>}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               {s === 'TODO' && (
                 <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => handleAction('start')}>

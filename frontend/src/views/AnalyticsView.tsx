@@ -6,15 +6,20 @@ import { ChartIcon, ArrowUpIcon, ArrowDownIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
+import { Donut, type DonutDatum } from '../components/charts/Donut'
+import { LineChart } from '../components/charts/LineChart'
+import { Spark } from '../components/charts/Spark'
 
-// Analytics (A18 /api/analytics/*) — KPIs + inline-SVG/CSS charts in the existing dashboard style.
-// No charting library. Degrades on 404 (Stage-1 dormant) and per-section on error.
-const PALETTE = ['#3A6FB5', '#C5A059', '#2ECC71', '#F5A623', '#E63946', '#4A82CC', '#D4B26C', '#AEB7C2']
+// Analytics (A18 /api/analytics/*) — KPIs + charts re-laid into the kit's `gx-dash` dashboard
+// pattern: KPI strip on top (.kpis with sparklines + delta pills), two-column charts body
+// (.cols) underneath. Uses Donut / LineChart / Spark from frontend/src/components/charts.
+// No charting library; no new CSS. Data hooks & fetches unchanged.
 const fmtNum = (n: number) => n.toLocaleString('en-US')
 
 type Overview = Record<string, any>
 type TrendPoint = { month: string; collected: number; invoiced: number }
 type MixSlice = { product: string; count: number; mrr: number }
+type Range = '30d' | 'qtd' | 'ytd'
 
 function pick(o: Overview, key: string): { value: number; prev?: number } {
   const raw = o?.[key]
@@ -34,6 +39,8 @@ export default function AnalyticsView({ token, configVersion = 0 }: { token: str
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [error, setError] = useState('')
+  // Range toggle — visual-only for now (backend doesn't accept a period parameter).
+  const [range, setRange] = useState<Range>('30d')
 
   async function load() {
     setLoading(true); setUnavailable(false); setDenied(false); setError('')
@@ -59,118 +66,168 @@ export default function AnalyticsView({ token, configVersion = 0 }: { token: str
   if (denied) return <PermissionDenied message={t('analytics.denied', "You don't have permission to view analytics.")} />
 
   return (
-    <div>
-      <ViewHead icon={<ChartIcon size={20} />} title={cfg.title} />
+    <div className="view">
+      <div className="view-inner gx-dash fade">
+        <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      {loading && <p className="muted">{t('common.loading', 'Loading…')}</p>}
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {unavailable && <EmptyState icon={<ChartIcon size={40} />} title={t('analytics.unavailable', "Analytics aren't available yet")} message={t('analytics.unavailableMsg', 'KPIs and charts will appear here once the analytics service is enabled.')} />}
+        <ViewHead
+          icon={<ChartIcon size={20} />}
+          title={cfg.title}
+          sub={t('analytics.sub', 'Live KPIs and revenue insight')}
+          actions={
+            <div className="seg" role="tablist" aria-label="Range">
+              <button
+                type="button"
+                className={range === '30d' ? 'on' : ''}
+                onClick={() => setRange('30d')}
+                aria-pressed={range === '30d'}
+              >30d</button>
+              <button
+                type="button"
+                className={range === 'qtd' ? 'on' : ''}
+                onClick={() => setRange('qtd')}
+                aria-pressed={range === 'qtd'}
+                title="TODO — backend endpoint does not yet accept a period; QTD currently shows the same data as 30d."
+              >QTD</button>
+              <button
+                type="button"
+                className={range === 'ytd' ? 'on' : ''}
+                onClick={() => setRange('ytd')}
+                aria-pressed={range === 'ytd'}
+                title="TODO — backend endpoint does not yet accept a period; YTD currently shows the same data as 30d."
+              >YTD</button>
+            </div>
+          }
+        />
 
-      {!loading && !unavailable && !error && overview && (
-        <>
-          <div className="widgets kpi-row">
-            <Kpi label={t('analytics.mrr', 'MRR')} m={pick(overview, 'mrr')} money goodUp t={t} />
-            <Kpi label={t('analytics.activeSubs', 'Active subscriptions')} m={pick(overview, 'active_subscriptions')} goodUp t={t} />
-            <Kpi label={t('analytics.arOutstanding', 'AR outstanding')} m={pick(overview, 'ar_outstanding')} money t={t} />
-            <Kpi label={t('analytics.overdue', 'Overdue')} m={pick(overview, 'overdue')} money t={t} />
-            <Kpi label={t('analytics.collected', 'Collected this month')} m={pick(overview, 'collected_this_month')} money goodUp t={t} />
-            <Kpi label={t('analytics.newLeads', 'New leads (30d)')} m={pick(overview, 'new_leads_30d')} goodUp t={t} />
-          </div>
+        {loading && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {unavailable && <EmptyState icon={<ChartIcon size={40} />} title={t('analytics.unavailable', "Analytics aren't available yet")} message={t('analytics.unavailableMsg', 'KPIs and charts will appear here once the analytics service is enabled.')} />}
 
-          <div className="widgets">
-            <div className="widget">
-              <div className="widget-label">{t('analytics.revenueTrend', 'Revenue trend (collected vs invoiced)')}</div>
-              {trend && trend.length > 0 ? <RevenueTrend data={trend} t={t} /> : <p className="muted">{t('common.noData', 'No data.')}</p>}
+        {!loading && !unavailable && !error && overview && (
+          <>
+            {/* KPI strip — first KPI gets the gold marquee accent. */}
+            <div className="kpis">
+              <Kpi label={t('analytics.mrr', 'MRR')} m={pick(overview, 'mrr')} money goodUp marquee t={t} />
+              <Kpi label={t('analytics.activeSubs', 'Active subscriptions')} m={pick(overview, 'active_subscriptions')} goodUp t={t} />
+              <Kpi label={t('analytics.arOutstanding', 'AR outstanding')} m={pick(overview, 'ar_outstanding')} money t={t} />
+              <Kpi label={t('analytics.overdue', 'Overdue')} m={pick(overview, 'overdue')} money t={t} />
+              <Kpi label={t('analytics.collected', 'Collected this month')} m={pick(overview, 'collected_this_month')} money goodUp t={t} />
+              <Kpi label={t('analytics.newLeads', 'New leads (30d)')} m={pick(overview, 'new_leads_30d')} goodUp t={t} />
             </div>
 
-            <div className="widget">
-              <div className="widget-label">{t('analytics.subscriptionMix', 'Subscription mix')}</div>
-              {mix && mix.length > 0 ? <MixDonut data={mix} /> : <p className="muted">{t('common.noData', 'No data.')}</p>}
+            {/* Charts body — two columns: revenue trend (line) left, subscription mix (donut) right.
+                AR aging cascades as a full-width card underneath. */}
+            <div className="cols">
+              <div className="card">
+                <div className="card-head">
+                  <h3>{t('analytics.revenueTrend', 'Revenue trend (collected vs invoiced)')}</h3>
+                </div>
+                <div className="card-pad">
+                  {trend && trend.length > 0
+                    ? <RevenueTrendChart data={trend} t={t} />
+                    : <p className="muted">{t('common.noData', 'No data.')}</p>}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-head">
+                  <h3>{t('analytics.subscriptionMix', 'Subscription mix')}</h3>
+                </div>
+                <div className="card-pad">
+                  {mix && mix.length > 0
+                    ? <MixDonut data={mix} />
+                    : <p className="muted">{t('common.noData', 'No data.')}</p>}
+                </div>
+              </div>
             </div>
 
-            <div className="widget">
-              <div className="widget-label">{t('analytics.arAging', 'AR aging')}</div>
-              {aging && aging.some((b) => b.amount > 0) ? <Aging data={aging} /> : <p className="muted">{t('common.noData', 'No data.')}</p>}
-            </div>
-          </div>
-        </>
-      )}
+            {aging && aging.some((b) => b.amount > 0) && (
+              <div className="card" style={{ marginTop: 18 }}>
+                <div className="card-head">
+                  <h3>{t('analytics.arAging', 'AR aging')}</h3>
+                </div>
+                <div className="card-pad">
+                  <Aging data={aging} />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
 
-function Kpi({ label, m, money: isMoney, goodUp, t }: { label: string; m: { value: number; prev?: number }; money?: boolean; goodUp?: boolean; t: (k: string, d?: string) => string }) {
+// ───────────────────────── KPI tile (kit shape) ─────────────────────────
+function Kpi({
+  label, m, money: isMoney, goodUp, marquee, t,
+}: {
+  label: string
+  m: { value: number; prev?: number }
+  money?: boolean
+  goodUp?: boolean
+  marquee?: boolean
+  t: (k: string, d?: string) => string
+}) {
   const hasDelta = m.prev != null
   const diff = hasDelta ? m.value - (m.prev as number) : 0
   const up = diff > 0
   const pct = hasDelta && m.prev ? (diff / (m.prev as number)) * 100 : null
   const good = up === !!goodUp
+  // Synthesize a small sparkline from value/prev so the strip looks lively even without
+  // a historical series. TODO: replace with a real series when the backend returns it.
+  const sparkValues: number[] | undefined = hasDelta
+    ? [(m.prev as number), m.value]
+    : undefined
+
+  const cls = 'kpi' + (marquee ? ' kpi--marquee' : '')
+  const sparkColor = marquee
+    ? 'var(--gx-gold)'
+    : !good && hasDelta
+      ? 'var(--gx-danger)'
+      : 'var(--gx-success)'
+
   return (
-    <div className="widget widget-kpi">
-      <div className="widget-label">{label}</div>
-      <div className="kpi">{isMoney ? money(m.value) : fmtNum(m.value)}</div>
-      {hasDelta && diff !== 0 && (
-        <div className={'kpi-delta ' + (good ? 'pos' : 'neg')}>
-          {up ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />}
-          <span>{pct != null ? `${Math.abs(pct).toFixed(0)}%` : (isMoney ? money(Math.abs(diff)) : fmtNum(Math.abs(diff)))} {t('analytics.vsPrev', 'vs prev')}</span>
-        </div>
-      )}
+    <div className={cls}>
+      <div className="klbl">{label}</div>
+      <div className="kval tnum">{isMoney ? money(m.value) : fmtNum(m.value)}</div>
+      <div className="kfoot">
+        {hasDelta && diff !== 0 ? (
+          <span className={'kdelta ' + (good ? 'up' : 'down')}>
+            {up ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />}
+            {pct != null
+              ? `${Math.abs(pct).toFixed(0)}% ${t('analytics.vsPrev', 'vs prev')}`
+              : `${isMoney ? money(Math.abs(diff)) : fmtNum(Math.abs(diff))} ${t('analytics.vsPrev', 'vs prev')}`}
+          </span>
+        ) : (
+          <span className="kdelta" style={{ color: 'var(--gx-text-3)' }}>—</span>
+        )}
+        <Spark values={sparkValues} color={sparkColor} />
+      </div>
     </div>
   )
 }
 
-function RevenueTrend({ data, t }: { data: TrendPoint[]; t: (k: string, d?: string) => string }) {
-  const max = Math.max(1, ...data.flatMap((d) => [d.collected, d.invoiced]))
+// Revenue trend as a multi-series LineChart (Collected + Invoiced).
+function RevenueTrendChart({ data, t }: { data: TrendPoint[]; t: (k: string, d?: string) => string }) {
+  const collected = data.map((d) => d.collected)
+  const invoiced = data.map((d) => d.invoiced)
   return (
-    <div>
-      <div className="trend">
-        {data.map((d, i) => (
-          <div className="trend-col" key={i}>
-            <div className="trend-bars">
-              <div className="trend-bar" style={{ height: (d.collected / max) * 100 + '%', background: PALETTE[0] }} title={`${t('analytics.collected', 'Collected')}: ${money(d.collected)}`} />
-              <div className="trend-bar" style={{ height: (d.invoiced / max) * 100 + '%', background: PALETTE[1] }} title={`${t('analytics.invoiced', 'Invoiced')}: ${money(d.invoiced)}`} />
-            </div>
-            <div className="trend-x">{d.month}</div>
-          </div>
-        ))}
-      </div>
-      <div className="legend trend-legend">
-        <div className="legend-row"><span className="legend-dot" style={{ background: PALETTE[0] }} /><span className="legend-name">{t('analytics.collected', 'Collected')}</span></div>
-        <div className="legend-row"><span className="legend-dot" style={{ background: PALETTE[1] }} /><span className="legend-name">{t('analytics.invoiced', 'Invoiced')}</span></div>
-      </div>
-    </div>
+    <LineChart
+      series={[
+        { label: t('analytics.collected', 'Collected'), values: collected, color: 'var(--viz-1)', fillUnder: true },
+        { label: t('analytics.invoiced', 'Invoiced'), values: invoiced, color: 'var(--viz-2)' },
+      ]}
+    />
   )
 }
 
 function MixDonut({ data }: { data: MixSlice[] }) {
   const total = data.reduce((s, d) => s + d.count, 0)
-  const R = 42, C = 2 * Math.PI * R
-  let offset = 0
+  const donutData: DonutDatum[] = data.map((d) => ({ label: d.product, value: d.count }))
   return (
-    <div className="donut-wrap">
-      <svg viewBox="0 0 100 100" className="donut" role="img">
-        <circle cx="50" cy="50" r={R} fill="none" stroke="#262D37" strokeWidth="14" />
-        {total > 0 && data.map((d, i) => {
-          const len = (d.count / total) * C
-          const seg = (
-            <circle key={i} cx="50" cy="50" r={R} fill="none" stroke={PALETTE[i % PALETTE.length]} strokeWidth="14"
-              strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset} transform="rotate(-90 50 50)" />
-          )
-          offset += len
-          return seg
-        })}
-        <text x="50" y="53" textAnchor="middle" className="donut-total">{fmtNum(total)}</text>
-      </svg>
-      <div className="legend">
-        {data.map((d, i) => (
-          <div key={i} className="legend-row">
-            <span className="legend-dot" style={{ background: PALETTE[i % PALETTE.length] }} />
-            <span className="legend-name" title={d.product}>{d.product}</span>
-            <span className="legend-val">{fmtNum(d.count)} · {money(d.mrr)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Donut data={donutData} centerLabel={fmtNum(total)} centerCaption="total" />
   )
 }
 

@@ -1,28 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, loadCustomers, loadCustomerOptions, loadProducts, type Subscription, type Product } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
-import { ReceiptIcon, PlusIcon, DownloadIcon, PauseIcon, PlayIcon } from '../components/icons'
+import {
+  ReceiptIcon, PlusIcon, DownloadIcon, PauseIcon, PlayIcon,
+  SearchIcon, ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon, ArrowRightIcon,
+} from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
+import { StatusPill } from '../primitives'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
 
-function subStatusPill(status: string | null | undefined) {
-  const s = (status ?? '').toUpperCase()
-  const cls = s === 'ACTIVE' ? 'pill pill-success'
-    : s === 'SUSPENDED' ? 'pill pill-danger'
-    : s === 'CANCELLED' ? 'pill pill-muted'
-    : 'pill'
-  return status
-    ? <span className={cls}><span className="pill-dot" />{status}</span>
-    : <span>—</span>
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapSubStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'ACTIVE') return 'active'
+  if (v === 'TRIALING') return 'info'
+  if (v === 'PAST_DUE') return 'degraded'
+  if (v === 'SUSPENDED') return 'degraded'
+  if (v === 'CANCELLED' || v === 'CANCELED' || v === 'EXPIRED') return 'neutral'
+  return 'info'
 }
 
-export default function SubscriptionsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
+export default function SubscriptionsView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const cfg = usePageConfig(token, 'subscriptions', configVersion)
   const [list, setList] = useState<Subscription[] | null>(null)
   const cf = useCustomFields(token, 'subscriptions', cfg.customFields, (list ?? []).map((s) => s.id))
@@ -32,6 +47,14 @@ export default function SubscriptionsView({ token, configVersion = 0 }: { token:
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
+
+  // Interaction state for reskin.
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
@@ -47,6 +70,7 @@ export default function SubscriptionsView({ token, configVersion = 0 }: { token:
     loadCustomerOptions(token).then(setCustomers)
     loadProducts(token, true).then(setProducts)
   }, [token])
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
 
   const cust = (s: Subscription) => (s.customer_id ? (names[s.customer_id] ?? s.customer_id.slice(0, 8)) : '—')
 
@@ -107,151 +131,337 @@ export default function SubscriptionsView({ token, configVersion = 0 }: { token:
   const all = list ?? []
   const activeCount = all.filter(s => (s.status ?? '').toUpperCase() === 'ACTIVE').length
   const suspendedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'SUSPENDED').length
+  const cancelledCount = all.filter(s => {
+    const v = (s.status ?? '').toUpperCase()
+    return v === 'CANCELLED' || v === 'CANCELED'
+  }).length
+
+  function renderCell(colKey: string, s: Subscription) {
+    switch (colKey) {
+      case 'customer': return cust(s)
+      case 'plan': return <span className="mono">{s.plan_name ?? '—'}</span>
+      case 'cycle': return <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{s.cycle ?? '—'}</span>
+      case 'status': return s.status
+        ? <StatusPill variant={mapSubStatus(s.status)} label={s.status} size="sm" />
+        : <span>—</span>
+      case 'mrr': return <span className="mono tnum">{`֏${(s.amount ?? 0).toLocaleString()}`}</span>
+      default: return '—'
+    }
+  }
+
+  function colThClass(colKey: string): string { return colKey === 'mrr' ? 'num' : '' }
+  function colTdClass(colKey: string): string { return colKey === 'mrr' ? 'num' : '' }
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((s) => {
+      const fields = [
+        s.plan_name ?? '',
+        cust(s),
+        s.status ?? '',
+        s.cycle ?? '',
+        String(s.amount ?? ''),
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, query, names])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (s: Subscription): string | number => {
+      switch (k) {
+        case 'customer': return cust(s)
+        case 'plan': return s.plan_name ?? ''
+        case 'cycle': return s.cycle ?? ''
+        case 'status': return s.status ?? ''
+        case 'mrr': return s.amount ?? 0
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey, sortDir, names])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
 
   return (
-    <div>
-      <ViewHead
-        icon={<ReceiptIcon size={18} />}
-        title={cfg.title}
-        sub="Customer × service bindings · billed via the WorkItem engine"
-        actions={
-          !unavailable ? (
-            <>
-              <button className="btn btn-ghost btn-sm">
-                <DownloadIcon size={13} /> Export
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => setDraft(draft ? null : { ...EMPTY })}
-              >
-                <PlusIcon size={13} /> {draft ? 'Close' : 'New subscription'}
-              </button>
-            </>
-          ) : undefined
-        }
-      />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      {draft && (
-        <div className="rec-form">
-          <label className="field">
-            <span>Customer</span>
-            <select className="inp inp-md" value={draft.customer_id} onChange={(e) => setDraft({ ...draft, customer_id: e.target.value })}>
-              <option value="">— none —</option>
-              {customers.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Product</span>
-            <select className="inp inp-md" value={draft.product_id} onChange={(e) => pickProduct(e.target.value)}>
-              <option value="">— custom —</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Plan name *</span>
-            <input className="inp inp-md" value={draft.plan_name} onChange={(e) => setDraft({ ...draft, plan_name: e.target.value })} placeholder="Fiber 100" />
-          </label>
-          <label className="field">
-            <span>Amount (֏)</span>
-            <input className="inp inp-md inp-numeric" type="number" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
-          </label>
-          <label className="field">
-            <span>Cycle</span>
-            <select className="inp inp-md" value={draft.cycle} onChange={(e) => setDraft({ ...draft, cycle: e.target.value })}>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </label>
-          <div className="rec-form-actions">
-            <button className="btn btn-accent btn-md" onClick={createSub} disabled={!draft.plan_name.trim()}>Create</button>
-          </div>
-        </div>
-      )}
+        <ViewHead
+          icon={<ReceiptIcon size={18} />}
+          title={cfg.title}
+          sub={`${all.length} subscription${all.length !== 1 ? 's' : ''} · billed via the WorkItem engine`}
+          actions={
+            !unavailable ? (
+              <>
+                {canConfigure && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[subscriptions] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+                )}
+                <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
+                  <PlusIcon size={13} /> {draft ? 'Close' : 'New subscription'}
+                </button>
+              </>
+            ) : undefined
+          }
+        />
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && (
-        <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Subscriptions will appear here once the billing service is enabled." />
-      )}
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<ReceiptIcon size={40} />} title="No subscriptions" message="Subscriptions you create will show up here." />
-      )}
-
-      {list && list.length > 0 && (
-        <>
-          <div className="tabs" style={{ marginBottom: 16 }}>
-            <span className="pill pill-success">Active {activeCount}</span>
-            {suspendedCount > 0 && <span className="pill pill-danger">Suspended {suspendedCount}</span>}
-            {all.length - activeCount - suspendedCount > 0 && (
-              <span className="pill pill-muted">Other {all.length - activeCount - suspendedCount}</span>
+        {all.length > 0 && (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            <div className="widget">
+              <div className="widget-label">Total subscriptions</div>
+              <div className="kpi">{all.length}</div>
+              <div className="kpi-sub">{activeCount} active</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Active</div>
+              <div className="kpi" style={{ color: 'var(--success)' }}>{activeCount}</div>
+              <div className="kpi-sub">recurring revenue</div>
+            </div>
+            {suspendedCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Suspended</div>
+                <div className="kpi" style={{ color: 'var(--warning)' }}>{suspendedCount}</div>
+                <div className="kpi-sub">action required</div>
+              </div>
+            )}
+            {cancelledCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Cancelled</div>
+                <div className="kpi" style={{ color: 'var(--gx-text-3)' }}>{cancelledCount}</div>
+                <div className="kpi-sub">closed</div>
+              </div>
             )}
           </div>
+        )}
 
-          <div className="grid-wrap">
-            <table className="grid">
-              <thead>
-                <tr>
-                  {cfg.columns.map((c) => (
-                    <th key={c.key} scope="col" className={c.key === 'mrr' ? 'num' : ''}>{c.label}</th>
-                  ))}
-                  {cf.headers()}
-                  <th scope="col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((s) => {
-                  const st = (s.status ?? '').toUpperCase()
-                  const canceled = st === 'CANCELLED'
-                  return (
-                    <tr key={s.id}>
-                      {cfg.columns.map((c) => {
-                        if (c.key === 'customer') return <td key={c.key}>{cust(s)}</td>
-                        if (c.key === 'plan') return (
-                          <td key={c.key}><span className="pill pill-accent">{s.plan_name ?? '—'}</span></td>
-                        )
-                        if (c.key === 'cycle') return (
-                          <td key={c.key} className="muted" style={{ textTransform: 'capitalize' }}>{s.cycle ?? '—'}</td>
-                        )
-                        if (c.key === 'status') return <td key={c.key}>{subStatusPill(s.status)}</td>
-                        if (c.key === 'mrr') return <td key={c.key} className="num">֏{(s.amount ?? 0).toLocaleString()}</td>
-                        return <td key={c.key}>—</td>
-                      })}
-                      {cf.cells(s.id)}
-                      <td>
-                        <div className="row-actions">
-                          {!canceled && (
-                            <button className="btn btn-ghost btn-sm" title="Generate invoice" onClick={() => generate(s.id)}>
-                              Generate invoice
+        {draft && (
+          <div className="rec-form">
+            <label className="field">
+              <span>Customer</span>
+              <select className="inp inp-md" value={draft.customer_id} onChange={(e) => setDraft({ ...draft, customer_id: e.target.value })}>
+                <option value="">— none —</option>
+                {customers.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Product</span>
+              <select className="inp inp-md" value={draft.product_id} onChange={(e) => pickProduct(e.target.value)}>
+                <option value="">— custom —</option>
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Plan name *</span>
+              <input className="inp inp-md" value={draft.plan_name} onChange={(e) => setDraft({ ...draft, plan_name: e.target.value })} placeholder="Fiber 100" />
+            </label>
+            <label className="field">
+              <span>Amount (֏)</span>
+              <input className="inp inp-md inp-numeric" type="number" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
+            </label>
+            <label className="field">
+              <span>Cycle</span>
+              <select className="inp inp-md" value={draft.cycle} onChange={(e) => setDraft({ ...draft, cycle: e.target.value })}>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </label>
+            <div className="rec-form-actions">
+              <button className="btn btn-accent btn-md" onClick={createSub} disabled={!draft.plan_name.trim()}>Create</button>
+            </div>
+          </div>
+        )}
+
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <p className="muted">Loading…</p>}
+        {unavailable && (
+          <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Subscriptions will appear here once the billing service is enabled." />
+        )}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<ReceiptIcon size={40} />} title="No subscriptions" message="Subscriptions you create will show up here." />
+        )}
+
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[subscriptions] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} subscription(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search subscriptions"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[subscriptions] export all'); toast.success(`Export queued for ${sorted.length} subscription(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input
+                        type="checkbox"
+                        checked={allOnPageSelected}
+                        onChange={togglePageAll}
+                        aria-label="Select all rows on this page"
+                      />
+                    </th>
+                    {cfg.columns.map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={colThClass(c.key)}
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((s) => {
+                    const st = (s.status ?? '').toUpperCase()
+                    const canceled = st === 'CANCELLED' || st === 'CANCELED'
+                    return (
+                      <tr key={s.id} className={selected.has(s.id) ? 'sel' : ''}>
+                        <td onClick={(e) => { e.stopPropagation(); toggleRow(s.id) }} style={{ cursor: 'default' }}>
+                          <input
+                            type="checkbox"
+                            checked={selected.has(s.id)}
+                            onChange={() => toggleRow(s.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Select subscription ${s.id.slice(0, 8)}`}
+                          />
+                        </td>
+                        {cfg.columns.map((c) => (
+                          <td key={c.key} className={colTdClass(c.key)}>
+                            {renderCell(c.key, s)}
+                          </td>
+                        ))}
+                        {cf.cells(s.id)}
+                        <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                          <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                            {!canceled && (
+                              <button className="btn btn-ghost btn-sm" title="Generate invoice" onClick={() => generate(s.id)}>
+                                Generate
+                              </button>
+                            )}
+                            {!canceled && (
+                              <button className="btn btn-ghost btn-sm" title="Rate usage" onClick={() => rateUsage(s.id)}>
+                                Rate
+                              </button>
+                            )}
+                            {st === 'ACTIVE' && (
+                              <button className="iconbtn" title="Suspend" onClick={() => action(s.id, 'suspend')}>
+                                <PauseIcon size={13} />
+                              </button>
+                            )}
+                            {st === 'SUSPENDED' && (
+                              <button className="iconbtn" title="Resume" onClick={() => action(s.id, 'resume')}>
+                                <PlayIcon size={13} />
+                              </button>
+                            )}
+                            <button
+                              className="iconbtn"
+                              aria-label="Row menu"
+                              title="Row actions"
+                              onClick={(e) => { e.stopPropagation(); console.log('[subscriptions] row menu', s.id) }}
+                            >
+                              <MoreVerticalIcon size={15} />
                             </button>
-                          )}
-                          {!canceled && (
-                            <button className="btn btn-ghost btn-sm" title="Rate usage" onClick={() => rateUsage(s.id)}>
-                              Rate usage
-                            </button>
-                          )}
-                          {st === 'ACTIVE' && (
-                            <button className="iconbtn" title="Suspend" onClick={() => action(s.id, 'suspend')}>
-                              <PauseIcon size={13} />
-                            </button>
-                          )}
-                          {st === 'SUSPENDED' && (
-                            <button className="iconbtn" title="Resume" onClick={() => action(s.id, 'resume')}>
-                              <PlayIcon size={13} />
-                            </button>
-                          )}
-                          {!canceled && (
-                            <button className="btn btn-danger btn-sm" onClick={() => action(s.id, 'cancel')}>Cancel</button>
-                          )}
-                        </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching subscriptions.
                       </td>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 subscriptions'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }

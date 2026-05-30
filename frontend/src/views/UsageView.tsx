@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, type Subscription } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
-import { ChartIcon, CheckIcon, ReceiptIcon, DownloadIcon } from '../components/icons'
+import {
+  ChartIcon, CheckIcon, ReceiptIcon, DownloadIcon, PlusIcon, SearchIcon,
+  ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon, ArrowRightIcon,
+} from '../components/icons'
 import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
+import { StatusPill } from '../primitives'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -26,7 +30,18 @@ type Usage = {
 
 const METRICS = ['gb', 'minutes', 'messages', 'other']
 
-export default function UsageView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
+export default function UsageView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const cfg = usePageConfig(token, 'usage', configVersion)
   const [list, setList] = useState<Usage[] | null>(null)
   const cf = useCustomFields(token, 'usage', cfg.customFields, (list ?? []).map((u) => u.id))
@@ -36,6 +51,13 @@ export default function UsageView({ token, configVersion = 0 }: { token: string;
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
+
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
@@ -51,47 +73,111 @@ export default function UsageView({ token, configVersion = 0 }: { token: string;
 
   useEffect(() => { load() }, [token, rated])
   useEffect(() => { bget<Subscription[]>(token, '/api/subscriptions').then((r) => setSubs(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [rated, query, sortKey, sortDir])
 
   const subName = (sid: string | null | undefined) => (sid ? (subs.find((s) => s.id === sid)?.plan_name ?? sid.slice(0, 8)) : '—')
+
+  const all = list ?? []
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((u) => {
+      const fields = [
+        u.metric ?? '',
+        subName(u.subscription_id),
+        String(u.quantity ?? ''),
+        String(u.amount ?? ''),
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, query, subs])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (u: Usage): string | number => {
+      switch (k) {
+        case 'subscription': return subName(u.subscription_id)
+        case 'metric': return u.metric ?? ''
+        case 'quantity': return Number(u.quantity ?? 0)
+        case 'rate': return u.unit_rate ?? 0
+        case 'amount': return u.amount ?? 0
+        case 'rated': return u.rated ? 1 : 0
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey, sortDir, subs])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function colThClass(colKey: string): string {
+    return ['quantity', 'rate', 'amount'].includes(colKey) ? 'num' : ''
+  }
+  function colTdClass(colKey: string): string {
+    return ['quantity', 'rate', 'amount'].includes(colKey) ? 'num' : ''
+  }
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+
+  const ratedCount = all.filter(u => u.rated).length
+  const unratedCount = all.length - ratedCount
+  const totalAmt = all.reduce((a, u) => a + (u.amount ?? 0), 0)
+  const metrics = [...new Set(all.map(u => u.metric).filter(Boolean))]
 
   if (denied) return <PermissionDenied message={t('usage.denied', "You don't have permission to view usage.")} />
 
   return (
-    <div>
-      <ViewHead
-        icon={<ChartIcon size={20} />}
-        title={cfg.title}
-        sub="Bandwidth & metered records · rated via subscription rules"
-        actions={!unavailable && (
-          <>
-            <button className="btn btn-ghost btn-sm"><DownloadIcon size={13} /> Export</button>
-            <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>Record usage</button>
-          </>
-        )}
-      />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      <div className="list-toolbar">
-        <div className="bill-filter">
-          <span className="muted export-label">Rated</span>
-          <select className="inp inp-sm" aria-label="Filter by rated" value={rated} onChange={(e) => setRated(e.target.value)}>
-            <option value="">All</option>
-            <option value="false">Unrated</option>
-            <option value="true">Rated</option>
-          </select>
-        </div>
-      </div>
+        <ViewHead
+          icon={<ChartIcon size={18} />}
+          title={cfg.title}
+          sub={`${all.length} record${all.length !== 1 ? 's' : ''} · metered · rated via subscription rules`}
+          actions={!unavailable && (
+            <>
+              {canConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[usage] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              )}
+              <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
+                <PlusIcon size={13} /> Record usage
+              </button>
+            </>
+          )}
+        />
 
-      {list && list.length > 0 && (() => {
-        const all = list
-        const rated = all.filter(u => u.rated).length
-        const totalAmt = all.reduce((a, u) => a + (u.amount ?? 0), 0)
-        const metrics = [...new Set(all.map(u => u.metric).filter(Boolean))]
-        return (
+        {all.length > 0 && (
           <div className="widgets" style={{ marginBottom: 18 }}>
             <div className="widget">
               <div className="widget-label">Records</div>
               <div className="kpi">{all.length}</div>
-              <div className="kpi-sub">{rated} rated · {all.length - rated} unrated</div>
+              <div className="kpi-sub">{ratedCount} rated · {unratedCount} unrated</div>
             </div>
             <div className="widget">
               <div className="widget-label">Total amount</div>
@@ -106,50 +192,160 @@ export default function UsageView({ token, configVersion = 0 }: { token: string;
               </div>
             )}
           </div>
-        )
-      })()}
+        )}
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <SkeletonRows />}
-      {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title={t('usage.unavailable', "Usage isn't available yet")} message={t('usage.unavailableMsg', 'Metered usage will appear here once the rating service is enabled.')} />}
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<ReceiptIcon size={40} />} title="No usage records" message="Nothing matches this filter." />
-      )}
+        <div className="tabs">
+          <button className={'tab' + (rated === '' ? ' on' : '')} onClick={() => setRated('')}>
+            All <span className="tab-count">{all.length}</span>
+          </button>
+          <button className={'tab' + (rated === 'false' ? ' on' : '')} onClick={() => setRated('false')}>
+            Unrated <span className="tab-count">{unratedCount}</span>
+          </button>
+          <button className={'tab' + (rated === 'true' ? ' on' : '')} onClick={() => setRated('true')}>
+            Rated <span className="tab-count">{ratedCount}</span>
+          </button>
+        </div>
 
-      {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
-          <thead>
-            <tr>
-              {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
-              {cf.headers()}
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((u) => (
-              <tr key={u.id}>
-                {cfg.columns.map((c) => {
-                  let cell: React.ReactNode
-                  switch (c.key) {
-                    case 'subscription': cell = subName(u.subscription_id); break
-                    case 'metric': cell = u.metric ?? '—'; break
-                    case 'quantity': cell = u.quantity ?? '—'; break
-                    case 'rate': cell = money(u.unit_rate); break
-                    case 'amount': cell = money(u.amount); break
-                    case 'rated': cell = u.rated
-                      ? <span className="pill pill-success"><CheckIcon size={12} /> rated</span>
-                      : <span className="pill pill-muted">unrated</span>; break
-                    default: cell = '—'
-                  }
-                  return <td key={c.key}>{cell}</td>
-                })}
-                {cf.cells(u.id)}
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <SkeletonRows />}
+        {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title={t('usage.unavailable', "Usage isn't available yet")} message={t('usage.unavailableMsg', 'Metered usage will appear here once the rating service is enabled.')} />}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<ReceiptIcon size={40} />} title="No usage records" message="Nothing matches this filter." />
+        )}
 
-      {logOpen && <RecordUsageModal token={token} subs={subs} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />}
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[usage] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} record(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search usage"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[usage] export all'); toast.success(`Export queued for ${sorted.length} record(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
+                    </th>
+                    {cfg.columns.map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={colThClass(c.key)}
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((u) => (
+                    <tr key={u.id} className={selected.has(u.id) ? 'sel' : ''}>
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(u.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(u.id)}
+                          onChange={() => toggleRow(u.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select usage ${u.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      {cfg.columns.map((c) => {
+                        let cell: React.ReactNode
+                        switch (c.key) {
+                          case 'subscription': cell = subName(u.subscription_id); break
+                          case 'metric': cell = <span style={{ textTransform: 'capitalize' }}>{u.metric ?? '—'}</span>; break
+                          case 'quantity': cell = <span className="mono tnum">{u.quantity ?? '—'}</span>; break
+                          case 'rate': cell = <span className="mono tnum">{money(u.unit_rate)}</span>; break
+                          case 'amount': cell = <span className="mono tnum">{money(u.amount)}</span>; break
+                          case 'rated': cell = u.rated
+                            ? <StatusPill variant="active" label="rated" size="sm" />
+                            : <StatusPill variant="neutral" label="unrated" size="sm" />; break
+                          default: cell = '—'
+                        }
+                        return <td key={c.key} className={colTdClass(c.key)}>{cell}</td>
+                      })}
+                      {cf.cells(u.id)}
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[usage] row menu', u.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching usage records.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 records'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {logOpen && <RecordUsageModal token={token} subs={subs} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />}
+      </div>
     </div>
   )
 }

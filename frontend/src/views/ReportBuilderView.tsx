@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getEntityDef } from '../lib/api'
 import { bget, bpost, type Fetched, BASE, authH } from '../lib/billing'   // reuse the generic auth'd fetch helpers
 import { toast } from '../components/Toast'
@@ -7,7 +7,14 @@ import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import ReportSchedulePanel from '../modals/ReportSchedulePanel'
-import { DownloadIcon, EditIcon } from '../components/icons'
+import { DownloadIcon, EditIcon, PlusIcon, CloseIcon, TrashIcon } from '../components/icons'
+import { Donut, type DonutDatum } from '../components/charts/Donut'
+
+// Report Builder — form-heavy wizard that pairs a builder form with a runner/preview.
+// Reskinned into the kit pattern: `.view → .view-inner gx-dash → .crumbs → .view-head`,
+// then a two-column body (`.cols`): builder/list on the left, run preview on the right.
+// Form sections use the kit's `.rec-form` + `.field`; preview uses `.card` + `.kpis`/
+// charts. Data hooks (bget/bpost against /api/reports-builder/*) are UNCHANGED.
 
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type Field = { key: string; label: string; type: string }
@@ -51,6 +58,8 @@ function asGroups(result: any): Group[] {
   if (Array.isArray(result)) return result.map((d) => ({ group: String(d.group ?? '—'), value: Number(d.value) || 0 }))
   return []
 }
+
+const fmtNum = (n: number) => n.toLocaleString('en-US')
 
 export default function ReportBuilderView({ token, entities }: { token: string; entities: Entity[] }) {
   const [reports, setReports] = useState<Report[] | null>(null)
@@ -128,93 +137,174 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
   }
 
   return (
-    <div>
-      <ViewHead
-        icon={<EditIcon size={20} />}
-        title="Report Builder"
-        actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setBuilding((b) => !b)}>{building ? 'Close' : '+ New report'}</button>}
-      />
+    <div className="view">
+      <div className="view-inner gx-dash fade">
+        <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>Report Builder</span></div>
 
-      {building && (
-        <div className="rec-form">
-          <label className="field"><span>Name *</span><input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Leads by status" /></label>
-          <label className="field"><span>Entity *</span>
-            <select className="inp inp-md" value={entity} onChange={(e) => { setEntity(e.target.value); setField(''); setGroupBy('') }}>
-              <option value="">— pick —</option>
-              {entities.map((en) => <option key={en.key} value={en.key}>{en.label_plural}</option>)}
-            </select>
-          </label>
-          <label className="field"><span>Metric</span>
-            <select className="inp inp-md" value={metric} onChange={(e) => setMetric(e.target.value)}>
-              {METRICS.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </label>
-          {metric !== 'count' && (
-            <label className="field"><span>Field</span>
-              <select className="inp inp-md" value={field} onChange={(e) => setField(e.target.value)}>
-                <option value="">— pick —</option>
-                {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-              </select>
-            </label>
+        <ViewHead
+          icon={<EditIcon size={20} />}
+          title="Report Builder"
+          sub={reports && !unavailable ? `${reports.length} saved report${reports.length === 1 ? '' : 's'}` : 'Compose re-runnable aggregations across configured entities'}
+          actions={!unavailable && (
+            <button className="btn btn-primary btn-sm" onClick={() => setBuilding((b) => !b)}>
+              {building ? <><CloseIcon size={13} /> Close</> : <><PlusIcon size={13} /> New report</>}
+            </button>
           )}
-          <label className="field"><span>Group by</span>
-            <select className="inp inp-md" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
-              <option value="">— none —</option>
-              <option value="status">status</option>
-              {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-            </select>
-          </label>
-          <label className="field"><span>Filter (GXL)</span><input className="inp inp-md" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="status == 'NEW'" /></label>
-          <label className="field"><span>Shared</span><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /></label>
-          <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={save} disabled={!name.trim() || !entity}>Save report</button></div>
-        </div>
-      )}
-
-      {error && <ErrorBanner message={error} onRetry={loadReports} />}
-      {reports === null && !error && <SkeletonRows />}
-      {unavailable && <EmptyState title={t('reports.unavailable', "Report builder isn't available yet")} message={t('reports.unavailableMsg', 'Saved reports will appear here once the endpoint is enabled.')} />}
-      {reports && !unavailable && reports.length === 0 && !error && (
-        <EmptyState title="No reports yet" message="Build one to save a re-runnable aggregation." />
-      )}
-
-      {reports && reports.length > 0 && (
-        <div className="rb-layout">
-          <div className="rb-list">
-            {reports.map((r) => (
-              <div key={r.id} className={'rb-item' + (run?.id === r.id ? ' on' : '')}>
-                <button className="rb-item-main" onClick={() => doRun(r.id)}>
-                  <span className="rb-name">{r.name}</span>
-                  <span className="rb-badges">
-                    <span className="pill pill-muted">{r.query.metric}</span>
-                    {r.shared ? <span className="pill">shared</span> : <span className="pill pill-muted">mine</span>}
-                  </span>
-                </button>
-                {(r.mine || r.shared) && <button className="btn btn-danger btn-sm" aria-label="Delete report" onClick={() => remove(r)}>Delete</button>}
-              </div>
-            ))}
-          </div>
-
-          <div className="rb-result">
-            {!run && <p className="muted">Select a report to run it.</p>}
-            {run && run.error && <ErrorBanner message={run.error === 'forbidden' ? "You can't view this report's data." : run.error} />}
-            {run && !run.error && <RunView run={run} token={token} />}
-          </div>
-        </div>
-      )}
-
-      {/* B24 — schedule panel; degrades silently if /api/report-schedules 404s */}
-      {!unavailable && reports && reports.length > 0 && (
-        <ReportSchedulePanel
-          token={token}
-          reports={(reports ?? []).map((r) => ({ id: r.id, name: r.name }))}
         />
-      )}
+
+        {/* Builder form — kit `.card` + `.rec-form` + `.field` pattern. */}
+        {building && (
+          <div className="card" style={{ marginBottom: 18 }}>
+            <div className="card-head">
+              <h3>New report</h3>
+            </div>
+            <div className="card-pad">
+              <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
+                <label className="field">
+                  <span>Name <span style={{ color: 'var(--danger)' }}>*</span></span>
+                  <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Leads by status" />
+                </label>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <label className="field" style={{ flex: 1, minWidth: 200 }}>
+                    <span>Entity <span style={{ color: 'var(--danger)' }}>*</span></span>
+                    <select className="inp inp-md" value={entity} onChange={(e) => { setEntity(e.target.value); setField(''); setGroupBy('') }}>
+                      <option value="">— pick —</option>
+                      {entities.map((en) => <option key={en.key} value={en.key}>{en.label_plural}</option>)}
+                    </select>
+                  </label>
+                  <label className="field" style={{ flex: 1, minWidth: 140 }}>
+                    <span>Metric</span>
+                    <select className="inp inp-md" value={metric} onChange={(e) => setMetric(e.target.value)}>
+                      {METRICS.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                {metric !== 'count' && (
+                  <label className="field">
+                    <span>Field</span>
+                    <select className="inp inp-md" value={field} onChange={(e) => setField(e.target.value)}>
+                      <option value="">— pick —</option>
+                      {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                    </select>
+                  </label>
+                )}
+
+                <label className="field">
+                  <span>Group by</span>
+                  <select className="inp inp-md" value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                    <option value="">— none —</option>
+                    <option value="status">status</option>
+                    {fields.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                  </select>
+                </label>
+
+                <label className="field">
+                  <span>Filter (GXL)</span>
+                  <input className="inp inp-md" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="status == 'NEW'" />
+                </label>
+
+                <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} />
+                  <span>Shared with all members</span>
+                </label>
+              </div>
+
+              <div className="rec-form-actions" style={{ marginTop: 12 }}>
+                <button className="btn btn-ghost btn-md" onClick={() => setBuilding(false)}>Cancel</button>
+                <button className="btn btn-primary btn-md" onClick={save} disabled={!name.trim() || !entity}>Save report</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && <ErrorBanner message={error} onRetry={loadReports} />}
+        {reports === null && !error && <SkeletonRows />}
+        {unavailable && <EmptyState title={t('reports.unavailable', "Report builder isn't available yet")} message={t('reports.unavailableMsg', 'Saved reports will appear here once the endpoint is enabled.')} />}
+        {reports && !unavailable && reports.length === 0 && !error && (
+          <EmptyState title="No reports yet" message="Build one to save a re-runnable aggregation." />
+        )}
+
+        {/* Saved reports + run preview as a two-column dashboard body. */}
+        {reports && reports.length > 0 && (
+          <div className="cols">
+            <div className="card">
+              <div className="card-head">
+                <h3>Saved reports</h3>
+              </div>
+              <div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {reports.map((r) => (
+                  <div
+                    key={r.id}
+                    className={'rb-item' + (run?.id === r.id ? ' on' : '')}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 10px',
+                      borderRadius: 'var(--gx-radius-md, 6px)',
+                      background: run?.id === r.id ? 'var(--gx-bg-3, var(--surface-2))' : 'transparent',
+                      border: '1px solid ' + (run?.id === r.id ? 'var(--gx-primary)' : 'var(--gx-border, var(--border))'),
+                    }}
+                  >
+                    <button
+                      className="rb-item-main"
+                      onClick={() => doRun(r.id)}
+                      style={{
+                        flex: 1, textAlign: 'left',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                        background: 'transparent', border: 0, cursor: 'pointer', font: 'inherit', color: 'inherit',
+                        padding: 0,
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>{r.name}</span>
+                      <span style={{ display: 'inline-flex', gap: 6 }}>
+                        <span className="pill pill-neutral pill-sm">{r.query.metric}</span>
+                        {r.shared
+                          ? <span className="pill pill-info pill-sm">shared</span>
+                          : <span className="pill pill-neutral pill-sm">mine</span>}
+                      </span>
+                    </button>
+                    {(r.mine || r.shared) && (
+                      <button
+                        className="iconbtn"
+                        aria-label="Delete report"
+                        title="Delete report"
+                        onClick={() => remove(r)}
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        <TrashIcon size={14} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-head">
+                <h3>{run ? `${run.name}${run.matched != null ? ` · ${run.matched} record${run.matched === 1 ? '' : 's'}` : ''}` : 'Preview'}</h3>
+              </div>
+              <div className="card-pad">
+                {!run && <p className="muted">Select a report to run it.</p>}
+                {run && run.error && <ErrorBanner message={run.error === 'forbidden' ? "You can't view this report's data." : run.error} />}
+                {run && !run.error && <RunView run={run} token={token} />}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* B24 — schedule panel; degrades silently if /api/report-schedules 404s */}
+        {!unavailable && reports && reports.length > 0 && (
+          <ReportSchedulePanel
+            token={token}
+            reports={(reports ?? []).map((r) => ({ id: r.id, name: r.name }))}
+          />
+        )}
+      </div>
     </div>
   )
 }
 
 function RunView({ run, token }: { run: RunResult; token: string }) {
-  const fmt = (n: number) => n.toLocaleString('en-US')
   const result = run.result
   const groups = asGroups(result)
   const isValue = result && typeof result === 'object' && 'value' in result
@@ -257,13 +347,28 @@ function RunView({ run, token }: { run: RunResult; token: string }) {
     }
   }
 
+  // Donut for grouped result (categorical), bars for the table view underneath.
+  const donutData: DonutDatum[] = useMemo(
+    () => groups.map((g) => ({ label: g.group, value: g.value })),
+    [groups],
+  )
+  const total = groups.reduce((s, g) => s + g.value, 0)
+
   return (
-    <div className="widget">
-      <div className="widget-label">{run.name}{run.matched != null ? ` · ${run.matched} records` : ''}</div>
-      {isValue && <div className="kpi">{fmt(Number(result.value) || 0)}</div>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {isValue && (
+        <div className="kpis" style={{ marginBottom: 0 }}>
+          <div className="kpi kpi--marquee">
+            <div className="klbl">{run.name}</div>
+            <div className="kval tnum">{fmtNum(Number(result.value) || 0)}</div>
+            <div className="kfoot"><span className="kdelta" style={{ color: 'var(--gx-text-3)' }}>—</span></div>
+          </div>
+        </div>
+      )}
       {!isValue && groups.length === 0 && <p className="muted">No data.</p>}
       {!isValue && groups.length > 0 && (
         <>
+          <Donut data={donutData} centerLabel={fmtNum(total)} centerCaption="total" />
           <div className="bars">
             {(() => {
               const max = groups.reduce((m, g) => Math.max(m, g.value), 0)
@@ -271,7 +376,7 @@ function RunView({ run, token }: { run: RunResult; token: string }) {
                 <div key={i} className="bar-row">
                   <span className="bar-label" title={g.group}>{g.group}</span>
                   <div className="bar-track"><div className="bar-fill" style={{ width: (max > 0 ? (g.value / max) * 100 : 0) + '%' }} /></div>
-                  <span className="bar-val">{fmt(g.value)}</span>
+                  <span className="bar-val tnum">{fmtNum(g.value)}</span>
                 </div>
               ))
             })()}
@@ -281,42 +386,39 @@ function RunView({ run, token }: { run: RunResult; token: string }) {
 
       {/* B24 — export-format buttons; hidden until probe resolves; hides per-format if 404 */}
       {formats !== null && (formats.csv || formats.xlsx || formats.pdf) && (
-        <div className="export-formats" role="group" aria-label={t('export.label', 'Export')}>
-          <span className="export-formats-label">{t('export.label', 'Export')}</span>
+        <div className="toolbar" style={{ padding: '8px 0 0', margin: 0, justifyContent: 'flex-end' }} role="group" aria-label={t('export.label', 'Export')}>
+          <span className="muted" style={{ fontSize: 12 }}>{t('export.label', 'Export')}</span>
           {formats.csv && (
             <button
               type="button"
-              className="export-btn"
+              className="btn btn-ghost btn-sm"
               disabled={exporting !== null}
               onClick={() => doExport('csv')}
               aria-label={t('export.csv', 'CSV')}
             >
-              <DownloadIcon size={12} aria-hidden />
-              {t('export.csv', 'CSV')}
+              <DownloadIcon size={12} aria-hidden /> {t('export.csv', 'CSV')}
             </button>
           )}
           {formats.xlsx && (
             <button
               type="button"
-              className="export-btn"
+              className="btn btn-ghost btn-sm"
               disabled={exporting !== null}
               onClick={() => doExport('xlsx')}
               aria-label={t('export.xlsx', 'XLSX')}
             >
-              <DownloadIcon size={12} aria-hidden />
-              {t('export.xlsx', 'XLSX')}
+              <DownloadIcon size={12} aria-hidden /> {t('export.xlsx', 'XLSX')}
             </button>
           )}
           {formats.pdf && (
             <button
               type="button"
-              className="export-btn"
+              className="btn btn-ghost btn-sm"
               disabled={exporting !== null}
               onClick={() => doExport('pdf')}
               aria-label={t('export.pdf', 'PDF')}
             >
-              <DownloadIcon size={12} aria-hidden />
-              {t('export.pdf', 'PDF')}
+              <DownloadIcon size={12} aria-hidden /> {t('export.pdf', 'PDF')}
             </button>
           )}
         </div>

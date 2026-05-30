@@ -13,6 +13,7 @@ import {
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
+import { StatusPill } from '../primitives'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
 // to see ONE customer's whole life: header money summary, services, subscriptions, invoices (with
@@ -46,14 +47,16 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-// status → shared .pill variant (generic; statuses are configurable so this only tints common verbs).
-function statusPill(status: string | null | undefined) {
-  const s = (status ?? '').toUpperCase()
-  const cls = ['ACTIVE', 'PAID', 'RESOLVED', 'WON'].includes(s) ? 'pill pill-success'
-    : ['OVERDUE', 'SUSPENDED', 'CANCELLED', 'VOID', 'CHURNED', 'LOST'].includes(s) ? 'pill pill-danger'
-    : ['DRAFT', 'NEW', 'PROSPECT'].includes(s) ? 'pill pill-muted'
-    : 'pill'
-  return status ? <span className={cls}>{status}</span> : <span>—</span>
+// Generic CRM/billing status → StatusPill variant. Statuses are configurable so this
+// only tints the well-known verbs and falls back to `info` for everything else.
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapCustomerStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (['ACTIVE', 'PAID', 'RESOLVED', 'WON'].includes(v)) return 'active'
+  if (['OVERDUE', 'CANCELLED', 'VOID', 'CHURNED', 'LOST'].includes(v)) return 'critical'
+  if (['SUSPENDED'].includes(v)) return 'degraded'
+  if (['DRAFT', 'NEW', 'PROSPECT'].includes(v)) return 'neutral'
+  return 'info'
 }
 
 export default function CustomerView({ token, customerId, onBack, configVersion = 0 }: {
@@ -109,189 +112,219 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   const related = Object.entries(data?.related ?? {})
 
   return (
-    <div>
-      <ViewHead
-        icon={<UsersIcon size={16} />}
-        title={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            {name || t('cust.title', 'Customer')}
-            {p && statusPill(p.status)}
-          </span>
-        }
-        sub={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ padding: '2px 8px', fontSize: 12 }}>
-              <ChevronLeftIcon size={12} /> {t('nav.customers', 'Customers')}
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs">
+          <span>CRM</span><span className="sep">/</span>
+          <a onClick={onBack} style={{ cursor: 'pointer' }}>{t('nav.customers', 'Customers')}</a>
+          <span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{name || t('cust.title', 'Customer')}</span>
+        </div>
+
+        <ViewHead
+          icon={<UsersIcon size={18} />}
+          title={
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              {name || t('cust.title', 'Customer')}
+              {p?.status && <StatusPill variant={mapCustomerStatus(p.status)} label={p.status} size="sm" />}
+            </span>
+          }
+          sub={
+            p?.id ? <span className="mono" style={{ color: 'var(--gx-text-3)' }}>{p.id.slice(0, 8)}</span> : undefined
+          }
+          actions={
+            <button className="btn btn-ghost btn-sm" onClick={onBack}>
+              <ChevronLeftIcon size={13} /> {t('nav.customers', 'Customers')}
             </button>
-            {p?.id && <span className="mono" style={{ color: 'var(--text-3)' }}>{p.id.slice(0, 8)}</span>}
-          </span>
-        }
-      />
+          }
+        />
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {!data && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {!data && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
-      {data && (
-        <>
-          {/* 360 stat widgets — outstanding / billed / paid / overdue */}
-          <div className="widgets" style={{ marginBottom: 22 }}>
-            <div className="widget">
-              <div className="widget-label">
-                <CreditCardIcon size={12} className="widget-label-icon" />
-                {t('cust.outstanding', 'Outstanding')}
-              </div>
-              <div className="kpi" style={{ fontSize: 30, color: (sum.outstanding ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
-                {money(sum.outstanding)}
-              </div>
-              {(sum.overdue_count ?? 0) > 0 && (
-                <div className="kpi-sub" style={{ color: 'var(--danger)' }}>
-                  {sum.overdue_count} {t('cust.overdue', 'overdue invoice(s)')}
-                </div>
-              )}
-            </div>
-
-            <div className="widget">
-              <div className="widget-label">{t('cust.billed', 'Total billed')}</div>
-              <div className="kpi" style={{ fontSize: 30 }}>{money(sum.total_billed)}</div>
-              {sum.invoice_count != null && (
-                <div className="kpi-sub">{sum.invoice_count} {t('cust.invoiceCount', 'invoice(s)')}</div>
-              )}
-            </div>
-
-            <div className="widget">
-              <div className="widget-label">{t('cust.paid', 'Total paid')}</div>
-              <div className="kpi" style={{ fontSize: 30, color: 'var(--success)' }}>{money(sum.total_paid)}</div>
-              {sum.subscription_count != null && (
-                <div className="kpi-sub">{sum.subscription_count} {t('cust.subCount', 'active subscription(s)')}</div>
-              )}
-            </div>
-
-            {/* Related CRM counts in compact widget */}
-            {related.filter(([, n]) => n > 0).length > 0 && (
+        {data && (
+          <>
+            {/* 360 stat widgets — outstanding / billed / paid / overdue */}
+            <div className="widgets" style={{ marginBottom: 22 }}>
               <div className="widget">
-                <div className="widget-label">{t('cust.related', 'Related records')}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                  {related.filter(([, n]) => n > 0).map(([key, n]) => (
-                    <span key={key} className="pill">{key} · {n}</span>
-                  ))}
+                <div className="widget-label">
+                  <CreditCardIcon size={12} className="widget-label-icon" />
+                  {t('cust.outstanding', 'Outstanding')}
                 </div>
+                <div className="kpi" style={{ fontSize: 30, color: (sum.outstanding ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                  <span className="mono tnum">{money(sum.outstanding)}</span>
+                </div>
+                {(sum.overdue_count ?? 0) > 0 && (
+                  <div className="kpi-sub" style={{ color: 'var(--danger)' }}>
+                    {sum.overdue_count} {t('cust.overdue', 'overdue invoice(s)')}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Services */}
-          <div className="section-head">
-            <ClockIcon size={16} className="section-icon" />
-            {t('cust.services', 'Services')}
-          </div>
-          {services.length === 0
-            ? <p className="muted">{t('cust.noServices', 'No services yet.')}</p>
-            : (
-              <div className="grid-wrap"><table className="grid">
-                <thead><tr>
-                  <th scope="col">{t('cust.service', 'Service')}</th>
-                  <th scope="col">{t('cust.type', 'Type')}</th>
-                  <th scope="col">{t('common.status', 'Status')}</th>
-                  <th scope="col">{t('cust.activated', 'Activated')}</th>
-                </tr></thead>
-                <tbody>
-                  {services.map((sv) => (
-                    <tr key={sv.id}>
-                      <td>{sv.name ?? sv.id.slice(0, 8)}</td>
-                      <td>{sv.type ?? '—'}</td>
-                      <td>{statusPill(sv.status)}</td>
-                      <td>{fmtDate(sv.activated_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></div>
-            )}
+              <div className="widget">
+                <div className="widget-label">{t('cust.billed', 'Total billed')}</div>
+                <div className="kpi" style={{ fontSize: 30 }}>
+                  <span className="mono tnum">{money(sum.total_billed)}</span>
+                </div>
+                {sum.invoice_count != null && (
+                  <div className="kpi-sub">{sum.invoice_count} {t('cust.invoiceCount', 'invoice(s)')}</div>
+                )}
+              </div>
 
-          {/* Subscriptions */}
-          <div className="section-head">
-            <ReceiptIcon size={16} className="section-icon" />
-            {t('nav.subscriptions', 'Subscriptions')}
-          </div>
-          {subs.length === 0
-            ? <p className="muted">{t('cust.noSubs', 'No subscriptions yet.')}</p>
-            : (
-              <div className="grid-wrap"><table className="grid">
-                <thead><tr>
-                  <th scope="col">{t('subs.plan', 'Plan')}</th>
-                  <th scope="col">{t('subs.amount', 'Amount')}</th>
-                  <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
-                  <th scope="col">{t('common.status', 'Status')}</th>
-                </tr></thead>
-                <tbody>
-                  {subs.map((s) => (
-                    <tr key={s.id}><td>{s.plan_name ?? '—'}</td><td>{money(s.amount)}</td><td>{s.cycle ?? '—'}</td><td>{statusPill(s.status)}</td></tr>
-                  ))}
-                </tbody>
-              </table></div>
-            )}
+              <div className="widget">
+                <div className="widget-label">{t('cust.paid', 'Total paid')}</div>
+                <div className="kpi" style={{ fontSize: 30, color: 'var(--success)' }}>
+                  <span className="mono tnum">{money(sum.total_paid)}</span>
+                </div>
+                {sum.subscription_count != null && (
+                  <div className="kpi-sub">{sum.subscription_count} {t('cust.subCount', 'active subscription(s)')}</div>
+                )}
+              </div>
 
-          {/* Invoices — with issue / record-payment affordances */}
-          <div className="section-head">
-            <ReceiptIcon size={16} className="section-icon" />
-            {t('nav.invoices', 'Invoices')}
-            <span className="spacer" />
-            <button className="btn btn-ghost btn-sm">
-              <DownloadIcon size={13} /> {t('cust.statement', 'Statement')}
-            </button>
-          </div>
-          {invoices.length === 0
-            ? <p className="muted">{t('cust.noInvoices', 'No invoices yet.')}</p>
-            : (
-              <div className="grid-wrap"><table className="grid">
-                <thead><tr>
-                  <th scope="col">{t('invoices.number', 'Invoice')}</th>
-                  <th scope="col">{t('common.status', 'Status')}</th>
-                  <th scope="col">{t('invoices.total', 'Total')}</th>
-                  <th scope="col">{t('invoices.due', 'Due')}</th>
-                  <th scope="col"></th>
-                </tr></thead>
-                <tbody>
-                  {invoices.map((inv) => {
-                    const st = (inv.status ?? '').toUpperCase()
-                    return (
-                      <tr key={inv.id}>
-                        <td>{inv.number ?? inv.id.slice(0, 8)}</td>
-                        <td>{statusPill(inv.status)}</td>
-                        <td>{money(inv.total)}</td>
-                        <td>{fmtDate(inv.due_at)}</td>
-                        <td className="row-actions">
-                          {st === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</button>}
-                          {(st === 'ISSUED' || st === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</button>}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table></div>
-            )}
+              {/* Related CRM counts in compact widget */}
+              {related.filter(([, n]) => n > 0).length > 0 && (
+                <div className="widget">
+                  <div className="widget-label">{t('cust.related', 'Related records')}</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                    {related.filter(([, n]) => n > 0).map(([key, n]) => (
+                      <span key={key} className="pill">{key} · {n}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
-          {/* Interactions — customer touchpoints (calls, emails, notes, etc.) */}
-          <div className="section-head">
-            <PhoneIcon size={16} className="section-icon" />
-            {t('nav.interactions', 'Interactions')}
-            <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>· {t('common.embedded', 'embedded view')}</span>
-          </div>
-          <InteractionsView token={token} customerId={customerId} embedded />
+            {/* Services */}
+            <div className="section-head">
+              <ClockIcon size={16} className="section-icon" />
+              {t('cust.services', 'Services')}
+            </div>
+            {services.length === 0
+              ? <p className="muted">{t('cust.noServices', 'No services yet.')}</p>
+              : (
+                <div className="card" style={{ overflow: 'hidden' }}>
+                  <div className="grid-wrap">
+                    <table className="grid">
+                      <thead><tr>
+                        <th scope="col">{t('cust.service', 'Service')}</th>
+                        <th scope="col">{t('cust.type', 'Type')}</th>
+                        <th scope="col">{t('common.status', 'Status')}</th>
+                        <th scope="col">{t('cust.activated', 'Activated')}</th>
+                      </tr></thead>
+                      <tbody>
+                        {services.map((sv) => (
+                          <tr key={sv.id}>
+                            <td>{sv.name ?? <span className="mono">{sv.id.slice(0, 8)}</span>}</td>
+                            <td>{sv.type ?? '—'}</td>
+                            <td>{sv.status ? <StatusPill variant={mapCustomerStatus(sv.status)} label={sv.status} size="sm" /> : <span>—</span>}</td>
+                            <td><span className="mono">{fmtDate(sv.activated_at)}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
-          {/* Activity — reuse the shared record timeline (degrades on its own) */}
-          <div className="section-head">
-            <ClockIcon size={16} className="section-icon" />
-            {t('nav.activity', 'Activity timeline')}
-          </div>
-          <div className="widget">
-            <ActivityTimeline token={token} record={customerId} />
-          </div>
-        </>
-      )}
+            {/* Subscriptions */}
+            <div className="section-head">
+              <ReceiptIcon size={16} className="section-icon" />
+              {t('nav.subscriptions', 'Subscriptions')}
+            </div>
+            {subs.length === 0
+              ? <p className="muted">{t('cust.noSubs', 'No subscriptions yet.')}</p>
+              : (
+                <div className="card" style={{ overflow: 'hidden' }}>
+                  <div className="grid-wrap">
+                    <table className="grid">
+                      <thead><tr>
+                        <th scope="col">{t('subs.plan', 'Plan')}</th>
+                        <th scope="col" className="num">{t('subs.amount', 'Amount')}</th>
+                        <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
+                        <th scope="col">{t('common.status', 'Status')}</th>
+                      </tr></thead>
+                      <tbody>
+                        {subs.map((s) => (
+                          <tr key={s.id}>
+                            <td>{s.plan_name ?? '—'}</td>
+                            <td className="num"><span className="mono tnum">{money(s.amount)}</span></td>
+                            <td>{s.cycle ?? '—'}</td>
+                            <td>{s.status ? <StatusPill variant={mapCustomerStatus(s.status)} label={s.status} size="sm" /> : <span>—</span>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
-      {payInvoice && (
-        <PaymentModal token={token} invoiceId={payInvoice.id} onClose={() => setPayInvoice(null)} onDone={() => { setPayInvoice(null); load() }} />
-      )}
+            {/* Invoices — with issue / record-payment affordances */}
+            <div className="section-head">
+              <ReceiptIcon size={16} className="section-icon" />
+              {t('nav.invoices', 'Invoices')}
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm">
+                <DownloadIcon size={13} /> {t('cust.statement', 'Statement')}
+              </button>
+            </div>
+            {invoices.length === 0
+              ? <p className="muted">{t('cust.noInvoices', 'No invoices yet.')}</p>
+              : (
+                <div className="card" style={{ overflow: 'hidden' }}>
+                  <div className="grid-wrap">
+                    <table className="grid">
+                      <thead><tr>
+                        <th scope="col">{t('invoices.number', 'Invoice')}</th>
+                        <th scope="col">{t('common.status', 'Status')}</th>
+                        <th scope="col" className="num">{t('invoices.total', 'Total')}</th>
+                        <th scope="col">{t('invoices.due', 'Due')}</th>
+                        <th scope="col"></th>
+                      </tr></thead>
+                      <tbody>
+                        {invoices.map((inv) => {
+                          const st = (inv.status ?? '').toUpperCase()
+                          return (
+                            <tr key={inv.id}>
+                              <td><span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span></td>
+                              <td>{inv.status ? <StatusPill variant={mapCustomerStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</td>
+                              <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
+                              <td><span className="mono">{fmtDate(inv.due_at)}</span></td>
+                              <td className="row-actions">
+                                {st === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</button>}
+                                {(st === 'ISSUED' || st === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</button>}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            {/* Interactions — customer touchpoints (calls, emails, notes, etc.) */}
+            <div className="section-head">
+              <PhoneIcon size={16} className="section-icon" />
+              {t('nav.interactions', 'Interactions')}
+              <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>· {t('common.embedded', 'embedded view')}</span>
+            </div>
+            <InteractionsView token={token} customerId={customerId} embedded />
+
+            {/* Activity — reuse the shared record timeline (degrades on its own) */}
+            <div className="section-head">
+              <ClockIcon size={16} className="section-icon" />
+              {t('nav.activity', 'Activity timeline')}
+            </div>
+            <div className="widget">
+              <ActivityTimeline token={token} record={customerId} />
+            </div>
+          </>
+        )}
+
+        {payInvoice && (
+          <PaymentModal token={token} invoiceId={payInvoice.id} onClose={() => setPayInvoice(null)} onDone={() => { setPayInvoice(null); load() }} />
+        )}
+      </div>
     </div>
   )
 }

@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   listPaymentOrders, reconcileOrders, openReceipt,
   type PaymentOrder, type PaymentOrderStatus,
 } from '../lib/paymentgw'
 import { money } from '../lib/money'
-import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
-import { CreditCardIcon, ReceiptIcon, ArrowRightIcon } from '../components/icons'
+import {
+  CreditCardIcon, ReceiptIcon, SearchIcon, DownloadIcon, ArrowRightIcon,
+  ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon,
+} from '../components/icons'
+import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+import { StatusPill } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -18,37 +20,50 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-const ORDER_STATUSES: { value: string; label: string }[] = [
-  { value: '', label: 'All' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'PAID', label: 'Paid' },
-  { value: 'FAILED', label: 'Failed' },
-  { value: 'EXPIRED', label: 'Expired' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-]
-
-// Status pill: PAID=success, PENDING=warning, FAILED|EXPIRED=danger, CANCELLED=muted
-function orderStatusPill(status: string | null | undefined) {
-  const s = (status ?? '').toUpperCase() as PaymentOrderStatus | ''
-  const cls = s === 'PAID' ? 'pill pill-success'
-    : s === 'PENDING' ? 'pill pill-warning'
-    : s === 'FAILED' || s === 'EXPIRED' ? 'pill pill-danger'
-    : s === 'CANCELLED' ? 'pill pill-muted'
-    : 'pill'
-  return status
-    ? <span className={cls}>{status}</span>
-    : <span className="muted">—</span>
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapOrderStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase() as PaymentOrderStatus | ''
+  if (v === 'PAID') return 'active'
+  if (v === 'PENDING') return 'info'
+  if (v === 'FAILED' || v === 'EXPIRED') return 'critical'
+  if (v === 'CANCELLED') return 'neutral'
+  return 'neutral'
 }
 
-// ── Main view ─────────────────────────────────────────────────────────────────
+const TAB_DEFS: Array<[string, string]> = [
+  ['', 'All'],
+  ['PENDING', 'Pending'],
+  ['PAID', 'Paid'],
+  ['FAILED', 'Failed'],
+  ['EXPIRED', 'Expired'],
+  ['CANCELLED', 'Cancelled'],
+]
 
-export default function PaymentGatewayView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
+export default function PaymentGatewayView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const cfg = usePageConfig(token, 'gateway', configVersion)
   const [orders, setOrders] = useState<PaymentOrder[] | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [reconciling, setReconciling] = useState(false)
+
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError(''); setUnavailable(false); setOrders(null)
@@ -59,6 +74,7 @@ export default function PaymentGatewayView({ token, configVersion = 0 }: { token
   }
 
   useEffect(() => { load() }, [token, statusFilter])
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [statusFilter, query, sortKey, sortDir])
 
   async function handleReconcile() {
     if (reconciling) return
@@ -79,102 +95,300 @@ export default function PaymentGatewayView({ token, configVersion = 0 }: { token
     if (err) toast.error(err)
   }
 
+  const all = orders ?? []
+  const countFor = (s: string) => all.filter(o => (o.status ?? '').toUpperCase() === s).length
+  const paidCount = countFor('PAID')
+  const pendingCount = countFor('PENDING')
+  const failedCount = countFor('FAILED') + countFor('EXPIRED')
+  const totalAmt = all.reduce((a, o) => a + (o.amount ?? 0), 0)
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((o) => {
+      const fields = [
+        o.id ?? '',
+        o.invoice_id ?? '',
+        o.provider ?? '',
+        o.status ?? '',
+        String(o.amount ?? ''),
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  }, [all, query])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (o: PaymentOrder): string | number => {
+      switch (k) {
+        case 'id': return o.id ?? ''
+        case 'invoice': return o.invoice_id ?? ''
+        case 'amount': return o.amount ?? 0
+        case 'provider': return o.provider ?? ''
+        case 'status': return o.status ?? ''
+        case 'initiated': return o.initiated_at ?? ''
+        case 'confirmed': return o.confirmed_at ?? ''
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  }, [filtered, sortKey, sortDir])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+
   return (
-    <div>
-      <div className="view-head">
-        <CreditCardIcon size={18} />
-        <h2 style={{ marginLeft: 8 }}>{cfg.title}</h2>
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={handleReconcile}
-          disabled={reconciling}
-          style={{ marginLeft: 'auto' }}
-        >
-          {reconciling ? 'Reconciling…' : 'Reconcile now'}
-        </button>
-      </div>
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      <div className="list-toolbar">
-        <div className="bill-filter">
-          <span className="muted export-label">Status</span>
-          <select
-            className="inp inp-sm"
-            aria-label="Filter by status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            {ORDER_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
+        <ViewHead
+          icon={<CreditCardIcon size={18} />}
+          title={cfg.title}
+          sub={`${all.length} order${all.length !== 1 ? 's' : ''} · gateway adapters · reconciliation engine`}
+          actions={
+            <>
+              {canConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[gateway] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              )}
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleReconcile}
+                disabled={reconciling}
+              >
+                <PlusIcon size={13} /> {reconciling ? 'Reconciling…' : 'Reconcile now'}
+              </button>
+            </>
+          }
+        />
+
+        {all.length > 0 && (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            <div className="widget">
+              <div className="widget-label">Volume</div>
+              <div className="kpi"><span className="kpi-cur">֏</span>{(totalAmt / 1000).toFixed(1)}k</div>
+              <div className="kpi-sub">{all.length} order{all.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Paid</div>
+              <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
+              <div className="kpi-sub">settled</div>
+            </div>
+            {pendingCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Pending</div>
+                <div className="kpi" style={{ color: 'var(--warning)' }}>{pendingCount}</div>
+                <div className="kpi-sub">awaiting confirmation</div>
+              </div>
+            )}
+            {failedCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Failed/Expired</div>
+                <div className="kpi" style={{ color: 'var(--danger)' }}>{failedCount}</div>
+                <div className="kpi-sub">action required</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="tabs">
+          {TAB_DEFS.map(([val, label]) => {
+            const count = val === '' ? all.length : countFor(val)
+            return (
+              <button
+                key={val}
+                className={'tab' + (statusFilter === val ? ' on' : '')}
+                onClick={() => setStatusFilter(val)}
+              >
+                {label} <span className="tab-count">{count}</span>
+              </button>
+            )
+          })}
         </div>
-      </div>
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {orders === null && !error && <p className="muted">Loading…</p>}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {orders === null && !error && <p className="muted">Loading…</p>}
 
-      {unavailable && (
-        <EmptyState
-          icon={<CreditCardIcon size={40} />}
-          title="Payment gateway isn't available yet"
-          message="Payment orders will appear here once the gateway service is enabled."
-        />
-      )}
+        {unavailable && (
+          <EmptyState
+            icon={<CreditCardIcon size={40} />}
+            title="Payment gateway isn't available yet"
+            message="Payment orders will appear here once the gateway service is enabled."
+          />
+        )}
 
-      {orders && !unavailable && orders.length === 0 && !error && (
-        <EmptyState
-          icon={<CreditCardIcon size={40} />}
-          title="No payment orders"
-          message="Payment orders will appear here once customers initiate online payments."
-        />
-      )}
+        {orders && !unavailable && orders.length === 0 && !error && (
+          <EmptyState
+            icon={<CreditCardIcon size={40} />}
+            title="No payment orders"
+            message="Payment orders will appear here once customers initiate online payments."
+          />
+        )}
 
-      {orders && orders.length > 0 && (
-        <div className="grid-wrap">
-          <table className="grid">
-            <thead>
-              <tr>
-                <th scope="col">Order ID</th>
-                <th scope="col">Invoice</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Provider</th>
-                <th scope="col">Status</th>
-                <th scope="col">Initiated</th>
-                <th scope="col">Confirmed</th>
-                <th scope="col"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id}>
-                  <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}>
-                    {o.id.slice(0, 8)}
-                  </td>
-                  <td className="muted">{o.invoice_id ? o.invoice_id.slice(0, 8) : '—'}</td>
-                  <td>{money(o.amount)}</td>
-                  <td className="muted" style={{ textTransform: 'capitalize' }}>
-                    {o.provider ?? '—'}
-                  </td>
-                  <td>{orderStatusPill(o.status)}</td>
-                  <td>{fmtDate(o.initiated_at)}</td>
-                  <td>{fmtDate(o.confirmed_at)}</td>
-                  <td className="row-actions">
-                    {o.payment_id && (
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => handleOpenReceipt(o.payment_id!)}
-                        title="Open receipt"
+        {orders && orders.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[gateway] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} order(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search orders"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[gateway] export all'); toast.success(`Export queued for ${sorted.length} order(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
+                    </th>
+                    {[
+                      { key: 'id', label: 'Order ID' },
+                      { key: 'invoice', label: 'Invoice' },
+                      { key: 'amount', label: 'Amount', cls: 'num' },
+                      { key: 'provider', label: 'Provider' },
+                      { key: 'status', label: 'Status' },
+                      { key: 'initiated', label: 'Initiated' },
+                      { key: 'confirmed', label: 'Confirmed' },
+                    ].map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={c.cls ?? ''}
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <ReceiptIcon size={13} /> Receipt
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((o) => (
+                    <tr key={o.id} className={selected.has(o.id) ? 'sel' : ''}>
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(o.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(o.id)}
+                          onChange={() => toggleRow(o.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select order ${o.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      <td><span className="mono" style={{ fontSize: 12 }}>{o.id.slice(0, 8)}</span></td>
+                      <td><span className="mono" style={{ color: 'var(--gx-text-3)' }}>{o.invoice_id ? o.invoice_id.slice(0, 8) : '—'}</span></td>
+                      <td className="num"><span className="mono tnum">{money(o.amount)}</span></td>
+                      <td style={{ textTransform: 'capitalize', color: 'var(--gx-text-2)' }}>{o.provider ?? '—'}</td>
+                      <td>{o.status
+                        ? <StatusPill variant={mapOrderStatus(o.status)} label={o.status} size="sm" />
+                        : <span>—</span>}
+                      </td>
+                      <td><span className="mono">{fmtDate(o.initiated_at)}</span></td>
+                      <td><span className="mono">{fmtDate(o.confirmed_at)}</span></td>
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          {o.payment_id && (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => handleOpenReceipt(o.payment_id!)}
+                              title="Open receipt"
+                            >
+                              <ReceiptIcon size={13} /> Receipt
+                            </button>
+                          )}
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[gateway] row menu', o.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching orders.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 orders'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

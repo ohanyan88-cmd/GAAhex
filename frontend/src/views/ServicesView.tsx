@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, bdel, loadCustomers } from '../lib/billing'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { ArrowRightIcon, ChevronLeftIcon, InboxIcon } from '../components/icons'
+import {
+  ArrowRightIcon, ChevronLeftIcon, InboxIcon, SearchIcon, DownloadIcon, PlusIcon,
+  ArrowUpIcon, ArrowDownIcon,
+} from '../components/icons'
+import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
+import { StatusPill } from '../primitives'
 
 // Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
 type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
@@ -19,26 +24,42 @@ function fmtDate(iso: string | null | undefined) {
   if (!iso) return '—'
   const d = new Date(iso); return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
-function statusPill(status: string | null | undefined) {
-  const s = (status ?? '').toUpperCase()
-  const cls = s === 'ACTIVE' ? 'pill pill-success' : s === 'SUSPENDED' ? 'pill pill-danger' : s === 'TERMINATED' ? 'pill pill-muted' : 'pill'
-  return status ? <span className={cls}>{status}</span> : <span>—</span>
+
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapServiceStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'ACTIVE') return 'active'
+  if (v === 'SUSPENDED') return 'degraded'
+  if (v === 'TERMINATED') return 'critical'
+  if (v === 'PENDING') return 'info'
+  return 'neutral'
 }
 
-// Renders one list cell for a given column key. Adding a column? add a default in pageConfig.ts
-// (PAGE_SPECS.services.defaultColumns) and a case here — nothing else changes.
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
 function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) {
   switch (colKey) {
-    case 'name': return sv.name ?? sv.id.slice(0, 8)
+    case 'name': return <span className="mono">{sv.name ?? sv.id.slice(0, 8)}</span>
     case 'customer': return cust(sv)
-    case 'type': return sv.type ?? '—'
-    case 'status': return statusPill(sv.status)
-    case 'activated': return fmtDate(sv.activated_at)
+    case 'type': return <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{sv.type ?? '—'}</span>
+    case 'status': return sv.status
+      ? <StatusPill variant={mapServiceStatus(sv.status)} label={sv.status} size="sm" />
+      : <span>—</span>
+    case 'activated': return <span className="mono">{fmtDate(sv.activated_at)}</span>
     default: return '—'
   }
 }
 
-export default function ServicesView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+export default function ServicesView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -48,13 +69,16 @@ export default function ServicesView({ token, configVersion = 0 }: { token: stri
   const [denied, setDenied] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
 
-  // Page-config: title override + visible columns (in order, with labels). configVersion bumps
-  // when the superadmin saves in the drawer → re-reads live (no reload needed).
   const page = usePageConfig(token, 'services', configVersion)
-
-  // Custom fields (superadmin-added) appended as extra editable columns. Values are batch-fetched
-  // for the visible rows and persisted per-cell; the rest of Services is untouched.
   const cf = useCustomFields(token, 'services', page.customFields, (list ?? []).map((sv) => sv.id))
+
+  // Interaction state for reskin.
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [pg, setPg] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
@@ -71,56 +95,268 @@ export default function ServicesView({ token, configVersion = 0 }: { token: stri
   }
 
   useEffect(() => { load() }, [token, status, type])
+  useEffect(() => { setPg(1); setSelected(new Set()) }, [status, type, query, sortKey, sortDir])
 
   const cust = (sv: Service) => (sv.customer_id ? (names[sv.customer_id] ?? sv.customer_id.slice(0, 8)) : '—')
+
+  const all = list ?? []
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((sv) => {
+      const fields = [
+        sv.name ?? '',
+        cust(sv),
+        sv.type ?? '',
+        sv.status ?? '',
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, query, names])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (sv: Service): string | number => {
+      switch (k) {
+        case 'name': return sv.name ?? sv.id
+        case 'customer': return cust(sv)
+        case 'type': return sv.type ?? ''
+        case 'status': return sv.status ?? ''
+        case 'activated': return sv.activated_at ?? ''
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey, sortDir, names])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((pg - 1) * PAGE_SIZE, pg * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+
+  const activeCount = all.filter(s => (s.status ?? '').toUpperCase() === 'ACTIVE').length
+  const suspendedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'SUSPENDED').length
+  const terminatedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'TERMINATED').length
 
   if (denied) return <PermissionDenied message="You don't have permission to view services." />
   if (detailId) return <ServiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
 
   return (
-    <div>
-      <div className="view-head"><h2>{page.title}</h2></div>
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{page.title}</span></div>
 
-      <div className="list-toolbar">
-        <div className="bill-filter">
-          <span className="muted export-label">Status</span>
-          <select className="inp inp-sm" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All</option>{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+        <ViewHead
+          icon={<InboxIcon size={18} />}
+          title={page.title}
+          sub={`${all.length} service${all.length !== 1 ? 's' : ''} · provisioned inventory · lifecycle engine`}
+          actions={
+            <>
+              {canConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[services] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              )}
+              <button className="btn btn-primary btn-sm" onClick={() => { console.log('[services] new'); toast.success('New service — wiring TBD') }}>
+                <PlusIcon size={13} /> New service
+              </button>
+            </>
+          }
+        />
+
+        {all.length > 0 && (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            <div className="widget">
+              <div className="widget-label">Total</div>
+              <div className="kpi">{all.length}</div>
+              <div className="kpi-sub">{activeCount} active</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Active</div>
+              <div className="kpi" style={{ color: 'var(--success)' }}>{activeCount}</div>
+              <div className="kpi-sub">delivering</div>
+            </div>
+            {suspendedCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Suspended</div>
+                <div className="kpi" style={{ color: 'var(--warning)' }}>{suspendedCount}</div>
+                <div className="kpi-sub">action required</div>
+              </div>
+            )}
+            {terminatedCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Terminated</div>
+                <div className="kpi" style={{ color: 'var(--danger)' }}>{terminatedCount}</div>
+                <div className="kpi-sub">closed</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="tabs">
+          <button className={'tab' + (status === '' ? ' on' : '')} onClick={() => setStatus('')}>
+            All <span className="tab-count">{all.length}</span>
+          </button>
+          {STATUSES.map((s) => (
+            <button key={s} className={'tab' + (status === s ? ' on' : '')} onClick={() => setStatus(s)}>
+              {s.charAt(0) + s.slice(1).toLowerCase()} <span className="tab-count">{all.filter(x => (x.status ?? '').toUpperCase() === s).length}</span>
+            </button>
+          ))}
         </div>
-        <div className="bill-filter">
-          <span className="muted export-label">Type</span>
-          <select className="inp inp-sm" aria-label="Filter by type" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">All</option>{TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
+
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <p className="muted">Loading…</p>}
+        {unavailable && <EmptyState icon={<InboxIcon size={40} />} title="Services aren't available yet" message="Provisioned services will appear here once the service inventory is enabled." />}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<InboxIcon size={40} />} title="No services" message="Nothing matches this filter." />
+        )}
+
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[services] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} service(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search services"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <select className="inp inp-sm" aria-label="Filter by type" value={type} onChange={(e) => setType(e.target.value)} style={{ marginLeft: 8 }}>
+                <option value="">All types</option>
+                {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[services] export all'); toast.success(`Export queued for ${sorted.length} service(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
+                    </th>
+                    {page.columns.map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((sv) => (
+                    <tr
+                      key={sv.id}
+                      className={selected.has(sv.id) ? 'sel' : ''}
+                      onClick={() => setDetailId(sv.id)}
+                    >
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(sv.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(sv.id)}
+                          onChange={() => toggleRow(sv.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select service ${sv.name ?? sv.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      {page.columns.map((c) => <td key={c.key}>{renderCell(c.key, sv, cust)}</td>)}
+                      {cf.cells(sv.id)}
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[services] row menu', sv.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={page.columns.length + 2 + page.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching services.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 services'
+                  : `Showing ${(pg - 1) * PAGE_SIZE + 1}–${Math.min(pg * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={pg <= 1} onClick={() => setPg((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {pg} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={pg >= pageCount} onClick={() => setPg((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<InboxIcon size={40} />} title="Services aren't available yet" message="Provisioned services will appear here once the service inventory is enabled." />}
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<InboxIcon size={40} />} title="No services" message="Nothing matches this filter." />
-      )}
-
-      {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
-          <thead><tr>
-            {page.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
-            {cf.headers()}
-            <th scope="col"></th>
-          </tr></thead>
-          <tbody>
-            {list.map((sv) => (
-              <tr key={sv.id}>
-                {page.columns.map((c) => <td key={c.key}>{renderCell(c.key, sv, cust)}</td>)}
-                {cf.cells(sv.id)}
-                <td className="row-actions"><button className="btn btn-ghost btn-sm" onClick={() => setDetailId(sv.id)}>Open <ArrowRightIcon size={13} /></button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
     </div>
   )
 }
@@ -136,7 +372,7 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
     const res = await bget<Service>(token, `/api/services/${id}`)
     if (!res.ok) { setError(res.status === 404 ? 'Service not found' : 'Failed to load service'); return }
     setSv(res.data)
-    setResources(res.data?.resources ?? [])   // resources are embedded in the service detail
+    setResources(res.data?.resources ?? [])
   }
   useEffect(() => { load() }, [token, id])
 
@@ -154,7 +390,7 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
 
   async function release(rid: string) {
     try {
-      await bdel(token, `/api/services/${id}/resources/${rid}`)   // release = DELETE (row kept as RELEASED server-side)
+      await bdel(token, `/api/services/${id}/resources/${rid}`)
       toast.success('Resource released')
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -164,55 +400,67 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
   const cust = sv?.customer_id ? (names[sv.customer_id] ?? sv.customer_id.slice(0, 8)) : '—'
 
   return (
-    <div>
-      <div className="view-head">
-        <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeftIcon size={14} /> Services</button>
-        <h2 style={{ marginLeft: 8 }}>{sv?.name ?? `Service ${id.slice(0, 8)}`}</h2>
-      </div>
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="view-head">
+          <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeftIcon size={14} /> Services</button>
+          <h2 style={{ marginLeft: 8 }}>{sv?.name ?? `Service ${id.slice(0, 8)}`}</h2>
+        </div>
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {!sv && !error && <p className="muted">Loading…</p>}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {!sv && !error && <p className="muted">Loading…</p>}
 
-      {sv && (
-        <>
-          <div className="bill-meta">
-            <div><span className="muted">Customer</span><div>{cust}</div></div>
-            <div><span className="muted">Type</span><div>{sv.type ?? '—'}</div></div>
-            <div><span className="muted">Status</span><div>{statusPill(sv.status)}</div></div>
-            <div><span className="muted">Activated</span><div>{fmtDate(sv.activated_at)}</div></div>
-            <div className="bill-actions">
-              {(status === 'PENDING' || status === 'SUSPENDED') && <button className="btn btn-primary btn-sm" onClick={() => lifecycle('activate')}>Activate</button>}
-              {status === 'ACTIVE' && <button className="btn btn-ghost btn-sm" onClick={() => lifecycle('suspend')}>Suspend</button>}
-              {status !== 'TERMINATED' && <button className="btn btn-danger btn-sm" onClick={() => lifecycle('terminate')}>Terminate</button>}
+        {sv && (
+          <>
+            <div className="bill-meta">
+              <div><span className="muted">Customer</span><div>{cust}</div></div>
+              <div><span className="muted">Type</span><div>{sv.type ?? '—'}</div></div>
+              <div><span className="muted">Status</span><div>{sv.status ? <StatusPill variant={mapServiceStatus(sv.status)} label={sv.status} size="sm" /> : '—'}</div></div>
+              <div><span className="muted">Activated</span><div>{fmtDate(sv.activated_at)}</div></div>
+              <div className="bill-actions">
+                {(status === 'PENDING' || status === 'SUSPENDED') && <button className="btn btn-primary btn-sm" onClick={() => lifecycle('activate')}>Activate</button>}
+                {status === 'ACTIVE' && <button className="btn btn-ghost btn-sm" onClick={() => lifecycle('suspend')}>Suspend</button>}
+                {status !== 'TERMINATED' && <button className="btn btn-danger btn-sm" onClick={() => lifecycle('terminate')}>Terminate</button>}
+              </div>
             </div>
-          </div>
 
-          <div className="bill-section-head">
-            <h3>Resources</h3>
-            {status !== 'TERMINATED' && <button className="btn btn-ghost btn-sm" onClick={() => setAllocOpen(true)}>+ Allocate</button>}
-          </div>
-          {resources.length === 0
-            ? <p className="muted">No resources allocated.</p>
-            : (
-              <div className="grid-wrap"><table className="grid">
-                <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
-                <tbody>
-                  {resources.map((r) => (
-                    <tr key={r.id} className={(r.status ?? '').toUpperCase() === 'RELEASED' ? 'row-muted' : ''}>
-                      <td>{r.kind ?? '—'}</td>
-                      <td className="mono">{r.value ?? '—'}</td>
-                      <td>{r.label ?? '—'}</td>
-                      <td>{(r.status ?? '').toUpperCase() === 'RELEASED' ? <span className="pill pill-muted">released</span> : <span className="pill pill-success">allocated</span>}</td>
-                      <td className="row-actions">{(r.status ?? '').toUpperCase() !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table></div>
-            )}
-        </>
-      )}
+            <div className="bill-section-head">
+              <h3>Resources</h3>
+              {status !== 'TERMINATED' && <button className="btn btn-ghost btn-sm" onClick={() => setAllocOpen(true)}>+ Allocate</button>}
+            </div>
+            {resources.length === 0
+              ? <p className="muted">No resources allocated.</p>
+              : (
+                <div className="card" style={{ overflow: 'hidden' }}>
+                  <div className="grid-wrap">
+                    <table className="grid">
+                      <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+                      <tbody>
+                        {resources.map((r) => {
+                          const rs = (r.status ?? '').toUpperCase()
+                          return (
+                            <tr key={r.id}>
+                              <td>{r.kind ?? '—'}</td>
+                              <td className="mono">{r.value ?? '—'}</td>
+                              <td>{r.label ?? '—'}</td>
+                              <td>{rs === 'RELEASED'
+                                ? <StatusPill variant="neutral" label="released" size="sm" />
+                                : <StatusPill variant="active" label="allocated" size="sm" />}
+                              </td>
+                              <td><div className="row-actions" style={{ justifyContent: 'flex-end' }}>{rs !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>}</div></td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+          </>
+        )}
 
-      {allocOpen && <AllocateModal token={token} serviceId={id} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
+        {allocOpen && <AllocateModal token={token} serviceId={id} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
+      </div>
     </div>
   )
 }

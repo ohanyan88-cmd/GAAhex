@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, loadCustomers, type Payment, type Invoice } from '../lib/billing'
-import { money } from '../lib/money'
 import { EmptyState, ErrorBanner } from '../components/States'
-import { CreditCardIcon, ReceiptIcon, DownloadIcon } from '../components/icons'
+import {
+  CreditCardIcon, ReceiptIcon, DownloadIcon, SearchIcon, PlusIcon,
+  ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon, ArrowRightIcon,
+} from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
+import { StatusPill } from '../primitives'
+import { toast } from '../components/Toast'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -13,21 +17,43 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-function methodPill(method: string | null | undefined) {
-  const m = (method ?? '').toLowerCase()
-  const cls = m === 'card' ? 'pill pill-accent'
-    : m === 'cash' ? 'pill pill-success'
-    : 'pill pill-muted'
-  return <span className={cls}>{method ?? '—'}</span>
+// Payment status → StatusPill primitive variant.
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapPaymentStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'SUCCEEDED' || v === 'PAID' || v === 'SUCCESS') return 'active'
+  if (v === 'PENDING') return 'info'
+  if (v === 'FAILED') return 'critical'
+  if (v === 'REFUNDED') return 'neutral'
+  return 'neutral'
 }
 
-export default function PaymentsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
+export default function PaymentsView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const cfg = usePageConfig(token, 'payments', configVersion)
   const [payments, setPayments] = useState<Payment[] | null>(null)
   const cf = useCustomFields(token, 'payments', cfg.customFields, (payments ?? []).map((p) => p.id))
   const [invoiceMap, setInvoiceMap] = useState<Record<string, Invoice>>({})
   const [names, setNames] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
+
+  // Interaction state added for the reskin (client-only — no new fetches).
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError('')
@@ -57,6 +83,7 @@ export default function PaymentsView({ token, configVersion = 0 }: { token: stri
   }
 
   useEffect(() => { load() }, [token])
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
 
   function invoiceRef(p: Payment): string {
     const inv = invoiceMap[p.invoice_id]
@@ -73,32 +100,118 @@ export default function PaymentsView({ token, configVersion = 0 }: { token: stri
   const pList = payments ?? []
   const totalSettled = pList.reduce((a, p) => a + (p.amount ?? 0), 0)
 
+  function renderCell(colKey: string, p: Payment) {
+    switch (colKey) {
+      case 'invoice':
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <ReceiptIcon size={13} />
+            <span className="mono" style={{ color: 'var(--gx-text-1)' }}>{invoiceRef(p)}</span>
+          </span>
+        )
+      case 'customer': return customerName(p)
+      case 'method': return (p as any).method
+        ? <StatusPill variant={(p as any).method?.toLowerCase() === 'card' ? 'info' : 'neutral'} label={String((p as any).method)} size="sm" />
+        : <span>—</span>
+      case 'date': return <span className="mono">{fmtDate(p.paid_at)}</span>
+      case 'amount': return <span className="mono tnum">{`֏${(p.amount ?? 0).toLocaleString()}`}</span>
+      case 'note': return <span style={{ color: 'var(--gx-text-3)' }}>{p.note ?? '—'}</span>
+      case 'status': return (p as any).status
+        ? <StatusPill variant={mapPaymentStatus((p as any).status)} label={String((p as any).status)} size="sm" />
+        : <span>—</span>
+      default: return '—'
+    }
+  }
+
+  function colThClass(colKey: string): string { return colKey === 'amount' ? 'num' : '' }
+  function colTdClass(colKey: string): string { return colKey === 'amount' ? 'num' : '' }
+
+  // Client-side search + sort.
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return pList
+    return pList.filter((p) => {
+      const fields = [
+        invoiceRef(p),
+        customerName(p),
+        (p as any).method ?? '',
+        String(p.amount ?? ''),
+        p.note ?? '',
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pList, query, invoiceMap, names])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (p: Payment): string | number => {
+      switch (k) {
+        case 'invoice': return invoiceRef(p)
+        case 'customer': return customerName(p)
+        case 'method': return (p as any).method ?? ''
+        case 'date': return p.paid_at ?? ''
+        case 'amount': return p.amount ?? 0
+        case 'note': return p.note ?? ''
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey, sortDir, invoiceMap, names])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+
   return (
-    <div>
-      <ViewHead
-        icon={<CreditCardIcon size={18} />}
-        title={cfg.title}
-        sub={`Inbound payments · adapters: Card, Bank, Cash · ${pList.length} records`}
-        actions={
-          <button className="btn btn-ghost btn-sm">
-            <DownloadIcon size={13} /> Reconcile
-          </button>
-        }
-      />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {payments === null && !error && <p className="muted">Loading…</p>}
-
-      {payments !== null && payments.length === 0 && !error && (
-        <EmptyState
-          icon={<CreditCardIcon size={40} />}
-          title="No payments recorded yet."
-          message="Payments will appear here once invoices have been paid."
+        <ViewHead
+          icon={<CreditCardIcon size={18} />}
+          title={cfg.title}
+          sub={`Inbound payments · adapters: Card, Bank, Cash · ${pList.length} record${pList.length !== 1 ? 's' : ''}`}
+          actions={
+            <>
+              {canConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[payments] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[payments] reconcile'); toast.success('Reconcile triggered') }}>
+                <DownloadIcon size={13} /> Reconcile
+              </button>
+            </>
+          }
         />
-      )}
 
-      {payments !== null && payments.length > 0 && (
-        <>
+        {pList.length > 0 && (
           <div className="widgets" style={{ marginBottom: 18 }}>
             <div className="widget">
               <div className="widget-label">Total collected</div>
@@ -107,50 +220,160 @@ export default function PaymentsView({ token, configVersion = 0 }: { token: stri
             </div>
             <div className="widget">
               <div className="widget-label">Methods</div>
-              <div className="kpi" style={{ fontSize: 24 }}>
-                {[...new Set(pList.map(p => p.method).filter(Boolean))].join(' · ') || '—'}
+              <div className="kpi" style={{ fontSize: 22 }}>
+                {[...new Set(pList.map(p => (p as any).method).filter(Boolean))].join(' · ') || '—'}
               </div>
               <div className="kpi-sub">adapters active</div>
             </div>
           </div>
+        )}
 
-          <div className="grid-wrap">
-            <table className="grid">
-              <thead>
-                <tr>
-                  {cfg.columns.map((c) => (
-                    <th key={c.key} scope="col" className={c.key === 'amount' ? 'num' : ''}>{c.label}</th>
-                  ))}
-                  {cf.headers()}
-                </tr>
-              </thead>
-              <tbody>
-                {pList.map(p => (
-                  <tr key={p.id}>
-                    {cfg.columns.map((c) => {
-                      if (c.key === 'invoice') return (
-                        <td key={c.key}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                            <ReceiptIcon size={13} />
-                            <span className="mono" style={{ color: 'var(--accent)' }}>{invoiceRef(p)}</span>
-                          </span>
-                        </td>
-                      )
-                      if (c.key === 'customer') return <td key={c.key}>{customerName(p)}</td>
-                      if (c.key === 'method') return <td key={c.key}>{methodPill(p.method)}</td>
-                      if (c.key === 'date') return <td key={c.key} className="mono">{fmtDate(p.paid_at)}</td>
-                      if (c.key === 'amount') return <td key={c.key} className="num">֏{(p.amount ?? 0).toLocaleString()}</td>
-                      if (c.key === 'note') return <td key={c.key} className="muted">{p.note ?? '—'}</td>
-                      return <td key={c.key}>—</td>
-                    })}
-                    {cf.cells(p.id)}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {payments === null && !error && <p className="muted">Loading…</p>}
+
+        {payments !== null && payments.length === 0 && !error && (
+          <EmptyState
+            icon={<CreditCardIcon size={40} />}
+            title="No payments recorded yet."
+            message="Payments will appear here once invoices have been paid."
+          />
+        )}
+
+        {payments !== null && payments.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[payments] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} payment(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search payments"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[payments] export all'); toast.success(`Export queued for ${sorted.length} payment(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => { console.log('[payments] new payment'); toast.success('Record payment — wiring TBD') }}
+              >
+                <PlusIcon size={13} /> Record payment
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input
+                        type="checkbox"
+                        checked={allOnPageSelected}
+                        onChange={togglePageAll}
+                        aria-label="Select all rows on this page"
+                      />
+                    </th>
+                    {cfg.columns.map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={colThClass(c.key)}
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {pageRows.map((p) => (
+                    <tr
+                      key={p.id}
+                      className={selected.has(p.id) ? 'sel' : ''}
+                    >
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(p.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(p.id)}
+                          onChange={() => toggleRow(p.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select payment ${p.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      {cfg.columns.map((c) => (
+                        <td key={c.key} className={colTdClass(c.key)}>
+                          {renderCell(c.key, p)}
+                        </td>
+                      ))}
+                      {cf.cells(p.id)}
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[payments] row menu', p.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching payments.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 payments'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -1,37 +1,70 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, bpatch, type Product } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner } from '../components/States'
-import { ArchiveIcon } from '../components/icons'
+import {
+  ArchiveIcon, PlusIcon, DownloadIcon, SearchIcon,
+  ArrowUpIcon, ArrowDownIcon, ChevronLeftIcon, ArrowRightIcon,
+} from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
+import { StatusPill } from '../primitives'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
 
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapProductStatus(p: Product): { label: string; variant: PillVariant } {
+  // Product objects expose `active`; DRAFT/RETIRED aren't on the type but may exist via status field.
+  const status = ((p as any).status ?? (p.active === false ? 'RETIRED' : 'ACTIVE')).toString().toUpperCase()
+  if (status === 'ACTIVE') return { label: 'active', variant: 'active' }
+  if (status === 'DRAFT') return { label: 'draft', variant: 'neutral' }
+  if (status === 'RETIRED') return { label: 'retired', variant: 'neutral' }
+  return { label: status.toLowerCase(), variant: 'neutral' }
+}
+
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
 function renderProductCell(colKey: string, p: Product) {
   switch (colKey) {
     case 'name': return p.name ?? '—'
-    case 'key': return <span className="muted">{p.key ?? '—'}</span>
-    case 'amount': return money(p.default_amount)
-    case 'cycle': return p.cycle ?? '—'
-    case 'active': return p.active === false
-      ? <span className="pill pill-muted">retired</span>
-      : <span className="pill pill-success">active</span>
+    case 'key': return <span className="mono" style={{ color: 'var(--gx-text-3)' }}>{p.key ?? '—'}</span>
+    case 'amount': return <span className="mono tnum">{money(p.default_amount)}</span>
+    case 'cycle': return <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{p.cycle ?? '—'}</span>
+    case 'active': {
+      const sp = mapProductStatus(p)
+      return <StatusPill variant={sp.variant} label={sp.label} size="sm" />
+    }
     default: return '—'
   }
 }
 
-export default function ProductsView({ token, configVersion = 0 }: { token: string; configVersion?: number }) {
+export default function ProductsView({ token, canConfigure = false, configVersion = 0 }: { token: string; canConfigure?: boolean; configVersion?: number }) {
   const cfg = usePageConfig(token, 'products', configVersion)
   const [list, setList] = useState<Product[] | null>(null)
   const cf = useCustomFields(token, 'products', cfg.customFields, (list ?? []).map((p) => p.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
-  const [draft, setDraft] = useState<Draft | null>(null)   // open create/edit form when set
+  const [draft, setDraft] = useState<Draft | null>(null)
+
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
@@ -42,6 +75,7 @@ export default function ProductsView({ token, configVersion = 0 }: { token: stri
   }
 
   useEffect(() => { load() }, [token])
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
 
   async function save() {
     if (!draft || !draft.name.trim() || (!draft.id && !draft.key.trim())) return
@@ -72,58 +106,264 @@ export default function ProductsView({ token, configVersion = 0 }: { token: stri
     } catch (e) { toast.error((e as Error).message) }
   }
 
+  const all = list ?? []
+  const activeCount = all.filter(p => p.active !== false).length
+  const retiredCount = all.filter(p => p.active === false).length
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((p) => {
+      const fields = [
+        p.name ?? '',
+        p.key ?? '',
+        p.cycle ?? '',
+        String(p.default_amount ?? ''),
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  }, [all, query])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (p: Product): string | number => {
+      switch (k) {
+        case 'name': return p.name ?? ''
+        case 'key': return p.key ?? ''
+        case 'amount': return p.default_amount ?? 0
+        case 'cycle': return p.cycle ?? ''
+        case 'active': return p.active === false ? 0 : 1
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const x = get(a), y = get(b)
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
+      return String(x).localeCompare(String(y)) * dir
+    })
+  }, [filtered, sortKey, sortDir])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function colThClass(colKey: string): string { return colKey === 'amount' ? 'num' : '' }
+  function colTdClass(colKey: string): string { return colKey === 'amount' ? 'num' : '' }
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => {
+      const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n
+    })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
+
   return (
-    <div>
-      <ViewHead icon={<ArchiveIcon size={20} />} title={cfg.title} actions={!unavailable && <button className="btn btn-primary btn-md" onClick={() => setDraft(draft ? null : { ...EMPTY })}>{draft ? 'Close' : '+ New product'}</button>} />
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
-      {draft && (
-        <div className="rec-form">
-          {!draft.id && <label className="field"><span>Key (snake) *</span><input className="inp inp-md" value={draft.key} onChange={(e) => setDraft({ ...draft, key: e.target.value })} placeholder="fiber_100" /></label>}
-          <label className="field"><span>Name *</span><input className="inp inp-md" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Fiber 100" /></label>
-          <label className="field"><span>Amount (֏)</span><input className="inp inp-md inp-numeric" type="number" value={draft.default_amount} onChange={(e) => setDraft({ ...draft, default_amount: e.target.value })} /></label>
-          <label className="field"><span>Cycle</span>
-            <select className="inp inp-md" value={draft.cycle} onChange={(e) => setDraft({ ...draft, cycle: e.target.value })}>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </label>
-          <label className="field"><span>Active</span><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /></label>
-          <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={save} disabled={!draft.name.trim() || (!draft.id && !draft.key.trim())}>{draft.id ? 'Save' : 'Create'}</button></div>
-        </div>
-      )}
+        <ViewHead
+          icon={<ArchiveIcon size={18} />}
+          title={cfg.title}
+          sub={`${all.length} product${all.length !== 1 ? 's' : ''} · catalog drives subscription pricing`}
+          actions={!unavailable && (
+            <>
+              {canConfigure && (
+                <button className="btn btn-ghost btn-sm" onClick={() => { console.log('[products] configure'); toast.success('Configure page — wiring TBD') }}>Configure page</button>
+              )}
+              <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
+                <PlusIcon size={13} /> {draft ? 'Close' : 'New product'}
+              </button>
+            </>
+          )}
+        />
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<ArchiveIcon size={40} />} title="Products aren't available yet" message="The product catalog will appear once billing is enabled." />}
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<ArchiveIcon size={40} />} title="No products" message="Create your first plan to offer it on subscriptions." />
-      )}
+        {all.length > 0 && (
+          <div className="widgets" style={{ marginBottom: 18 }}>
+            <div className="widget">
+              <div className="widget-label">Catalog size</div>
+              <div className="kpi">{all.length}</div>
+              <div className="kpi-sub">{activeCount} active</div>
+            </div>
+            <div className="widget">
+              <div className="widget-label">Active</div>
+              <div className="kpi" style={{ color: 'var(--success)' }}>{activeCount}</div>
+              <div className="kpi-sub">offerable</div>
+            </div>
+            {retiredCount > 0 && (
+              <div className="widget">
+                <div className="widget-label">Retired</div>
+                <div className="kpi" style={{ color: 'var(--gx-text-3)' }}>{retiredCount}</div>
+                <div className="kpi-sub">read-only</div>
+              </div>
+            )}
+          </div>
+        )}
 
-      {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
-          <thead>
-            <tr>
-              {cfg.columns.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
-              {cf.headers()}
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((p) => (
-              <tr key={p.id} className={p.active === false ? 'row-muted' : ''}>
-                {cfg.columns.map((c) => (
-                  <td key={c.key}>{renderProductCell(c.key, p)}</td>
-                ))}
-                {cf.cells(p.id)}
-                <td className="row-actions">
-                  <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}>Edit</button>
-                  {p.active !== false && <button className="btn btn-danger btn-sm" onClick={() => retire(p)}>Retire</button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
+        {draft && (
+          <div className="rec-form">
+            {!draft.id && <label className="field"><span>Key (snake) *</span><input className="inp inp-md" value={draft.key} onChange={(e) => setDraft({ ...draft, key: e.target.value })} placeholder="fiber_100" /></label>}
+            <label className="field"><span>Name *</span><input className="inp inp-md" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Fiber 100" /></label>
+            <label className="field"><span>Amount (֏)</span><input className="inp inp-md inp-numeric" type="number" value={draft.default_amount} onChange={(e) => setDraft({ ...draft, default_amount: e.target.value })} /></label>
+            <label className="field"><span>Cycle</span>
+              <select className="inp inp-md" value={draft.cycle} onChange={(e) => setDraft({ ...draft, cycle: e.target.value })}>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </label>
+            <label className="field"><span>Active</span><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /></label>
+            <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={save} disabled={!draft.name.trim() || (!draft.id && !draft.key.trim())}>{draft.id ? 'Save' : 'Create'}</button></div>
+          </div>
+        )}
+
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <p className="muted">Loading…</p>}
+        {unavailable && <EmptyState icon={<ArchiveIcon size={40} />} title="Products aren't available yet" message="The product catalog will appear once billing is enabled." />}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<ArchiveIcon size={40} />} title="No products" message="Create your first plan to offer it on subscriptions." />
+        )}
+
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[products] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} product(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search products"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[products] export all'); toast.success(`Export queued for ${sorted.length} product(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" checked={allOnPageSelected} onChange={togglePageAll} aria-label="Select all rows on this page" />
+                    </th>
+                    {cfg.columns.map((c) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={colThClass(c.key)}
+                        onClick={() => toggleSort(c.key)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {c.label}
+                          {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    {cf.headers()}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((p) => (
+                    <tr key={p.id} className={selected.has(p.id) ? 'sel' : ''}>
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(p.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(p.id)}
+                          onChange={() => toggleRow(p.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select product ${p.name ?? p.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      {cfg.columns.map((c) => (
+                        <td key={c.key} className={colTdClass(c.key)}>
+                          {renderProductCell(c.key, p)}
+                        </td>
+                      ))}
+                      {cf.cells(p.id)}
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}
+                          >Edit</button>
+                          {p.active !== false && (
+                            <button className="btn btn-ghost btn-sm" onClick={() => retire(p)}>Retire</button>
+                          )}
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[products] row menu', p.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching products.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 products'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

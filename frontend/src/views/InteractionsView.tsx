@@ -1,12 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
 import ViewHead from '../components/ViewHead'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
-import { PhoneIcon, MailIcon, MessageIcon, EditIcon, InfoIcon, PlusIcon } from '../components/icons'
+import {
+  PhoneIcon, MailIcon, MessageIcon, EditIcon, InfoIcon, PlusIcon,
+  SearchIcon, DownloadIcon, ArrowUpIcon, ArrowDownIcon,
+  ChevronLeftIcon, ArrowRightIcon,
+} from '../components/icons'
 import { t } from '../lib/i18n'
+import { StatusPill } from '../primitives'
 
 // Interactions log — config-driven entity (entity_key='interaction') served by /api/interactions.
 // Uses the generic records API. Supports embedded mode (in CustomerView / CustomerBillingModal)
@@ -27,7 +32,17 @@ type Interaction = {
 const CHANNELS = ['call', 'email', 'chat', 'sms', 'note', 'other']
 const DIRECTIONS = ['inbound', 'outbound', 'internal']
 
-function channelIcon(channel: string | null | undefined, size = 15) {
+// Map interaction direction → StatusPill variant (informational; no critical paths here).
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+function mapDirection(dir: string | null | undefined): PillVariant {
+  const d = (dir ?? '').toLowerCase()
+  if (d === 'inbound') return 'info'
+  if (d === 'outbound') return 'active'
+  if (d === 'internal') return 'neutral'
+  return 'info'
+}
+
+function channelIcon(channel: string | null | undefined, size = 13) {
   switch ((channel ?? '').toLowerCase()) {
     case 'call': return <PhoneIcon size={size} />
     case 'email': return <MailIcon size={size} />
@@ -38,6 +53,18 @@ function channelIcon(channel: string | null | undefined, size = 15) {
   }
 }
 
+// 3-dot row-menu icon (inline; no emoji rule — inline SVG only).
+function MoreVerticalIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="5" r="1.4" />
+      <circle cx="12" cy="12" r="1.4" />
+      <circle cx="12" cy="19" r="1.4" />
+    </svg>
+  )
+}
+
 export default function InteractionsView({ token, customerId, embedded }: { token: string; customerId?: string; embedded?: boolean }) {
   const [list, setList] = useState<Interaction[] | null>(null)
   const [channel, setChannel] = useState('')
@@ -45,6 +72,14 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
+
+  // Toolbar / table interaction state.
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
@@ -61,68 +96,291 @@ export default function InteractionsView({ token, customerId, embedded }: { toke
   }
 
   useEffect(() => { load() }, [token, customerId, channel])
+  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir, channel, customerId])
+
+  const all = list ?? []
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return all
+    return all.filter((it) => {
+      const fields = [
+        it.channel ?? '',
+        it.direction ?? '',
+        it.subject ?? '',
+        it.body ?? '',
+      ].join(' ').toLowerCase()
+      return fields.includes(q)
+    })
+  }, [all, query])
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered
+    const k = sortKey
+    const dir = sortDir
+    const get = (it: Interaction): string => {
+      switch (k) {
+        case 'channel': return it.channel ?? ''
+        case 'direction': return it.direction ?? ''
+        case 'subject': return it.subject ?? (it.body ?? '')
+        case 'when': return it.occurred_at ?? it.created_at ?? ''
+        default: return ''
+      }
+    }
+    return [...filtered].sort((a, b) => String(get(a)).localeCompare(String(get(b))) * dir)
+  }, [filtered, sortKey, sortDir])
+
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
+
+  function toggleSort(k: string) {
+    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(1) }
+  }
+  function toggleRow(id: string) {
+    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  }
+  function togglePageAll() {
+    setSelected((s) => {
+      const n = new Set(s)
+      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
+      else pageRows.forEach((r) => n.add(r.id))
+      return n
+    })
+  }
 
   if (denied) return <PermissionDenied message={t('interactions.denied', "You don't have permission to view interactions.")} />
 
-  return (
-    <div>
-      {!embedded && (
-        <ViewHead
-          icon={<MessageIcon size={20} />}
-          title={t('interactions.title', 'Interactions')}
-          actions={
-            <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
-              <PlusIcon size={13} /> Log interaction
-            </button>
-          }
-        />
-      )}
-      {embedded && (
+  // === EMBEDDED MODE === — used inside CustomerView. No outer .view shell, no toolbar; the host
+  // page already supplies the chrome. Keep the compact card+table look.
+  if (embedded) {
+    return (
+      <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{t('interactions.title', 'Interactions')}</h3>
           <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
             <PlusIcon size={13} /> Log
           </button>
         </div>
-      )}
 
-      {!embedded && (
-        <div className="list-toolbar">
-          <div className="bill-filter">
-            <span className="muted export-label">Channel</span>
-            <select className="inp inp-sm" aria-label="Filter by channel" value={channel} onChange={(e) => setChannel(e.target.value)}>
-              <option value="">All</option>{CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <SkeletonRows />}
+        {unavailable && <EmptyState icon={<MessageIcon size={40} />} title={t('interactions.unavailable', "Interactions aren't available yet")} message={t('interactions.unavailableMsg', 'Logged touchpoints will appear here once the contact-center service is enabled.')} />}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<MessageIcon size={40} />} title="No interactions" message="Log the first customer touchpoint." />
+        )}
+
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden' }}>
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead><tr>
+                  <th scope="col">Channel</th>
+                  <th scope="col">Direction</th>
+                  <th scope="col">Subject</th>
+                  <th scope="col">When</th>
+                </tr></thead>
+                <tbody>
+                  {all.map((it) => (
+                    <tr key={it.id}>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {channelIcon(it.channel)} {it.channel ?? '—'}
+                        </span>
+                      </td>
+                      <td>{it.direction ? <StatusPill variant={mapDirection(it.direction)} label={it.direction} size="sm" /> : <span>—</span>}</td>
+                      <td>{it.subject || <span style={{ color: 'var(--gx-text-3)' }}>{(it.body ?? '').slice(0, 60) || '—'}</span>}</td>
+                      <td><span className="mono" style={{ color: 'var(--gx-text-3)' }}>{timeAgo(it.occurred_at ?? it.created_at ?? null)}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+        )}
+
+        {logOpen && (
+          <LogModal token={token} customerId={customerId} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />
+        )}
+      </div>
+    )
+  }
+
+  // === STANDALONE MODE === — the InvoicesView template (crumbs · view-head · toolbar · grid · foot).
+  return (
+    <div className="view">
+      <div className="view-inner fade">
+        <div className="crumbs">
+          <span>CRM</span><span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{t('interactions.title', 'Interactions')}</span>
         </div>
-      )}
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <SkeletonRows />}
-      {unavailable && <EmptyState icon={<MessageIcon size={40} />} title={t('interactions.unavailable', "Interactions aren't available yet")} message={t('interactions.unavailableMsg', 'Logged touchpoints will appear here once the contact-center service is enabled.')} />}
-      {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<MessageIcon size={40} />} title="No interactions" message="Log the first customer touchpoint." />
-      )}
+        <ViewHead
+          icon={<MessageIcon size={18} />}
+          title={t('interactions.title', 'Interactions')}
+          sub={`${all.length} record${all.length !== 1 ? 's' : ''} · calls · emails · chats · notes`}
+          actions={
+            <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
+              <PlusIcon size={13} /> Log interaction
+            </button>
+          }
+        />
 
-      {list && list.length > 0 && (
-        <div className="grid-wrap"><table className="grid">
-          <thead><tr><th scope="col">Channel</th><th scope="col">Direction</th><th scope="col">Subject</th><th scope="col">When</th></tr></thead>
-          <tbody>
-            {list.map((it) => (
-              <tr key={it.id}>
-                <td className="cell-meta"><span className="pill">{channelIcon(it.channel)} {it.channel ?? '—'}</span></td>
-                <td className="cell-meta"><span className="pill pill-muted">{it.direction ?? '—'}</span></td>
-                <td className="cell-main">{it.subject || <span className="muted">{(it.body ?? '').slice(0, 60) || '—'}</span>}</td>
-                <td className="cell-meta">{timeAgo(it.occurred_at ?? it.created_at ?? null)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      )}
+        {error && <ErrorBanner message={error} onRetry={load} />}
+        {list === null && !error && <SkeletonRows />}
+        {unavailable && <EmptyState icon={<MessageIcon size={40} />} title={t('interactions.unavailable', "Interactions aren't available yet")} message={t('interactions.unavailableMsg', 'Logged touchpoints will appear here once the contact-center service is enabled.')} />}
+        {list && !unavailable && list.length === 0 && !error && (
+          <EmptyState icon={<MessageIcon size={40} />} title="No interactions" message="Log the first customer touchpoint." />
+        )}
 
-      {logOpen && (
-        <LogModal token={token} customerId={customerId} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />
-      )}
+        {list && list.length > 0 && (
+          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+            {selected.size > 0 && (
+              <div className="bulkbar">
+                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+                <span className="spacer" />
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => { console.log('[interactions] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} interaction(s)`) }}
+                >
+                  <DownloadIcon size={13} /> Export
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              </div>
+            )}
+
+            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+              <div className="tb-search" style={{ width: 280 }}>
+                <SearchIcon size={14} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search interactions"
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                />
+              </div>
+              <select
+                className="inp inp-sm"
+                aria-label="Filter by channel"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+                style={{ width: 140 }}
+              >
+                <option value="">All channels</option>
+                {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <span className="spacer" />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => { console.log('[interactions] export all'); toast.success(`Export queued for ${sorted.length} interaction(s)`) }}
+              >
+                <DownloadIcon size={13} /> Export
+              </button>
+            </div>
+
+            <div className="grid-wrap">
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}>
+                      <input
+                        type="checkbox"
+                        checked={allOnPageSelected}
+                        onChange={togglePageAll}
+                        aria-label="Select all rows on this page"
+                      />
+                    </th>
+                    {(['channel', 'direction', 'subject', 'when'] as const).map((k) => (
+                      <th
+                        key={k}
+                        scope="col"
+                        onClick={() => toggleSort(k)}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {k === 'channel' ? 'Channel'
+                           : k === 'direction' ? 'Direction'
+                           : k === 'subject' ? 'Subject'
+                           : 'When'}
+                          {sortKey === k && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
+                        </span>
+                      </th>
+                    ))}
+                    <th style={{ width: 32 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageRows.map((it) => (
+                    <tr
+                      key={it.id}
+                      className={selected.has(it.id) ? 'sel' : ''}
+                      onClick={() => console.log('[interactions] open', it.id)}
+                    >
+                      <td onClick={(e) => { e.stopPropagation(); toggleRow(it.id) }} style={{ cursor: 'default' }}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(it.id)}
+                          onChange={() => toggleRow(it.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select interaction ${it.id.slice(0, 8)}`}
+                        />
+                      </td>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {channelIcon(it.channel)} {it.channel ?? '—'}
+                        </span>
+                      </td>
+                      <td>{it.direction ? <StatusPill variant={mapDirection(it.direction)} label={it.direction} size="sm" /> : <span>—</span>}</td>
+                      <td>{it.subject || <span style={{ color: 'var(--gx-text-3)' }}>{(it.body ?? '').slice(0, 60) || '—'}</span>}</td>
+                      <td><span className="mono" style={{ color: 'var(--gx-text-3)' }}>{timeAgo(it.occurred_at ?? it.created_at ?? null)}</span></td>
+                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          <button
+                            className="iconbtn"
+                            aria-label="Row menu"
+                            title="Row actions"
+                            onClick={(e) => { e.stopPropagation(); console.log('[interactions] row menu', it.id) }}
+                          >
+                            <MoreVerticalIcon size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {pageRows.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                        No matching interactions.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-foot">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                {sorted.length === 0
+                  ? '0 interactions'
+                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
+              </span>
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeftIcon size={13} /> Prev
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+                Next <ArrowRightIcon size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {logOpen && (
+          <LogModal token={token} customerId={customerId} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />
+        )}
+      </div>
     </div>
   )
 }
