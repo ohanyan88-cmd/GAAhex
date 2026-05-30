@@ -346,7 +346,7 @@ export default function CalendarView({ token, configVersion = 0 }: { token: stri
     .slice(0, 6)
 
   return (
-    <div className="gx-comms comms-shell fade">
+    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 14 }}>
       <div className="comms-head">
         <div className="vh-ic"><CalendarIcon size={20} /></div>
         <div>

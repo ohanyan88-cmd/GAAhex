@@ -173,9 +173,9 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
         }
       />
 
-      {/* KPI strip — real counts from loaded data */}
+      {/* KPI strip — use .kpi-strip (not .kpis) so legacy .kpi{font-size:38px} rule is reset */}
       {!loading && allLeads.length > 0 && (
-        <div className="kpis" style={{ marginBottom: 18 }}>
+        <div className="kpi-strip">
           <div className="kpi">
             <div className="klbl">{t('leads.open', 'Open')}</div>
             <div className="kval tnum">{open}</div>
@@ -248,25 +248,25 @@ export default function LeadPipelineView({ token, onOpenCustomer }: { token: str
       )}
 
       {!loading && (filteredLeads.length > 0 || showNew) && columns.length > 0 && (
-        <div className="board-grid">
+        <div className="kanban">
           {columns.map((col) => {
             const items = filteredLeads.filter((l) => (l.status ?? (col.is_initial ? col.key : null)) === col.key)
             const tone = COL_TONE[col.key.toUpperCase()] ?? 'var(--gx-neutral)'
             return (
-              <div key={col.key} className="board-col">
-                <div className="board-col-head">
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: tone }} />
+              <div key={col.key} className="kcol">
+                <div className="kcol-head">
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: tone, flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 600 }}>{col.label}</span>
-                  <span className="badge" style={{ background: 'var(--gx-surface-2)', color: 'var(--gx-text-3)', marginLeft: 'auto' }}>{items.length}</span>
+                  <span className="kcol-count">{items.length}</span>
                   <button className="btn btn-ghost btn-sm btn-icon" style={{ width: 22, height: 22 }} onClick={() => setShowNew(true)}>
                     <PlusIcon size={13} />
                   </button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="kcol-body">
                   {items.map((lead) => {
                     const sc = scores[lead.id]
                     return (
-                      <div key={lead.id} className="board-card">
+                      <div key={lead.id} className="kcard">
                         <div className="mono" style={{ fontSize: 11, color: 'var(--gx-link)', marginBottom: 6 }}>
                           {lead.id?.slice(0, 12)}
                         </div>
