@@ -62,6 +62,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
   const [events, setEvents] = useState<CalEvent[]>([])
   const [cals, setCals] = useState<Cal[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CalEvent | null>(null)
   const [prefillDate, setPrefillDate] = useState<string | null>(null)
@@ -119,25 +120,32 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
   async function load() {
     setLoading(true)
-    const cr = await fetch(`${BASE}/api/calendar/calendars`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (cr.ok) setCals(await cr.json())
-    let startStr: string, endStr: string
-    if (calView === 'week') {
-      startStr = isoDate(weekStart)
-      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
-      endStr = isoDate(weekEnd)
-    } else {
-      const first = new Date(year, month, 1)
-      const last = new Date(year, month + 1, 0)
-      startStr = isoDate(first); endStr = isoDate(last)
+    setLoadError('')
+    try {
+      const cr = await fetch(`${BASE}/api/calendar/calendars`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (cr.ok) setCals(await cr.json())
+      else { setLoadError('Failed to load calendars'); setLoading(false); return }
+      let startStr: string, endStr: string
+      if (calView === 'week') {
+        startStr = isoDate(weekStart)
+        const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
+        endStr = isoDate(weekEnd)
+      } else {
+        const first = new Date(year, month, 1)
+        const last = new Date(year, month + 1, 0)
+        startStr = isoDate(first); endStr = isoDate(last)
+      }
+      const er = await fetch(
+        `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=500`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      if (er.ok) setEvents(await er.json())
+      else setLoadError('Failed to load events')
+    } catch {
+      setLoadError('Network error')
     }
-    const er = await fetch(
-      `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=500`,
-      { headers: { Authorization: `Bearer ${token}` } },
-    )
-    if (er.ok) setEvents(await er.json())
     setLoading(false)
   }
 
@@ -155,7 +163,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     if (ev.color) return ev.color
     const cal = cals.find(c => c.id === ev.calendar_id)
     if (cal) return cal.color
-    return 'var(--primary-soft)'
+    return 'var(--gx-primary-soft)'
   }
 
   function openNew(date?: string) {
@@ -358,6 +366,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
             {calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)}
             {loading ? ' · loading…' : ''}
+            {loadError ? ` · ${loadError}` : ''}
           </div>
         </div>
         <span className="spacer" />
@@ -373,7 +382,6 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
         <div className="seg hide-sm">
           <button type="button" className={calView === 'month' ? 'on' : ''} onClick={() => setCalView('month')}>Month</button>
           <button type="button" className={calView === 'week' ? 'on' : ''} onClick={() => setCalView('week')}>Week</button>
-          <button type="button" disabled>Day</button>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => openNew()} type="button">
           <PlusIcon size={14} />New event
@@ -597,7 +605,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                   style={{
                     width: 24, height: 24, borderRadius: '50%',
                     background: c, border: 'none', cursor: 'pointer',
-                    outline: fColor === c ? '2px solid var(--accent)' : '2px solid transparent',
+                    outline: fColor === c ? '2px solid var(--gx-gold)' : '2px solid transparent',
                     outlineOffset: 2,
                   }}
                   aria-label={`Color ${c}`}
