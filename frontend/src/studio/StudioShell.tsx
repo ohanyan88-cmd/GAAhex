@@ -7,7 +7,7 @@
 // (see backend/app/routers/auth.py `me` for the canonical check, and backend/app/access.py
 // for `load_grants` + `can`). UI hiding alone is not security.
 import { useEffect } from 'react'
-import { Eye, Rocket, Shield } from 'lucide-react'
+import { ChevronLeft, Eye, Rocket, Shield } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
 import StudioTree, { type StudioPick } from './StudioTree'
 import StudioOverview from './StudioOverview'
@@ -20,11 +20,13 @@ export default function StudioShell({
   canConfigure,
   route,
   onRoute,
+  onBack,
 }: {
   token: string | null
   canConfigure: boolean
   route: StudioRoute
   onRoute: (r: StudioRoute) => void
+  onBack?: () => void
 }) {
   // Keep the browser URL in sync with the in-app route so deep links work and the back button
   // navigates within Studio. The Portal app uses a `view` state union (no React Router yet);
@@ -100,6 +102,11 @@ export default function StudioShell({
         sub="Visual builder · configuration center · publishing control"
         actions={
           <>
+            {onBack && (
+              <button className="btn btn-ghost btn-sm" type="button" onClick={onBack}>
+                <ChevronLeft size={14} />Back
+              </button>
+            )}
             <span className="pill pill-gold" style={{ marginRight: 2 }}>
               <Shield size={12} />SuperAdmin
             </span>

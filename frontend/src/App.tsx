@@ -115,6 +115,7 @@ export default function App() {
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
+  const [prevView, setPrevView] = useState<View>({ type: 'dashboards' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
   const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
   const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)   // …or for this bespoke page (page-config, not an entity)
@@ -137,8 +138,9 @@ export default function App() {
   // Either kind of config makes the header "Configure page" button appear.
   const canConfigureThisPage = configSlug != null || pageConfigKey != null
 
-  // Gear button on every page → open Studio so the user can edit the page's config there.
-  const openConfigure = () => setView({ type: 'studio' })
+  // Gear button → save current page, open Studio. Back button restores the saved page.
+  const openConfigure = () => { setPrevView(view); setView({ type: 'studio' }) }
+  const backFromStudio = () => setView(prevView)
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -368,7 +370,7 @@ export default function App() {
           <button
             className="sb-item"
             style={{ paddingLeft: 10 }}
-            onClick={() => user?.can_configure && setView({ type: 'studio' })}
+            onClick={() => { if (user?.can_configure) { setPrevView(view); setView({ type: 'studio' }) } }}
             title={user?.can_configure ? 'Open Studio' : 'Studio (admin only)'}
           >
             <span className="ic"><Wand size={15} /></span>
@@ -517,6 +519,7 @@ export default function App() {
                     canConfigure={!!user?.can_configure}
                     route={{ group: view.group, module: view.module, leaf: view.leaf }}
                     onRoute={(r: StudioRoute) => setView({ type: 'studio', group: r.group, module: r.module, leaf: r.leaf })}
+                    onBack={backFromStudio}
                   />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
