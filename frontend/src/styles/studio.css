@@ -546,6 +546,265 @@
   margin-top: 2px;
 }
 
+/* ============================================================================
+   P5 — Rich pane helpers (LayoutBuilder, PageManager, Rules, Permissions, etc.)
+   ============================================================================ */
+
+/* .canvas-block — a block tile on the LayoutBuilder canvas */
+.canvas-block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  min-height: 52px;
+  transition: border-color var(--gx-dur-fast);
+}
+.canvas-block:hover {
+  border-color: var(--gx-border-strong);
+}
+.canvas-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gx-text-2);
+  font-family: var(--gx-font-sans);
+  pointer-events: none;
+}
+.canvas-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--gx-dur-fast);
+}
+.canvas-block:hover .canvas-actions {
+  opacity: 1;
+}
+.canvas-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-bg-subtle);
+  color: var(--gx-text-2);
+  cursor: pointer;
+  transition: background var(--gx-dur-fast);
+}
+.canvas-actions button:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+}
+
+/* .canvas-add — dashed "Add block" button at the bottom of the canvas */
+.canvas-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 40px;
+  border: 1.5px dashed var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  background: transparent;
+  color: var(--gx-text-3);
+  font-size: 12.5px;
+  font-family: var(--gx-font-sans);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+}
+.canvas-add:hover {
+  border-color: var(--gx-primary);
+  color: var(--gx-primary);
+  background: var(--gx-primary-soft);
+}
+
+/* .rule-card — a single WHEN/IF/DO rule row in ActionsLogic */
+.rule-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 11px 14px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  font-family: var(--gx-font-sans);
+  transition: border-color var(--gx-dur-fast);
+}
+.rule-card:hover {
+  border-color: var(--gx-border-strong);
+}
+
+/* .rule-pill — colored badge inside a rule card */
+.rule-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--gx-radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: var(--gx-font-mono);
+  flex-shrink: 0;
+}
+
+/* .comp-card — component library card */
+.comp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px 12px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  cursor: pointer;
+  transition: all var(--gx-dur-fast);
+  font-family: var(--gx-font-sans);
+}
+.comp-card:hover {
+  border-color: var(--gx-primary);
+  background: var(--gx-primary-soft);
+  transform: translateY(-1px);
+  box-shadow: var(--gx-shadow-sm);
+}
+.comp-ic {
+  color: var(--gx-text-3);
+  display: inline-flex;
+}
+.comp-card:hover .comp-ic {
+  color: var(--gx-primary);
+}
+.comp-add {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  color: var(--gx-primary);
+  transition: opacity var(--gx-dur-fast);
+}
+.comp-card:hover .comp-add {
+  opacity: 1;
+}
+
+/* .perm-cell — permission matrix cell button */
+.perm-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: none;
+  border-radius: var(--gx-radius-sm);
+  background: transparent;
+  font-family: var(--gx-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--gx-dur-fast);
+}
+.perm-cell:hover {
+  background: var(--gx-hover);
+}
+
+/* .tpl-card — template gallery card */
+.tpl-card {
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  overflow: hidden;
+  transition: all var(--gx-dur-fast);
+}
+.tpl-card:hover {
+  border-color: var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-md);
+  transform: translateY(-2px);
+}
+.tpl-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 90px;
+  background: var(--gx-bg-subtle);
+  border-bottom: 1px solid var(--gx-border-subtle);
+  color: var(--gx-text-3);
+}
+
+/* .timeline / .tl-item / .tl-dot — version history timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.tl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gx-border-subtle);
+}
+.tl-item:last-child {
+  border-bottom: none;
+}
+.tl-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* .rec-form — 2-col entity identity form grid */
+.rec-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+  max-width: 680px;
+}
+
+/* .tb-search — toolbar search box variant used by ComponentsLibrary */
+.tb-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  color: var(--gx-text-3);
+}
+.tb-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--gx-text-1);
+  font-size: 12.5px;
+  font-family: var(--gx-font-sans);
+}
+
+/* .seo-preview — search engine result preview box */
+.seo-preview {
+  padding: 12px 14px;
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  background: var(--gx-bg-subtle);
+}
+
 /* ---- Responsive (kit lines 239-242, 322-328): collapse to single column at 1180px ---- */
 @media (max-width: 1180px) {
   .studio.tree-studio {

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { type FlatLeaf } from './tree'
 import { iconFor } from './iconMap'
+import { richPaneFor } from './StudioRichPanes'
 
 // ── archetype router ─────────────────────────────────────────────────────────
 
@@ -465,6 +466,27 @@ const ARCH_DESC: Record<Archetype, string> = {
 }
 
 export default function StudioGenericPane({ leaf }: { leaf: FlatLeaf }) {
+  // P5: rich pane takes priority over the archetype fallback
+  const RichPane = richPaneFor(leaf.leafLabel)
+  if (RichPane) {
+    return (
+      <div>
+        <div className="crumbs" style={{ marginTop: 0 }}>
+          <span>{leaf.groupLabel}</span>
+          {leaf.moduleLabel && (
+            <>
+              <span className="sep">/</span>
+              <span>{leaf.moduleLabel}</span>
+            </>
+          )}
+          <span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{leaf.leafLabel}</span>
+        </div>
+        <RichPane />
+      </div>
+    )
+  }
+
   const arch = archetypeFor(leaf.leafLabel)
   const desc = ARCH_DESC[arch]
   const IconCmp = iconFor(leaf.moduleIcon ?? leaf.groupIcon)
