@@ -186,6 +186,11 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
     defaultTitle: 'Reports',
     defaultColumns: [],
   },
+  'revenue-assurance': {
+    pageKey: 'revenue-assurance',
+    defaultTitle: 'Revenue Assurance',
+    defaultColumns: [],
+  },
   calendar: {
     pageKey: 'calendar',
     defaultTitle: 'Calendar',

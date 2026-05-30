@@ -4,11 +4,11 @@ import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  ReceiptIcon, PlusIcon, DownloadIcon, PauseIcon, PlayIcon,
+  ReceiptIcon, PauseIcon, PlayIcon,
   SearchIcon, GearIcon,
 } from '../components/icons'
 import {
-  Download, Plus, Filter, ChevronsUpDown, ArrowUp, ArrowDown,
+  Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
@@ -30,17 +30,6 @@ function mapSubStatus(s: string | null | undefined): PillVariant {
   return 'info'
 }
 
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
-}
-
 export default function SubscriptionsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'subscriptions', configVersion)
   const [list, setList] = useState<Subscription[] | null>(null)
@@ -56,7 +45,6 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
@@ -74,7 +62,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
     loadCustomerOptions(token).then(setCustomers)
     loadProducts(token, true).then(setProducts)
   }, [token])
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
   const cust = (s: Subscription) => (s.customer_id ? (names[s.customer_id] ?? s.customer_id.slice(0, 8)) : '—')
 
@@ -143,12 +131,16 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
   function renderCell(colKey: string, s: Subscription) {
     switch (colKey) {
       case 'customer': return cust(s)
-      case 'plan': return <span className="mono">{s.plan_name ?? '—'}</span>
-      case 'cycle': return <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{s.cycle ?? '—'}</span>
+      case 'plan': return s.plan_name ? <span className="mono">{s.plan_name}</span> : <span>—</span>
+      case 'cycle': return s.cycle
+        ? <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{s.cycle}</span>
+        : <span>—</span>
       case 'status': return s.status
         ? <StatusPill variant={mapSubStatus(s.status)} label={s.status} size="sm" />
         : <span>—</span>
-      case 'mrr': return <span className="mono tnum">{`֏${(s.amount ?? 0).toLocaleString()}`}</span>
+      case 'mrr': return s.amount != null
+        ? <span className="mono tnum">{money(s.amount)}</span>
+        : <span>—</span>
       default: return '—'
     }
   }
@@ -196,26 +188,10 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
 
   function toggleSort(k: string) {
     if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
     else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id); else n.add(id)
-      return n
-    })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
   }
 
   return (
@@ -235,9 +211,6 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                     <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
                   </button>
                 )}
-                <button className="btn btn-secondary btn-sm" onClick={() => toast.success(`Export queued for ${sorted.length} subscription(s)`)}>
-                  <Download size={14} /> Export
-                </button>
                 <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
                   <Plus size={14} /> {draft ? 'Close' : 'New subscription'}
                 </button>
@@ -323,20 +296,6 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[subscriptions] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} subscription(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
             <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
               <div className="tb-search" style={{ width: 280 }}>
                 <SearchIcon size={14} />
@@ -347,9 +306,6 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
                 />
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => toast.info('Filter builder — configure in Studio')}>
-                <Filter size={14} /> Filter
-              </button>
               <span className="spacer" />
             </div>
 
@@ -357,14 +313,6 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input
-                        type="checkbox"
-                        checked={allOnPageSelected}
-                        onChange={togglePageAll}
-                        aria-label="Select all rows on this page"
-                      />
-                    </th>
                     {cfg.columns.map((c) => (
                       <th
                         key={c.key}
@@ -382,39 +330,30 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 32 }}></th>
+                    <th style={{ width: 1 }} aria-label="Actions"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageRows.map((s) => {
                     const st = (s.status ?? '').toUpperCase()
-                    const canceled = st === 'CANCELLED' || st === 'CANCELED'
+                    const canceled = st === 'CANCELLED' || st === 'CANCELED' || st === 'EXPIRED'
                     return (
-                      <tr key={s.id} className={selected.has(s.id) ? 'sel' : ''}>
-                        <td onClick={(e) => { e.stopPropagation(); toggleRow(s.id) }} style={{ cursor: 'default' }}>
-                          <input
-                            type="checkbox"
-                            checked={selected.has(s.id)}
-                            onChange={() => toggleRow(s.id)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`Select subscription ${s.id.slice(0, 8)}`}
-                          />
-                        </td>
+                      <tr key={s.id}>
                         {cfg.columns.map((c) => (
                           <td key={c.key} className={colTdClass(c.key)}>
                             {renderCell(c.key, s)}
                           </td>
                         ))}
                         {cf.cells(s.id)}
-                        <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {!canceled && (
-                              <button className="btn btn-ghost btn-sm" title="Generate invoice" onClick={() => generate(s.id)}>
+                              <button className="btn btn-ghost btn-sm" title="Generate invoice for current period" onClick={() => generate(s.id)}>
                                 Generate
                               </button>
                             )}
                             {!canceled && (
-                              <button className="btn btn-ghost btn-sm" title="Rate usage" onClick={() => rateUsage(s.id)}>
+                              <button className="btn btn-ghost btn-sm" title="Rate metered usage" onClick={() => rateUsage(s.id)}>
                                 Rate
                               </button>
                             )}
@@ -428,14 +367,19 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                                 <PlayIcon size={13} />
                               </button>
                             )}
-                            <button
-                              className="iconbtn"
-                              aria-label="Row menu"
-                              title="Row actions"
-                              onClick={(e) => { e.stopPropagation(); console.log('[subscriptions] row menu', s.id) }}
-                            >
-                              <MoreVerticalIcon size={15} />
-                            </button>
+                            {(st === 'ACTIVE' || st === 'SUSPENDED') && (
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                title="Cancel subscription"
+                                onClick={() => {
+                                  if (window.confirm(`Cancel subscription "${s.plan_name ?? s.id.slice(0, 8)}"? This cannot be undone.`)) {
+                                    action(s.id, 'cancel')
+                                  }
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -443,7 +387,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                   })}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
                         No matching subscriptions.
                       </td>
                     </tr>

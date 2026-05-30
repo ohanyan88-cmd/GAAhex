@@ -36,6 +36,8 @@ import ActivityFeedView from './views/ActivityFeedView'
 import CalendarView from './views/CalendarView'
 import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
+import OrdersView from './views/OrdersView'
+import RevenueAssuranceView from './views/RevenueAssuranceView'
 import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
 import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
@@ -81,6 +83,8 @@ type View =
   | { type: 'workitems' }
   | { type: 'mytasks' }
   | { type: 'gateway' }
+  | { type: 'orders' }
+  | { type: 'revenue-assurance' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
@@ -111,6 +115,8 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   // Table-capable pages.
   helpdesk: 'helpdesk',
   workitems: 'workitems',
+  // Wave A §3 pages.
+  'revenue-assurance': 'revenue-assurance',
 }
 
 
@@ -485,7 +491,7 @@ export default function App() {
               : view.type === 'saved-views'
                 ? <SavedViewsView token={token} onOpenEntity={(slug) => setView({ type: 'entity', slug })} />
               : view.type === 'invoices'
-                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} />
+                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} capabilities={capabilities} />
               : view.type === 'payments'
                 ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'gateway'
@@ -522,6 +528,10 @@ export default function App() {
                 ? <SettingsView token={token} />
               : view.type === 'reports'
                 ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
+              : view.type === 'orders'
+                ? <OrdersView token={token} />
+              : view.type === 'revenue-assurance'
+                ? <RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'studio'
                 ? <StudioShell
                     token={token}

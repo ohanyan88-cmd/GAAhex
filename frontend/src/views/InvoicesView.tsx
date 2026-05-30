@@ -7,14 +7,13 @@ import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
   ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
-  CreditCardIcon, DownloadIcon,
+  CreditCardIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-
-const STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'OVERDUE', 'VOID']
+import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -22,18 +21,20 @@ function fmtDate(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-// Status → pill style
+// Status → pill style. Uses kit primitives (gx-token-backed) only.
 function statusPill(status: string | null | undefined) {
   const s = (status ?? '').toUpperCase()
   const cls = s === 'PAID' ? 'pill pill-success'
     : s === 'OVERDUE' ? 'pill pill-danger'
-    : s === 'VOID' ? 'pill pill-muted'
-    : s === 'ISSUED' ? 'pill pill-accent'
-    : 'pill'
+    : s === 'VOID' ? 'pill pill-neutral'
+    : s === 'ISSUED' ? 'pill pill-info'
+    : 'pill pill-neutral'
   return status ? <span className={cls}><span className="pill-dot" />{status}</span> : <span>—</span>
 }
 
 // ── Pay online button ─────────────────────────────────────────────────────────
+// Recording a gateway payment effectively creates a Payment row on success, so we gate the
+// affordance on payment.create just like Record-payment does.
 function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceId: string; onDone: () => void }) {
   const [busy, setBusy] = useState(false)
   const [devConfirm, setDevConfirm] = useState<{ orderId: string } | null>(null)
@@ -120,7 +121,7 @@ function renderInvoiceCell(colKey: string, inv: Invoice, cust: (inv: Invoice) =>
 const COL_CLASS: Record<string, string> = { amount: 'num' }
 // Columns that get special inline styling on their <td>
 function colTdStyle(colKey: string): React.CSSProperties | undefined {
-  if (colKey === 'number') return { color: 'var(--accent)', fontWeight: 600 }
+  if (colKey === 'number') return { color: 'var(--gx-gold)', fontWeight: 600 }
   return undefined
 }
 // Columns that get extra className on their <td>
@@ -131,13 +132,15 @@ function colTdClass(colKey: string): string {
 }
 
 export default function InvoicesView({
-  token, canConfigure = false, configVersion = 0, initialStatus,
+  token, canConfigure = false, configVersion = 0, initialStatus, capabilities = FULL_ACCESS,
 }: {
   token: string
   canConfigure?: boolean
   configVersion?: number
-  /** Home-page deep link: page mounts with this status pre-selected in the filter. */
+  /** Home-page / Customer 360 deep link: pre-filter the list by this status when set. */
   initialStatus?: string
+  /** Per-entity caps; mutation buttons (Issue / Void / Pay / Record) gate on these. */
+  capabilities?: Capabilities
 }) {
   const { t } = useI18n()
   const cfg = usePageConfig(token, 'invoices', configVersion)
@@ -150,6 +153,13 @@ export default function InvoicesView({
   const [detailId, setDetailId] = useState<string | null>(null)
   const [cycleNA, setCycleNA] = useState(false)
   const [cycleBusy, setCycleBusy] = useState(false)
+
+  // Permission gates (rule 6) — backend re-checks too, this just hides buttons the user can't use.
+  const canEditInvoice = can(capabilities, 'invoice', 'edit')
+  const canCreatePayment = can(capabilities, 'payment', 'create')
+
+  // When the parent flips the deep-link status (e.g. switching customers in 360), re-sync the filter.
+  useEffect(() => { setStatus(initialStatus ?? '') }, [initialStatus])
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
@@ -211,18 +221,20 @@ export default function InvoicesView({
     ['VOID', 'Void'],
   ]
 
-  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
+  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} onBack={() => { setDetailId(null); load() }} />
 
   return (
-    <div>
+    <div className="view-inner fade">
       <ViewHead
         icon={<ReceiptIcon size={18} />}
         title={cfg.title}
         sub={`${all.length} records · currency AMD (֏) · billing engine`}
         actions={
           <>
-            <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
-            {canConfigure && !cycleNA && (
+            {canEditInvoice && (
+              <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
+            )}
+            {canConfigure && canEditInvoice && !cycleNA && (
               <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>
                 {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
               </button>
@@ -240,20 +252,20 @@ export default function InvoicesView({
           </div>
           <div className="widget">
             <div className="widget-label">Outstanding</div>
-            <div className="kpi" style={{ color: outstanding > 0 ? 'var(--warning)' : 'var(--text)' }}>
+            <div className="kpi" style={{ color: outstanding > 0 ? 'var(--gx-warning)' : 'var(--gx-text-1)' }}>
               <span className="kpi-cur">֏</span>{(outstanding / 1000).toFixed(1)}k
             </div>
             <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
           </div>
           <div className="widget">
             <div className="widget-label">Paid</div>
-            <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
+            <div className="kpi" style={{ color: 'var(--gx-success)' }}>{paidCount}</div>
             <div className="kpi-sub">of {all.length} invoices</div>
           </div>
           {overdueCount > 0 && (
             <div className="widget">
               <div className="widget-label">Overdue</div>
-              <div className="kpi" style={{ color: 'var(--danger)' }}>{overdueCount}</div>
+              <div className="kpi" style={{ color: 'var(--gx-danger)' }}>{overdueCount}</div>
               <div className="kpi-sub">action required</div>
             </div>
           )}
@@ -303,7 +315,7 @@ export default function InvoicesView({
                   {cf.cells(inv.id)}
                   <td>
                     <div className="row-actions">
-                      {(inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
+                      {canCreatePayment && (inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
                         <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
                       )}
                       <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
@@ -321,7 +333,14 @@ export default function InvoicesView({
   )
 }
 
-function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string; names: Record<string, string>; onBack: () => void }) {
+function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, onBack }: {
+  token: string
+  id: string
+  names: Record<string, string>
+  canEditInvoice: boolean
+  canCreatePayment: boolean
+  onBack: () => void
+}) {
   const [inv, setInv] = useState<Invoice | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
@@ -360,7 +379,7 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
   const cust = inv?.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—'
 
   return (
-    <div>
+    <div className="view-inner fade">
       <ViewHead
         icon={<ChevronLeftIcon size={16} />}
         title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
@@ -383,16 +402,16 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
             <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
             <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
             <div className="bill-actions">
-              {status === 'DRAFT' && (
+              {canEditInvoice && status === 'DRAFT' && (
                 <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
               )}
-              {(status === 'ISSUED' || status === 'OVERDUE') && (
+              {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
                 <PayOnlineButton token={token} invoiceId={id} onDone={load} />
               )}
-              {(status === 'ISSUED' || status === 'OVERDUE') && (
+              {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
                 <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
               )}
-              {(status === 'ISSUED' || status === 'OVERDUE') && (
+              {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
                 <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
               )}
               <button
@@ -441,7 +460,7 @@ function InvoiceDetail({ token, id, names, onBack }: { token: string; id: string
                 <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
                 <div className="bill-total-row">
                   <span>Balance due</span>
-                  <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                  <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
                     {money(inv.balance)}
                   </span>
                 </div>

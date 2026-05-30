@@ -70,26 +70,14 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // 3. Orders & Revenue — qualification to cash collection
+  // Wave A pruning (2026-05-30): 14 dead items removed (no backend or redundant).
+  // Survivors are all wired to live /api routes or seeded entity views.
   s('revenue', 'Orders & Revenue', ArchiveIcon, [
-    i('rev-qual',        'Qualification',     CheckIcon),
-    i('rev-cpq',         'Cart & CPQ',        EditIcon),
-    i('rev-orders',      'Orders',            ArchiveIcon),
-    i('rev-fulfillment', 'Fulfillment',       TruckIcon),
-    i('rev-activations', 'Activations',       ArrowRightIcon),
+    i('rev-orders',      'Orders',            ArchiveIcon,    'orders'),
     i('rev-subs',        'Subscriptions',     ArchiveIcon,    'subscriptions'),
-    i('rev-change',      'Change Orders',     EditIcon),
-    i('rev-billing-acc', 'Billing Accounts',  BuildingIcon),
     i('rev-invoices',    'Invoices',          ReceiptIcon,    'invoices'),
     i('rev-payments',    'Payments',          CreditCardIcon, 'payments'),
-    i('rev-discounts',   'Discounts',         DollarIcon),
-    i('rev-collections', 'Collections',       ArchiveIcon),
-    i('rev-dunning',     'Dunning',           MailIcon),
-    i('rev-reconcile',   'Reconciliation',    ChartIcon),
-    i('rev-credits',     'Credit Notes',      ReceiptIcon),
-    i('rev-tariff',      'Tariff Plans',      ArchiveIcon,    'products'),
-    i('rev-prepaid',     'Prepaid',           CreditCardIcon),
-    i('rev-postpaid',    'Postpaid',          CreditCardIcon),
-    i('rev-assurance',   'Revenue Assurance', ShieldIcon),
+    i('rev-assurance',   'Revenue Assurance', ShieldIcon,     'revenue-assurance'),
   ]),
 
   // 4. Customer Care — support and service operations
@@ -225,9 +213,6 @@ const ENTITY_SLUGS: Record<string, string> = {
   'crm-opps': 'opportunities', 'crm-quotes': 'quotes', 'crm-contracts': 'contracts',
   'crm-promotions': 'promotions', 'crm-segments': 'segments', 'crm-loyalty': 'loyalty-members',
   'crm-campaigns': 'campaigns', 'crm-partners': 'partnerships',
-  // Orders & Revenue
-  'rev-orders': 'orders', 'rev-change': 'change-orders', 'rev-credits': 'credit-notes',
-  'rev-discounts': 'discounts',
   // Customer Care
   'care-complaints': 'complaints', 'care-escalations': 'escalations',
   'care-sla': 'sla-policies', 'care-kb': 'kb-articles',
