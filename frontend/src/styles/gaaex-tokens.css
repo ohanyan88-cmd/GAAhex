@@ -1,0 +1,385 @@
+/* ============================================================================
+   GAAex Design System — Master Tokens  ·  "Cobalt & Gold"
+   ----------------------------------------------------------------------------
+   Premium operations console for an entire ISP. Cobalt navy = brand/structure,
+   Azure = interactive, Gold = premium accent (used sparingly), cool Slate =
+   surfaces & text. Dark-first, with a fully built light theme.
+
+   Tiers:  Tier 1 primitives (raw scales)  ·  Tier 2 semantic (--gx-*)  ·
+           Tier 3 component tokens.  Switch theme with  data-theme="light|dark".
+
+   Fonts (Google-hosted — see README "Font substitution"):
+     Display  → Space Grotesk   (echoes the triangular A-mark)
+     UI/Body  → IBM Plex Sans    (humanist, dense-table legible)
+     Mono     → IBM Plex Mono    (IP · MAC · IDs · code · tabular numerics)
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ───────────────────────────────────────────────────────────────────────────
+   TIER 1 — PRIMITIVE SCALES (theme-independent)
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Cobalt — brand & structure (from the logo gradient) */
+  --cobalt-50:  #EEF3FA;
+  --cobalt-100: #D8E3F2;
+  --cobalt-200: #B0C5E2;
+  --cobalt-300: #82A1CC;
+  --cobalt-400: #5680B5;
+  --cobalt-500: #3A6299;
+  --cobalt-600: #2A5187;  /* logo top stop   */
+  --cobalt-700: #1C3B68;  /* logo mid — core */
+  --cobalt-800: #142C4E;  /* logo base stop  */
+  --cobalt-900: #0F2138;
+  --cobalt-950: #0A1626;
+
+  /* Azure — interactive primary (brightened, accessible cobalt) */
+  --azure-300: #7FB0FF;
+  --azure-400: #5293F2;
+  --azure-500: #3B7BE0;
+  --azure-600: #2C63BC;
+  --azure-700: #224E96;
+
+  /* Gold — premium accent (from the logo gradient) */
+  --gold-50:  #FBF6EA;
+  --gold-100: #F5E9CC;
+  --gold-200: #EBD49B;
+  --gold-300: #E2C589;  /* logo top stop  */
+  --gold-400: #D2B06E;
+  --gold-500: #C5A059;  /* logo mid — core */
+  --gold-600: #AC8847;
+  --gold-700: #9C7C3C;  /* logo base stop */
+  --gold-800: #7A5F2D;
+  --gold-900: #5A451F;
+
+  /* Slate — cool neutrals for surfaces & text */
+  --slate-0:   #FFFFFF;
+  --slate-50:  #F7F9FB;
+  --slate-100: #EDF1F5;
+  --slate-200: #DCE3EB;
+  --slate-300: #C2CDD9;
+  --slate-400: #94A3B8;
+  --slate-500: #64748B;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1E293B;
+  --slate-900: #0F172A;
+  --slate-950: #0A1120;
+
+  /* Status hues — base + soft + scale extremes */
+  --green-400:#34C77B; --green-500:#1F9D57; --green-600:#16804A; --green-soft:#1F9D5722;
+  --amber-400:#F2AE3C; --amber-500:#E0901A; --amber-600:#B97412; --amber-soft:#E0901A22;
+  --red-400:  #F0666B; --red-500:  #E5484D; --red-600:  #C53338; --red-soft:  #E5484D22;
+  --violet-400:#A78BE6;--violet-500:#8B6FD6;--violet-600:#6F52BD;--violet-soft:#8B6FD622;
+
+  /* Data-viz categorical palette (cobalt-led, color-blind aware ordering) */
+  --viz-1:#3B7BE0; --viz-2:#C5A059; --viz-3:#1F9D57; --viz-4:#8B6FD6;
+  --viz-5:#E0901A; --viz-6:#2A9DB5; --viz-7:#E5484D; --viz-8:#82A1CC;
+
+  /* ── SPACING — 4px base unit ─────────────────────────── */
+  --gx-space-0:  0px;
+  --gx-space-1:  2px;
+  --gx-space-2:  4px;
+  --gx-space-3:  8px;
+  --gx-space-4:  12px;
+  --gx-space-5:  16px;
+  --gx-space-6:  20px;
+  --gx-space-7:  24px;
+  --gx-space-8:  32px;
+  --gx-space-9:  40px;
+  --gx-space-10: 48px;
+  --gx-space-11: 64px;
+  --gx-space-12: 80px;
+
+  /* ── RADIUS ── */
+  --gx-radius-none: 0px;
+  --gx-radius-xs:   3px;
+  --gx-radius-sm:   5px;
+  --gx-radius-md:   8px;   /* default — inputs, buttons */
+  --gx-radius-lg:   12px;  /* cards */
+  --gx-radius-xl:   16px;  /* modals, large panels */
+  --gx-radius-2xl:  22px;
+  --gx-radius-full: 9999px;
+
+  /* ── BORDER widths ── */
+  --gx-border-1: 1px;
+  --gx-border-2: 2px;
+  --gx-border-3: 3px;
+
+  /* ── TYPOGRAPHY ── */
+  --gx-font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, 'Cascadia Code', monospace;
+  --gx-font-am: 'Noto Sans Armenian', 'IBM Plex Sans', sans-serif; /* local-language */
+
+  --gx-text-xs:   11px;
+  --gx-text-sm:   12px;
+  --gx-text-base: 13px;   /* dense-app body default */
+  --gx-text-md:   14px;
+  --gx-text-lg:   16px;
+  --gx-text-xl:   18px;
+  --gx-text-2xl:  22px;
+  --gx-text-3xl:  28px;
+  --gx-text-4xl:  36px;
+  --gx-text-5xl:  48px;
+  --gx-text-6xl:  64px;
+
+  --gx-weight-regular:  400;
+  --gx-weight-medium:   500;
+  --gx-weight-semibold: 600;
+  --gx-weight-bold:     700;
+
+  --gx-leading-none:    1;
+  --gx-leading-tight:   1.2;
+  --gx-leading-snug:    1.35;
+  --gx-leading-normal:  1.5;
+  --gx-leading-relaxed: 1.65;
+
+  --gx-tracking-tighter: -0.03em;
+  --gx-tracking-tight:   -0.015em;
+  --gx-tracking-normal:   0em;
+  --gx-tracking-wide:     0.04em;
+  --gx-tracking-wider:    0.08em;
+  --gx-tracking-widest:   0.16em;
+
+  /* ── MOTION ── */
+  --gx-dur-instant: 0ms;
+  --gx-dur-fast:    100ms;
+  --gx-dur-quick:   150ms;
+  --gx-dur-base:    200ms;
+  --gx-dur-moderate:300ms;
+  --gx-dur-slow:    400ms;
+  --gx-dur-slower:  600ms;
+  --gx-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --gx-ease-emphasis: cubic-bezier(0.3, 0, 0, 1);
+  --gx-ease-out:      cubic-bezier(0, 0, 0.2, 1);
+  --gx-ease-in:       cubic-bezier(0.4, 0, 1, 1);
+  --gx-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-INDEX ── */
+  --gx-z-base:     0;
+  --gx-z-dropdown: 1000;
+  --gx-z-sticky:   1100;
+  --gx-z-overlay:  1300;
+  --gx-z-modal:    1400;
+  --gx-z-popover:  1500;
+  --gx-z-toast:    1600;
+  --gx-z-tooltip:  1700;
+
+  /* ── SIZING — component heights & chrome ── */
+  --gx-control-sm: 28px;
+  --gx-control-md: 34px;
+  --gx-control-lg: 42px;
+  --gx-row-compact:     34px;
+  --gx-row-default:     44px;
+  --gx-row-comfortable: 56px;
+  --gx-header-h:  56px;
+  --gx-sidebar-w: 264px;
+  --gx-sidebar-collapsed-w: 64px;
+  --gx-tap-min:   44px;
+
+  /* ── BLUR / OPACITY ── */
+  --gx-blur-sm: 4px;
+  --gx-blur-md: 10px;
+  --gx-blur-lg: 20px;
+  --gx-backdrop-blur: 8px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   TIER 2 — SEMANTIC TOKENS  ·  DARK THEME (default)
+   ─────────────────────────────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --gx-bg:          #0A1322;   /* app background — deep cobalt-slate */
+  --gx-bg-subtle:   #0E1A2D;
+  --gx-surface:     #13203A;   /* cards */
+  --gx-surface-2:   #182943;   /* nested / hover surface */
+  --gx-elevated:    #1C2E4B;   /* modals, popovers */
+  --gx-overlay:     rgba(6, 12, 22, 0.66);
+  --gx-sidebar:     #0C1626;
+  --gx-topbar:      rgba(12, 22, 38, 0.82);
+  --gx-code-bg:     #0C1424;
+  --gx-inverse-surface: #EDF1F5;
+
+  /* Text */
+  --gx-text-1: #F4F7FB;   /* primary  */
+  --gx-text-2: #AEBDD0;   /* secondary */
+  --gx-text-3: #6E7F96;   /* tertiary / muted */
+  --gx-text-disabled: #44546B;
+  --gx-text-inverse: #0F172A;
+  --gx-text-on-primary: #FFFFFF;
+  --gx-text-on-gold: #2A1E07;
+  --gx-text-placeholder: #5A6B82;
+  --gx-link: var(--azure-400);
+  --gx-link-hover: var(--azure-300);
+
+  /* Borders */
+  --gx-border:        rgba(130, 161, 204, 0.16);
+  --gx-border-subtle: rgba(130, 161, 204, 0.09);
+  --gx-border-strong: rgba(130, 161, 204, 0.30);
+  --gx-divider:       rgba(130, 161, 204, 0.12);
+
+  /* Brand */
+  --gx-cobalt: var(--cobalt-700);
+  --gx-gold:   var(--gold-500);
+  --gx-gold-soft: rgba(197, 160, 89, 0.16);
+
+  /* Interactive primary (Azure) */
+  --gx-primary:        var(--azure-500);
+  --gx-primary-hover:  var(--azure-400);
+  --gx-primary-active: var(--azure-600);
+  --gx-primary-soft:   rgba(59, 123, 224, 0.16);
+  --gx-on-primary:     #FFFFFF;
+
+  /* Interaction overlays */
+  --gx-hover:    rgba(174, 189, 208, 0.06);
+  --gx-pressed:  rgba(174, 189, 208, 0.12);
+  --gx-selected: rgba(59, 123, 224, 0.16);
+  --gx-ring:     rgba(82, 147, 242, 0.55);
+  --gx-ring-offset: var(--gx-bg);
+
+  /* Status — semantic */
+  --gx-success: var(--green-400);  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
+  --gx-warning: var(--amber-400);  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
+  --gx-danger:  var(--red-400);    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
+  --gx-info:    var(--azure-400);  --gx-info-soft:    var(--gx-primary-soft); --gx-info-fg:#A9CBF7;
+  --gx-neutral: var(--slate-400);  --gx-neutral-soft: rgba(148,163,184,0.16);
+
+  /* ISP / Network status */
+  --gx-online:       var(--green-400);
+  --gx-offline:      var(--slate-500);
+  --gx-degraded:     var(--amber-400);
+  --gx-maintenance:  var(--violet-400);
+  --gx-unknown:      var(--slate-600);
+  --gx-provisioned:  var(--green-400);
+  --gx-throttled:    var(--amber-400);
+  --gx-quarantined:  var(--red-400);
+  --gx-quality-good: var(--green-400);
+  --gx-quality-warn: var(--amber-400);
+  --gx-quality-bad:  var(--red-400);
+
+  /* Elevation / shadow (dark = deeper, lower alpha lift) */
+  --gx-shadow-xs: 0 1px 2px rgba(0,0,0,0.30);
+  --gx-shadow-sm: 0 2px 6px rgba(0,0,0,0.34);
+  --gx-shadow-md: 0 6px 18px rgba(0,0,0,0.42);
+  --gx-shadow-lg: 0 16px 40px rgba(0,0,0,0.50);
+  --gx-shadow-xl: 0 28px 70px rgba(0,0,0,0.58);
+  --gx-shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+  --gx-glow-primary: 0 0 0 1px rgba(59,123,224,0.40), 0 6px 24px rgba(59,123,224,0.28);
+  --gx-glow-gold:    0 0 0 1px rgba(197,160,89,0.40), 0 6px 24px rgba(197,160,89,0.22);
+
+  /* Skeleton */
+  --gx-skeleton:        rgba(174, 189, 208, 0.07);
+  --gx-skeleton-shine:  rgba(174, 189, 208, 0.14);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   TIER 2 — SEMANTIC TOKENS  ·  LIGHT THEME
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --gx-bg:          #F4F7FB;
+  --gx-bg-subtle:   #EDF1F5;
+  --gx-surface:     #FFFFFF;
+  --gx-surface-2:   #F7F9FB;
+  --gx-elevated:    #FFFFFF;
+  --gx-overlay:     rgba(15, 33, 56, 0.34);
+  --gx-sidebar:     #0F2138;   /* keep brand-dark sidebar in light mode */
+  --gx-topbar:      rgba(255, 255, 255, 0.85);
+  --gx-code-bg:     #0C1424;
+  --gx-inverse-surface: #13203A;
+
+  --gx-text-1: #0F2138;
+  --gx-text-2: #475569;
+  --gx-text-3: #74849A;
+  --gx-text-disabled: #AEBACA;
+  --gx-text-inverse: #F4F7FB;
+  --gx-text-on-primary: #FFFFFF;
+  --gx-text-on-gold: #2A1E07;
+  --gx-text-placeholder: #94A3B8;
+  --gx-link: var(--azure-600);
+  --gx-link-hover: var(--azure-700);
+
+  --gx-border:        #DCE3EB;
+  --gx-border-subtle: #EDF1F5;
+  --gx-border-strong: #C2CDD9;
+  --gx-divider:       #E4EAF1;
+
+  --gx-cobalt: var(--cobalt-700);
+  --gx-gold:   var(--gold-600);
+  --gx-gold-soft: rgba(172, 136, 71, 0.14);
+
+  --gx-primary:        var(--azure-600);
+  --gx-primary-hover:  var(--azure-500);
+  --gx-primary-active: var(--azure-700);
+  --gx-primary-soft:   rgba(59, 123, 224, 0.12);
+  --gx-on-primary:     #FFFFFF;
+
+  --gx-hover:    rgba(15, 33, 56, 0.04);
+  --gx-pressed:  rgba(15, 33, 56, 0.08);
+  --gx-selected: rgba(59, 123, 224, 0.10);
+  --gx-ring:     rgba(44, 99, 188, 0.40);
+  --gx-ring-offset: #FFFFFF;
+
+  --gx-success: var(--green-600);  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
+  --gx-warning: var(--amber-600);  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
+  --gx-danger:  var(--red-500);    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
+  --gx-info:    var(--azure-600);  --gx-info-soft:    rgba(59,123,224,0.12); --gx-info-fg:#234E96;
+  --gx-neutral: var(--slate-500);  --gx-neutral-soft: rgba(100,116,139,0.12);
+
+  --gx-online:       var(--green-600);
+  --gx-offline:      var(--slate-400);
+  --gx-degraded:     var(--amber-600);
+  --gx-maintenance:  var(--violet-600);
+  --gx-unknown:      var(--slate-300);
+  --gx-provisioned:  var(--green-600);
+  --gx-throttled:    var(--amber-600);
+  --gx-quarantined:  var(--red-500);
+  --gx-quality-good: var(--green-600);
+  --gx-quality-warn: var(--amber-600);
+  --gx-quality-bad:  var(--red-500);
+
+  --gx-shadow-xs: 0 1px 2px rgba(15,33,56,0.06);
+  --gx-shadow-sm: 0 2px 6px rgba(15,33,56,0.08);
+  --gx-shadow-md: 0 8px 24px rgba(15,33,56,0.10);
+  --gx-shadow-lg: 0 16px 40px rgba(15,33,56,0.14);
+  --gx-shadow-xl: 0 28px 70px rgba(15,33,56,0.18);
+  --gx-shadow-inset: inset 0 1px 0 rgba(255,255,255,0.6);
+  --gx-glow-primary: 0 0 0 1px rgba(59,123,224,0.30), 0 6px 24px rgba(59,123,224,0.18);
+  --gx-glow-gold:    0 0 0 1px rgba(172,136,71,0.30), 0 6px 24px rgba(172,136,71,0.16);
+
+  --gx-skeleton:        rgba(15, 33, 56, 0.06);
+  --gx-skeleton-shine:  rgba(15, 33, 56, 0.03);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   TIER 3 — COMPOSED TYPE STYLES (utility classes)
+   ─────────────────────────────────────────────────────────────────────────── */
+.gx-display-1 { font-family: var(--gx-font-display); font-size: var(--gx-text-6xl); font-weight: 600; line-height: var(--gx-leading-none); letter-spacing: var(--gx-tracking-tighter); }
+.gx-display-2 { font-family: var(--gx-font-display); font-size: var(--gx-text-5xl); font-weight: 600; line-height: var(--gx-leading-tight); letter-spacing: var(--gx-tracking-tighter); }
+.gx-display-3 { font-family: var(--gx-font-display); font-size: var(--gx-text-4xl); font-weight: 600; line-height: var(--gx-leading-tight); letter-spacing: var(--gx-tracking-tight); }
+.gx-h1 { font-family: var(--gx-font-display); font-size: var(--gx-text-3xl); font-weight: 600; line-height: var(--gx-leading-tight); letter-spacing: var(--gx-tracking-tight); }
+.gx-h2 { font-family: var(--gx-font-display); font-size: var(--gx-text-2xl); font-weight: 600; line-height: var(--gx-leading-snug); letter-spacing: var(--gx-tracking-tight); }
+.gx-h3 { font-family: var(--gx-font-sans); font-size: var(--gx-text-xl); font-weight: 600; line-height: var(--gx-leading-snug); }
+.gx-h4 { font-family: var(--gx-font-sans); font-size: var(--gx-text-lg); font-weight: 600; line-height: var(--gx-leading-snug); }
+.gx-h5 { font-family: var(--gx-font-sans); font-size: var(--gx-text-md); font-weight: 600; line-height: var(--gx-leading-normal); }
+.gx-h6 { font-family: var(--gx-font-sans); font-size: var(--gx-text-base); font-weight: 600; line-height: var(--gx-leading-normal); }
+.gx-body-lg { font-family: var(--gx-font-sans); font-size: var(--gx-text-md); font-weight: 400; line-height: var(--gx-leading-normal); }
+.gx-body    { font-family: var(--gx-font-sans); font-size: var(--gx-text-base); font-weight: 400; line-height: var(--gx-leading-normal); }
+.gx-body-sm { font-family: var(--gx-font-sans); font-size: var(--gx-text-sm); font-weight: 400; line-height: var(--gx-leading-normal); }
+.gx-caption { font-family: var(--gx-font-sans); font-size: var(--gx-text-xs); font-weight: 400; line-height: var(--gx-leading-snug); color: var(--gx-text-3); }
+.gx-label   { font-family: var(--gx-font-sans); font-size: var(--gx-text-sm); font-weight: 500; line-height: var(--gx-leading-snug); }
+.gx-overline{ font-family: var(--gx-font-sans); font-size: var(--gx-text-xs); font-weight: 600; line-height: var(--gx-leading-snug); letter-spacing: var(--gx-tracking-widest); text-transform: uppercase; color: var(--gx-text-3); }
+.gx-eyebrow { font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: 500; letter-spacing: var(--gx-tracking-wider); text-transform: uppercase; color: var(--gx-gold); }
+.gx-mono    { font-family: var(--gx-font-mono); font-size: var(--gx-text-sm); font-weight: 400; letter-spacing: 0; }
+.gx-numeric { font-family: var(--gx-font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.gx-code    { font-family: var(--gx-font-mono); font-size: var(--gx-text-sm); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root { --gx-dur-fast:0ms; --gx-dur-quick:0ms; --gx-dur-base:0ms; --gx-dur-moderate:0ms; --gx-dur-slow:0ms; --gx-dur-slower:0ms; }
+}
