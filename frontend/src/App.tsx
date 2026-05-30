@@ -337,19 +337,6 @@ export default function App() {
         </div>
 
         <div className="sb-scroll">
-          {/* Studio — its own top-level item, superadmin only (config.manage). */}
-          {user?.can_configure && (
-            <div className="sb-sec">
-              <button
-                className={'sb-item' + (view.type === 'studio' ? ' on' : '')}
-                style={{ paddingLeft: 10 }}
-                onClick={() => setView({ type: 'studio' })}
-              >
-                <span className="ic"><GearIcon size={15} /></span>
-                <span>Studio</span>
-              </button>
-            </div>
-          )}
           {NAV_SECTIONS.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
             const isOpen = openSections.has(sec.id)
             return (
