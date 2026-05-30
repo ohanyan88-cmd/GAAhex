@@ -302,6 +302,7 @@ export default function DashboardView({
           <span className="spacer" />
           {showRevenue && (
             <div className="seg">
+              <button className={range === '7d' ? 'on' : ''} onClick={() => setRange('7d')}>7d</button>
               <button className={range === '30d' ? 'on' : ''} onClick={() => setRange('30d')}>30d</button>
               <button className={range === 'qtd' ? 'on' : ''} onClick={() => setRange('qtd')}>QTD</button>
               <button className={range === 'ytd' ? 'on' : ''} onClick={() => setRange('ytd')}>YTD</button>

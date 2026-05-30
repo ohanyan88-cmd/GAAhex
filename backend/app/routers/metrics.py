@@ -29,7 +29,7 @@ from .auth import current_user
 
 router = APIRouter(prefix="/api/metrics", tags=["metrics"])
 
-_ALLOWED_RANGES = {"30d", "qtd", "ytd"}
+_ALLOWED_RANGES = {"7d", "30d", "qtd", "ytd"}
 
 
 def _now() -> datetime:
@@ -38,6 +38,8 @@ def _now() -> datetime:
 
 def _window_start(range_key: str, now: datetime) -> datetime:
     """The earliest timestamp included in the window for `range_key`. Always UTC, naive-safe."""
+    if range_key == "7d":
+        return now - timedelta(days=7)
     if range_key == "30d":
         return now - timedelta(days=30)
     if range_key == "qtd":

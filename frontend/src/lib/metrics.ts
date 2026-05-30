@@ -4,7 +4,7 @@
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
-export type RevenueRange = '30d' | 'qtd' | 'ytd'
+export type RevenueRange = '7d' | '30d' | 'qtd' | 'ytd'
 
 /** One month bucket from /api/metrics/revenue. Money is luma; divide by 100 for display. */
 export type RevenueBucket = {
