@@ -7,7 +7,7 @@
 import type { ComponentType } from 'react'
 import {
   HomeIcon, ChartIcon, UsersIcon, ArchiveIcon, InboxIcon, ReceiptIcon,
-  ServerIcon, TruckIcon, PackageIcon, DollarIcon, BriefcaseIcon,
+  ServerIcon, TruckIcon, PackageIcon, BriefcaseIcon,
   SparkleIcon, MessageIcon, FolderIcon, LayersIcon, ShieldIcon,
   GearIcon, MapIcon, ActivityIcon, BuildingIcon, CalendarIcon,
   ClockIcon, RowsIcon, EditIcon, BookmarkIcon, MailIcon,
@@ -129,24 +129,18 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // 7. Enterprise — internal company operations
+  // Wave A pruning (2026-05-30): 10 dead items removed — 9 with no backend
+  // (ent-finance, ent-accounting, ent-procurement, ent-hr, ent-attendance,
+  // ent-onboarding, ent-time, ent-legal, ent-esign) plus ent-assets which
+  // duplicated net-assetmgmt (both routed to /api/assets).
   s('enterprise', 'Enterprise', BriefcaseIcon, [
-    i('ent-finance',     'Finance',              DollarIcon),
-    i('ent-accounting',  'Accounting',           ReceiptIcon),
-    i('ent-procurement', 'Procurement',          ArchiveIcon),
-    i('ent-hr',          'HR',                   BriefcaseIcon),
     i('ent-employees',   'Employees',            UsersIcon),
     i('ent-departments', 'Departments',          BuildingIcon),
-    i('ent-attendance',  'Attendance',           ClockIcon),
     i('ent-leave',       'Leave Management',     CalendarIcon),
     i('ent-recruitment', 'Recruitment',          UsersIcon),
-    i('ent-onboarding',  'Onboarding',           ArrowRightIcon),
     i('ent-performance', 'Performance',          ChartIcon),
-    i('ent-time',        'Time Tracking',        ClockIcon),
     i('ent-projects',    'Projects',             LayersIcon),
-    i('ent-assets',      'Assets',               PackageIcon),
-    i('ent-legal',       'Legal & Compliance',   ShieldIcon),
     i('ent-docs',        'Document Management',  FolderIcon),
-    i('ent-esign',       'E-Signatures',         EditIcon),
   ]),
 
   // 8. System — platform management and configuration (admin-only)
@@ -204,7 +198,7 @@ const ENTITY_SLUGS: Record<string, string> = {
   // Enterprise
   'ent-projects': 'projects', 'ent-employees': 'employees', 'ent-departments': 'departments',
   'ent-leave': 'leave-requests', 'ent-recruitment': 'candidates',
-  'ent-performance': 'performance-reviews', 'ent-assets': 'assets',
+  'ent-performance': 'performance-reviews',
   'ent-docs': 'documents',
   // System
   'sys-integrations': 'integrations',
