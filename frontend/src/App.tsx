@@ -447,6 +447,8 @@ export default function App() {
                         setView({ type: 'invoices', initialStatus: target.status })
                       } else if (target.type === 'helpdesk') {
                         setView({ type: 'helpdesk', initialStatus: target.status, initialOpenTicketId: target.openTicketId })
+                      } else if (target.type === 'workitems') {
+                        setView({ type: 'workitems' })
                       } else if (target.type === 'entity') {
                         setView({ type: 'entity', slug: target.slug })
                       }

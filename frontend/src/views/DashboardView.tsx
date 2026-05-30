@@ -14,7 +14,7 @@
 // route to their target record when the audit event carries one. There are no inert
 // buttons or "View all" links — those were removed rather than faked.
 import { useEffect, useState } from 'react'
-import { Users, Banknote, Inbox, Activity, BarChart3 } from 'lucide-react'
+import { Users, Banknote, Inbox, Activity, BarChart3, CheckSquare } from 'lucide-react'
 import { GearIcon } from '../components/icons'
 import { StatusPill } from '../primitives/StatusPill'
 import { money } from '../lib/money'
@@ -30,6 +30,7 @@ export type HomeNavTarget =
   | { type: 'subscriptions'; status?: string }
   | { type: 'invoices'; status?: string }
   | { type: 'helpdesk'; status?: string; openTicketId?: string }
+  | { type: 'workitems' }
   | { type: 'entity'; slug: string; recordId?: string }
 
 // Fetch state machine — we distinguish "still loading" from "loaded with a real value"
@@ -104,6 +105,7 @@ export default function DashboardView({
   const [subs, setSubs] = useState<Fetched<number>>({ state: 'loading' })
   const [mrr, setMrr] = useState<Fetched<number>>({ state: 'loading' })
   const [openTickets, setOpenTickets] = useState<Fetched<number>>({ state: 'loading' })
+  const [openWorkItems, setOpenWorkItems] = useState<Fetched<number>>({ state: 'loading' })
   const [revenue, setRevenue] = useState<Fetched<RevenueBucket[]>>({ state: 'loading' })
   const [activity, setActivity] = useState<Fetched<ActivityRow[]>>({ state: 'loading' })
   const [tickets, setTickets] = useState<Fetched<TicketRow[]>>({ state: 'loading' })
@@ -164,6 +166,21 @@ export default function DashboardView({
         setOpenTickets({ state: 'ok', value: arr.length })
       })
       .catch(err => { console.error('[home] open tickets:', err); if (alive) setOpenTickets({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // KPI 4: Open work items — count of items in active statuses assigned to this tenant.
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/workitems?status=TODO,IN_PROGRESS,BLOCKED`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`workitems ${r.status}`)))
+      .then((d: any) => {
+        if (!alive) return
+        const arr = Array.isArray(d) ? d : (d?.items ?? null)
+        if (!Array.isArray(arr)) { setOpenWorkItems({ state: 'hide' }); return }
+        setOpenWorkItems({ state: 'ok', value: arr.length })
+      })
+      .catch(err => { console.error('[home] open work items:', err); if (alive) setOpenWorkItems({ state: 'hide' }) })
     return () => { alive = false }
   }, [token])
 
@@ -238,6 +255,7 @@ export default function DashboardView({
   const showSubs = capsLoaded && can(caps, 'subscription', 'view')
   const showMrr = capsLoaded && can(caps, 'invoice', 'view')
   const showOpenTickets = capsLoaded && can(caps, 'helpdesk_ticket', 'view')
+  const showOpenWorkItems = capsLoaded && can(caps, 'workitem', 'view')
   const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
   const showTickets = capsLoaded && can(caps, 'helpdesk_ticket', 'view')
   // Activity is org-scoped per record on the backend — no single gating perm. Always
@@ -249,7 +267,8 @@ export default function DashboardView({
   const kpiVisible =
     (showSubs && subs.state === 'ok') ||
     (showMrr && mrr.state === 'ok') ||
-    (showOpenTickets && openTickets.state === 'ok')
+    (showOpenTickets && openTickets.state === 'ok') ||
+    (showOpenWorkItems && openWorkItems.state === 'ok')
 
   // Nav helper — silently no-ops if the host hasn't wired onNavigate.
   const nav = (target: HomeNavTarget) => { if (onNavigate) onNavigate(target) }
@@ -318,6 +337,13 @@ export default function DashboardView({
               fetched={openTickets}
               format={(n) => n.toLocaleString()}
               onClick={() => nav({ type: 'helpdesk', status: 'OPEN' })}
+            />}
+            {showOpenWorkItems && <KpiTile
+              label="Open work items"
+              icon={<CheckSquare size={16} />}
+              fetched={openWorkItems}
+              format={(n) => n.toLocaleString()}
+              onClick={() => nav({ type: 'workitems' })}
             />}
           </div>
         )}
