@@ -120,7 +120,7 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
             </button>
           ) : undefined}
         />
-        <div className="studio gx-studio">
+        <div className="studio">
           <aside className="studio-nav">
             <div className="studio-nav-sec">Page</div>
             <div style={{ padding: '0 4px 10px' }}>
@@ -157,19 +157,19 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
   }
 
   return (
-    <>
+    <div className="view-inner fade" style={{ maxWidth: 1240 }}>
       <ViewHead
         icon={<GearIcon size={20} />}
         title="Studio"
         sub="Configuration engine · zero-code entity, workflow & UI builder"
         actions={
-          <button className="btn btn-ghost btn-sm">
+          <button className="btn btn-secondary btn-sm">
             <DownloadIcon size={13} /> Export config
           </button>
         }
       />
 
-      <div className="studio gx-studio">
+      <div className="studio">
         <aside className="studio-nav">
           <div className="studio-nav-sec">Schema</div>
           {navSchema.map(({ id, label, Icon }) => (
@@ -234,7 +234,7 @@ export default function StudioView({ token, onCreated, focusSlug, entities, onBa
           {section === 'perms'     && <RolesPane token={token} />}
         </section>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -616,7 +616,7 @@ function EntityBuilder({ formProps: fp }: { formProps: BuilderFormProps }) {
         </div>
 
         <div>
-          <button type="submit" className="btn btn-accent btn-md">
+          <button type="submit" className="btn btn-gold btn-md">
             <CheckIcon size={14} /> Create entity
           </button>
         </div>
