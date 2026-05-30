@@ -31,7 +31,12 @@ export default function AskGaaexView({ token }: { token: string }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight
+  }, [msgs, busy])
 
   useEffect(() => {
     (async () => {
@@ -41,7 +46,6 @@ export default function AskGaaexView({ token }: { token: string }) {
     })()
   }, [token])
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs, busy])
 
   async function ask(question: string) {
     const text = question.trim()
@@ -109,7 +113,7 @@ export default function AskGaaexView({ token }: { token: string }) {
         {/* ── Chat pane ───────────────────────────────────────────── */}
         <div className="chat">
           <div className="chat-wrap">
-            <div className="chat-body">
+            <div className="chat-body" ref={bodyRef}>
               {msgs.length === 0 && (
                 <div className="bubble-row in">
                   <div className="bubble-wrap">

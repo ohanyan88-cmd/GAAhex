@@ -36,7 +36,8 @@ import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
 import { bget, bpost } from './lib/billing'
 import { useI18n, initI18n, type Lang } from './lib/i18n'
 import { GearIcon, SunIcon, MoonIcon, RowsIcon, CloseIcon, SparkleIcon,
-  ChevronRightIcon, ChevronDownIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon } from './components/icons'
+  ChevronRightIcon, ChevronDownIcon, ServerIcon, UsersIcon, ShieldIcon, GlobeIcon, InfoIcon,
+  ArrowRightIcon, ReceiptIcon, InboxIcon, CalendarIcon, EditIcon } from './components/icons'
 import { PanelLeft, Search, Plus, Bell, HelpCircle, Wand, LogIn, Shield } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import ProfileModal from './modals/ProfileModal'
@@ -111,6 +112,7 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
 export default function App() {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<Me | null>(null)
+  const [tenantName, setTenantName] = useState<string>('')
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
@@ -140,6 +142,7 @@ export default function App() {
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [createMenuOpen, setCreateMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -189,8 +192,13 @@ export default function App() {
 
   useEffect(() => {
     if (!token) { setNudge(false); return }
-    bget<{ onboarded?: boolean }>(token, '/api/tenant/settings')
-      .then((r) => { if (r.ok && r.data && r.data.onboarded === false) setNudge(true) })
+    bget<{ onboarded?: boolean; name?: string }>(token, '/api/tenant/settings')
+      .then((r) => {
+        if (r.ok && r.data) {
+          if (r.data.onboarded === false) setNudge(true)
+          if (r.data.name) setTenantName(r.data.name)
+        }
+      })
       .catch(() => {})
   }, [token])
 
@@ -217,6 +225,14 @@ export default function App() {
       document.removeEventListener('keydown', onKey)
     }
   }, [userMenuOpen])
+
+  // Close create menu on Escape
+  useEffect(() => {
+    if (!createMenuOpen) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setCreateMenuOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [createMenuOpen])
 
   const [theme, setTheme] = useState<'dark' | 'light'>(
     () => (localStorage.getItem('gaaex-theme') === 'light' ? 'light' : 'dark'),
@@ -251,7 +267,7 @@ export default function App() {
   }
 
   function logout() {
-    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS)
+    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS); setTenantName('')
   }
 
   if (!token) {
@@ -444,9 +460,26 @@ export default function App() {
             </button>
           )}
 
-          <button className="btn btn-primary btn-sm">
-            <Plus size={14} /> Create
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setCreateMenuOpen(v => !v)}>
+              <Plus size={14} /> Create
+            </button>
+            {createMenuOpen && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 'var(--gx-z-modal)' }} onClick={() => setCreateMenuOpen(false)} />
+                <div className="menu fade-fast" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, minWidth: 200, zIndex: 'var(--gx-z-modal)' }} onClick={() => setCreateMenuOpen(false)}>
+                  <div className="menu-label">Quick create</div>
+                  <button className="menu-item" onClick={() => { setView({ type: 'lead-pipeline' }); }}><ArrowRightIcon size={15} />New lead</button>
+                  <button className="menu-item" onClick={() => { setView({ type: 'entity', slug: 'customers' }); }}><UsersIcon size={15} />New customer</button>
+                  <button className="menu-item" onClick={() => { setView({ type: 'invoices' }); }}><ReceiptIcon size={15} />New invoice</button>
+                  <button className="menu-item" onClick={() => { setView({ type: 'helpdesk' }); }}><InboxIcon size={15} />New ticket</button>
+                  <button className="menu-item" onClick={() => { setView({ type: 'calendar' }); }}><CalendarIcon size={15} />New event</button>
+                  <div className="menu-sep" />
+                  <button className="menu-item" onClick={() => { setView({ type: 'studio' }); }}><EditIcon size={15} />New entity in Studio</button>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             className="tb-icon"
@@ -470,14 +503,14 @@ export default function App() {
             />
           </div>
 
-          <div className="tenant" title={user?.tenant_id ?? 'Tenant'}>
+          <div className="tenant" title={tenantName || 'Tenant'} onClick={() => setView({ type: 'settings' })}>
             <span
               className="avatar"
               style={{ width: 22, height: 22, fontSize: 10, borderRadius: 6, background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))', color: '#2A1E07' }}
             >
-              {(user?.tenant_id || 'GA').slice(0, 2).toUpperCase()}
+              {tenantName ? tenantName.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase() || tenantName.slice(0,2).toUpperCase() : 'GA'}
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 600 }}>{user?.tenant_id || 'GAAex'}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 600 }}>{tenantName || 'GAAex'}</span>
             <ChevronDownIcon size={14} />
           </div>
 
