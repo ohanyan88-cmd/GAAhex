@@ -1,10 +1,10 @@
-"""Background scheduler (E25 / J92) — auto-fire the batch jobs per active tenant.
+"""Background scheduler (E25 / J92) — auto-fire the batch jobs for THE tenant.
 
 Today `run-dunning` (billing), `run-cycle` (billing-cycle) and `run-due` (report schedules) are
-endpoints a human (or cron) must call by hand, once per tenant. This module turns them into an
-optional, **disabled-by-default** asyncio background task that wakes on an interval and fires all
-three for every ACTIVE tenant — reusing the existing handler LOGIC unchanged (nothing here is a
-reimplementation of billing/report rules).
+endpoints a human (or cron) must call by hand. This module turns them into an optional,
+**disabled-by-default** asyncio background task that wakes on an interval and fires all jobs —
+reusing the existing handler LOGIC unchanged (nothing here is a reimplementation of billing/report
+rules).
 
 DESIGN
 ------
@@ -13,22 +13,19 @@ DESIGN
   is a complete no-op: it spawns no task, opens no connection, changes zero behavior. The flag is
   read defensively so `config.py` need not be edited (no collision with the coordinator).
 
-- **Cross-tenant via the OWNER session.** A scheduler is pre/cross-tenant, exactly like the
-  seed/provisioning path, so it runs on `OwnerSessionLocal` (RLS-bypass). Every reused handler
-  already filters by `user.tenant_id`, so the owner session (which carries no tenant GUC) is the
-  correct privileged context — the same pattern `routers/admin.py` provisioning uses.
+- **Single-tenant, OWNER session.** Single-tenant mode: every sweep targets THE_TENANT_ID. Runs on
+  `OwnerSessionLocal` (RLS-bypass) so the actor resolution works regardless of GUC state.
 
-- **System actor per tenant.** Each handler needs a `User` (for the audit/JobRun actor + the
-  permission gate). We use the tenant's **first super_admin** — the earliest-created user holding an
-  Assignment to the RoleDef whose `key == "super_admin"` (the `*`-granting role the seed/provisioning
-  always create). That actor's `*` grant satisfies every job's `can(...)` gate. If a tenant somehow
-  has no super_admin we fall back to its earliest-created user; if it has no users at all the tenant
-  is skipped (noted, fail-soft).
+- **System actor.** Each handler needs a `User` (for the audit/JobRun actor + the permission gate).
+  We use THE tenant's **first super_admin** — the earliest-created user holding an Assignment to
+  the RoleDef whose `key == "super_admin"` (the `*`-granting role the seed always creates). That
+  actor's `*` grant satisfies every job's `can(...)` gate. If somehow the tenant has no super_admin
+  we fall back to the earliest-created user; if it has no users at all the sweep is skipped.
 
-- **Fail-soft per tenant AND per job.** One tenant's failure never blocks another; one job's failure
-  never blocks the other two for the same tenant. Each job runs in its OWN fresh owner session so a
-  handler's internal `rollback()`/`commit()` can't bleed across jobs. Each handler already records a
-  JobRun (SUCCESS/ERROR) via `billing._record_job_run`, so we don't duplicate that logging.
+- **Fail-soft per job.** One job's failure never blocks the others. Each job runs in its OWN fresh
+  owner session so a handler's internal `rollback()`/`commit()` can't bleed across jobs. Each
+  handler already records a JobRun (SUCCESS/ERROR) via `billing._record_job_run`, so we don't
+  duplicate that logging.
 
 START/STOP CONTRACT (coordinator wires these into the lifespan in `main.py` — NOT edited here):
     from .scheduler import start_scheduler, stop_scheduler
@@ -54,9 +51,9 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .config import settings
+from .config import settings, the_tenant_id_async
 from .db import OwnerSessionLocal
-from .models import Tenant, User, RoleDef, Assignment
+from .models import User, RoleDef, Assignment
 
 # Reuse the real handler logic — do NOT reimplement billing/report rules.
 from .routers.billing import run_dunning
@@ -93,21 +90,14 @@ def _interval_seconds() -> float:
 
 
 # --------------------------------------------------------------------------------------------------
-# tenant iteration + system actor
+# system actor
 # --------------------------------------------------------------------------------------------------
 
-async def _active_tenants(s: AsyncSession) -> list[Tenant]:
-    """Every ACTIVE tenant, oldest first (stable order)."""
-    return list((await s.execute(
-        select(Tenant).where(Tenant.status == "active").order_by(Tenant.created_at)
-    )).scalars().all())
-
-
 async def _system_actor(s: AsyncSession, tenant_id) -> User | None:
-    """The tenant's first super_admin = the earliest-created User holding an Assignment to the
-    RoleDef keyed 'super_admin' (the `*`-granting role seed/provisioning always create). That actor's
-    `*` grant satisfies every job's permission gate. Falls back to the tenant's earliest user; None if
-    the tenant has no users at all (caller skips it, fail-soft)."""
+    """THE tenant's first super_admin = the earliest-created User holding an Assignment to the
+    RoleDef keyed 'super_admin' (the `*`-granting role the seed always creates). That actor's `*`
+    grant satisfies every job's permission gate. Falls back to the earliest user; None if there are
+    no users at all (caller skips, fail-soft)."""
     sa = (await s.execute(
         select(User)
         .join(Assignment, Assignment.user_id == User.id)
@@ -161,27 +151,16 @@ async def _run_one_job(label: str, factory, actor: User) -> None:
                       label, getattr(actor, "tenant_id", None), getattr(actor, "id", None))
 
 
-async def _run_tenant(tenant: Tenant) -> None:
-    """Run all three jobs for one tenant, fail-soft per job."""
-    # Resolve the actor on its own short session.
+async def _run_once() -> None:
+    """One full sweep: every job for THE tenant, fail-soft per job."""
+    tenant_id = await the_tenant_id_async()
     async with OwnerSessionLocal() as s:
-        actor = await _system_actor(s, tenant.id)
+        actor = await _system_actor(s, tenant_id)
     if actor is None:
-        log.warning("scheduler: tenant %s has no usable system actor — skipping", tenant.id)
+        log.warning("scheduler: tenant %s has no usable system actor — skipping", tenant_id)
         return
     for label, factory in _JOBS:
         await _run_one_job(label, factory, actor)
-
-
-async def _run_once() -> None:
-    """One full sweep: every active tenant, all three jobs, fail-soft per tenant + per job."""
-    async with OwnerSessionLocal() as s:
-        tenants = await _active_tenants(s)
-    for t in tenants:
-        try:
-            await _run_tenant(t)
-        except Exception:  # noqa: BLE001 — a tenant-level failure never stops the sweep
-            log.exception("scheduler: sweep failed for tenant %s", t.id)
 
 
 # --------------------------------------------------------------------------------------------------

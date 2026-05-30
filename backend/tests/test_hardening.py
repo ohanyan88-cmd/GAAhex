@@ -2,7 +2,7 @@
 
 Tests for:
   S4: Portal tenant assertion — token tenant_id != CustomerUser.tenant_id → 401
-  S5: Multi-tenant guard — single-tenant login still works; multi-tenant mode would require hint
+  S5 (single-tenant mode): portal login resolves to THE_TENANT_ID — no per-request hint needed
   E38: Webhook SSRF — private/internal URLs → 422; public https → allowed
   N4: Global exception handler — clean 500 responses (no traceback)
   S3: CORS — app responds normally (default "*" unchanged)
@@ -60,33 +60,23 @@ async def test_portal_mismatched_tenant_id_claim_returns_401(client: AsyncClient
     assert r2.status_code == 401, f"Expected 401, got {r2.status_code}: {r2.text}"
 
 
-# ===================== S5: Multi-tenant guard — single-tenant still works =====================
+# ===================== S5 (single-tenant): portal login binds to THE_TENANT_ID =====================
 
 @pytest.mark.asyncio
-async def test_portal_login_tenant_hint_resolution(client: AsyncClient, portal_setup):
-    """S5 — hint-less login is safe (200 if single-tenant, 400 'tenant_id required' if multiple),
-    and supplying an explicit tenant_id ALWAYS works. Robust whether or not other tests have
-    provisioned extra tenants into the shared session DB."""
-    # Hint-less: must NOT silently authenticate against the wrong tenant — either it works
-    # (single active tenant) or it demands the hint (multi-tenant). Both are acceptable per S5.
+async def test_portal_login_resolves_to_the_tenant(client: AsyncClient, portal_setup):
+    """Single-tenant mode: portal login takes no tenant hint and ALWAYS binds to THE_TENANT_ID.
+    Even if isolation-probe tenants exist in the test DB, login still resolves the demo tenant
+    (the one that was pre-warmed in the cache during seed)."""
     r = await client.post(
         "/portal/auth/login",
         json={"email": "hardening_a@test.isp", "password": "Hardening123"},
     )
-    assert r.status_code in (200, 400), r.text
-    if r.status_code == 400:
-        assert "tenant" in r.json().get("detail", "").lower()
-
-    # With an explicit tenant_id the login always succeeds and the token works.
-    r2 = await client.post(
-        "/portal/auth/login",
-        json={"email": "hardening_a@test.isp", "password": "Hardening123",
-              "tenant_id": portal_setup["tenant_id"]},
-    )
-    assert r2.status_code == 200, r2.text
-    token = r2.json()["access_token"]
-    r3 = await client.get("/portal/auth/me", headers={"Authorization": f"Bearer {token}"})
-    assert r3.status_code == 200
+    assert r.status_code == 200, r.text
+    token = r.json()["access_token"]
+    r2 = await client.get("/portal/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert r2.status_code == 200
+    # The bound tenant matches the demo tenant that portal_setup discovered.
+    assert r2.json()["tenant_id"] == portal_setup["tenant_id"]
 
 
 # ===================== S3: CORS =====================
@@ -265,10 +255,10 @@ async def portal_setup(client: AsyncClient, admin):
         ))
         await s.commit()
 
-    # Get portal token
+    # Get portal token (single-tenant mode: no tenant hint, binds to THE_TENANT_ID).
     ra_tok = await client.post(
         "/portal/auth/login",
-        json={"email": email_a, "password": pw_a, "tenant_id": str(tid)}
+        json={"email": email_a, "password": pw_a},
     )
     assert ra_tok.status_code == 200, ra_tok.text
     token_a = ra_tok.json()["access_token"]

@@ -1,3 +1,6 @@
+import os
+import uuid
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,3 +68,57 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+# ---- single-tenant mode (Option A) ----------------------------------------------------------------
+# The whole app runs against ONE tenant. THE_TENANT_ID is the single source of truth that every
+# request is bound to (RLS GUC, scheduler, portal login). Resolution order:
+#   1. env GAAEX_TENANT_ID (explicit override, useful in prod / staging)
+#   2. the one Tenant row in the database (resolved on first call, then cached)
+# JWT `tenant` claims are no longer read — they may exist on legacy tokens but are ignored.
+_THE_TENANT_ID: uuid.UUID | None = (
+    uuid.UUID(os.environ["GAAEX_TENANT_ID"]) if os.environ.get("GAAEX_TENANT_ID") else None
+)
+
+
+def _set_the_tenant_id(tid: uuid.UUID) -> None:
+    """Pre-warm or override the cache. Called by the seed once the demo tenant exists, and exposed
+    so callers can pin a specific UUID at startup without a DB round-trip."""
+    global _THE_TENANT_ID
+    _THE_TENANT_ID = tid
+
+
+async def the_tenant_id_async() -> uuid.UUID:
+    """Async resolver — pulls the cached value or reads it from the DB exactly once.
+
+    Resolution order:
+      1. GAAEX_TENANT_ID env var (set at import time)
+      2. cached value (set by the seed or a previous call)
+      3. the oldest Tenant row in the database (single-tenant invariant — there should only be one
+         in prod; tests insert isolation-probe rows after the cache is warmed so they don't shift it)
+    """
+    global _THE_TENANT_ID
+    if _THE_TENANT_ID is not None:
+        return _THE_TENANT_ID
+
+    from sqlalchemy import select
+    from .db import OwnerSessionLocal
+    from .models import Tenant
+
+    async with OwnerSessionLocal() as s:
+        row = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
+    if row is None:
+        raise RuntimeError("No tenant row found; seed the database before resolving THE_TENANT_ID")
+    _THE_TENANT_ID = row.id
+    return _THE_TENANT_ID
+
+
+def the_tenant_id() -> uuid.UUID:
+    """Sync resolver. Returns the cached value or raises if not yet warmed — request paths should
+    call `the_tenant_id_async()` instead. Provided for non-async contexts (CLI tools, repl)."""
+    if _THE_TENANT_ID is None:
+        raise RuntimeError(
+            "THE_TENANT_ID not yet resolved; call the_tenant_id_async() from an async context, "
+            "or pre-warm via the seed."
+        )
+    return _THE_TENANT_ID

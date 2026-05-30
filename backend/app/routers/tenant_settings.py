@@ -6,8 +6,6 @@ Tenant-scoped: a user reads/updates only their OWN tenant. Writes are gated on `
 
 NOTE: fixed paths under /api ("/api/tenant"), so register BEFORE records.router ("/api/{slug}").
 """
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -87,18 +85,4 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
     await workflow.emit(s, user.tenant_id, "update", "tenant", t.id, user.id, {"changed": changed})
     await s.commit()
     await s.refresh(t)
-    return _serialize(t)
-
-
-@router.post("/onboarded")
-async def mark_onboarded(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Stamp onboarding complete (idempotent — keeps the first timestamp). Gated on tenant.settings."""
-    await _require_settings(s, user)
-    t = await _tenant(s, user)
-    if t.onboarded_at is None:
-        t.onboarded_at = datetime.now(timezone.utc)
-        await workflow.emit(s, user.tenant_id, "transition", "tenant", t.id, user.id,
-                            {"to": "onboarded", "onboarded_at": t.onboarded_at.isoformat()})
-        await s.commit()
-        await s.refresh(t)
     return _serialize(t)

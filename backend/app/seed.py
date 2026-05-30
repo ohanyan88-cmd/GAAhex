@@ -1,6 +1,10 @@
+import os
+import uuid
+
 from sqlalchemy import select, func
 from sqlalchemy_utils import Ltree
 
+from .config import _set_the_tenant_id
 from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import (
     Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
@@ -11,14 +15,27 @@ from .security import hash_password
 
 
 async def seed_if_empty() -> None:
-    """Demo tenant + 2-level org tree + demo admin user."""
+    """Demo tenant + 2-level org tree + demo admin user.
+
+    Single-tenant mode: if GAAEX_TENANT_ID is set, the demo Tenant is created with that exact UUID
+    so the env-pinned config matches the DB row. Idempotent: if any Tenant already exists, reuse
+    its id (and warm the THE_TENANT_ID cache) without creating another.
+    """
     async with SessionLocal() as s:
-        if (await s.execute(select(func.count()).select_from(Tenant))).scalar_one():
+        existing = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
+        if existing is not None:
+            # Idempotent: pre-warm the cache so the rest of the app shares the same id.
+            _set_the_tenant_id(existing.id)
             return
 
-        tenant = Tenant(name="Demo ISP")
+        pinned_id_str = os.environ.get("GAAEX_TENANT_ID")
+        tenant_kwargs = {"name": "Demo ISP"}
+        if pinned_id_str:
+            tenant_kwargs["id"] = uuid.UUID(pinned_id_str)
+        tenant = Tenant(**tenant_kwargs)
         s.add(tenant)
         await s.flush()
+        _set_the_tenant_id(tenant.id)
 
         group = OrgNode(tenant_id=tenant.id, type="Group", name="Demo ISP Group", code="grp", path=Ltree("grp"))
         s.add(group)

@@ -1,15 +1,9 @@
 """Portal authentication — customer-facing login and identity.
 
-TENANT RESOLUTION DECISION (documented for coordinator):
-  Portal login accepts an optional `tenant_id` field (UUID string) in the request body.
-  If omitted, the login falls back to the first (and in demo: only) tenant. This keeps the
-  code structure multi-tenant-safe (the lookup is always scoped to a known tenant_id) while
-  allowing the demo to work without front-end tenant-discovery machinery. A real multi-tenant
-  deployment would supply the tenant hint via subdomain resolution or a discovery endpoint —
-  that is a thin wrapper around this same parameter.
-
-  SAFETY: email uniqueness is enforced per (tenant_id, email) — never globally — so this
-  lookup cannot accidentally cross tenant boundaries.
+TENANT RESOLUTION (single-tenant mode):
+  Every portal login binds to THE_TENANT_ID (see config.the_tenant_id_async()). There is no
+  per-request tenant hint; the deployment is single-tenant. CustomerUser email uniqueness is
+  enforced per (tenant_id, email), which under single-tenant means email is effectively unique.
 
 TOKEN BOUNDARY:
   Portal JWTs include `"kind": "customer"`. The staff `current_user` dependency (routers/auth.py)
@@ -25,10 +19,10 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import the_tenant_id_async
 from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
 from ..models.customer_user import CustomerUser
 from ..models.record import Record
-from ..models.tenant import Tenant
 from ..security import verify_password, create_access_token, decode_token
 
 router = APIRouter(prefix="/portal", tags=["portal"])
@@ -38,7 +32,6 @@ _oauth2 = OAuth2PasswordBearer(tokenUrl="/portal/auth/login", auto_error=False)
 class PortalLoginIn(BaseModel):
     email: str
     password: str
-    tenant_id: str | None = None   # optional; falls back to single-tenant default
 
 
 class PortalTokenOut(BaseModel):
@@ -47,36 +40,11 @@ class PortalTokenOut(BaseModel):
     customer: dict
 
 
-# ---- helpers ----
-
-async def _resolve_tenant_id(tenant_id_str: str | None) -> uuid.UUID:
-    """Return a tenant UUID from the hint, or the first tenant if no hint given."""
-    async with OwnerSessionLocal() as o:
-        if tenant_id_str:
-            try:
-                tid = uuid.UUID(tenant_id_str)
-            except ValueError:
-                raise HTTPException(400, "Invalid tenant_id format")
-            tenant = (await o.execute(select(Tenant).where(Tenant.id == tid))).scalar_one_or_none()
-            if not tenant:
-                raise HTTPException(400, "Unknown tenant")
-            return tenant.id
-        # no hint — fall back only when there is exactly ONE active tenant (demo / single-tenant).
-        # S5: if multiple active tenants exist, picking the first would be a silent security
-        # mistake — force the caller to supply a tenant_id instead.
-        active_tenants = (await o.execute(select(Tenant).where(Tenant.status == "active"))).scalars().all()
-        if not active_tenants:
-            raise HTTPException(503, "No active tenant found")
-        if len(active_tenants) > 1:
-            raise HTTPException(400, "tenant_id required")
-        return active_tenants[0].id
-
-
 # ---- endpoints ----
 
 @router.post("/auth/login", response_model=PortalTokenOut)
 async def portal_login(body: PortalLoginIn, s: AsyncSession = Depends(get_owner_session)):
-    tenant_id = await _resolve_tenant_id(body.tenant_id)
+    tenant_id = await the_tenant_id_async()
 
     cu = (await s.execute(
         select(CustomerUser).where(

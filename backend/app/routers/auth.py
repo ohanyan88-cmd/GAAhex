@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import settings
+from ..config import settings, the_tenant_id_async
 from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
 from ..models import User
 from ..models.refresh_token import RefreshToken
@@ -80,7 +80,8 @@ async def login(body: LoginIn, s: AsyncSession = Depends(get_owner_session)):
     user = (await s.execute(select(User).where(User.email == body.email))).scalar_one_or_none()
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token(str(user.id), {"tenant": str(user.tenant_id), "email": user.email})
+    # Single-tenant mode: tenant binding comes from config.the_tenant_id_async(), not the JWT.
+    token = create_access_token(str(user.id), {"email": user.email})
     refresh = await _issue_refresh_token(s, user)
     await s.commit()
     return TokenOut(access_token=token, refresh_token=refresh)
@@ -103,7 +104,7 @@ async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_owner_session))
 
     rt.revoked_at = now                                  # rotate: kill the used token
     new_refresh = await _issue_refresh_token(s, user)
-    token = create_access_token(str(user.id), {"tenant": str(user.tenant_id), "email": user.email})
+    token = create_access_token(str(user.id), {"email": user.email})
     await s.commit()
     return TokenOut(access_token=token, refresh_token=new_refresh)
 
@@ -147,7 +148,9 @@ async def current_user(
         user = await _user_from_api_key(x_api_key)
         if not user:
             raise HTTPException(status_code=401, detail="Invalid API key")
-        await set_tenant_guc(s, user.tenant_id)
+        # Single-tenant mode: always bind to THE_TENANT_ID (the user's tenant_id column still
+        # carries the same value, but the source of truth is config.the_tenant_id_async()).
+        await set_tenant_guc(s, await the_tenant_id_async())
         return user
 
     if not token:
@@ -168,9 +171,9 @@ async def current_user(
         user = (await o.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    # Bind the request's RLS session to the user's tenant (survives mid-request commits; cleared on
-    # teardown). Harmless under the owner role, which bypasses RLS.
-    await set_tenant_guc(s, user.tenant_id)
+    # Single-tenant mode: always bind to THE_TENANT_ID. Any legacy `tenant` claim on the JWT is
+    # ignored — defense-in-depth RLS still keys on this GUC.
+    await set_tenant_guc(s, await the_tenant_id_async())
     return user
 
 
