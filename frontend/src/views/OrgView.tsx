@@ -741,10 +741,10 @@ const YEREVAN: [number, number] = [40.18, 44.51] // default center when nothing 
 // Marker pin colors per node type (kept in sync with the badge tones above).
 function pinColor(type: string): string {
   const t = type.toLowerCase()
-  if (t === 'group') return 'var(--accent)'
-  if (t === 'region') return 'var(--text-2)'
-  if (t === 'team') return 'var(--text-3)'
-  return 'var(--text-3)'
+  if (t === 'group') return 'var(--gx-gold)'
+  if (t === 'region') return 'var(--gx-text-2)'
+  if (t === 'team') return 'var(--gx-text-3)'
+  return 'var(--gx-text-3)'
 }
 
 // A token-styled teardrop pin as an inline SVG divIcon (no external assets).
@@ -754,7 +754,7 @@ function makePinIcon(type: string): L.DivIcon {
     <span class="org-map-pin" style="color:${fill}">
       <svg width="26" height="34" viewBox="0 0 26 34" aria-hidden="true">
         <path d="M13 0C5.82 0 0 5.82 0 13c0 9.1 11.5 20.1 12 20.6a1.4 1.4 0 0 0 2 0C14.5 33.1 26 22.1 26 13 26 5.82 20.18 0 13 0z" fill="currentColor"/>
-        <circle cx="13" cy="13" r="5.2" fill="#fff" fill-opacity="0.92"/>
+        <circle cx="13" cy="13" r="5.2" fill="var(--gx-on-primary)" fill-opacity="0.92"/>
       </svg>
     </span>`
   return L.divIcon({
@@ -867,10 +867,10 @@ function MapLayout({ nodes, defs, cf }: { nodes: OrgNode[]; defs: CustomFieldDef
 // needs concrete CSS variables for SVG `fill` (tones recolor with the palette).
 function typeFill(type: string): string {
   const t = type.toLowerCase()
-  if (t === 'group') return 'var(--accent)'
-  if (t === 'region') return 'var(--primary)'
-  if (t === 'team') return 'var(--text-2)'
-  return 'var(--text-3)'
+  if (t === 'group') return 'var(--gx-gold)'
+  if (t === 'region') return 'var(--gx-primary)'
+  if (t === 'team') return 'var(--gx-text-2)'
+  return 'var(--gx-text-3)'
 }
 
 // ── Layout: Sunburst (radial hierarchy) ─────────────────────────────────────────
@@ -1417,10 +1417,10 @@ function HeatmapLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: Custom
     return <div className="org-empty muted">No organization nodes to map.</div>
   }
 
-  // Sequential ramp: faint surface-2 (low) → brand accent (high). Inline so SVG-free CSS vars
-  // aren't needed; the endpoints are the dark-theme tokens' literal hexes.
-  const LOW = '#262D37'  // --surface-2 (dark)
-  const HIGH = '#C5A059' // --accent
+  // Sequential ramp: faint surface-2 (low) → brand gold (high). Endpoints are the
+  // --gx-surface-2 and --gx-gold dark-theme literal hexes (mixHex requires resolved hex strings).
+  const LOW = '#182943'  // --gx-surface-2 (dark)
+  const HIGH = '#C5A059' // --gx-gold (dark)
   const tint = (v: number): string => (max <= 0 ? LOW : mixHex(LOW, HIGH, Math.min(1, v / max)))
   const metricLabel = effMetric === 'headcount' ? 'Headcount' : 'Descendants'
 
@@ -1457,7 +1457,7 @@ function HeatmapLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs: Custom
                   <div
                     key={f.node.id}
                     className="org-heatmap-cell"
-                    style={{ background: tint(v), color: lit ? '#1A1F26' : 'var(--text-2)' }}
+                    style={{ background: tint(v), color: lit ? 'var(--gx-bg)' : 'var(--gx-text-2)' }}
                     title={`${f.node.name} — ${f.node.type} · ${metricLabel} ${v}`}
                   >
                     <span className="org-heatmap-cell-name">{f.node.name}</span>
