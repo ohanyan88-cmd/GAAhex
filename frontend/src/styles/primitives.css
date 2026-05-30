@@ -66,3 +66,44 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 /* extension: field hint + error (our FormField API exposes hint and error) */
 .field-hint { font-size:11px; color:var(--gx-text-3); margin-top:2px; }
 .field-error { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--gx-danger-fg); margin-top:4px; }
+
+/* extension: KPITile primitive — self-contained (kit's `.kpi` is scoped under `.gx-dash`) */
+.kpi-tile { background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); padding:16px; box-shadow:var(--gx-shadow-sm); transition:box-shadow var(--gx-dur-base); display:flex; flex-direction:column; gap:6px; min-width:0; }
+.kpi-tile:hover { box-shadow:var(--gx-shadow-md); }
+.kpi-tile-label { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); font-family:var(--gx-font-mono); }
+.kpi-tile-value { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; line-height:1; color:var(--gx-text-1); }
+.kpi-tile-value.sm { font-size:18px; } .kpi-tile-value.lg { font-size:36px; }
+.kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; }
+.kpi-tile-delta { display:inline-flex; align-items:center; gap:3px; font-family:var(--gx-font-mono); font-size:10px; }
+.kpi-tile-delta.up { color:var(--gx-success-fg); } .kpi-tile-delta.down { color:var(--gx-danger-fg); }
+.kpi-tile.error { border-color:var(--gx-danger); }
+.kpi-tile.error .kpi-tile-value { color:var(--gx-danger); }
+.kpi-tile-skeleton { background:var(--gx-skeleton); border-radius:var(--gx-radius-md); animation:pulse 1.5s ease-in-out infinite; }
+
+/* extension: DataTableCell primitive */
+.dtc { padding:11px 14px; border-bottom:1px solid var(--gx-border-subtle); color:var(--gx-text-1); font-size:12.5px; text-align:left; }
+.dtc-mono { font-family:var(--gx-font-mono); font-size:11.5px; }
+.dtc-muted { color:var(--gx-text-2); }
+.dtc-numeric { font-family:var(--gx-font-mono); font-variant-numeric:tabular-nums; text-align:right; }
+.dtc-id { font-family:var(--gx-font-mono); font-size:11.5px; color:var(--gx-text-2); }
+
+/* extension: DataTableRow primitive */
+.dtr { border-bottom:1px solid var(--gx-border-subtle); cursor:pointer; transition:background var(--gx-dur-fast); }
+.dtr:hover { background:var(--gx-hover); }
+.dtr-selected { background:var(--gx-selected); }
+.dtr-sm > td { padding-top:6px; padding-bottom:6px; }
+.dtr-check { padding:11px 14px; width:32px; }
+.dtr-check-box { width:14px; height:14px; border-radius:var(--gx-radius-sm); border:1px solid var(--gx-border-strong); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all var(--gx-dur-fast); }
+.dtr-check-box.on { background:var(--gx-primary); border-color:var(--gx-primary); }
+
+/* extension: account-menu positioning helper (kit `.menu` is positionless) */
+.user-menu-pop { position:absolute; top:calc(100% + 8px); right:0; width:280px; }
+
+/* extension: menu items used in user-account pop (rich head + section labels) */
+.menu-head { display:flex; align-items:center; gap:10px; padding:10px 8px 12px; border-bottom:1px solid var(--gx-border-subtle); margin:-5px -5px 5px; padding-left:12px; padding-right:12px; }
+.menu-head-name { font-size:13px; font-weight:600; color:var(--gx-text-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.menu-head-email { font-size:11px; color:var(--gx-text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.menu-head-rolebadge { display:inline-block; margin-top:4px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gx-primary); background:var(--gx-primary-soft); padding:1px 7px; border-radius:999px; }
+.menu-label { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--gx-text-3); font-weight:600; padding:6px 10px 4px; }
+.menu-item.danger { color:var(--gx-danger-fg); }
+.menu-item.danger:hover { background:var(--gx-danger-soft); }

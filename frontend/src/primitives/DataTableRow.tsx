@@ -11,29 +11,18 @@ interface DataTableRowProps {
 }
 
 export function DataTableRow({ selected, onSelectToggle, onClick, density = 'md', children }: DataTableRowProps) {
-  const py = density === 'sm' ? 'var(--gx-space-2)' : 'var(--gx-space-3)'
+  const cls = [
+    'dtr',
+    selected ? 'dtr-selected' : '',
+    density === 'sm' ? 'dtr-sm' : '',
+  ].filter(Boolean).join(' ')
   return (
-    <tr
-      onClick={onClick}
-      style={{
-        backgroundColor: selected ? 'var(--primary-soft)' : 'transparent',
-        borderBottom: '1px solid var(--border)',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: `background var(--gx-duration-fast)`,
-      }}
-      onMouseEnter={e => { if (!selected) (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-2)' }}
-      onMouseLeave={e => { if (!selected) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
-    >
+    <tr className={cls} onClick={onClick} style={onClick ? undefined : { cursor: 'default' }}>
       {onSelectToggle && (
-        <td style={{ padding: `${py} var(--gx-space-4)`, width: 20 }}>
+        <td className="dtr-check">
           <div
+            className={['dtr-check-box', selected ? 'on' : ''].filter(Boolean).join(' ')}
             onClick={e => { e.stopPropagation(); onSelectToggle() }}
-            style={{
-              width: 12, height: 12, borderRadius: 'var(--gx-radius-sm)', cursor: 'pointer',
-              border: `1px solid ${selected ? 'var(--primary)' : 'var(--border-strong, var(--border))'}`,
-              backgroundColor: selected ? 'var(--primary)' : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
           >
             {selected && (
               <svg viewBox="0 0 12 12" width="8" height="8">

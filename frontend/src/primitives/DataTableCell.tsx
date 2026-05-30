@@ -11,16 +11,18 @@ interface DataTableCellProps {
 }
 
 export function DataTableCell({ variant = 'default', align = 'left', width, children }: DataTableCellProps) {
+  const cls = [
+    'dtc',
+    variant === 'mono' ? 'dtc-mono' : '',
+    variant === 'muted' ? 'dtc-muted' : '',
+    variant === 'numeric' ? 'dtc-numeric' : '',
+    variant === 'id' ? 'dtc-id' : '',
+  ].filter(Boolean).join(' ')
+  // Inline style is reserved for caller-driven alignment and width truncation,
+  // which can't be expressed as a finite class set.
   const style: React.CSSProperties = {
-    textAlign: variant === 'numeric' ? 'right' : align,
-    fontSize: (variant === 'id' || variant === 'mono' || variant === 'numeric') ? 'var(--gx-text-10)' : 'var(--gx-text-11)',
-    fontFamily: (variant === 'id' || variant === 'mono' || variant === 'numeric') ? 'var(--font-mono, ui-monospace)' : 'inherit',
-    color: (variant === 'id' || variant === 'mono' || variant === 'muted') ? 'var(--text-2)' : 'var(--text)',
-    width: width,
-    maxWidth: width,
-    overflow: width ? 'hidden' : undefined,
-    textOverflow: width ? 'ellipsis' : undefined,
-    whiteSpace: width ? 'nowrap' : undefined,
+    ...(align !== 'left' && variant !== 'numeric' ? { textAlign: align } : null),
+    ...(width != null ? { width, maxWidth: width, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : null),
   }
-  return <td style={style}>{children}</td>
+  return <td className={cls} style={style}>{children}</td>
 }

@@ -488,53 +488,49 @@ export default function App() {
                 /* Account menu — PERSONAL scope only. Boundary rule: anything that affects OTHER
                    users, billing, system config, or tenant administration does NOT belong here —
                    route those to a dedicated Settings module instead. */
-                <div className="user-pop" role="menu" aria-label={t('common.accountMenu', 'Account menu')}>
-                  <div className="user-pop-head">
+                <div className="menu user-menu-pop" role="menu" aria-label={t('common.accountMenu', 'Account menu')}>
+                  <div className="menu-head">
                     <span className="user-avatar">
                       {user?.avatar_url
                         ? <img src={user.avatar_url} alt="" className="avatar-img" />
                         : (user?.name || 'U').slice(0, 1).toUpperCase()}
                     </span>
                     <div style={{ minWidth: 0 }}>
-                      <div className="user-pop-name">{user?.name}</div>
-                      <div className="user-pop-email">{user?.email}</div>
-                      <span className="user-pop-rolebadge">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
+                      <div className="menu-head-name">{user?.name}</div>
+                      <div className="menu-head-email">{user?.email}</div>
+                      <span className="menu-head-rolebadge">{user?.can_configure ? t('role.admin', 'Admin') : t('role.member', 'Member')}</span>
                     </div>
                   </div>
 
-                  <div className="user-pop-section">
-                    <div className="user-pop-label">{t('account.section', 'Account')}</div>
-                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('profile') }}>
-                      <UsersIcon size={16} />
-                      <span>{t('profile.title', 'My Profile')}</span>
-                    </button>
-                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('security') }}>
-                      <ShieldIcon size={16} />
-                      <span>{t('security.title', 'Security & Sign-in')}</span>
-                    </button>
-                  </div>
+                  <div className="menu-label">{t('account.section', 'Account')}</div>
+                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('profile') }}>
+                    <UsersIcon size={16} />
+                    <span>{t('profile.title', 'My Profile')}</span>
+                  </button>
+                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('security') }}>
+                    <ShieldIcon size={16} />
+                    <span>{t('security.title', 'Security & Sign-in')}</span>
+                  </button>
 
-                  <div className="user-pop-divider" />
+                  <div className="menu-sep" />
 
-                  <div className="user-pop-section">
-                    <div className="user-pop-label">{t('support.section', 'Support')}</div>
-                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('shortcuts') }}>
-                      <InfoIcon size={16} />
-                      <span>{t('shortcuts.title', 'Keyboard shortcuts')}</span>
-                    </button>
-                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('docs') }}>
-                      <GlobeIcon size={16} />
-                      <span>{t('docs.title', 'Documentation')}</span>
-                    </button>
-                    <button className="user-pop-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('whatsnew') }}>
-                      <SparkleIcon size={16} />
-                      <span>{t('whatsnew.title', "What's new")}</span>
-                    </button>
-                  </div>
+                  <div className="menu-label">{t('support.section', 'Support')}</div>
+                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('shortcuts') }}>
+                    <InfoIcon size={16} />
+                    <span>{t('shortcuts.title', 'Keyboard shortcuts')}</span>
+                  </button>
+                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('docs') }}>
+                    <GlobeIcon size={16} />
+                    <span>{t('docs.title', 'Documentation')}</span>
+                  </button>
+                  <button className="menu-item" role="menuitem" onClick={() => { setUserMenuOpen(false); setAccountModal('whatsnew') }}>
+                    <SparkleIcon size={16} />
+                    <span>{t('whatsnew.title', "What's new")}</span>
+                  </button>
 
-                  <div className="user-pop-divider" />
+                  <div className="menu-sep" />
                   <button
-                    className="user-pop-item user-pop-signout"
+                    className="menu-item danger"
                     role="menuitem"
                     onClick={() => { setUserMenuOpen(false); logout() }}
                   >
