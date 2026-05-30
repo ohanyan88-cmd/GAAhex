@@ -22,6 +22,29 @@ import {
 import { type FlatLeaf } from './tree'
 import { iconFor } from './iconMap'
 import { richPaneFor } from './StudioRichPanes'
+import FieldsPane from './FieldsPane'
+import ViewsPane from './ViewsPane'
+import WorkflowsPane from './WorkflowsPane'
+import RolesPane from './RolesPane'
+import ReportsPane from './ReportsPane'
+import DashboardsPane from './DashboardsPane'
+import AutomationsPane from './AutomationsPane'
+
+// ── real-data pane resolver ──────────────────────────────────────────────────
+// These 7 panes are wired to the backend (CRUD + RLS). For the Studio leaves
+// listed below, render the REAL pane instead of the mock rich-pane / archetype.
+// All require a bearer `token`; StudioShell threads it down.
+//
+// Leaf id format = `${groupId}.${moduleId?}.${leafId}` (see tree.ts).
+const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }>> = {
+  'data.models.fields':                FieldsPane,
+  'experience.pages.page-registry':    ViewsPane,
+  'logic.workflows.workflow-designer': WorkflowsPane,
+  'security.roles':                    RolesPane,
+  'intelligence.analytics.reports':    ReportsPane,
+  'intelligence.analytics.dashboards': DashboardsPane,
+  'logic.automations.triggers':        AutomationsPane,
+}
 
 // ── archetype router ─────────────────────────────────────────────────────────
 
@@ -38,6 +61,7 @@ function archetypeFor(leafLabel: string): Archetype {
 }
 
 // Colour strip used to tint row accents so rows don't all look identical.
+// TODO: bind to /api/tenant/settings/theme (accent palette)
 const TONE = [
   'var(--azure-400)',
   'var(--gx-gold)',
@@ -61,6 +85,7 @@ interface TableRow {
 
 function ArchTable({ leaf }: { leaf: FlatLeaf }) {
   const single = leaf.leafLabel.replace(/s$/, '')
+  // TODO: bind to /api/registry/{leafId} (replace local seed with real registry rows)
   function buildSeed(): TableRow[] {
     return Array.from({ length: 6 }, (_, i) => ({
       __id: 'a' + i,
@@ -176,6 +201,7 @@ function ArchTokens({ leaf }: { leaf: FlatLeaf }) {
   if (/radius/.test(s))
     return (
       <div className="wrap">
+        {/* TODO: bind to /api/tenant/settings/theme (radius scale) */}
         {([['xs', 5], ['sm', 8], ['md', 12], ['lg', 16], ['xl', 22]] as [string, number][]).map(([label, r]) => (
           <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 60, height: 60, background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border-strong)', borderRadius: r }} />
@@ -188,6 +214,7 @@ function ArchTokens({ leaf }: { leaf: FlatLeaf }) {
   if (/spacing/.test(s))
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* TODO: bind to /api/tenant/settings/theme (spacing scale) */}
         {[2, 4, 8, 12, 16, 24, 32].map(v => (
           <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span className="mono muted" style={{ width: 56, fontSize: 11 }}>{v}px</span>
@@ -200,6 +227,7 @@ function ArchTokens({ leaf }: { leaf: FlatLeaf }) {
   if (/shadow/.test(s))
     return (
       <div className="wrap" style={{ gap: 18 }}>
+        {/* TODO: bind to /api/tenant/settings/theme (shadow scale) */}
         {(['sm', 'md', 'lg', 'xl'] as const).map(e => (
           <div key={e} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <div style={{
@@ -217,6 +245,7 @@ function ArchTokens({ leaf }: { leaf: FlatLeaf }) {
   if (/typography/.test(s))
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* TODO: bind to /api/tenant/settings/theme (typography scale) */}
         {([
           ['Display', 30, 'var(--gx-font-display)', 600],
           ['Heading', 20, 'var(--gx-font-sans)', 600],
@@ -234,6 +263,7 @@ function ArchTokens({ leaf }: { leaf: FlatLeaf }) {
   // default → color swatches (covers logos, icons, animations, etc.)
   return (
     <div className="wrap">
+      {/* TODO: bind to /api/tenant/settings/theme (color palette) */}
       {[
         'var(--cobalt-700)', 'var(--azure-500)', 'var(--gx-gold)', 'var(--gx-success)',
         'var(--gx-warning)', 'var(--gx-danger)', 'var(--violet-500)', '#2A9DB5',
@@ -248,6 +278,7 @@ function ArchTokens({ leaf }: { leaf: FlatLeaf }) {
 
 // ── ArchMonitor ──────────────────────────────────────────────────────────────
 
+// TODO: bind to /api/observability/kpis (real-time KPI tiles per leaf)
 const KPI_DATA: [string, string, string][] = [
   ['Status', 'Healthy', 'var(--gx-success)'],
   ['Throughput', '1,284/min', 'var(--gx-text-1)'],
@@ -255,6 +286,7 @@ const KPI_DATA: [string, string, string][] = [
   ['p95 latency', '142ms', 'var(--gx-text-1)'],
 ]
 
+// TODO: bind to /api/observability/logs/stream (SSE live log feed)
 const LOG_LINES = [
   'ok   event.processed id=evt_9241',
   'ok   job.completed queue=default 38ms',
@@ -307,6 +339,7 @@ function ArchMonitor(_props: { leaf: FlatLeaf }) {
 
 type CanvasNode = [label: string, color: string]
 
+// TODO: bind to /api/workflow/node-types (canvas palette from registered node-type catalog)
 const PALETTE_ITEMS: CanvasNode[] = [
   ['Trigger', 'var(--gx-success)'],
   ['Condition', 'var(--gx-gold)'],
@@ -315,6 +348,7 @@ const PALETTE_ITEMS: CanvasNode[] = [
   ['Delay', 'var(--gx-text-2)'],
 ]
 
+// TODO: bind to /api/workflow/{leafId}/graph (saved flow graph for this leaf)
 const INITIAL_NODES: CanvasNode[] = [
   ['Start', 'var(--gx-success)'],
   ['Validate', 'var(--azure-400)'],
@@ -389,6 +423,7 @@ function ArchCanvas({ leaf }: { leaf: FlatLeaf }) {
 function ArchForm({ leaf }: { leaf: FlatLeaf }) {
   const danger = /danger|emergency|disaster|maintenance/i.test(leaf.leafLabel)
   const [saved, setSaved] = useState(false)
+  // TODO: wire onClick to /api/config/{leafId} (PUT — currently only flips local saved flag)
   const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000) }
 
   return (
@@ -414,6 +449,7 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         </label>
         <label className="field">
           <span>Scope</span>
+          {/* TODO: bind to /api/environments (scope dropdown options) */}
           <select className="inp inp-sm">
             <option>This environment</option>
             <option>All environments</option>
@@ -421,6 +457,7 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         </label>
         <label className="field">
           <span>Mode</span>
+          {/* TODO: bind to /api/config/{leafId}/modes (allowed modes per leaf) */}
           <select className="inp inp-sm">
             <option>Standard</option>
             <option>Strict</option>
@@ -429,6 +466,7 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         </label>
         <label className="field">
           <span>Owner</span>
+          {/* TODO: bind to /api/teams (owner picker) */}
           <input className="inp inp-sm" defaultValue="Platform Team" />
         </label>
         <label className="field" style={{ gridColumn: '1 / -1' }}>
@@ -442,10 +480,12 @@ function ArchForm({ leaf }: { leaf: FlatLeaf }) {
         </label>
       </div>
       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+        {/* TODO: wire onClick to /api/config/{leafId} (PUT) — disabled until backend exists */}
         <button
           className={`btn btn-sm ${danger ? 'btn-danger' : 'btn-primary'}`}
           type="button"
           onClick={handleSave}
+          disabled
         >
           <Check size={13} />{saved ? 'Saved!' : 'Save changes'}
         </button>
@@ -465,7 +505,30 @@ const ARCH_DESC: Record<Archetype, string> = {
   form: 'Configuration for this capability. Settings are saved to config and audited.',
 }
 
-export default function StudioGenericPane({ leaf }: { leaf: FlatLeaf }) {
+export default function StudioGenericPane({ leaf, token }: { leaf: FlatLeaf; token: string | null }) {
+  // Real-data panes take top priority — backend-wired CRUD for these leaves.
+  // They require a token; if absent (not logged in), fall through to the mock
+  // so the surface still renders rather than crashing.
+  const RealPane = REAL_PANE_BY_LEAF_ID[leaf.id]
+  if (RealPane && token) {
+    return (
+      <div>
+        <div className="crumbs" style={{ marginTop: 0 }}>
+          <span>{leaf.groupLabel}</span>
+          {leaf.moduleLabel && (
+            <>
+              <span className="sep">/</span>
+              <span>{leaf.moduleLabel}</span>
+            </>
+          )}
+          <span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{leaf.leafLabel}</span>
+        </div>
+        <RealPane token={token} />
+      </div>
+    )
+  }
+
   // P5: rich pane takes priority over the archetype fallback
   const RichPane = richPaneFor(leaf.leafLabel)
   if (RichPane) {
@@ -509,7 +572,8 @@ export default function StudioGenericPane({ leaf }: { leaf: FlatLeaf }) {
         {leaf.leafLabel}
         <span style={{ flex: 1 }} />
         {arch === 'form' && (
-          <button className="btn btn-primary btn-sm" type="button">
+          /* TODO: wire onClick to /api/config/{leafId} (PUT) — disabled until backend exists */
+          <button className="btn btn-primary btn-sm" type="button" disabled>
             <Check size={13} />Save
           </button>
         )}

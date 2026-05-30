@@ -91,6 +91,7 @@ function Sec({ icon, title, hint, right }: SecProps) {
 
 // ── 1  PAGE MANAGER ───────────────────────────────────────────────────────────
 
+// TODO: bind to /api/studio/page-types (page archetype registry)
 const PAGE_TYPES = ['home', 'dashboard', 'list', 'form', 'detail', 'landing', 'checkout', 'profile', 'report']
 
 interface PageRow {
@@ -209,6 +210,7 @@ interface CanvasBlock {
   h: number
 }
 
+// TODO: bind to /api/studio/layout-blocks (registered block types for the layout builder)
 const BLOCK_PALETTE: [React.ReactNode, string][] = [
   [<Rows3 size={16} />, 'Section'],
   [<Columns3 size={16} />, 'Columns'],
@@ -338,6 +340,7 @@ export function LayoutBuilder() {
 
 // ── 3  COMPONENTS LIBRARY ─────────────────────────────────────────────────────
 
+// TODO: bind to /api/studio/components (component registry grouped by category)
 const COMP_GROUPS: [string, [React.ReactNode, string][]][] = [
   [
     'Inputs',
@@ -483,7 +486,8 @@ export function ContentEditor() {
         </div>
       )}
       <div style={{ marginTop: 18 }}>
-        <button className="btn btn-primary btn-sm" type="button">
+        {/* TODO: wire onClick to /api/pages/{pageId}/content (PUT) — disabled until backend exists */}
+        <button className="btn btn-primary btn-sm" type="button" disabled>
           <Check size={13} />Save content
         </button>
       </div>
@@ -493,6 +497,7 @@ export function ContentEditor() {
 
 // ── 5  DATA BINDING ───────────────────────────────────────────────────────────
 
+// TODO: bind to /api/data/sources (tenant-registered entity sources for binding picker)
 const BINDING_SOURCES = ['Customers', 'Orders', 'Invoices', 'Tickets', 'Devices', 'Subscriptions', 'Payments']
 
 interface Binding {
@@ -664,7 +669,9 @@ export function ActionsLogic() {
 
 // ── 7  PERMISSIONS ────────────────────────────────────────────────────────────
 
+// TODO: bind to /api/roles (tenant role catalog from auth kernel)
 const PERM_ROLES = ['Admin', 'Manager', 'Agent', 'Field Tech', 'Guest']
+// TODO: bind to /api/pages (registered pages enforceable by the auth kernel)
 const PERM_PAGES = ['Operations Home', 'Invoices', 'New Order', 'Customer 360', 'Settings']
 
 type PermLevel = 'none' | 'view' | 'edit'
@@ -736,6 +743,7 @@ export function Permissions() {
 
 // ── 8  PREVIEW MODE ───────────────────────────────────────────────────────────
 
+// TODO: bind to /api/roles (tenant role catalog for preview impersonation)
 const PREVIEW_ROLES = ['Admin', 'Manager', 'Agent', 'Field Tech', 'Guest']
 
 export function PreviewMode() {
@@ -833,6 +841,7 @@ export function VersionHistory() {
 
 // ── 10  TEMPLATES ─────────────────────────────────────────────────────────────
 
+// TODO: bind to /api/templates (template gallery from tenant template registry)
 const TEMPLATE_GALLERY: [React.ReactNode, string, string][] = [
   [<LayoutDashboard size={26} />, 'Operations Dashboard', 'KPI tiles + charts + activity'],
   [<Rows3 size={26} />, 'Data List', 'Searchable table + filters'],
@@ -855,7 +864,8 @@ export function Templates() {
             <div style={{ padding: '12px 14px' }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
               <div className="hint" style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
-              <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: 10 }} type="button">
+              {/* TODO: wire onClick to /api/templates/{templateId}/instantiate (POST) — disabled until backend exists */}
+              <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: 10 }} type="button" disabled>
                 <Plus size={13} />Use template
               </button>
             </div>
@@ -884,6 +894,7 @@ export function PublishSettings() {
         <label className="field">
           <span>Status</span>
           <div className="seg" style={{ width: '100%' }}>
+            {/* TODO: bind to /api/pages/statuses (workflow status registry) */}
             {['Draft', 'In review', 'Published'].map(s => (
               <button key={s} className={status === s ? 'on' : ''} type="button" onClick={() => setStatus(s)} style={{ flex: 1 }}>
                 {s}
@@ -893,12 +904,14 @@ export function PublishSettings() {
         </label>
         <label className="field">
           <span>Access level</span>
+          {/* TODO: bind to /api/auth/access-levels (access-level registry from auth kernel) */}
           <select className="inp inp-sm" value={access} onChange={e => setAccess(e.target.value)}>
             {['Public', 'Authenticated', 'Role-restricted', 'Admin only'].map(a => <option key={a}>{a}</option>)}
           </select>
         </label>
         <label className="field">
           <span>Language</span>
+          {/* TODO: bind to /api/tenant/settings/locales (enabled locales) */}
           <select className="inp inp-sm">
             {['Հայերեն (hy-AM)', 'English (en)', 'Русский (ru)'].map(l => <option key={l}>{l}</option>)}
           </select>
@@ -931,10 +944,12 @@ export function PublishSettings() {
         />
       )}
       <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-        <button className="btn btn-primary" type="button">
+        {/* TODO: wire onClick to /api/pages/{pageId}/publish (POST) — disabled until backend exists */}
+        <button className="btn btn-primary" type="button" disabled>
           <Rocket size={14} />Publish now
         </button>
-        <button className="btn btn-secondary" type="button">
+        {/* TODO: wire onClick to /api/pages/{pageId}/draft (PUT) — disabled until backend exists */}
+        <button className="btn btn-secondary" type="button" disabled>
           <Save size={14} />Save draft
         </button>
       </div>
@@ -944,6 +959,7 @@ export function PublishSettings() {
 
 // ── 12  ENTITY BUILDER ────────────────────────────────────────────────────────
 
+// TODO: bind to /api/studio/field-types (field-type registry from entity kernel)
 const FIELD_TYPES = ['text', 'number', 'money', 'boolean', 'date', 'select', 'ref', 'status', 'email', 'phone', 'url']
 
 interface EntityField {
@@ -1160,7 +1176,8 @@ export function EntityBuilder() {
               ))}
             </div>
             {label && (
-              <button className="btn btn-primary btn-sm" type="button" style={{ marginTop: 14 }}>
+              /* TODO: wire onClick to /api/entities/{key}/records (POST) — disabled until backend exists */
+              <button className="btn btn-primary btn-sm" type="button" style={{ marginTop: 14 }} disabled>
                 <Check size={13} />Save {label}
               </button>
             )}
@@ -1198,7 +1215,8 @@ export function EntityBuilder() {
         </div>
       </div>
 
-      <button className="btn btn-gold btn-md" type="button" onClick={() => setCreated(true)}>
+      {/* TODO: wire onClick to /api/entities (POST — persist entity schema to studio_config); currently only flips local `created` banner. Disabled until backend exists. */}
+      <button className="btn btn-gold btn-md" type="button" onClick={() => setCreated(true)} disabled>
         <Check size={14} />Create entity
       </button>
     </div>
@@ -1207,6 +1225,7 @@ export function EntityBuilder() {
 
 // ── 13  APPEARANCE PANE ───────────────────────────────────────────────────────
 
+// TODO: bind to /api/tenant/settings/theme/accents (curated tenant accent palette)
 const ACCENTS = [
   { name: 'Azure',   val: '#3B7BE0', hover: '#5293F2', active: '#2C63BC', soft: 'rgba(59,123,224,.16)' },
   { name: 'Cobalt',  val: '#2A5187', hover: '#3A6299', active: '#1C3B68', soft: 'rgba(42,81,135,.20)' },
@@ -1216,6 +1235,7 @@ const ACCENTS = [
   { name: 'Teal',    val: '#2A9DB5', hover: '#41B4CC', active: '#1F8398', soft: 'rgba(42,157,181,.18)' },
 ]
 
+// TODO: bind to /api/tenant/settings/theme/radii (radius preset registry)
 const RADII: [string, number][] = [['Sharp', 4], ['Soft', 8], ['Rounded', 13], ['Pill', 999]]
 
 interface Accent { name: string; val: string; hover: string; active: string; soft: string }
@@ -1293,6 +1313,7 @@ export function AppearancePane() {
           <div>
             <div className="lbl" style={{ marginBottom: 9 }}>Density</div>
             <div className="seg" style={{ width: '100%' }}>
+              {/* TODO: bind to /api/tenant/settings/theme/density (density preset list) */}
               {['Compact', 'Comfortable', 'Spacious'].map(d => (
                 <button key={d} className={density === d ? 'on' : ''} type="button" onClick={() => setDensity(d)} style={{ flex: 1 }}>
                   {d}
@@ -1305,6 +1326,7 @@ export function AppearancePane() {
           <div>
             <div className="lbl" style={{ marginBottom: 9 }}>Default theme</div>
             <div className="seg" style={{ width: '100%' }}>
+              {/* TODO: bind to /api/tenant/settings/theme/modes (available theme modes) */}
               {['Dark', 'Light'].map(t => (
                 <button key={t} className={paneTheme === t ? 'on' : ''} type="button" onClick={() => setPaneTheme(t)} style={{ flex: 1 }}>
                   {t}
@@ -1366,7 +1388,8 @@ export function AppearancePane() {
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-        <button className="btn btn-primary btn-md" type="button" style={{ background: accent.val }}>
+        {/* TODO: wire onClick to /api/tenant/settings/theme (PUT) — disabled until backend exists */}
+        <button className="btn btn-primary btn-md" type="button" style={{ background: accent.val }} disabled>
           <Check size={14} />Save appearance
         </button>
         <button

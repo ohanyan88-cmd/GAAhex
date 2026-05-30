@@ -17,6 +17,7 @@ import { LEAF_BY_ID } from './tree'
 export type StudioRoute = { group?: string; module?: string; leaf?: string }
 
 export default function StudioShell({
+  token,
   canConfigure,
   route,
   onRoute,
@@ -113,10 +114,20 @@ export default function StudioShell({
             <span className="studio-pill draft">
               <span className="d" />Draft
             </span>
-            <button className="btn btn-secondary btn-sm" type="button">
+            <button
+              className="btn btn-secondary btn-sm"
+              type="button"
+              onClick={() => onRoute({ group: 'quality', leaf: 'preview' })}
+              title="Open Preview Mode"
+            >
               <Eye size={14} />Preview
             </button>
-            <button className="btn btn-primary btn-sm" type="button">
+            <button
+              className="btn btn-primary btn-sm"
+              type="button"
+              onClick={() => onRoute({ group: 'release', leaf: 'deployment' })}
+              title="Open Publish Settings"
+            >
               <Rocket size={14} />Publish
             </button>
           </>
@@ -126,7 +137,7 @@ export default function StudioShell({
         <StudioTree activeId={activeId} onPick={onPick} />
         <section className="studio-pane">
           {leaf ? (
-            <StudioGenericPane leaf={leaf} />
+            <StudioGenericPane leaf={leaf} token={token} />
           ) : (
             <StudioOverview onPick={onPick} />
           )}
