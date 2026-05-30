@@ -483,7 +483,7 @@ export default function App() {
               : view.type === 'ask'
                 ? <AskGaaexView token={token} />
               : view.type === 'messages'
-                ? <MessagesView token={token} />
+                ? <MessagesView token={token} capabilities={capabilities} />
               : view.type === 'activity' || view.type === 'activity-feed'
                 ? <ActivityFeedView token={token} />
               : view.type === 'my-approvals'
@@ -517,7 +517,7 @@ export default function App() {
               : view.type === 'parties'
                 ? <PartiesView token={token} canConfigure={!!user?.can_configure} />
               : view.type === 'helpdesk'
-                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} initialOpenTicketId={view.initialOpenTicketId} />
+                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} capabilities={capabilities} initialStatus={view.initialStatus} openTicketId={view.initialOpenTicketId} />
               : view.type === 'workitems'
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'mytasks'

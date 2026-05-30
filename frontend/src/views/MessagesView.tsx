@@ -1,47 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
+import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
 import {
   MessageIcon,
   SearchIcon,
   CloseIcon,
-  PhoneIcon,
-  PinIcon,
-  MuteIcon,
-  BellIcon,
-  MailIcon,
-  RowsIcon,
-  FilterIcon,
-  EditIcon,
-  MoreVerticalIcon,
   PanelRightIcon,
-  PaperclipIcon,
   SmileIcon,
-  ZapIcon,
   SendHorizontalIcon,
-  PictureIcon,
-  FileIcon,
-  MapPinIcon,
-  UserIcon,
 } from '../components/icons'
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
-const CH_TONE: Record<string, string> = {
-  WhatsApp: 'var(--gx-success)',
-  Telegram: 'var(--azure-400)',
-  SMS: 'var(--gx-warning)',
-  Internal: 'var(--gx-gold)',
-}
+// Emoji palette for the composer picker. Per icons.tsx convention, emoji are
+// allowed in human communication (the chat itself) but never as product UI chrome.
 const EMOJIS = ['👍','🙏','✅','🔧','📶','📡','😊','🎉','👀','🚀','⚠️','💡','📞','🛠️','❤️','🔥']
-const QUICK_REPLIES = [
-  'On my way 🚗',
-  'Issue resolved ✅',
-  'Technician dispatched 🔧',
-  'Please restart your router 🔌',
-  'Thanks for your patience 🙏',
-]
 
 type Thread = {
   id: string
@@ -50,8 +24,6 @@ type Thread = {
   title: string | null
   created_by: string
   created_at: string | null
-  channel?: string
-  unread?: number
 }
 type Message = {
   id: string
@@ -61,6 +33,7 @@ type Message = {
   body: string
   created_at: string | null
 }
+type Me = { id: string; email: string; name: string }
 
 function threadLabel(t: Thread): string {
   if (t.title) return t.title
@@ -85,24 +58,42 @@ function timeShort(iso: string | null): string {
   }
 }
 
-export default function MessagesView({ token }: { token: string }) {
+function dayLabel(iso: string | null): string {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    const today = new Date()
+    const isSameDay =
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate()
+    if (isSameDay) return 'Today'
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  } catch {
+    return ''
+  }
+}
+
+export default function MessagesView({
+  token,
+  capabilities: _capabilities = FULL_ACCESS,
+}: {
+  token: string
+  capabilities?: Capabilities
+}) {
+  const [me, setMe] = useState<Me | null>(null)
   const [threads, setThreads] = useState<Thread[] | null>(null)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[] | null>(null)
   const [msgError, setMsgError] = useState('')
   const [query, setQuery] = useState('')
-  const [chFilter, setChFilter] = useState('All')
   const [showInfo, setShowInfo] = useState(false)
-  const [pinned, setPinned] = useState<Set<string>>(new Set())
-  const [muted, setMuted] = useState<Set<string>>(new Set())
-  const [localUnread, setLocalUnread] = useState<Set<string>>(new Set())
-  const [menu, setMenu] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const [showAttach, setShowAttach] = useState(false)
-  const [showQuick, setShowQuick] = useState(false)
-  const [reactions, setReactions] = useState<Record<string, string>>({})
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -110,6 +101,16 @@ export default function MessagesView({ token }: { token: string }) {
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight
   }, [selected, messages?.length])
+
+  async function loadMe() {
+    try {
+      const r = await fetch(`${BASE}/api/me`, { headers: authH(token) })
+      if (!r.ok) return
+      setMe(await r.json())
+    } catch {
+      /* non-fatal: outgoing/incoming styling will fall back to "incoming" */
+    }
+  }
 
   async function loadThreads() {
     setError('')
@@ -125,7 +126,7 @@ export default function MessagesView({ token }: { token: string }) {
   }
 
   async function loadMessages(id: string) {
-    setMsgError(''); setMessages(null)
+    setMsgError(''); setMessages(null); setSendError('')
     try {
       const r = await fetch(`${BASE}/api/threads/${id}/messages`, { headers: authH(token) })
       if (!r.ok) throw new Error('Failed to load messages')
@@ -136,14 +137,15 @@ export default function MessagesView({ token }: { token: string }) {
     }
   }
 
-  useEffect(() => { loadThreads() }, [token])
+  useEffect(() => { loadMe(); loadThreads() }, [token])
   useEffect(() => { if (selected) loadMessages(selected) }, [selected])
 
   async function handleSend() {
     const v = draft.trim()
-    if (!v || !selected) return
-    setDraft('')
-    setShowEmoji(false); setShowQuick(false); setShowAttach(false)
+    if (!v || !selected || sending) return
+    setSending(true)
+    setSendError('')
+    setShowEmoji(false); setShowAttach(false)
     try {
       const r = await fetch(`${BASE}/api/threads/${selected}/messages`, {
         method: 'POST',
@@ -153,27 +155,16 @@ export default function MessagesView({ token }: { token: string }) {
       if (!r.ok) {
         const e = await r.json().catch(() => ({ detail: 'Could not send message' }))
         const msg = typeof e.detail === 'string' ? e.detail : 'Could not send message'
-        toast.error(msg)
+        setSendError(msg)
         return
       }
+      setDraft('')
       await loadMessages(selected)
     } catch {
-      toast.error('Could not send message')
+      setSendError('Could not send message')
+    } finally {
+      setSending(false)
     }
-  }
-
-  function togglePin(id: string) {
-    setPinned(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-  function toggleMute(id: string) {
-    setMuted(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-  function markUnread(id: string) {
-    setLocalUnread(s => { const n = new Set(s); n.add(id); return n })
-  }
-  function setReaction(threadId: string, msgIdx: number, emoji: string) {
-    const key = `${threadId}-${msgIdx}`
-    setReactions(r => ({ ...r, [key]: r[key] === emoji ? '' : emoji }))
   }
 
   const selectedThread = useMemo(
@@ -184,43 +175,32 @@ export default function MessagesView({ token }: { token: string }) {
   const filteredThreads = useMemo(() => {
     if (!threads) return []
     const q = query.trim().toLowerCase()
-    return threads
-      .filter(t => chFilter === 'All' || t.channel === chFilter)
-      .filter(t => !q || threadLabel(t).toLowerCase().includes(q))
-      .sort((a, b) => (pinned.has(b.id) ? 1 : 0) - (pinned.has(a.id) ? 1 : 0))
-  }, [threads, query, chFilter, pinned])
+    if (!q) return threads
+    return threads.filter(t => threadLabel(t).toLowerCase().includes(q))
+  }, [threads, query])
 
   function isOutgoing(m: Message): boolean {
-    if (!selectedThread) return false
-    return m.author_user_id === selectedThread.created_by
+    return !!me && m.author_user_id === me.id
   }
 
-  const totalUnread = useMemo(
-    () => (threads ?? []).reduce((s, t) => s + (t.unread ?? 0) + (localUnread.has(t.id) ? 1 : 0), 0),
-    [threads, localUnread],
-  )
-
   return (
-    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 14 }}>
+    <div
+      className="gx-comms comms-shell fade"
+      style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden' }}
+    >
       <div className="comms-head">
         <div className="vh-ic"><MessageIcon size={20} /></div>
         <div>
           <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>Messages</h1>
           <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
-            Omnichannel inbox{totalUnread > 0 ? ` · ${totalUnread} unread` : ''} · WhatsApp · Telegram · SMS
+            Conversations
           </div>
         </div>
         <span className="spacer" />
-        <button className="btn btn-secondary btn-sm hide-sm" onClick={() => toast.info('Filtering — configure routing in Studio')}>
-          <FilterIcon size={14} />Filters
-        </button>
-        <button className="btn btn-primary btn-sm" onClick={() => toast.info('New chat — pick a contact')}>
-          <EditIcon size={14} />New chat
-        </button>
       </div>
 
       <div className="msgr">
-        {/* ── Conversation list ── */}
+        {/* Conversation list */}
         <div className="msgr-list">
           <div className="msgr-search">
             <SearchIcon size={14} />
@@ -236,91 +216,57 @@ export default function MessagesView({ token }: { token: string }) {
               </button>
             )}
           </div>
-          <div className="msgr-tabs">
-            {(['All', 'WhatsApp', 'Telegram', 'SMS', 'Internal'] as const).map(t => (
-              <button key={t} className={'msgr-tab' + (chFilter === t ? ' on' : '')} onClick={() => setChFilter(t)}>
-                {t !== 'All' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: CH_TONE[t] }} />}
-                {t}
-              </button>
-            ))}
-          </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {threads === null && !error && (
-              <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Loading…</div>
+              <>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className="convo" style={{ pointerEvents: 'none' }}>
+                    <span className="kpi-tile-skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }} />
+                    <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span className="kpi-tile-skeleton" style={{ height: 11, width: '60%' }} />
+                      <span className="kpi-tile-skeleton" style={{ height: 10, width: '80%' }} />
+                    </span>
+                  </div>
+                ))}
+              </>
             )}
             {error && <div className="err" style={{ padding: 12 }}>{error}</div>}
             {threads && filteredThreads.length === 0 && !error && (
               <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>
-                {query ? 'No conversations match.' : 'No conversations yet. Wire /api/threads to populate.'}
+                {query ? 'No conversations match.' : 'No conversations yet.'}
               </div>
             )}
             {filteredThreads.map(c => {
               const label = threadLabel(c)
-              const isPinned = pinned.has(c.id)
-              const isMuted = muted.has(c.id)
-              const unreadCount = (c.unread ?? 0) + (localUnread.has(c.id) ? 1 : 0)
               return (
                 <div
                   key={c.id}
                   className={'convo' + (selected === c.id ? ' on' : '')}
-                  style={{ position: 'relative' }}
-                  onClick={() => {
-                    setSelected(c.id)
-                    setShowInfo(false)
-                    setLocalUnread(u => { const n = new Set(u); n.delete(c.id); return n })
-                  }}
+                  onClick={() => { setSelected(c.id); setShowInfo(false) }}
                 >
-                  <span style={{ position: 'relative', flexShrink: 0 }}>
+                  <span style={{ flexShrink: 0 }}>
                     <span className="avatar" style={{ width: 38, height: 38, fontSize: 13 }}>{initials(label)}</span>
-                    {/* online indicator — wire GET /api/presence/{user_id} when available */}
                   </span>
                   <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {isPinned && <PinIcon size={11} style={{ color: 'var(--gx-gold)' }} />}
                       <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-                      {c.channel && <span style={{ width: 6, height: 6, borderRadius: '50%', background: CH_TONE[c.channel] ?? 'var(--gx-text-3)', flexShrink: 0 }} title={c.channel} />}
                       <span className="hint" style={{ marginLeft: 'auto', fontSize: 11, flexShrink: 0 }}>{timeAgo(c.created_at)}</span>
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                      <span style={{ fontSize: 12, color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {c.entity_key ? `${c.entity_key}${c.record_id ? ` · ${c.record_id.slice(0, 8)}` : ''}` : 'Conversation'}
+                    {c.entity_key && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <span style={{ fontSize: 12, color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                          {c.entity_key}{c.record_id ? ` · ${c.record_id.slice(0, 8)}` : ''}
+                        </span>
                       </span>
-                      {isMuted && <MuteIcon size={12} style={{ color: 'var(--gx-text-3)' }} />}
-                      {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-                    </span>
+                    )}
                   </span>
-                  <button
-                    className="convo-menu tb-icon"
-                    style={{ width: 26, height: 26 }}
-                    onClick={e => { e.stopPropagation(); setMenu(menu === c.id ? null : c.id) }}
-                  >
-                    <MoreVerticalIcon size={15} />
-                  </button>
-                  {menu === c.id && (
-                    <div className="menu fade-fast" style={{ position: 'absolute', right: 8, top: 44, zIndex: 20 }} onClick={e => e.stopPropagation()}>
-                      <button className="menu-item" onClick={() => { togglePin(c.id); setMenu(null) }}>
-                        <PinIcon size={15} />{isPinned ? 'Unpin' : 'Pin'}
-                      </button>
-                      <button className="menu-item" onClick={() => { toggleMute(c.id); setMenu(null) }}>
-                        {isMuted ? <BellIcon size={15} /> : <MuteIcon size={15} />}
-                        {isMuted ? 'Unmute' : 'Mute'}
-                      </button>
-                      <button className="menu-item" onClick={() => { markUnread(c.id); setMenu(null) }}>
-                        <MailIcon size={15} />Mark unread
-                      </button>
-                      <div className="menu-sep" />
-                      <button className="menu-item" onClick={() => { toast.info('Wire /api/workitems to create'); setMenu(null) }}>
-                        <RowsIcon size={15} />Create work item
-                      </button>
-                    </div>
-                  )}
                 </div>
               )
             })}
           </div>
         </div>
 
-        {/* ── Chat pane ── */}
+        {/* Chat pane */}
         <div className="chat">
           {!selected && (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)', padding: 24, textAlign: 'center' }}>
@@ -330,59 +276,57 @@ export default function MessagesView({ token }: { token: string }) {
           {selected && selectedThread && (
             <>
               <div className="chat-head">
-                <span style={{ position: 'relative' }}>
+                <span style={{ flexShrink: 0 }}>
                   <span className="avatar" style={{ width: 34, height: 34, fontSize: 12 }}>{initials(threadLabel(selectedThread))}</span>
                 </span>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{threadLabel(selectedThread)}</div>
-                  <div className="hint" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {selectedThread.channel && <span style={{ width: 6, height: 6, borderRadius: '50%', background: CH_TONE[selectedThread.channel] ?? 'var(--gx-text-3)' }} />}
-                    {selectedThread.channel ? `${selectedThread.channel} · ` : ''}
-                    {selectedThread.entity_key ? `${selectedThread.entity_key} record` : 'Thread'} · {timeAgo(selectedThread.created_at)}
+                  <div className="hint" style={{ fontSize: 11 }}>
+                    {selectedThread.entity_key ? `${selectedThread.entity_key} record · ` : ''}
+                    {timeAgo(selectedThread.created_at)}
                   </div>
                 </div>
                 <span className="spacer" />
-                <button className="tb-icon" onClick={() => toast.info('Calling ' + threadLabel(selectedThread) + '…')}><PhoneIcon size={17} /></button>
-                <button className="tb-icon" onClick={() => toast.info('In-thread search — wire /api/threads/{id}/messages?q=')}><SearchIcon size={17} /></button>
-                <button className={'tb-icon' + (showInfo ? ' on' : '')} onClick={() => setShowInfo(v => !v)}><PanelRightIcon size={17} /></button>
+                <button className={'tb-icon' + (showInfo ? ' on' : '')} onClick={() => setShowInfo(v => !v)} aria-label="Toggle details">
+                  <PanelRightIcon size={17} />
+                </button>
               </div>
 
               <div className="chat-wrap">
                 <div className="chat-body" ref={bodyRef}>
                   {messages === null && !msgError && (
-                    <div className="hint" style={{ textAlign: 'center', padding: 20 }}>Loading…</div>
+                    <>
+                      {[0, 1, 2].map(i => (
+                        <div key={i} className={'bubble-row ' + (i % 2 ? 'out' : 'in')}>
+                          <span className="kpi-tile-skeleton" style={{ width: 180, height: 36, borderRadius: 14 }} />
+                        </div>
+                      ))}
+                    </>
                   )}
                   {msgError && <div className="err" style={{ padding: 12 }}>{msgError}</div>}
                   {messages && messages.length === 0 && !msgError && (
                     <div className="hint" style={{ textAlign: 'center', padding: 20 }}>
-                      No messages yet. Wire /api/threads/&#123;id&#125;/messages to populate.
+                      No messages yet.
                     </div>
                   )}
-                  {messages && messages.length > 0 && (
-                    <div className="chat-day">{timeAgo(messages[0].created_at) || 'Earlier'}</div>
+                  {messages && messages.length > 0 && dayLabel(messages[0].created_at) && (
+                    <div className="chat-day">{dayLabel(messages[0].created_at)}</div>
                   )}
-                  {messages && messages.map((m, i) => {
+                  {messages && messages.map(m => {
                     const out = isOutgoing(m)
                     const dir = out ? 'out' : 'in'
-                    const reactionVal = reactions[`${selected}-${i}`]
                     return (
                       <div key={m.id} className={'bubble-row ' + dir}>
                         <div className="bubble-wrap">
-                          {!out && (
+                          {!out && m.author_name && (
                             <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginBottom: 2, paddingLeft: 4 }}>
-                              {m.author_name || 'Someone'}
+                              {m.author_name}
                             </div>
                           )}
-                          <div className={'bubble ' + dir} onDoubleClick={() => setReaction(selected!, i, '👍')}>
+                          <div className={'bubble ' + dir}>
                             {m.body}
                             <span className="bt">{timeShort(m.created_at) || timeAgo(m.created_at)}</span>
-                            <div className="bubble-react">
-                              <button onClick={() => setReaction(selected!, i, '👍')}>👍</button>
-                              <button onClick={() => setReaction(selected!, i, '❤️')}>❤️</button>
-                              <button onClick={() => setReaction(selected!, i, '🙏')}>🙏</button>
-                            </div>
                           </div>
-                          {reactionVal && <span className="reaction-chip">{reactionVal}</span>}
                         </div>
                       </div>
                     )
@@ -396,19 +340,6 @@ export default function MessagesView({ token }: { token: string }) {
                         {initials(threadLabel(selectedThread))}
                       </span>
                       <div style={{ fontWeight: 600, fontSize: 15, marginTop: 10 }}>{threadLabel(selectedThread)}</div>
-                      <div className="hint" style={{ fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', marginTop: 3 }}>
-                        {selectedThread.channel && <span style={{ width: 6, height: 6, borderRadius: '50%', background: CH_TONE[selectedThread.channel] ?? 'var(--gx-text-3)' }} />}
-                        {selectedThread.channel ?? 'Conversation'}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '0 0 14px' }}>
-                      <button className="info-act" onClick={() => toast.info('Calling…')}><PhoneIcon size={16} /><span>Call</span></button>
-                      <button className="info-act" onClick={() => toggleMute(selectedThread.id)}>
-                        <MuteIcon size={16} /><span>{muted.has(selectedThread.id) ? 'Unmute' : 'Mute'}</span>
-                      </button>
-                      <button className="info-act" onClick={() => togglePin(selectedThread.id)}>
-                        <PinIcon size={16} /><span>{pinned.has(selectedThread.id) ? 'Unpin' : 'Pin'}</span>
-                      </button>
                     </div>
                     <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>Thread</div>
                     <div className="kv" style={{ padding: '8px 0' }}>
@@ -427,57 +358,46 @@ export default function MessagesView({ token }: { token: string }) {
                         <span className="kv-v mono" style={{ fontSize: 11.5 }}>{selectedThread.record_id.slice(0, 12)}</span>
                       </div>
                     )}
-                    <div className="kv" style={{ padding: '8px 0' }}>
-                      <span className="kv-k" style={{ width: 80 }}>Created</span>
-                      <span className="kv-v">{timeAgo(selectedThread.created_at)}</span>
-                    </div>
-                    <div className="kv" style={{ padding: '8px 0' }}>
-                      <span className="kv-k" style={{ width: 80 }}>Messages</span>
-                      <span className="kv-v">{messages?.length ?? '—'}</span>
-                    </div>
-                    <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: 14 }} onClick={() => toast.info('Wire /api/customers/{id} to open record')}>
-                      <UserIcon size={14} />Open customer
-                    </button>
+                    {selectedThread.created_at && (
+                      <div className="kv" style={{ padding: '8px 0' }}>
+                        <span className="kv-k" style={{ width: 80 }}>Created</span>
+                        <span className="kv-v">{timeAgo(selectedThread.created_at)}</span>
+                      </div>
+                    )}
+                    {messages && (
+                      <div className="kv" style={{ padding: '8px 0' }}>
+                        <span className="kv-k" style={{ width: 80 }}>Messages</span>
+                        <span className="kv-v">{messages.length}</span>
+                      </div>
+                    )}
                   </aside>
                 )}
               </div>
 
-              {(showEmoji || showAttach || showQuick) && (
-                <div className="pop-scrim" onClick={() => { setShowEmoji(false); setShowAttach(false); setShowQuick(false) }} />
+              {(showEmoji || showAttach) && (
+                <div className="pop-scrim" onClick={() => { setShowEmoji(false); setShowAttach(false) }} />
+              )}
+              {sendError && (
+                <div className="err" style={{ margin: '0 14px 8px' }}>{sendError}</div>
               )}
               <div className="chat-composer">
                 <div style={{ position: 'relative' }}>
-                  <button className={'tb-icon' + (showAttach ? ' on' : '')} onClick={() => { setShowAttach(v => !v); setShowEmoji(false); setShowQuick(false) }}>
-                    <PaperclipIcon size={18} />
-                  </button>
-                  {showAttach && (
-                    <div className="menu fade-fast" style={{ position: 'absolute', bottom: 42, left: 0 }}>
-                      <button className="menu-item" onClick={() => { setShowAttach(false); toast.info('Photo — wire /api/threads/{id}/attachments') }}><PictureIcon size={15} />Photo</button>
-                      <button className="menu-item" onClick={() => { setShowAttach(false); toast.info('Document — wire /api/threads/{id}/attachments') }}><FileIcon size={15} />Document</button>
-                      <button className="menu-item" onClick={() => { setShowAttach(false); toast.info('Location — wire /api/threads/{id}/attachments') }}><MapPinIcon size={15} />Location</button>
-                    </div>
-                  )}
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <button className={'tb-icon' + (showEmoji ? ' on' : '')} onClick={() => { setShowEmoji(v => !v); setShowAttach(false); setShowQuick(false) }}>
+                  <button
+                    className={'tb-icon' + (showEmoji ? ' on' : '')}
+                    onClick={() => { setShowEmoji(v => !v); setShowAttach(false) }}
+                    aria-label="Insert emoji"
+                  >
                     <SmileIcon size={18} />
                   </button>
                   {showEmoji && (
                     <div className="emoji-pop fade-fast">
                       {EMOJIS.map(e => (
-                        <button key={e} onClick={() => { setDraft(d => d + e); setShowEmoji(false); inputRef.current?.focus() }}>{e}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <button className={'tb-icon' + (showQuick ? ' on' : '')} title="Quick replies" onClick={() => { setShowQuick(v => !v); setShowEmoji(false); setShowAttach(false) }}>
-                    <ZapIcon size={17} />
-                  </button>
-                  {showQuick && (
-                    <div className="menu fade-fast" style={{ position: 'absolute', bottom: 42, left: 0, minWidth: 240 }}>
-                      {QUICK_REPLIES.map(qr => (
-                        <button key={qr} className="menu-item" onClick={() => { setDraft(qr); setShowQuick(false); inputRef.current?.focus() }}>{qr}</button>
+                        <button
+                          key={e}
+                          onClick={() => { setDraft(d => d + e); setShowEmoji(false); inputRef.current?.focus() }}
+                        >
+                          {e}
+                        </button>
                       ))}
                     </div>
                   )}
@@ -486,12 +406,18 @@ export default function MessagesView({ token }: { token: string }) {
                   ref={inputRef}
                   value={draft}
                   onChange={e => setDraft(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !sending) handleSend() }}
                   placeholder="Type a message…"
                   className="inp"
                   style={{ flex: 1 }}
+                  disabled={sending}
                 />
-                <button className="btn btn-primary btn-icon" onClick={handleSend} aria-label="Send">
+                <button
+                  className="btn btn-primary btn-icon"
+                  onClick={handleSend}
+                  aria-label="Send"
+                  disabled={sending || !draft.trim()}
+                >
                   <SendHorizontalIcon size={16} />
                 </button>
               </div>

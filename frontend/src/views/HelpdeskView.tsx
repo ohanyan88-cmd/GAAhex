@@ -1,20 +1,22 @@
 import { useEffect, useState } from 'react'
 import {
   listQueues, createQueue, listTickets, createTicket,
-  assignTicket, resolveTicket, reopenTicket, closeTicket, deleteTicket, getTicket,
+  assignTicket, resolveTicket, reopenTicket, closeTicket, getTicket,
   type Queue, type Ticket, type TicketFilters, type TicketPriority, type TicketStatus,
 } from '../lib/helpdesk'
 import { loadCustomers } from '../lib/billing'
-import UserPicker from '../components/UserPicker'
+import { listUsers, type User } from '../lib/users'
+import UserPicker, { resolveUserDisplay } from '../components/UserPicker'
 import ViewHead from '../components/ViewHead'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
-import { EmptyState, ErrorBanner } from '../components/States'
+import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { InboxIcon, ArrowRightIcon } from '../components/icons'
 import { Plus, Check, X as XIcon, UserPlus } from 'lucide-react'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
+import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -87,33 +89,43 @@ const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function HelpdeskView({
-  token, canConfigure = false, configVersion = 0, initialStatus, initialOpenTicketId,
+  token, canConfigure = false, configVersion = 0, capabilities = FULL_ACCESS,
+  initialStatus, initialOpenTicketId, openTicketId,
 }: {
   token: string
   canConfigure?: boolean
   configVersion?: number
+  capabilities?: Capabilities
   /** Home-page deep link: page mounts with this status preselected in the filter.
-   * The frontend filter expects lowercase (open, in_progress, ...); we normalize. */
+   * Backend enums are uppercase (OPEN, IN_PROGRESS, ...); we normalize to uppercase
+   * for the API call. The pill mapper lowercases for display. */
   initialStatus?: string
-  /** Home-page deep link: open the ticket detail modal for this ticket on mount. */
+  /** Home-page deep link: open the ticket detail modal for this ticket on mount.
+   * `openTicketId` is the canonical name used by DashboardView; `initialOpenTicketId`
+   * is accepted as an alias for backward compatibility. */
+  openTicketId?: string
   initialOpenTicketId?: string
 }) {
   const cfg = usePageConfig(token, 'helpdesk', configVersion)
+  const canCreateTicket = can(capabilities, 'helpdesk_ticket', 'create')
+  const canEditTicket = can(capabilities, 'helpdesk_ticket', 'edit')
+
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
   const cf = useCustomFields(token, 'helpdesk', cfg.customFields, (tickets ?? []).map((t) => t.id))
   const [names, setNames] = useState<Record<string, string>>({})
+  const [users, setUsers] = useState<User[]>([])
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
 
-  // Filters
+  // Filters — store the UI/display form (lowercase); API call uppercases it.
   const [statusFilter, setStatusFilter] = useState((initialStatus ?? '').toLowerCase())
   const [queueFilter, setQueueFilter] = useState('')
   const [mineOnly, setMineOnly] = useState(false)
 
-  // UI state
+  // UI state — `openTicketId` is the canonical prop name; fall back to alias.
   const [selectedQueue, setSelectedQueue] = useState<string | null>(null)
-  const [detailId, setDetailId] = useState<string | null>(initialOpenTicketId ?? null)
+  const [detailId, setDetailId] = useState<string | null>(openTicketId ?? initialOpenTicketId ?? null)
   const [createOpen, setCreateOpen] = useState(false)
   const [createQueueOpen, setCreateQueueOpen] = useState(false)
 
@@ -130,7 +142,11 @@ export default function HelpdeskView({
     setUnavailable(false)
     setTickets(null)
 
-    const filters: TicketFilters = { status: statusFilter, mine: mineOnly }
+    // Backend stores statuses uppercase (OPEN, IN_PROGRESS, ...) — uppercase before send.
+    const filters: TicketFilters = {
+      status: statusFilter ? statusFilter.toUpperCase() : '',
+      mine: mineOnly,
+    }
     // Use selectedQueue if sidebar was clicked, otherwise the dropdown filter
     const effectiveQueue = selectedQueue ?? queueFilter
     if (effectiveQueue) filters.queue = effectiveQueue
@@ -152,6 +168,9 @@ export default function HelpdeskView({
     }
 
     setNames(await loadCustomers(token))
+    // Load users for the assignee column — real names rather than UUID slices.
+    const usersRes = await listUsers(token)
+    if (usersRes.ok && Array.isArray(usersRes.data)) setUsers(usersRes.data)
   }
 
   useEffect(() => { loadQueues() }, [token])
@@ -214,11 +233,11 @@ export default function HelpdeskView({
           icon={<InboxIcon size={20} />}
           title={cfg.title}
           sub={selectedQueue ? queues.find((q) => q.id === selectedQueue)?.name : undefined}
-          actions={
+          actions={canCreateTicket ? (
             <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>
               New ticket
             </Button>
-          }
+          ) : null}
         />
 
         {/* Filters bar */}
@@ -247,13 +266,19 @@ export default function HelpdeskView({
         {/* Content */}
         <div style={{ padding: '0 var(--pad) var(--pad) var(--pad)' }}>
           {error && <ErrorBanner message={error} onRetry={loadData} />}
-          {tickets === null && !error && <p className="muted">Loading…</p>}
+          {tickets === null && !error && (
+            <div style={{ padding: 'var(--gx-space-8) 0' }}>
+              <SkeletonRows rows={6} />
+            </div>
+          )}
           {tickets && tickets.length === 0 && !error && (
             <EmptyState
               icon={<InboxIcon size={40} />}
               title="No tickets yet"
               message="Create a ticket or adjust your filters."
-              action={<Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>New ticket</Button>}
+              action={canCreateTicket ? (
+                <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>New ticket</Button>
+              ) : undefined}
             />
           )}
 
@@ -280,7 +305,7 @@ export default function HelpdeskView({
                         if (col.key === 'customer') return <DataTableCell key={col.key} variant="mono">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</DataTableCell>
                         if (col.key === 'priority') return <DataTableCell key={col.key} variant="default">{priorityPill(t.priority)}</DataTableCell>
                         if (col.key === 'status') return <DataTableCell key={col.key} variant="default">{statusPill(t.status)}</DataTableCell>
-                        if (col.key === 'assignee') return <DataTableCell key={col.key} variant="id">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</DataTableCell>
+                        if (col.key === 'assignee') return <DataTableCell key={col.key} variant="default">{resolveUserDisplay(t.assigned_agent_id, users)}</DataTableCell>
                         if (col.key === 'sla') return <DataTableCell key={col.key} variant="default"><SlaBadge ticket={t} /></DataTableCell>
                         return null
                       })}
@@ -304,6 +329,8 @@ export default function HelpdeskView({
           id={detailId}
           queues={queues}
           names={names}
+          users={users}
+          canEdit={canEditTicket}
           onClose={() => { setDetailId(null); loadData() }}
         />
       )}
@@ -333,12 +360,14 @@ export default function HelpdeskView({
 // ── Ticket Detail Modal ───────────────────────────────────────────────────────
 
 function TicketDetailModal({
-  token, id, queues, names, onClose,
+  token, id, queues, names, users, canEdit, onClose,
 }: {
   token: string
   id: string
   queues: Queue[]
   names: Record<string, string>
+  users: User[]
+  canEdit: boolean
   onClose: () => void
 }) {
   const [ticket, setTicket] = useState<Ticket | null>(null)
@@ -381,11 +410,12 @@ function TicketDetailModal({
   }
 
   const status = (ticket?.status ?? '').toLowerCase() as TicketStatus | ''
-  const canResolve = status === 'open' || status === 'in_progress' || status === 'pending'
-  const canReopen = status === 'resolved' || status === 'closed'
-  const canClose = status !== 'closed'
+  const canResolve = canEdit && (status === 'open' || status === 'in_progress' || status === 'pending')
+  const canReopen = canEdit && (status === 'resolved' || status === 'closed')
+  const canClose = canEdit && status !== '' && status !== 'closed'
   const queueName = ticket?.queue_id ? (queues.find((q) => q.id === ticket.queue_id)?.name ?? ticket.queue_id.slice(0, 8)) : '—'
   const custName = ticket?.customer_id ? (names[ticket.customer_id] ?? ticket.customer_id.slice(0, 8)) : '—'
+  const assigneeName = resolveUserDisplay(ticket?.assigned_agent_id, users)
 
   return (
     <Modal
@@ -408,6 +438,7 @@ function TicketDetailModal({
             <div><span className="muted">Priority</span><div>{priorityPill(ticket.priority)}</div></div>
             <div><span className="muted">Status</span><div>{statusPill(ticket.status)}</div></div>
             <div><span className="muted">Queue</span><div>{queueName}</div></div>
+            <div><span className="muted">Assignee</span><div>{assigneeName}</div></div>
             <div><span className="muted">SLA due</span><div>{fmtDate(ticket.sla_due_at)}</div></div>
             <div><span className="muted">Created</span><div>{fmtDate(ticket.created_at)}</div></div>
           </div>
@@ -422,41 +453,45 @@ function TicketDetailModal({
 
           {/* Assign — UserPicker is a SHARED <select> component (out of scope to reskin); wrapped in a
               FormField primitive for the label, with the Assign action as a <Button>. */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <FormField label="Assignee" htmlFor="hd-assignee">
-                <UserPicker
-                  token={token}
-                  value={agentId}
-                  onChange={setAgentId}
-                  className="inp inp-sm"
-                  aria-label="Agent to assign"
-                />
-              </FormField>
+          {canEdit && (
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <FormField label="Assignee" htmlFor="hd-assignee">
+                  <UserPicker
+                    token={token}
+                    value={agentId}
+                    onChange={setAgentId}
+                    className="inp inp-sm"
+                    aria-label="Agent to assign"
+                  />
+                </FormField>
+              </div>
+              <Button variant="primary" size="sm" leftIcon={UserPlus} disabled={busy || !agentId.trim()} onClick={handleAssign}>
+                Assign
+              </Button>
             </div>
-            <Button variant="primary" size="sm" leftIcon={UserPlus} disabled={busy || !agentId.trim()} onClick={handleAssign}>
-              Assign
-            </Button>
-          </div>
+          )}
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
-            {canResolve && (
-              <Button variant="primary" size="sm" leftIcon={Check} disabled={busy} onClick={() => handleAction('resolve')}>
-                Resolve
-              </Button>
-            )}
-            {canReopen && (
-              <Button variant="secondary" size="sm" disabled={busy} onClick={() => handleAction('reopen')}>
-                Reopen
-              </Button>
-            )}
-            {canClose && (
-              <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
-                Close
-              </Button>
-            )}
-          </div>
+          {canEdit && (
+            <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
+              {canResolve && (
+                <Button variant="primary" size="sm" leftIcon={Check} disabled={busy} onClick={() => handleAction('resolve')}>
+                  Resolve
+                </Button>
+              )}
+              {canReopen && (
+                <Button variant="secondary" size="sm" disabled={busy} onClick={() => handleAction('reopen')}>
+                  Reopen
+                </Button>
+              )}
+              {canClose && (
+                <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
+                  Close
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </Modal>

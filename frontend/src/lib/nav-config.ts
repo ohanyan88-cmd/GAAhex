@@ -11,7 +11,7 @@ import {
   SparkleIcon, MessageIcon, FolderIcon, LayersIcon, ShieldIcon,
   GearIcon, MapIcon, ActivityIcon, BuildingIcon, CalendarIcon,
   ClockIcon, RowsIcon, EditIcon, BookmarkIcon, MailIcon,
-  CreditCardIcon, LockIcon, PhoneIcon, ArrowRightIcon, CheckIcon,
+  CreditCardIcon, LockIcon, ArrowRightIcon, CheckIcon,
 } from '../components/icons'
 
 export type NavItemDef = {
@@ -81,20 +81,16 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   // 4. Customer Care — support and service operations
+  // Wave A pruning (2026-05-30): 7 dead items removed (no backend, or reachable via row click):
+  // care-console, care-cust360 (drilldown from customer rows), care-omni, care-callcenter,
+  // care-livechat, care-tech, care-retention.
   s('care', 'Customer Care', InboxIcon, [
-    i('care-console',     'Agent Console',          PhoneIcon),
-    i('care-cust360',     'Customer 360',           UsersIcon),
     i('care-interactions','Interactions',           ClockIcon,    'entity', { slug: 'interactions' }),
-    i('care-omni',        'Omnichannel Inbox',      MessageIcon),
-    i('care-callcenter',  'Call Center',            PhoneIcon),
-    i('care-livechat',    'Live Chat',              MessageIcon),
     i('care-tickets',     'Tickets',                ArchiveIcon,  'entity', { slug: 'tickets' }),
     i('care-helpdesk',    'Helpdesk',               InboxIcon,    'helpdesk'),
-    i('care-tech',        'Technical Support',      ServerIcon),
     i('care-complaints',  'Complaints',             EditIcon),
     i('care-escalations', 'Escalations',            ArrowRightIcon),
     i('care-sla',         'SLA Management',         ClockIcon),
-    i('care-retention',   'Retention Desk',         UsersIcon),
     i('care-kb',          'Knowledge Base',         BookmarkIcon),
     i('care-comms',       'Service Communications', MessageIcon,  'messages'),
     i('care-outbound',    'Outbound',               MailIcon,     'outbound'),
