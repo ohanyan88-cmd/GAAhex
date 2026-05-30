@@ -174,7 +174,7 @@ function EditFieldRow({
           <td colSpan={6}><ErrorBanner message={err} /></td>
         </tr>
       )}
-      <tr style={{ background: 'var(--surface-2)' }}>
+      <tr style={{ background: 'var(--gx-surface-2)' }}>
         <td><span className="hint">{field.key}</span></td>
         <td>
           <input className="inp inp-sm" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
@@ -427,10 +427,10 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
                     />
                   )}
 
-                  <div className="error-banner" style={{ margin: '20px 0 4px', borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-                    <div style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={16} /></div>
+                  <div className="error-banner" style={{ margin: '20px 0 4px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+                    <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={16} /></div>
                     <div>
-                      <div className="error-banner-title" style={{ color: 'var(--text)' }}>Key and type are immutable</div>
+                      <div className="error-banner-title" style={{ color: 'var(--gx-text-1)' }}>Key and type are immutable</div>
                       <div className="error-banner-msg">
                         Renaming a key or changing a type would orphan existing record data. Add a new field instead.
                       </div>

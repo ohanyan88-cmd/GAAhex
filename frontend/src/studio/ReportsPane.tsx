@@ -368,7 +368,7 @@ function ReportForm({
   }
 
   return (
-    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'var(--surface-2)', borderRadius: 8 }}>
+    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
       <div className="row" style={{ marginBottom: 12 }}>
         <strong>{isEdit ? 'Edit report' : 'New report'}</strong>
         <span className="spacer" />
@@ -613,13 +613,13 @@ function SchedulesList({ token }: { token: string }) {
                           borderRadius: 4,
                           fontSize: 11,
                           fontWeight: 600,
-                          background: s.status === 'ACTIVE' ? 'var(--success-soft)' : 'var(--surface-2)',
-                          color: s.status === 'ACTIVE' ? 'var(--success)' : 'var(--text-3)',
+                          background: s.status === 'ACTIVE' ? 'var(--gx-success-soft)' : 'var(--gx-surface-2)',
+                          color: s.status === 'ACTIVE' ? 'var(--gx-success)' : 'var(--gx-text-3)',
                         }}>
                           {s.status}
                         </span>
                       </td>
-                      <td style={{ fontSize: 12, color: 'var(--text-2)' }}>{fmtDt(s.next_run_at)}</td>
+                      <td style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>{fmtDt(s.next_run_at)}</td>
                       <td>
                         <div className="row-actions">
                           <button
@@ -687,7 +687,7 @@ function ScheduleForm({
   }
 
   return (
-    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'var(--surface-2)', borderRadius: 8 }}>
+    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
       <div className="row" style={{ marginBottom: 12 }}>
         <strong>New schedule</strong>
         <span className="spacer" />
@@ -699,8 +699,8 @@ function ScheduleForm({
       {error && <ErrorBanner message={error} />}
 
       {reports.length === 0 ? (
-        <div className="error-banner" style={{ borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-          <InfoIcon size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+        <div className="error-banner" style={{ borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+          <InfoIcon size={16} style={{ color: 'var(--gx-info)', flexShrink: 0 }} />
           <span>No reports available. Create a report definition first.</span>
         </div>
       ) : (

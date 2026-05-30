@@ -283,7 +283,7 @@ export default function DashboardsPane({ token }: { token: string }) {
                   </thead>
                   <tbody>
                     {detail.widgets.length === 0 ? (
-                      <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-3)' }}>No widgets</td></tr>
+                      <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--gx-text-3)' }}>No widgets</td></tr>
                     ) : detail.widgets.map((w) => (
                       <tr key={w.key}>
                         <td><code className="mono">{w.key}</code></td>
@@ -370,7 +370,7 @@ export default function DashboardsPane({ token }: { token: string }) {
               </thead>
               <tbody>
                 {formWidgets.length === 0 ? (
-                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-3)' }}>No widgets — add one above</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--gx-text-3)' }}>No widgets — add one above</td></tr>
                 ) : formWidgets.map((w, i) => (
                   <tr key={i}>
                     <td>
@@ -474,8 +474,8 @@ export default function DashboardsPane({ token }: { token: string }) {
             </table>
           </div>
 
-          <div className="error-banner" style={{ margin: '16px 0 14px', borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-            <div style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={15} /></div>
+          <div className="error-banner" style={{ margin: '16px 0 14px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+            <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={15} /></div>
             <div className="error-banner-msg">
               Widget queries run at view time. <code className="mono">filter</code> is a GXL expression evaluated per record (e.g. <code className="mono">status == &apos;OPEN&apos;</code>).
             </div>

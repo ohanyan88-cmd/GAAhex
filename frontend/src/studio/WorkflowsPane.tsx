@@ -122,7 +122,7 @@ function EditStatusRow({
           <td colSpan={5}><ErrorBanner message={err} /></td>
         </tr>
       )}
-      <tr style={{ background: 'var(--surface-2)' }}>
+      <tr style={{ background: 'var(--gx-surface-2)' }}>
         {/* Order column — empty while editing */}
         <td></td>
         <td><code className="mono">{status.key}</code></td>
@@ -201,10 +201,10 @@ function TransitionsEditor({
     <div>
       {err && <ErrorBanner message={err} />}
       {ok && (
-        <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--success)', background: 'var(--success-soft)' }}>
-          <div style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }}><CheckIcon size={16} /></div>
+        <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+          <div style={{ color: 'var(--gx-success)', flexShrink: 0, marginTop: 1 }}><CheckIcon size={16} /></div>
           <div>
-            <div className="error-banner-title" style={{ color: 'var(--text)' }}>Transitions saved</div>
+            <div className="error-banner-title" style={{ color: 'var(--gx-text-1)' }}>Transitions saved</div>
           </div>
         </div>
       )}
@@ -568,10 +568,10 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                     />
                   )}
 
-                  <div className="error-banner" style={{ margin: '20px 0 4px', borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-                    <div style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={16} /></div>
+                  <div className="error-banner" style={{ margin: '20px 0 4px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+                    <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={16} /></div>
                     <div>
-                      <div className="error-banner-title" style={{ color: 'var(--text)' }}>Transitions are replaced atomically</div>
+                      <div className="error-banner-title" style={{ color: 'var(--gx-text-1)' }}>Transitions are replaced atomically</div>
                       <div className="error-banner-msg">
                         Saving the transition list replaces all edges in one call. Remove all dangling references before deleting a status.
                       </div>

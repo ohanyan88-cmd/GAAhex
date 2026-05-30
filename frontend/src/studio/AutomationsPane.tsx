@@ -289,7 +289,7 @@ export default function AutomationsPane({ token }: { token: string }) {
                   key={a.id}
                   style={{
                     cursor: 'pointer',
-                    background: editTarget?.id === a.id ? 'var(--accent-soft)' : undefined,
+                    background: editTarget?.id === a.id ? 'var(--gx-primary-soft)' : undefined,
                     opacity: a.is_active ? 1 : 0.55,
                   }}
                   onClick={() => openEdit(a)}
@@ -297,7 +297,7 @@ export default function AutomationsPane({ token }: { token: string }) {
                   <td>
                     <span style={{ fontWeight: 500 }}>{a.name}</span>
                     {a.condition && (
-                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginTop: 2 }}>
                         if {a.condition}
                       </div>
                     )}
@@ -333,7 +333,7 @@ export default function AutomationsPane({ token }: { token: string }) {
                         <>
                           <button
                             className="btn btn-sm"
-                            style={{ color: 'var(--danger)' }}
+                            style={{ color: 'var(--gx-danger)' }}
                             onClick={() => deleteAutomation(a.id)}
                             disabled={deleting}
                           >
@@ -365,7 +365,7 @@ export default function AutomationsPane({ token }: { token: string }) {
       {formOpen && (
         <form
           onSubmit={submitForm}
-          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '16px 18px', marginTop: 8 }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: '16px 18px', marginTop: 8 }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <SparkleIcon size={14} className="section-icon" />
@@ -378,7 +378,7 @@ export default function AutomationsPane({ token }: { token: string }) {
 
           {formErr && <ErrorBanner message={formErr} />}
           {formOk && (
-            <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--success)', background: 'var(--success-soft)' }}>
+            <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
               <CheckIcon size={14} />
               <span className="error-banner-msg">{formOk}</span>
             </div>
@@ -502,8 +502,8 @@ export default function AutomationsPane({ token }: { token: string }) {
           </div>
 
           {/* Help banner per action type */}
-          <div className="error-banner" style={{ margin: '12px 0 8px', borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-            <InfoIcon size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <div className="error-banner" style={{ margin: '12px 0 8px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+            <InfoIcon size={14} style={{ color: 'var(--gx-info)', flexShrink: 0 }} />
             <span className="error-banner-msg">{getActionHint(form.action_type)}</span>
           </div>
 

@@ -187,7 +187,7 @@ export default function RolesPane({ token }: { token: string }) {
       {showCreate && (
         <form
           onSubmit={createRole}
-          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '14px 16px', marginBottom: 16 }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: '14px 16px', marginBottom: 16 }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <PlusIcon size={14} className="section-icon" /> New role
@@ -243,13 +243,13 @@ export default function RolesPane({ token }: { token: string }) {
               {roles.map((role) => (
                 <tr
                   key={role.id}
-                  style={{ cursor: 'pointer', background: selected?.id === role.id ? 'var(--accent-soft)' : undefined }}
+                  style={{ cursor: 'pointer', background: selected?.id === role.id ? 'var(--gx-primary-soft)' : undefined }}
                   onClick={() => selectRole(role)}
                 >
                   <td><code className="mono">{role.key}</code></td>
                   <td>{role.label}</td>
                   <td>
-                    <span style={{ color: 'var(--text-3)', fontSize: 12 }}>
+                    <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
                       {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
                     </span>
                   </td>
@@ -266,7 +266,7 @@ export default function RolesPane({ token }: { token: string }) {
                         <>
                           <button
                             className="btn btn-sm"
-                            style={{ color: 'var(--danger)' }}
+                            style={{ color: 'var(--gx-danger)' }}
                             onClick={() => deleteRole(role.id)}
                             disabled={deleting}
                           >
@@ -321,8 +321,8 @@ export default function RolesPane({ token }: { token: string }) {
 
           {saveErr && <ErrorBanner message={saveErr} />}
           {saveMsg && (
-            <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--success)', background: 'var(--success-soft)' }}>
-              <CheckIcon size={14} style={{ color: 'var(--success)', flexShrink: 0 }} />
+            <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+              <CheckIcon size={14} style={{ color: 'var(--gx-success)', flexShrink: 0 }} />
               <span className="error-banner-msg">{saveMsg}</span>
             </div>
           )}
@@ -332,7 +332,7 @@ export default function RolesPane({ token }: { token: string }) {
           ) : (
             Object.entries(grouped).map(([group, perms]) => (
               <div key={group} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-3)', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 6 }}>
                   {group}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px' }}>
@@ -344,7 +344,7 @@ export default function RolesPane({ token }: { token: string }) {
                         onChange={() => togglePerm(p.key)}
                       />
                       <span>{p.label}</span>
-                      <code className="mono" style={{ fontSize: 10, color: 'var(--text-3)' }}>{p.key}</code>
+                      <code className="mono" style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>{p.key}</code>
                     </label>
                   ))}
                 </div>
@@ -352,8 +352,8 @@ export default function RolesPane({ token }: { token: string }) {
             ))
           )}
 
-          <div className="error-banner" style={{ marginTop: 8, marginBottom: 4, borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-            <InfoIcon size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <div className="error-banner" style={{ marginTop: 8, marginBottom: 4, borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+            <InfoIcon size={14} style={{ color: 'var(--gx-info)', flexShrink: 0 }} />
             <span className="error-banner-msg">
               Changes take effect on next login. Users with this role will see updated capabilities immediately after re-authenticating.
             </span>

@@ -394,8 +394,8 @@ export default function ViewsPane({ token }: { token: string }) {
             </label>
           </div>
 
-          <div className="error-banner" style={{ margin: '0 0 14px', borderLeftColor: 'var(--accent)', background: 'var(--accent-soft)' }}>
-            <div style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={15} /></div>
+          <div className="error-banner" style={{ margin: '0 0 14px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+            <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={15} /></div>
             <div className="error-banner-msg">
               All config fields are optional. Leave blank to inherit the list view defaults.
               Shared views have no owner and are visible to the whole tenant — they cannot be edited here after creation.
