@@ -20,7 +20,7 @@ from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, page_config, me, org_nodes
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, page_config, me, org_nodes, metrics
 
 
 _log = logging.getLogger("gaaex")
@@ -119,6 +119,7 @@ app.include_router(documents.router)
 app.include_router(i18n.router)
 app.include_router(accounts.router)                 # /api/parties + /api/accounts (17a, before records)
 app.include_router(analytics.router)                # /api/analytics/* (fixed KPIs, before records)
+app.include_router(metrics.router)                  # /api/metrics/* (home dashboard time series, before records)
 app.include_router(ai.router)                       # /api/ai/* (lead score + summarize, before records)
 app.include_router(tenant_settings.router)          # /api/tenant/* (tenant profile/settings, before records)
 app.include_router(convert.router)                  # /api/leads/{id}/convert (lead->customer; before records)

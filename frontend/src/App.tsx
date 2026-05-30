@@ -53,7 +53,7 @@ type View =
   | { type: 'dashboards' }
   | { type: 'messages' }
   | { type: 'activity' }
-  | { type: 'invoices' }
+  | { type: 'invoices'; initialStatus?: string }
   | { type: 'payments' }
   | { type: 'subscriptions' }
   | { type: 'products' }
@@ -71,7 +71,7 @@ type View =
   | { type: 'ask' }
   | { type: 'settings' }
   | { type: 'calendar' }
-  | { type: 'helpdesk' }
+  | { type: 'helpdesk'; initialStatus?: string; initialOpenTicketId?: string }
   | { type: 'workitems' }
   | { type: 'gateway' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
@@ -433,7 +433,23 @@ export default function App() {
                   onConfigure={canConfigureThisPage ? openConfigure : undefined}
                 />
               : view.type === 'dashboards'
-                ? <DashboardView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+                ? <DashboardView
+                    token={token}
+                    configVersion={pageConfigVersion}
+                    canConfigure={!!user?.can_configure}
+                    onConfigure={canConfigureThisPage ? openConfigure : undefined}
+                    onNavigate={(target) => {
+                      if (target.type === 'subscriptions') {
+                        setView({ type: 'subscriptions' })
+                      } else if (target.type === 'invoices') {
+                        setView({ type: 'invoices', initialStatus: target.status })
+                      } else if (target.type === 'helpdesk') {
+                        setView({ type: 'helpdesk', initialStatus: target.status, initialOpenTicketId: target.openTicketId })
+                      } else if (target.type === 'entity') {
+                        setView({ type: 'entity', slug: target.slug })
+                      }
+                    }}
+                  />
               : view.type === 'analytics'
                 ? <AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'lead-pipeline'
@@ -447,7 +463,11 @@ export default function App() {
               : view.type === 'activity'
                 ? <div><div className="view-head"><h2>{t('nav.activity', 'Activity')}</h2></div><ActivityTimeline token={token} /></div>
               : view.type === 'invoices'
+<<<<<<< HEAD
                 ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+=======
+                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} />
+>>>>>>> origin/home/wire-real-data
               : view.type === 'payments'
                 ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'gateway'
@@ -473,7 +493,11 @@ export default function App() {
               : view.type === 'parties'
                 ? <PartiesView token={token} canConfigure={!!user?.can_configure} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'helpdesk'
+<<<<<<< HEAD
                 ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
+=======
+                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} initialOpenTicketId={view.initialOpenTicketId} />
+>>>>>>> origin/home/wire-real-data
               : view.type === 'workitems'
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={canConfigureThisPage ? openConfigure : undefined} />
               : view.type === 'calendar'

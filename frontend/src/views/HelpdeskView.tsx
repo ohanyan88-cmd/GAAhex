@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   listQueues, createQueue, listTickets, createTicket,
-  assignTicket, resolveTicket, reopenTicket, closeTicket, getTicket,
+  assignTicket, resolveTicket, reopenTicket, closeTicket, deleteTicket, getTicket,
   type Queue, type Ticket, type TicketFilters, type TicketPriority, type TicketStatus,
 } from '../lib/helpdesk'
 import { loadCustomers } from '../lib/billing'
@@ -10,14 +10,11 @@ import ViewHead from '../components/ViewHead'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
-import {
-  InboxIcon, ArrowRightIcon, ChevronLeftIcon, SearchIcon, PlusIcon,
-  DownloadIcon, ArrowUpIcon, ArrowDownIcon, CheckIcon, CloseIcon, GearIcon,
-} from '../components/icons'
-import { UserPlus } from 'lucide-react'
+import { InboxIcon, ArrowRightIcon } from '../components/icons'
+import { Plus, Check, X as XIcon, UserPlus } from 'lucide-react'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { Button, StatusPill, Input, FormField } from '../primitives'
+import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,10 +30,10 @@ function fmtDateShort(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
+// Priority → StatusPill variant. Mapping (real values: low | normal | high | urgent):
+//   urgent → critical · high → degraded · normal → info · low → neutral
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 
-// Priority → StatusPill variant.
-//   urgent → critical · high → degraded · normal → info · low → neutral
 function priorityPill(priority: string | null | undefined) {
   if (!priority) return <span className="muted">—</span>
   const p = priority.toLowerCase()
@@ -44,29 +41,20 @@ function priorityPill(priority: string | null | undefined) {
     : p === 'high' ? 'degraded'
     : p === 'low' ? 'neutral'
     : 'info'
-  return <StatusPill variant={variant} label={priority.charAt(0).toUpperCase() + priority.slice(1)} size="sm" />
+  return <StatusPill variant={variant} label={priority} size="sm" />
 }
 
-// Status → StatusPill variant (per reskin spec).
-//   open → info · pending → degraded · resolved → active · closed → neutral · urgent → critical
-//   in_progress → degraded (in-flight work, same family as pending)
-function mapTicketStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toLowerCase()
-  if (v === 'resolved') return 'active'
-  if (v === 'pending' || v === 'in_progress') return 'degraded'
-  if (v === 'closed') return 'neutral'
-  if (v === 'urgent') return 'critical'
-  return 'info' // open / default
-}
-function ticketStatusLabel(s: string | null | undefined): string {
-  const v = (s ?? '').toLowerCase()
-  if (v === 'in_progress') return 'In Progress'
-  if (!s) return '—'
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
+// Status → StatusPill variant. Mapping (real values: open | in_progress | pending | resolved | closed):
+//   open → info · in_progress → active · pending → degraded · resolved → neutral · closed → neutral
 function statusPill(status: string | null | undefined) {
   if (!status) return <span className="muted">—</span>
-  return <StatusPill variant={mapTicketStatus(status)} label={ticketStatusLabel(status)} size="sm" />
+  const s = status.toLowerCase()
+  const variant: PillVariant = s === 'in_progress' ? 'active'
+    : s === 'pending' ? 'degraded'
+    : s === 'resolved' || s === 'closed' ? 'neutral'
+    : 'info'
+  const label = s === 'in_progress' ? 'In Progress' : status
+  return <StatusPill variant={variant} label={label} size="sm" />
 }
 
 // SLA badge per spec:
@@ -82,35 +70,34 @@ function SlaBadge({ ticket }: { ticket: Ticket }) {
   if (dueMs - nowMs <= hourMs && dueMs > nowMs) {
     return <span title={fmtDate(ticket.sla_due_at)}><StatusPill variant="degraded" label="Due soon" size="sm" /></span>
   }
-  return <span className="mono" title={fmtDate(ticket.sla_due_at)}>{fmtDateShort(ticket.sla_due_at)}</span>
+  return <span className="muted" title={fmtDate(ticket.sla_due_at)}>{fmtDateShort(ticket.sla_due_at)}</span>
 }
 
-// 3-dot row-menu icon (inline; no emoji rule — inline SVG only).
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
-}
-
-const STATUS_TABS: Array<[string, string]> = [
-  ['', 'All'],
-  ['open', 'Open'],
-  ['in_progress', 'In Progress'],
-  ['pending', 'Pending'],
-  ['resolved', 'Resolved'],
-  ['closed', 'Closed'],
+const STATUSES: { value: string; label: string }[] = [
+  { value: '', label: 'All' },
+  { value: 'open', label: 'Open' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'resolved', label: 'Resolved' },
+  { value: 'closed', label: 'Closed' },
 ]
 
 const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function HelpdeskView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+export default function HelpdeskView({
+  token, canConfigure = false, configVersion = 0, initialStatus, initialOpenTicketId,
+}: {
+  token: string
+  canConfigure?: boolean
+  configVersion?: number
+  /** Home-page deep link: page mounts with this status preselected in the filter.
+   * The frontend filter expects lowercase (open, in_progress, ...); we normalize. */
+  initialStatus?: string
+  /** Home-page deep link: open the ticket detail modal for this ticket on mount. */
+  initialOpenTicketId?: string
+}) {
   const cfg = usePageConfig(token, 'helpdesk', configVersion)
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
@@ -119,24 +106,16 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
 
-  // Filters (status now lives in the tabs strip; queue + mine in the toolbar).
-  const [statusFilter, setStatusFilter] = useState('')
+  // Filters
+  const [statusFilter, setStatusFilter] = useState((initialStatus ?? '').toLowerCase())
   const [queueFilter, setQueueFilter] = useState('')
   const [mineOnly, setMineOnly] = useState(false)
 
   // UI state
   const [selectedQueue, setSelectedQueue] = useState<string | null>(null)
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(initialOpenTicketId ?? null)
   const [createOpen, setCreateOpen] = useState(false)
   const [createQueueOpen, setCreateQueueOpen] = useState(false)
-
-  // Reskin: client-only search/sort/select/page state.
-  const [query, setQuery] = useState('')
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [page, setPage] = useState(1)
-  const PAGE_SIZE = 25
 
   // Ticket counts per queue (derived from loaded tickets for sidebar)
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({})
@@ -177,368 +156,176 @@ export default function HelpdeskView({ token, canConfigure = false, configVersio
 
   useEffect(() => { loadQueues() }, [token])
   useEffect(() => { loadData() }, [token, statusFilter, queueFilter, mineOnly, selectedQueue])
-  // Reset paging + selection whenever filter/search/sort changes.
-  useEffect(() => { setPage(1); setSelected(new Set()) }, [statusFilter, queueFilter, mineOnly, selectedQueue, query, sortKey, sortDir])
-
-  // Derived
-  const all = tickets ?? []
-  const totalAll = all.length
-  const countForStatus = (s: string) => all.filter((t) => (t.status ?? '').toLowerCase() === s).length
-  const breachedCount = all.filter((t) => t.sla_breached).length
-  const urgentCount = all.filter((t) => (t.priority ?? '').toLowerCase() === 'urgent').length
-  const resolvedCount = countForStatus('resolved')
-
-  const custName = (t: Ticket) => t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'
-
-  // Client-side search applied on top of server filters.
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return all
-    return all.filter((t) => {
-      const fields = [
-        t.subject ?? '',
-        t.id ?? '',
-        t.status ?? '',
-        t.priority ?? '',
-        custName(t),
-      ].join(' ').toLowerCase()
-      return fields.includes(q)
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [all, query, names])
-
-  const sorted = useMemo(() => {
-    if (!sortKey) return filtered
-    const k = sortKey
-    const dir = sortDir
-    const get = (t: Ticket): string | number => {
-      switch (k) {
-        case 'subject': return t.subject ?? ''
-        case 'customer': return custName(t)
-        case 'priority': return t.priority ?? ''
-        case 'status': return t.status ?? ''
-        case 'assignee': return t.assigned_agent_id ?? ''
-        case 'sla': return t.sla_due_at ?? ''
-        default: return ''
-      }
-    }
-    return [...filtered].sort((a, b) => {
-      const x = get(a), y = get(b)
-      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir
-      return String(x).localeCompare(String(y)) * dir
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered, sortKey, sortDir, names])
-
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
-
-  function toggleSort(k: string) {
-    if (sortKey === k) setSortDir((d) => (d === 1 ? -1 : 1))
-    else { setSortKey(k); setSortDir(1) }
-  }
-  function toggleRow(id: string) {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id); else n.add(id)
-      return n
-    })
-  }
-  function togglePageAll() {
-    setSelected((s) => {
-      const n = new Set(s)
-      if (allOnPageSelected) pageRows.forEach((r) => n.delete(r.id))
-      else pageRows.forEach((r) => n.add(r.id))
-      return n
-    })
-  }
 
   if (unavailable) {
     return (
-      <div className="view-inner fade">
-          <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-          <ViewHead icon={<InboxIcon size={18} />} title={cfg.title} />
-          <EmptyState
-            icon={<InboxIcon size={40} />}
-            title="Helpdesk isn't available yet"
-            message="Wire /api/helpdesk/tickets to populate."
-          />
+      <div>
+        <ViewHead icon={<InboxIcon size={20} />} title={cfg.title} />
+        <EmptyState
+          icon={<InboxIcon size={40} />}
+          title="Helpdesk isn't available yet"
+          message="Ticket support will appear here once the helpdesk service is enabled."
+        />
       </div>
     )
   }
 
   return (
-    <div className="view-inner fade">
-        <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<InboxIcon size={18} />}
-          title={cfg.title}
-          sub={`${totalAll} record${totalAll === 1 ? '' : 's'} · ${queues.length} queue${queues.length === 1 ? '' : 's'}${selectedQueue ? ` · ${queues.find((q) => q.id === selectedQueue)?.name ?? ''}` : ''}`}
-          actions={
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />Configure page
-                </button>
-              )}
-              {canConfigure && (
-                <Button variant="ghost" size="sm" leftIcon={PlusIcon} onClick={() => setCreateQueueOpen(true)}>
-                  New queue
-                </Button>
-              )}
-              <Button variant="primary" size="sm" leftIcon={PlusIcon} onClick={() => setCreateOpen(true)}>
-                New ticket
+    <div style={{ display: 'flex', gap: 0, minHeight: 0, flex: 1 }}>
+      {/* Left rail — queues */}
+      <aside style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)', paddingRight: 0 }}>
+        <div style={{ padding: '14px 12px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 'var(--gx-tracking-wider)', color: 'var(--text-3)' }}>Queues</span>
+            {canConfigure && (
+              <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setCreateQueueOpen(true)}>
+                <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Create queue</span>
               </Button>
-            </>
+            )}
+          </div>
+          <button
+            className={'nav' + (!selectedQueue ? ' on' : '')}
+            style={{ width: '100%', textAlign: 'left', borderRadius: 6, padding: '5px 8px', marginBottom: 2 }}
+            onClick={() => { setSelectedQueue(null); setQueueFilter('') }}
+          >
+            All tickets
+          </button>
+          {queues.map((q) => (
+            <button
+              key={q.id}
+              className={'nav' + (selectedQueue === q.id ? ' on' : '')}
+              style={{ width: '100%', textAlign: 'left', borderRadius: 6, padding: '5px 8px', marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              onClick={() => setSelectedQueue(q.id)}
+              title={q.description ?? undefined}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.name}</span>
+              {queueCounts[q.id] != null && (
+                <span className="pill pill-muted" style={{ marginLeft: 4, fontSize: 10, padding: '1px 6px' }}>{queueCounts[q.id]}</span>
+              )}
+            </button>
+          ))}
+          {queues.length === 0 && <p className="muted" style={{ fontSize: 12, padding: '4px 8px' }}>No queues yet.</p>}
+        </div>
+      </aside>
+
+      {/* Main area */}
+      <div style={{ flex: 1, minWidth: 0, padding: '0 0 0 0' }}>
+        <ViewHead
+          icon={<InboxIcon size={20} />}
+          title={cfg.title}
+          sub={selectedQueue ? queues.find((q) => q.id === selectedQueue)?.name : undefined}
+          actions={
+            <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>
+              New ticket
+            </Button>
           }
         />
 
-        {totalAll > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Open</div>
-              <div className="kpi">{countForStatus('open')}</div>
-              <div className="kpi-sub">of {totalAll} ticket{totalAll !== 1 ? 's' : ''}</div>
-            </div>
-            <div className="widget">
-              <div className="widget-label">In progress</div>
-              <div className="kpi" style={{ color: 'var(--warning)' }}>{countForStatus('in_progress')}</div>
-              <div className="kpi-sub">being handled</div>
-            </div>
-            <div className="widget">
-              <div className="widget-label">Resolved</div>
-              <div className="kpi" style={{ color: 'var(--success)' }}>{resolvedCount}</div>
-              <div className="kpi-sub">awaiting close</div>
-            </div>
-            {(breachedCount + urgentCount) > 0 && (
-              <div className="widget">
-                <div className="widget-label">Breached / Urgent</div>
-                <div className="kpi" style={{ color: 'var(--danger)' }}>{breachedCount + urgentCount}</div>
-                <div className="kpi-sub">{breachedCount} breached · {urgentCount} urgent</div>
-              </div>
-            )}
+        {/* Filters bar */}
+        <div className="list-toolbar">
+          <div className="bill-filter">
+            <span className="muted export-label">Status</span>
+            <select className="inp inp-sm" aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
           </div>
-        )}
-
-        {/* Status tabs */}
-        <div className="tabs">
-          {STATUS_TABS.map(([val, label]) => {
-            const count = val === '' ? totalAll : countForStatus(val)
-            return (
-              <button
-                key={val}
-                className={'tab' + (statusFilter === val ? ' on' : '')}
-                onClick={() => setStatusFilter(val)}
-              >
-                {label} <span className="tab-count">{count}</span>
-              </button>
-            )
-          })}
+          {!selectedQueue && queues.length > 0 && (
+            <div className="bill-filter">
+              <span className="muted export-label">Queue</span>
+              <select className="inp inp-sm" aria-label="Filter by queue" value={queueFilter} onChange={(e) => setQueueFilter(e.target.value)}>
+                <option value="">All</option>
+                {queues.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
+              </select>
+            </div>
+          )}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+            <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />
+            My tickets
+          </label>
         </div>
 
-        {error && <ErrorBanner message={error} onRetry={loadData} />}
-        {tickets === null && !error && <p className="muted">Loading…</p>}
-        {tickets && tickets.length === 0 && !error && (
-          <EmptyState
-            icon={<InboxIcon size={40} />}
-            title="No tickets yet"
-            message="Create a ticket or adjust your filters."
-            action={<Button variant="primary" size="sm" leftIcon={PlusIcon} onClick={() => setCreateOpen(true)}>New ticket</Button>}
-          />
-        )}
+        {/* Content */}
+        <div style={{ padding: '0 var(--pad) var(--pad) var(--pad)' }}>
+          {error && <ErrorBanner message={error} onRetry={loadData} />}
+          {tickets === null && !error && <p className="muted">Loading…</p>}
+          {tickets && tickets.length === 0 && !error && (
+            <EmptyState
+              icon={<InboxIcon size={40} />}
+              title="No tickets yet"
+              message="Create a ticket or adjust your filters."
+              action={<Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>New ticket</Button>}
+            />
+          )}
 
-        {tickets && tickets.length > 0 && (
-          <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            {selected.size > 0 && (
-              <div className="bulkbar">
-                <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
-                <span className="spacer" />
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { console.log('[helpdesk] bulk export', Array.from(selected)); toast.success(`Export queued for ${selected.size} ticket(s)`) }}
-                >
-                  <DownloadIcon size={13} /> Export
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
-              </div>
-            )}
-
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search tickets"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              {queues.length > 0 && (
-                <select
-                  className="inp inp-sm"
-                  aria-label="Filter by queue"
-                  value={selectedQueue ?? queueFilter}
-                  onChange={(e) => { setSelectedQueue(null); setQueueFilter(e.target.value) }}
-                  style={{ marginLeft: 8 }}
-                >
-                  <option value="">All queues</option>
-                  {queues.map((q) => (
-                    <option key={q.id} value={q.id}>
-                      {q.name}{queueCounts[q.id] != null ? ` (${queueCounts[q.id]})` : ''}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, marginLeft: 8 }}>
-                <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />
-                My tickets
-              </label>
-              <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => { console.log('[helpdesk] export all'); toast.success(`Export queued for ${sorted.length} ticket(s)`) }}
-              >
-                <DownloadIcon size={13} /> Export
-              </button>
-              <Button variant="primary" size="sm" leftIcon={PlusIcon} onClick={() => setCreateOpen(true)}>
-                New ticket
-              </Button>
-            </div>
-
+          {tickets && tickets.length > 0 && (
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
                   <tr>
-                    <th style={{ width: 32 }}>
-                      <input
-                        type="checkbox"
-                        checked={allOnPageSelected}
-                        onChange={togglePageAll}
-                        aria-label="Select all rows on this page"
-                      />
-                    </th>
                     {cfg.columns.map((col) => (
-                      <th
-                        key={col.key}
-                        scope="col"
-                        onClick={() => toggleSort(col.key)}
-                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          {col.label}
-                          {sortKey === col.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
-                        </span>
-                      </th>
+                      <th key={col.key} scope="col">{col.label}</th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 32 }}></th>
+                    <th scope="col"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pageRows.map((t) => (
-                    <tr
-                      key={t.id}
-                      className={selected.has(t.id) ? 'sel' : ''}
-                      onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <td onClick={(e) => { e.stopPropagation(); toggleRow(t.id) }} style={{ cursor: 'default' }}>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(t.id)}
-                          onChange={() => toggleRow(t.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select ticket ${t.subject}`}
-                        />
-                      </td>
+                  {tickets.map((t) => (
+                    // NOTE: kept as a plain row (not <DataTableRow>) because the click guard below —
+                    // ignore clicks that land on an inline-edit custom-field cell (td[role="button"]) —
+                    // needs the click event, which DataTableRow's onClick() signature doesn't expose.
+                    <tr key={t.id} className="row-link" onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }} style={{ cursor: 'pointer' }}>
                       {cfg.columns.map((col) => {
-                        if (col.key === 'subject') return (
-                          <td key={col.key} style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                            {t.subject}
-                          </td>
-                        )
-                        if (col.key === 'customer') return <td key={col.key}>{custName(t)}</td>
-                        if (col.key === 'priority') return <td key={col.key}>{priorityPill(t.priority)}</td>
-                        if (col.key === 'status') return <td key={col.key}>{statusPill(t.status)}</td>
-                        if (col.key === 'assignee') return <td key={col.key} className="mono muted">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</td>
-                        if (col.key === 'sla') return <td key={col.key}><SlaBadge ticket={t} /></td>
+                        if (col.key === 'subject') return <DataTableCell key={col.key} variant="default" width="260px"><span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{t.subject}</span></DataTableCell>
+                        if (col.key === 'customer') return <DataTableCell key={col.key} variant="mono">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</DataTableCell>
+                        if (col.key === 'priority') return <DataTableCell key={col.key} variant="default">{priorityPill(t.priority)}</DataTableCell>
+                        if (col.key === 'status') return <DataTableCell key={col.key} variant="default">{statusPill(t.status)}</DataTableCell>
+                        if (col.key === 'assignee') return <DataTableCell key={col.key} variant="id">{t.assigned_agent_id ? t.assigned_agent_id.slice(0, 8) : '—'}</DataTableCell>
+                        if (col.key === 'sla') return <DataTableCell key={col.key} variant="default"><SlaBadge ticket={t} /></DataTableCell>
                         return null
                       })}
                       {cf.cells(t.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
-                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          <button
-                            className="iconbtn"
-                            aria-label="Row menu"
-                            title="Row actions"
-                            onClick={(e) => { e.stopPropagation(); console.log('[helpdesk] row menu', t.id) }}
-                          >
-                            <MoreVerticalIcon size={15} />
-                          </button>
-                        </div>
-                      </td>
+                      <DataTableCell variant="muted" align="right" width="32px">
+                        <ArrowRightIcon size={14} />
+                      </DataTableCell>
                     </tr>
                   ))}
-                  {pageRows.length === 0 && (
-                    <tr>
-                      <td colSpan={cfg.columns.length + 2 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
-                        No matching tickets.
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
+          )}
+        </div>
+      </div>
 
-            <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
-                {sorted.length === 0
-                  ? '0 tickets'
-                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                <ChevronLeftIcon size={13} /> Prev
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                Next <ArrowRightIcon size={13} />
-              </button>
-            </div>
-          </div>
-        )}
+      {/* Ticket detail modal */}
+      {detailId && (
+        <TicketDetailModal
+          token={token}
+          id={detailId}
+          queues={queues}
+          names={names}
+          onClose={() => { setDetailId(null); loadData() }}
+        />
+      )}
 
-        {/* Ticket detail modal */}
-        {detailId && (
-          <TicketDetailModal
-            token={token}
-            id={detailId}
-            queues={queues}
-            names={names}
-            onClose={() => { setDetailId(null); loadData() }}
-          />
-        )}
+      {/* Create ticket modal */}
+      {createOpen && (
+        <CreateTicketModal
+          token={token}
+          queues={queues}
+          onClose={() => setCreateOpen(false)}
+          onDone={() => { setCreateOpen(false); loadData() }}
+        />
+      )}
 
-        {/* Create ticket modal */}
-        {createOpen && (
-          <CreateTicketModal
-            token={token}
-            queues={queues}
-            onClose={() => setCreateOpen(false)}
-            onDone={() => { setCreateOpen(false); loadData() }}
-          />
-        )}
-
-        {/* Create queue modal */}
-        {createQueueOpen && canConfigure && (
-          <CreateQueueModal
-            token={token}
-            onClose={() => setCreateQueueOpen(false)}
-            onDone={() => { setCreateQueueOpen(false); loadQueues() }}
-          />
-        )}
+      {/* Create queue modal */}
+      {createQueueOpen && canConfigure && (
+        <CreateQueueModal
+          token={token}
+          onClose={() => setCreateQueueOpen(false)}
+          onDone={() => { setCreateQueueOpen(false); loadQueues() }}
+        />
+      )}
     </div>
   )
 }
@@ -621,8 +408,8 @@ function TicketDetailModal({
             <div><span className="muted">Priority</span><div>{priorityPill(ticket.priority)}</div></div>
             <div><span className="muted">Status</span><div>{statusPill(ticket.status)}</div></div>
             <div><span className="muted">Queue</span><div>{queueName}</div></div>
-            <div><span className="muted">SLA due</span><div className="mono">{fmtDate(ticket.sla_due_at)}</div></div>
-            <div><span className="muted">Created</span><div className="mono">{fmtDate(ticket.created_at)}</div></div>
+            <div><span className="muted">SLA due</span><div>{fmtDate(ticket.sla_due_at)}</div></div>
+            <div><span className="muted">Created</span><div>{fmtDate(ticket.created_at)}</div></div>
           </div>
 
           {/* Body */}
@@ -633,7 +420,8 @@ function TicketDetailModal({
             </div>
           )}
 
-          {/* Assign */}
+          {/* Assign — UserPicker is a SHARED <select> component (out of scope to reskin); wrapped in a
+              FormField primitive for the label, with the Assign action as a <Button>. */}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <FormField label="Assignee" htmlFor="hd-assignee">
@@ -654,7 +442,7 @@ function TicketDetailModal({
           {/* Actions */}
           <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
             {canResolve && (
-              <Button variant="primary" size="sm" leftIcon={CheckIcon} disabled={busy} onClick={() => handleAction('resolve')}>
+              <Button variant="primary" size="sm" leftIcon={Check} disabled={busy} onClick={() => handleAction('resolve')}>
                 Resolve
               </Button>
             )}
@@ -664,7 +452,7 @@ function TicketDetailModal({
               </Button>
             )}
             {canClose && (
-              <Button variant="ghost" size="sm" leftIcon={CloseIcon} disabled={busy} onClick={() => handleAction('close')}>
+              <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
                 Close
               </Button>
             )}
@@ -736,6 +524,7 @@ function CreateTicketModal({
             placeholder="What's the issue?"
           />
         </FormField>
+        {/* textarea has no primitive yet — kept as the themed .inp control inside the FormField label. */}
         <FormField label="Description" htmlFor="hd-create-body">
           <textarea
             id="hd-create-body"
@@ -747,6 +536,7 @@ function CreateTicketModal({
             placeholder="Optional details…"
           />
         </FormField>
+        {/* select has no primitive yet — kept as the themed .inp control inside the FormField label. */}
         <FormField label="Priority" htmlFor="hd-create-priority">
           <select id="hd-create-priority" className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | '')}>
             <option value="">Default</option>
