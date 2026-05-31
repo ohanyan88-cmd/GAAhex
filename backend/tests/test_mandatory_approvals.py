@@ -333,3 +333,72 @@ async def test_spec_4_5_asset_writeoff_requires_reason(client, admin):
     aid = await _create_asset_record(f"AST-WO-{uuid.uuid4().hex[:8]}", "Patch panel")
     bad = await client.post(f"/api/assets/{aid}/writeoff", headers=admin, json={})
     assert bad.status_code == 422
+
+
+# ===================== adoption: procurement on POST /api/purchase-orders/{id}/submit =====================
+
+
+async def _create_po_record(number: str, total: int = 50_000, supplier: str = "Acme Corp") -> str:
+    """Insert a purchase_order Record directly via SessionLocal (catalog entity_defs not seeded
+    in test tenant — same reason as _create_asset_record above)."""
+    from app.models import Record
+    async with SessionLocal() as s:
+        admin_user = (await s.execute(select(User).where(User.email == "admin@demo.isp"))).scalar_one()
+        rec = Record(
+            tenant_id=admin_user.tenant_id,
+            entity_key="purchase_order",
+            owner_node_id=None,
+            status="DRAFT",
+            data={"number": number, "supplier": supplier, "total": total},
+        )
+        s.add(rec)
+        await s.commit()
+        return str(rec.id)
+
+
+async def test_spec_4_5_procurement_gated_by_approval_then_submitted(client, admin):
+    """POST /api/purchase-orders/{id}/submit parks a procurement approval; second call performs
+    the status mutation DRAFT → ORDERED and stamps submission metadata on the PO record."""
+    po_id = await _create_po_record(f"PO-{uuid.uuid4().hex[:8]}", total=150_000)
+
+    # 1. First submit returns 202 with approval_id.
+    pending = await client.post(f"/api/purchase-orders/{po_id}/submit", headers=admin,
+                                json={"reason": "approved budget Q2", "supplier_ref": "QUOTE-9901"})
+    assert pending.status_code == 202, pending.text
+    body = pending.json()["detail"]
+    assert body["status"] == "approval_required"
+    assert body["action_type"] == "procurement"
+    approval_id = body["approval_id"]
+
+    # 2. Approve.
+    decided = await client.patch(f"/api/mandatory-approvals/{approval_id}/decide",
+                                 headers=admin, json={"decision": "APPROVED"})
+    assert decided.status_code == 200, decided.text
+
+    # 3. Retry — succeeds, status flips to ORDERED, submission metadata stamped.
+    final = await client.post(f"/api/purchase-orders/{po_id}/submit", headers=admin,
+                              json={"reason": "approved budget Q2", "supplier_ref": "QUOTE-9901"})
+    assert final.status_code == 200, final.text
+    out = final.json()
+    assert out["status"] == "ORDERED"
+    sub = out["submission"]
+    assert sub["reason"] == "approved budget Q2"
+    assert sub["supplier_ref"] == "QUOTE-9901"
+    assert sub["previous_status"] == "DRAFT"
+    assert sub["submitted_at"]
+
+    # The approval row is now EXECUTED.
+    appr = (await client.get(f"/api/mandatory-approvals/{approval_id}", headers=admin)).json()
+    assert appr["status"] == "EXECUTED"
+
+    # Idempotency: re-submit an already-ORDERED PO → 409.
+    again = await client.post(f"/api/purchase-orders/{po_id}/submit", headers=admin,
+                              json={"reason": "again"})
+    assert again.status_code == 409, again.text
+
+
+async def test_spec_4_5_procurement_requires_reason(client, admin):
+    """procurement submit requires a non-empty reason (422)."""
+    po_id = await _create_po_record(f"PO-{uuid.uuid4().hex[:8]}")
+    bad = await client.post(f"/api/purchase-orders/{po_id}/submit", headers=admin, json={})
+    assert bad.status_code == 422

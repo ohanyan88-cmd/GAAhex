@@ -154,7 +154,12 @@ FIRST_CLASS_OWNER_MAP: dict[str, str] = {
     "helpdesk_queue":    "Tickets",
     # Work dispatch (SPEC §2.2 "Work Order — Owner: Work Orders")
     "workitem":          "Work Orders",
-    # add more from SPEC §2.2 as their first-class tables land (asset, contract, etc.)
+    # Asset Management
+    "asset":             "Asset Management",
+    # Procurement
+    "purchase_order":    "Procurement",
+    "goods_receipt":     "Procurement",
+    # add more from SPEC §2.2 as their first-class tables land (contract, etc.)
 }
 
 
