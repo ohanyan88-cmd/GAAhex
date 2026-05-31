@@ -4,7 +4,11 @@
 > Read this → `git pull` → `git status` → continue from "What's next".
 > Repo: `ohanyan88-cmd/Portal` (sandbox copy of GAAex).
 
-## ⚠️ ACTIVE: REPORT-ALL.md in progress (2026-05-31, third attempt — account cut at 80%)
+## ✅ REPORT-ALL.md COMPLETE (2026-05-31, commit 124aba8)
+
+`handoff/REPORT-ALL.md` is live on main. Full audit: 52 ✅ / 3 ⚠️ / 9 ❌ / 2 🚫 across 66 pages.
+
+## ⚠️ NEXT: Two InvoicesView luma bugs to fix
 
 7 parallel agents were launched. Session cut at ~80% usage. **3 of 7 confirmed committed
 and pushed to remote before the cut:**
@@ -26,13 +30,13 @@ and pushed to remote before the cut:**
 - ✅ §6+§7 Analytics + Enterprise → REPORT-S6S7-ANALYTICS-ENTERPRISE.md (3e5e72b)
 - ✅ §8+§9 System + Studio → REPORT-S8S9-SYSTEM-STUDIO.md (73651bf)
 
-**⚠️ Known bug found by §3 agent (fix before go-live):**
-InvoicesView has TWO luma bugs still unfixed:
-1. `renderInvoiceCell('amount')` line 115 — uses raw `toLocaleString()` instead of `money()` → amounts 100× too large in list table
-2. KPI strip divides by 1000 instead of 100000 → shows "1500.0k ֏" instead of "15.0k ֏"
+**Fix these two InvoicesView luma bugs (file: `frontend/src/views/InvoicesView.tsx`):**
+1. Line 115 — `renderInvoiceCell('amount')` uses raw `toLocaleString()` instead of `money()` → amounts 100× in list table
+2. KPI strip — divides by 1000 not 100000 → shows "1500.0k ֏" instead of "15.0k ֏"
 
-**⚠️ Known bug found by §8 agent:**
-`GET /api/org/nodes` returns 422 due to router ordering conflict — UI unaffected (OrgView receives nodes as prop), but the standalone endpoint is broken.
+**Also verify (browser):** §5 NetOps pages (Incidents, Sites, Devices, Warehouses, Fleet, Work Orders, Maintenance) — audit flagged them as stubs but they ARE wired via ENTITY_SLUGS in nav-config.ts. Quick browser check to confirm.
+
+**Non-urgent:** `GET /api/org/nodes` returns 422 (router ordering conflict) — UI unaffected.
 
 Check what landed after git pull:
 ```
