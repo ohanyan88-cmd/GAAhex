@@ -468,9 +468,20 @@ async def assign_ticket(
     agent_id = payload.get("agent_id")
     if not agent_id:
         raise HTTPException(422, "agent_id is required")
+    # Validate it's a proper UUID and resolves to a real user in the same tenant.
+    # Previously a bogus/non-existent agent_id wrote through and 500'd on a downstream FK.
+    try:
+        agent_uuid = uuid.UUID(str(agent_id))
+    except (ValueError, TypeError):
+        raise HTTPException(422, f"agent_id must be a valid UUID, got {agent_id!r}")
+    agent_user = (await s.execute(
+        select(User).where(User.id == agent_uuid, User.tenant_id == user.tenant_id)
+    )).scalar_one_or_none()
+    if agent_user is None:
+        raise HTTPException(404, f"agent {agent_uuid} not found in this tenant")
 
     old_agent = t.assigned_agent_id
-    t.assigned_agent_id = agent_id
+    t.assigned_agent_id = agent_uuid
     if t.status == "OPEN":
         t.status = "IN_PROGRESS"
 
