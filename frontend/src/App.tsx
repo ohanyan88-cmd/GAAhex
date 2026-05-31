@@ -38,6 +38,9 @@ import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
+import GlobalSearchView from './views/GlobalSearchView'
+import RecentItemsView from './views/RecentItemsView'
+import TeamWorkspaceView from './views/TeamWorkspaceView'
 import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
@@ -86,6 +89,9 @@ type View =
   | { type: 'gateway' }
   | { type: 'orders' }
   | { type: 'revenue-assurance' }
+  | { type: 'global-search' }
+  | { type: 'recent-items' }
+  | { type: 'team-workspace' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
@@ -525,6 +531,12 @@ export default function App() {
                   />
               : view.type === 'my-approvals'
                 ? <MyApprovalsView token={token} />
+              : view.type === 'global-search'
+                ? <GlobalSearchView token={token} onNavigate={(slug) => setView({ type: 'entity', slug })} />
+              : view.type === 'recent-items'
+                ? <RecentItemsView token={token} onNavigate={(entityKey) => setView({ type: 'entity', slug: entityKey.replace(/_/g, '-') + 's' })} />
+              : view.type === 'team-workspace'
+                ? <TeamWorkspaceView token={token} />
               : view.type === 'saved-views'
                 ? <SavedViewsView token={token} onOpenEntity={(slug) => setView({ type: 'entity', slug })} />
               : view.type === 'invoices'
