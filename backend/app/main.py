@@ -11,17 +11,29 @@ from .db import engine, SessionLocal, OwnerSessionLocal
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
-    PermissionDef, RoleDef, Assignment, Event, FeatureFlag,
+    PermissionDef, RoleDef, Assignment, RoleDeny, Event, FeatureFlag,
 )
-from .seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty, seed_portal_if_empty
+from .seed import (
+    seed_if_empty, seed_meta_if_empty, seed_access_if_empty,
+    seed_portal_if_empty, seed_spec_roles_if_missing,
+    backfill_demo_user_departments,
+)
 from .seed_notifications import seed_notifications_if_empty
 from .seed_demo_loop import seed_demo_loop_if_empty
 from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
 from .seed_dev_bulk import seed_dev_bulk_if_empty, _dev_seed_enabled
+from .seed_ownership import seed_ownership_matrix_if_empty
+from .seed_pipeline import seed_canonical_pipeline_if_empty
+from .seed_workflows import seed_workflows_if_missing
+from .seed_kpi_formulas import seed_kpi_formulas_if_missing
+from .seed_statuses import seed_status_standardization_if_empty
+from .seed_role_boundaries import seed_role_boundaries_if_empty
+from .seed_regions import seed_demo_regions_if_empty
+from .seed_nav_registry import seed_nav_registry_if_empty
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry
 
 
 _log = logging.getLogger("gaaex")
@@ -38,14 +50,24 @@ async def lifespan(app: FastAPI):
     # Schema is managed by Alembic migrations — run `alembic upgrade head` before starting.
     # On boot we only seed demo data (idempotent).
     await seed_if_empty()
+    await seed_demo_regions_if_empty()  # SPEC §0.6 — one canonical region per tenant (idempotent)
     await seed_meta_if_empty()
     await seed_access_if_empty()
+    await seed_spec_roles_if_missing()      # SPEC §4.3 — ensure all SPEC roles exist (idempotent)
+    await backfill_demo_user_departments()  # SPEC §4.1 — M0 demo dept backfill (idempotent; NULL-only)
     await seed_notifications_if_empty()
     await seed_portal_if_empty()
     await i18n.seed_i18n_if_empty()
     await seed_demo_loop_if_empty()   # one sample customer with the full daily loop (idempotent)
     await seed_catalog_if_missing()   # promote enterprise-nav stubs into real config-driven entities (idempotent)
+    await seed_canonical_pipeline_if_empty()  # SPEC §3 — 14 stages + 14 KPIs (Step 4; idempotent)
+    await seed_workflows_if_missing()         # SPEC §5 — 5 cross-entity workflows W1..W5 (Step 4; idempotent)
+    await seed_kpi_formulas_if_missing()      # SPEC §3/§9 — formula_spec on 4-6 of 14 KPIs (idempotent)
+    await seed_status_standardization_if_empty()  # SPEC §7 — status sets (Step 5; idempotent)
     await seed_default_records_run()  # grant request.* perms to existing roles (idempotent); starter-row insertion deleted — empty pages now show the proper EmptyState per real-data doctrine
+    await seed_ownership_matrix_if_empty()  # SPEC §2.2 — backfill entity_def.owner_module (Step 3; idempotent)
+    await seed_role_boundaries_if_empty()   # SPEC §4.3 — role hard-denials (Step 6; idempotent)
+    await seed_nav_registry_if_empty()      # SPEC §1 — 9 groups + 71 modules (Step 7; idempotent)
     # Dev-only bulk seeder — populates previously-sparse pages with 10 realistic Armenian-ISP
     # customers + the full cross-referenced tree. Gated by env-var `GAAEX_DEV_SEED`; production
     # leaves it unset → seeder never runs → DB stays empty-until-real. Idempotent.
@@ -159,6 +181,12 @@ app.include_router(studio_pages.router)             # /api/studio/pages (page ve
 app.include_router(feature_flags.router)             # /api/feature-flags (DB-backed flags; before records)
 app.include_router(page_bindings.router)             # /api/page-bindings (Studio data binding; before records)
 app.include_router(notifications.outbound_router)   # GET /api/outbound (fixed path under /api)
+app.include_router(mandatory_approvals.router)       # /api/mandatory-approvals (SPEC §4.5; before records)
+app.include_router(regions.router)                   # /api/regions (SPEC §0.6; before records)
+app.include_router(kpis.router)                      # /api/kpis (computation engine; before records)
+app.include_router(customer_timeline.router)         # /api/customers/{id}/timeline (SPEC §8; before records)
+app.include_router(workflows.router)                 # /api/workflows + /api/workflow-instances (SPEC §5; before records)
+app.include_router(nav_registry.router)              # /api/nav (SPEC §1 config-driven nav; before records)
 app.include_router(records.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)

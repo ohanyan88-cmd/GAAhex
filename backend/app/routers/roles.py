@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import RoleDef, PermissionDef, User
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from .auth import current_user
 
@@ -21,9 +22,16 @@ router = APIRouter(prefix="/api", tags=["roles"])
 
 
 async def _require_config_manage(s: AsyncSession, user: User) -> None:
+    """SPEC §0.2 (Step 7): role/permission CRUD flows through the kernel default-deny gate on
+    `role_def.manage` in addition to the legacy `config.manage` role check."""
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    try:
+        await assert_can(s, user, action="manage", entity_key="role_def",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 async def _get_role(s: AsyncSession, tenant_id, role_id: uuid.UUID) -> RoleDef:

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, WorkflowDef, PermissionDef, Record, User
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
+from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from .auth import current_user
 
@@ -17,10 +18,20 @@ ALLOWED_TYPES = {
 
 
 async def _require_config_manage(s: AsyncSession, user: User) -> None:
-    """Default-deny gate for all config-management endpoints — same check as POST /meta/entities."""
+    """Default-deny gate for all config-management endpoints — same check as POST /meta/entities.
+
+    SPEC §0.2 (Step 7): in addition to the legacy `config.manage` role check, run the kernel's
+    Role × Department × Region × Ownership AND-evaluator on `entity_def.manage` so config writes
+    flow through the same default-deny matrix as data writes.
+    """
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    try:
+        await assert_can(s, user, action="manage", entity_key="entity_def",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 async def _get_entity(s: AsyncSession, user: User, slug: str) -> EntityDef:

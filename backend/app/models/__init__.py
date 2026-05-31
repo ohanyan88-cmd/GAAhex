@@ -4,7 +4,12 @@ from .orgnode import OrgNode
 from .user import User
 from .meta import EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef
 from .record import Record
-from .access import PermissionDef, RoleDef, Assignment
+from .access import PermissionDef, RoleDef, Assignment, RoleDeny
+from .kernel_defs import StageDef, KpiDef
+from .region import Region
+from .nav_module import NavGroup, NavModule
+from .workflow_instance import WorkflowInstance
+from .approval import Approval  # SPEC §4.5 mandatory approvals (note: also has PendingApproval below)
 from .event import Event
 from .notification import NotificationDef, Notification
 from .dashboard import DashboardDef, WidgetDef
