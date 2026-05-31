@@ -38,6 +38,7 @@ import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
+import HomeView from './views/HomeView'
 import GlobalSearchView from './views/GlobalSearchView'
 import RecentItemsView from './views/RecentItemsView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
@@ -63,6 +64,7 @@ type View =
   | { type: 'org' }
   | { type: 'entity'; slug: string }
   | { type: 'studio'; focusSlug?: string; group?: string; module?: string; leaf?: string }
+  | { type: 'home' }
   | { type: 'reports' }
   | { type: 'dashboards' }
   | { type: 'messages' }
@@ -147,7 +149,7 @@ export default function App() {
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
   const [view, setView] = useState<View>({ type: 'org' })
-  const [prevView, setPrevView] = useState<View>({ type: 'dashboards' })
+  const [prevView, setPrevView] = useState<View>({ type: 'home' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
   const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
   const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)   // …or for this bespoke page (page-config, not an entity)
@@ -498,24 +500,26 @@ export default function App() {
                   onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
                  
                 />
+              : view.type === 'home'
+                ? <HomeView
+                    token={token}
+                    onNavigate={(type, id) => {
+                      if (type === 'workitems') setView({ type: 'workitems' })
+                      else if (type === 'my-approvals') setView({ type: 'my-approvals' })
+                      else if (type === 'helpdesk') setView({ type: 'helpdesk', initialOpenTicketId: id })
+                      else if (type === 'entity' && id) setView({ type: 'entity', slug: type })
+                    }}
+                  />
               : view.type === 'dashboards'
                 ? <DashboardView
                     token={token}
                     configVersion={pageConfigVersion}
                     canConfigure={!!user?.can_configure}
-                   
                     onNavigate={(target) => {
-                      if (target.type === 'subscriptions') {
-                        setView({ type: 'subscriptions' })
-                      } else if (target.type === 'invoices') {
-                        setView({ type: 'invoices', initialStatus: target.status })
-                      } else if (target.type === 'helpdesk') {
-                        setView({ type: 'helpdesk', initialStatus: target.status, initialOpenTicketId: target.openTicketId })
-                      } else if (target.type === 'workitems') {
-                        setView({ type: 'workitems' })
-                      } else if (target.type === 'entity') {
-                        setView({ type: 'entity', slug: target.slug })
-                      }
+                      if (target.type === 'subscriptions') setView({ type: 'subscriptions' })
+                      else if (target.type === 'invoices') setView({ type: 'invoices' })
+                      else if (target.type === 'helpdesk') setView({ type: 'helpdesk' })
+                      else if (target.type === 'workitems') setView({ type: 'workitems' })
                     }}
                   />
               : view.type === 'analytics'
