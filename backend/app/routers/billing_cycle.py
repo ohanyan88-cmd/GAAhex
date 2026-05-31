@@ -29,6 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.billing import Subscription, Invoice, InvoiceLine
 from ..access import load_grants, can
@@ -98,6 +99,12 @@ async def run_cycle(payload: dict | None = None, user: User = Depends(current_us
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "create"):
         _deny("invoice.create")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    try:
+        await assert_can(s, user, action="create", entity_key="invoice",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     started = _now()
     try:
