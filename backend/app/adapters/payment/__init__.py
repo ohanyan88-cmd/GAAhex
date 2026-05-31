@@ -1,17 +1,17 @@
-"""Payment gateway adapters package (A33/E33).
+"""Payment gateway adapters package.
 
-Each adapter implements the ``PaymentGateway`` ABC defined in
-``app.payment_gateway``.  A33's ``configure_payment_gateway()`` lazy-imports
-the appropriate class when merchant keys are present in the environment; this
-package just makes the sub-modules importable.
+Each adapter implements the PaymentGateway ABC (app.payment_gateway).
+configure_payment_gateway() lazy-imports the right class when credentials are set.
 
-Adapter import paths (used by A33's registry):
+Import paths:
     from app.adapters.payment.idram   import IdramGateway
     from app.adapters.payment.telcell import TelcellGateway
     from app.adapters.payment.arca    import ArcaGateway
+    from app.adapters.payment.easypay import EasypayGateway
 
-All three adapters are DORMANT SCAFFOLDS — correct HMAC discipline + structural
-redirect-URL composition, but no real provider HTTP call until merchant
-credentials are supplied and the real API spec is wired.  Each file marks the
-exact spot with a ``# TODO: real <provider> API`` comment.
+ACTIVATION STATUS per adapter (see each module for slot details):
+    idram   — redirect URL complete; MD5 checksum verification complete; needs merchant creds
+    telcell — redirect URL + HMAC complete; needs merchant creds + URL confirmation
+    arca    — server-to-server register + HMAC + status-check complete; needs merchant creds
+    easypay — redirect URL + HMAC complete; needs API docs from EasyPay + merchant creds
 """

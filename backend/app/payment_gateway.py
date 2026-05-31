@@ -9,9 +9,10 @@ so the test suite and fresh clones are unaffected. Real providers are lazy-impor
 
 Provider chain:
   dev     → DevGateway (deterministic; always safe; the default)
-  idram   → app.adapters.payment.idram.IdramGateway   (Lane E; active when IDRAM keys set)
-  telcell → app.adapters.payment.telcell.TelcellGateway (Lane E; active when TELCELL keys set)
-  arca    → app.adapters.payment.arca.ArcaGateway       (Lane E; active when ARCA keys set)
+  idram   → app.adapters.payment.idram.IdramGateway     (active when IDRAM keys set)
+  telcell → app.adapters.payment.telcell.TelcellGateway (active when TELCELL keys set)
+  arca    → app.adapters.payment.arca.ArcaGateway       (active when ARCA keys set)
+  easypay → app.adapters.payment.easypay.EasypayGateway (active when EASYPAY keys set)
 
 `settle_order` is the single idempotent "money confirmed" path — it creates the billing Payment row,
 re-sums the invoice, and optionally flips the invoice to PAID. Mirrors billing.add_payment logic
@@ -176,6 +177,11 @@ def configure_payment_gateway() -> None:
             getattr(settings, "arca_merchant", None) and
             getattr(settings, "arca_password", None)
         )
+    elif provider == "easypay":
+        has_keys = bool(
+            getattr(settings, "easypay_merchant_id", None) and
+            getattr(settings, "easypay_secret_key", None)
+        )
 
     if not has_keys:
         logger.warning(
@@ -189,13 +195,16 @@ def configure_payment_gateway() -> None:
     try:
         if provider == "idram":
             from app.adapters.payment.idram import IdramGateway  # noqa: PLC0415
-            register(IdramGateway())
+            register(IdramGateway(settings.idram_merchant_id, settings.idram_secret_key))
         elif provider == "telcell":
             from app.adapters.payment.telcell import TelcellGateway  # noqa: PLC0415
-            register(TelcellGateway())
+            register(TelcellGateway(settings.telcell_merchant, settings.telcell_key))
         elif provider == "arca":
             from app.adapters.payment.arca import ArcaGateway  # noqa: PLC0415
-            register(ArcaGateway())
+            register(ArcaGateway(settings.arca_merchant, settings.arca_password))
+        elif provider == "easypay":
+            from app.adapters.payment.easypay import EasypayGateway  # noqa: PLC0415
+            register(EasypayGateway(settings.easypay_merchant_id, settings.easypay_secret_key))
         else:
             logger.warning("payment_gateway: unknown provider '%s' — dev mode", provider)
             return

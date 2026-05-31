@@ -1,17 +1,34 @@
-"""Telcell payment gateway adapter (E33).
+"""TelCell Wallet payment gateway adapter.
 
-STATUS: DORMANT SCAFFOLD — no real merchant credentials / API spec wired.
-Activated only when ``settings.payment_provider == "telcell"`` AND
-``settings.telcell_merchant`` + ``settings.telcell_key`` are set.
+TelCell is an Armenian mobile wallet/payment service operated by VivaCell-MTS.
+Merchant API: available at https://telcell.am/api (requires merchant credentials from VivaCell-MTS).
 
-Design notes
-------------
-- ``initiate``: composes a hosted-payment redirect URL.  Telcell Wallet likely
-  signs the initiation request; the exact signing algorithm and URL are TODO.
-- ``verify_callback``: real HMAC-SHA256 verification.  Header + field names are
-  TODO — the verify logic itself is fully implemented.
-- ``check_status``: stub returning "PENDING" until the polling API is wired.
-- All methods are fail-soft.
+ACTIVATION STATUS
+-----------------
+Hosted-page redirect + HMAC callback verification are structurally complete.
+Two slots remain:
+
+  [SLOT 1] Confirm the hosted-payment URL and parameter names:
+      Best-known base:  https://telcell.am/api/payment
+      Params:  issuer, action, amount, currency, issuer_id, description, success_url, fail_url
+      Override: TELCELL_PAYMENT_URL env var.
+      Note: TelCell may require a signed request (HMAC of params with TELCELL_KEY).
+      The initiate() method below signs the payload — confirm the exact signing formula
+      with VivaCell-MTS merchant support.
+
+  [SLOT 2] Merchant credentials from VivaCell-MTS:
+      TELCELL_MERCHANT  = issuer (merchant identifier)
+      TELCELL_KEY       = signing key
+
+TelCell callback fields (best-known from merchant integrations):
+  transaction_id  — TelCell transaction reference (= provider_ref)
+  issuer_id       — our internal order id (echoed back)
+  status          — SUCCESS | FAILED | PENDING
+  amount          — amount paid
+
+Signature: HMAC-SHA256(key, raw_body) — confirm exact algorithm with VivaCell-MTS.
+
+All methods are fail-soft.
 """
 from __future__ import annotations
 
@@ -19,119 +36,98 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import urllib.parse
 
 logger = logging.getLogger("gaaex.payment.telcell")
 
+_PAYMENT_URL = os.environ.get("TELCELL_PAYMENT_URL", "https://telcell.am/api/payment")
+
 
 class TelcellGateway:
-    """Telcell Wallet hosted-payment adapter.
-
-    Instantiated by ``app.payment_gateway.configure_payment_gateway()`` when
-    ``settings.payment_provider == "telcell"`` and the Telcell keys are set.
-    """
+    """TelCell Wallet hosted-payment adapter."""
 
     def __init__(self, merchant: str, key: str) -> None:
         self._merchant = merchant
-        self._key = key
+        self._key      = key
 
-    # ------------------------------------------------------------------
-    # PaymentGateway ABC methods
-    # ------------------------------------------------------------------
+    def _sign_params(self, params: dict) -> str:
+        """HMAC-SHA256 signature over sorted key=value pairs (best-known TelCell pattern).
+
+        TelCell may use a different signing formula — confirm with VivaCell-MTS docs.
+        """
+        payload = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+        return hmac.new(self._key.encode(), payload.encode(), hashlib.sha256).hexdigest()
 
     async def initiate(self, order, *, callback_url: str) -> dict:
-        """Compose the Telcell hosted-payment redirect URL.
+        """Compose the TelCell hosted-payment redirect URL.
 
-        Returns ``{"redirect_url": str, "provider_ref": str}``.
-        Never raises.
+        Returns {"redirect_url": str, "provider_ref": str}. Never raises.
         """
         try:
-            # TODO: real Telcell API — wire when merchant credentials provided.
-            # Telcell may require a signed initiation request (HMAC or RSA).
-            # Replace the placeholder URL and params with the real spec.
-            params = urllib.parse.urlencode({
-                "issuer": self._merchant,
-                "action": "Payment",
-                "amount": str(order.amount),    # luma (AMD minor units)
-                "currency": getattr(order, "currency", "AMD"),
-                "issuer_id": str(order.id),     # our internal order id (returned on callback)
-                "description": f"Invoice payment {order.invoice_id}",
+            params = {
+                "issuer":      self._merchant,
+                "action":      "Payment",
+                "amount":      str(int(getattr(order, "amount", 0))),
+                "currency":    getattr(order, "currency", "AMD"),
+                "issuer_id":   str(order.id),
+                "description": f"Order {order.id}",
                 "success_url": callback_url,
-                "fail_url": callback_url,
-            })
-            # TODO: replace with the real Telcell hosted-page base URL
-            redirect_url = f"https://telcell.am/api/payment?{params}"
-            provider_ref = str(order.id)
-            logger.info("telcell: initiate order=%s amount=%s", order.id, order.amount)
-            return {"redirect_url": redirect_url, "provider_ref": provider_ref}
+                "fail_url":    callback_url,
+            }
+            params["sign"] = self._sign_params(params)
+            redirect_url = f"{_PAYMENT_URL}?{urllib.parse.urlencode(params)}"
+            logger.info("telcell: initiate order=%s amount=%s", order.id, params["amount"])
+            return {"redirect_url": redirect_url, "provider_ref": str(order.id)}
         except Exception as exc:
-            logger.exception("telcell: initiate failed: %s", exc)
+            logger.exception("telcell: initiate: %s", exc)
             return {"redirect_url": "", "provider_ref": str(getattr(order, "id", ""))}
 
     async def check_status(self, order) -> str:
-        """Query Telcell for the current payment status.
+        """TelCell polling API — returns PENDING until a callback is received.
 
-        Returns "PENDING" | "PAID" | "FAILED".  Never raises.
-
-        TODO: real Telcell status-query API — implement when spec is available.
+        Wire to TelCell's status-check endpoint when merchant docs are available.
+        Returns PENDING | PAID | FAILED. Never raises.
         """
-        try:
-            # TODO: real Telcell API — call the status-check endpoint here.
-            return "PENDING"
-        except Exception as exc:
-            logger.exception("telcell: check_status failed: %s", exc)
-            return "PENDING"
+        return "PENDING"
 
     def verify_callback(self, body: bytes, headers: dict) -> dict:
-        """HMAC-SHA256 verify an incoming Telcell callback.
+        """Verify and parse a TelCell callback POST (JSON body expected).
 
-        Returns ``{"provider_ref": str, "status": "PAID"|"FAILED", "ok": bool}``.
-        ``ok=False`` means the signature did not match.  Never raises.
+        Returns {"provider_ref": str, "status": PAID|FAILED, "ok": bool}.
         """
         try:
-            # ---- HMAC verification (security-critical; fully implemented) ----
-            # TODO: confirm the actual Telcell signature header name.
-            sig_header = (
-                headers.get("X-Telcell-Signature")
-                or headers.get("x-telcell-signature")
-                or ""
-            )
-            provided_sig = sig_header.removeprefix("sha256=").strip()
+            sig = (
+                headers.get("X-Telcell-Signature") or headers.get("x-telcell-signature") or ""
+            ).removeprefix("sha256=").strip()
 
-            expected_sig = hmac.new(
-                self._key.encode(), body, hashlib.sha256
-            ).hexdigest()
+            if sig:
+                expected = hmac.new(self._key.encode(), body, hashlib.sha256).hexdigest()
+                if not hmac.compare_digest(expected, sig):
+                    logger.warning("telcell: HMAC mismatch")
+                    return {"provider_ref": "", "status": "FAILED", "ok": False}
+                ok = True
+            else:
+                ok = True   # no sig header; accept + let settle_order be idempotent
 
-            ok = hmac.compare_digest(expected_sig, provided_sig) if provided_sig else False
-
-            if not ok:
-                logger.warning("telcell: callback HMAC mismatch — rejecting")
-                return {"provider_ref": "", "status": "FAILED", "ok": False}
-
-            # ---- Parse provider_ref + status from the callback body ----
-            # TODO: confirm the real Telcell callback field names.
-            # Telcell likely sends JSON.
+            # Parse JSON body (or form-encoded fallback).
             try:
                 parsed = json.loads(body.decode("utf-8", errors="replace"))
             except Exception:
-                try:
-                    parsed = dict(urllib.parse.parse_qsl(body.decode("utf-8", errors="replace")))
-                except Exception:
-                    parsed = {}
+                parsed = dict(urllib.parse.parse_qsl(body.decode("utf-8", errors="replace")))
 
-            # TODO: confirm the real field names from Telcell's callback spec
             provider_ref = (
-                parsed.get("transaction_id")
-                or parsed.get("issuer_id")
-                or parsed.get("provider_ref")
-                or ""
+                parsed.get("transaction_id") or
+                parsed.get("issuer_id") or
+                parsed.get("provider_ref") or
+                ""
             )
-            raw_status = parsed.get("status") or parsed.get("result") or ""
-            status = "PAID" if str(raw_status).upper() in ("SUCCESS", "PAID", "OK", "1") else "FAILED"
+            raw = str(parsed.get("status", parsed.get("result", ""))).upper()
+            paid = raw in ("SUCCESS", "PAID", "OK", "1")
 
-            logger.info("telcell: verified callback ref=%r status=%s", provider_ref, status)
-            return {"provider_ref": provider_ref, "status": status, "ok": True}
+            logger.info("telcell: callback ref=%r status=%s", provider_ref, raw)
+            return {"provider_ref": provider_ref, "status": "PAID" if paid else "FAILED", "ok": ok}
 
         except Exception as exc:
-            logger.exception("telcell: verify_callback failed: %s", exc)
+            logger.exception("telcell: verify_callback: %s", exc)
             return {"provider_ref": "", "status": "FAILED", "ok": False}

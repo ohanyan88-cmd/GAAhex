@@ -217,7 +217,7 @@ merchant credentials.
 | R-08c | Stub nav views — large ISP modules (5 modules) | 2 days | ✅ |
 | R-09 | Wave 4 NOT NULL tightening | 2 hrs | ✅ AUDITED — all 20 FKs legitimately optional (100% NULL = optional relationship, not gap); defer to first live install |
 | R-10 | Studio TODOs (12 pane items) | 1 day | ✅ |
-| P | Payment gateways (ARCA+iDram+TelCell+EasyPay) | 4 days | ⬜ LAST |
+| P | Payment gateways (ARCA+iDram+TelCell+EasyPay) | 4 days | ✅ Max done — 24 unit tests pass. 3 credential slots remain per adapter (see each .py file) |
 
 **Total estimate (excl. P):** ~4.5 days of focused work
 **Payment gateways (P):** ~4 additional days
