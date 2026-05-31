@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import EntityDef, Record, User
 from ..models.approval import PendingApproval
 from .. import workflow, notify_hooks
@@ -101,6 +102,12 @@ async def approve(approval_id: uuid.UUID, payload: dict | None = None,
         raise HTTPException(403, "Not an eligible approver")
     if pa.requested_by is not None and pa.requested_by == user.id:
         raise HTTPException(403, "You cannot approve your own request")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements eligibility check.
+    try:
+        await assert_can(s, user, action="approve", entity_key="approval",
+                         region_id=getattr(rec, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     if tr is not None:
         await workflow.complete_transition(s, tenant_id=user.tenant_id, entity_key=pa.entity_key,
@@ -138,6 +145,12 @@ async def reject(approval_id: uuid.UUID, payload: dict | None = None,
     _ent, rec, tr = await _resolve(s, user.tenant_id, pa)
     if not await _is_eligible(s, user.tenant_id, user, rec, tr):
         raise HTTPException(403, "Not an eligible approver")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements eligibility check.
+    try:
+        await assert_can(s, user, action="reject", entity_key="approval",
+                         region_id=getattr(rec, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     pa.status = "REJECTED"
     pa.approver_user_id = user.id
