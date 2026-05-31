@@ -15,11 +15,16 @@ and pushed to remote before the cut:**
 | REPORT-S3-ORDERS.md | 912bd21 | ✅ 4/5 pages — ⚠️ InvoicesView luma bug (see below) |
 | REPORT-S8S9-SYSTEM-STUDIO.md | 73651bf | ✅ §8 5/5, §9 Studio complete |
 
-**4 sections still missing (re-run these):**
-- §2 CRM & Commercial (13 pages) → `handoff/REPORT-S2-CRM.md`
-- §4 Customer Care (9 pages) → `handoff/REPORT-S4-CARE.md`
-- §5 Network & Ops (12 pages) → `handoff/REPORT-S5-NETOPS.md`
-- §6+§7 Analytics + Enterprise (11 pages) → `handoff/REPORT-S6S7-ANALYTICS-ENTERPRISE.md`
+**6 of 7 sections DONE and on remote. Only ONE missing:**
+- ❌ §2 CRM & Commercial (13 pages) → `handoff/REPORT-S2-CRM.md` — re-run this one agent
+
+**Done (committed + pushed):**
+- ✅ §1 Workspace → REPORT-S1-WORKSPACE.md (f5c7ec7)
+- ✅ §3 Orders & Revenue → REPORT-S3-ORDERS.md (912bd21) — ⚠️ InvoicesView luma bugs
+- ✅ §4 Customer Care → REPORT-S4-CARE.md (65b53f8)
+- ✅ §5 Network & Ops → REPORT-S5-NETOPS.md (3e5e72b)
+- ✅ §6+§7 Analytics + Enterprise → REPORT-S6S7-ANALYTICS-ENTERPRISE.md (3e5e72b)
+- ✅ §8+§9 System + Studio → REPORT-S8S9-SYSTEM-STUDIO.md (73651bf)
 
 **⚠️ Known bug found by §3 agent (fix before go-live):**
 InvoicesView has TWO luma bugs still unfixed:
