@@ -112,7 +112,7 @@ function renderInvoiceCell(colKey: string, inv: Invoice, cust: (inv: Invoice) =>
     case 'issued': return fmtDate(inv.issued_at ?? inv.created_at)
     case 'due': return fmtDate(inv.due_at)
     case 'status': return statusPill(inv.status)
-    case 'amount': return `֏${(inv.total ?? 0).toLocaleString()}`
+    case 'amount': return money(inv.total)
     default: return '—'
   }
 }
@@ -247,13 +247,13 @@ export default function InvoicesView({
         <div className="widgets" style={{ marginBottom: 18 }}>
           <div className="widget">
             <div className="widget-label">Total billed</div>
-            <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 1000).toFixed(1)}k</div>
+            <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 100000).toFixed(1)}k</div>
             <div className="kpi-sub">{all.length} invoice{all.length !== 1 ? 's' : ''}</div>
           </div>
           <div className="widget">
             <div className="widget-label">Outstanding</div>
             <div className="kpi" style={{ color: outstanding > 0 ? 'var(--gx-warning)' : 'var(--gx-text-1)' }}>
-              <span className="kpi-cur">֏</span>{(outstanding / 1000).toFixed(1)}k
+              <span className="kpi-cur">֏</span>{(outstanding / 100000).toFixed(1)}k
             </div>
             <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
           </div>
