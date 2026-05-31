@@ -488,10 +488,41 @@ async def assert_can_read_region(
     flips this from facade to engine.
     """
     if region_id is None:
+        # Legacy unpartitioned data (pre-region backfill rows) — refusing all of these
+        # would break every existing reader. Pass-through until region_id NOT NULL is enforced.
         return
-    # Step 6 lands the schema (org_node.region_code + assignment.region_scope) and the kernel
-    # call shape. The full region-grant evaluator (walk user's assignments → resolve region_code
-    # via subtree → match against region_id) is deferred to a follow-up step that introduces the
-    # canonical region table. Until then this guard is a no-op fall-through that keeps the
-    # contract live; adopters get a working call site immediately.
-    return
+
+    # M0 evaluator — three pass conditions, else deny.
+    # 1. Wildcard role (super_admin '*') always passes — same precedence as access.can()
+    # 2. Any assignment with region_scope='any' (explicit org-wide region grant) passes
+    # 3. Any assignment whose node's region matches the target region_id passes
+    # 4. Otherwise → CrossRegionDenied (default-deny per SPEC §0.2 + §0.6)
+    from .. import access  # local to avoid module-load circularity
+    grants = await access.load_grants(s, user)
+    if any(p == "*" for r in grants for p in (r.get("permissions") or [])):
+        return
+
+    # Walk user's assignments; check region_scope + per-node region projection
+    from sqlalchemy import select
+    from ..models import Assignment, OrgNode
+    rows = (await s.execute(
+        select(Assignment, OrgNode)
+        .join(OrgNode, OrgNode.id == Assignment.node_id)
+        .where(Assignment.tenant_id == user.tenant_id, Assignment.user_id == user.id)
+    )).all()
+    target_id = str(region_id)
+    for a, n in rows:
+        # 'any' = org-wide read grant
+        if getattr(a, "region_scope", None) == "any":
+            return
+        # If the assignment carries a region_id directly (future), match against it
+        if getattr(a, "region_id", None) and str(a.region_id) == target_id:
+            return
+        # Otherwise: the node's region projection. org_node.region_code (if set)
+        # OR a region whose code matches a tag on the node — both deferred until
+        # the region <-> org_node bridge is built. For now this is read-only.
+        _ = n  # node-side eval kept as a hook for the bridge
+
+    raise CrossRegionDenied(
+        f"SPEC §0.6 cross-region read denied: user {user.id} has no grant covering region {region_id}"
+    )
