@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.calendar import UserCalendar, CalendarEvent
 from .. import workflow
@@ -88,6 +89,13 @@ async def create_calendar(
     s: AsyncSession = Depends(get_session),
 ):
     """Create a new calendar."""
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="calendar",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
     name = (payload.get("name") or "").strip()
     if not name:
         raise HTTPException(422, "name is required")
@@ -146,6 +154,13 @@ async def create_event(
     s: AsyncSession = Depends(get_session),
 ):
     """Create a calendar event."""
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="calendar_event",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
     title = (payload.get("title") or "").strip()
     if not title:
         raise HTTPException(422, "title is required")
@@ -203,6 +218,12 @@ async def update_event(
 ):
     """Partial update a calendar event."""
     e = await _get_event(s, user.tenant_id, event_id)
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="calendar_event",
+                         region_id=None, owner_user_id=e.created_by_id)
+    except AccessDenied as ex:
+        raise HTTPException(403, detail=str(ex))
     changed: dict = {}
 
     if "title" in payload:
@@ -262,6 +283,12 @@ async def delete_event(
 ):
     """Delete a calendar event."""
     e = await _get_event(s, user.tenant_id, event_id)
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="delete", entity_key="calendar_event",
+                         region_id=None, owner_user_id=e.created_by_id)
+    except AccessDenied as ex:
+        raise HTTPException(403, detail=str(ex))
     await workflow.emit(s, user.tenant_id, "delete", "calendar_event", e.id, user.id,
                         {"title": e.title, "calendar_id": str(e.calendar_id) if e.calendar_id else None})
     await s.delete(e)
