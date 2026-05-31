@@ -17,9 +17,11 @@ import { useEffect, useState } from 'react'
 import { Users, Banknote, Inbox, Activity, BarChart3, CheckSquare } from 'lucide-react'
 import { GearIcon } from '../components/icons'
 import { StatusPill } from '../primitives/StatusPill'
+import { KPITile } from '../primitives/KPITile'
 import { money } from '../lib/money'
 import { fetchCapabilities, can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { fetchRevenueSeries, type RevenueBucket, type RevenueRange } from '../lib/metrics'
+import { humanizeEntity, humanizeAction, indefinite } from '../lib/humanize'
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
@@ -64,7 +66,8 @@ interface TicketRow {
 interface ActivityRow {
   id: string
   who: string
-  act: string
+  /** Raw event type ("create" / "update" / "transition" / etc.) — humanized at render time. */
+  type: string
   obj: string
   t: string
   entity_key: string | null
@@ -230,7 +233,7 @@ export default function DashboardView({
         const rows: ActivityRow[] = arr.slice(0, 5).map((a: any) => ({
           id: String(a.id ?? ''),
           who: a.actor_name ?? 'System',
-          act: a.summary ?? a.type ?? 'updated',
+          type: a.type ?? 'update',
           obj: a.entity_key ?? '',
           t: relTime(a.at),
           entity_key: a.entity_key ?? null,
@@ -304,7 +307,7 @@ export default function DashboardView({
 
   return (
     <div className="view">
-      <div className="view-inner gx-dash fade">
+      <div className="view-inner workspace-page gx-dash fade">
         <div className="crumbs">
           <span>Home</span>
           <span className="sep">/</span>
@@ -333,36 +336,52 @@ export default function DashboardView({
         </div>
 
         {kpiVisible && (
-          <div className="kpis">
-            {showSubs && <KpiTile
-              label="Active subscribers"
-              icon={<Users size={16} />}
-              fetched={subs}
-              format={(n) => n.toLocaleString()}
-              onClick={() => nav({ type: 'subscriptions', status: 'ACTIVE' })}
-            />}
-            {showMrr && <KpiTile
-              label="MRR"
-              icon={<Banknote size={16} />}
-              accent
-              fetched={mrr}
-              format={(n) => money(n)}
-              onClick={() => nav({ type: 'invoices', status: 'ISSUED' })}
-            />}
-            {showOpenTickets && <KpiTile
-              label="Open tickets"
-              icon={<Inbox size={16} />}
-              fetched={openTickets}
-              format={(n) => n.toLocaleString()}
-              onClick={() => nav({ type: 'helpdesk', status: 'OPEN' })}
-            />}
-            {showOpenWorkItems && <KpiTile
-              label="Open work items"
-              icon={<CheckSquare size={16} />}
-              fetched={openWorkItems}
-              format={(n) => n.toLocaleString()}
-              onClick={() => nav({ type: 'workitems' })}
-            />}
+          <div className="kpi-strip">
+            {showSubs && subs.state !== 'hide' && (
+              <KPITile
+                label="Active subscribers"
+                icon={Users}
+                value={subs.state === 'ok' ? subs.value.toLocaleString() : ''}
+                loading={subs.state === 'loading'}
+                size="sm"
+                onClick={subs.state === 'ok' ? () => nav({ type: 'subscriptions', status: 'ACTIVE' }) : undefined}
+                ariaLabel="Active subscribers. Click to see active subscriptions."
+              />
+            )}
+            {showMrr && mrr.state !== 'hide' && (
+              <KPITile
+                label="MRR"
+                icon={Banknote}
+                value={mrr.state === 'ok' ? money(mrr.value) : ''}
+                loading={mrr.state === 'loading'}
+                size="sm"
+                premium
+                onClick={mrr.state === 'ok' ? () => nav({ type: 'invoices', status: 'ISSUED' }) : undefined}
+                ariaLabel="Monthly recurring revenue. Click to see issued invoices."
+              />
+            )}
+            {showOpenTickets && openTickets.state !== 'hide' && (
+              <KPITile
+                label="Open tickets"
+                icon={Inbox}
+                value={openTickets.state === 'ok' ? openTickets.value.toLocaleString() : ''}
+                loading={openTickets.state === 'loading'}
+                size="sm"
+                onClick={openTickets.state === 'ok' ? () => nav({ type: 'helpdesk', status: 'OPEN' }) : undefined}
+                ariaLabel="Open tickets. Click to see tickets filtered to open."
+              />
+            )}
+            {showOpenWorkItems && openWorkItems.state !== 'hide' && (
+              <KPITile
+                label="Open work items"
+                icon={CheckSquare}
+                value={openWorkItems.state === 'ok' ? openWorkItems.value.toLocaleString() : ''}
+                loading={openWorkItems.state === 'loading'}
+                size="sm"
+                onClick={openWorkItems.state === 'ok' ? () => nav({ type: 'workitems' }) : undefined}
+                ariaLabel="Open work items. Click to see all work items."
+              />
+            )}
           </div>
         )}
 
@@ -415,8 +434,12 @@ export default function DashboardView({
                         }}><Activity size={15} /></span>
                         <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
                           <span style={{ fontWeight: 600 }}>{a.who}</span>{' '}
-                          <span style={{ color: 'var(--gx-text-2)' }}>{a.act}</span>{' '}
-                          {a.obj && <span className="mono" style={{ color: 'var(--gx-link)' }}>{a.obj}</span>}
+                          <span style={{ color: 'var(--gx-text-2)' }}>{humanizeAction(a.type)}</span>{' '}
+                          {a.obj && (
+                            <span style={{ color: 'var(--gx-link)' }}>
+                              {indefinite(humanizeEntity(a.obj))} {humanizeEntity(a.obj)}
+                            </span>
+                          )}
                           {a.t && <div className="hint" style={{ fontSize: 11 }}>{a.t}</div>}
                         </div>
                       </div>
@@ -465,47 +488,9 @@ export default function DashboardView({
 }
 
 // ---- subcomponents ------------------------------------------------------------------
-
-function KpiTile({
-  label, icon, accent = false, fetched, format, onClick,
-}: {
-  label: string
-  icon: React.ReactNode
-  accent?: boolean
-  fetched: Fetched<number>
-  format: (n: number) => string
-  onClick?: () => void
-}) {
-  const interactive = !!onClick && fetched.state === 'ok'
-  return (
-    <button
-      type="button"
-      className="kpi"
-      onClick={interactive ? onClick : undefined}
-      disabled={!interactive}
-      // The .kpi class targets divs in the kit; make the button render the same.
-      style={{
-        cursor: interactive ? 'pointer' : 'default',
-        textAlign: 'left',
-        font: 'inherit',
-        color: 'inherit',
-        border: 'none',
-        background: 'inherit',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span className="klbl">{label}</span>
-        <span className="spacer" />
-        <span style={{ color: accent ? 'var(--gx-gold)' : 'var(--gx-text-3)' }}>{icon}</span>
-      </div>
-      <div className="kval tnum">
-        {fetched.state === 'loading' && <span className="skel" style={{ display: 'inline-block', height: 24, width: 80 }} />}
-        {fetched.state === 'ok' && format(fetched.value)}
-        {/* 'hide' state: the tile is omitted by the parent before reaching here. */}
-      </div>
-    </button>
-  )
-}
+// Note: the previous inline KpiTile was deleted in the KPI design-system sweep.
+// All four Home KPI tiles now use the shared `<KPITile>` primitive from `../primitives`
+// (one component for every dashboard, list view, and module page in the Portal).
 
 function ChartSkeleton() {
   return (

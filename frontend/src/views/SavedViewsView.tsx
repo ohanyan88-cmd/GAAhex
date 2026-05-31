@@ -94,7 +94,7 @@ export default function SavedViewsView({
 
   return (
     <div className="view">
-      <div className="view-inner fade">
+      <div className="view-inner workspace-page fade">
         <div className="crumbs">
           <span>Workspace</span>
           <span className="sep">/</span>
@@ -104,7 +104,7 @@ export default function SavedViewsView({
         <ViewHead
           icon={<BookmarkIcon size={18} />}
           title="Saved Views"
-          sub={subtitle}
+          sub={subtitle ?? 'Filters and column sets saved from list pages'}
         />
 
         {state.kind === 'error' ? (

@@ -489,7 +489,16 @@ export default function App() {
               : view.type === 'messages'
                 ? <MessagesView token={token} capabilities={capabilities} />
               : view.type === 'activity' || view.type === 'activity-feed'
-                ? <ActivityFeedView token={token} />
+                ? <ActivityFeedView
+                    token={token}
+                    onNavigate={(target) => {
+                      if (target.type === 'helpdesk') {
+                        setView({ type: 'helpdesk', initialOpenTicketId: target.openTicketId })
+                      } else if (target.type === 'entity') {
+                        setView({ type: 'entity', slug: target.slug })
+                      }
+                    }}
+                  />
               : view.type === 'my-approvals'
                 ? <MyApprovalsView token={token} />
               : view.type === 'saved-views'

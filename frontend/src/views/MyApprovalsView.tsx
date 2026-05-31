@@ -16,6 +16,7 @@ import {
 } from '../components/icons'
 import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
+import { humanizeEntity } from '../lib/humanize'
 
 const BASE = 'http://127.0.0.1:8099'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
@@ -88,7 +89,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
 
   return (
     <div className="view">
-      <div className="view-inner fade">
+      <div className="view-inner workspace-page fade">
         <div className="crumbs">
           <span>Workspace</span>
           <span className="sep">/</span>
@@ -98,7 +99,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
         <ViewHead
           icon={<CheckIcon size={18} />}
           title="My Approvals"
-          sub={subtitle}
+          sub={subtitle ?? 'Pending transitions waiting on your decision'}
         />
 
         {state.kind === 'forbidden' ? (
@@ -132,7 +133,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
                   <tbody>
                     {items.map((a) => (
                       <tr key={a.id}>
-                        <td style={{ color: 'var(--gx-text-2)' }}>{a.entity_key}</td>
+                        <td style={{ color: 'var(--gx-text-2)' }}>{humanizeEntity(a.entity_key)}</td>
                         <td className="mono" style={{ color: 'var(--gx-link)' }}>
                           {a.record_id.slice(0, 8)}
                         </td>
