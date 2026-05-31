@@ -429,3 +429,39 @@ cd C:/Users/Admin/Desktop/Portal/backend
 
 Alembic head after this round: **`6389266f4c19`** (down_revision `b9d1c2e3a4f5`, the
 prior merge head).
+
+---
+
+## §11 — 2026-05-31 forward-looking audit (post-ACTIVATE)
+
+A full grep across `backend/app/models/*.py` for SPEC §4.4 candidate columns shows:
+
+**Already protected:**
+- `app_user.password_hash`, `customer_user.password_hash` — irreversible hash (correct)
+- `refresh_token.token_hash`, `api_key.key_hash` — irreversible hash (correct)
+- `webhook_def.secret` — EncryptedString (Fernet AEAD) — ACTIVATE landed this
+
+**Not yet modeled in Portal — these are the SPEC §4.4 candidate columns waiting for product features:**
+
+| SPEC §4.4 item | Likely future model & column | Encryption strategy |
+|---|---|---|
+| ID / passport | `party.national_id` or `customer.passport_no` | EncryptedString — when subscriber-side KYC is built |
+| Tax number | `party.tax_id` or `account.tax_id` | EncryptedString — when invoice tax-rule modeling expands |
+| Bank details (IBAN, SWIFT) | `payment_method.iban` or `payment_method.bank_account` | EncryptedString — when stored payment instruments land |
+| Salary | `employee.salary_minor_units` | EncryptedString — when HR module is built |
+| Contract values | `contract.value_minor_units` (likely already field_def 'money') | Field-level grant only (not encryption — needs report aggregates) |
+| Discount approval | `discount.approval_*` (linked to §4.5 approvals already) | Field-level grant only |
+| Network credentials | `device.snmp_community`, `service.provisioning_secret` | EncryptedString — when device-provisioning workflow is built |
+| API keys | `api_key.key_hash` (done) + future per-tenant integration secrets | EncryptedString per integration |
+| Secrets | env-driven, NOT DB-stored today | Vault provider (Gev decision, deferred) |
+| Audit log payloads | `event.data` JSONB — may contain inlined sensitive values | Payload-level redaction at `workflow.emit` write time (deferred — needs `field_def.sensitive=true` annotation infrastructure) |
+
+**Action when a column lands:**
+1. Decide encryption vs grant-only per the table above.
+2. For encryption: change the model column type from `String(N)` to `EncryptedString()`.
+3. Write a 2-stage migration: A) widen column to TEXT (Fernet output is longer); B) run a Python
+   one-off backfill script that encrypts existing values via `field_crypto.encrypt_str`.
+4. Tests: add a round-trip test in `tests/test_field_crypto.py` for the new column.
+5. Document the column added in this §11 table.
+
+**No work to do today** — Portal has no plaintext sensitive columns currently in its schema.
