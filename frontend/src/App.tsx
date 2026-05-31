@@ -183,20 +183,14 @@ export default function App() {
   // static fallback.
   useEffect(() => {
     if (!token) return
-    let cancelled = false
-    loadDynamicNav(token).then((dyn) => {
-      if (cancelled) return
-      if (dyn && dyn.length > 0) {
-        // eslint-disable-next-line no-console
-        console.info('[nav] source=api (/api/nav)', `${dyn.length} groups`)
-        setNavSections(dyn)
-        setOpenSections(new Set(dyn.filter((s) => s.defaultOpen).map((s) => s.id)))
-      } else {
-        // eslint-disable-next-line no-console
-        console.info('[nav] source=static (NAV_SECTIONS fallback)')
-      }
-    })
-    return () => { cancelled = true }
+    // Dynamic nav loader is intentionally OFF: the static NAV_SECTIONS already
+    // mirrors SPEC §1 exactly (9 groups, 71 items, [O]/[V] flags) AND carries
+    // the viewType wiring that the dynamic loader can't yet generate. Re-enable
+    // once /api/nav rows carry per-module viewType metadata.
+    // eslint-disable-next-line no-console
+    console.info('[nav] source=static (SPEC §1 layout)')
+    void loadDynamicNav  // keep import live so tree-shaker doesn't remove the file
+    return () => { /* noop */ }
   }, [token])
 
   function toggleSection(id: string, e: React.MouseEvent) {
