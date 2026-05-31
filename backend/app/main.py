@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     await i18n.seed_i18n_if_empty()
     await seed_demo_loop_if_empty()   # one sample customer with the full daily loop (idempotent)
     await seed_catalog_if_missing()   # promote enterprise-nav stubs into real config-driven entities (idempotent)
-    await seed_default_records_run()  # insert 2-3 starter rows per empty entity + grant request.* perms (idempotent)
+    await seed_default_records_run()  # grant request.* perms to existing roles (idempotent); starter-row insertion deleted — empty pages now show the proper EmptyState per real-data doctrine
     # Dev-only bulk seeder — populates previously-sparse pages with 10 realistic Armenian-ISP
     # customers + the full cross-referenced tree. Gated by env-var `GAAEX_DEV_SEED`; production
     # leaves it unset → seeder never runs → DB stays empty-until-real. Idempotent.
