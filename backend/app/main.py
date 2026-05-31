@@ -21,7 +21,7 @@ from .seed_default_records import run as seed_default_records_run
 from .seed_dev_bulk import seed_dev_bulk_if_empty, _dev_seed_enabled
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments
 
 
 _log = logging.getLogger("gaaex")
@@ -102,6 +102,7 @@ async def _unhandled_exception_handler(request: Request, exc: Exception) -> JSON
 
 app.include_router(auth.router)
 app.include_router(meta.router)
+app.include_router(notification_defs.router)        # /meta/notification-defs (Studio templates+rules; fixed-path under /meta)
 # views + approvals own fixed paths under /api/* — register BEFORE the generic /api/{slug} records
 # router so they aren't swallowed as entity slugs.
 app.include_router(views.router)

@@ -22,23 +22,32 @@ import UsersPane from './UsersPane'
 import ReportsPane from './ReportsPane'
 import DashboardsPane from './DashboardsPane'
 import AutomationsPane from './AutomationsPane'
+import NotificationsPane from './NotificationsPane'
 
 // ── real-data pane resolver ──────────────────────────────────────────────────
-// These 7 panes are wired to the backend (CRUD + RLS). For the Studio leaves
+// These panes are wired to the backend (CRUD + RLS). For the Studio leaves
 // listed below, render the REAL pane instead of the mock rich-pane / empty
-// state. All require a bearer `token`; StudioShell threads it down.
+// state. All require a bearer `token`; StudioShell threads it down. Notifications
+// uses ONE shared component (NotificationsPane) parameterised per leaf.
 //
 // Leaf id format = `${groupId}.${moduleId?}.${leafId}` (see tree.ts).
 const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }>> = {
-  'data.models.entities':              EntitiesPane,
-  'data.models.fields':                FieldsPane,
-  'experience.pages.page-registry':    ViewsPane,
-  'logic.workflows.workflow-designer': WorkflowsPane,
-  'security.roles':                    RolesPane,
-  'security.users':                    UsersPane,
-  'intelligence.analytics.reports':    ReportsPane,
-  'intelligence.analytics.dashboards': DashboardsPane,
-  'logic.automations.triggers':        AutomationsPane,
+  'data.models.entities':                       EntitiesPane,
+  'data.models.fields':                         FieldsPane,
+  'experience.pages.page-registry':             ViewsPane,
+  'logic.workflows.workflow-designer':          WorkflowsPane,
+  'security.roles':                             RolesPane,
+  'security.users':                             UsersPane,
+  'intelligence.analytics.reports':             ReportsPane,
+  'intelligence.analytics.dashboards':          DashboardsPane,
+  'logic.automations.triggers':                 AutomationsPane,
+  // Notifications group — all five leaves share NotificationsPane, parametrised
+  // by channel or `rulesView`. One backend (/meta/notification-defs) drives them all.
+  'notifications.email-templates':              (p) => <NotificationsPane {...p} channel="email" />,
+  'notifications.sms-templates':                (p) => <NotificationsPane {...p} channel="sms" />,
+  'notifications.push-notifications':           (p) => <NotificationsPane {...p} channel="push" />,
+  'notifications.in-app-notifications':         (p) => <NotificationsPane {...p} channel="inapp" />,
+  'notifications.notification-rules':           (p) => <NotificationsPane {...p} rulesView />,
 }
 
 // ── StudioGenericPane (exported default) ─────────────────────────────────────
