@@ -121,7 +121,7 @@ export const STUDIO_TREE: GroupDef[] = [
     ]),
   ]),
   GF('Security', 'shield', [
-    'Roles', 'Permissions', 'Policies', 'Authentication', 'Authorization',
+    'Roles', 'Permissions', 'Users', 'Policies', 'Authentication', 'Authorization',
     'MFA', 'SSO', 'OAuth', 'Session Policies', 'Password Policies',
     'Secrets Vault', 'Encryption', 'Certificates', 'IP Restrictions',
     'Geo Restrictions', 'Device Trust', 'Threat Detection',

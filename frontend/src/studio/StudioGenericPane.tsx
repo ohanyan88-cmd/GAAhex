@@ -17,6 +17,7 @@ import FieldsPane from './FieldsPane'
 import ViewsPane from './ViewsPane'
 import WorkflowsPane from './WorkflowsPane'
 import RolesPane from './RolesPane'
+import UsersPane from './UsersPane'
 import ReportsPane from './ReportsPane'
 import DashboardsPane from './DashboardsPane'
 import AutomationsPane from './AutomationsPane'
@@ -32,6 +33,7 @@ const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }
   'experience.pages.page-registry':    ViewsPane,
   'logic.workflows.workflow-designer': WorkflowsPane,
   'security.roles':                    RolesPane,
+  'security.users':                    UsersPane,
   'intelligence.analytics.reports':    ReportsPane,
   'intelligence.analytics.dashboards': DashboardsPane,
   'logic.automations.triggers':        AutomationsPane,

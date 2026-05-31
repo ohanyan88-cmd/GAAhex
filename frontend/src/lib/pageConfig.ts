@@ -196,6 +196,26 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
     defaultTitle: 'Calendar',
     defaultColumns: [],
   },
+  mytasks: {
+    pageKey: 'mytasks',
+    defaultTitle: 'My Tasks',
+    defaultColumns: [],
+  },
+  'my-approvals': {
+    pageKey: 'my-approvals',
+    defaultTitle: 'My Approvals',
+    defaultColumns: [],
+  },
+  'activity-feed': {
+    pageKey: 'activity-feed',
+    defaultTitle: 'Activity Feed',
+    defaultColumns: [],
+  },
+  'saved-views': {
+    pageKey: 'saved-views',
+    defaultTitle: 'Saved Views',
+    defaultColumns: [],
+  },
   // Table-capable pages.
   helpdesk: {
     pageKey: 'helpdesk',

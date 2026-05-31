@@ -1,58 +1,287 @@
-"""Users list endpoint (Batch 32): assignee/agent picker.
+"""Users endpoints (Batch 32 + Module 1 Security extension).
 
-Read-only endpoint that serves assignment pickers across the app (WorkItems, Helpdesk).
-Returns tenant-scoped users with safe serialization (no password_hash).
-Optional ?q= substring filter on name/email (case-insensitive).
-Gate: just current_user (any authenticated user may list their tenant's users).
+Read side is the assignee/agent picker that serves selectors across the app
+(WorkItems, Helpdesk) — any authenticated user may list their tenant's users.
+
+Write side (Module 1: Security):
+    POST   /api/users           — create user (config.manage)
+    PATCH  /api/users/{id}      — update user (config.manage; refuse self password reset via this route? no — allowed)
+    DELETE /api/users/{id}      — soft delete (status='inactive'); refuse self-delete; (config.manage)
+
+All writes emit an audit Event through workflow.emit, following the same
+pattern as helpdesk.py / org_nodes.py.
+
+The GET serializer is extended to include each user's `assignments`
+(role+node tuples) so the Users pane can show role chips inline.
 """
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+import uuid
 
-from fastapi import APIRouter, Depends
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..db import get_session
-from ..models import User
-from .auth import current_user
+from ..models import User, Assignment, RoleDef, OrgNode
+from ..access import load_grants, can
+from ..security import hash_password
+from .. import workflow
+from .auth import current_user, validate_password_strength
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-def _user(u: User) -> dict:
-    """Serialize a User for public consumption (no password_hash)."""
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+async def _require_config_manage(s: AsyncSession, user: User) -> None:
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        raise HTTPException(403, "Not allowed to manage users")
+
+
+async def _user_assignments(s: AsyncSession, tenant_id, user_id: uuid.UUID) -> list[dict]:
+    """List a user's role+node assignments, denormalized for the pane."""
+    rows = (await s.execute(
+        select(Assignment, RoleDef, OrgNode)
+        .join(RoleDef, RoleDef.id == Assignment.role_id)
+        .join(OrgNode, OrgNode.id == Assignment.node_id)
+        .where(Assignment.user_id == user_id, Assignment.tenant_id == tenant_id)
+        .order_by(RoleDef.key)
+    )).all()
+    return [
+        {
+            "id": str(a.id),
+            "role_id": str(r.id),
+            "role_key": r.key,
+            "role_label": r.label,
+            "node_id": str(n.id),
+            "node_code": n.code,
+            "node_name": n.name,
+            "node_path": str(n.path),
+        }
+        for a, r, n in rows
+    ]
+
+
+def _user_basic(u: User) -> dict:
+    """Serialize a User without assignments (no password_hash)."""
     return {
         "id": str(u.id),
         "name": u.name,
         "email": u.email,
         "primary_node_id": str(u.primary_node_id) if u.primary_node_id else None,
+        "status": u.status,
+        "avatar_url": u.avatar_url,
     }
 
 
+async def _user_full(s: AsyncSession, u: User) -> dict:
+    """Serialize a User with their assignments — used by GET endpoints."""
+    out = _user_basic(u)
+    out["assignments"] = await _user_assignments(s, u.tenant_id, u.id)
+    return out
+
+
+async def _get_user(s: AsyncSession, tenant_id, user_id: uuid.UUID) -> User:
+    u = (await s.execute(
+        select(User).where(User.id == user_id, User.tenant_id == tenant_id)
+    )).scalar_one_or_none()
+    if u is None:
+        raise HTTPException(404, "User not found")
+    return u
+
+
+# ---------------------------------------------------------------------------
+# READ
+# ---------------------------------------------------------------------------
 @router.get("")
 async def list_users(
     q: str | None = None,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
-    """List users in the caller's tenant for assignment pickers.
+    """List users in the caller's tenant + each user's role assignments.
 
-    Filter by User.tenant_id == caller's tenant_id.
-    Optional ?q= substring filter on name/email (case-insensitive).
-    Order by name (nulls last), then email.
+    Filter by tenant_id == caller's tenant_id. Optional ?q= substring match
+    on name/email. Order by name (nulls last), then email.
     """
     query = select(User).where(User.tenant_id == user.tenant_id)
 
     if q:
-        # Case-insensitive substring match on name or email
         q_lower = q.lower()
         query = query.where(
-            (func.lower(User.name).contains(q_lower)) |
-            (func.lower(User.email).contains(q_lower))
+            (func.lower(User.name).contains(q_lower))
+            | (func.lower(User.email).contains(q_lower))
         )
 
-    # Order by name (nulls last), then email
     query = query.order_by(User.name.asc().nullslast(), User.email.asc())
-
     rows = (await s.execute(query)).scalars().all()
-    return [_user(u) for u in rows]
+    return [await _user_full(s, u) for u in rows]
+
+
+@router.get("/{user_id}")
+async def get_user(
+    user_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Get one user + their assignments. Same tenant scope."""
+    u = await _get_user(s, user.tenant_id, user_id)
+    return await _user_full(s, u)
+
+
+# ---------------------------------------------------------------------------
+# WRITE — gated on config.manage
+# ---------------------------------------------------------------------------
+@router.post("", status_code=201)
+async def create_user(
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Create a user. Body: {name, email, password, primary_node_id?}.
+
+    Duplicate email → 409. Audit-logged.
+    """
+    await _require_config_manage(s, user)
+
+    name = (payload.get("name") or "").strip()
+    email = (payload.get("email") or "").strip().lower()
+    password = payload.get("password") or ""
+    if not name:
+        raise HTTPException(422, "name is required")
+    if not email or "@" not in email:
+        raise HTTPException(422, "valid email is required")
+    validate_password_strength(password)  # 422 on weak
+
+    primary_node_id = None
+    raw_pn = payload.get("primary_node_id")
+    if raw_pn:
+        try:
+            primary_node_id = uuid.UUID(str(raw_pn))
+        except (ValueError, TypeError):
+            raise HTTPException(422, "primary_node_id is not a valid id")
+        # Confirm node lives in caller's tenant.
+        node = (await s.execute(
+            select(OrgNode).where(OrgNode.id == primary_node_id, OrgNode.tenant_id == user.tenant_id)
+        )).scalar_one_or_none()
+        if node is None:
+            raise HTTPException(422, "primary_node_id not found in this tenant")
+
+    # Duplicate-email check (email is globally unique on the table — 409 with a clean message
+    # rather than a 500 IntegrityError).
+    clash = (await s.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    if clash:
+        raise HTTPException(409, f"A user with email '{email}' already exists")
+
+    new_user = User(
+        tenant_id=user.tenant_id,
+        primary_node_id=primary_node_id,
+        email=email,
+        name=name,
+        password_hash=hash_password(password),
+        status="active",
+    )
+    s.add(new_user)
+    await s.flush()  # assign new_user.id for audit + response
+
+    out = await _user_full(s, new_user)
+    await workflow.emit(s, user.tenant_id, "create", "app_user", new_user.id, user.id,
+                        {"name": name, "email": email})
+    await s.commit()
+    return out
+
+
+@router.patch("/{user_id}")
+async def update_user(
+    user_id: uuid.UUID,
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Update a user. Body (all optional): {name, email, primary_node_id, password}.
+
+    Duplicate email → 409. Audit-logged.
+    """
+    await _require_config_manage(s, user)
+    target = await _get_user(s, user.tenant_id, user_id)
+
+    changed: dict = {}
+
+    if "name" in payload:
+        name = (payload.get("name") or "").strip()
+        if not name:
+            raise HTTPException(422, "name cannot be empty")
+        if name != target.name:
+            changed["name"] = name
+            target.name = name
+
+    if "email" in payload:
+        email = (payload.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            raise HTTPException(422, "valid email is required")
+        if email != target.email:
+            clash = (await s.execute(
+                select(User).where(User.email == email, User.id != target.id)
+            )).scalar_one_or_none()
+            if clash:
+                raise HTTPException(409, f"A user with email '{email}' already exists")
+            changed["email"] = email
+            target.email = email
+
+    if "primary_node_id" in payload:
+        raw_pn = payload.get("primary_node_id")
+        if raw_pn in (None, ""):
+            target.primary_node_id = None
+            changed["primary_node_id"] = None
+        else:
+            try:
+                pn = uuid.UUID(str(raw_pn))
+            except (ValueError, TypeError):
+                raise HTTPException(422, "primary_node_id is not a valid id")
+            node = (await s.execute(
+                select(OrgNode).where(OrgNode.id == pn, OrgNode.tenant_id == user.tenant_id)
+            )).scalar_one_or_none()
+            if node is None:
+                raise HTTPException(422, "primary_node_id not found in this tenant")
+            target.primary_node_id = pn
+            changed["primary_node_id"] = str(pn)
+
+    if "password" in payload:
+        pw = payload.get("password") or ""
+        validate_password_strength(pw)
+        target.password_hash = hash_password(pw)
+        changed["password"] = "***"
+
+    out = await _user_full(s, target)
+    if changed:
+        await workflow.emit(s, user.tenant_id, "update", "app_user", target.id, user.id,
+                            {"changed": list(changed.keys())})
+    await s.commit()
+    return out
+
+
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Soft-delete a user — sets status='inactive'. Refuses self-delete (422).
+    Audit-logged. Idempotent: an already-inactive user is a no-op (200, status unchanged).
+    """
+    await _require_config_manage(s, user)
+    if user_id == user.id:
+        raise HTTPException(422, "You cannot deactivate your own account.")
+
+    target = await _get_user(s, user.tenant_id, user_id)
+
+    was = target.status
+    if was != "inactive":
+        target.status = "inactive"
+        await workflow.emit(s, user.tenant_id, "delete", "app_user", target.id, user.id,
+                            {"email": target.email, "previous_status": was})
+    await s.commit()
+    return {"ok": True, "id": str(target.id), "status": target.status}

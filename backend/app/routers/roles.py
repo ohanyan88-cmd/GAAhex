@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import RoleDef, PermissionDef, User
 from ..access import load_grants, can
+from .. import workflow
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["roles"])
@@ -98,6 +99,9 @@ async def create_role(payload: dict, user: User = Depends(current_user), s: Asyn
         permissions=list(permissions),
     )
     s.add(role)
+    await s.flush()
+    await workflow.emit(s, user.tenant_id, "create", "role_def", role.id, user.id,
+                        {"key": key, "label": label, "permissions": list(permissions)})
     await s.commit()
     return _role_out(role)
 
@@ -112,18 +116,25 @@ async def update_role(role_id: uuid.UUID, payload: dict, user: User = Depends(cu
     await _require_config_manage(s, user)
     role = await _get_role(s, user.tenant_id, role_id)
 
+    changed: dict = {}
     if "label" in payload:
         v = (payload["label"] or "").strip()
         if not v:
             raise HTTPException(422, "label cannot be empty")
-        role.label = v
+        if v != role.label:
+            role.label = v
+            changed["label"] = v
 
     if "permissions" in payload:
         permissions = payload["permissions"]
         if not isinstance(permissions, list):
             raise HTTPException(422, "permissions must be a list of permission key strings")
         role.permissions = list(permissions)   # full replacement
+        changed["permissions"] = list(permissions)
 
+    if changed:
+        await workflow.emit(s, user.tenant_id, "update", "role_def", role.id, user.id,
+                            {"key": role.key, "changed": list(changed.keys())})
     await s.commit()
     return _role_out(role)
 
@@ -135,5 +146,9 @@ async def delete_role(role_id: uuid.UUID, user: User = Depends(current_user), s:
     separately if needed."""
     await _require_config_manage(s, user)
     role = await _get_role(s, user.tenant_id, role_id)
+    rid = role.id
+    rkey = role.key
     await s.delete(role)
+    await workflow.emit(s, user.tenant_id, "delete", "role_def", rid, user.id,
+                        {"key": rkey})
     await s.commit()

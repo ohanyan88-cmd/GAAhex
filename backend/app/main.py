@@ -21,7 +21,7 @@ from .seed_default_records import run as seed_default_records_run
 from .seed_dev_bulk import seed_dev_bulk_if_empty, _dev_seed_enabled
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings
+from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments
 
 
 _log = logging.getLogger("gaaex")
@@ -149,6 +149,7 @@ app.include_router(portal_billing.router)           # /portal/me/invoices|paymen
 app.include_router(portal_support.router)           # /portal/me/tickets (B36; before records)
 app.include_router(portal_service.router)           # /portal/me/services|subscriptions|usage (B37; before records)
 app.include_router(roles.router)                    # /api/roles + /api/permissions (Studio; before records)
+app.include_router(assignments.router)              # /api/assignments (Security Users pane; before records)
 app.include_router(automations.router)              # /api/automations (Studio; before records)
 app.include_router(events.router)                   # /api/events/types|registry (Studio event picker; before records)
 app.include_router(page_config.router)              # /api/page-config/* (configure-in-place for bespoke pages; before records)

@@ -112,6 +112,10 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   customer: 'customer',
   reports: 'reports',
   calendar: 'calendar',
+  mytasks: 'mytasks',
+  'my-approvals': 'my-approvals',
+  'activity-feed': 'activity-feed',
+  'saved-views': 'saved-views',
   // Table-capable pages.
   helpdesk: 'helpdesk',
   workitems: 'workitems',
