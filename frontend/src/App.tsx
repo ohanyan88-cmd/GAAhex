@@ -38,7 +38,8 @@ import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
-import { NAV_SECTIONS, type NavItemDef } from './lib/nav-config'
+import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
+import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
 import { PanelLeft, Wand, LogIn, Shield } from 'lucide-react'
@@ -166,10 +167,37 @@ export default function App() {
   const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
   const { t, lang, setLang } = useI18n()
 
+  // SPEC §1 dynamic nav: attempt to load the nav tree from GAAex /api/nav after
+  // login; fall back to the static NAV_SECTIONS if the endpoint isn't reachable
+  // or returns nothing usable. The static config stays bundled so the UI is
+  // never blank.
+  const [navSections, setNavSections] = useState<NavSectionDef[]>(NAV_SECTIONS)
+
   // Collapsible nav section state — pre-open sections marked defaultOpen in nav-config
   const [openSections, setOpenSections] = useState<Set<string>>(
     () => new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)),
   )
+
+  // After login, try the dynamic nav endpoint. Success ⇒ swap in the live tree
+  // and re-seed openSections from its defaultOpen markers. Failure ⇒ keep the
+  // static fallback.
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+    loadDynamicNav(token).then((dyn) => {
+      if (cancelled) return
+      if (dyn && dyn.length > 0) {
+        // eslint-disable-next-line no-console
+        console.info('[nav] source=api (/api/nav)', `${dyn.length} groups`)
+        setNavSections(dyn)
+        setOpenSections(new Set(dyn.filter((s) => s.defaultOpen).map((s) => s.id)))
+      } else {
+        // eslint-disable-next-line no-console
+        console.info('[nav] source=static (NAV_SECTIONS fallback)')
+      }
+    })
+    return () => { cancelled = true }
+  }, [token])
 
   function toggleSection(id: string, e: React.MouseEvent) {
     e.stopPropagation()
@@ -240,6 +268,8 @@ export default function App() {
 
   function logout() {
     setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS)
+    setNavSections(NAV_SECTIONS)
+    setOpenSections(new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)))
   }
 
   if (!token) {
@@ -321,7 +351,7 @@ export default function App() {
         </div>
 
         <div className="sb-scroll">
-          {NAV_SECTIONS.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
+          {navSections.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
             const isOpen = openSections.has(sec.id)
             return (
               <div key={sec.id} className="sb-sec">
