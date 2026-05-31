@@ -14,3 +14,22 @@ TASKS/
 storybook-static
 backend/boot-test.log
 backend/*.log
+
+# Session debris — auth artifacts (SECRETS — never commit)
+token.txt
+cookies*.txt
+UsersAdminDesktopPortalcookies*.txt
+auth_temp.json
+
+# Session debris — boot logs + temp JSON dumps
+backend/boot*.err
+backend/boot*.out
+openapi_temp.json
+r_*.json
+
+# Session debris — one-off scripts
+gen_report.py
+gen_rpt.py
+test_p*.py
+write_report.py
+write_rpt*.py
