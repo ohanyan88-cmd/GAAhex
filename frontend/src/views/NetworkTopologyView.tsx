@@ -1,0 +1,78 @@
+// NetworkTopologyView — Network → Network Topology.
+// Lists sites/POPs from /api/sites (entity records with entity_key='site').
+// Shows status, kind, address. Real data only — missing → empty state.
+import { useEffect, useState } from 'react'
+import ViewHead from '../components/ViewHead'
+import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
+import { ServerIcon } from '../components/icons'
+import { BASE } from '../lib/billing'
+
+const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
+
+type Site = { id: string; status: string | null; data: Record<string, unknown> }
+
+const KIND_COLORS: Record<string, string> = {
+  POP: 'var(--gx-primary)',
+  datacenter: 'var(--gx-success, #22c55e)',
+  tower: 'var(--gx-warning, #f59e0b)',
+}
+
+export default function NetworkTopologyView({ token }: { token: string }) {
+  const [sites, setSites] = useState<Site[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/sites?limit=200`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => { if (alive) { setSites(Array.isArray(d) ? d : d.records ?? []); setLoading(false) } })
+      .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })
+    return () => { alive = false }
+  }, [token])
+
+  const live = sites.filter(s => s.status === 'LIVE').length
+  const planned = sites.filter(s => s.status === 'PLANNED').length
+
+  return (
+    <div className="view-root">
+      <ViewHead icon={<ServerIcon size={20} />} title="Network Topology" sub={loading ? undefined : `${sites.length} site${sites.length === 1 ? '' : 's'} · ${live} live · ${planned} planned`} />
+      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+        {loading && <SkeletonRows rows={6} />}
+        {error && <ErrorBanner message={error} />}
+        {!loading && !error && sites.length === 0 && (
+          <EmptyState icon={<ServerIcon size={36} />} title="No sites yet" message="Add sites and POPs in Studio → Data to populate the network topology." />
+        )}
+        {!loading && sites.length > 0 && (
+          <table className="grid" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Name</th><th>Kind</th><th>Status</th><th>Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sites.map(site => {
+                const d = site.data ?? {}
+                const kind = String(d.kind ?? '—')
+                return (
+                  <tr key={site.id}>
+                    <td style={{ fontWeight: 500 }}>{String(d.name ?? '—')}</td>
+                    <td>
+                      <span style={{ color: KIND_COLORS[kind] || 'inherit', fontWeight: 500 }}>{kind}</span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${site.status === 'LIVE' ? 'success' : site.status === 'DECOMMISSIONED' ? 'danger' : 'neutral'}`}>
+                        {site.status ?? '—'}
+                      </span>
+                    </td>
+                    <td className="muted" style={{ fontSize: 13 }}>{String(d.address ?? '—')}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}

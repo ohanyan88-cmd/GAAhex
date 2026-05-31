@@ -214,7 +214,7 @@ merchant credentials.
 | R-07 | 3 missing KPI formulas (add source data) | 3 hrs | ✅ |
 | R-08a | Stub nav views — entity-backed (8 modules) | 1 hr | ✅ |
 | R-08b | Stub nav views — medium (3 modules) | 4 hrs | ✅ |
-| R-08c | Stub nav views — large ISP modules (5 modules) | 2 days | ⬜ |
+| R-08c | Stub nav views — large ISP modules (5 modules) | 2 days | ✅ |
 | R-09 | Wave 4 NOT NULL tightening | 2 hrs | ⬜ BLOCKED on R-07+R-08c |
 | R-10 | Studio TODOs (12 pane items) | 1 day | ⬜ |
 | P | Payment gateways (ARCA+iDram+TelCell+EasyPay) | 4 days | ⬜ LAST |

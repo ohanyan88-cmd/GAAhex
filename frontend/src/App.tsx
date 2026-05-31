@@ -41,6 +41,11 @@ import RevenueAssuranceView from './views/RevenueAssuranceView'
 import GlobalSearchView from './views/GlobalSearchView'
 import RecentItemsView from './views/RecentItemsView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
+import NetworkTopologyView from './views/NetworkTopologyView'
+import ProvisioningView from './views/ProvisioningView'
+import SchedulingView from './views/SchedulingView'
+import DispatchBoardView from './views/DispatchBoardView'
+import CoverageView from './views/CoverageView'
 import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
@@ -92,6 +97,11 @@ type View =
   | { type: 'global-search' }
   | { type: 'recent-items' }
   | { type: 'team-workspace' }
+  | { type: 'network-topology' }
+  | { type: 'provisioning' }
+  | { type: 'scheduling' }
+  | { type: 'dispatch-board' }
+  | { type: 'coverage-gis' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
@@ -537,6 +547,16 @@ export default function App() {
                 ? <RecentItemsView token={token} onNavigate={(entityKey) => setView({ type: 'entity', slug: entityKey.replace(/_/g, '-') + 's' })} />
               : view.type === 'team-workspace'
                 ? <TeamWorkspaceView token={token} />
+              : view.type === 'network-topology'
+                ? <NetworkTopologyView token={token} />
+              : view.type === 'provisioning'
+                ? <ProvisioningView token={token} />
+              : view.type === 'scheduling'
+                ? <SchedulingView token={token} />
+              : view.type === 'dispatch-board'
+                ? <DispatchBoardView token={token} />
+              : view.type === 'coverage-gis'
+                ? <CoverageView token={token} />
               : view.type === 'saved-views'
                 ? <SavedViewsView token={token} onOpenEntity={(slug) => setView({ type: 'entity', slug })} />
               : view.type === 'invoices'
