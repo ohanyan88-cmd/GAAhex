@@ -6,6 +6,7 @@ from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import EntityDef, User
 from ..models.saved_view import SavedViewDef
 from ..access import load_grants, can
@@ -75,6 +76,14 @@ async def create_view(body: ViewIn, user: User = Depends(current_user), s: Async
     grants = await load_grants(s, user)
     if not can(grants, body.entity_key, "view"):
         raise HTTPException(403, f"Not allowed: {body.entity_key}.view")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation. SavedView is a config object
+    # over an entity; the gate borrows the entity's `view` permission (you can save a view of what
+    # you can view).
+    try:
+        await assert_can(s, user, action="view", entity_key=body.entity_key,
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     view = SavedViewDef(
         tenant_id=user.tenant_id,
         owner_user_id=None if body.shared else user.id,
@@ -105,6 +114,13 @@ async def _own_view_or_404(s: AsyncSession, user: User, view_id: uuid.UUID) -> S
 @router.patch("/{view_id}")
 async def update_view(view_id: uuid.UUID, body: ViewPatch, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     view = await _own_view_or_404(s, user, view_id)
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate borrows the entity's view perm; ownership
+    # already enforced by _own_view_or_404 (only the owner can reach this row).
+    try:
+        await assert_can(s, user, action="view", entity_key=view.entity_key,
+                         region_id=None, owner_user_id=view.owner_user_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if body.name is not None:
         view.name = body.name
     if body.config is not None:
@@ -117,5 +133,12 @@ async def update_view(view_id: uuid.UUID, body: ViewPatch, user: User = Depends(
 @router.delete("/{view_id}", status_code=204)
 async def delete_view(view_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     view = await _own_view_or_404(s, user, view_id)
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate borrows the entity's view perm; ownership
+    # already enforced by _own_view_or_404 (only the owner can reach this row).
+    try:
+        await assert_can(s, user, action="view", entity_key=view.entity_key,
+                         region_id=None, owner_user_id=view.owner_user_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     await s.delete(view)
     await s.commit()
