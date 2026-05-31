@@ -21,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User, Event
 from ..models.page_binding import PageBinding
 from ..access import load_grants, can
@@ -47,6 +48,12 @@ async def _require_config_manage(s: AsyncSession, user: User) -> None:
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed: config.manage required")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    try:
+        await assert_can(s, user, action="config_manage", entity_key="page_binding",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 # ── schemas ───────────────────────────────────────────────────────────────────
