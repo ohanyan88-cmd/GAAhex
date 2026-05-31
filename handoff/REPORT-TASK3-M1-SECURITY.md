@@ -220,3 +220,82 @@ screenshots/sec_04_users_detail.png
 ---
 
 **Status:** Module 1 Security ✅ complete. Stopped here for review before Module 2 (Data → Models/Entities, Fields).
+
+---
+
+## End-to-end enforcement test (post-review addendum, 2026-05-31)
+
+Reviewer raised a fair concern after the initial Module 1 sign-off: we'd proven the
+Permissions matrix **persists** a toggle (PATCH /api/roles/{id} round-trip) but had
+not yet proven the kernel actually **re-enforces** the new state for a real user
+holding the affected role. This addendum closes that gap with a Playwright run that
+drives the live UI plus out-of-band HTTP probes as the affected user.
+
+### Target picked
+
+| Field | Value | Why |
+|---|---|---|
+| Role | `sales_agent` (id `ca8ca380-78f4-4bad-81e9-06a13baca839`) | Agent user holds it; non-superadmin (no `*`) |
+| Scope | `Customer` (perms `customer.view/create/edit/delete`) | Agent's role HAS `customer.view` (clean toggle-off path); gates a real route; not `request.*` |
+| Affected user | `agent@demo.isp` | Bearer JWT, but `access.py:load_grants` re-reads from the DB on every request — so the toggle MUST bite even on a stale token |
+| Gated route | `GET /api/customers` | `records.py:list_records` calls `_deny` (HTTP 403) when `can(grants, "customer", "view")` is false |
+
+### Reconnaissance — sales_agent baseline perms
+
+```
+["lead.view","lead.create","lead.edit",
+ "contact.view","contact.create","contact.edit",
+ "deal.view","deal.create","deal.edit",
+ "customer.view",
+ "request.view","request.create","request.edit","request.delete"]
+```
+
+Customer scope = `view` only (yellow dot in the matrix). Click cycle is
+`None → View → Edit → None`, so from baseline the path to fully revoke
+customer.* is two clicks (View → Edit → None), and one click restores
+(None → View).
+
+### Step-by-step
+
+| Phase | UI action | Persistence check (`GET /api/roles/{id}`) | Out-of-band probe (agent fresh token) | Screenshot |
+|---|---|---|---|---|
+| **BEFORE** | open Studio → Security → Permissions; cell label = `View` | `customer.view` present in `permissions[]` | `GET /api/customers → 200, array len=1` | `screenshots/rbac_01_before.png` |
+| **click 1** (View → Edit) | cell label flips to `Edit` | `permissions[]` now includes `customer.view/create/edit/delete` | — | — |
+| **click 2** (Edit → None) | cell label flips to `—` | `customer.*` removed entirely; sales_agent perm count back to 13 (no customer.*) | `GET /api/customers → 403, detail="Not allowed: customer.view"` (token issued AFTER revocation) | `screenshots/rbac_02_after_toggle.png` |
+| **click 3** (None → View) | cell label flips back to `View` | `customer.view` re-added (only) | `GET /api/customers → 200, array len=1` | `screenshots/rbac_03_restored.png` |
+
+Final perm set (sorted) compared to baseline (sorted): **exact match**.
+
+### Why this proves enforcement (not just persistence)
+
+`backend/app/access.py:load_grants` issues a fresh SELECT against `assignments
+JOIN role_defs JOIN org_nodes` on **every** authenticated request — JWT claims
+carry only `sub/iat/exp/email`, not the permission list. So even an old token
+sees the new grants. We deliberately issued a *fresh* token after revocation
+anyway (eliminates "stale token" as a confound), and the 403 came back with the
+exact "Not allowed: customer.view" detail string from `records.py:_deny`.
+
+### Verdict — **PASS**
+
+| Check | Expected | Actual |
+|---|---|---|
+| BEFORE probe | 200 | 200 |
+| REVOKED probe | 403 | 403 |
+| RESTORED probe | 200 | 200 |
+| Final perms == baseline | true | true |
+
+Studio Permissions matrix **persists** AND the kernel **re-gates** the affected
+user on the very next request. RBAC enforcement is live.
+
+### Artifacts & commits
+
+- Playwright script: `verify_rbac_enforcement.js` (committed)
+- Screenshots: `screenshots/rbac_01_before.png`, `rbac_02_after_toggle.png`, `rbac_03_restored.png`
+- Verify commit: `a07681f` — *verify(rbac): end-to-end enforcement proof — toggle persists AND re-gates server-side*
+- Report addendum commit: see HEAD after this paragraph lands.
+
+### State on disk
+
+- Backend still running on `:8099`.
+- `sales_agent` role restored to its exact pre-test permission set (verified by sort-equality with baseline).
+- No fixture / DB cleanup required.
