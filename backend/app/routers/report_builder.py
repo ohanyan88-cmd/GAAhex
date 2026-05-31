@@ -12,6 +12,7 @@ from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import EntityDef, Record, User
 from ..models.report import ReportDef
 from ..access import load_grants, can
@@ -74,6 +75,13 @@ async def _validate_query(s: AsyncSession, user: User, query) -> None:
     grants = await load_grants(s, user)
     if not can(grants, entity_key, "view"):
         raise HTTPException(403, f"Not allowed: {entity_key}.view")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check. Saved-report
+    # config borrows the entity's view permission (you can save a report over what you can view).
+    try:
+        await assert_can(s, user, action="view", entity_key=entity_key,
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 @router.get("")
