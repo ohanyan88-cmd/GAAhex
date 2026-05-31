@@ -23,6 +23,8 @@ import ReportsPane from './ReportsPane'
 import DashboardsPane from './DashboardsPane'
 import AutomationsPane from './AutomationsPane'
 import NotificationsPane from './NotificationsPane'
+import WebhooksPane from './WebhooksPane'
+import ApiDocsPane from './ApiDocsPane'
 
 // ── real-data pane resolver ──────────────────────────────────────────────────
 // These panes are wired to the backend (CRUD + RLS). For the Studio leaves
@@ -48,6 +50,10 @@ const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }
   'notifications.push-notifications':           (p) => <NotificationsPane {...p} channel="push" />,
   'notifications.in-app-notifications':         (p) => <NotificationsPane {...p} channel="inapp" />,
   'notifications.notification-rules':           (p) => <NotificationsPane {...p} rulesView />,
+  // Developer group — Webhooks + API Docs (Task 3 Module 4). All other Developer
+  // leaves (Custom Code, SDK, CLI) stay on "Not yet wired".
+  'developer.webhooks':                         WebhooksPane,
+  'developer.api-docs':                         ApiDocsPane,
 }
 
 // ── StudioGenericPane (exported default) ─────────────────────────────────────
