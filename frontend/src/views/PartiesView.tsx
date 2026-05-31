@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 // Parties UI (A17 /api/parties) — the "who" layer (individuals / organizations / carriers) that
 // Accounts hang off. Lighter than Accounts. Shows the parent→child hierarchy hint via an indent.
@@ -159,31 +159,44 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
           const carrierCount = all.filter(p => (p.type ?? '').toLowerCase() === 'carrier').length
           return (
             <div className="kpi-strip">
-              <div className="kpi kpi--marquee">
-                <span className="klbl">Total</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{all.length}</div>
-                <span className="hint" style={{ fontSize: 11 }}>parties on record</span>
-              </div>
+              <KPITile
+                label="Total"
+                value={all.length}
+                subtitle="parties on record"
+                size="sm"
+                premium
+                onClick={() => setQuery('')}
+                ariaLabel={`Total parties — ${all.length}. Click to clear filter.`}
+              />
               {indivCount > 0 && (
-                <div className="kpi">
-                  <span className="klbl">Individuals</span>
-                  <div className="kval tnum" style={{ fontSize: 24 }}>{indivCount}</div>
-                  <span className="hint" style={{ fontSize: 11 }}>people</span>
-                </div>
+                <KPITile
+                  label="Individuals"
+                  value={indivCount}
+                  subtitle="people"
+                  size="sm"
+                  onClick={() => setQuery('individual')}
+                  ariaLabel={`Individuals — ${indivCount}. Click to filter.`}
+                />
               )}
               {orgCount > 0 && (
-                <div className="kpi">
-                  <span className="klbl">Organizations</span>
-                  <div className="kval tnum" style={{ fontSize: 24 }}>{orgCount}</div>
-                  <span className="hint" style={{ fontSize: 11 }}>companies</span>
-                </div>
+                <KPITile
+                  label="Organizations"
+                  value={orgCount}
+                  subtitle="companies"
+                  size="sm"
+                  onClick={() => setQuery('organization')}
+                  ariaLabel={`Organizations — ${orgCount}. Click to filter.`}
+                />
               )}
               {carrierCount > 0 && (
-                <div className="kpi">
-                  <span className="klbl">Carriers</span>
-                  <div className="kval tnum" style={{ fontSize: 24 }}>{carrierCount}</div>
-                  <span className="hint" style={{ fontSize: 11 }}>upstream</span>
-                </div>
+                <KPITile
+                  label="Carriers"
+                  value={carrierCount}
+                  subtitle="upstream"
+                  size="sm"
+                  onClick={() => setQuery('carrier')}
+                  ariaLabel={`Carriers — ${carrierCount}. Click to filter.`}
+                />
               )}
             </div>
           )

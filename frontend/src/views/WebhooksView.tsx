@@ -16,7 +16,7 @@ import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 const BASE = 'http://127.0.0.1:8099'
@@ -197,22 +197,33 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
 
         {all.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Endpoints</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
-              <span className="hint" style={{ fontSize: 11 }}>{activeCount} enabled</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Enabled</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>delivering events</span>
-            </div>
+            <KPITile
+              label="Endpoints"
+              value={all.length}
+              subtitle={`${activeCount} enabled`}
+              size="sm"
+              onClick={() => setQuery('')}
+              ariaLabel={`Endpoints — ${all.length}. Click to clear filter.`}
+            />
+            <KPITile
+              label="Enabled"
+              value={activeCount}
+              subtitle="delivering events"
+              size="sm"
+              premium
+              onClick={() => setQuery('enabled')}
+              ariaLabel={`Enabled webhooks — ${activeCount}. Click to filter.`}
+            />
             {disabledCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Disabled</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-text-3)' }}>{disabledCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>no deliveries</span>
-              </div>
+              <KPITile
+                label="Disabled"
+                value={disabledCount}
+                subtitle="no deliveries"
+                size="sm"
+                muted
+                onClick={() => setQuery('disabled')}
+                ariaLabel={`Disabled webhooks — ${disabledCount}. Click to filter.`}
+              />
             )}
           </div>
         )}

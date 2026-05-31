@@ -15,7 +15,7 @@ import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -166,22 +166,28 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
         {all.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Records</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
-              <span className="hint" style={{ fontSize: 11 }}>{ratedCount} rated · {unratedCount} unrated</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Total amount</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{`֏${(totalAmt / 1000).toFixed(1)}k`}</div>
-              <span className="hint" style={{ fontSize: 11 }}>billed via subscription rules</span>
-            </div>
+            <KPITile
+              label="Records"
+              value={all.length}
+              subtitle={`${ratedCount} rated · ${unratedCount} unrated`}
+              size="sm"
+              onClick={() => setRated('')}
+              ariaLabel={`Records — ${all.length}. Click to clear filter.`}
+            />
+            <KPITile
+              label="Total amount"
+              value={`֏${(totalAmt / 1000).toFixed(1)}k`}
+              subtitle="billed via subscription rules"
+              size="sm"
+              premium
+            />
             {metrics.length > 0 && (
-              <div className="kpi">
-                <span className="klbl">Metric types</span>
-                <div className="kval tnum" style={{ fontSize: 24 }}>{metrics.length}</div>
-                <span className="hint" style={{ fontSize: 11 }}>{metrics.slice(0, 4).join(' · ')}</span>
-              </div>
+              <KPITile
+                label="Metric types"
+                value={metrics.length}
+                subtitle={metrics.slice(0, 4).join(' · ')}
+                size="sm"
+              />
             )}
           </div>
         )}

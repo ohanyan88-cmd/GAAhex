@@ -14,7 +14,7 @@ import {
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
@@ -172,22 +172,33 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
         {all.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Catalog size</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
-              <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Active</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>offerable</span>
-            </div>
+            <KPITile
+              label="Catalog size"
+              value={all.length}
+              subtitle={`${activeCount} active`}
+              size="sm"
+              onClick={() => setQuery('')}
+              ariaLabel={`Catalog size — ${all.length}. Click to clear filter.`}
+            />
+            <KPITile
+              label="Active"
+              value={activeCount}
+              subtitle="offerable"
+              size="sm"
+              premium
+              onClick={() => setQuery('active')}
+              ariaLabel={`Active products — ${activeCount}. Click to filter to active.`}
+            />
             {retiredCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Retired</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-text-3)' }}>{retiredCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>read-only</span>
-              </div>
+              <KPITile
+                label="Retired"
+                value={retiredCount}
+                subtitle="read-only"
+                size="sm"
+                muted
+                onClick={() => setQuery('retired')}
+                ariaLabel={`Retired products — ${retiredCount}. Click to filter.`}
+              />
             )}
           </div>
         )}

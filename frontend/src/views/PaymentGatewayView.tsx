@@ -12,7 +12,7 @@ import {
 } from '../components/icons'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -175,30 +175,43 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
         />
 
         {all.length > 0 && (
-          <div className="widgets" style={{ marginBottom: 18 }}>
-            <div className="widget">
-              <div className="widget-label">Volume</div>
-              <div className="kpi"><span className="kpi-cur">֏</span>{(totalAmt / 1000).toFixed(1)}k</div>
-              <div className="kpi-sub">{all.length} order{all.length !== 1 ? 's' : ''}</div>
-            </div>
-            <div className="widget">
-              <div className="widget-label">Paid</div>
-              <div className="kpi" style={{ color: 'var(--success)' }}>{paidCount}</div>
-              <div className="kpi-sub">settled</div>
-            </div>
+          <div className="kpi-strip" style={{ marginBottom: 18 }}>
+            <KPITile
+              label="Volume"
+              value={`֏${(totalAmt / 1000).toFixed(1)}k`}
+              subtitle={`${all.length} order${all.length !== 1 ? 's' : ''}`}
+              size="sm"
+              premium
+            />
+            <KPITile
+              label="Paid"
+              value={paidCount}
+              subtitle="settled"
+              size="sm"
+              onClick={() => setStatusFilter('PAID')}
+              ariaLabel={`Paid — ${paidCount}. Click to filter to paid.`}
+            />
             {pendingCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Pending</div>
-                <div className="kpi" style={{ color: 'var(--warning)' }}>{pendingCount}</div>
-                <div className="kpi-sub">awaiting confirmation</div>
-              </div>
+              <KPITile
+                label="Pending"
+                value={pendingCount}
+                subtitle="awaiting confirmation"
+                size="sm"
+                warning
+                onClick={() => setStatusFilter('PENDING')}
+                ariaLabel={`Pending — ${pendingCount}. Click to filter to pending.`}
+              />
             )}
             {failedCount > 0 && (
-              <div className="widget">
-                <div className="widget-label">Failed/Expired</div>
-                <div className="kpi" style={{ color: 'var(--danger)' }}>{failedCount}</div>
-                <div className="kpi-sub">action required</div>
-              </div>
+              <KPITile
+                label="Failed/Expired"
+                value={failedCount}
+                subtitle="action required"
+                size="sm"
+                danger
+                onClick={() => setStatusFilter('FAILED')}
+                ariaLabel={`Failed or expired — ${failedCount}. Click to filter to failed.`}
+              />
             )}
           </div>
         )}

@@ -23,7 +23,7 @@ import {
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -256,27 +256,42 @@ export default function WorkItemsView({
 
         {allItems.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Active</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{activeCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>of {allCount} work item{allCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="kpi">
-              <span className="klbl">In progress</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{inProgressCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>currently being worked</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Done</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{doneCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>completed</span>
-            </div>
+            <KPITile
+              label="Active"
+              value={activeCount}
+              subtitle={`of ${allCount} work item${allCount !== 1 ? 's' : ''}`}
+              size="sm"
+              onClick={() => setTab('active')}
+              ariaLabel={`Active — ${activeCount}. Click to filter to active.`}
+            />
+            <KPITile
+              label="In progress"
+              value={inProgressCount}
+              subtitle="currently being worked"
+              size="sm"
+              warning
+              onClick={() => setQuery('IN_PROGRESS')}
+              ariaLabel={`In progress — ${inProgressCount}. Click to filter.`}
+            />
+            <KPITile
+              label="Done"
+              value={doneCount}
+              subtitle="completed"
+              size="sm"
+              premium
+              onClick={() => setQuery('DONE')}
+              ariaLabel={`Done — ${doneCount}. Click to filter to done.`}
+            />
             {blockedCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Blocked</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-danger-fg)' }}>{blockedCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>action required</span>
-              </div>
+              <KPITile
+                label="Blocked"
+                value={blockedCount}
+                subtitle="action required"
+                size="sm"
+                danger
+                onClick={() => setQuery('BLOCKED')}
+                ariaLabel={`Blocked — ${blockedCount}. Click to filter to blocked.`}
+              />
             )}
           </div>
         )}

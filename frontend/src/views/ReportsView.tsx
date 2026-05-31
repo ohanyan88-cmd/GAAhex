@@ -5,6 +5,7 @@ import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
 import { can, type Capabilities } from '../lib/capabilities'
+import { KPITile } from '../primitives'
 
 // Reports — consumes the Reports API (Task A). Re-laid into the kit's `gx-dash` dashboard
 // pattern: a KPI strip of entity counts (each tile is clickable — selecting one drives the
@@ -235,8 +236,10 @@ export default function ReportsView({
 }
 
 // Clickable KPI tile. Pressed state uses `kpi--marquee` lookalike via aria-pressed
-// + a subtle outline ring through a CSS var; no new CSS — we re-use the kit's
-// existing `.kpi` chrome.
+// Adapter onto the shared <KPITile> primitive — gives every entity tile the same
+// hover lift / focus ring / premium accent as every other dashboard in the app.
+// Doctrine rule 3: no historical series → no sparkline / no delta. We'll wire that
+// once a real time-series endpoint exists.
 function EntityKpi({
   label, value, active, marquee, onClick,
 }: {
@@ -246,28 +249,17 @@ function EntityKpi({
   marquee: boolean
   onClick: () => void
 }) {
-  const cls = 'kpi' + (marquee ? ' kpi--marquee' : '') + (active ? ' on' : '')
-  // Doctrine rule 3: no historical series → no sparkline / no delta. The kit's `.kfoot`
-  // slot is intentionally empty here; we'll fill it once a real time-series endpoint exists.
   return (
-    <button
-      type="button"
-      className={cls}
-      onClick={onClick}
-      aria-pressed={active}
-      style={{
-        textAlign: 'left',
-        cursor: 'pointer',
-        background: 'transparent',
-        font: 'inherit',
-        // Active tile gets an accent outline ring via the kit's primary color.
-        outline: active ? '1px solid var(--gx-primary)' : 'none',
-        outlineOffset: active ? -1 : 0,
-      }}
-    >
-      <div className="klbl">{label}</div>
-      <div className="kval tnum">{fmtNum(value)}</div>
-    </button>
+    <div style={active ? { outline: '1px solid var(--gx-primary)', outlineOffset: -1, borderRadius: 'var(--gx-radius-lg)' } : undefined}>
+      <KPITile
+        label={label}
+        value={fmtNum(value)}
+        size="sm"
+        premium={marquee}
+        onClick={onClick}
+        ariaLabel={`${label} — ${fmtNum(value)}. Click to open the ${label} list.`}
+      />
+    </div>
   )
 }
 

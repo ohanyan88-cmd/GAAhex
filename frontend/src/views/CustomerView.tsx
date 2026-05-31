@@ -13,7 +13,7 @@ import {
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
@@ -156,14 +156,10 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
         {error && <ErrorBanner message={error} onRetry={load} />}
         {!data && !error && (
           <>
-            {/* Per-section loading skeletons — mirrors the rendered layout below */}
-            <div className="widgets" style={{ marginBottom: 22 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+            {/* Per-section loading skeletons — mirrors the rendered KPI strip + cards below */}
+            <div className="kpi-strip" style={{ marginBottom: 22 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
               {[0, 1, 2].map((i) => (
-                <div className="widget" key={i}>
-                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '40%', marginBottom: 10 }} />
-                  <div className="kpi-tile-skeleton" style={{ height: 26, width: '70%', marginBottom: 8 }} />
-                  <div className="kpi-tile-skeleton" style={{ height: 10, width: '30%' }} />
-                </div>
+                <KPITile key={i} label="" value="" size="sm" loading />
               ))}
             </div>
             {[0, 1, 2].map((i) => (
@@ -181,53 +177,56 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
 
         {data && (
           <>
-            {/* 360 stat widgets — outstanding / billed / paid / overdue */}
-            <div className="widgets" style={{ marginBottom: 22 }}>
-              <div className="widget">
-                <div className="widget-label">
-                  <CreditCardIcon size={12} className="widget-label-icon" />
-                  {t('cust.outstanding', 'Outstanding')}
-                </div>
-                <div className="kpi" style={{ fontSize: 30, color: (sum.outstanding ?? 0) > 0 ? 'var(--danger)' : 'var(--success)' }}>
-                  <span className="mono tnum">{money(sum.outstanding)}</span>
-                </div>
-                {(sum.overdue_count ?? 0) > 0 && (
-                  <div className="kpi-sub" style={{ color: 'var(--danger)' }}>
-                    {sum.overdue_count} {t('cust.overdue', 'overdue invoice(s)')}
-                  </div>
-                )}
-              </div>
-
-              <div className="widget">
-                <div className="widget-label">{t('cust.billed', 'Total billed')}</div>
-                <div className="kpi" style={{ fontSize: 30 }}>
-                  <span className="mono tnum">{money(sum.total_billed)}</span>
-                </div>
-                {sum.invoice_count != null && (
-                  <div className="kpi-sub">{sum.invoice_count} {t('cust.invoiceCount', 'invoice(s)')}</div>
-                )}
-              </div>
-
-              <div className="widget">
-                <div className="widget-label">{t('cust.paid', 'Total paid')}</div>
-                <div className="kpi" style={{ fontSize: 30, color: 'var(--success)' }}>
-                  <span className="mono tnum">{money(sum.total_paid)}</span>
-                </div>
-                {sum.subscription_count != null && (
-                  <div className="kpi-sub">{sum.subscription_count} {t('cust.subCount', 'active subscription(s)')}</div>
-                )}
-              </div>
-
-              {/* Related CRM counts in compact widget */}
+            {/* 360 stat KPIs — outstanding / billed / paid / related. Each clickable
+                tile drills through to that customer's invoices filtered by status. */}
+            <div className="kpi-strip" style={{ marginBottom: 22 }}>
+              <KPITile
+                icon={CreditCardIcon}
+                label={t('cust.outstanding', 'Outstanding')}
+                value={money(sum.outstanding)}
+                subtitle={(sum.overdue_count ?? 0) > 0
+                  ? `${sum.overdue_count} ${t('cust.overdue', 'overdue invoice(s)')}`
+                  : undefined}
+                size="sm"
+                danger={(sum.outstanding ?? 0) > 0}
+                onClick={onOpenInvoices ? () => onOpenInvoices('OVERDUE') : undefined}
+                ariaLabel={`Outstanding amount. Click to see overdue invoices.`}
+              />
+              <KPITile
+                label={t('cust.billed', 'Total billed')}
+                value={money(sum.total_billed)}
+                subtitle={sum.invoice_count != null
+                  ? `${sum.invoice_count} ${t('cust.invoiceCount', 'invoice(s)')}`
+                  : undefined}
+                size="sm"
+                premium
+                onClick={onOpenInvoices ? () => onOpenInvoices() : undefined}
+                ariaLabel={`Total billed. Click to see all invoices.`}
+              />
+              <KPITile
+                label={t('cust.paid', 'Total paid')}
+                value={money(sum.total_paid)}
+                subtitle={sum.subscription_count != null
+                  ? `${sum.subscription_count} ${t('cust.subCount', 'active subscription(s)')}`
+                  : undefined}
+                size="sm"
+                onClick={onOpenInvoices ? () => onOpenInvoices('PAID') : undefined}
+                ariaLabel={`Total paid. Click to see paid invoices.`}
+              />
+              {/* Related CRM counts — non-clickable composite (multiple kinds, not a single filter). */}
               {related.filter(([, n]) => n > 0).length > 0 && (
-                <div className="widget">
-                  <div className="widget-label">{t('cust.related', 'Related records')}</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                    {related.filter(([, n]) => n > 0).map(([key, n]) => (
-                      <span key={key} className="pill">{key} · {n}</span>
-                    ))}
-                  </div>
-                </div>
+                <KPITile
+                  label={t('cust.related', 'Related records')}
+                  value=" "
+                  size="sm"
+                  accessory={
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {related.filter(([, n]) => n > 0).map(([key, n]) => (
+                        <span key={key} className="pill">{key} · {n}</span>
+                      ))}
+                    </div>
+                  }
+                />
               )}
             </div>
 

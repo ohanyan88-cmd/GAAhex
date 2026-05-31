@@ -14,6 +14,7 @@ import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { KPITile } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -244,30 +245,43 @@ export default function InvoicesView({
       />
 
       {all.length > 0 && (
-        <div className="widgets" style={{ marginBottom: 18 }}>
-          <div className="widget">
-            <div className="widget-label">Total billed</div>
-            <div className="kpi"><span className="kpi-cur">֏</span>{(totalBilled / 100000).toFixed(1)}k</div>
-            <div className="kpi-sub">{all.length} invoice{all.length !== 1 ? 's' : ''}</div>
-          </div>
-          <div className="widget">
-            <div className="widget-label">Outstanding</div>
-            <div className="kpi" style={{ color: outstanding > 0 ? 'var(--gx-warning)' : 'var(--gx-text-1)' }}>
-              <span className="kpi-cur">֏</span>{(outstanding / 100000).toFixed(1)}k
-            </div>
-            <div className="kpi-sub">{countFor('ISSUED')} issued · {overdueCount} overdue</div>
-          </div>
-          <div className="widget">
-            <div className="widget-label">Paid</div>
-            <div className="kpi" style={{ color: 'var(--gx-success)' }}>{paidCount}</div>
-            <div className="kpi-sub">of {all.length} invoices</div>
-          </div>
+        <div className="kpi-strip" style={{ marginBottom: 18 }}>
+          <KPITile
+            label="Total billed"
+            value={`֏${(totalBilled / 100000).toFixed(1)}k`}
+            subtitle={`${all.length} invoice${all.length !== 1 ? 's' : ''}`}
+            size="sm"
+            premium
+            onClick={() => setStatus('')}
+            ariaLabel={`Total billed. Click to see all invoices.`}
+          />
+          <KPITile
+            label="Outstanding"
+            value={`֏${(outstanding / 100000).toFixed(1)}k`}
+            subtitle={`${countFor('ISSUED')} issued · ${overdueCount} overdue`}
+            size="sm"
+            warning={outstanding > 0}
+            onClick={() => setStatus('ISSUED')}
+            ariaLabel={`Outstanding amount. Click to filter to issued.`}
+          />
+          <KPITile
+            label="Paid"
+            value={paidCount}
+            subtitle={`of ${all.length} invoices`}
+            size="sm"
+            onClick={() => setStatus('PAID')}
+            ariaLabel={`Paid — ${paidCount}. Click to filter to paid.`}
+          />
           {overdueCount > 0 && (
-            <div className="widget">
-              <div className="widget-label">Overdue</div>
-              <div className="kpi" style={{ color: 'var(--gx-danger)' }}>{overdueCount}</div>
-              <div className="kpi-sub">action required</div>
-            </div>
+            <KPITile
+              label="Overdue"
+              value={overdueCount}
+              subtitle="action required"
+              size="sm"
+              danger
+              onClick={() => setStatus('OVERDUE')}
+              ariaLabel={`Overdue — ${overdueCount}. Click to filter to overdue.`}
+            />
           )}
         </div>
       )}

@@ -14,7 +14,7 @@ import { t } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + detail with allocations. Degrades on 404.
 // Backend serializes the live allocation tally as `allocated_count` (see respool.py _pool()).
@@ -181,13 +181,16 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
         {all.length > 0 && Object.keys(byKind).length > 0 && (
           <div className="kpi-strip">
             {Object.entries(byKind).map(([k, info], i) => (
-              <div key={k} className={i === 0 ? 'kpi kpi--marquee' : 'kpi'}>
-                <span className="klbl">{k.toUpperCase()}</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: i === 0 ? 'var(--gx-gold)' : undefined }}>{info.count}</div>
-                {info.hasAllocData && (
-                  <span className="hint" style={{ fontSize: 11 }}>{info.allocs} allocation{info.allocs !== 1 ? 's' : ''}</span>
-                )}
-              </div>
+              <KPITile
+                key={k}
+                label={k.toUpperCase()}
+                value={info.count}
+                subtitle={info.hasAllocData
+                  ? `${info.allocs} allocation${info.allocs !== 1 ? 's' : ''}`
+                  : undefined}
+                size="sm"
+                premium={i === 0}
+              />
             ))}
           </div>
         )}

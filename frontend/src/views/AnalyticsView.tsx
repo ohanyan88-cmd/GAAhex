@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { bget } from '../lib/billing'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { ChartIcon, ArrowUpIcon, ArrowDownIcon, GearIcon } from '../components/icons'
+import { ChartIcon, GearIcon } from '../components/icons'
+import { KPITile } from '../primitives'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
@@ -147,7 +148,8 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
   )
 }
 
-// ───────────────────────── KPI tile (kit shape) ─────────────────────────
+// ───────────────────────── KPI tile (shared primitive) ─────────────────────────
+// Adapter: maps Analytics's {value, prev} fetch shape onto the shared <KPITile>.
 function Kpi({
   label, m, money: isMoney, goodUp, marquee, t,
 }: {
@@ -168,32 +170,26 @@ function Kpi({
   const sparkValues: number[] | undefined = hasDelta
     ? [(m.prev as number), m.value]
     : undefined
-
-  const cls = 'kpi' + (marquee ? ' kpi--marquee' : '')
   const sparkColor = marquee
     ? 'var(--gx-gold)'
     : !good && hasDelta
       ? 'var(--gx-danger)'
       : 'var(--gx-success)'
-
+  const deltaLabel = (hasDelta && diff !== 0)
+    ? (pct != null
+        ? `${Math.abs(pct).toFixed(0)}% ${t('analytics.vsPrev', 'vs prev')}`
+        : `${isMoney ? money(Math.abs(diff)) : fmtNum(Math.abs(diff))} ${t('analytics.vsPrev', 'vs prev')}`)
+    : undefined
   return (
-    <div className={cls}>
-      <div className="klbl">{label}</div>
-      <div className="kval tnum">{isMoney ? money(m.value) : fmtNum(m.value)}</div>
-      <div className="kfoot">
-        {hasDelta && diff !== 0 ? (
-          <span className={'kdelta ' + (good ? 'up' : 'down')}>
-            {up ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />}
-            {pct != null
-              ? `${Math.abs(pct).toFixed(0)}% ${t('analytics.vsPrev', 'vs prev')}`
-              : `${isMoney ? money(Math.abs(diff)) : fmtNum(Math.abs(diff))} ${t('analytics.vsPrev', 'vs prev')}`}
-          </span>
-        ) : (
-          <span className="kdelta" style={{ color: 'var(--gx-text-3)' }}>—</span>
-        )}
-        <Spark values={sparkValues} color={sparkColor} />
-      </div>
-    </div>
+    <KPITile
+      label={label}
+      value={isMoney ? money(m.value) : fmtNum(m.value)}
+      size="sm"
+      premium={marquee}
+      delta={deltaLabel}
+      deltaPositive={good}
+      accessory={<Spark values={sparkValues} color={sparkColor} />}
+    />
   )
 }
 

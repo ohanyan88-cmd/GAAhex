@@ -23,7 +23,7 @@ import { bget, loadCustomers, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { fetchCapabilities, can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { LineChart } from '../components/charts/LineChart'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 import { PermissionDenied } from '../components/States'
 import ViewHead from '../components/ViewHead'
 
@@ -212,42 +212,45 @@ export default function RevenueAssuranceView({
         />
 
         {kpiVisible && (
-          <div className="kpis">
+          <div className="kpi-strip">
             {showCollected && (
-              <KpiTile
+              <KPITile
                 label="Collected this month"
-                icon={<Banknote size={16} />}
-                accent
+                icon={Banknote}
                 value={money(ovOk!.collected_this_month!)}
+                size="sm"
+                premium
                 delta={collectedDelta != null
-                  ? { sign: collectedDelta >= 0 ? 'up' : 'down',
-                      label: collectedPct != null
-                        ? `${Math.abs(collectedPct).toFixed(0)}% vs prev`
-                        : `${money(Math.abs(collectedDelta))} vs prev`,
-                      good: collectedDelta >= 0 }
-                  : null}
+                  ? (collectedPct != null
+                      ? `${Math.abs(collectedPct).toFixed(0)}% vs prev`
+                      : `${money(Math.abs(collectedDelta))} vs prev`)
+                  : undefined}
+                deltaPositive={collectedDelta != null ? collectedDelta >= 0 : undefined}
               />
             )}
             {showAr && (
-              <KpiTile
+              <KPITile
                 label="AR outstanding"
-                icon={<TrendingUp size={16} />}
+                icon={TrendingUp}
                 value={money(ovOk!.ar_outstanding!)}
+                size="sm"
               />
             )}
             {showOverdue && (
-              <KpiTile
+              <KPITile
                 label="Overdue value"
-                icon={<AlertTriangle size={16} />}
+                icon={AlertTriangle}
                 value={money(ovOk!.overdue_total!)}
+                size="sm"
                 danger
               />
             )}
             {showOverdueCount && (
-              <KpiTile
+              <KPITile
                 label="Overdue invoices"
-                icon={<ReceiptIcon size={16} />}
+                icon={ReceiptIcon}
                 value={(ovOk!.overdue_count!).toLocaleString()}
+                size="sm"
               />
             )}
           </div>
@@ -341,34 +344,8 @@ export default function RevenueAssuranceView({
 }
 
 // ── Subcomponents ────────────────────────────────────────────────────────────
-
-function KpiTile({
-  label, icon, accent = false, danger = false, value, delta,
-}: {
-  label: string
-  icon: React.ReactNode
-  accent?: boolean
-  danger?: boolean
-  value: string
-  delta?: { sign: 'up' | 'down'; label: string; good: boolean } | null
-}) {
-  const valueColor = danger ? 'var(--gx-danger-fg)' : accent ? 'var(--gx-gold)' : undefined
-  return (
-    <div className={'kpi' + (accent ? ' kpi--marquee' : '')}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span className="klbl">{label}</span>
-        <span className="spacer" />
-        <span style={{ color: accent ? 'var(--gx-gold)' : 'var(--gx-text-3)' }}>{icon}</span>
-      </div>
-      <div className="kval tnum" style={{ color: valueColor }}>{value}</div>
-      {delta && (
-        <div className="kfoot">
-          <span className={'kdelta ' + (delta.good ? 'up' : 'down')}>{delta.label}</span>
-        </div>
-      )}
-    </div>
-  )
-}
+// Note: the previous inline KpiTile was deleted in the KPI design-system sweep.
+// This view now uses the shared `<KPITile>` primitive imported above.
 
 // AR aging bars — same visual idiom as AnalyticsView.Aging, but driven by the typed buckets shape.
 function AgingBars({ buckets }: { buckets: AgingBuckets }) {

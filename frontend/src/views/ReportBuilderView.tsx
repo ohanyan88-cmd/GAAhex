@@ -9,6 +9,7 @@ import ViewHead from '../components/ViewHead'
 import ReportSchedulePanel from '../modals/ReportSchedulePanel'
 import { EditIcon, PlusIcon, CloseIcon, TrashIcon } from '../components/icons'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
+import { KPITile } from '../primitives'
 
 // Report Builder — form-heavy wizard that pairs a builder form with a runner/preview.
 // Reskinned into the kit pattern: `.view → .view-inner gx-dash → .crumbs → .view-head`,
@@ -296,12 +297,13 @@ function RunView({ run }: { run: RunResult }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {isValue && (
-        <div className="kpis" style={{ marginBottom: 0 }}>
-          <div className="kpi kpi--marquee">
-            <div className="klbl">{run.name}</div>
-            <div className="kval tnum">{fmtNum(Number(result.value) || 0)}</div>
-            <div className="kfoot"><span className="kdelta" style={{ color: 'var(--gx-text-3)' }}>—</span></div>
-          </div>
+        <div className="kpi-strip" style={{ marginBottom: 0 }}>
+          <KPITile
+            label={run.name}
+            value={fmtNum(Number(result.value) || 0)}
+            size="sm"
+            premium
+          />
         </div>
       )}
       {!isValue && groups.length === 0 && <p className="muted">No data.</p>}

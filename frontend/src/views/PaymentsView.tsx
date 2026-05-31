@@ -12,7 +12,7 @@ import {
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -172,19 +172,20 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
 
         {pList.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Total collected</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{money(totalSettled)}</div>
-              <span className="hint" style={{ fontSize: 11 }}>{pList.length} settlement{pList.length !== 1 ? 's' : ''}</span>
-            </div>
+            <KPITile
+              label="Total collected"
+              value={money(totalSettled)}
+              subtitle={`${pList.length} settlement${pList.length !== 1 ? 's' : ''}`}
+              size="sm"
+              premium
+            />
             {methodsActive.length > 0 && (
-              <div className="kpi">
-                <span className="klbl">Methods</span>
-                <div className="kval tnum" style={{ fontSize: 22 }}>
-                  {methodsActive.join(' · ')}
-                </div>
-                <span className="hint" style={{ fontSize: 11 }}>used</span>
-              </div>
+              <KPITile
+                label="Methods"
+                value={methodsActive.join(' · ')}
+                subtitle="used"
+                size="sm"
+              />
             )}
           </div>
         )}

@@ -67,12 +67,74 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .field-hint { font-size:11px; color:var(--gx-text-3); margin-top:2px; }
 .field-error { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--gx-danger-fg); margin-top:4px; }
 
-/* extension: KPITile primitive — self-contained (kit's `.kpi` is scoped under `.gx-dash`) */
-.kpi-tile { background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); padding:16px; box-shadow:var(--gx-shadow-sm); transition:box-shadow var(--gx-dur-base); display:flex; flex-direction:column; gap:6px; min-width:0; }
-.kpi-tile:hover { box-shadow:var(--gx-shadow-md); }
+/* extension: KPITile primitive — THE shared KPI card used across every dashboard
+   and list view in the Portal. Identical behavior everywhere — hover lift, click,
+   focus-visible ring all centralized here. Tile can render as <div>, <button>, or
+   <a> depending on `onClick` / `href` (see KPITile.tsx). The `data-clickable="true"`
+   attribute marks the interactive variant so hover/focus styles only apply there
+   (we don't fake a destination on tiles without a real drill-through target). */
+.kpi-tile {
+  background:var(--gx-surface);
+  border:1px solid var(--gx-border);
+  border-radius:var(--gx-radius-lg);
+  padding:16px;
+  box-shadow:var(--gx-shadow-sm);
+  transition:
+    box-shadow var(--gx-dur-base),
+    transform var(--gx-dur-base),
+    border-color var(--gx-dur-base);
+  display:flex; flex-direction:column; gap:6px;
+  min-width:0; position:relative;
+  /* defaults so the same rule works when rendered as <button> / <a> */
+  color:inherit; text-align:left;
+  font:inherit;
+  text-decoration:none;
+  cursor:default;
+}
+/* Reset legacy app-wide `.kpi { font-size:38px; font-family:mono; color:accent }`
+   when the tile is nested inside any legacy container that also has the .kpi class.
+   The compound .kpi.kpi-tile is unlikely but we defensively re-anchor the type. */
+.kpi-tile.kpi { font-size:inherit; font-family:var(--gx-font-sans); color:inherit; font-weight:normal; line-height:normal; }
+/* button/a normalize: the surface paint + border come from .kpi-tile above; strip
+   the UA chrome the element type would otherwise contribute. */
+button.kpi-tile, a.kpi-tile {
+  appearance:none;
+  background:var(--gx-surface);
+  width:100%;
+}
+
+/* Clickable variant — hover lift, pointer cursor, focus-visible ring. */
+.kpi-tile[data-clickable="true"] { cursor:pointer; }
+.kpi-tile[data-clickable="true"]:hover {
+  box-shadow:var(--gx-shadow-md);
+  transform:translateY(-1px);
+  border-color:var(--gx-border-strong);
+}
+.kpi-tile[data-clickable="true"]:focus { outline:none; }
+.kpi-tile[data-clickable="true"]:focus-visible {
+  outline:2px solid var(--gx-primary);
+  outline-offset:2px;
+}
+/* Plain (non-clickable) variant: no hover lift, no cursor change. The base rule
+   already sets cursor:default — only re-affirm hover behavior here for clarity. */
+.kpi-tile:not([data-clickable="true"]):hover { transform:none; box-shadow:var(--gx-shadow-sm); border-color:var(--gx-border); }
+
+/* Premium tile — the one designated headline metric per dashboard. */
+.kpi-tile[data-premium="true"] { box-shadow:var(--gx-glow-gold); border-color:transparent; }
+.kpi-tile[data-premium="true"]::before {
+  content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px;
+  background:var(--gx-gold); border-radius:99px;
+}
+.kpi-tile-value.premium { color:var(--gx-gold); }
+
+/* Sub-element typography */
 .kpi-tile-label { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); font-family:var(--gx-font-mono); }
-.kpi-tile-value { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; line-height:1; color:var(--gx-text-1); }
+.kpi-tile-value { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; line-height:1; color:var(--gx-text-1); font-variant-numeric:tabular-nums; }
 .kpi-tile-value.sm { font-size:18px; } .kpi-tile-value.lg { font-size:36px; }
+.kpi-tile-value.danger { color:var(--gx-danger-fg); }
+.kpi-tile-value.warning { color:var(--gx-warning-fg); }
+.kpi-tile-value.muted { color:var(--gx-text-3); }
+.kpi-tile-sub { font-size:11px; color:var(--gx-text-3); margin-top:-2px; }
 .kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; }
 .kpi-tile-delta { display:inline-flex; align-items:center; gap:3px; font-family:var(--gx-font-mono); font-size:10px; }
 .kpi-tile-delta.up { color:var(--gx-success-fg); } .kpi-tile-delta.down { color:var(--gx-danger-fg); }

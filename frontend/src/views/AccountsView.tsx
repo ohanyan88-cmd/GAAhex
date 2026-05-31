@@ -15,7 +15,7 @@ import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 // Accounts UI (A17 /api/accounts) — the money/billing layer on a Party. Stage 1 may be dormant
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
@@ -199,29 +199,41 @@ export default function AccountsView({ token, canConfigure = false, configVersio
           const typeCount = new Set(all.map(a => a.type).filter(Boolean)).size
           return (
             <div className="kpi-strip">
-              <div className="kpi">
-                <span className="klbl">Accounts</span>
-                <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
-                <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
-              </div>
-              <div className="kpi kpi--marquee">
-                <span className="klbl">Active</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>billable</span>
-              </div>
+              <KPITile
+                label="Accounts"
+                value={all.length}
+                subtitle={`${activeCount} active`}
+                size="sm"
+                onClick={() => setQuery('')}
+                ariaLabel={`Total accounts — ${all.length}. Click to clear filter.`}
+              />
+              <KPITile
+                label="Active"
+                value={activeCount}
+                subtitle="billable"
+                size="sm"
+                premium
+                onClick={() => setQuery('ACTIVE')}
+                ariaLabel={`Active accounts — ${activeCount}. Click to filter to active.`}
+              />
               {suspendedCount > 0 && (
-                <div className="kpi">
-                  <span className="klbl">Suspended</span>
-                  <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{suspendedCount}</div>
-                  <span className="hint" style={{ fontSize: 11 }}>action required</span>
-                </div>
+                <KPITile
+                  label="Suspended"
+                  value={suspendedCount}
+                  subtitle="action required"
+                  size="sm"
+                  warning
+                  onClick={() => setQuery('SUSPENDED')}
+                  ariaLabel={`Suspended accounts — ${suspendedCount}. Click to filter to suspended.`}
+                />
               )}
               {typeCount > 0 && (
-                <div className="kpi">
-                  <span className="klbl">Types</span>
-                  <div className="kval tnum" style={{ fontSize: 24 }}>{typeCount}</div>
-                  <span className="hint" style={{ fontSize: 11 }}>residential · business · wholesale</span>
-                </div>
+                <KPITile
+                  label="Types"
+                  value={typeCount}
+                  subtitle="residential · business · wholesale"
+                  size="sm"
+                />
               )}
             </div>
           )

@@ -13,6 +13,7 @@ import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
 import FieldInput, { type Field } from '../components/FieldInput'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { KPITile } from '../primitives'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the DESIGN prototype:
 // live /api/leads data, token theming, SVG icons, metadata-driven lifecycle
@@ -177,24 +178,31 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
         }
       />
 
-      {/* KPI strip — use .kpi-strip (not .kpis) so legacy .kpi{font-size:38px} rule is reset */}
+      {/* KPI strip — shared KPITile primitive, identical to every other dashboard. */}
       {!loading && allLeads.length > 0 && (
         <div className="kpi-strip">
-          <div className="kpi">
-            <div className="klbl">{t('leads.open', 'Open')}</div>
-            <div className="kval tnum">{open}</div>
-            <div className="kfoot"><span className="hint" style={{ fontSize: 11 }}>in pipeline</span></div>
-          </div>
-          <div className="kpi kpi--marquee">
-            <div className="klbl">{t('leads.converted', 'Converted')}</div>
-            <div className="kval tnum">{converted}</div>
-            <div className="kfoot"><span className="hint" style={{ fontSize: 11 }}>won</span></div>
-          </div>
-          <div className="kpi">
-            <div className="klbl">{t('leads.lost', 'Lost')}</div>
-            <div className="kval tnum">{lost}</div>
-            <div className="kfoot"><span className="hint" style={{ fontSize: 11 }}>closed-lost</span></div>
-          </div>
+          <KPITile
+            label={t('leads.open', 'Open')}
+            value={open}
+            subtitle="in pipeline"
+            size="sm"
+            onClick={() => setSearch('')}
+            ariaLabel={`Open leads — ${open}. Click to clear filter.`}
+          />
+          <KPITile
+            label={t('leads.converted', 'Converted')}
+            value={converted}
+            subtitle="won"
+            size="sm"
+            premium
+          />
+          <KPITile
+            label={t('leads.lost', 'Lost')}
+            value={lost}
+            subtitle="closed-lost"
+            size="sm"
+            muted
+          />
         </div>
       )}
 

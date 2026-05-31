@@ -13,7 +13,7 @@ import {
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
@@ -175,29 +175,44 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
         {all.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Total</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
-              <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Active</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>delivering</span>
-            </div>
+            <KPITile
+              label="Total"
+              value={all.length}
+              subtitle={`${activeCount} active`}
+              size="sm"
+              onClick={() => setStatus('')}
+              ariaLabel={`Total services — ${all.length}. Click to clear filter.`}
+            />
+            <KPITile
+              label="Active"
+              value={activeCount}
+              subtitle="delivering"
+              size="sm"
+              premium
+              onClick={() => setStatus('active')}
+              ariaLabel={`Active services — ${activeCount}. Click to filter to active.`}
+            />
             {suspendedCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Suspended</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{suspendedCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>action required</span>
-              </div>
+              <KPITile
+                label="Suspended"
+                value={suspendedCount}
+                subtitle="action required"
+                size="sm"
+                warning
+                onClick={() => setStatus('suspended')}
+                ariaLabel={`Suspended services — ${suspendedCount}. Click to filter to suspended.`}
+              />
             )}
             {terminatedCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Terminated</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-danger-fg)' }}>{terminatedCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>closed</span>
-              </div>
+              <KPITile
+                label="Terminated"
+                value={terminatedCount}
+                subtitle="closed"
+                size="sm"
+                danger
+                onClick={() => setStatus('terminated')}
+                ariaLabel={`Terminated services — ${terminatedCount}. Click to filter to terminated.`}
+              />
             )}
           </div>
         )}

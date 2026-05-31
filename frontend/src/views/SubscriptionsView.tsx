@@ -15,7 +15,7 @@ import {
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
@@ -222,29 +222,44 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
         {all.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Total subscriptions</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{all.length}</div>
-              <span className="hint" style={{ fontSize: 11 }}>{activeCount} active</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Active</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{activeCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>recurring revenue</span>
-            </div>
+            <KPITile
+              label="Total subscriptions"
+              value={all.length}
+              subtitle={`${activeCount} active`}
+              size="sm"
+              onClick={() => setQuery('')}
+              ariaLabel={`Total subscriptions — ${all.length}. Click to clear filter.`}
+            />
+            <KPITile
+              label="Active"
+              value={activeCount}
+              subtitle="recurring revenue"
+              size="sm"
+              premium
+              onClick={() => setQuery('ACTIVE')}
+              ariaLabel={`Active subscriptions — ${activeCount}. Click to filter to active.`}
+            />
             {suspendedCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Suspended</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{suspendedCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>action required</span>
-              </div>
+              <KPITile
+                label="Suspended"
+                value={suspendedCount}
+                subtitle="action required"
+                size="sm"
+                warning
+                onClick={() => setQuery('SUSPENDED')}
+                ariaLabel={`Suspended — ${suspendedCount}. Click to filter to suspended.`}
+              />
             )}
             {cancelledCount > 0 && (
-              <div className="kpi">
-                <span className="klbl">Cancelled</span>
-                <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-text-3)' }}>{cancelledCount}</div>
-                <span className="hint" style={{ fontSize: 11 }}>closed</span>
-              </div>
+              <KPITile
+                label="Cancelled"
+                value={cancelledCount}
+                subtitle="closed"
+                size="sm"
+                muted
+                onClick={() => setQuery('CANCELLED')}
+                ariaLabel={`Cancelled — ${cancelledCount}. Click to filter to cancelled.`}
+              />
             )}
           </div>
         )}
