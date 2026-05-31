@@ -180,7 +180,8 @@ ENTITY_CATALOG = [
       [f("po_ref", "Purchase Order", "ref", target="purchase_order"), f("received_at", "Received", "datetime")]),
     e("asset", "Asset", "Assets", "assets", "package",
       [f("tag", "Asset Tag", "text", True), f("name", "Name", "text"), f("kind", "Kind", "text")],
-      [st("ACTIVE", "Active", True), st("RETIRED", "Retired")], [tr("ACTIVE", "RETIRED")]),
+      [st("ACTIVE", "Active", True), st("RETIRED", "Retired"), st("WRITTEN_OFF", "Written Off")],
+      [tr("ACTIVE", "RETIRED"), tr("ACTIVE", "WRITTEN_OFF"), tr("RETIRED", "WRITTEN_OFF")]),
     e("vehicle", "Vehicle", "Fleet / Vehicles", "vehicles", "truck",
       [f("plate", "Plate", "text", True), f("model", "Model", "text"), f("driver", "Driver", "ref", target="user")]),
 

@@ -261,3 +261,75 @@ async def test_spec_4_5_non_customer_delete_passes_through(client, admin):
                               json={"name": "Throwaway lead"})).json()
     r = await client.delete(f"/api/leads/{lead['id']}", headers=admin)
     assert r.status_code == 204  # no 202 parking step
+
+
+# ===================== adoption: asset_writeoff on POST /api/assets/{id}/writeoff =====================
+
+
+async def _create_asset_record(tag: str, name: str = "Test Asset", kind: str = "switch") -> str:
+    """Insert an asset Record directly via SessionLocal. The 'asset' entity_def isn't seeded in
+    the test DB (it's part of the lifespan-time catalog seed, which ASGITransport skips), so
+    POST /api/assets via the generic record router 404s with 'Unknown entity'. The writeoff
+    endpoint queries the Record table directly by id+tenant+entity_key — no entity_def lookup —
+    so a hand-inserted Record is sufficient for the §4.5 gate tests."""
+    from app.models import Record
+    async with SessionLocal() as s:
+        admin_user = (await s.execute(select(User).where(User.email == "admin@demo.isp"))).scalar_one()
+        rec = Record(
+            tenant_id=admin_user.tenant_id,
+            entity_key="asset",
+            owner_node_id=None,
+            status="ACTIVE",
+            data={"tag": tag, "name": name, "kind": kind},
+        )
+        s.add(rec)
+        await s.commit()
+        return str(rec.id)
+
+
+async def test_spec_4_5_asset_writeoff_gated_by_approval_then_executed(client, admin):
+    """POST /api/assets/{id}/writeoff parks an asset_writeoff approval; second call performs the
+    status mutation ACTIVE → WRITTEN_OFF and stamps writeoff metadata on the asset record."""
+    aid = await _create_asset_record(f"AST-WO-{uuid.uuid4().hex[:8]}", "Cisco SG350", "switch")
+
+    # 1. First writeoff returns 202 with approval_id.
+    pending = await client.post(f"/api/assets/{aid}/writeoff", headers=admin,
+                                json={"reason": "stolen on-site", "residual_amount": 0})
+    assert pending.status_code == 202, pending.text
+    body = pending.json()["detail"]
+    assert body["status"] == "approval_required"
+    assert body["action_type"] == "asset_writeoff"
+    approval_id = body["approval_id"]
+
+    # 2. Approve.
+    decided = await client.patch(f"/api/mandatory-approvals/{approval_id}/decide",
+                                 headers=admin, json={"decision": "APPROVED"})
+    assert decided.status_code == 200, decided.text
+
+    # 3. Retry — succeeds, status flips, writeoff metadata stamped.
+    final = await client.post(f"/api/assets/{aid}/writeoff", headers=admin,
+                              json={"reason": "stolen on-site", "residual_amount": 0})
+    assert final.status_code == 200, final.text
+    out = final.json()
+    assert out["status"] == "WRITTEN_OFF"
+    wo = out["writeoff"]
+    assert wo["reason"] == "stolen on-site"
+    assert wo["residual_amount"] == 0
+    assert wo["previous_status"] == "ACTIVE"
+    assert wo["written_off_at"]
+
+    # The approval row is now EXECUTED.
+    appr = (await client.get(f"/api/mandatory-approvals/{approval_id}", headers=admin)).json()
+    assert appr["status"] == "EXECUTED"
+
+    # Idempotency / re-writeoff is rejected with 409.
+    again = await client.post(f"/api/assets/{aid}/writeoff", headers=admin,
+                              json={"reason": "again"})
+    assert again.status_code == 409, again.text
+
+
+async def test_spec_4_5_asset_writeoff_requires_reason(client, admin):
+    """asset_writeoff requires a non-empty reason on the request body (422)."""
+    aid = await _create_asset_record(f"AST-WO-{uuid.uuid4().hex[:8]}", "Patch panel")
+    bad = await client.post(f"/api/assets/{aid}/writeoff", headers=admin, json={})
+    assert bad.status_code == 422
