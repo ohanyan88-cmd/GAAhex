@@ -1979,7 +1979,7 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
 
   return (
     <OrgEditContext.Provider value={edit}>
-      <div className="view-inner fade">
+      <div className="view-inner fade section-page">
           <div className="crumbs">
             <span>System</span><span className="sep">/</span>
             <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>

@@ -154,7 +154,7 @@ export default function ReportsView({
   if (denied) return <PermissionDenied message="You don't have permission to view reports." />
 
   return (
-    <div className="view-inner gx-dash fade">
+    <div className="view-inner gx-dash fade section-page">
         <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead
