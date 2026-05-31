@@ -11,6 +11,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session, OwnerSessionLocal
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.translation import Translation
 from ..access import load_grants, can
@@ -69,6 +70,12 @@ async def upsert_overrides(lang: str, payload: dict, user: User = Depends(curren
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    try:
+        await assert_can(s, user, action="config_manage", entity_key="translation",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if not isinstance(payload, dict) or not payload:
         raise HTTPException(422, "body must be a non-empty {key: value} object")
 
