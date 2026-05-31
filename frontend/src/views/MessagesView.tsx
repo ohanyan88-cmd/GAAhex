@@ -104,7 +104,7 @@ export default function MessagesView({
 
   async function loadMe() {
     try {
-      const r = await fetch(`${BASE}/api/me`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/auth/me`, { headers: authH(token) })
       if (!r.ok) return
       setMe(await r.json())
     } catch {
