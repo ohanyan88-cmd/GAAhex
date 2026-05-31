@@ -112,6 +112,19 @@ async def seed_if_empty() -> None:
             department="Executive",   # SPEC §4.1 Department layer (M0 demo backfill)
         )
         s.add(admin)
+
+        # Baseline parties — needed by the Accounts page holder-picker. Without these,
+        # creating an Account from the UI is blocked (zero options in the dropdown).
+        # dev_bulk also seeds parties, but that's opt-in via GAAEX_DEV_SEED; these 3
+        # are unconditional so the picker is never empty.
+        from .models.party import Party
+        for p_name, p_type in (
+            ("Demo ISP Holdings", "organization"),
+            ("Acme Corp", "organization"),
+            ("Demo Admin (individual)", "individual"),
+        ):
+            s.add(Party(tenant_id=tenant.id, name=p_name, type=p_type))
+
         await s.commit()
 
 
@@ -216,6 +229,13 @@ async def build_crm_entities(s, t) -> None:
             ("status", "Status", "status", False, None),
         ],
         statuses=[("OPEN", "Open", True), ("IN_PROGRESS", "In Progress", False), ("RESOLVED", "Resolved", False)],
+        transitions=[
+            {"from": "OPEN", "to": "IN_PROGRESS", "guard": None},
+            {"from": "OPEN", "to": "RESOLVED", "guard": None},
+            {"from": "IN_PROGRESS", "to": "RESOLVED", "guard": None},
+            {"from": "IN_PROGRESS", "to": "OPEN", "guard": None},
+            {"from": "RESOLVED", "to": "OPEN", "guard": None},
+        ],
     )
 
 
