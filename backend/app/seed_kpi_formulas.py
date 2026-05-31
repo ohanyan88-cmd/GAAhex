@@ -127,6 +127,91 @@ KPI_FORMULAS: dict[str, dict] = {
         },
         "_human": "PAID invoices / all invoices (M0 approximation of first-payment)",
     },
+
+    # Sales Agent — contract close rate. SIGNED contracts / all contracts.
+    # contract is config-driven (entity_def 'contract'); status comes from data.status.
+    "contract_close_rate": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "record",
+            "where": {"entity_key": "contract", "data.status": "SIGNED"},
+        },
+        "denominator": {
+            "type": "count", "table": "record",
+            "where": {"entity_key": "contract"},
+        },
+        "_human": "SIGNED contracts / all contracts",
+    },
+
+    # Orders — order creation accuracy. Orders that passed control / orders that have been judged.
+    # M0 approximation: an order is "accurate" if it ever reached control_pass=TRUE (any later
+    # cancellation reflects business choice, not creation error). Same source as control_pass_rate
+    # but from the Orders module's framing.
+    "order_creation_accuracy": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "order",
+            "where": {"control_pass": True},
+        },
+        "denominator": {
+            "type": "count", "table": "order",
+        },
+        "_human": "orders that passed control / all orders",
+    },
+
+    # Field Ops — install success rate. Workitems of kind=installation in status COMPLETED /
+    # all installation workitems. install_workitem == real install dispatch in M0.
+    "install_success_rate": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "workitem",
+            "where": {"kind": "installation", "status": "COMPLETED"},
+        },
+        "denominator": {
+            "type": "count", "table": "workitem",
+            "where": {"kind": "installation"},
+        },
+        "_human": "COMPLETED installation workitems / all installation workitems",
+    },
+
+    # Field Ops / NOC — connection success rate. Services in ACTIVE status / all services.
+    # An ACTIVE service implies the connection was provisioned and link is up.
+    "connection_success_rate": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "service",
+            "where": {"status": "ACTIVE"},
+        },
+        "denominator": {
+            "type": "count", "table": "service",
+        },
+        "_human": "ACTIVE services / all services",
+    },
+
+    # Customer Care — 30-day retention. ACTIVE subscriptions whose first PAID invoice is
+    # >30 days ago / all subscriptions that ever had a first PAID invoice. M0 approximation:
+    # uses subscription.created_at since a per-subscription "first payment" join is non-trivial
+    # for the basic engine; refinement is a config edit when the engine grows joins.
+    "thirty_day_retention": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "subscription",
+            "where": {"status": "ACTIVE", "created_at__before_days": 30},
+        },
+        "denominator": {
+            "type": "count", "table": "subscription",
+            "where": {"created_at__before_days": 30},
+        },
+        "_human": "ACTIVE subscriptions >30d old / all subscriptions >30d old (M0 approximation)",
+    },
+
+    # === DEFERRED (3 of 14 KPIs lack queryable source data) ===
+    # assignment_sla_compliance — needs Sales Ops assignment timestamps not tracked yet.
+    # feasibility_pass_rate    — needs Coverage & GIS module + coverage_check entity (SPEC §1
+    #                            stub; Portal hasn't built it). Compute when the module lands.
+    # schedule_fill_rate       — needs Dispatch + Scheduling capacity windows (SPEC §1 stubs).
+    # All three stay formula_spec=NULL until their source data exists. The engine returns
+    # value=None with reason='no formula' for these — honest, not faked.
 }
 
 
