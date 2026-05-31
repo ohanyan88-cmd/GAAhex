@@ -105,6 +105,33 @@ def _unique_path(existing_paths: set[str], parent_path: str | None, label: str) 
     return f"{base}{i}"
 
 
+@router.get("/nodes")
+async def list_nodes(
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """List org nodes for the current tenant.
+    Read-only mirror of `/org-tree` flattened; primarily exists so GET /api/org/nodes
+    returns a real shape instead of being captured by the /api/{slug} catch-all (422).
+    """
+    rows = (await s.execute(
+        select(OrgNode).where(OrgNode.tenant_id == user.tenant_id).order_by(OrgNode.path)
+    )).scalars().all()
+    return {
+        "nodes": [
+            {
+                "id": str(n.id),
+                "type": n.type,
+                "name": n.name,
+                "code": n.code,
+                "path": str(n.path),
+                "parent_id": str(n.parent_id) if n.parent_id else None,
+            }
+            for n in rows
+        ]
+    }
+
+
 @router.post("/nodes")
 async def create_node(
     payload: dict,
