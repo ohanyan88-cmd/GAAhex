@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User, Record, StatusDef
 from ..access import load_grants, can
 from .. import workflow
@@ -63,6 +64,12 @@ async def convert_lead(lead_id: uuid.UUID, user: User = Depends(current_user), s
     lead_path = await _node_path(s, lead.owner_node_id)
     if not can(grants, lead_ent.key, "edit", lead_path):                 # we mutate the lead
         raise HTTPException(403, f"Not allowed: {lead_ent.key}.edit")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key=lead_ent.key,
+                         region_id=getattr(lead, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     # Idempotency: a lead already linked to a customer returns that one — never a second record.
     existing = (lead.data or {}).get("converted_customer_id")
@@ -73,6 +80,12 @@ async def convert_lead(lead_id: uuid.UUID, user: User = Depends(current_user), s
     cust_path = await _node_path(s, lead.owner_node_id)
     if not can(grants, cust_ent.key, "create", cust_path):              # we create a customer
         raise HTTPException(403, f"Not allowed: {cust_ent.key}.create")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before customer creation.
+    try:
+        await assert_can(s, user, action="create", entity_key=cust_ent.key,
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     # Copy only fields the customer entity actually defines (intersection with the lead's data) — so
     # we carry name/phone/email/source/address etc. when both sides have them, and invent nothing.
