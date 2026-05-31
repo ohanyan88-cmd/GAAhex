@@ -2596,6 +2596,23 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     }
   }
 
+  const remove = async (flag: FlagRow) => {
+    if (!token) return
+    if (!window.confirm(`Delete feature flag "${flag.key}"? This cannot be undone.`)) return
+    const prev = flags
+    setFlags(prev.filter(f => f.id !== flag.id))
+    try {
+      const r = await fetch(`http://127.0.0.1:8099/api/feature-flags/${flag.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!r.ok && r.status !== 204) throw new Error(`HTTP ${r.status}`)
+    } catch (e) {
+      setFlags(prev)
+      setError((e as Error).message || 'Failed to delete flag')
+    }
+  }
+
   const header = (
     <Sec
       icon={<ToggleLeft size={15} />}
@@ -2708,6 +2725,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
                 <th>Label</th>
                 <th style={{ textAlign: 'center' }}>Enabled</th>
                 <th>Role scope</th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -2732,6 +2750,18 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
                     ) : (
                       <span className="hint" style={{ fontSize: 12 }}>—</span>
                     )}
+                  </td>
+                  <td className="actions-col">
+                    <button
+                      className="btn btn-ghost btn-sm btn-icon"
+                      type="button"
+                      title="Delete flag"
+                      aria-label={`Delete flag ${flag.key}`}
+                      onClick={() => remove(flag)}
+                      style={{ color: 'var(--gx-danger-fg)' }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}

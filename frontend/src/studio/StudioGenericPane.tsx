@@ -11,7 +11,7 @@
 
 import { type FlatLeaf } from './tree'
 import { iconFor } from './iconMap'
-import { richPaneFor } from './StudioRichPanes'
+import { richPaneFor, FeatureFlagsPane } from './StudioRichPanes'
 import { EmptyState } from '../components/States'
 import FieldsPane from './FieldsPane'
 import EntitiesPane from './EntitiesPane'
@@ -25,6 +25,8 @@ import AutomationsPane from './AutomationsPane'
 import NotificationsPane from './NotificationsPane'
 import WebhooksPane from './WebhooksPane'
 import ApiDocsPane from './ApiDocsPane'
+import AuditLogPane from './AuditLogPane'
+import SystemHealthPane from './SystemHealthPane'
 
 // ── real-data pane resolver ──────────────────────────────────────────────────
 // These panes are wired to the backend (CRUD + RLS). For the Studio leaves
@@ -54,6 +56,13 @@ const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }
   // leaves (Custom Code, SDK, CLI) stay on "Not yet wired".
   'developer.webhooks':                         WebhooksPane,
   'developer.api-docs':                         ApiDocsPane,
+  // System Control / Release / Governance — Module 5 priority-1 leaves.
+  // Feature Flags lives under Release in tree.ts; Audit Logs lives under
+  // Governance; System Health lives under System Control. All three are
+  // platform-infrastructure concerns and ship together as Module 5.
+  'release.feature-flags':                      FeatureFlagsPane,
+  'governance.audit-logs':                      AuditLogPane,
+  'system-control.system-health':               SystemHealthPane,
 }
 
 // ── StudioGenericPane (exported default) ─────────────────────────────────────
