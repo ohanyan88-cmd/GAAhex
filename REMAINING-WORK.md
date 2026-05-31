@@ -209,7 +209,7 @@ merchant credentials.
 | R-02 | Fix StudioRichPanes hardcoded URLs | 15 min | ✅ |
 | R-03 | OPS runbook + .env.production template | 1 hr | ✅ |
 | R-04 | Search facets + highlight | 2 hrs | ✅ |
-| R-05 | Wave 5 polymorphic triggers (asset/pipeline_item) | 1 hr | ⬜ |
+| R-05 | Wave 5 polymorphic triggers (asset/pipeline_item) | 1 hr | ✅ |
 | R-06 | §4.4 field-level encryption activate | 3 hrs | ⬜ |
 | R-07 | 3 missing KPI formulas (add source data) | 3 hrs | ⬜ |
 | R-08a | Stub nav views — entity-backed (8 modules) | 1 hr | ⬜ |
