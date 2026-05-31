@@ -193,7 +193,7 @@ export default function RevenueAssuranceView({
 
   return (
     <div className="view">
-      <div className="view-inner gx-dash fade">
+      <div className="view-inner gx-dash fade section-page">
         <div className="crumbs">
           <span>Revenue</span>
           <span className="sep">/</span>
