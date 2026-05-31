@@ -69,3 +69,17 @@ Tracks specialty modals, edge-case panes, and polish items that were intentional
 - Verification: `verify_network_polish.js` captures 16 screenshots (8 pages × 2 themes) in `screenshots/net_*.png`. The 6 stub-only Netops items (Coverage & GIS, Network Topology, Provisioning, Scheduling, Dispatch Board, Stock Inventory) are skipped per the doctrine "hide-if-missing" — they render the module stub.
 
 ## (Append per section as the polish pass continues)
+
+## 2026-05-31 audit: specialty modals re-classified
+
+Re-audit of the 8 modals deferred during the RecordDrawer sweep (`24b2e11`):
+- ProfileModal, SecurityModal, SupportModals (×4), AiAssistModal — all use base `Modal` with `size="sm"` (420px cap). Inherit the width fix.
+- CommentsModal — `size="md"` (560px). Inherits.
+- CustomerBillingModal — `size="lg"` (640px). Inherits.
+- WorkItemDetailModal — `size="lg"` (640px). Inherits.
+- ConfigureDrawer — already drawer-shaped (own pattern).
+
+**Verdict:** the width problem Gev originally flagged ("full-bleed, cramped left, dead space")
+is FIXED for every specialty modal via base-Modal inheritance. Migration to RecordDrawer
+slide-over pattern is a pattern preference, NOT a bug. Demote from "deferred — broken"
+to "future cosmetic enhancement when product owner asks."
