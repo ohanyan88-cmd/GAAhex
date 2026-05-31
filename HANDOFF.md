@@ -1,112 +1,103 @@
-# SESSION HANDOFF — Portal, 2026-05-31 (post-§4.5 sweep, pre-account-switch)
+# SESSION HANDOFF — Portal, 2026-06-01 (post-dashboard split + full test data)
 
-> Owner = Gev (calls me Ընգեր).
-> Repo: `ohanyan88-cmd/Portal` — **THE ACTIVE PRODUCT** (not the GAAex repo).
+> Owner = Gev (calls me Ընгер).
+> Repo: `ohanyan88-cmd/Portal` — THE ACTIVE PRODUCT. NEVER touch Desktop\GAAex.
 > Read this → `git pull` → `git status` → continue from "What's next".
 
-## Hard rules (load every session — these are in auto-memory but pin them anyway)
-- **Portal-only** — NEVER touch `C:\Users\Admin\Desktop\GAAex`. All work here.
-- **Orchestrator pushes** — agents commit locally; only main session runs `git push`.
-- **No clarifying gates** — "forget about wait for my approval, i know u know better than me".
-- Metadata/config — no hardcoded enums; everything in `_def` tables.
-- Real data only — missing → empty state, never fake.
-- DELETE old code, don't layer (esp. when reskinning).
-- Stage 8 Control Gate is THE only gate; don't build a second.
+## Hard rules (every session)
+- **Portal-only** — NEVER touch `C:\Users\Admin\Desktop\GAAex`
+- **Orchestrator pushes** — agents commit locally; only main session runs `git push`
+- **No clarifying gates** — autonomous execution
+- DELETE old code, don't layer
+- Stage 8 Control Gate is THE only gate
 
 ---
 
-## State at HEAD (`f43017a`, pushed)
+## State at HEAD (`3d3dd77`, pushed)
 
-- **Tests: 630 passing, 0 failing, 8 skipped, 1 xfailed.** Full suite green.
-- Migration head: `f1a3b8d27e64` (credit-note immutability). Live dev DB upgraded.
-- Branch: `main`. Local HEAD = origin/main. **Clean working tree.**
+- **Tests: 664 passing, 0 failing, 0 skipped**
+- Migration head: `b3d5f7a9c1e2` (live dev DB upgraded)
+- Branch: `main` — clean working tree, HEAD == origin/main
 
-### What landed this session (in order)
+### What landed this session
+
 | Commit | Subject |
 |---|---|
-| `11c063b` | Kernel §6 Wave 2 — low-risk FK backfill (payment.customer/account, service.product) |
-| `028212c` | Kernel Wave 4 NOT NULL on service.product_id + Wave 5 polymorphic triggers (project/customer) + §4.4 forward-look |
-| `3491273` | **§4.5 refund** — POST /api/payments/{id}/refund + approval gate + payment.refunded_amount/refunded_at |
-| `e767849` | **§4.5 credit_note** — POST /api/credit-notes + approval gate + DB immutability trigger on record |
-| `f43017a` | **§4.5 asset_writeoff** — POST /api/assets/{id}/writeoff + approval gate + WRITTEN_OFF status on asset |
-
-### SPEC §4.5 Mandatory Approvals — 11 of 12 paths wired
-
-| Wired | Action | Endpoint |
-|---|---|---|
-| ✅ | high_discount | POST /api/invoices (when discount > 20% charges) |
-| ✅ | refund | POST /api/payments/{id}/refund |
-| ✅ | credit_note | POST /api/credit-notes |
-| ✅ | invoice_cancel | (existing) |
-| ✅ | service_suspend | (existing) |
-| ✅ | contract_change | PATCH /api/subscriptions/{id} (plan/amount/cycle) |
-| ✅ | payment_adjust | POST /api/invoices/{id}/payments (adjust=true) |
-| ✅ | customer_delete | DELETE /api/customers/{id} |
-| ✅ | asset_writeoff | POST /api/assets/{id}/writeoff |
-| ✅ | role_perm_change | (existing) |
-| ✅ | workflow_override | (existing) |
-| ❌ | **procurement** | **last one — needs gated endpoint on purchase_order submit/approve** |
-
-`purchase_order` + `goods_receipt` entity_defs are already seeded in `seed_catalog.py` (DRAFT→ORDERED→RECEIVED), so the work is wiring the §4.5 gate on the DRAFT→ORDERED transition, not building a new module from scratch.
+| `5435dac` | catalog: 71 entities expanded → 556 fields (avg 7.8/entity), full status flows |
+| `a93baf7` | test data: `import_test_data.py` (1,150 Armenian records, 74 entities) + `seed_dashboard_data.py` |
+| `fadb5a5` | test data: `seed_churn_data.py` — 37 churned subs, churn events per 7d/30d/QTD/YTD window |
+| `5ea6fee` | **HomeView** (personal per-employee) split from **DashboardView** (company analytics) |
+| `3d3dd77` | fix: --sp-* → px values; .view/.view-inner layout classes — panels no longer overlap |
 
 ---
 
-## What's next (pick up here — in priority order)
+## Current DB state (live dev)
 
-| Pri | Task | Notes |
+| Table | Count |
+|---|---|
+| Records (74 entity types) | 1,150+ Armenian test records |
+| Subscriptions | 108 total (71 active, 37 churned) |
+| Invoices | 984 |
+| Payments | 957 |
+| Usage records | 441 |
+| MRR | 745,400 AMD |
+| Total collected | 4.5M+ AMD |
+
+To re-seed a fresh DB:
+```bash
+.venv/Scripts/python.exe -m scripts.import_test_data
+.venv/Scripts/python.exe -m scripts.seed_dashboard_data
+.venv/Scripts/python.exe -m scripts.seed_churn_data
+```
+
+---
+
+## Architecture split: Home vs Dashboard
+
+| View | Route | What it shows |
 |---|---|---|
-| 1 | **Close §4.5 to 12/12** — wire `procurement` gate on purchase_order DRAFT→ORDERED. Build `POST /api/purchase-orders/{id}/submit` in a new `routers/procurement.py`, mirror the `assets.py` pattern: assert_can('edit','purchase_order') + owner gate (writer_module='Procurement' — confirm in `FIRST_CLASS_OWNER_MAP`, add if missing) + §4.5 approval gate + status mutation. Add test in `test_mandatory_approvals.py`. | `backend/app/routers/procurement.py` (new), `backend/app/main.py` (register before records), `backend/tests/test_mandatory_approvals.py` |
-| 2 | Backup procedure runbook for first customer install | new `OPS-BACKUP.md` |
-| 3 | Wave 4 NOT NULL on remaining 21 Wave 1 FKs (deferred — needs live observation) | `backend/alembic/versions/` |
-| 4 | Wave 5 polymorphic triggers for asset/pipeline_item (need entity_defs seeded for those keys before triggers fire) | `backend/alembic/versions/` |
-| 5 | §4.4 broader column encryption (waits for sensitive columns to land) | model audit |
-| 6 | DESIGN reskin pass (Gev said new design files coming — when they land, FULL DELETE of old design before applying) | frontend |
+| **HomeView** (`'home'`) | Workspace → Home | Personal: MY tasks, MY approvals, MY tickets, TODAY's schedule, MY activity |
+| **DashboardView** (`'dashboards'`) | Analytics → Dashboards | Company: 7 chart types, MRR, AR aging, churn, sub mix, funnel — 7d/30d/QTD/YTD |
 
-### Pattern reference for the procurement endpoint (mirror this)
+Both use `.view` + `.view-inner` layout classes. All spacing in hard px values (no `--sp-*` tokens).
 
-`backend/app/routers/assets.py` — written this session, end-to-end §4.5 path:
-1. Load Record by id+tenant+entity_key
-2. Idempotency check (already terminal? → 409)
-3. `assert_can(action='edit', entity_key='purchase_order')`
-4. `_owner_gate(table='purchase_order', writer_module='Procurement')`
-5. Validate input (reason required, amount sane)
-6. `assert_approval_or_raise(action_type='procurement', target_entity_key='purchase_order', target_record_id=po.id)`
-7. On `ApprovalRequired` → create approval, commit, raise 202
-8. On pass-through → `find_approved_approval` + apply state mutation + audit emit + `mark_approval_executed`
+---
 
-Test pattern: `test_mandatory_approvals.py::test_spec_4_5_asset_writeoff_gated_by_approval_then_executed` — inserts the parent Record via `SessionLocal` (catalog entity_defs aren't seeded for the test tenant since `ASGITransport` skips lifespan).
+## What's next (REMAINING-WORK.md status)
+
+All R-01 → R-10 complete. P (payment gateways) complete to credential-slot level.
+
+**Remaining open items (no code changes needed, just decisions or external gates):**
+
+1. **Payment gateway credentials** — ARCA_MERCHANT + ARCA_PASSWORD from ACBA; IDRAM_MERCHANT_ID + IDRAM_SECRET_KEY from Unibank; TELCELL_MERCHANT + TELCELL_KEY from VivaCell-MTS; EasyPay docs from easypay.am
+2. **Design reskin** — Gev said new design files coming → when they arrive, FULL DELETE old CSS + new design (feedback-design-full-delete.md in memory). Don't touch design until Gev says so.
+3. **Wave 4 NOT NULL** — deferred until first real customer install gives live data
+4. **3 deferred KPI formulas source data** — already have coverage_check + schedule_slot entities seeded; data needs to accumulate
+5. **Studio builder depth** — `/api/studio/page-types`, `/api/studio/layout-blocks`, `/api/studio/components` endpoints (backend + Studio pane wiring)
 
 ---
 
 ## Stack-up commands
 
-```
+```powershell
 docker start gaaex-db gaaex-redis
 cd C:\Users\Admin\Desktop\Portal\backend
 .venv\Scripts\python.exe -m uvicorn app.main:app --port 8099
 ```
 
 Frontend (new shell):
-```
+```powershell
 cd C:\Users\Admin\Desktop\Portal\frontend
-npm run dev
-# → http://localhost:5173
+npm run dev     # → http://localhost:5173
 # login: admin@demo.isp / admin123
 ```
 
 Tests:
-```
+```powershell
 cd C:\Users\Admin\Desktop\Portal\backend
 .venv\Scripts\python.exe -m pytest -q
 ```
 
-Fresh test DB:
-```
-docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE portal_test;"
-$env:DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/portal_test"
-$env:OWNER_DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/portal_test"
-cd backend
-.venv\Scripts\python.exe -m alembic upgrade head
-```
+---
 
-— end handoff · pushed and clean · Gev switching accounts now —
+— end handoff · HEAD 3d3dd77 · clean · Gev switching accounts now —
