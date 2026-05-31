@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useFocusTrap } from '../lib/useFocusTrap'
@@ -14,6 +14,7 @@ export default function Overlay({
   role = 'dialog',
   backdropClassName = 'gx-scrim',
   bare = false,
+  style,
 }: {
   onClose: () => void
   children: ReactNode
@@ -22,6 +23,9 @@ export default function Overlay({
   role?: string
   backdropClassName?: string
   bare?: boolean
+  /** Inline style applied to the dialog panel — used by Modal to enforce
+   * a constrained maxWidth that overrides the .gx-dialog `width:100%` default. */
+  style?: CSSProperties
 }) {
   const ref = useFocusTrap<HTMLDivElement>(onClose)
 
@@ -44,6 +48,7 @@ export default function Overlay({
         aria-modal="true"
         aria-labelledby={labelledBy}
         tabIndex={-1}
+        style={style}
       >
         {children}
       </div>

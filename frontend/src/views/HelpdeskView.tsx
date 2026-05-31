@@ -9,10 +9,11 @@ import { listUsers, type User } from '../lib/users'
 import UserPicker, { resolveUserDisplay } from '../components/UserPicker'
 import ViewHead from '../components/ViewHead'
 import { Modal } from '../components/Modal'
+import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { InboxIcon, ArrowRightIcon } from '../components/icons'
-import { Plus, Check, X as XIcon, UserPlus } from 'lucide-react'
+import { Plus, Check, X as XIcon, UserPlus, RotateCcw } from 'lucide-react'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
@@ -357,7 +358,17 @@ export default function HelpdeskView({
   )
 }
 
-// ── Ticket Detail Modal ───────────────────────────────────────────────────────
+// ── Ticket Detail Drawer ──────────────────────────────────────────────────────
+//
+// Migrated to RecordDrawer (kit slide-over pattern). The detail panel now:
+//   - Slides in from the right at 520px (kit `.gx-drawer` width)
+//   - Hero header: ticket subject + TKT/<id> + status pill
+//   - `.kv` two-column grid for Customer / Priority / Queue / Assignee / SLA / Created
+//   - ONE ✕ in the header (RecordDrawer renders it)
+//   - ONE action row in the drawer header: Resolve · Reopen · Close · Assign
+//
+// Replaces the previous Modal size="lg" implementation that rendered full-bleed
+// with content cramped to the left and a redundant footer "Close" button.
 
 function TicketDetailModal({
   token, id, queues, names, users, canEdit, onClose,
@@ -417,84 +428,90 @@ function TicketDetailModal({
   const custName = ticket?.customer_id ? (names[ticket.customer_id] ?? ticket.customer_id.slice(0, 8)) : '—'
   const assigneeName = resolveUserDisplay(ticket?.assigned_agent_id, users)
 
+  // Map ticket status → RecordDrawer status pill variant.
+  function drawerStatus(s: string | null | undefined) {
+    if (!s) return undefined
+    const k = s.toLowerCase()
+    const variant: 'active' | 'degraded' | 'critical' | 'neutral' | 'info' =
+      k === 'in_progress' ? 'active'
+      : k === 'pending' ? 'degraded'
+      : k === 'resolved' || k === 'closed' ? 'neutral'
+      : 'info'
+    const label = k === 'in_progress' ? 'In Progress' : s
+    return { label, variant }
+  }
+
+  const fields: RecordDrawerField[] = ticket ? [
+    { key: 'customer', label: 'Customer', value: custName },
+    { key: 'priority', label: 'Priority', value: priorityPill(ticket.priority) },
+    { key: 'queue', label: 'Queue', value: queueName },
+    { key: 'assignee', label: 'Assignee', value: assigneeName },
+    { key: 'sla', label: 'SLA due', value: fmtDate(ticket.sla_due_at) },
+    { key: 'created', label: 'Created', value: fmtDate(ticket.created_at) },
+    ...(ticket.body ? [{
+      key: 'description',
+      label: 'Description',
+      value: <span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{ticket.body}</span>,
+    }] : []),
+    ...(canEdit ? [{
+      key: 'reassign',
+      label: 'Re-assign',
+      value: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
+          <UserPicker
+            token={token}
+            value={agentId}
+            onChange={setAgentId}
+            className="inp inp-sm"
+            aria-label="Agent to assign"
+          />
+          <Button variant="primary" size="sm" leftIcon={UserPlus} disabled={busy || !agentId.trim()} onClick={handleAssign}>
+            Assign
+          </Button>
+        </div>
+      ),
+    }] : []),
+  ] : []
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={ticket ? ticket.subject : 'Ticket'}
-      size="lg"
-      footer={
-        <Button variant="ghost" size="md" onClick={onClose}>Close</Button>
-      }
-    >
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {!ticket && !error && <p className="muted">Loading…</p>}
-
-      {ticket && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Meta grid */}
-          <div className="bill-meta">
-            <div><span className="muted">Customer</span><div>{custName}</div></div>
-            <div><span className="muted">Priority</span><div>{priorityPill(ticket.priority)}</div></div>
-            <div><span className="muted">Status</span><div>{statusPill(ticket.status)}</div></div>
-            <div><span className="muted">Queue</span><div>{queueName}</div></div>
-            <div><span className="muted">Assignee</span><div>{assigneeName}</div></div>
-            <div><span className="muted">SLA due</span><div>{fmtDate(ticket.sla_due_at)}</div></div>
-            <div><span className="muted">Created</span><div>{fmtDate(ticket.created_at)}</div></div>
-          </div>
-
-          {/* Body */}
-          {ticket.body && (
-            <div>
-              <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>Description</div>
-              <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{ticket.body}</p>
-            </div>
-          )}
-
-          {/* Assign — UserPicker is a SHARED <select> component (out of scope to reskin); wrapped in a
-              FormField primitive for the label, with the Assign action as a <Button>. */}
-          {canEdit && (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <FormField label="Assignee" htmlFor="hd-assignee">
-                  <UserPicker
-                    token={token}
-                    value={agentId}
-                    onChange={setAgentId}
-                    className="inp inp-sm"
-                    aria-label="Agent to assign"
-                  />
-                </FormField>
-              </div>
-              <Button variant="primary" size="sm" leftIcon={UserPlus} disabled={busy || !agentId.trim()} onClick={handleAssign}>
-                Assign
-              </Button>
-            </div>
-          )}
-
-          {/* Actions */}
-          {canEdit && (
-            <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
+    <>
+      <RecordDrawer
+        open
+        onClose={onClose}
+        entityKey="TKT"
+        id={ticket ? ticket.id.slice(0, 8) : id.slice(0, 8)}
+        title={ticket ? ticket.subject : 'Loading ticket…'}
+        subtitle={ticket && ticket.customer_id ? custName : undefined}
+        status={drawerStatus(ticket?.status)}
+        fields={fields}
+        footer={
+          canEdit && ticket ? (
+            <>
+              {canClose && (
+                <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
+                  Close ticket
+                </Button>
+              )}
+              {canReopen && (
+                <Button variant="secondary" size="sm" leftIcon={RotateCcw} disabled={busy} onClick={() => handleAction('reopen')}>
+                  Reopen
+                </Button>
+              )}
               {canResolve && (
                 <Button variant="primary" size="sm" leftIcon={Check} disabled={busy} onClick={() => handleAction('resolve')}>
                   Resolve
                 </Button>
               )}
-              {canReopen && (
-                <Button variant="secondary" size="sm" disabled={busy} onClick={() => handleAction('reopen')}>
-                  Reopen
-                </Button>
-              )}
-              {canClose && (
-                <Button variant="ghost" size="sm" leftIcon={XIcon} disabled={busy} onClick={() => handleAction('close')}>
-                  Close
-                </Button>
-              )}
-            </div>
-          )}
+            </>
+          ) : null
+        }
+      />
+      {error && (
+        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 9999, maxWidth: 320 }}>
+          <ErrorBanner message={error} onRetry={load} />
         </div>
       )}
-    </Modal>
+    </>
   )
 }
 

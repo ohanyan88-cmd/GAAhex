@@ -71,7 +71,12 @@ export interface RecordDrawerProps {
   related?: RecordDrawerRelated[]
   notes?: RecordDrawerNote[]
   onAddNote?: (body: string) => void
+  /** Secondary actions rendered in the drawer header (next to the ✕). Optional. */
   actions?: ReactNode
+  /** Primary action row rendered at the BOTTOM of the drawer (kit pattern).
+   * Use this for "Resolve · Assign" on tickets, "Mark Paid · Pay online" on
+   * invoices — wired actions only, no inert buttons. */
+  footer?: ReactNode
 }
 
 type TabKey = 'Overview' | 'Activity' | 'Related' | 'Notes'
@@ -99,6 +104,7 @@ export default function RecordDrawer({
   notes,
   onAddNote,
   actions,
+  footer,
 }: RecordDrawerProps) {
   const [tab, setTab] = useState<TabKey>('Overview')
   const [noteDraft, setNoteDraft] = useState('')
@@ -404,6 +410,23 @@ export default function RecordDrawer({
             </>
           )}
         </div>
+        {footer && (
+          <div
+            className="drawer-foot"
+            style={{
+              display: 'flex',
+              gap: 8,
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              padding: '12px 20px',
+              borderTop: '1px solid var(--gx-border-subtle)',
+              background: 'var(--gx-surface-2)',
+              flexShrink: 0,
+            }}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )

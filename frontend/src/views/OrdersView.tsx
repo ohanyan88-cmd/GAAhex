@@ -18,6 +18,7 @@ import { money } from '../lib/money'
 import { fetchCapabilities, can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { toast } from '../components/Toast'
 import { Modal } from '../components/Modal'
+import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ArchiveIcon, SearchIcon, GearIcon, CheckIcon, CloseIcon, ArrowRightIcon,
@@ -28,7 +29,7 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
-import { StatusPill } from '../primitives'
+import { StatusPill, KPITile } from '../primitives'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 // Mirrors the dict shape from orders.py::_order().
@@ -243,26 +244,38 @@ export default function OrdersView({ token }: { token: string }) {
 
         {all.length > 0 && (
           <div className="kpi-strip">
-            <div className="kpi">
-              <span className="klbl">Drafts</span>
-              <div className="kval tnum" style={{ fontSize: 24 }}>{draftCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>not yet submitted</span>
-            </div>
-            <div className="kpi">
-              <span className="klbl">In flight</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-warning-fg)' }}>{inFlightCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>submitted or provisioning</span>
-            </div>
-            <div className="kpi kpi--marquee">
-              <span className="klbl">Completed</span>
-              <div className="kval tnum" style={{ fontSize: 24, color: 'var(--gx-gold)' }}>{completedCount}</div>
-              <span className="hint" style={{ fontSize: 11 }}>provisioned</span>
-            </div>
-            <div className="kpi">
-              <span className="klbl">Completed value</span>
-              <div className="kval tnum" style={{ fontSize: 18 }}>{money(completedValue)}</div>
-              <span className="hint" style={{ fontSize: 11 }}>sum of totals</span>
-            </div>
+            <KPITile
+              label="Drafts"
+              value={draftCount}
+              subtitle="not yet submitted"
+              size="sm"
+              onClick={() => setStatusFilter('DRAFT')}
+              ariaLabel={`Drafts — ${draftCount}. Click to filter to draft.`}
+            />
+            <KPITile
+              label="In flight"
+              value={inFlightCount}
+              subtitle="submitted or provisioning"
+              size="sm"
+              warning
+              onClick={() => setStatusFilter('SUBMITTED')}
+              ariaLabel={`In flight — ${inFlightCount}. Click to filter.`}
+            />
+            <KPITile
+              label="Completed"
+              value={completedCount}
+              subtitle="provisioned"
+              size="sm"
+              premium
+              onClick={() => setStatusFilter('COMPLETED')}
+              ariaLabel={`Completed — ${completedCount}. Click to filter to completed.`}
+            />
+            <KPITile
+              label="Completed value"
+              value={money(completedValue)}
+              subtitle="sum of totals"
+              size="sm"
+            />
           </div>
         )}
 
@@ -591,93 +604,69 @@ function OrderDetailModal({
   const advLbl = nextAdvanceLabel(status)
   const canFinalCancel = status && status !== 'COMPLETED' && status !== 'CANCELLED'
 
+  // Map OrderRow status → RecordDrawer status pill variant. Keeps the same
+  // mapping logic as the row pill (mapOrderStatus) but coerced to the drawer's
+  // 5-variant scale.
+  const statusVariant = order?.status ? mapOrderStatus(order.status) : undefined
+  const drawerStatus = statusVariant && order?.status
+    ? { label: order.status, variant: statusVariant as 'active' | 'degraded' | 'critical' | 'neutral' | 'info' }
+    : undefined
+
+  const fields: RecordDrawerField[] = order ? [
+    { key: 'customer', label: 'Customer', value: cust },
+    { key: 'total', label: 'Total', value: <span className="mono tnum">{money(order.total)}</span> },
+    { key: 'created', label: 'Created', value: fmtDate(order.created_at) },
+    { key: 'items', label: 'Items', value: order.items && order.items.length > 0 ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {order.items.map((it) => (
+          <div key={it.id} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.description}</span>
+            <span className="mono tnum" style={{ color: 'var(--gx-text-3)' }}>×{it.quantity}</span>
+            <span className="mono tnum" style={{ minWidth: 64, textAlign: 'right' }}>{money(it.line_total)}</span>
+          </div>
+        ))}
+      </div>
+    ) : <span className="muted">No items on this order.</span> },
+  ] : []
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={order ? `Order ${order.number}` : 'Order'}
-      size="lg"
-      footer={
-        <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Close</button>
-        </div>
-      }
-    >
-      {error && <ErrorBanner message={error} onRetry={load} />}
-      {!order && !error && <p className="muted">Loading…</p>}
-
-      {order && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Status + action bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {order.status
-              ? <StatusPill variant={mapOrderStatus(order.status)} label={order.status} size="sm" />
-              : <span className="muted">—</span>}
-            <span className="muted" style={{ fontSize: 12 }}>{cust}</span>
-            <span className="muted" style={{ fontSize: 12 }}>· {money(order.total)}</span>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              {canEdit && status === 'DRAFT' && (
-                <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => action('submit')}>
-                  <ArrowRightIcon size={12} /> Submit
-                </button>
-              )}
-              {canEdit && advLbl && (
-                <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => action('advance')}>
-                  <CheckIcon size={12} /> {advLbl}
-                </button>
-              )}
-              {canEdit && canFinalCancel && (
+    <>
+      <RecordDrawer
+        open
+        onClose={onClose}
+        entityKey="ORD"
+        id={order ? order.number : id.slice(0, 8)}
+        title={order ? `Order ${order.number}` : 'Loading order…'}
+        subtitle={order?.customer_id ? cust : undefined}
+        status={drawerStatus}
+        fields={fields}
+        footer={
+          canEdit && order ? (
+            <>
+              {canFinalCancel && (
                 <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => action('cancel')}>
-                  <CloseIcon size={12} /> Cancel
+                  <CloseIcon size={13} /> Cancel order
                 </button>
               )}
-            </div>
-          </div>
-
-          {/* Metadata */}
-          <div className="bill-meta">
-            <div>
-              <span className="muted">Created</span>
-              <div>{fmtDate(order.created_at)}</div>
-            </div>
-            <div>
-              <span className="muted">Total</span>
-              <div className="mono tnum">{money(order.total)}</div>
-            </div>
-          </div>
-
-          {/* Line items — hide the table if none came back. */}
-          {order.items && order.items.length > 0 ? (
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <div className="card-head"><h3 style={{ margin: 0, fontSize: 13 }}>Items</h3></div>
-              <div className="grid-wrap">
-                <table className="grid">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th className="num">Qty</th>
-                      <th className="num">Unit</th>
-                      <th className="num">Line total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {order.items.map((it) => (
-                      <tr key={it.id}>
-                        <td>{it.description}</td>
-                        <td className="num"><span className="mono tnum">{it.quantity}</span></td>
-                        <td className="num"><span className="mono tnum">{money(it.unit_amount)}</span></td>
-                        <td className="num"><span className="mono tnum">{money(it.line_total)}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <p className="muted" style={{ fontSize: 12 }}>No items on this order.</p>
-          )}
+              {status === 'DRAFT' && (
+                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => action('submit')}>
+                  <ArrowRightIcon size={13} /> Submit
+                </button>
+              )}
+              {advLbl && (
+                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => action('advance')}>
+                  <CheckIcon size={13} /> {advLbl}
+                </button>
+              )}
+            </>
+          ) : null
+        }
+      />
+      {error && (
+        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 9999, maxWidth: 320 }}>
+          <ErrorBanner message={error} onRetry={load} />
         </div>
       )}
-    </Modal>
+    </>
   )
 }
