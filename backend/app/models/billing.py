@@ -91,6 +91,11 @@ class Payment(Base):
     method: Mapped[str] = mapped_column(String(20), nullable=False)                     # cash|card|transfer
     paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # SPEC §4.5 refund tracking. Refunds are state changes (SPEC §0.3 immutability allows UPDATE,
+    # only DELETE is forbidden). refunded_amount sums all refunds against this payment in luma;
+    # refunded_at is the most-recent refund timestamp.
+    refunded_amount: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0, server_default="0")
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # SPEC §6 Wave 1 (additive, nullable): direct customer + account links (today reached only via
     # invoice → customer/account). Backfill via invoice deferred to Wave 2.

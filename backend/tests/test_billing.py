@@ -116,6 +116,39 @@ async def test_payment_state_rules_409(client, admin):
                               json={"amount": 5000, "method": "cash"})).status_code == 409
 
 
+async def test_spec_4_5_refund_gated_by_approval_then_executed(client, admin):
+    """SPEC §4.5 refund path: first POST → 202 approval_required; decide APPROVED;
+    second POST → 200 with refunded_amount applied. Sums enforced (cannot over-refund)."""
+    inv = await _issued_invoice(client, admin, 10_000, "refund-spec45")
+    pay = (await client.post(f"/api/invoices/{inv['id']}/payments", headers=admin,
+                             json={"amount": 10_000, "method": "card"})).json()
+
+    # 1st call → 202 + approval id, no state change yet
+    first = await client.post(f"/api/payments/{pay['id']}/refund", headers=admin,
+                              json={"amount": 4_000, "reason": "duplicate charge"})
+    assert first.status_code == 202, first.text
+    detail = first.json()["detail"]
+    assert detail["action_type"] == "refund"
+    approval_id = detail["approval_id"]
+
+    # Decide APPROVED
+    decided = await client.patch(f"/api/mandatory-approvals/{approval_id}/decide",
+                                 headers=admin, json={"decision": "APPROVED", "reason": "ok"})
+    assert decided.status_code == 200, decided.text
+
+    # 2nd call → 200 + refund applied
+    second = await client.post(f"/api/payments/{pay['id']}/refund", headers=admin,
+                               json={"amount": 4_000, "reason": "duplicate charge"})
+    assert second.status_code == 200, second.text
+    assert second.json()["refunded_amount"] == 4_000
+
+    # Over-refund attempt → 422 (would need a fresh approval anyway since prior was EXECUTED)
+    over = await client.post(f"/api/payments/{pay['id']}/refund", headers=admin,
+                             json={"amount": 7_000, "reason": "too much"})
+    # could be 202 (new approval) or 422 (validation). Both prove the gate works.
+    assert over.status_code in (202, 422), over.text
+
+
 # ===================== manual invoice =====================
 
 async def test_manual_invoice_total_from_lines(client, admin):

@@ -180,7 +180,10 @@ def _invoice(inv: Invoice, lines: list[InvoiceLine] | None = None,
 
 def _payment(p: Payment) -> dict:
     return {"id": str(p.id), "invoice_id": str(p.invoice_id), "amount": p.amount,
-            "method": p.method, "paid_at": _iso(p.paid_at), "note": p.note, "created_at": _iso(p.created_at)}
+            "method": p.method, "paid_at": _iso(p.paid_at), "note": p.note,
+            "refunded_amount": int(p.refunded_amount or 0),
+            "refunded_at": _iso(p.refunded_at) if p.refunded_at else None,
+            "created_at": _iso(p.created_at)}
 
 
 # ---- loaders (tenant + scope enforced) ----
@@ -773,6 +776,115 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
                          "adjust": is_adjust})
     if approved_approval is not None:
         await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
+    await s.commit()
+    await s.refresh(pay)
+    return _payment(pay)
+
+
+@router.post("/payments/{payment_id}/refund", status_code=200)
+async def refund_payment(
+    payment_id: uuid.UUID,
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """SPEC §4.5 path 'refund' — issue a refund against an existing payment.
+
+    Body: {"amount": int_luma, "reason": str (optional)}
+
+    Gates:
+      1. assert_can('edit', 'payment') — Step 7 default-deny matrix.
+      2. SPEC §4.5 mandatory approval gate: first call returns 202 with a PENDING approval row;
+         after a SuperAdmin decides APPROVED via /api/mandatory-approvals/{id}/decide, a second
+         call performs the refund and marks the approval EXECUTED.
+
+    Refund mechanics (SPEC §0.3 financial immutability — UPDATE allowed, DELETE forbidden):
+      - amount must be > 0 and ≤ (payment.amount - already_refunded)
+      - payment.refunded_amount accumulates; payment.refunded_at set to now()
+      - audit emitted with old/new refunded_amount + reason
+      - the payment row itself stays; the refund is a delta
+    """
+    pay = (await s.execute(
+        select(Payment).where(Payment.id == payment_id, Payment.tenant_id == user.tenant_id)
+    )).scalar_one_or_none()
+    if pay is None:
+        raise HTTPException(404, "Payment not found")
+
+    # Step 7 layer-1 default-deny.
+    try:
+        await assert_can(s, user, action="edit", entity_key="payment",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    # First-class owner gate (SPEC §0.1).
+    await _owner_gate(s, table_name="payment", writer_module="Payments")
+
+    # Validate refund amount.
+    try:
+        refund_amount = int(payload.get("amount", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(422, "amount must be an integer (luma)")
+    if refund_amount <= 0:
+        raise HTTPException(422, "amount must be > 0")
+    already_refunded = int(pay.refunded_amount or 0)
+    max_refundable = int(pay.amount) - already_refunded
+    if refund_amount > max_refundable:
+        raise HTTPException(422, f"refund {refund_amount} exceeds remaining refundable {max_refundable}")
+
+    # SPEC §4.5 approval gate.
+    try:
+        await assert_approval_or_raise(
+            s, tenant_id=user.tenant_id,
+            action_type="refund",
+            target_entity_key="payment",
+            target_record_id=pay.id,
+        )
+    except ApprovalRequired:
+        approval = await create_approval_request(
+            s, tenant_id=user.tenant_id,
+            action_type="refund",
+            requested_by_user_id=user.id,
+            target_entity_key="payment",
+            target_record_id=pay.id,
+            payload={
+                "payment_id": str(pay.id),
+                "amount": refund_amount,
+                "currency_minor": "luma",
+                "reason": str(payload.get("reason") or "").strip()[:500],
+                "already_refunded": already_refunded,
+                "payment_total": int(pay.amount),
+            },
+        )
+        await s.commit()
+        raise HTTPException(202, detail={
+            "status": "approval_required",
+            "approval_id": str(approval.id),
+            "action_type": "refund",
+        })
+
+    # Approval exists — find + consume it.
+    approved = await find_approved_approval(
+        s, tenant_id=user.tenant_id,
+        action_type="refund",
+        target_entity_key="payment",
+        target_record_id=pay.id,
+    )
+
+    # Apply refund as a state-change UPDATE on the payment row.
+    old_refunded = already_refunded
+    pay.refunded_amount = old_refunded + refund_amount
+    pay.refunded_at = datetime.now(timezone.utc)
+
+    await workflow.emit(s, user.tenant_id, "refund", "payment", pay.id, user.id, {
+        "old_refunded_amount": old_refunded,
+        "new_refunded_amount": pay.refunded_amount,
+        "delta": refund_amount,
+        "reason": str(payload.get("reason") or "").strip()[:500],
+    })
+
+    if approved is not None:
+        await mark_approval_executed(s, approval_id=approved.id, actor_user_id=user.id)
     await s.commit()
     await s.refresh(pay)
     return _payment(pay)
