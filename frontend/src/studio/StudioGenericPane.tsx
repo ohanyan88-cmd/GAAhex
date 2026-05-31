@@ -14,6 +14,7 @@ import { iconFor } from './iconMap'
 import { richPaneFor } from './StudioRichPanes'
 import { EmptyState } from '../components/States'
 import FieldsPane from './FieldsPane'
+import EntitiesPane from './EntitiesPane'
 import ViewsPane from './ViewsPane'
 import WorkflowsPane from './WorkflowsPane'
 import RolesPane from './RolesPane'
@@ -29,6 +30,7 @@ import AutomationsPane from './AutomationsPane'
 //
 // Leaf id format = `${groupId}.${moduleId?}.${leafId}` (see tree.ts).
 const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }>> = {
+  'data.models.entities':              EntitiesPane,
   'data.models.fields':                FieldsPane,
   'experience.pages.page-registry':    ViewsPane,
   'logic.workflows.workflow-designer': WorkflowsPane,

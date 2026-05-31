@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, WorkflowDef, PermissionDef, Record, User
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
+from .. import workflow
 from .auth import current_user
 
 router = APIRouter(prefix="/meta", tags=["meta"])
@@ -140,6 +141,11 @@ async def create_entity(payload: dict, user: User = Depends(current_user), s: As
     for verb in ("view", "create", "edit", "delete"):
         s.add(PermissionDef(tenant_id=user.tenant_id, key=f"{key}.{verb}", label=f"{verb} {key}", group=key))
 
+    await workflow.emit(
+        s, user.tenant_id, "create", "entity_def", ent.id, user.id,
+        {"key": key, "label": label, "route_slug": slug,
+         "field_count": len(fields), "status_count": len(statuses)},
+    )
     await s.commit()
     return {"key": key, "route_slug": slug, "label_plural": ent.label_plural}
 
@@ -164,21 +170,29 @@ async def update_entity(slug: str, payload: dict, user: User = Depends(current_u
     if unknown:
         raise HTTPException(422, f"Cannot patch {sorted(unknown)}; allowed: {sorted(allowed)}")
 
+    changed: list[str] = []
     if "label" in payload:
         v = (payload["label"] or "").strip()
         if not v:
             raise HTTPException(422, "label cannot be empty")
-        ent.label = v
+        ent.label = v; changed.append("label")
     if "label_plural" in payload:
         v = (payload["label_plural"] or "").strip()
         if not v:
             raise HTTPException(422, "label_plural cannot be empty")
-        ent.label_plural = v
+        ent.label_plural = v; changed.append("label_plural")
     if "icon" in payload:
         ent.icon = payload["icon"]                      # nullable — allow clearing
+        changed.append("icon")
     if "order" in payload:
         ent.order = int(payload["order"])               # DEPENDS ON EntityDef.order (see report)
+        changed.append("order")
 
+    if changed:
+        await workflow.emit(
+            s, user.tenant_id, "update", "entity_def", ent.id, user.id,
+            {"key": ent.key, "changed": changed},
+        )
     await s.commit()
     return {"key": ent.key, "label": ent.label, "label_plural": ent.label_plural,
             "route_slug": ent.route_slug, "icon": ent.icon, "status": ent.status}
@@ -192,6 +206,10 @@ async def retire_entity(slug: str, user: User = Depends(current_user), s: AsyncS
     await _require_config_manage(s, user)
     ent = await _get_entity(s, user, slug)
     ent.status = "retired"
+    await workflow.emit(
+        s, user.tenant_id, "delete", "entity_def", ent.id, user.id,
+        {"key": ent.key, "route_slug": ent.route_slug},
+    )
     await s.commit()
     return {"key": ent.key, "status": ent.status}
 
@@ -226,6 +244,12 @@ async def add_field(slug: str, payload: dict, user: User = Depends(current_user)
                    label=payload.get("label", key), type=ftype,
                    required=bool(payload.get("required")), order=order, config=payload.get("config"))
     s.add(fld)
+    await s.flush()
+    await workflow.emit(
+        s, user.tenant_id, "create", "field_def", fld.id, user.id,
+        {"entity_key": ent.key, "key": fld.key, "type": fld.type, "label": fld.label,
+         "required": fld.required},
+    )
     await s.commit()
     return {"key": fld.key, "label": fld.label, "type": fld.type,
             "required": fld.required, "order": fld.order, "config": fld.config}
@@ -243,7 +267,13 @@ async def delete_field(slug: str, field_key: str, user: User = Depends(current_u
     )).scalar_one_or_none()
     if not fld:
         raise HTTPException(404, f"Unknown field '{field_key}' on '{ent.key}'")
+    fid = fld.id
+    fkey = fld.key
     await s.delete(fld)
+    await workflow.emit(
+        s, user.tenant_id, "delete", "field_def", fid, user.id,
+        {"entity_key": ent.key, "key": fkey},
+    )
     await s.commit()
 
 
@@ -276,15 +306,16 @@ async def update_field(slug: str, field_key: str, payload: dict, user: User = De
     if unknown:
         raise HTTPException(422, f"Cannot patch {sorted(unknown)}; editable: ['label','required','order','options']")
 
+    changed: list[str] = []
     if "label" in payload:
         v = (payload["label"] or "").strip()
         if not v:
             raise HTTPException(422, "label cannot be empty")
-        fld.label = v
+        fld.label = v; changed.append("label")
     if "required" in payload:
-        fld.required = bool(payload["required"])
+        fld.required = bool(payload["required"]); changed.append("required")
     if "order" in payload:
-        fld.order = int(payload["order"])
+        fld.order = int(payload["order"]); changed.append("order")
 
     new_opts = payload.get("options")
     if new_opts is None and isinstance(payload.get("config"), dict):
@@ -297,7 +328,13 @@ async def update_field(slug: str, field_key: str, payload: dict, user: User = De
         cfg = dict(fld.config or {})
         cfg["options"] = new_opts
         fld.config = cfg                                # reassign so SQLAlchemy detects the JSONB change
+        changed.append("options")
 
+    if changed:
+        await workflow.emit(
+            s, user.tenant_id, "update", "field_def", fld.id, user.id,
+            {"entity_key": ent.key, "key": fld.key, "changed": changed},
+        )
     await s.commit()
     return {"key": fld.key, "label": fld.label, "type": fld.type,
             "required": fld.required, "order": fld.order, "config": fld.config}
@@ -336,6 +373,11 @@ async def add_status(slug: str, payload: dict, user: User = Depends(current_user
     st = StatusDef(tenant_id=user.tenant_id, entity_def_id=ent.id, key=key,
                    label=payload.get("label", key), order=order, is_initial=is_initial)
     s.add(st)
+    await s.flush()
+    await workflow.emit(
+        s, user.tenant_id, "create", "status_def", st.id, user.id,
+        {"entity_key": ent.key, "key": st.key, "label": st.label, "is_initial": st.is_initial},
+    )
     await s.commit()
     return {"key": st.key, "label": st.label, "order": st.order, "is_initial": st.is_initial}
 
@@ -359,6 +401,10 @@ async def reorder_statuses(slug: str, payload: dict, user: User = Depends(curren
 
     for i, k in enumerate(order, start=1):
         statuses[k].order = i
+    await workflow.emit(
+        s, user.tenant_id, "update", "status_def", ent.id, user.id,
+        {"entity_key": ent.key, "reorder": order},
+    )
     await s.commit()
     return {"order": order}
 
@@ -375,11 +421,12 @@ async def update_status(slug: str, status_key: str, payload: dict, user: User = 
     if not st:
         raise HTTPException(404, f"Unknown status '{status_key}' on '{ent.key}'")
 
+    changed: list[str] = []
     if "label" in payload:
         v = (payload["label"] or "").strip()
         if not v:
             raise HTTPException(422, "label cannot be empty")
-        st.label = v
+        st.label = v; changed.append("label")
 
     if "is_initial" in payload:
         new_initial = bool(payload["is_initial"])
@@ -389,7 +436,13 @@ async def update_status(slug: str, status_key: str, payload: dict, user: User = 
             )).scalars().all():
                 o.is_initial = False
         st.is_initial = new_initial
+        changed.append("is_initial")
 
+    if changed:
+        await workflow.emit(
+            s, user.tenant_id, "update", "status_def", st.id, user.id,
+            {"entity_key": ent.key, "key": st.key, "changed": changed},
+        )
     await s.commit()
     return {"key": st.key, "label": st.label, "order": st.order, "is_initial": st.is_initial}
 
@@ -421,7 +474,13 @@ async def delete_status(slug: str, status_key: str, user: User = Depends(current
             raise HTTPException(409, f"Cannot delete status '{status_key}': {len(refs)} transition(s) "
                                      "reference it. Edit transitions first.")
 
+    sid = st.id
+    skey = st.key
     await s.delete(st)
+    await workflow.emit(
+        s, user.tenant_id, "delete", "status_def", sid, user.id,
+        {"entity_key": ent.key, "key": skey},
+    )
     await s.commit()
     return {"deleted": status_key}
 
@@ -455,9 +514,17 @@ async def set_transitions(slug: str, payload: dict, user: User = Depends(current
         cfg = dict(wf.config or {})
         cfg["transitions"] = cleaned
         wf.config = cfg                                 # reassign so the JSONB change is detected
+        wf_id = wf.id
     else:
-        s.add(WorkflowDef(tenant_id=user.tenant_id, entity_def_id=ent.id,
-                          key=f"{ent.key}_lifecycle", label=f"{ent.label} Lifecycle",
-                          config={"transitions": cleaned}))
+        new_wf = WorkflowDef(tenant_id=user.tenant_id, entity_def_id=ent.id,
+                             key=f"{ent.key}_lifecycle", label=f"{ent.label} Lifecycle",
+                             config={"transitions": cleaned})
+        s.add(new_wf)
+        await s.flush()
+        wf_id = new_wf.id
+    await workflow.emit(
+        s, user.tenant_id, "update", "workflow_def", wf_id, user.id,
+        {"entity_key": ent.key, "transition_count": len(cleaned)},
+    )
     await s.commit()
     return {"transitions": [{"from": t["from"], "to": t["to"]} for t in cleaned]}
