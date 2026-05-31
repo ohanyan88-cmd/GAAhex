@@ -45,4 +45,27 @@ Tracks specialty modals, edge-case panes, and polish items that were intentional
 - Inline `<h1 style={{ fontFamily, fontSize, ... }}>` and `<div style={{ color: var(--gx-text-3), ... }}>` on `MessagesView` / `OutboundView` `comms-head` replaced with new `.comms-title` / `.comms-sub` classes (tokenized; light/dark via `--gx-*` only).
 - 6 of 9 Care pages share `EntityView`, which was already polished in the CRM sweep — no fork.
 
+## Network & Operations polish (section 5 of 9) — appended 2026-05-31
+
+### Deferred from Network & Operations sweep
+- **`bill-meta` / `bill-actions` / `bill-section-head` undefined classes** — surveyed in `InvoicesView`, `WorkItemsView`, `MyTasksView`, `AccountsView`, `ServicesView` (pre-polish) and `ResourcePoolsView` (pre-polish). These classes are referenced from JSX but have NO CSS rules anywhere in `styles.css`/`primitives.css`/`gaaex-tokens.css`, so they render as plain divs. Both Netops custom views (Services + ResourcePools) were migrated to RecordDrawer in this commit and no longer use `bill-meta`. The 4 remaining consumers are out of Netops scope; cleanup is a billing/revenue polish concern.
+- **Service-detail "Activity" tab inside RecordDrawer** — `RecordDrawer` exposes an `activity` prop (timeline pane) that we left unwired for Services because the backend `/api/services/{id}` payload doesn't currently include audit events. Wire when service-level audit history is exposed (today only the resources list is included).
+- **Pool-detail "Related services" tab** — IPAM allocations link out to `service_id`, but resolving that into a clickable record-jump would mean coupling `ResourcePoolsView` to the service-routing layer. Linkout deferred until we have a generic record-jump helper.
+- **Service lifecycle Activate confirmation** — `Activate` runs without a confirmDialog. `Terminate` and `Suspend` both confirm (Terminate explicitly via `confirmDialog`; Suspend implicitly via the §4.5 mandatory-approval gate). Activate is intentionally one-click for now — revisit if downstream provisioning side-effects make it destructive.
+- **`assets` entity duplication** — both `net-asset-mgmt` (Network & Operations) and any future Enterprise asset register point at the same `/api/assets`. Resolution is governance, not visual polish; surfaced for the Enterprise sweep.
+- **Stub modules** — Coverage & GIS, Network Topology, Provisioning, Scheduling, Dispatch Board, Stock Inventory in nav-config have `viewType: undefined` → render the module stub. No polish target until a real view lands.
+
+### Done in this commit
+- `ServicesView` rewrapped in `.view-inner.section-page.fade` (1320px cap) with `Network & Operations / Services` breadcrumb; `<ServerIcon>` replaces the old `<InboxIcon>` in `ViewHead` to match the section motif.
+- `ServicesView` service-detail flow migrated from a full-page back-stacked panel (`ServiceDetail` component) to a `RecordDrawer` slide-over (`ServiceDrawer`). Lifecycle actions (Activate / Suspend / Terminate) live in the drawer footer; resources table renders in a card under the hero. Old `bill-meta` / `bill-section-head` / `bill-actions` divs deleted (per "DELETE old code, don't layer").
+- `ServicesView` status pills + tab labels routed through `humanizeStatus()` so `SUSPENDED` → "Suspended", `TERMINATED` → "Terminated", etc. Tab `s.toLowerCase()` slicing removed in favor of the helper.
+- `ServicesView` suspend lifecycle handler now inspects the response body for `detail.status === 'approval_required'` (SPEC §4.5 mandatory-approval gate returns HTTP 202 with that payload) and toasts "Suspension queued for approval" instead of the generic "Service suspended" success.
+- `ServicesView` lifecycle handlers gated through `can(capabilities, 'service', 'edit')` (was `'update'` — `update` isn't a valid `Verb` enum; was caught by `tsc --noEmit`).
+- `ResourcePoolsView` rewrapped in `.view-inner.section-page.fade` (1320px cap) with `Network & Operations / Resource Pools` breadcrumb (was `Inventory / Resource Pools`); `<PackageIcon>` replaces `<ServerIcon>` in `ViewHead` for the per-page icon (the section icon stays ServerIcon).
+- `ResourcePoolsView` pool-detail flow migrated from `PoolDetail` full-page to `PoolDrawer` (RecordDrawer slide-over). Old `bill-meta` / `bill-actions` divs deleted. Allocation table renders inside a `.card` under the drawer hero — matches the Services drawer pattern.
+- `ResourcePoolsView` pool-status labels surfaced with leading-cap ("Available", "Reserved", …) instead of lowercase. The Create-pool form now wraps in a `.card` for consistency with the rest of the section.
+- `ResourcePoolsView` loading state replaced the bare `SkeletonRows` with a `.card`-wrapped variant so the skeleton matches the post-load table chrome and doesn't jump on hydration.
+- 6 of 8 active Netops pages share `EntityView` (Alarms via Network Monitoring, Incidents & Outages, Asset Management, Work Orders, Warehouses, etc.) — already polished in CRM sweep — no fork.
+- Verification: `verify_network_polish.js` captures 16 screenshots (8 pages × 2 themes) in `screenshots/net_*.png`. The 6 stub-only Netops items (Coverage & GIS, Network Topology, Provisioning, Scheduling, Dispatch Board, Stock Inventory) are skipped per the doctrine "hide-if-missing" — they render the module stub.
+
 ## (Append per section as the polish pass continues)

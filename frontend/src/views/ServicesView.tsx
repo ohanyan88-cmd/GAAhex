@@ -4,19 +4,25 @@ import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChevronLeftIcon, InboxIcon, SearchIcon, GearIcon,
+  InboxIcon, SearchIcon, GearIcon, ServerIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Pause, Play, Trash2,
 } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
+import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill, KPITile, Button } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { humanizeStatus } from '../lib/humanize'
 
-// Services UI (A14 /api/services) — list + detail with resources + lifecycle. Degrades on 404.
+// Services UI (A14 /api/services) — list + RecordDrawer detail with resources + lifecycle.
+// SPEC §4.5 mandatory-approval gate is wired on the backend `suspend` transition:
+// a first-call returns HTTP 202 { detail: { status: 'approval_required', approval_id, action_type } }
+// (parking a PENDING approval) and the suspension only happens once an approver decides.
+// We surface that via a toast so the user knows it's queued, not failed.
 type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
 type Resource = { id: string; kind?: string; value?: string; label?: string | null; status?: string | null; created_at?: string | null }
 
@@ -45,7 +51,7 @@ function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) 
     case 'customer': return cust(sv)
     case 'type': return <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{sv.type ?? '—'}</span>
     case 'status': return sv.status
-      ? <StatusPill variant={mapServiceStatus(sv.status)} label={sv.status} size="sm" />
+      ? <StatusPill variant={mapServiceStatus(sv.status)} label={humanizeStatus(sv.status)} size="sm" />
       : <span>—</span>
     case 'activated': return <span className="mono">{fmtDate(sv.activated_at)}</span>
     default: return '—'
@@ -146,15 +152,14 @@ export default function ServicesView({ token, canConfigure = false, configVersio
   const terminatedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'TERMINATED').length
 
   if (denied) return <PermissionDenied message="You don't have permission to view services." />
-  if (detailId) return <ServiceDetail token={token} id={detailId} names={names} onBack={() => { setDetailId(null); load() }} />
 
   return (
     <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{page.title}</span></div>
+      <div className="view-inner section-page fade">
+        <div className="crumbs"><span>Network &amp; Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{page.title}</span></div>
 
         <ViewHead
-          icon={<InboxIcon size={18} />}
+          icon={<ServerIcon size={18} />}
           title={page.title}
           sub={`${all.length} service${all.length !== 1 ? 's' : ''} · provisioned inventory · lifecycle engine`}
           actions={
@@ -189,7 +194,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
               subtitle="delivering"
               size="sm"
               premium
-              onClick={() => setStatus('active')}
+              onClick={() => setStatus('ACTIVE')}
               ariaLabel={`Active services — ${activeCount}. Click to filter to active.`}
             />
             {suspendedCount > 0 && (
@@ -199,7 +204,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                 subtitle="action required"
                 size="sm"
                 warning
-                onClick={() => setStatus('suspended')}
+                onClick={() => setStatus('SUSPENDED')}
                 ariaLabel={`Suspended services — ${suspendedCount}. Click to filter to suspended.`}
               />
             )}
@@ -210,7 +215,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                 subtitle="closed"
                 size="sm"
                 danger
-                onClick={() => setStatus('terminated')}
+                onClick={() => setStatus('TERMINATED')}
                 ariaLabel={`Terminated services — ${terminatedCount}. Click to filter to terminated.`}
               />
             )}
@@ -223,7 +228,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
           </button>
           {STATUSES.map((s) => (
             <button key={s} className={'tab' + (status === s ? ' on' : '')} onClick={() => setStatus(s)}>
-              {s.charAt(0) + s.slice(1).toLowerCase()} <span className="tab-count">{all.filter(x => (x.status ?? '').toUpperCase() === s).length}</span>
+              {humanizeStatus(s)} <span className="tab-count">{all.filter(x => (x.status ?? '').toUpperCase() === s).length}</span>
             </button>
           ))}
         </div>
@@ -234,7 +239,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
             <SkeletonRows rows={6} />
           </div>
         )}
-        {unavailable && <EmptyState icon={<InboxIcon size={40} />} title="Services aren't available yet" message="Provisioned services will appear here once the service inventory is enabled." />}
+        {unavailable && <EmptyState icon={<ServerIcon size={40} />} title="Services aren't available yet" message="Provisioned services will appear here once the service inventory is enabled." />}
         {list && !unavailable && list.length === 0 && !error && (
           <EmptyState icon={<InboxIcon size={40} />} title="No services" message="Nothing matches this filter." />
         )}
@@ -323,6 +328,16 @@ export default function ServicesView({ token, canConfigure = false, configVersio
           </div>
         )}
 
+        {detailId && (
+          <ServiceDrawer
+            token={token}
+            id={detailId}
+            names={names}
+            capabilities={capabilities}
+            onClose={() => { setDetailId(null); load() }}
+          />
+        )}
+
         {createOpen && (
           <CreateServiceModal
             token={token}
@@ -370,11 +385,26 @@ function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose
   )
 }
 
-function ServiceDetail({ token, id, names, onBack }: { token: string; id: string; names: Record<string, string>; onBack: () => void }) {
+// ── Service detail (RecordDrawer slide-over) ─────────────────────────────────
+//
+// Migrated from a full-page back-stacked detail to the shared RecordDrawer
+// (same pattern as HelpdeskView ticket drawer). The lifecycle actions live in
+// the drawer footer (Activate / Suspend / Terminate) and the resources table
+// renders inline as a related-records card under the hero.
+function ServiceDrawer({ token, id, names, capabilities, onClose }: {
+  token: string
+  id: string
+  names: Record<string, string>
+  capabilities: Capabilities
+  onClose: () => void
+}) {
   const [sv, setSv] = useState<Service | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [error, setError] = useState('')
   const [allocOpen, setAllocOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const canEdit = can(capabilities, 'service', 'edit')
 
   async function load() {
     setError('')
@@ -385,16 +415,32 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
   }
   useEffect(() => { load() }, [token, id])
 
+  // SPEC §4.5 — backend returns HTTP 202 with detail.status === 'approval_required'
+  // when a `service_suspend` action is parked pending an APPROVED approval row.
+  // We surface that as an informational toast rather than a destructive error.
   async function lifecycle(verb: 'activate' | 'suspend' | 'terminate') {
     if (verb === 'terminate') {
       const ok = await confirmDialog({ title: 'Terminate service', message: 'Terminate this service? This stops delivery.', confirmLabel: 'Terminate', danger: true })
       if (!ok) return
     }
+    if (busy) return
+    setBusy(true)
     try {
-      await bpost(token, `/api/services/${id}/${verb}`)
-      toast.success(`Service ${verb}d`)
+      const result: any = await bpost(token, `/api/services/${id}/${verb}`)
+      // The mandatory-approval gate parks a PENDING approval and the backend response
+      // body is `{ detail: { status: 'approval_required', approval_id, action_type } }`.
+      // It still arrives with a 2xx status (202), so bpost resolves normally — inspect
+      // the body so we can tell the user "queued for approval" instead of "Suspended".
+      const approval = result?.detail?.status === 'approval_required' ? result.detail
+        : result?.status === 'approval_required' ? result
+        : null
+      if (approval) {
+        toast.success(`${verb === 'suspend' ? 'Suspension' : 'Action'} queued for approval`)
+      } else {
+        toast.success(`Service ${verb}d`)
+      }
       await load()
-    } catch (e) { toast.error((e as Error).message) }
+    } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
 
   async function release(rid: string) {
@@ -406,71 +452,109 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
   }
 
   const status = (sv?.status ?? '').toUpperCase()
-  const cust = sv?.customer_id ? (names[sv.customer_id] ?? sv.customer_id.slice(0, 8)) : '—'
+  const custName = sv?.customer_id ? (names[sv.customer_id] ?? sv.customer_id.slice(0, 8)) : '—'
+
+  const drawerStatus = sv?.status ? {
+    label: humanizeStatus(sv.status),
+    variant: mapServiceStatus(sv.status),
+  } : undefined
+
+  const fields: RecordDrawerField[] = sv ? [
+    { key: 'customer', label: 'Customer', value: custName },
+    { key: 'type', label: 'Type', value: sv.type ? <span style={{ textTransform: 'capitalize' }}>{sv.type}</span> : '—' },
+    { key: 'activated', label: 'Activated', value: <span className="mono">{fmtDate(sv.activated_at)}</span> },
+    { key: 'created', label: 'Created', value: <span className="mono">{fmtDate(sv.created_at)}</span> },
+    {
+      key: 'resources',
+      label: `Resources (${resources.length})`,
+      value: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+          {status !== 'TERMINATED' && canEdit && (
+            <div>
+              <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setAllocOpen(true)}>
+                Allocate resource
+              </Button>
+            </div>
+          )}
+          {resources.length === 0
+            ? <span className="muted">No resources allocated.</span>
+            : (
+              <div className="card" style={{ overflow: 'hidden' }}>
+                <div className="grid-wrap">
+                  <table className="grid">
+                    <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col" className="actions-col"><span className="sr-only">Actions</span></th></tr></thead>
+                    <tbody>
+                      {resources.map((r) => {
+                        const rs = (r.status ?? '').toUpperCase()
+                        return (
+                          <tr key={r.id}>
+                            <td>{r.kind ?? '—'}</td>
+                            <td className="mono">{r.value ?? '—'}</td>
+                            <td>{r.label ?? '—'}</td>
+                            <td>{rs === 'RELEASED'
+                              ? <StatusPill variant="neutral" label="Released" size="sm" />
+                              : <StatusPill variant="active" label="Allocated" size="sm" />}
+                            </td>
+                            <td className="actions-col">
+                              <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                                {rs !== 'RELEASED' && canEdit && (
+                                  <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+        </div>
+      ),
+    },
+  ] : []
 
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="view-head">
-          <button className="btn btn-ghost btn-sm" onClick={onBack}><ChevronLeftIcon size={14} /> Services</button>
-          <h2 style={{ marginLeft: 8 }}>{sv?.name ?? `Service ${id.slice(0, 8)}`}</h2>
-        </div>
-
-        {error && <ErrorBanner message={error} onRetry={load} />}
-        {!sv && !error && <p className="muted">Loading…</p>}
-
-        {sv && (
-          <>
-            <div className="bill-meta">
-              <div><span className="muted">Customer</span><div>{cust}</div></div>
-              <div><span className="muted">Type</span><div>{sv.type ?? '—'}</div></div>
-              <div><span className="muted">Status</span><div>{sv.status ? <StatusPill variant={mapServiceStatus(sv.status)} label={sv.status} size="sm" /> : '—'}</div></div>
-              <div><span className="muted">Activated</span><div>{fmtDate(sv.activated_at)}</div></div>
-              <div className="bill-actions">
-                {(status === 'PENDING' || status === 'SUSPENDED') && <button className="btn btn-primary btn-sm" onClick={() => lifecycle('activate')}>Activate</button>}
-                {status === 'ACTIVE' && <button className="btn btn-ghost btn-sm" onClick={() => lifecycle('suspend')}>Suspend</button>}
-                {status !== 'TERMINATED' && <button className="btn btn-danger btn-sm" onClick={() => lifecycle('terminate')}>Terminate</button>}
-              </div>
-            </div>
-
-            <div className="bill-section-head">
-              <h3>Resources</h3>
-              {status !== 'TERMINATED' && <button className="btn btn-ghost btn-sm" onClick={() => setAllocOpen(true)}>+ Allocate</button>}
-            </div>
-            {resources.length === 0
-              ? <p className="muted">No resources allocated.</p>
-              : (
-                <div className="card" style={{ overflow: 'hidden' }}>
-                  <div className="grid-wrap">
-                    <table className="grid">
-                      <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col" className="actions-col"><span className="sr-only">Actions</span></th></tr></thead>
-                      <tbody>
-                        {resources.map((r) => {
-                          const rs = (r.status ?? '').toUpperCase()
-                          return (
-                            <tr key={r.id}>
-                              <td>{r.kind ?? '—'}</td>
-                              <td className="mono">{r.value ?? '—'}</td>
-                              <td>{r.label ?? '—'}</td>
-                              <td>{rs === 'RELEASED'
-                                ? <StatusPill variant="neutral" label="released" size="sm" />
-                                : <StatusPill variant="active" label="allocated" size="sm" />}
-                              </td>
-                              <td className="actions-col"><div className="row-actions" style={{ justifyContent: 'flex-end' }}>{rs !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>}</div></td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+    <>
+      <RecordDrawer
+        open
+        onClose={onClose}
+        entityKey="SVC"
+        id={sv ? sv.id.slice(0, 8) : id.slice(0, 8)}
+        title={sv?.name ?? `Service ${id.slice(0, 8)}`}
+        subtitle={sv?.customer_id ? custName : undefined}
+        status={drawerStatus}
+        fields={fields}
+        footer={
+          canEdit && sv ? (
+            <>
+              {(status === 'PENDING' || status === 'SUSPENDED') && (
+                <Button variant="primary" size="sm" leftIcon={Play} disabled={busy} onClick={() => lifecycle('activate')}>
+                  Activate
+                </Button>
               )}
-          </>
-        )}
-
-        {allocOpen && <AllocateModal token={token} serviceId={id} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
-      </div>
-    </div>
+              {status === 'ACTIVE' && (
+                <Button variant="ghost" size="sm" leftIcon={Pause} disabled={busy} onClick={() => lifecycle('suspend')}>
+                  Suspend
+                </Button>
+              )}
+              {status && status !== 'TERMINATED' && (
+                <Button variant="secondary" size="sm" leftIcon={Trash2} disabled={busy} onClick={() => lifecycle('terminate')}>
+                  Terminate
+                </Button>
+              )}
+            </>
+          ) : null
+        }
+      />
+      {error && (
+        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 9999, maxWidth: 320 }}>
+          <ErrorBanner message={error} onRetry={load} />
+        </div>
+      )}
+      {allocOpen && <AllocateModal token={token} serviceId={id} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
+    </>
   )
 }
 
@@ -506,3 +590,4 @@ function AllocateModal({ token, serviceId, onClose, onDone }: { token: string; s
     </Modal>
   )
 }
+
