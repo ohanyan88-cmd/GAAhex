@@ -663,5 +663,6 @@ function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLab
           </div>
         </div>
       </div>
+    </div>
   )
 }
