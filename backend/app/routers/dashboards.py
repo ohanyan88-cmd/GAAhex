@@ -9,10 +9,20 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import DashboardDef, WidgetDef, Record, OrgNode, User
 from ..access import load_grants, can
 from ..gxl import evaluate
 from .auth import current_user
+
+
+async def _kernel_gate(s, user, action: str) -> None:
+    """Step 7.2 kernel gate for dashboard writes — config-manage on dashboard_def."""
+    try:
+        await assert_can(s, user, action=action, entity_key="dashboard_def",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 router = APIRouter(prefix="/dashboards", tags=["dashboards"])
 
@@ -172,6 +182,8 @@ async def update_dashboard(key: str, payload: dict, user: User = Depends(current
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    await _kernel_gate(s, user, "config_manage")
     dash = await _get_dashboard(s, user.tenant_id, key)
 
     if "label" in payload:
@@ -226,6 +238,8 @@ async def delete_dashboard(key: str, user: User = Depends(current_user), s: Asyn
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    await _kernel_gate(s, user, "config_manage")
     dash = await _get_dashboard(s, user.tenant_id, key)
 
     # Delete all widgets first (FK dependency)
@@ -245,6 +259,8 @@ async def create_dashboard(payload: dict, user: User = Depends(current_user), s:
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    await _kernel_gate(s, user, "config_manage")
 
     key = (payload.get("key") or "").strip()
     label = (payload.get("label") or "").strip()
