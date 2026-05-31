@@ -6,10 +6,30 @@
 
 ## ⚠️ ACTIVE: REPORT-ALL.md in progress (2026-05-31, third attempt — account cut at 80%)
 
-7 parallel agents were launched. Session cut at ~80% usage. **§1 Workspace is confirmed
-committed (`f5c7ec7`). The other 6 may or may not have committed before the cut.**
+7 parallel agents were launched. Session cut at ~80% usage. **3 of 7 confirmed committed
+and pushed to remote before the cut:**
 
-Check what landed:
+| File | Commit | Status |
+|------|--------|--------|
+| REPORT-S1-WORKSPACE.md | f5c7ec7 | ✅ 6/6 pages |
+| REPORT-S3-ORDERS.md | 912bd21 | ✅ 4/5 pages — ⚠️ InvoicesView luma bug (see below) |
+| REPORT-S8S9-SYSTEM-STUDIO.md | 73651bf | ✅ §8 5/5, §9 Studio complete |
+
+**4 sections still missing (re-run these):**
+- §2 CRM & Commercial (13 pages) → `handoff/REPORT-S2-CRM.md`
+- §4 Customer Care (9 pages) → `handoff/REPORT-S4-CARE.md`
+- §5 Network & Ops (12 pages) → `handoff/REPORT-S5-NETOPS.md`
+- §6+§7 Analytics + Enterprise (11 pages) → `handoff/REPORT-S6S7-ANALYTICS-ENTERPRISE.md`
+
+**⚠️ Known bug found by §3 agent (fix before go-live):**
+InvoicesView has TWO luma bugs still unfixed:
+1. `renderInvoiceCell('amount')` line 115 — uses raw `toLocaleString()` instead of `money()` → amounts 100× too large in list table
+2. KPI strip divides by 1000 instead of 100000 → shows "1500.0k ֏" instead of "15.0k ֏"
+
+**⚠️ Known bug found by §8 agent:**
+`GET /api/org/nodes` returns 422 due to router ordering conflict — UI unaffected (OrgView receives nodes as prop), but the standalone endpoint is broken.
+
+Check what landed after git pull:
 ```
 git log --oneline -20 | grep "REPORT-S"
 ls handoff/REPORT-S*.md
