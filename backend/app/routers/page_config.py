@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.page_config import PageConfig
 from ..models.page_field_value import PageFieldValue
@@ -34,6 +35,12 @@ async def _require_config_manage(s: AsyncSession, user: User) -> None:
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    try:
+        await assert_can(s, user, action="config_manage", entity_key="page_config",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 def _norm_key(page_key: str) -> str:
@@ -164,6 +171,14 @@ async def put_page_value(
         raise HTTPException(422, "row_id too long")
     if not isinstance(payload, dict):
         raise HTTPException(422, "body must be an object of {field_key: value}")
+
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before mutation. Page field VALUES are data
+    # edits (not config) — gated on edit for the page_field_value entity.
+    try:
+        await assert_can(s, user, action="edit", entity_key="page_field_value",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     # Validate against the page's declared custom fields if we can load them (else accept-and-store).
     cfg_row = (await s.execute(
