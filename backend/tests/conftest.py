@@ -33,8 +33,25 @@ async def _setup_db():
     from app.models import Base
     from app.seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
 
+    # CREATE EXTENSION IF NOT EXISTS is NOT atomic in Postgres: two concurrent
+    # transactions can both see "doesn't exist", both try to create, one hits the
+    # unique-violation on pg_extension_name_index. Run on a dedicated connection
+    # OUTSIDE the bulk transaction, with retry-swallowing for the race. Idempotent.
+    async with engine.connect() as c:
+        try:
+            await c.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
+            await c.commit()
+        except Exception as e:
+            # Race: another connection in this process just created it. Confirm
+            # the extension is in fact present, then continue. Re-raise on other errors.
+            if "ltree" not in str(e).lower() or "extension" not in str(e).lower():
+                raise
+            await c.rollback()
+        result = await c.execute(text("SELECT 1 FROM pg_extension WHERE extname = 'ltree'"))
+        if result.first() is None:
+            raise RuntimeError("ltree extension missing after CREATE — DB setup failed")
+
     async with engine.begin() as c:
-        await c.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
         await c.run_sync(Base.metadata.create_all)
     await seed_if_empty()
     await seed_meta_if_empty()
