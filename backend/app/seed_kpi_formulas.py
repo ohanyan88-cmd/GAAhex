@@ -205,13 +205,46 @@ KPI_FORMULAS: dict[str, dict] = {
         "_human": "ACTIVE subscriptions >30d old / all subscriptions >30d old (M0 approximation)",
     },
 
-    # === DEFERRED (3 of 14 KPIs lack queryable source data) ===
-    # assignment_sla_compliance — needs Sales Ops assignment timestamps not tracked yet.
-    # feasibility_pass_rate    — needs Coverage & GIS module + coverage_check entity (SPEC §1
-    #                            stub; Portal hasn't built it). Compute when the module lands.
-    # schedule_fill_rate       — needs Dispatch + Scheduling capacity windows (SPEC §1 stubs).
-    # All three stay formula_spec=NULL until their source data exists. The engine returns
-    # value=None with reason='no formula' for these — honest, not faked.
+    # === R-07: previously deferred — source data now exists ===
+    "assignment_sla_compliance": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "workitem",
+            "where": {
+                "first_response_at__not_null": True,
+                "first_response_at__lte_assigned_at_plus_hours_4": True,
+            },
+        },
+        "denominator": {
+            "type": "count", "table": "workitem",
+            "where": {"assigned_at__not_null": True},
+        },
+        "_human": "workitems with first response within 4 h of assignment / all assigned workitems",
+    },
+    "feasibility_pass_rate": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "record",
+            "where": {"entity_key": "coverage_check", "data.result": "PASS"},
+        },
+        "denominator": {
+            "type": "count", "table": "record",
+            "where": {"entity_key": "coverage_check"},
+        },
+        "_human": "coverage_check records with result=PASS / total coverage checks",
+    },
+    "schedule_fill_rate": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "record",
+            "where": {"entity_key": "schedule_slot", "data.status": "FILLED"},
+        },
+        "denominator": {
+            "type": "count", "table": "record",
+            "where": {"entity_key": "schedule_slot"},
+        },
+        "_human": "schedule_slots with status=FILLED / total schedule_slots",
+    },
 }
 
 

@@ -52,6 +52,7 @@ from ..models import EntityDef, Record
 from ..models.billing import Subscription, Invoice, Payment
 from ..models.order import Order
 from ..models.kernel_defs import KpiDef, StageDef
+from ..models.workitem import WorkItem
 
 
 _log = logging.getLogger("gaaex.kpi_engine")
@@ -83,6 +84,7 @@ _COUNT_TABLES = {
     "subscription": Subscription,
     "invoice":      Invoice,
     "payment":      Payment,
+    "workitem":     WorkItem,
 }
 
 
@@ -118,6 +120,27 @@ def _apply_where(model, where: dict[str, Any]):
                     f"formula_spec error: unknown column {col_name!r} on {model.__tablename__!r}"
                 )
             conds.append(col.isnot(None))
+            continue
+
+        # `<col>__lte_col2_plus_hours_<N>` — col ≤ col2 + N hours. Used for SLA compliance.
+        # Example: "first_response_at__lte_assigned_at_plus_hours_4"
+        if "__lte_" in raw_key and "_plus_hours_" in raw_key:
+            parts = raw_key.split("__lte_")
+            lhs_name = parts[0]
+            rhs_parts = parts[1].split("_plus_hours_")
+            rhs_name, hours_str = rhs_parts[0], rhs_parts[1]
+            lhs = getattr(model, lhs_name, None)
+            rhs = getattr(model, rhs_name, None)
+            if lhs is None or rhs is None:
+                raise KpiEvaluationError(
+                    f"formula_spec error: __lte_*_plus_hours_* references unknown column on {model.__tablename__!r}"
+                )
+            try:
+                hours = int(hours_str)
+            except ValueError:
+                raise KpiEvaluationError(f"formula_spec error: __lte_*_plus_hours_* hours must be int, got {hours_str!r}")
+            from sqlalchemy import func as sqlfunc
+            conds.append(lhs <= rhs + sqlfunc.make_interval(0, 0, 0, 0, hours))
             continue
 
         col = getattr(model, raw_key, None)

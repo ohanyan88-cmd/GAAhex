@@ -184,6 +184,17 @@ ENTITY_CATALOG = [
       [tr("ACTIVE", "RETIRED"), tr("ACTIVE", "WRITTEN_OFF"), tr("RETIRED", "WRITTEN_OFF")]),
     e("vehicle", "Vehicle", "Fleet / Vehicles", "vehicles", "truck",
       [f("plate", "Plate", "text", True), f("model", "Model", "text"), f("driver", "Driver", "ref", target="user")]),
+    # R-07 KPI source entities (coverage checks + scheduling slots)
+    e("coverage_check", "Coverage Check", "Coverage Checks", "coverage-checks", "shield",
+      [f("address", "Address", "text", True), f("lat", "Latitude", "text"), f("lon", "Longitude", "text"),
+       f("result", "Result", "select", options=["PASS", "FAIL", "PENDING"])],
+      [st("PENDING", "Pending", True), st("PASS", "Pass"), st("FAIL", "Fail")],
+      [tr("PENDING", "PASS"), tr("PENDING", "FAIL")]),
+    e("schedule_slot", "Schedule Slot", "Schedule Slots", "schedule-slots", "calendar",
+      [f("title", "Title", "text", True), f("date", "Date", "date"), f("tech", "Technician", "ref", target="user"),
+       f("status", "Status", "select", options=["OPEN", "FILLED", "CANCELLED"])],
+      [st("OPEN", "Open", True), st("FILLED", "Filled"), st("CANCELLED", "Cancelled")],
+      [tr("OPEN", "FILLED"), tr("OPEN", "CANCELLED")]),
 
     # ---- Finance ----
     e("expense", "Expense", "Expenses", "expenses", "dollar",
