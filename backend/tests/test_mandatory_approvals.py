@@ -212,3 +212,52 @@ async def test_create_approval_request_is_idempotent():
         assert second.status == "PENDING"
         # Original payload is preserved — dedupe returns the existing row.
         assert second.payload == {"reason": "billing error"}
+
+
+# ===================== adoption: customer_delete on DELETE /api/customers/{id} =====================
+
+
+async def test_spec_4_5_customer_delete_gate(client, admin):
+    """DELETE /api/customers/{id} parks a customer_delete approval; second call deletes."""
+    # Create a throwaway customer.
+    cust = (await client.post("/api/customers", headers=admin,
+                              json={"name": "DoomedCo"})).json()
+    cid = cust["id"]
+
+    # 1. First DELETE returns 202 with approval_id.
+    pending = await client.delete(f"/api/customers/{cid}", headers=admin)
+    assert pending.status_code == 202
+    body = pending.json()["detail"]
+    assert body["status"] == "approval_required"
+    assert body["action_type"] == "customer_delete"
+    aid = body["approval_id"]
+
+    # Customer is still listed (no deletion happened).
+    listed = (await client.get("/api/customers", headers=admin)).json()
+    assert cid in {c["id"] for c in listed}
+
+    # 2. Approve.
+    decided = await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                                 json={"decision": "APPROVED"})
+    assert decided.status_code == 200
+
+    # 3. Retry DELETE — succeeds (204).
+    final_del = await client.delete(f"/api/customers/{cid}", headers=admin)
+    assert final_del.status_code == 204
+
+    # Customer is gone.
+    listed_after = (await client.get("/api/customers", headers=admin)).json()
+    assert cid not in {c["id"] for c in listed_after}
+
+    # The approval row is now EXECUTED.
+    final = (await client.get(f"/api/mandatory-approvals/{aid}", headers=admin)).json()
+    assert final["status"] == "EXECUTED"
+
+
+async def test_spec_4_5_non_customer_delete_passes_through(client, admin):
+    """DELETE on a non-customer slug does NOT trigger the customer_delete gate."""
+    # Leads (route_slug='leads') are a plain record; DELETE should pass through.
+    lead = (await client.post("/api/leads", headers=admin,
+                              json={"name": "Throwaway lead"})).json()
+    r = await client.delete(f"/api/leads/{lead['id']}", headers=admin)
+    assert r.status_code == 204  # no 202 parking step

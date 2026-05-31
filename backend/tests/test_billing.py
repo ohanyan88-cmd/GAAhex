@@ -152,3 +152,148 @@ async def test_tenant_isolation_stamping(client, admin):
         admin_user = (await s.execute(select(User).where(User.email == "admin@demo.isp"))).scalar_one()
         row = (await s.execute(select(Subscription).where(Subscription.id == uuid.UUID(sub["id"])))).scalar_one()
         assert row.tenant_id == admin_user.tenant_id               # row carries the caller's tenant
+
+
+# ===================== SPEC §4.5 mandatory-approval gates =====================
+#
+# Three high-stakes mutations on this router are gated per SPEC §4.5:
+#   - contract_change  on PATCH /api/subscriptions/{id} (when plan_name/amount/cycle change)
+#   - payment_adjust   on POST  /api/invoices/{id}/payments  (only when payload.adjust=true)
+#   - high_discount    on POST  /api/invoices                (when discount > 20% of charges)
+#
+# Each test exercises the 3-step protocol:
+#   1. first call → 202 with approval_id (PENDING parked)
+#   2. PATCH /api/mandatory-approvals/{id}/decide → APPROVED
+#   3. second call → 200/201, mutation succeeds, approval consumed (EXECUTED)
+
+
+async def test_spec_4_5_contract_change_gate_on_subscription_patch(client, admin):
+    """PATCH /api/subscriptions/{id} with plan_name/amount/cycle is a contract_change."""
+    cust = await _customer(client, admin, "Contract cust")
+    sub = (await client.post("/api/subscriptions", headers=admin,
+                             json={"plan_name": "Bronze", "amount": 1000,
+                                   "cycle": "monthly", "customer_id": cust})).json()
+
+    # 1. First tariff change parks an approval (202).
+    pending = await client.patch(f"/api/subscriptions/{sub['id']}", headers=admin,
+                                 json={"plan_name": "Gold", "amount": 5000})
+    assert pending.status_code == 202
+    body = pending.json()["detail"]
+    assert body["status"] == "approval_required"
+    assert body["action_type"] == "contract_change"
+    aid = body["approval_id"]
+
+    # Subscription is still on the old plan (no mutation happened).
+    fetched = (await client.get(f"/api/subscriptions?customer={cust}", headers=admin)).json()
+    same = next(s for s in fetched if s["id"] == sub["id"])
+    assert same["plan_name"] == "Bronze" and same["amount"] == 1000
+
+    # 2. Approve.
+    decided = await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                                 json={"decision": "APPROVED"})
+    assert decided.status_code == 200
+
+    # 3. Retry the same PATCH — succeeds, mutation lands.
+    retry = await client.patch(f"/api/subscriptions/{sub['id']}", headers=admin,
+                               json={"plan_name": "Gold", "amount": 5000})
+    assert retry.status_code == 200
+    out = retry.json()
+    assert out["plan_name"] == "Gold" and out["amount"] == 5000
+
+    # The approval row is now EXECUTED.
+    final = (await client.get(f"/api/mandatory-approvals/{aid}", headers=admin)).json()
+    assert final["status"] == "EXECUTED"
+
+
+async def test_spec_4_5_contract_change_next_invoice_only_passes(client, admin):
+    """A pure next_invoice_at edit is not a contract change and passes through unchanged."""
+    cust = await _customer(client, admin, "Schedule cust")
+    sub = (await client.post("/api/subscriptions", headers=admin,
+                             json={"plan_name": "Sched", "amount": 2000,
+                                   "cycle": "monthly", "customer_id": cust})).json()
+    # Future date — schedule tweak only.
+    r = await client.patch(f"/api/subscriptions/{sub['id']}", headers=admin,
+                           json={"next_invoice_at": "2099-01-01T00:00:00Z"})
+    assert r.status_code == 200
+    assert r.json()["next_invoice_at"].startswith("2099-01-01")
+
+
+async def test_spec_4_5_payment_adjust_gate(client, admin):
+    """POST /api/invoices/{id}/payments with adjust=true triggers payment_adjust gate.
+    A standard payment (no adjust flag) still passes through."""
+    inv = await _issued_invoice(client, admin, 10000, "adjustgate")
+
+    # A normal collected payment (no adjust flag) passes through.
+    normal = await client.post(f"/api/invoices/{inv['id']}/payments", headers=admin,
+                               json={"amount": 1000, "method": "cash"})
+    assert normal.status_code == 201
+
+    # 1. An `adjust=true` payment parks an approval (202).
+    pending = await client.post(f"/api/invoices/{inv['id']}/payments", headers=admin,
+                                json={"amount": 2000, "method": "cash", "adjust": True,
+                                      "note": "write-off"})
+    assert pending.status_code == 202
+    body = pending.json()["detail"]
+    assert body["action_type"] == "payment_adjust"
+    aid = body["approval_id"]
+
+    # The adjust payment did NOT post (the normal 1000 above is the only one).
+    listed = (await client.get(f"/api/invoices/{inv['id']}/payments", headers=admin)).json()
+    assert sum(p["amount"] for p in listed) == 1000
+
+    # 2. Approve.
+    assert (await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                               json={"decision": "APPROVED"})).status_code == 200
+
+    # 3. Retry — the adjust payment now lands.
+    retry = await client.post(f"/api/invoices/{inv['id']}/payments", headers=admin,
+                              json={"amount": 2000, "method": "cash", "adjust": True,
+                                    "note": "write-off"})
+    assert retry.status_code == 201
+    listed = (await client.get(f"/api/invoices/{inv['id']}/payments", headers=admin)).json()
+    assert sum(p["amount"] for p in listed) == 3000
+
+    # The approval row is now EXECUTED.
+    final = (await client.get(f"/api/mandatory-approvals/{aid}", headers=admin)).json()
+    assert final["status"] == "EXECUTED"
+
+
+async def test_spec_4_5_high_discount_gate(client, admin):
+    """POST /api/invoices with discount > 20% of charge subtotal triggers high_discount gate."""
+    cust = await _customer(client, admin, "Discount cust")
+
+    # 21% discount → over the threshold → 202.
+    lines = [
+        {"kind": "charge", "description": "Plan", "quantity": 1, "unit_amount": 10000},
+        {"kind": "discount", "description": "Big promo", "unit_amount": 2100},
+    ]
+    pending = await client.post("/api/invoices", headers=admin,
+                                json={"customer_id": cust, "lines": lines})
+    assert pending.status_code == 202
+    body = pending.json()["detail"]
+    assert body["action_type"] == "high_discount"
+    aid = body["approval_id"]
+
+    # 2. Approve.
+    assert (await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                               json={"decision": "APPROVED"})).status_code == 200
+
+    # 3. Retry — invoice is created.
+    inv = (await client.post("/api/invoices", headers=admin,
+                             json={"customer_id": cust, "lines": lines})).json()
+    assert inv["total"] == 10000 - 2100  # 7900
+
+    # The approval row is now EXECUTED.
+    final = (await client.get(f"/api/mandatory-approvals/{aid}", headers=admin)).json()
+    assert final["status"] == "EXECUTED"
+
+
+async def test_spec_4_5_low_discount_not_gated(client, admin):
+    """A discount at exactly 20% of charges (the threshold boundary) is NOT gated."""
+    cust = await _customer(client, admin, "Low disc cust")
+    inv = (await client.post("/api/invoices", headers=admin, json={"customer_id": cust, "lines": [
+        {"kind": "charge", "description": "Plan", "quantity": 1, "unit_amount": 10000},
+        {"kind": "discount", "description": "Small promo", "unit_amount": 2000},
+    ]})).json()
+    # Exactly 20% — gate is strictly >20%, so this passes through.
+    assert inv["total"] == 8000

@@ -291,7 +291,15 @@ async def get_subscription(sub_id: uuid.UUID, user: User = Depends(current_user)
 
 @router.patch("/subscriptions/{sub_id}")
 async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Edit plan presentation/pricing. Status moves go through cancel/suspend/resume, not here."""
+    """Edit plan presentation/pricing. Status moves go through cancel/suspend/resume, not here.
+
+    SPEC §4.5 mandatory-approval gate: a subscription PATCH that mutates the tariff
+    (plan_name / amount / cycle) is a `contract_change` per SPEC §4.5 and requires an
+    APPROVED Approval row covering this subscription. The next_invoice_at-only edit
+    (a billing schedule tweak — does not change what the customer is paying) is exempt.
+    First call parks a PENDING approval and returns 202; the follow-up after the
+    `/decide` flips it APPROVED performs the mutation and consumes the approval.
+    """
     sub = await _get_sub(s, user, sub_id)
     grants = await load_grants(s, user)
     if not can(grants, "subscription", "edit", await _node_path(s, sub.owner_node_id)):
@@ -302,6 +310,40 @@ async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Dep
                          region_id=getattr(sub, "region_id", None), owner_user_id=None)
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
+
+    # SPEC §4.5 — `contract_change`. Trigger when the tariff changes (plan_name, amount or
+    # cycle). Pure next_invoice_at tweaks are not a contract change, so they pass through.
+    tariff_change = any(k in payload for k in ("plan_name", "amount", "cycle"))
+    approved_approval = None
+    if tariff_change:
+        try:
+            await assert_approval_or_raise(
+                s, tenant_id=user.tenant_id,
+                action_type="contract_change",
+                target_entity_key="subscription",
+                target_record_id=sub.id,
+            )
+        except ApprovalRequired:
+            approval = await create_approval_request(
+                s, tenant_id=user.tenant_id,
+                action_type="contract_change",
+                requested_by_user_id=user.id,
+                target_entity_key="subscription",
+                target_record_id=sub.id,
+                payload={k: payload[k] for k in ("plan_name", "amount", "cycle") if k in payload},
+            )
+            await s.commit()
+            raise HTTPException(202, detail={
+                "status": "approval_required",
+                "approval_id": str(approval.id),
+                "action_type": "contract_change",
+            })
+        approved_approval = await find_approved_approval(
+            s, tenant_id=user.tenant_id,
+            action_type="contract_change",
+            target_entity_key="subscription",
+            target_record_id=sub.id,
+        )
 
     changed: dict = {}
     if "plan_name" in payload:
@@ -323,6 +365,8 @@ async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Dep
         changed["next_invoice_at"] = _iso(sub.next_invoice_at)
 
     await workflow.emit(s, user.tenant_id, "update", "subscription", sub.id, user.id, {"changed": changed})
+    if approved_approval is not None:
+        await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
     await s.commit()
     await s.refresh(sub)
     return _sub(sub)
@@ -431,7 +475,15 @@ async def list_invoices(customer: uuid.UUID | None = None, status: str | None = 
 
 @router.post("/invoices", status_code=201)
 async def create_invoice(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Create a manual DRAFT invoice with lines; total is computed from the lines."""
+    """Create a manual DRAFT invoice with lines; total is computed from the lines.
+
+    SPEC §4.5 mandatory-approval gate: when the supplied discount lines sum to more than
+    20% of the charge subtotal (the hardcoded `high_discount` threshold), the create requires
+    an APPROVED Approval row for `high_discount` against the soon-to-be customer. We can't
+    target the not-yet-created invoice — the row is keyed on the customer instead. First call
+    parks a PENDING approval and returns 202; once decided APPROVED, the second call performs
+    the create and consumes the approval (EXECUTED).
+    """
     grants = await load_grants(s, user)
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "invoice", "create", owner_path):
@@ -448,6 +500,77 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
     lines_in = payload.get("lines") or []
     if not isinstance(lines_in, list) or not lines_in:
         raise HTTPException(422, "at least one line is required")
+
+    # ---- pre-validate + compute line totals so we can detect the discount-% trigger BEFORE
+    # any mutation. The full line-creation pass below repeats the per-field validation; the
+    # work here is just enough to compute charge_sum + discount_sum.
+    charge_sum = 0
+    discount_sum = 0
+    for li in lines_in:
+        kind = li.get("kind", "charge")
+        if kind not in _LINE_KINDS:
+            continue  # let the main pass surface 422
+        try:
+            qty_pre = int(li.get("quantity", 1))
+        except (TypeError, ValueError):
+            continue
+        try:
+            unit_pre = int(li.get("unit_amount", 0))
+        except (TypeError, ValueError):
+            continue
+        if qty_pre <= 0 or unit_pre < 0:
+            continue
+        line_pre = qty_pre * unit_pre
+        if kind == "charge":
+            charge_sum += line_pre
+        elif kind == "discount":
+            discount_sum += line_pre
+
+    # SPEC §4.5 — `high_discount`. Hardcoded threshold per spec: discount > 20% of charges.
+    is_high_discount = charge_sum > 0 and (discount_sum * 100) > (20 * charge_sum)
+    # When charges are 0 but discount > 0 (a pathological case the total-clamps-at-zero
+    # test covers), treat it as high-discount too — the discount is effectively > 20% of any
+    # positive charge subtotal it could be applied against.
+    if charge_sum == 0 and discount_sum > 0:
+        is_high_discount = True
+
+    approved_approval = None
+    if is_high_discount:
+        # Target the customer (no invoice yet) so the approval can be applied to ANY high-
+        # discount invoice for this customer — the natural target since the customer is the
+        # business unit a discount is granted to. A unique target_record_id is required for
+        # the gate to be specific; falling back to the customer_id is the closest match.
+        target_id = customer_id if customer_id else None
+        try:
+            await assert_approval_or_raise(
+                s, tenant_id=user.tenant_id,
+                action_type="high_discount",
+                target_entity_key="customer",
+                target_record_id=target_id,
+            )
+        except ApprovalRequired:
+            approval = await create_approval_request(
+                s, tenant_id=user.tenant_id,
+                action_type="high_discount",
+                requested_by_user_id=user.id,
+                target_entity_key="customer",
+                target_record_id=target_id,
+                payload={"charge_sum": charge_sum, "discount_sum": discount_sum,
+                         "discount_pct": (discount_sum * 100 // charge_sum) if charge_sum else None,
+                         "customer_id": str(customer_id) if customer_id else None},
+            )
+            await s.commit()
+            raise HTTPException(202, detail={
+                "status": "approval_required",
+                "approval_id": str(approval.id),
+                "action_type": "high_discount",
+            })
+        approved_approval = await find_approved_approval(
+            s, tenant_id=user.tenant_id,
+            action_type="high_discount",
+            target_entity_key="customer",
+            target_record_id=target_id,
+        )
 
     number = await _next_invoice_number(s, user.tenant_id)
     inv = Invoice(
@@ -478,6 +601,8 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
     inv.total = _invoice_total(computed)             # Σ(charge) − Σ(discount) + Σ(tax), clamped ≥ 0
     await workflow.emit(s, user.tenant_id, "create", "invoice", inv.id, user.id,
                         {"number": number, "total": inv.total})
+    if approved_approval is not None:
+        await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
     await s.commit()
     await s.refresh(inv)
     return _invoice(inv, await _invoice_lines(s, inv.id))
@@ -530,7 +655,14 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
 @router.post("/invoices/{inv_id}/payments", status_code=201)
 async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Record a payment against an invoice. When total paid ≥ invoice total, flip it to PAID.
-    Refuses payment on DRAFT/PAID/VOID invoices (409)."""
+    Refuses payment on DRAFT/PAID/VOID invoices (409).
+
+    SPEC §4.5 mandatory-approval gate: a payment line flagged `adjust=true` in the payload is a
+    `payment_adjust` per SPEC §4.5 — a manual adjustment that bypasses normal collection (e.g.
+    write-off, manual reconciliation, off-system payment correction). Such adjustments require
+    an APPROVED Approval row covering this invoice. Standard collected payments (cash/card/
+    transfer with no `adjust` flag) pass through as before.
+    """
     inv = await _get_invoice(s, user, inv_id)
     grants = await load_grants(s, user)
     if not can(grants, "payment", "create", await _node_path(s, inv.owner_node_id)):
@@ -556,6 +688,41 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     if method not in _METHODS:
         raise HTTPException(422, f"method must be one of {sorted(_METHODS)}")
 
+    # SPEC §4.5 — `payment_adjust`. Only manual-adjustment payments (`adjust=true` in payload)
+    # are gated. The standard collection path is exempt — adjustments are the high-stakes
+    # operation, not collection of a posted bill.
+    is_adjust = bool(payload.get("adjust"))
+    approved_approval = None
+    if is_adjust:
+        try:
+            await assert_approval_or_raise(
+                s, tenant_id=user.tenant_id,
+                action_type="payment_adjust",
+                target_entity_key="invoice",
+                target_record_id=inv.id,
+            )
+        except ApprovalRequired:
+            approval = await create_approval_request(
+                s, tenant_id=user.tenant_id,
+                action_type="payment_adjust",
+                requested_by_user_id=user.id,
+                target_entity_key="invoice",
+                target_record_id=inv.id,
+                payload={"amount": amount, "method": method, "note": payload.get("note")},
+            )
+            await s.commit()
+            raise HTTPException(202, detail={
+                "status": "approval_required",
+                "approval_id": str(approval.id),
+                "action_type": "payment_adjust",
+            })
+        approved_approval = await find_approved_approval(
+            s, tenant_id=user.tenant_id,
+            action_type="payment_adjust",
+            target_entity_key="invoice",
+            target_record_id=inv.id,
+        )
+
     pay = Payment(tenant_id=user.tenant_id, invoice_id=inv.id, amount=amount, method=method,
                   paid_at=_now(), note=payload.get("note"))
     s.add(pay)
@@ -569,7 +736,10 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
 
     await workflow.emit(s, user.tenant_id, "payment", "invoice", inv.id, user.id,
                         {"payment_id": str(pay.id), "amount": amount, "method": method,
-                         "paid_sum": int(paid_sum), "invoice_status": inv.status})
+                         "paid_sum": int(paid_sum), "invoice_status": inv.status,
+                         "adjust": is_adjust})
+    if approved_approval is not None:
+        await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
     await s.commit()
     await s.refresh(pay)
     return _payment(pay)

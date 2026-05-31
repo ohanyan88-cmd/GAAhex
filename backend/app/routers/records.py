@@ -16,6 +16,11 @@ from ..kernel import (
     assert_no_inline_master_copies,
     assert_can,
     AccessDenied,
+    assert_approval_or_raise,
+    ApprovalRequired,
+    create_approval_request,
+    find_approved_approval,
+    mark_approval_executed,
 )
 from .auth import current_user
 
@@ -359,6 +364,15 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
 
 @router.delete("/{slug}/{rec_id}", status_code=204)
 async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Delete a record.
+
+    SPEC §4.5 mandatory-approval gate: deleting a `customer` record is destructive — the
+    customer record is the root of orders, services, invoices, etc. — and so requires an
+    APPROVED `customer_delete` Approval row. First call parks a PENDING approval and
+    returns 202; once decided APPROVED via PATCH /api/mandatory-approvals/{id}/decide,
+    the second call performs the delete and consumes the approval (EXECUTED). Deletes of
+    any other entity slug pass through unchanged.
+    """
     ent = await _entity(s, user.tenant_id, slug)
     rec = await _get(s, user.tenant_id, ent.key, rec_id)
     grants = await load_grants(s, user)
@@ -375,17 +389,63 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
         )
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
+
+    # SPEC §4.5 — `customer_delete`. Only fires when the deleted entity is a customer;
+    # all other slugs pass through unchanged.
+    approved_approval = None
+    if ent.key == "customer":
+        try:
+            await assert_approval_or_raise(
+                s, tenant_id=user.tenant_id,
+                action_type="customer_delete",
+                target_entity_key="customer",
+                target_record_id=rec.id,
+            )
+        except ApprovalRequired:
+            approval = await create_approval_request(
+                s, tenant_id=user.tenant_id,
+                action_type="customer_delete",
+                requested_by_user_id=user.id,
+                target_entity_key="customer",
+                target_record_id=rec.id,
+                payload={"name": (rec.data or {}).get("name"), "status": rec.status},
+            )
+            await s.commit()
+            raise HTTPException(202, detail={
+                "status": "approval_required",
+                "approval_id": str(approval.id),
+                "action_type": "customer_delete",
+            })
+        approved_approval = await find_approved_approval(
+            s, tenant_id=user.tenant_id,
+            action_type="customer_delete",
+            target_entity_key="customer",
+            target_record_id=rec.id,
+        )
+
     await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
                         {"data": dict(rec.data or {}), "status": rec.status})
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="delete", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"status": rec.status})
     await s.delete(rec)
+    if approved_approval is not None:
+        await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
     await s.commit()
 
 
 @router.post("/{slug}/{rec_id}/transition")
-async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Move a record's status along a workflow transition, gated by a GXL guard."""
+async def transition(slug: str, rec_id: uuid.UUID, payload: dict, force: bool = False,
+                     user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Move a record's status along a workflow transition, gated by a GXL guard.
+
+    SPEC §4.5 mandatory-approval gate: `?force=true` is an admin override that lets the
+    caller (1) skip the workflow guard if it fails and (2) attempt a transition that is not
+    in the defined workflow (no matching from->to row). Such an override is a
+    `workflow_override` per SPEC §4.5 and requires an APPROVED Approval row covering this
+    record. First call parks a PENDING approval and returns 202; once decided APPROVED,
+    the second call performs the override and consumes the approval (EXECUTED). The
+    normal (force=false) path is exempt — those calls keep enforcing the workflow guard.
+    """
     ent = await _entity(s, user.tenant_id, slug)
     rec = await _get(s, user.tenant_id, ent.key, rec_id)
     grants = await load_grants(s, user)
@@ -410,13 +470,52 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
     if not to:
         raise HTTPException(422, "Missing 'to' status")
 
+    # SPEC §4.5 — `workflow_override`. Only fires when the caller passes ?force=true. The
+    # gate runs BEFORE the guard/transition lookup so the approval check is independent of
+    # whether the transition is otherwise legal.
+    approved_override = None
+    if force:
+        try:
+            await assert_approval_or_raise(
+                s, tenant_id=user.tenant_id,
+                action_type="workflow_override",
+                target_entity_key=ent.key,
+                target_record_id=rec.id,
+            )
+        except ApprovalRequired:
+            approval = await create_approval_request(
+                s, tenant_id=user.tenant_id,
+                action_type="workflow_override",
+                requested_by_user_id=user.id,
+                target_entity_key=ent.key,
+                target_record_id=rec.id,
+                payload={"from": rec.status, "to": to, "slug": slug},
+            )
+            await s.commit()
+            raise HTTPException(202, detail={
+                "status": "approval_required",
+                "approval_id": str(approval.id),
+                "action_type": "workflow_override",
+            })
+        approved_override = await find_approved_approval(
+            s, tenant_id=user.tenant_id,
+            action_type="workflow_override",
+            target_entity_key=ent.key,
+            target_record_id=rec.id,
+        )
+
     transitions = await workflow.get_transitions(s, ent.id)
     tr = workflow.find_transition(transitions, rec.status, to)
     if not tr:
-        raise HTTPException(409, f"No transition from '{rec.status}' to '{to}'")
+        if force:
+            # With an APPROVED workflow_override, synthesize a minimal transition descriptor so
+            # the rest of the path (emit + on-enter actions) runs as for a normal move.
+            tr = {"from": rec.status, "to": to, "guard": None}
+        else:
+            raise HTTPException(409, f"No transition from '{rec.status}' to '{to}'")
 
     ctx = await workflow.guard_context(s, ent.id, rec)
-    if not gxl.evaluate(tr.get("guard"), ctx):
+    if not gxl.evaluate(tr.get("guard"), ctx) and not force:
         raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {tr.get('guard')}")
 
     frm = rec.status
@@ -436,6 +535,9 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
                                        record=rec, transition=tr, actor_user_id=user.id)
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
+    # SPEC §4.5 — consume the workflow_override approval (forward-only state machine).
+    if approved_override is not None:
+        await mark_approval_executed(s, approval_id=approved_override.id, actor_user_id=user.id)
     await s.commit()
     # Re-fetch rather than s.refresh(rec): after the transition's on-enter actions run, refreshing
     # the existing instance by identity raises InvalidRequestError ("Could not refresh instance"),

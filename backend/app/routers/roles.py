@@ -14,7 +14,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import RoleDef, PermissionDef, User
 from ..access import load_grants, can
-from ..kernel import assert_can, AccessDenied
+from ..kernel import (
+    assert_can, AccessDenied,
+    assert_approval_or_raise, ApprovalRequired,
+    create_approval_request, find_approved_approval, mark_approval_executed,
+)
 from .. import workflow
 from .auth import current_user
 
@@ -120,9 +124,53 @@ async def update_role(role_id: uuid.UUID, payload: dict, user: User = Depends(cu
 
     Request: {label?: str, permissions?: [permKey, ...]}
     Response: {id, key, label, permissions: [permKey, ...]}
+
+    SPEC §4.5 mandatory-approval gate: a PATCH that mutates the role's `permissions`
+    array is a `role_perm_change` per SPEC §4.5 (broadens or narrows what every holder
+    of this role can do) and requires an APPROVED Approval row covering this role.
+    A pure label edit (no permissions key in payload) is presentation only and passes
+    through. First call parks a PENDING approval and returns 202; once decided
+    APPROVED via PATCH /api/mandatory-approvals/{id}/decide, the second call performs
+    the mutation and consumes the approval (EXECUTED).
     """
     await _require_config_manage(s, user)
     role = await _get_role(s, user.tenant_id, role_id)
+
+    # SPEC §4.5 — `role_perm_change`. Trigger only when the permissions array is being
+    # replaced (a label-only edit is not a permission change).
+    perm_change = "permissions" in payload
+    approved_approval = None
+    if perm_change:
+        try:
+            await assert_approval_or_raise(
+                s, tenant_id=user.tenant_id,
+                action_type="role_perm_change",
+                target_entity_key="role_def",
+                target_record_id=role.id,
+            )
+        except ApprovalRequired:
+            approval = await create_approval_request(
+                s, tenant_id=user.tenant_id,
+                action_type="role_perm_change",
+                requested_by_user_id=user.id,
+                target_entity_key="role_def",
+                target_record_id=role.id,
+                payload={"role_key": role.key,
+                         "from_permissions": list(role.permissions or []),
+                         "to_permissions": payload.get("permissions")},
+            )
+            await s.commit()
+            raise HTTPException(202, detail={
+                "status": "approval_required",
+                "approval_id": str(approval.id),
+                "action_type": "role_perm_change",
+            })
+        approved_approval = await find_approved_approval(
+            s, tenant_id=user.tenant_id,
+            action_type="role_perm_change",
+            target_entity_key="role_def",
+            target_record_id=role.id,
+        )
 
     changed: dict = {}
     if "label" in payload:
@@ -143,6 +191,8 @@ async def update_role(role_id: uuid.UUID, payload: dict, user: User = Depends(cu
     if changed:
         await workflow.emit(s, user.tenant_id, "update", "role_def", role.id, user.id,
                             {"key": role.key, "changed": list(changed.keys())})
+    if approved_approval is not None:
+        await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
     await s.commit()
     return _role_out(role)
 

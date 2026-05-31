@@ -346,3 +346,42 @@ tests/test_approvals.py::test_approval_guardrails PASSED
 PS> docker exec -i gaaex-db psql -U gaaex -c "DROP DATABASE gaaex_approval_test;"
 DROP DATABASE
 ```
+
+---
+
+## H — Adoption (router wirings)
+
+The scaffold described above is now adopted by the router-layer adopters listed below. Each
+wiring follows the same pattern (refuse the mutation when `assert_approval_or_raise` raises;
+queue a PENDING via `create_approval_request`; on the retry after `/decide` flips the row to
+APPROVED, perform the mutation and `mark_approval_executed`). Only the trigger condition and
+target tuple differ per adopter.
+
+| SPEC §4.5 action       | Adopter (file:function)                                | Trigger                                            | Commit    |
+| ---------------------- | ------------------------------------------------------ | -------------------------------------------------- | --------- |
+| `service_suspend`      | `routers/services.py:suspend_service`                  | ACTIVE → SUSPENDED transition                      | `df56b96` |
+| `invoice_cancel`       | `routers/billing.py:void_invoice`                      | ISSUED/OVERDUE → VOID transition                   | `da75336` |
+| `contract_change`      | `routers/billing.py:update_subscription`               | PATCH mutates plan_name / amount / cycle           | `8b18232` |
+| `payment_adjust`       | `routers/billing.py:add_payment`                       | Payload includes `adjust: true`                    | `d3512a2` |
+| `high_discount`        | `routers/billing.py:create_invoice`                    | Σ(discount lines) > 20 % × Σ(charge lines)         | `7ff54ce` |
+| `customer_delete`      | `routers/records.py:delete_record`                     | `ent.key == 'customer'` (DELETE /api/customers/{id}) | `b3922b6` |
+| `role_perm_change`     | `routers/roles.py:update_role`                         | PATCH includes a `permissions` array               | `854c259` |
+| `workflow_override`    | `routers/records.py:transition`                        | Query string `?force=true`                         | `70b7de8` |
+
+Test coverage for the gates lives in `tests/test_billing.py` (5 tests on
+contract_change / payment_adjust / high_discount, plus exempt-path coverage) and
+`tests/test_mandatory_approvals.py` (2 tests on customer_delete + non-customer
+pass-through), all added in commit `f8aa5e8`. Total green tests after the adoption sweep:
+**578** (baseline before sweep was 571 — +7 new tests, zero regressions).
+
+### Not wired (no adopter route exists yet)
+
+| SPEC §4.5 action  | Reason                                                                            |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `refund`          | No refund endpoint exists in `routers/payment_gateway.py` or `routers/billing.py`. Payment refunds are not modeled as a distinct mutation path today — they would require either a `POST /api/payments/{id}/refund` route or a `POST /api/payment-orders/{id}/refund` route, neither of which is built. Wire when the refund flow is built. |
+| `credit_note`     | No credit-note creation endpoint exists. Credit notes today are expressed as discount lines on a manual invoice (already gated by `high_discount` when they cross the 20 % threshold). When a dedicated `POST /api/credit-notes` endpoint lands, wire `credit_note` there. |
+| `asset_writeoff`  | Inventory module (Module 7) not yet built; route does not exist (already noted as deferred in §F.1). |
+| `procurement`     | Procurement module (Module 7) not yet built; route does not exist (already noted as deferred in §F.1). |
+
+The remaining 8 of 12 actions are wired. When the four deferred routes land, each is a
+~15-line addition matching the patterns above.

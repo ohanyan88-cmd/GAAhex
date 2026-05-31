@@ -83,10 +83,19 @@ async def test_invoice_total_with_discount_and_tax(client, admin):
 
 
 async def test_invoice_total_clamped_at_zero(client, admin):
-    inv = (await client.post("/api/invoices", headers=admin, json={"lines": [
+    # SPEC §4.5 — discount 5000 vs charge 1000 is 500% > 20% threshold, so the create
+    # parks a `high_discount` approval (202). Pre-approve it, then the second call clamps
+    # the total at 0 as before.
+    lines = [
         {"kind": "charge", "description": "Small", "unit_amount": 1000},
         {"kind": "discount", "description": "Huge", "unit_amount": 5000},
-    ]})).json()
+    ]
+    pending = await client.post("/api/invoices", headers=admin, json={"lines": lines})
+    assert pending.status_code == 202
+    aid = pending.json()["detail"]["approval_id"]
+    assert (await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                               json={"decision": "APPROVED"})).status_code == 200
+    inv = (await client.post("/api/invoices", headers=admin, json={"lines": lines})).json()
     assert inv["total"] == 0                                # never negative
 
 
