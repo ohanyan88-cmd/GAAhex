@@ -2,6 +2,7 @@ import os
 import uuid
 
 from sqlalchemy import select, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy_utils import Ltree
 
 from .config import _set_the_tenant_id
@@ -14,26 +15,59 @@ from .models.customer_user import CustomerUser
 from .security import hash_password
 
 
-async def _upsert_new_permissions(s, tenant_id) -> None:
-    """Insert permissions that were added to build_access_config after initial tenant creation.
+# CRM entity keys that participate in the standard view/create/edit/delete permission matrix.
+_CRM_ENTITIES = ["lead", "customer", "contact", "deal", "ticket"]
 
-    build_access_config uses s.add() which skips on duplicate PK conflicts in a fresh session.
-    This idempotent helper fetches existing permission keys and inserts only the missing ones,
-    so new perms (e.g. audit.view) appear in existing demo deployments on next startup.
+
+def _permission_specs(tenant_id) -> list[dict]:
+    """Single source of truth for every PermissionDef row the demo tenant needs.
+
+    Every entry the bulk insert in build_access_config / _refresh_permission_catalog writes
+    lives here — adding a new perm means adding a row here and nothing else.
     """
-    existing_keys = {
-        row[0]
-        for row in (await s.execute(
-            select(PermissionDef.key).where(PermissionDef.tenant_id == tenant_id)
-        )).all()
-    }
-    # Canonical set of extra perms that build_access_config inserts beyond the entity CRUD loop.
-    extra_perms = [
-        ("audit.view", "View audit log", "governance"),
-    ]
-    for key, label, group in extra_perms:
-        if key not in existing_keys:
-            s.add(PermissionDef(tenant_id=tenant_id, key=key, label=label, group=group))
+    specs: list[dict] = []
+
+    # CRM × 4 verbs (view/create/edit/delete) — drives the entity-record router gates.
+    for ekey in _CRM_ENTITIES:
+        for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+            specs.append({"tenant_id": tenant_id, "key": f"{ekey}.{verb}", "label": f"{vl} {ekey}", "group": ekey})
+
+    # B31 Helpdesk: real-model permissions (helpdesk_ticket CRUD + helpdesk_queue view/manage).
+    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+        specs.append({"tenant_id": tenant_id, "key": f"helpdesk_ticket.{verb}", "label": f"{vl} helpdesk ticket", "group": "helpdesk"})
+    for verb, vl in (("view", "View"), ("manage", "Manage")):
+        specs.append({"tenant_id": tenant_id, "key": f"helpdesk_queue.{verb}", "label": f"{vl} helpdesk queue", "group": "helpdesk"})
+
+    # B32 WorkItems: real-model permissions (assign-work-to-a-person loop + field dispatch).
+    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+        specs.append({"tenant_id": tenant_id, "key": f"workitem.{verb}", "label": f"{vl} work item", "group": "workitem"})
+
+    # B33 Payment gateway: online payment orders (view = see/reconcile, collect = initiate/confirm).
+    for verb, vl in (("view", "View"), ("collect", "Collect")):
+        specs.append({"tenant_id": tenant_id, "key": f"payment_order.{verb}", "label": f"{vl} payment order", "group": "payments"})
+
+    # Self-service "My Requests" catalog — every user (all roles) can CRUD their own requests.
+    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
+        specs.append({"tenant_id": tenant_id, "key": f"request.{verb}", "label": f"{vl} request", "group": "request"})
+
+    # Governance audit log — SuperAdmin-tier read perm gating /api/audit-log.
+    # NOT bundled into manager/sales_agent: super_admin's "*" already covers it.
+    specs.append({"tenant_id": tenant_id, "key": "audit.view", "label": "View audit log", "group": "governance"})
+
+    return specs
+
+
+async def _refresh_permission_catalog(s, tenant_id) -> None:
+    """Idempotent bulk insert of the canonical PermissionDef catalog for `tenant_id`.
+
+    Skips rows that already exist via ON CONFLICT on uq_permission_def_key (tenant_id, key),
+    so new perms automatically appear in existing tenants on next boot without drift.
+    """
+    await s.execute(
+        pg_insert(PermissionDef)
+        .values(_permission_specs(tenant_id))
+        .on_conflict_do_nothing(index_elements=["tenant_id", "key"])
+    )
     await s.commit()
 
 
@@ -49,8 +83,8 @@ async def seed_if_empty() -> None:
         if existing is not None:
             # Idempotent: pre-warm the cache so the rest of the app shares the same id.
             _set_the_tenant_id(existing.id)
-            # Upsert any permissions added after initial tenant creation (e.g. audit.view).
-            await _upsert_new_permissions(s, existing.id)
+            # Re-apply the full permission catalog so newly-added perms reach existing tenants.
+            await _refresh_permission_catalog(s, existing.id)
             return
 
         pinned_id_str = os.environ.get("GAAEX_TENANT_ID")
@@ -200,32 +234,13 @@ async def build_access_config(s, tenant_id) -> dict:
     """Build the baseline permission catalog + the three roles (super_admin, manager, sales_agent)
     for tenant `tenant_id`. Reusable by the demo seed AND by provisioning. Flushes (so role ids are
     available) but does NOT commit. Returns the three RoleDefs by key."""
-    crm = ["lead", "customer", "contact", "deal", "ticket"]
-    for ekey in crm:
-        for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
-            s.add(PermissionDef(tenant_id=tenant_id, key=f"{ekey}.{verb}", label=f"{vl} {ekey}", group=ekey))
-
-    # B31 Helpdesk: real-model permissions (helpdesk_ticket CRUD + helpdesk_queue view/manage).
-    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
-        s.add(PermissionDef(tenant_id=tenant_id, key=f"helpdesk_ticket.{verb}", label=f"{vl} helpdesk ticket", group="helpdesk"))
-    for verb, vl in (("view", "View"), ("manage", "Manage")):
-        s.add(PermissionDef(tenant_id=tenant_id, key=f"helpdesk_queue.{verb}", label=f"{vl} helpdesk queue", group="helpdesk"))
-
-    # B32 WorkItems: real-model permissions (assign-work-to-a-person loop + field dispatch).
-    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
-        s.add(PermissionDef(tenant_id=tenant_id, key=f"workitem.{verb}", label=f"{vl} work item", group="workitem"))
-
-    # B33 Payment gateway: online payment orders (view = see/reconcile, collect = initiate/confirm).
-    for verb, vl in (("view", "View"), ("collect", "Collect")):
-        s.add(PermissionDef(tenant_id=tenant_id, key=f"payment_order.{verb}", label=f"{vl} payment order", group="payments"))
-
-    # Self-service "My Requests" catalog — every user (all roles) can CRUD their own requests.
-    for verb, vl in (("view", "View"), ("create", "Create"), ("edit", "Edit"), ("delete", "Delete")):
-        s.add(PermissionDef(tenant_id=tenant_id, key=f"request.{verb}", label=f"{vl} request", group="request"))
-
-    # Governance audit log — SuperAdmin-tier read perm gating /api/audit-log.
-    # NOT bundled into manager/sales_agent: super_admin's "*" already covers it.
-    s.add(PermissionDef(tenant_id=tenant_id, key="audit.view", label="View audit log", group="governance"))
+    # One bulk insert with ON CONFLICT DO NOTHING — safe on fresh tenants AND on tenants where a
+    # subset of perms already exists from an older build. Catalog lives in _permission_specs.
+    await s.execute(
+        pg_insert(PermissionDef)
+        .values(_permission_specs(tenant_id))
+        .on_conflict_do_nothing(index_elements=["tenant_id", "key"])
+    )
 
     def perms(entities, verbs):
         return [f"{e}.{v}" for e in entities for v in verbs]
@@ -237,7 +252,7 @@ async def build_access_config(s, tenant_id) -> dict:
     _request_perms = ["request.view", "request.create", "request.edit", "request.delete"]
     super_admin = RoleDef(tenant_id=tenant_id, key="super_admin", label="Super Admin", permissions=["*"], scope="tenant")
     manager = RoleDef(tenant_id=tenant_id, key="manager", label="Manager", scope="subtree",
-                      permissions=perms(crm, ["view", "create", "edit", "delete"]) + _helpdesk_full + _workitem_full + _payment_order_perms + _request_perms)
+                      permissions=perms(_CRM_ENTITIES, ["view", "create", "edit", "delete"]) + _helpdesk_full + _workitem_full + _payment_order_perms + _request_perms)
     sales_agent = RoleDef(tenant_id=tenant_id, key="sales_agent", label="Sales Agent", scope="node",
                           permissions=perms(["lead", "contact", "deal"], ["view", "create", "edit"]) + ["customer.view"]
                           + ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit"]
