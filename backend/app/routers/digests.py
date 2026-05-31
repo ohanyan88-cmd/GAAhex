@@ -38,6 +38,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.notification import Notification
 from ..models.notification_pref import NotificationPref
@@ -319,5 +320,12 @@ async def trigger_run_digests(
     if not can(grants, "notification", "manage"):
         from fastapi import HTTPException
         raise HTTPException(403, "Not allowed: notification.manage")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    try:
+        await assert_can(s, user, action="manage", entity_key="notification",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        from fastapi import HTTPException
+        raise HTTPException(403, detail=str(e))
 
     return await run_digests(s, tenant_id=user.tenant_id, actor=user)
