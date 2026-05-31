@@ -25,6 +25,11 @@ class EntityDef(Base):
     icon: Mapped[str | None] = mapped_column(String(60), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="active")
     order: Mapped[int] = mapped_column(Integer, default=0)                   # sidebar / listing order
+    # SPEC §2.2 ownership matrix: single source module that owns this record kind (the
+    # write-lock owner). Nullable for now; Step 3 backfills from the §2.2 matrix and a later
+    # pass will tighten to NOT NULL. Semantically: entity_def == SPEC's record_def, so this is
+    # the "owner_module" column SPEC §10.1 calls for on record_def.
+    owner_module: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -59,6 +64,10 @@ class StatusDef(Base):
     label: Mapped[str] = mapped_column(String(120), nullable=False)
     order: Mapped[int] = mapped_column(Integer, default=0)
     is_initial: Mapped[bool] = mapped_column(Boolean, default=False)
+    # SPEC §7 terminal-status flag — lifecycle stops here (Closed, Archived, Cancelled, Terminated,
+    # Expired, Disconnected, Paid, Credited, Reconciled, Chargeback, Disqualified, Converted).
+    # Seeded by `app.seed_statuses`; column added by Alembic revision d4f8a1c6b3e5.
+    is_terminal: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -77,13 +86,70 @@ class RelationDef(Base):
 
 
 class WorkflowDef(Base):
-    """A lifecycle / automation definition for an entity (defined now; engine in a later milestone)."""
+    """A workflow definition — either an entity lifecycle (legacy: entity_def_id NOT NULL)
+    OR a SPEC §5 Universal Workflow Contract row (cross-entity orchestration: entity_def_id NULL).
+
+    Two shapes share this table:
+
+    1. **Entity lifecycle** (pre-SPEC §5 — seeded by `seed_catalog.py` / `seed.py`):
+       `entity_def_id` is set, `config = {"transitions": [...]}`. Drives the existing
+       `app.workflow` engine that gates status PATCHes through guarded transitions.
+
+    2. **SPEC §5 Universal Workflow Contract** (Step 4 of the SPEC build — W1..W5):
+       `entity_def_id` is NULL (the workflow spans many entities). The new SPEC §5 columns
+       below carry the full Universal Contract: trigger · conditions · actions · owner ·
+       SLA · approval · notification · failure handling. Each column maps 1:1 to a clause
+       in SPEC §5.1.
+
+    SPEC §5.1 column mapping (the Universal Workflow Contract):
+        Trigger              -> trigger_spec        (JSONB: {"type": "record_created", ...})
+        Conditions           -> conditions_spec     (JSONB: GXL/CEL guard expr)
+        Actions              -> actions_spec        (JSONB list, executed in order)
+        Single Owner         -> owner_module        (SPEC §0.1 owner_module)
+        SLA                  -> sla_seconds         (budget; NULL = no SLA)
+        Approval (if needed) -> approval_required   (TRUE wires §4.5 gate)
+        Notification         -> notification_def_key (NotificationDef key)
+        Failure handling     -> failure_action      ('retry'|'escalate'|'audit_only'|'rollback')
+
+    Status (running instance state) and Audit log live on `WorkflowInstance` — not on the
+    `_def` row, which is the template.
+
+    The `(tenant_id, key)` UNIQUE constraint makes idempotent seeding via
+    `pg_insert(...).on_conflict_do_nothing(index_elements=["tenant_id", "key"])` safe —
+    the matching DB constraint is added in Alembic revision `7a4b1e9c2f08`.
+    """
     __tablename__ = "workflow_def"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "key", name="uq_workflow_def_key"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
-    entity_def_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entity_def.id"), nullable=False)
+    # NULLABLE for SPEC §5 cross-entity workflows (W1 spans Pipeline+Orders+Billing+...).
+    # Step 4's Alembic migration (7a4b1e9c2f08) drops the NOT NULL via ALTER COLUMN ... DROP NOT NULL.
+    # Legacy entity-lifecycle rows continue to set this; SPEC §5 rows leave it NULL.
+    entity_def_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("entity_def.id"), nullable=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)
     label: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Legacy entity-lifecycle config (transitions blob). Untouched by SPEC §5.
     config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # ---- SPEC §5.1 Universal Workflow Contract columns (additive; NULLable so legacy rows stay valid)
+    # SPEC §5.2 trigger: {"type": "record_created"|"status_changed"|"sla_breached"|..., "entity_key": ...}
+    trigger_spec: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # GXL/CEL expression spec evaluated before actions run.
+    conditions_spec: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # SPEC §5.3 action list, in execution order. Each entry: {"type": "...", "..."}.
+    actions_spec: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # SPEC §0.1 / §5.1 — single owner module (e.g. 'Pipeline', 'Tickets', 'Billing').
+    owner_module: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # SPEC §5.1 SLA budget in seconds (NULL = no SLA on this workflow).
+    sla_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # SPEC §4.5 — TRUE wires the mandatory-approval gate at workflow start.
+    approval_required: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # NotificationDef.key to emit on the canonical "workflow advanced" event.
+    notification_def_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # SPEC §5.1 failure handling: 'retry'|'escalate'|'audit_only'|'rollback'.
+    failure_action: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

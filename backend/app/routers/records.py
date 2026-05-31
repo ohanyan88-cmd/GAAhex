@@ -10,6 +10,13 @@ from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Even
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT
 from .. import workflow, gxl, notify_hooks
+from ..kernel import (
+    MASTER_RECORD_KEYS,
+    DuplicateMasterData,
+    assert_no_inline_master_copies,
+    assert_can,
+    AccessDenied,
+)
 from .auth import current_user
 
 # Back-compat paging helpers reused by sibling routers (billing / usage / interactions) and the
@@ -255,6 +262,27 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, ent.key, "create", owner_path):
         _deny(ent.key, "create")
+    # SPEC §0.2 default-deny (Step 7) — Role × Department × Region × Ownership AND-evaluation on
+    # top of the legacy role check above. Region comes from the payload's `data.region_id` when
+    # present (a new record has no row yet); ownership is None on create (records gain an owner
+    # only via subsequent /assign verbs on entities that have one).
+    try:
+        await assert_can(
+            s, user,
+            action="create",
+            entity_key=ent.key,
+            region_id=(payload.get("data") or {}).get("region_id") if isinstance(payload, dict) else None,
+            owner_user_id=None,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+    # SPEC §0.5 — references, not copies. Reject payloads that inline a master record as a nested
+    # dict / list-of-dicts (must be passed by id reference). The check runs BEFORE field validation
+    # so the violation surfaces with the clearest error.
+    try:
+        assert_no_inline_master_copies(payload, MASTER_RECORD_KEYS)
+    except DuplicateMasterData as e:
+        raise HTTPException(422, str(e))
     rkeys = role_keys(grants)
     admin = can(grants, "config", "manage")
     fields = await _fields(s, ent.id)
@@ -294,6 +322,23 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate on the existing record's region/owner.
+    try:
+        await assert_can(
+            s, user,
+            action="edit",
+            entity_key=ent.key,
+            region_id=getattr(rec, "region_id", None),
+            owner_user_id=None,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+    # SPEC §0.5 — references, not copies. Same guard as POST: even a partial update may not inline
+    # a master record as a nested object.
+    try:
+        assert_no_inline_master_copies(payload, MASTER_RECORD_KEYS)
+    except DuplicateMasterData as e:
+        raise HTTPException(422, str(e))
     rkeys = role_keys(grants)
     admin = can(grants, "config", "manage")
     fields = await _fields(s, ent.id)
@@ -319,6 +364,17 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "delete", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "delete")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate.
+    try:
+        await assert_can(
+            s, user,
+            action="delete",
+            entity_key=ent.key,
+            region_id=getattr(rec, "region_id", None),
+            owner_user_id=None,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
                         {"data": dict(rec.data or {}), "status": rec.status})
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="delete", entity_key=ent.key,
@@ -335,6 +391,18 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, user: User = D
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "edit", await _node_path(s, rec.owner_node_id)):
         _deny(ent.key, "edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate on the transition (treated as an edit verb;
+    # the per-transition guards still apply below).
+    try:
+        await assert_can(
+            s, user,
+            action="edit",
+            entity_key=ent.key,
+            region_id=getattr(rec, "region_id", None),
+            owner_user_id=None,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     fields = await _fields(s, ent.id)
     hidden = _hidden_keys(fields, role_keys(grants), can(grants, "config", "manage"))
 

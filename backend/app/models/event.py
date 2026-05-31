@@ -1,3 +1,13 @@
+"""Event log — the canonical audit log table for GAAex.
+
+SPEC §0.4 AUDIT APPEND-ONLY (kernel invariant, alembic revision b70ef3b98e27):
+  The `event` table carries DB-level BEFORE UPDATE and BEFORE DELETE triggers
+  (`prevent_update_event`, `prevent_delete_event`) that raise an exception on ANY edit or delete
+  attempt. The audit log cannot be modified by ANY role, including Admin. Only INSERTs are legal.
+  The triggers enforce this at the database layer below the application so the invariant holds
+  even against raw SQL access by a privileged operator (short of dropping the trigger itself,
+  which would be a DDL-visible action).
+"""
 import uuid
 from datetime import datetime
 
@@ -10,7 +20,7 @@ from .base import Base
 
 class Event(Base):
     """A domain event emitted by the kernel (M4: workflow transitions). Foundation for the
-    audit log (M5). Append-only in spirit."""
+    audit log (M5). Append-only in spirit AND enforced at the DB layer (see module docstring)."""
     __tablename__ = "event"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

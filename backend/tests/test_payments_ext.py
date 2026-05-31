@@ -192,9 +192,18 @@ async def test_payments_unauthenticated(client):
 # ===================== POST /api/invoices/{id}/void =====================
 
 async def test_void_issued_invoice_happy_path(client, admin):
-    """Test case 10: ISSUED invoice → void → 200, status == VOID"""
+    """Test case 10: ISSUED invoice → void → 200, status == VOID.
+
+    SPEC §4.5: the first void call now parks an invoice_cancel approval (202). After the
+    approval is decided APPROVED, the second call performs the void."""
     inv = await _issued_invoice(client, admin, 6000, "void_issued")
     assert inv["status"] == "ISSUED"
+
+    pending = await client.post(f"/api/invoices/{inv['id']}/void", headers=admin)
+    assert pending.status_code == 202
+    aid = pending.json()["detail"]["approval_id"]
+    assert (await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                               json={"decision": "APPROVED"})).status_code == 200
 
     r = await client.post(f"/api/invoices/{inv['id']}/void", headers=admin)
     assert r.status_code == 200
@@ -212,7 +221,13 @@ async def test_void_overdue_invoice(client, admin):
         row.status = "OVERDUE"
         await s.commit()
 
-    # Now void it
+    # Now void it — SPEC §4.5 invoice_cancel approval first.
+    pending = await client.post(f"/api/invoices/{inv['id']}/void", headers=admin)
+    assert pending.status_code == 202
+    aid = pending.json()["detail"]["approval_id"]
+    assert (await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                               json={"decision": "APPROVED"})).status_code == 200
+
     r = await client.post(f"/api/invoices/{inv['id']}/void", headers=admin)
     assert r.status_code == 200
     result = r.json()

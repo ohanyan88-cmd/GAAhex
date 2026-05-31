@@ -8,6 +8,7 @@ from ..db import get_session
 from ..models import User, Record, Event
 from ..models.comm import Thread, Message
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .. import notify_hooks
 from .auth import current_user
 from .records import _entity, _get, _node_path     # reuse the exact records scope-check primitives
@@ -118,6 +119,14 @@ async def add_comment(slug: str, rec_id: uuid.UUID, payload: dict, user: User = 
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "view", await _node_path(s, rec.owner_node_id)):
         raise HTTPException(403, f"Not allowed: {ent.key}.view")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate piggybacks on the host entity's view grant
+    # (commenting is a derived action on the record, not a separate entity), so the kernel re-runs
+    # the host-entity view evaluation with full Role × Department × Region × Ownership AND.
+    try:
+        await assert_can(s, user, action="view", entity_key=ent.key,
+                         region_id=getattr(rec, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     th = await _record_thread(s, user.tenant_id, ent.key, rec.id, user.id)
     msg = Message(tenant_id=user.tenant_id, thread_id=th.id, author_user_id=user.id, body=str(body))

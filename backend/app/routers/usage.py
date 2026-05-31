@@ -18,6 +18,7 @@ from ..models import User
 from ..models.usage import UsageRecord
 from ..models.billing import Subscription, Invoice, InvoiceLine
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate
@@ -99,6 +100,13 @@ async def record_usage(payload: dict, user: User = Depends(current_user), s: Asy
     grants = await load_grants(s, user)
     if not can(grants, "usage", "create", await _node_path(s, owner_node)):
         _deny("usage.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="usage",
+                         region_id=getattr(sub, "region_id", None) if sub else None,
+                         owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     amount = int(round(quantity * unit_rate))
     u = UsageRecord(
@@ -165,6 +173,14 @@ async def rate_usage(payload: dict, user: User = Depends(current_user), s: Async
         _deny("usage.edit")
     if not can(grants, "invoice", "create", owner_path):  # …and writes billing
         _deny("invoice.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (rate touches usage + invoice).
+    try:
+        await assert_can(s, user, action="edit", entity_key="usage",
+                         region_id=getattr(sub, "region_id", None), owner_user_id=None)
+        await assert_can(s, user, action="create", entity_key="invoice",
+                         region_id=getattr(sub, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     usages = (await s.execute(
         select(UsageRecord).where(

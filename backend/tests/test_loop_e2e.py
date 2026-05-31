@@ -15,12 +15,24 @@ Money is integer luma. Unique keys/names per run (the session DB accumulates acr
 
 import uuid
 
+from sqlalchemy import select
+
 from app.db import SessionLocal
 from app.models.billing import Subscription
 
 
 def _uniq(tag: str) -> str:
     return f"{tag}-{uuid.uuid4().hex[:8]}"
+
+
+async def _pass_control_gate(order_id: str) -> None:
+    """SPEC §3 Stage 8 stand-in: flip the order's `control_pass` to TRUE so the kernel gate
+    permits the SUBMITTED → PROVISIONING transition (Step 4). Mirrors test_orders.py's helper."""
+    from app.models.order import Order
+    async with SessionLocal() as s:
+        o = (await s.execute(select(Order).where(Order.id == uuid.UUID(order_id)))).scalar_one()
+        o.control_pass = True
+        await s.commit()
 
 
 async def _product(client, admin, *, default_amount, cycle="monthly"):
@@ -39,6 +51,7 @@ async def _drive_order_to_completed(client, admin, customer_id, product_id, unit
     })).json()
     oid = order["id"]
     assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).json()["status"] == "SUBMITTED"
+    await _pass_control_gate(oid)                                               # SPEC §3 Stage 8
     assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "PROVISIONING"
     completed = (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()
     assert completed["status"] == "COMPLETED"

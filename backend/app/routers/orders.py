@@ -20,6 +20,10 @@ from ..models.order import Order, OrderItem
 from ..models.billing import Subscription
 from ..models.product import Product
 from ..access import load_grants, can
+from ..kernel import (
+    assert_can_advance_to_scheduling, ControlGateNotPassed,
+    assert_can, AccessDenied,
+)
 from .. import workflow, notify_hooks
 from .auth import current_user
 from .records import _node_path, _node_paths              # reuse the exact records scope primitives
@@ -177,6 +181,19 @@ async def create_order(payload: dict, user: User = Depends(current_user), s: Asy
     if not can(grants, "order", "create", owner_path):
         _deny("order.create")
 
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before any DB mutation. Region is None on
+    # create (the order has no row yet); ownership is None (the order has no current owner).
+    try:
+        await assert_can(
+            s, user,
+            action="create",
+            entity_key="order",
+            region_id=payload.get("region_id"),
+            owner_user_id=None,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
     customer_id = payload.get("customer_id")
     await _customer_or_422(s, user.tenant_id, customer_id)
 
@@ -209,6 +226,17 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(
+            s, user,
+            action="edit",
+            entity_key="order",
+            region_id=getattr(order, "region_id", None),
+            owner_user_id=order.control_pass_by,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if order.status != "DRAFT":
         raise HTTPException(409, f"Only a DRAFT order can be edited (status is {order.status})")
 
@@ -237,6 +265,17 @@ async def submit_order(order_id: uuid.UUID, user: User = Depends(current_user), 
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(
+            s, user,
+            action="edit",
+            entity_key="order",
+            region_id=getattr(order, "region_id", None),
+            owner_user_id=order.control_pass_by,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if order.status != "DRAFT":
         raise HTTPException(409, f"Only a DRAFT order can be submitted (status is {order.status})")
     await _set_status(s, user, order, "DRAFT", "SUBMITTED")
@@ -248,16 +287,49 @@ async def submit_order(order_id: uuid.UUID, user: User = Depends(current_user), 
 @router.post("/orders/{order_id}/advance")
 async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Move the order one legal step forward: SUBMITTED→PROVISIONING→COMPLETED. Illegal → 409.
-    On reaching COMPLETED, provisions ACTIVE Subscriptions for each item with a product."""
+
+    SPEC §3 Stage 8 Control Gate: SUBMITTED→PROVISIONING is the Sales→Fulfillment boundary in this
+    codebase (the closest analog to SPEC's stage 7→9 "Order Created → Scheduling" transition while
+    the explicit Scheduling/Dispatch module is still pending). Refuses the advance unless
+    `order.control_pass` is TRUE. PROVISIONING→COMPLETED is post-gate and unaffected.
+
+    On reaching COMPLETED, provisions ACTIVE Subscriptions for each item with a product.
+    """
     order = await _get_order(s, user, order_id)
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+
+    # SPEC §4 default-deny — proof-of-life wire-up of the kernel permissions engine. The legacy
+    # role check above is preserved (Studio/M0 has roles to keep working); this kernel call
+    # additionally evaluates Role × Department × Region × Ownership and raises AccessDenied →
+    # 403 if any layer denies. Step 6 wires this ONE touchpoint; a full router sweep lands later.
+    try:
+        await assert_can(
+            s, user,
+            action="edit",
+            entity_key="order",
+            region_id=getattr(order, "region_id", None),
+            owner_user_id=order.control_pass_by,  # closest stand-in until order.created_by lands
+        )
+    except AccessDenied as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
     nxt = _ADVANCE.get(order.status)
     if not nxt:
         raise HTTPException(409, f"Cannot advance an order in status {order.status}")
 
     frm = order.status
+
+    # SPEC §3 / §10.4 — Stage 8 Control Gate. Fires on the Sales→Fulfillment crossing only
+    # (SUBMITTED → PROVISIONING here; the explicit Scheduling stage isn't modeled yet).
+    if frm == "SUBMITTED" and nxt == "PROVISIONING":
+        try:
+            await assert_can_advance_to_scheduling(s, order_id=order.id, control_pass=order.control_pass)
+        except ControlGateNotPassed as e:
+            # Router boundary maps the kernel exception to HTTP 409 per the SPEC §0 contract.
+            raise HTTPException(status_code=409, detail=str(e))
+
     await _set_status(s, user, order, frm, nxt)
 
     provisioned: list[str] = []
@@ -292,6 +364,17 @@ async def cancel_order(order_id: uuid.UUID, user: User = Depends(current_user), 
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(
+            s, user,
+            action="edit",
+            entity_key="order",
+            region_id=getattr(order, "region_id", None),
+            owner_user_id=order.control_pass_by,
+        )
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if order.status in ("COMPLETED", "CANCELLED"):
         raise HTTPException(409, f"Cannot cancel an order in status {order.status}")
     frm = order.status

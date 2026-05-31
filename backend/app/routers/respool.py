@@ -19,6 +19,7 @@ from ..models import User
 from ..models.respool import ResourcePool, PoolAllocation
 from ..models.service import Service
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
@@ -139,6 +140,12 @@ async def create_pool(payload: dict, user: User = Depends(current_user), s: Asyn
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "resource_pool", "create", owner_path):
         _deny("resource_pool.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="resource_pool",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     name = (payload.get("name") or "").strip()
     if not name:
@@ -176,6 +183,12 @@ async def update_pool(pool_id: uuid.UUID, payload: dict, user: User = Depends(cu
     grants = await load_grants(s, user)
     if not can(grants, "resource_pool", "edit", await _node_path(s, pool.owner_node_id)):
         _deny("resource_pool.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="resource_pool",
+                         region_id=getattr(pool, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if "kind" in payload and payload["kind"] != pool.kind:
         raise HTTPException(409, "Changing a pool's kind is not allowed; create a new pool instead.")
     if "name" in payload:
@@ -201,6 +214,12 @@ async def delete_pool(pool_id: uuid.UUID, user: User = Depends(current_user), s:
     grants = await load_grants(s, user)
     if not can(grants, "resource_pool", "delete", await _node_path(s, pool.owner_node_id)):
         _deny("resource_pool.delete")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="delete", entity_key="resource_pool",
+                         region_id=getattr(pool, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     any_alloc = (await s.execute(
         select(func.count()).select_from(PoolAllocation).where(PoolAllocation.pool_id == pool.id)
     )).scalar_one()
@@ -225,6 +244,12 @@ async def allocate(pool_id: uuid.UUID, payload: dict | None = None, user: User =
     grants = await load_grants(s, user)
     if not can(grants, "resource_pool", "edit", await _node_path(s, pool.owner_node_id)):
         _deny("resource_pool.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="resource_pool",
+                         region_id=getattr(pool, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     service_id = payload.get("service_id")
     await _service_or_422(s, user.tenant_id, service_id)
@@ -274,6 +299,12 @@ async def release_by_value(pool_id: uuid.UUID, payload: dict, user: User = Depen
     grants = await load_grants(s, user)
     if not can(grants, "resource_pool", "edit", await _node_path(s, pool.owner_node_id)):
         _deny("resource_pool.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="resource_pool",
+                         region_id=getattr(pool, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     value = (payload.get("value") or "").strip()
     if not value:
         raise HTTPException(422, "value is required")
@@ -293,6 +324,12 @@ async def release_by_id(pool_id: uuid.UUID, alloc_id: uuid.UUID, user: User = De
     grants = await load_grants(s, user)
     if not can(grants, "resource_pool", "edit", await _node_path(s, pool.owner_node_id)):
         _deny("resource_pool.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="resource_pool",
+                         region_id=getattr(pool, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     alloc = (await s.execute(
         select(PoolAllocation).where(PoolAllocation.id == alloc_id, PoolAllocation.pool_id == pool.id)
     )).scalar_one_or_none()

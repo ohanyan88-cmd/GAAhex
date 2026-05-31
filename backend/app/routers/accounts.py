@@ -18,6 +18,7 @@ from ..models import User, Record
 from ..models.party import Party, Account
 from ..access import load_grants, can
 from .. import workflow
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
 
@@ -128,6 +129,12 @@ async def create_party(payload: dict, user: User = Depends(current_user), s: Asy
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "party", "create", owner_path):
         _deny("party.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="party",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     name = (payload.get("name") or "").strip()
     if not name:
@@ -189,6 +196,12 @@ async def create_account(payload: dict, user: User = Depends(current_user), s: A
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "account", "create", owner_path):
         _deny("account.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="account",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     holder_party_id = payload.get("holder_party_id")
     if not holder_party_id:

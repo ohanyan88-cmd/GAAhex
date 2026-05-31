@@ -29,4 +29,8 @@ class User(Base):
     # data URL travels with the row (RLS-scoped, survives restarts, works in tests with no shared volume)
     # and drops straight into an <img src>.
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # SPEC §4.1 home department (Sales, Billing, NOC, Customer Care, HR, Finance, …). The Department
+    # layer in the 4-way AND evaluated by app.kernel.invariants.assert_can. Nullable until
+    # backfill — NULL = no department membership (the kernel treats it accordingly).
+    department: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

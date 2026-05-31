@@ -4,6 +4,13 @@ MONEY: all amounts are integers in **luma** — AMD minor units (1 ֏ = 100 luma
 units avoid floating-point drift; BigInteger covers large group-level totals. Clients divide by
 100 for display. These are first-class BSS tables (not config-driven Records), but they follow the
 same tenant_id + owner_node_id scoping and emit audit Events like everything else.
+
+SPEC §0.3 FINANCIAL IMMUTABILITY (kernel invariant, alembic revision b70ef3b98e27):
+  The `invoice` and `payment` tables carry DB-level BEFORE DELETE triggers (`prevent_delete_invoice`,
+  `prevent_delete_payment`) that raise an exception on any DELETE attempt. Invoices and Payments
+  are NEVER deleted — only state changes (cancel, credit, refund, reconcile, void) are allowed.
+  UPDATE remains open for status transitions. The triggers fire for ANY role, including the
+  superuser/owner, so the immutability holds at the database layer below the application.
 """
 import uuid
 from datetime import datetime

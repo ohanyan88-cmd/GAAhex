@@ -9,7 +9,7 @@ coordinator's migration + any RLS policy must quote it too ("order")."""
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, Integer, ForeignKey, DateTime, func
+from sqlalchemy import String, BigInteger, Boolean, Integer, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,7 +17,12 @@ from .base import Base
 
 
 class Order(Base):
-    """A sales/provisioning order. `total` is derived from its items (kept in sync on write)."""
+    """A sales/provisioning order. `total` is derived from its items (kept in sync on write).
+
+    SPEC §3 Stage 8 Control Gate fields (`control_pass*`) are written by Revenue Control after
+    KYC + Credit/Risk + Fraud + Tariff/Product checks. `app.kernel.assert_can_advance_to_scheduling`
+    reads `control_pass` and refuses the order→scheduling transition unless it's TRUE.
+    """
     __tablename__ = "order"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -28,6 +33,12 @@ class Order(Base):
     number: Mapped[str] = mapped_column(String(40), nullable=False)                    # per-tenant ref, e.g. ORD-00007
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT")   # DRAFT|SUBMITTED|PROVISIONING|COMPLETED|CANCELLED
     total: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)           # luma, = sum(item line_total)
+    # SPEC §3 Stage 8 Control Gate verdict (Step 4). NULL = pending validation, TRUE = Revenue
+    # Control passed (KYC+Credit+Fraud+Tariff match), FALSE = explicitly failed. The kernel function
+    # `assert_can_advance_to_scheduling` refuses the order→scheduling transition unless TRUE.
+    control_pass: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    control_pass_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    control_pass_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

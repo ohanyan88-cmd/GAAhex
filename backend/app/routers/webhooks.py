@@ -22,6 +22,7 @@ from ..db import get_session
 from ..models import User
 from ..models.webhook import WebhookDef, WebhookDelivery
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -188,9 +189,15 @@ def _delivery_out(d: WebhookDelivery) -> dict:
 # ---- helpers -----------------------------------------------------------------------------------
 
 async def _require_config_manage(s: AsyncSession, user: User) -> None:
+    """SPEC §0.2 (Step 7): webhook config CRUD flows through the kernel default-deny gate."""
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    try:
+        await assert_can(s, user, action="manage", entity_key="webhook_def",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 async def _load(s: AsyncSession, tenant_id, webhook_id) -> WebhookDef:

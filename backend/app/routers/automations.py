@@ -19,6 +19,7 @@ from ..db import get_session
 from ..models import User
 from ..models.automation import AutomationRule
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user
 
 router = APIRouter(prefix="/api/automations", tags=["automations"])
@@ -28,9 +29,15 @@ ALLOWED_ACTION_TYPES = {"notify", "set_field", "webhook", "emit_event"}
 
 
 async def _require_config_manage(s: AsyncSession, user: User) -> None:
+    """SPEC §0.2 (Step 7): automation rule CRUD flows through the kernel default-deny gate."""
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed to manage configuration")
+    try:
+        await assert_can(s, user, action="manage", entity_key="automation_rule",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 async def _get_rule(s: AsyncSession, tenant_id, rule_id: uuid.UUID) -> AutomationRule:

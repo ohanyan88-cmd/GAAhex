@@ -4,6 +4,11 @@ Lifecycle DRAFT → SUBMITTED → PROVISIONING → COMPLETED (or CANCELLED), eac
 workflow.emit (entity_key "order"). On COMPLETED, each item with a product_id provisions an ACTIVE
 Subscription copying the PRODUCT's amount/cycle (not the order line price). Permissions order.* —
 admin via `*`, the seeded agent has none → 403. Money is integer luma; unique keys per test.
+
+SPEC §3 Stage 8 Control Gate: SUBMITTED → PROVISIONING refuses unless `order.control_pass` is
+TRUE (Step 4 kernel enforcement). Tests that drive an order across that boundary set
+`control_pass=True` directly on the row via `_pass_control_gate` — that's the Revenue Control
+verdict stand-in until the dedicated /control-pass endpoint lands.
 """
 
 import uuid
@@ -12,6 +17,17 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import User, Event
+
+
+async def _pass_control_gate(order_id: str) -> None:
+    """SPEC §3 Stage 8 stand-in: flip the order's `control_pass` to TRUE so the kernel gate
+    permits the SUBMITTED → PROVISIONING transition. The real flow has Revenue Control set this
+    via its own (not-yet-built) endpoint; tests poke it directly on the row."""
+    from app.models.order import Order
+    async with SessionLocal() as s:
+        o = (await s.execute(select(Order).where(Order.id == uuid.UUID(order_id)))).scalar_one()
+        o.control_pass = True
+        await s.commit()
 
 
 async def _product(client, admin, key, *, default_amount, cycle="monthly"):
@@ -62,6 +78,8 @@ async def test_lifecycle_and_provisioning(client, admin):
     assert (await client.get(f"/api/subscriptions?customer={cust}", headers=admin)).json() == []
 
     assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).json()["status"] == "SUBMITTED"
+    # SPEC §3 Stage 8 Control Gate: must be passed before SUBMITTED → PROVISIONING
+    await _pass_control_gate(oid)
     assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "PROVISIONING"
     completed = (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()
     assert completed["status"] == "COMPLETED"
@@ -92,6 +110,8 @@ async def test_illegal_transitions_409(client, admin):
     assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).status_code == 200
     assert (await client.post(f"/api/orders/{oid}/submit", headers=admin)).status_code == 409
     # drive to COMPLETED, then cancel is illegal
+    # SPEC §3 Stage 8 Control Gate: must be passed before SUBMITTED → PROVISIONING
+    await _pass_control_gate(oid)
     await client.post(f"/api/orders/{oid}/advance", headers=admin)   # PROVISIONING
     await client.post(f"/api/orders/{oid}/advance", headers=admin)   # COMPLETED
     assert (await client.post(f"/api/orders/{oid}/cancel", headers=admin)).status_code == 409

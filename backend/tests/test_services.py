@@ -23,6 +23,17 @@ async def _product(client, admin, key, *, default_amount, cycle="monthly"):
         "key": key, "name": key.title(), "default_amount": default_amount, "cycle": cycle})).json()
 
 
+async def _pass_control_gate(order_id: str) -> None:
+    """SPEC §3 Stage 8 stand-in: flip the order's `control_pass` to TRUE so the kernel gate
+    permits the SUBMITTED → PROVISIONING transition (Step 4). Mirrors test_orders.py's helper.
+    The real flow has Revenue Control set this via its own endpoint."""
+    from app.models.order import Order
+    async with SessionLocal() as s:
+        o = (await s.execute(select(Order).where(Order.id == uuid.UUID(order_id)))).scalar_one()
+        o.control_pass = True
+        await s.commit()
+
+
 # ===================== create + validation =====================
 
 async def test_create_service_and_validation(client, admin):
@@ -47,12 +58,20 @@ async def test_service_lifecycle_and_illegal_transitions(client, admin):
     cust = await _customer(client, admin, "Svc Cust 2")
     sid = (await client.post("/api/services", headers=admin, json={"name": "Line", "customer_id": cust})).json()["id"]
 
-    # suspend from PENDING is illegal (only ACTIVE → SUSPENDED)
-    assert (await client.post(f"/api/services/{sid}/suspend", headers=admin)).status_code == 409
+    # suspend from PENDING is illegal (only ACTIVE → SUSPENDED). The SPEC §4.5 gate runs
+    # FIRST — a fresh service has no APPROVED service_suspend row, so suspend parks an
+    # approval (202) before the lifecycle 409 ever fires. Test the gate here; the legal
+    # ACTIVE→SUSPENDED flow + the illegal-transition path are covered downstream.
+    pending = await client.post(f"/api/services/{sid}/suspend", headers=admin)
+    assert pending.status_code == 202
 
     activated = (await client.post(f"/api/services/{sid}/activate", headers=admin)).json()
     assert activated["status"] == "ACTIVE" and activated["activated_at"] is not None
 
+    # SPEC §4.5: pre-approve the suspension so the legacy lifecycle assertion still holds.
+    aid = pending.json()["detail"]["approval_id"]
+    assert (await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
+                               json={"decision": "APPROVED"})).status_code == 200
     assert (await client.post(f"/api/services/{sid}/suspend", headers=admin)).json()["status"] == "SUSPENDED"
     assert (await client.post(f"/api/services/{sid}/activate", headers=admin)).json()["status"] == "ACTIVE"
     assert (await client.post(f"/api/services/{sid}/terminate", headers=admin)).json()["status"] == "TERMINATED"
@@ -95,6 +114,7 @@ async def test_order_to_service_chain(client, admin):
     })).json()
     oid = order["id"]
     await client.post(f"/api/orders/{oid}/submit", headers=admin)
+    await _pass_control_gate(oid)                                               # SPEC §3 Stage 8
     await client.post(f"/api/orders/{oid}/advance", headers=admin)              # PROVISIONING
     assert (await client.post(f"/api/orders/{oid}/advance", headers=admin)).json()["status"] == "COMPLETED"
 

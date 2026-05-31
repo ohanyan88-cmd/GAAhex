@@ -20,6 +20,11 @@ from ..models.service import Service, ServiceResource
 from ..models.billing import Subscription
 from ..access import load_grants, can
 from .. import workflow
+from ..kernel import (
+    assert_can, AccessDenied,
+    assert_approval_or_raise, ApprovalRequired,
+    create_approval_request, find_approved_approval, mark_approval_executed,
+)
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
 
@@ -152,6 +157,12 @@ async def create_service(payload: dict, user: User = Depends(current_user), s: A
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "service", "create", owner_path):
         _deny("service.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="service",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     name = (payload.get("name") or "").strip()
     if not name:
@@ -193,6 +204,12 @@ async def update_service(service_id: uuid.UUID, payload: dict, user: User = Depe
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="service",
+                         region_id=getattr(svc, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     if "name" in payload:
         v = (payload["name"] or "").strip()
@@ -214,6 +231,12 @@ async def _service_status_change(s, user, service_id, new_status: str, allowed_f
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (lifecycle transitions).
+    try:
+        await assert_can(s, user, action="edit", entity_key="service",
+                         region_id=getattr(svc, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if svc.status not in allowed_from:
         raise HTTPException(409, f"Cannot move service from {svc.status} to {new_status}")
     frm = svc.status
@@ -234,7 +257,50 @@ async def activate_service(service_id: uuid.UUID, user: User = Depends(current_u
 
 @router.post("/services/{service_id}/suspend")
 async def suspend_service(service_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    return await _service_status_change(s, user, service_id, "SUSPENDED", {"ACTIVE"})
+    """ACTIVE -> SUSPENDED.
+
+    SPEC §4.5 mandatory-approval gate: suspending a customer's service is a high-impact action
+    (the customer goes offline) and so requires an APPROVED `service_suspend` Approval row for
+    this exact service. On first call we park a PENDING approval and return 202; on the
+    follow-up call (after PATCH /api/mandatory-approvals/{id}/decide flips it to APPROVED) the
+    suspension proceeds and the approval is marked EXECUTED.
+    """
+    # SPEC §4.5 — refuse the suspension unless an APPROVED approval row covers it.
+    try:
+        await assert_approval_or_raise(
+            s, tenant_id=user.tenant_id,
+            action_type="service_suspend",
+            target_entity_key="service",
+            target_record_id=service_id,
+        )
+    except ApprovalRequired:
+        approval = await create_approval_request(
+            s, tenant_id=user.tenant_id,
+            action_type="service_suspend",
+            requested_by_user_id=user.id,
+            target_entity_key="service",
+            target_record_id=service_id,
+            payload={"transition": "ACTIVE->SUSPENDED"},
+        )
+        await s.commit()
+        raise HTTPException(202, detail={
+            "status": "approval_required",
+            "approval_id": str(approval.id),
+            "action_type": "service_suspend",
+        })
+
+    approved = await find_approved_approval(
+        s, tenant_id=user.tenant_id,
+        action_type="service_suspend",
+        target_entity_key="service",
+        target_record_id=service_id,
+    )
+    result = await _service_status_change(s, user, service_id, "SUSPENDED", {"ACTIVE"})
+    # Forward-only: consume the approval so it can't be re-used.
+    if approved is not None:
+        await mark_approval_executed(s, approval_id=approved.id, actor_user_id=user.id)
+        await s.commit()
+    return result
 
 
 @router.post("/services/{service_id}/terminate")
@@ -253,6 +319,12 @@ async def allocate_resource(service_id: uuid.UUID, payload: dict, user: User = D
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="service",
+                         region_id=getattr(svc, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     kind = payload.get("kind")
     if kind not in _RESOURCE_KINDS:
@@ -279,6 +351,12 @@ async def release_resource(service_id: uuid.UUID, resource_id: uuid.UUID, user: 
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="service",
+                         region_id=getattr(svc, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     res = (await s.execute(
         select(ServiceResource).where(ServiceResource.id == resource_id, ServiceResource.service_id == svc.id)
     )).scalar_one_or_none()

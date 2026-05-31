@@ -23,15 +23,24 @@ from ..db import get_session
 from ..models import User
 from ..models.apikey import ApiKey
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user, _hash_token
 
 router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
 
 
 async def _require_admin(s: AsyncSession, user: User) -> None:
+    """SPEC §0.2 (Step 7): API key issuance flows through the kernel default-deny gate (sensitive:
+    a key is a machine principal, so creation/revocation deserves the same 4-layer evaluation as
+    other config-manage writes)."""
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         raise HTTPException(403, "Not allowed: config.manage")
+    try:
+        await assert_can(s, user, action="manage", entity_key="api_key",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 def _serialize(k: ApiKey, raw_key: str | None = None) -> dict:

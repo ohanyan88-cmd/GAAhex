@@ -29,6 +29,7 @@ from ..models.billing import Invoice, Payment
 from ..models.payment_gateway import PaymentOrder
 from ..models.job import JobRun
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from ..payment_gateway import get_gateway, settle_order
 from .auth import current_user
@@ -125,6 +126,12 @@ async def initiate_payment(
     from .records import _node_path  # noqa: PLC0415
     if not can(grants, "payment_order", "collect", await _node_path(s, inv.owner_node_id)):
         _deny("payment_order.collect")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="collect", entity_key="payment_order",
+                         region_id=getattr(inv, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     # Only ISSUED or OVERDUE invoices may be paid online
     if inv.status not in {"ISSUED", "OVERDUE"}:
@@ -329,6 +336,12 @@ async def reconcile_payment_orders(
     grants = await load_grants(s, user)
     if not can(grants, "payment_order", "view"):
         _deny("payment_order.view")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (tenant-wide sweep).
+    try:
+        await assert_can(s, user, action="view", entity_key="payment_order",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     return await run_payment_reconcile(user=user, s=s)
 
 

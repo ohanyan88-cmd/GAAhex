@@ -27,3 +27,7 @@ class OrgNode(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     code: Mapped[str | None] = mapped_column(String(50), nullable=True)
     path: Mapped[str] = mapped_column(LtreeType, nullable=False)
+    # SPEC §4.1 Region layer — stable region projection used by the kernel `assert_can` to resolve
+    # "what region is this assignment in?" without parsing the ltree at request time. Nullable;
+    # when NULL the kernel falls back to the node's own id as a region surrogate.
+    region_code: Mapped[str | None] = mapped_column(String(80), nullable=True)

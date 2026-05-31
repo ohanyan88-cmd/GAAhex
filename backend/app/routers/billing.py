@@ -25,6 +25,11 @@ from ..models.job import JobRun
 from ..models.product import Product
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
+from ..kernel import (
+    assert_can, AccessDenied,
+    assert_approval_or_raise, ApprovalRequired,
+    create_approval_request, find_approved_approval, mark_approval_executed,
+)
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
@@ -228,6 +233,12 @@ async def create_subscription(payload: dict, user: User = Depends(current_user),
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "subscription", "create", owner_path):
         _deny("subscription.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="subscription",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     # optional catalog plan: copies name/amount/cycle defaults, all still overridable per subscription
     product_id = payload.get("product_id")
@@ -285,6 +296,12 @@ async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Dep
     grants = await load_grants(s, user)
     if not can(grants, "subscription", "edit", await _node_path(s, sub.owner_node_id)):
         _deny("subscription.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="subscription",
+                         region_id=getattr(sub, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     changed: dict = {}
     if "plan_name" in payload:
@@ -316,6 +333,12 @@ async def _sub_status_change(s, user, sub_id, new_status: str, allowed_from: set
     grants = await load_grants(s, user)
     if not can(grants, "subscription", "edit", await _node_path(s, sub.owner_node_id)):
         _deny("subscription.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation; covers cancel/suspend/resume.
+    try:
+        await assert_can(s, user, action="edit", entity_key="subscription",
+                         region_id=getattr(sub, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if sub.status not in allowed_from:
         raise HTTPException(409, f"Cannot move subscription from {sub.status} to {new_status}")
     frm = sub.status
@@ -350,6 +373,12 @@ async def generate_invoice(sub_id: uuid.UUID, user: User = Depends(current_user)
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "create", await _node_path(s, sub.owner_node_id)):
         _deny("invoice.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="invoice",
+                         region_id=getattr(sub, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if sub.status == "CANCELLED":
         raise HTTPException(409, "Cannot generate an invoice for a CANCELLED subscription")
 
@@ -407,6 +436,12 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "invoice", "create", owner_path):
         _deny("invoice.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="invoice",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     customer_id = payload.get("customer_id")
     await _customer_or_422(s, user.tenant_id, customer_id)
@@ -467,6 +502,12 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "edit", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="invoice",
+                         region_id=getattr(inv, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if inv.status != "DRAFT":
         raise HTTPException(409, f"Only a DRAFT invoice can be issued (status is {inv.status})")
 
@@ -494,6 +535,12 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     grants = await load_grants(s, user)
     if not can(grants, "payment", "create", await _node_path(s, inv.owner_node_id)):
         _deny("payment.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="payment",
+                         region_id=getattr(inv, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     if inv.status == "VOID":
         raise HTTPException(409, "Cannot pay a VOID invoice")
@@ -570,17 +617,62 @@ async def list_payments(customer: uuid.UUID | None = None, limit: int = 200, off
 @router.post("/invoices/{inv_id}/void")
 async def void_invoice(inv_id: uuid.UUID, user: User = Depends(current_user),
                        s: AsyncSession = Depends(get_session)):
-    """Transition an ISSUED or OVERDUE invoice to VOID. DRAFT and PAID are rejected with 409."""
+    """Transition an ISSUED or OVERDUE invoice to VOID. DRAFT and PAID are rejected with 409.
+
+    SPEC §4.5 mandatory-approval gate: voiding (cancelling) an invoice reverses billed revenue
+    and so requires an APPROVED `invoice_cancel` Approval row for this invoice. First call parks
+    a PENDING approval and returns 202; once decided APPROVED, the second call performs the
+    void and consumes the approval (EXECUTED).
+    """
     inv = await _get_invoice(s, user, inv_id)
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "edit", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="invoice",
+                         region_id=getattr(inv, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if inv.status not in {"ISSUED", "OVERDUE"}:
         raise HTTPException(409, f"Cannot void an invoice with status {inv.status}")
+
+    # SPEC §4.5 — refuse the void unless an APPROVED invoice_cancel approval covers it.
+    try:
+        await assert_approval_or_raise(
+            s, tenant_id=user.tenant_id,
+            action_type="invoice_cancel",
+            target_entity_key="invoice",
+            target_record_id=inv.id,
+        )
+    except ApprovalRequired:
+        approval = await create_approval_request(
+            s, tenant_id=user.tenant_id,
+            action_type="invoice_cancel",
+            requested_by_user_id=user.id,
+            target_entity_key="invoice",
+            target_record_id=inv.id,
+            payload={"invoice_number": inv.number, "total": inv.total, "from_status": inv.status},
+        )
+        await s.commit()
+        raise HTTPException(202, detail={
+            "status": "approval_required",
+            "approval_id": str(approval.id),
+            "action_type": "invoice_cancel",
+        })
+
+    approved = await find_approved_approval(
+        s, tenant_id=user.tenant_id,
+        action_type="invoice_cancel",
+        target_entity_key="invoice",
+        target_record_id=inv.id,
+    )
     old_status = inv.status
     inv.status = "VOID"
     await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
                         {"from": old_status, "to": "VOID"})
+    if approved is not None:
+        await mark_approval_executed(s, approval_id=approved.id, actor_user_id=user.id)
     await s.commit()
     await s.refresh(inv)
     return _invoice(inv, await _invoice_lines(s, inv.id))
@@ -616,6 +708,12 @@ async def create_product(payload: dict, user: User = Depends(current_user), s: A
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (catalog/config).
+    try:
+        await assert_can(s, user, action="manage", entity_key="product",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     key = (payload.get("key") or "").strip()
     name = (payload.get("name") or "").strip()
@@ -648,6 +746,12 @@ async def update_product(product_id: uuid.UUID, payload: dict, user: User = Depe
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="manage", entity_key="product",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     prod = await _get_product(s, user, product_id)
 
     if "name" in payload:
@@ -678,6 +782,12 @@ async def retire_product(product_id: uuid.UUID, user: User = Depends(current_use
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="manage", entity_key="product",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     prod = await _get_product(s, user, product_id)
     prod.active = False
     await workflow.emit(s, user.tenant_id, "transition", "product", prod.id, user.id,
@@ -699,6 +809,12 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "edit"):
         _deny("invoice.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (tenant-wide sweep).
+    try:
+        await assert_can(s, user, action="edit", entity_key="invoice",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     started = _now()
     try:

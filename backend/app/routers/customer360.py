@@ -16,6 +16,7 @@ from ..db import get_session
 from ..models import Record, Event, User, Service
 from ..models.billing import Subscription, Invoice, Payment
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user
 from .records import _serialize as _serialize_record, _get, _node_path, _node_paths
 from .activity import _item as _activity_item, _actor_names
@@ -181,6 +182,12 @@ async def provision_portal_user(
     grants = await load_grants(s, user)
     if not can(grants, "customer", "edit", await _node_path(s, rec.owner_node_id)):
         raise HTTPException(403, "Not allowed: customer.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="customer",
+                         region_id=getattr(rec, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     if not body.password or len(body.password) < 6:
         raise HTTPException(422, "Password must be at least 6 characters")

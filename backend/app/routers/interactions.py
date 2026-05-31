@@ -19,6 +19,7 @@ from ..db import get_session
 from ..models import User, Record
 from ..models.interaction import Interaction
 from ..access import load_grants, can
+from ..kernel import assert_can, AccessDenied
 from .. import workflow, notify_hooks
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the records scope + paging helpers
@@ -127,6 +128,12 @@ async def create_interaction(payload: dict, user: User = Depends(current_user), 
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "interaction", "create", owner_path):
         _deny("interaction.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="interaction",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     channel = payload.get("channel")
     if channel not in CHANNELS:
@@ -183,6 +190,13 @@ async def update_interaction(interaction_id: uuid.UUID, payload: dict, user: Use
     x = await _get(s, user.tenant_id, interaction_id)
     if x.agent_user_id != user.id:
         raise HTTPException(403, "Only the author can edit this interaction")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation; agent_user_id is the owner.
+    try:
+        await assert_can(s, user, action="edit", entity_key="interaction",
+                         region_id=getattr(x, "region_id", None),
+                         owner_user_id=x.agent_user_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     allowed = {"subject", "body"}
     unknown = set(payload) - allowed
@@ -213,6 +227,14 @@ async def delete_interaction(interaction_id: uuid.UUID, user: User = Depends(cur
     is_author = x.agent_user_id == user.id
     if not is_author and not can(grants, "interaction", "delete", await _node_path(s, x.owner_node_id)):
         _deny("interaction.delete")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation; authors are own-only.
+    if not is_author:
+        try:
+            await assert_can(s, user, action="delete", entity_key="interaction",
+                             region_id=getattr(x, "region_id", None),
+                             owner_user_id=x.agent_user_id)
+        except AccessDenied as e:
+            raise HTTPException(403, detail=str(e))
     await workflow.emit(s, user.tenant_id, "delete", "interaction", x.id, user.id,
                         {"channel": x.channel, "customer_id": str(x.customer_id) if x.customer_id else None})
     await s.delete(x)

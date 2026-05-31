@@ -22,6 +22,7 @@ from ..models.helpdesk import HelpdeskQueue, HelpdeskTicket
 from ..models.job import JobRun
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user
 from .records import _node_paths, _paginate
 
@@ -139,6 +140,12 @@ async def create_queue(
     grants = await load_grants(s, user)
     if not can(grants, "helpdesk_queue", "manage"):
         _deny("helpdesk_queue.manage")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     name = (payload.get("name") or "").strip()
     if not name:
@@ -180,6 +187,12 @@ async def update_queue(
     if not can(grants, "helpdesk_queue", "manage"):
         _deny("helpdesk_queue.manage")
     q = await _get_queue(s, user, queue_id)
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
+                         region_id=getattr(q, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     changed: dict = {}
     if "name" in payload:
@@ -219,6 +232,12 @@ async def delete_queue(
     if not can(grants, "helpdesk_queue", "manage"):
         _deny("helpdesk_queue.manage")
     q = await _get_queue(s, user, queue_id)
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
+                         region_id=getattr(q, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     await workflow.emit(s, user.tenant_id, "delete", "helpdesk_queue", q.id, user.id, {"name": q.name})
     await s.delete(q)
     await s.commit()
@@ -276,6 +295,12 @@ async def create_ticket(
     grants = await load_grants(s, user)
     if not can(grants, "helpdesk_ticket", "create"):
         _deny("helpdesk_ticket.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="helpdesk_ticket",
+                         region_id=payload.get("region_id"), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     subject = (payload.get("subject") or "").strip()
     if not subject:
@@ -347,6 +372,13 @@ async def update_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
+                         region_id=getattr(t, "region_id", None),
+                         owner_user_id=t.assigned_agent_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     changed: dict = {}
     if "subject" in payload:
@@ -395,6 +427,14 @@ async def assign_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (assign is a kind of edit;
+    # mapped to 'edit' verb to match existing role grants — `assigned_agent_id` is the new owner).
+    try:
+        await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
+                         region_id=getattr(t, "region_id", None),
+                         owner_user_id=t.assigned_agent_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     agent_id = payload.get("agent_id")
     if not agent_id:
@@ -434,6 +474,13 @@ async def resolve_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
+                         region_id=getattr(t, "region_id", None),
+                         owner_user_id=t.assigned_agent_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if t.status == "CLOSED":
         raise HTTPException(409, f"Cannot resolve a CLOSED ticket")
     if t.status == "RESOLVED":
@@ -461,6 +508,13 @@ async def reopen_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
+                         region_id=getattr(t, "region_id", None),
+                         owner_user_id=t.assigned_agent_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if t.status not in {"RESOLVED", "CLOSED", "PENDING"}:
         raise HTTPException(409, f"Cannot reopen a ticket with status {t.status}")
 
@@ -486,6 +540,13 @@ async def close_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
+                         region_id=getattr(t, "region_id", None),
+                         owner_user_id=t.assigned_agent_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     if t.status == "CLOSED":
         raise HTTPException(409, "Ticket is already CLOSED")
 
@@ -510,6 +571,13 @@ async def delete_ticket(
     if not can(grants, "helpdesk_ticket", "delete",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.delete")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="delete", entity_key="helpdesk_ticket",
+                         region_id=getattr(t, "region_id", None),
+                         owner_user_id=t.assigned_agent_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     await workflow.emit(s, user.tenant_id, "delete", "helpdesk_ticket", t.id, user.id,
                         {"subject": t.subject, "status": t.status})
     await s.delete(t)

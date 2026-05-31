@@ -20,6 +20,19 @@ import importlib
 import uuid
 
 import pytest
+from sqlalchemy import select
+
+from app.db import SessionLocal
+
+
+async def _pass_control_gate(order_id: str) -> None:
+    """SPEC §3 Stage 8 stand-in: flip the order's `control_pass` to TRUE so the kernel gate
+    permits the SUBMITTED → PROVISIONING transition (Step 4). Mirrors test_orders.py's helper."""
+    from app.models.order import Order
+    async with SessionLocal() as s:
+        o = (await s.execute(select(Order).where(Order.id == uuid.UUID(order_id)))).scalar_one()
+        o.control_pass = True
+        await s.commit()
 
 # ---------------------------------------------------------------------------
 # Probe A21 — import the seed module + its constants
@@ -94,6 +107,7 @@ async def _drive_order_to_completed(client, admin, customer_id: str, product_id:
     oid = order["id"]
     r = await client.post(f"/api/orders/{oid}/submit", headers=admin)
     assert r.json()["status"] == "SUBMITTED", r.text
+    await _pass_control_gate(oid)                                               # SPEC §3 Stage 8
     r = await client.post(f"/api/orders/{oid}/advance", headers=admin)
     assert r.json()["status"] == "PROVISIONING", r.text
     r = await client.post(f"/api/orders/{oid}/advance", headers=admin)

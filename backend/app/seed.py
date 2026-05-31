@@ -109,6 +109,7 @@ async def seed_if_empty() -> None:
         admin = User(
             tenant_id=tenant.id, primary_node_id=group.id,
             email="admin@demo.isp", name="Demo Admin", password_hash=hash_password("admin123"),
+            department="Executive",   # SPEC §4.1 Department layer (M0 demo backfill)
         )
         s.add(admin)
         await s.commit()
@@ -258,9 +259,107 @@ async def build_access_config(s, tenant_id) -> dict:
                           + ["helpdesk_ticket.view", "helpdesk_ticket.create", "helpdesk_ticket.edit"]
                           + ["workitem.view", "workitem.create", "workitem.edit"]
                           + _payment_order_perms + _request_perms)
-    s.add_all([super_admin, manager, sales_agent])
+
+    # SPEC §4.3 roles — positive-grant lists ("Can access" column). The matching `cannot` lists
+    # are seeded into `role_def_deny` by `seed_role_boundaries_if_empty()` on the same boot, which
+    # picks up these RoleDefs automatically once they exist. All scoped `subtree` by default — the
+    # final scope per role is tuneable in Studio later.
+    #
+    # Wildcards: `entity.*` grants every verb on that entity (matches the kernel `_grants` reader).
+    executive = RoleDef(
+        tenant_id=tenant_id, key="executive", label="Executive", scope="tenant",
+        # Read-mostly: dashboards, KPIs, reports, financial summaries.
+        permissions=[
+            "dashboard.view", "kpi.view", "report.view",
+            "invoice.view", "payment.view", "billing_account.view",
+            "customer.view", "order.view", "service.view",
+        ] + _request_perms,
+    )
+    customer_care = RoleDef(
+        tenant_id=tenant_id, key="customer_care", label="Customer Care", scope="subtree",
+        # Customers, tickets, tasks, comms, KB, billing/payment/service status.
+        permissions=[
+            "customer.view", "customer.edit",
+            "ticket.*", "helpdesk_ticket.*", "helpdesk_queue.view",
+            "workitem.view", "workitem.create", "workitem.edit",
+            "communication.view", "communication.create",
+            "kb_article.view",
+            "invoice.view", "payment.view", "service.view", "billing_account.view",
+        ] + _request_perms,
+    )
+    billing_role = RoleDef(
+        tenant_id=tenant_id, key="billing", label="Billing", scope="subtree",
+        # Billing accounts, invoices, payments, collections, revenue assurance.
+        permissions=[
+            "billing_account.*", "invoice.*", "payment.*",
+            "credit_note.*", "collection_case.*",
+            "revenue_assurance.view",
+            "customer.view",
+        ] + _payment_order_perms + _request_perms,
+    )
+    revenue_control = RoleDef(
+        tenant_id=tenant_id, key="revenue_control", label="Revenue Control", scope="tenant",
+        # Orders, Order Validation, Revenue Assurance.
+        permissions=[
+            "order.*", "order_validation.*",
+            "revenue_assurance.view",
+            "customer.view", "invoice.view", "payment.view",
+        ] + _request_perms,
+    )
+    network_noc = RoleDef(
+        tenant_id=tenant_id, key="network_noc", label="Network / NOC", scope="tenant",
+        # NOC, Monitoring, Alarms, Incidents, GIS, Topology, Provisioning, Service/Resource/Asset Inventory.
+        permissions=[
+            "alarm.*", "incident.*", "outage.*",
+            "site.*", "olt.*", "router.*", "switch.*", "tower.*", "device.*", "vlan.*",
+            "service.*", "asset.view", "stock_item.view",
+            "workitem.view", "workitem.create", "workitem.edit",
+        ] + _request_perms,
+    )
+    field_technician = RoleDef(
+        tenant_id=tenant_id, key="field_technician", label="Field Technician", scope="node",
+        # Assigned work orders, address/contact, equipment, checklist, photos, service status.
+        permissions=[
+            "workitem.view", "workitem.edit",
+            "work_order.view", "work_order.edit",
+            "customer.view",
+            "communication.create",
+            "asset.view", "device.view",
+            "service.view",
+        ] + _request_perms,
+    )
+    finance = RoleDef(
+        tenant_id=tenant_id, key="finance", label="Finance", scope="tenant",
+        # Finance, accounting, billing summaries, revenue reports, payments, collections.
+        permissions=[
+            "expense.*", "budget.*", "vendor_payment.*",
+            "invoice.view", "payment.view", "billing_account.view",
+            "credit_note.view", "collection_case.view",
+            "report.view", "revenue_assurance.view",
+        ] + _request_perms,
+    )
+    hr = RoleDef(
+        tenant_id=tenant_id, key="hr", label="HR", scope="tenant",
+        # Employees, recruitment, performance, attendance, leave, employee docs.
+        permissions=[
+            "employee.*", "department.*",
+            "candidate.*", "performance_review.*", "training_course.*",
+            "leave_request.*", "payroll_run.view",
+        ] + _request_perms,
+    )
+
+    s.add_all([
+        super_admin, manager, sales_agent,
+        executive, customer_care, billing_role, revenue_control,
+        network_noc, field_technician, finance, hr,
+    ])
     await s.flush()
-    return {"super_admin": super_admin, "manager": manager, "sales_agent": sales_agent}
+    return {
+        "super_admin": super_admin, "manager": manager, "sales_agent": sales_agent,
+        "executive": executive, "customer_care": customer_care, "billing": billing_role,
+        "revenue_control": revenue_control, "network_noc": network_noc,
+        "field_technician": field_technician, "finance": finance, "hr": hr,
+    }
 
 
 async def seed_access_if_empty() -> None:
@@ -284,12 +383,136 @@ async def seed_access_if_empty() -> None:
         agent_user = User(
             tenant_id=tenant.id, primary_node_id=team.id if team else None,
             email="agent@demo.isp", name="Demo Agent", password_hash=hash_password("agent123"),
+            department="Sales",   # SPEC §4.1 Department layer (M0 demo backfill)
         )
         s.add(agent_user)
         await s.flush()
         if team:
             s.add(Assignment(tenant_id=tenant.id, user_id=agent_user.id, role_id=sales_agent.id, node_id=team.id))
         await s.commit()
+
+
+# SPEC §4.3 role specs — checked-by-key idempotency so existing deployments backfill the 8 roles
+# missing from `build_access_config`'s original 3-role list. Kept as a (key, label, scope, perms)
+# tuple list so `seed_spec_roles_if_missing()` doesn't depend on `build_access_config`'s flush
+# side-effects.
+_SPEC_ROLE_SPECS: list[tuple[str, str, str, list[str]]] = [
+    ("executive", "Executive", "tenant", [
+        "dashboard.view", "kpi.view", "report.view",
+        "invoice.view", "payment.view", "billing_account.view",
+        "customer.view", "order.view", "service.view",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("customer_care", "Customer Care", "subtree", [
+        "customer.view", "customer.edit",
+        "ticket.*", "helpdesk_ticket.*", "helpdesk_queue.view",
+        "workitem.view", "workitem.create", "workitem.edit",
+        "communication.view", "communication.create",
+        "kb_article.view",
+        "invoice.view", "payment.view", "service.view", "billing_account.view",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("billing", "Billing", "subtree", [
+        "billing_account.*", "invoice.*", "payment.*",
+        "credit_note.*", "collection_case.*",
+        "revenue_assurance.view",
+        "customer.view",
+        "payment_order.view", "payment_order.collect",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("revenue_control", "Revenue Control", "tenant", [
+        "order.*", "order_validation.*",
+        "revenue_assurance.view",
+        "customer.view", "invoice.view", "payment.view",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("network_noc", "Network / NOC", "tenant", [
+        "alarm.*", "incident.*", "outage.*",
+        "site.*", "olt.*", "router.*", "switch.*", "tower.*", "device.*", "vlan.*",
+        "service.*", "asset.view", "stock_item.view",
+        "workitem.view", "workitem.create", "workitem.edit",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("field_technician", "Field Technician", "node", [
+        "workitem.view", "workitem.edit",
+        "work_order.view", "work_order.edit",
+        "customer.view",
+        "communication.create",
+        "asset.view", "device.view",
+        "service.view",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("finance", "Finance", "tenant", [
+        "expense.*", "budget.*", "vendor_payment.*",
+        "invoice.view", "payment.view", "billing_account.view",
+        "credit_note.view", "collection_case.view",
+        "report.view", "revenue_assurance.view",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+    ("hr", "HR", "tenant", [
+        "employee.*", "department.*",
+        "candidate.*", "performance_review.*", "training_course.*",
+        "leave_request.*", "payroll_run.view",
+        "request.view", "request.create", "request.edit", "request.delete",
+    ]),
+]
+
+
+async def seed_spec_roles_if_missing() -> int:
+    """SPEC §4.3 — ensure the 8 SPEC roles exist for every tenant. Idempotent: checks per
+    `(tenant_id, role.key)` and inserts only what's missing. `seed_role_boundaries_if_empty()`
+    automatically picks up new role rows on the same boot and seeds their `cannot` lists.
+
+    Returns the count of RoleDef rows inserted this run (across all tenants)."""
+    inserted = 0
+    async with SessionLocal() as s:
+        tenants = (await s.execute(select(Tenant))).scalars().all()
+        for t in tenants:
+            existing_keys = {
+                k for (k,) in (await s.execute(
+                    select(RoleDef.key).where(RoleDef.tenant_id == t.id)
+                )).all()
+            }
+            for key, label, scope, permissions in _SPEC_ROLE_SPECS:
+                if key in existing_keys:
+                    continue
+                s.add(RoleDef(
+                    tenant_id=t.id, key=key, label=label,
+                    permissions=permissions, scope=scope,
+                ))
+                inserted += 1
+        if inserted:
+            await s.commit()
+    return inserted
+
+
+async def backfill_demo_user_departments() -> int:
+    """SPEC §4.1 Department layer — set `user.department` on the two demo users when NULL.
+
+    Idempotent: only writes to rows where `department IS NULL`, so manual edits in Studio (or any
+    later seed) are preserved. Migration `a7b3c9d5e1f2` added the column NULL-by-default; this
+    helper backfills the M0 demo so the kernel runs in strict 4-layer mode for the demo session
+    instead of the transitional role-only fallback.
+
+    Returns the count of rows updated this run.
+    """
+    DEMO_DEPT_BY_EMAIL = {
+        "admin@demo.isp": "Executive",
+        "agent@demo.isp": "Sales",
+    }
+    updated = 0
+    async with SessionLocal() as s:
+        for email, dept in DEMO_DEPT_BY_EMAIL.items():
+            user = (await s.execute(
+                select(User).where(User.email == email)
+            )).scalar_one_or_none()
+            if user is None or user.department is not None:
+                continue
+            user.department = dept
+            updated += 1
+        if updated:
+            await s.commit()
+    return updated
 
 
 async def seed_portal_if_empty() -> None:

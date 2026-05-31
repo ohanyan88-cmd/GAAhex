@@ -19,6 +19,7 @@ from ..models import User
 from ..models.workitem import WorkItem
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
+from ..kernel import assert_can, AccessDenied
 from .auth import current_user
 from .records import _node_paths, _paginate
 
@@ -88,6 +89,17 @@ async def _get_workitem(s: AsyncSession, user: User, workitem_id) -> WorkItem:
     return w
 
 
+async def _kernel_gate(s: AsyncSession, user: User, w: WorkItem, action: str) -> None:
+    """SPEC §0.2 default-deny (Step 7) helper — Role × Department × Region × Ownership AND.
+    Maps AccessDenied to HTTP 403. Caller passes the SPEC verb."""
+    try:
+        await assert_can(s, user, action=action, entity_key="workitem",
+                         region_id=getattr(w, "region_id", None),
+                         owner_user_id=w.assigned_user_id)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+
 # ---------------------------------------------------------------------------
 # List
 # ---------------------------------------------------------------------------
@@ -155,6 +167,13 @@ async def create_workitem(
     grants = await load_grants(s, user)
     if not can(grants, "workitem", "create"):
         _deny("workitem.create")
+    # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
+    try:
+        await assert_can(s, user, action="create", entity_key="workitem",
+                         region_id=payload.get("region_id"),
+                         owner_user_id=payload.get("assigned_user_id"))
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
     title = (payload.get("title") or "").strip()
     if not title:
@@ -223,6 +242,7 @@ async def update_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
 
     changed: dict = {}
     if "title" in payload:
@@ -282,6 +302,7 @@ async def assign_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
 
     user_id = payload.get("user_id")
     if not user_id:
@@ -321,6 +342,7 @@ async def start_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
     if w.status == "IN_PROGRESS":
         raise HTTPException(409, "WorkItem is already IN_PROGRESS")
     if w.status in {"DONE", "CANCELLED"}:
@@ -347,6 +369,7 @@ async def complete_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
     if w.status == "DONE":
         raise HTTPException(409, "WorkItem is already DONE")
     if w.status == "CANCELLED":
@@ -374,6 +397,7 @@ async def block_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
     if w.status == "BLOCKED":
         raise HTTPException(409, "WorkItem is already BLOCKED")
     if w.status in {"DONE", "CANCELLED"}:
@@ -400,6 +424,7 @@ async def cancel_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
     if w.status == "CANCELLED":
         raise HTTPException(409, "WorkItem is already CANCELLED")
     if w.status == "DONE":
@@ -426,6 +451,7 @@ async def reopen_workitem(
     if not can(grants, "workitem", "edit",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.edit")
+    await _kernel_gate(s, user, w, "edit")
     if w.status not in _REOPEN_FROM:
         raise HTTPException(409, f"Cannot reopen a WorkItem with status {w.status} (only from: {sorted(_REOPEN_FROM)})")
 
@@ -455,6 +481,7 @@ async def delete_workitem(
     if not can(grants, "workitem", "delete",
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.delete")
+    await _kernel_gate(s, user, w, "delete")
     await workflow.emit(s, user.tenant_id, "delete", "workitem", w.id, user.id,
                         {"title": w.title, "status": w.status})
     await s.delete(w)
