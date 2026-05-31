@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session, SessionLocal, set_tenant_guc
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..access import load_grants, can
 from .. import workflow, gxl, notify_hooks
@@ -30,6 +31,12 @@ async def _do_delete(s, user, ent, grants, paths, rec) -> dict | None:
     record_path = paths.get(str(rec.owner_node_id)) if rec.owner_node_id else None
     if not can(grants, ent.key, "delete", record_path):
         raise HTTPException(403, f"Not allowed: {ent.key}.delete")
+    # SPEC §0.2 default-deny (Step 7.2) — per-record kernel gate (partial-failure friendly).
+    try:
+        await assert_can(s, user, action="delete", entity_key=ent.key,
+                         region_id=getattr(rec, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
                         {"data": dict(rec.data or {}), "status": rec.status})
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="delete", entity_key=ent.key,
@@ -42,6 +49,12 @@ async def _do_transition(s, user, ent, grants, paths, rec, to, transitions) -> d
     record_path = paths.get(str(rec.owner_node_id)) if rec.owner_node_id else None
     if not can(grants, ent.key, "edit", record_path):
         raise HTTPException(403, f"Not allowed: {ent.key}.edit")
+    # SPEC §0.2 default-deny (Step 7.2) — per-record kernel gate (partial-failure friendly).
+    try:
+        await assert_can(s, user, action="edit", entity_key=ent.key,
+                         region_id=getattr(rec, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
     tr = workflow.find_transition(transitions, rec.status, to)
     if not tr:
         raise HTTPException(409, f"No transition from '{rec.status}' to '{to}'")
@@ -79,6 +92,7 @@ async def bulk(slug: str, payload: dict, user: User = Depends(current_user), s: 
         raise HTTPException(422, "transition action requires 'to'")
 
     ent = await _entity(s, user.tenant_id, slug)          # 404 for unknown entity
+
     grants = await load_grants(s, user)
     paths = await _node_paths(s, user.tenant_id)
     transitions = await workflow.get_transitions(s, ent.id) if action == "transition" else None
