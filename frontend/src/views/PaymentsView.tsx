@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { bget, loadCustomers, type Payment, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner } from '../components/States'
+import { humanizeStatus } from '../lib/humanize'
 import {
   CreditCardIcon, ReceiptIcon, SearchIcon, GearIcon,
 } from '../components/icons'
@@ -92,7 +93,7 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
         )
       case 'customer': return customerName(p)
       case 'method': return p.method
-        ? <StatusPill variant={p.method.toLowerCase() === 'card' ? 'info' : 'neutral'} label={p.method} size="sm" />
+        ? <StatusPill variant={p.method.toLowerCase() === 'card' ? 'info' : 'neutral'} label={humanizeStatus(p.method)} size="sm" />
         : <span>—</span>
       case 'date': return <span className="mono">{fmtDate(p.paid_at)}</span>
       case 'amount': return <span className="mono tnum">{money(p.amount)}</span>
@@ -154,8 +155,8 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
 
   return (
     <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
+      <div className="view-inner section-page fade">
+        <div className="crumbs"><span>Orders &amp; Revenue</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead
           icon={<CreditCardIcon size={18} />}
@@ -182,7 +183,7 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
             {methodsActive.length > 0 && (
               <KPITile
                 label="Methods"
-                value={methodsActive.join(' · ')}
+                value={methodsActive.map(humanizeStatus).join(' · ')}
                 subtitle="used"
                 size="sm"
               />

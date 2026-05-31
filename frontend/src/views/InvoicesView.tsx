@@ -5,9 +5,10 @@ import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
+import { humanizeStatus } from '../lib/humanize'
 import {
   ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
-  CreditCardIcon,
+  CreditCardIcon, SearchIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
@@ -30,7 +31,7 @@ function statusPill(status: string | null | undefined) {
     : s === 'VOID' ? 'pill pill-neutral'
     : s === 'ISSUED' ? 'pill pill-info'
     : 'pill pill-neutral'
-  return status ? <span className={cls}><span className="pill-dot" />{status}</span> : <span>—</span>
+  return status ? <span className={cls}><span className="pill-dot" />{humanizeStatus(status)}</span> : <span>—</span>
 }
 
 // ── Pay online button ─────────────────────────────────────────────────────────
@@ -225,7 +226,13 @@ export default function InvoicesView({
   if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} onBack={() => { setDetailId(null); load() }} />
 
   return (
-    <div className="view-inner fade">
+    <div className="view">
+      <div className="view-inner section-page fade">
+      <div className="crumbs">
+        <span>Orders &amp; Revenue</span>
+        <span className="sep">/</span>
+        <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
+      </div>
       <ViewHead
         icon={<ReceiptIcon size={18} />}
         title={cfg.title}
@@ -309,40 +316,54 @@ export default function InvoicesView({
       )}
 
       {list && list.length > 0 && (
-        <div className="grid-wrap">
-          <table className="grid">
-            <thead>
-              <tr>
-                {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
-                {cf.headers()}
-                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((inv) => (
-                <tr key={inv.id}>
-                  {cfg.columns.map((c) => (
-                    <td key={c.key} className={colTdClass(c.key)} style={colTdStyle(c.key)}>
-                      {renderInvoiceCell(c.key, inv, cust)}
-                    </td>
-                  ))}
-                  {cf.cells(inv.id)}
-                  <td className="actions-col">
-                    <div className="row-actions">
-                      {canCreatePayment && (inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
-                        <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
-                      )}
-                      <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
-                        <ArrowRightIcon size={13} />
-                      </button>
-                    </div>
-                  </td>
+        <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+          <div className="grid-wrap">
+            <table className="grid">
+              <thead>
+                <tr>
+                  {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
+                  {cf.headers()}
+                  <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {list.map((inv) => (
+                  <tr key={inv.id}>
+                    {cfg.columns.map((c) => (
+                      <td key={c.key} className={colTdClass(c.key)} style={colTdStyle(c.key)}>
+                        {renderInvoiceCell(c.key, inv, cust)}
+                      </td>
+                    ))}
+                    {cf.cells(inv.id)}
+                    <td className="actions-col">
+                      <div className="row-actions">
+                        {canCreatePayment && (inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
+                          <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
+                        )}
+                        <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
+                          <ArrowRightIcon size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {list.length === 0 && (
+                  <tr>
+                    <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ padding: 0 }}>
+                      <EmptyState
+                        icon={<SearchIcon size={34} />}
+                        title="No matching invoices"
+                        message="Try a different status tab."
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -393,7 +414,8 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, onB
   const cust = inv?.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—'
 
   return (
-    <div className="view-inner fade">
+    <div className="view">
+      <div className="view-inner section-page fade">
       <ViewHead
         icon={<ChevronLeftIcon size={16} />}
         title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
@@ -520,6 +542,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, onB
           onDone={() => { setPayOpen(false); load() }}
         />
       )}
+      </div>
     </div>
   )
 }

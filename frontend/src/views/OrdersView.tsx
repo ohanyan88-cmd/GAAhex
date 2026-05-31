@@ -20,8 +20,9 @@ import { toast } from '../components/Toast'
 import { Modal } from '../components/Modal'
 import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { humanizeStatus } from '../lib/humanize'
 import {
-  ArchiveIcon, SearchIcon, GearIcon, CheckIcon, CloseIcon, ArrowRightIcon,
+  ArchiveIcon, SearchIcon, CheckIcon, CloseIcon, ArrowRightIcon,
 } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import {
@@ -218,9 +219,9 @@ export default function OrdersView({ token }: { token: string }) {
 
   return (
     <div className="view">
-      <div className="view-inner fade">
+      <div className="view-inner section-page fade">
         <div className="crumbs">
-          <span>Revenue</span>
+          <span>Orders &amp; Revenue</span>
           <span className="sep">/</span>
           <span style={{ color: 'var(--gx-text-1)' }}>Orders</span>
         </div>
@@ -372,7 +373,7 @@ export default function OrdersView({ token }: { token: string }) {
                         <td><span className="mono">{o.number}</span></td>
                         <td>{custName(o)}</td>
                         <td>{o.status
-                          ? <StatusPill variant={mapOrderStatus(o.status)} label={o.status} size="sm" />
+                          ? <StatusPill variant={mapOrderStatus(o.status)} label={humanizeStatus(o.status)} size="sm" />
                           : <span>—</span>}</td>
                         <td className="num"><span className="mono tnum">{money(o.total)}</span></td>
                         <td>{fmtDate(o.created_at)}</td>
@@ -398,8 +399,12 @@ export default function OrdersView({ token }: { token: string }) {
                   })}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
-                        No matching orders.
+                      <td colSpan={6} style={{ padding: 0 }}>
+                        <EmptyState
+                          icon={<SearchIcon size={34} />}
+                          title="No matching orders"
+                          message="Try a different search term or clear the status filter."
+                        />
                       </td>
                     </tr>
                   )}
@@ -609,7 +614,7 @@ function OrderDetailModal({
   // 5-variant scale.
   const statusVariant = order?.status ? mapOrderStatus(order.status) : undefined
   const drawerStatus = statusVariant && order?.status
-    ? { label: order.status, variant: statusVariant as 'active' | 'degraded' | 'critical' | 'neutral' | 'info' }
+    ? { label: humanizeStatus(order.status), variant: statusVariant as 'active' | 'degraded' | 'critical' | 'neutral' | 'info' }
     : undefined
 
   const fields: RecordDrawerField[] = order ? [

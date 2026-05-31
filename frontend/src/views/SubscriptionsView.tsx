@@ -3,6 +3,7 @@ import { bget, bpost, loadCustomers, loadCustomerOptions, loadProducts, type Sub
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
+import { humanizeStatus } from '../lib/humanize'
 import {
   ReceiptIcon, PauseIcon, PlayIcon, CloseIcon,
   SearchIcon, GearIcon,
@@ -137,7 +138,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
         ? <span style={{ color: 'var(--gx-text-2)', textTransform: 'capitalize' }}>{s.cycle}</span>
         : <span>—</span>
       case 'status': return s.status
-        ? <StatusPill variant={mapSubStatus(s.status)} label={s.status} size="sm" />
+        ? <StatusPill variant={mapSubStatus(s.status)} label={humanizeStatus(s.status)} size="sm" />
         : <span>—</span>
       case 'mrr': return s.amount != null
         ? <span className="mono tnum">{money(s.amount)}</span>
@@ -197,8 +198,8 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   return (
     <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
+      <div className="view-inner section-page fade">
+        <div className="crumbs"><span>Orders &amp; Revenue</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead
           icon={<ReceiptIcon size={18} />}
@@ -397,8 +398,12 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                   })}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
-                        No matching subscriptions.
+                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ padding: 0 }}>
+                        <EmptyState
+                          icon={<SearchIcon size={34} />}
+                          title="No matching subscriptions"
+                          message="Try a different search term."
+                        />
                       </td>
                     </tr>
                   )}

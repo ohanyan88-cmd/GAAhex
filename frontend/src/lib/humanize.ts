@@ -53,6 +53,19 @@ export function humanizeEntity(key: string | null | undefined): string {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+/**
+ * Turn a raw enum status like `DRAFT`, `PAST_DUE`, `PROVISIONING` into a
+ * humanized "Draft", "Past Due", "Provisioning". For surfaces where the user
+ * sees the status (lists, pill labels, drawer hero), never a raw enum.
+ */
+export function humanizeStatus(s: string | null | undefined): string {
+  if (!s) return ''
+  return String(s)
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 const ACTION_VERBS: Record<string, string> = {
   create: 'created',
   created: 'created',
