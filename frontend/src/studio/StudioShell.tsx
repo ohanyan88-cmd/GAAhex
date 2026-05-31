@@ -80,7 +80,10 @@ export default function StudioShell({
   if (!canConfigure) {
     // Defense-in-depth: server is primary, but never render the shell without the flag.
     return (
-      <div className="view-inner fade" style={{ maxWidth: 720 }}>
+      <div className="view-inner fade section-page" style={{ maxWidth: 720 }}>
+        <div className="crumbs">
+          <span style={{ color: 'var(--gx-text-1)' }}>Studio</span>
+        </div>
         <ViewHead
           icon={<Shield size={20} />}
           title="Studio"

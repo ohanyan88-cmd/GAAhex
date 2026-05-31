@@ -83,3 +83,30 @@ Re-audit of the 8 modals deferred during the RecordDrawer sweep (`24b2e11`):
 is FIXED for every specialty modal via base-Modal inheritance. Migration to RecordDrawer
 slide-over pattern is a pattern preference, NOT a bug. Demote from "deferred — broken"
 to "future cosmetic enhancement when product owner asks."
+
+## 2026-05-31 Network stub decision
+
+The 6 SPEC §1 Network & Operations items without Portal views — Coverage & GIS,
+Network Topology, Provisioning, Scheduling, Dispatch Board, Stock Inventory —
+**stay on the friendly "Coming soon" stub** for now. Decision: don't build them
+this cycle.
+
+Reasoning:
+- Each would be substantial (model + router + view + tests, 4-8 hours minimum each
+  = 30+ hours total).
+- SPEC §1 lists them but Portal hasn't committed to building them.
+- The friendly stub (after `2acc3bb`) reads as "Coming soon — this page hasn't
+  been built yet" instead of the original scary "not enabled for this tenant"
+  copy. Users see it as intentional, not broken.
+- When the first ISP customer asks for Coverage & GIS, build it then with their
+  actual requirements informing scope. Pre-building is speculation.
+
+Same reasoning applies to:
+- Workspace stubs: Global Search, Recent Items, Team Workspace
+- CRM stub: Sales Channels
+- Billing & Revenue stubs: Tariff Plans, Collections
+- Enterprise stubs: Finance, Accounting, Procurement, Legal
+- System stubs: Roles & Permissions UI (the engine works; UI surface is what's missing),
+  Integrations, Notifications Config
+
+All ~17 SPEC §1 stub modules use the same friendly "Coming soon" card. Build on demand.
