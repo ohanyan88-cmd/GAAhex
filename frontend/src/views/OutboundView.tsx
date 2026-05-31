@@ -322,8 +322,8 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
       <div className="comms-head">
         <div className="vh-ic"><MailIcon size={20} /></div>
         <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>{cfg.title}</h1>
-          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>Email · campaigns · transactional</div>
+          <h1 className="comms-title">{cfg.title}</h1>
+          <div className="sub comms-sub">Email · SMS · push · webhook · transactional</div>
         </div>
         <span className="spacer" />
         <button className="btn btn-secondary btn-sm hide-sm" onClick={load}><RefreshIcon size={14} />Sync</button>

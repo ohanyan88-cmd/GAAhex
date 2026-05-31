@@ -18,6 +18,7 @@ import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { humanizeStatus } from '../lib/humanize'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ function priorityPill(priority: string | null | undefined) {
     : p === 'high' ? 'degraded'
     : p === 'low' ? 'neutral'
     : 'info'
-  return <StatusPill variant={variant} label={priority} size="sm" />
+  return <StatusPill variant={variant} label={humanizeStatus(priority)} size="sm" />
 }
 
 // Status → StatusPill variant. Mapping (real values: open | in_progress | pending | resolved | closed):
@@ -56,8 +57,7 @@ function statusPill(status: string | null | undefined) {
     : s === 'pending' ? 'degraded'
     : s === 'resolved' || s === 'closed' ? 'neutral'
     : 'info'
-  const label = s === 'in_progress' ? 'In Progress' : status
-  return <StatusPill variant={variant} label={label} size="sm" />
+  return <StatusPill variant={variant} label={humanizeStatus(status)} size="sm" />
 }
 
 // SLA badge per spec:
@@ -179,7 +179,11 @@ export default function HelpdeskView({
 
   if (unavailable) {
     return (
-      <div>
+      <div className="view-inner section-page fade">
+        <div className="crumbs">
+          <span>Customer Care</span><span className="sep">/</span>
+          <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
+        </div>
         <ViewHead icon={<InboxIcon size={20} />} title={cfg.title} />
         <EmptyState
           icon={<InboxIcon size={40} />}
@@ -190,136 +194,146 @@ export default function HelpdeskView({
     )
   }
 
+  const ticketCount = tickets?.length ?? 0
+  const headSub = selectedQueue
+    ? queues.find((q) => q.id === selectedQueue)?.name
+    : ticketCount > 0
+      ? `${ticketCount} ticket${ticketCount !== 1 ? 's' : ''} · queues, SLAs, agent assignment`
+      : 'Queues, SLAs, agent assignment'
+
   return (
-    <div style={{ display: 'flex', gap: 0, minHeight: 0, flex: 1 }}>
-      {/* Left rail — queues */}
-      <aside style={{ width: 220, flexShrink: 0, borderRight: '1px solid var(--border)', paddingRight: 0 }}>
-        <div style={{ padding: '14px 12px 8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 'var(--gx-tracking-wider)', color: 'var(--text-3)' }}>Queues</span>
+    <div className="view-inner section-page fade">
+      <div className="crumbs">
+        <span>Customer Care</span><span className="sep">/</span>
+        <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
+      </div>
+
+      <ViewHead
+        icon={<InboxIcon size={20} />}
+        title={cfg.title}
+        sub={headSub}
+        actions={canCreateTicket ? (
+          <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>
+            New ticket
+          </Button>
+        ) : null}
+      />
+
+      <div className="hd-shell">
+        {/* Left rail — queues (carded) */}
+        <aside className="card hd-rail" aria-label="Helpdesk queues">
+          <div className="hd-rail-head">
+            <span className="hd-rail-label">Queues</span>
             {canConfigure && (
-              <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setCreateQueueOpen(true)}>
-                <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Create queue</span>
+              <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setCreateQueueOpen(true)} aria-label="Create queue">
+                <span className="sr-only">Create queue</span>
               </Button>
             )}
           </div>
-          <button
-            className={'nav' + (!selectedQueue ? ' on' : '')}
-            style={{ width: '100%', textAlign: 'left', borderRadius: 6, padding: '5px 8px', marginBottom: 2 }}
-            onClick={() => { setSelectedQueue(null); setQueueFilter('') }}
-          >
-            All tickets
-          </button>
-          {queues.map((q) => (
+          <div className="hd-rail-list">
             <button
-              key={q.id}
-              className={'nav' + (selectedQueue === q.id ? ' on' : '')}
-              style={{ width: '100%', textAlign: 'left', borderRadius: 6, padding: '5px 8px', marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              onClick={() => setSelectedQueue(q.id)}
-              title={q.description ?? undefined}
+              className={'hd-rail-item' + (!selectedQueue ? ' on' : '')}
+              onClick={() => { setSelectedQueue(null); setQueueFilter('') }}
             >
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.name}</span>
-              {queueCounts[q.id] != null && (
-                <span className="pill pill-muted" style={{ marginLeft: 4, fontSize: 10, padding: '1px 6px' }}>{queueCounts[q.id]}</span>
-              )}
+              <span className="hd-rail-name">All tickets</span>
             </button>
-          ))}
-          {queues.length === 0 && <p className="muted" style={{ fontSize: 12, padding: '4px 8px' }}>No queues yet.</p>}
-        </div>
-      </aside>
-
-      {/* Main area */}
-      <div style={{ flex: 1, minWidth: 0, padding: '0 0 0 0' }}>
-        <ViewHead
-          icon={<InboxIcon size={20} />}
-          title={cfg.title}
-          sub={selectedQueue ? queues.find((q) => q.id === selectedQueue)?.name : undefined}
-          actions={canCreateTicket ? (
-            <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>
-              New ticket
-            </Button>
-          ) : null}
-        />
-
-        {/* Filters bar */}
-        <div className="list-toolbar">
-          <div className="bill-filter">
-            <span className="muted export-label">Status</span>
-            <select className="inp inp-sm" aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-            </select>
+            {queues.map((q) => (
+              <button
+                key={q.id}
+                className={'hd-rail-item' + (selectedQueue === q.id ? ' on' : '')}
+                onClick={() => setSelectedQueue(q.id)}
+                title={q.description ?? undefined}
+              >
+                <span className="hd-rail-name">{q.name}</span>
+                {queueCounts[q.id] != null && (
+                  <span className="pill pill-muted hd-rail-count">{queueCounts[q.id]}</span>
+                )}
+              </button>
+            ))}
+            {queues.length === 0 && <p className="muted hd-rail-empty">No queues yet.</p>}
           </div>
-          {!selectedQueue && queues.length > 0 && (
-            <div className="bill-filter">
-              <span className="muted export-label">Queue</span>
-              <select className="inp inp-sm" aria-label="Filter by queue" value={queueFilter} onChange={(e) => setQueueFilter(e.target.value)}>
-                <option value="">All</option>
-                {queues.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
-              </select>
-            </div>
-          )}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
-            <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />
-            My tickets
-          </label>
-        </div>
+        </aside>
 
-        {/* Content */}
-        <div style={{ padding: '0 var(--pad) var(--pad) var(--pad)' }}>
-          {error && <ErrorBanner message={error} onRetry={loadData} />}
-          {tickets === null && !error && (
-            <div style={{ padding: 'var(--gx-space-8) 0' }}>
-              <SkeletonRows rows={6} />
+        {/* Main column — filters + ticket list (carded) */}
+        <div className="hd-main">
+          <div className="card hd-card">
+            <div className="list-toolbar hd-toolbar">
+              <div className="bill-filter">
+                <span className="muted export-label">Status</span>
+                <select className="inp inp-sm" aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                  {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </div>
+              {!selectedQueue && queues.length > 0 && (
+                <div className="bill-filter">
+                  <span className="muted export-label">Queue</span>
+                  <select className="inp inp-sm" aria-label="Filter by queue" value={queueFilter} onChange={(e) => setQueueFilter(e.target.value)}>
+                    <option value="">All</option>
+                    {queues.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <label className="hd-mine">
+                <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />
+                My tickets
+              </label>
             </div>
-          )}
-          {tickets && tickets.length === 0 && !error && (
-            <EmptyState
-              icon={<InboxIcon size={40} />}
-              title="No tickets yet"
-              message="Create a ticket or adjust your filters."
-              action={canCreateTicket ? (
-                <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>New ticket</Button>
-              ) : undefined}
-            />
-          )}
 
-          {tickets && tickets.length > 0 && (
-            <div className="grid-wrap">
-              <table className="grid">
-                <thead>
-                  <tr>
-                    {cfg.columns.map((col) => (
-                      <th key={col.key} scope="col">{col.label}</th>
-                    ))}
-                    {cf.headers()}
-                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tickets.map((t) => (
-                    // NOTE: kept as a plain row (not <DataTableRow>) because the click guard below —
-                    // ignore clicks that land on an inline-edit custom-field cell (td[role="button"]) —
-                    // needs the click event, which DataTableRow's onClick() signature doesn't expose.
-                    <tr key={t.id} className="row-link" onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }} style={{ cursor: 'pointer' }}>
-                      {cfg.columns.map((col) => {
-                        if (col.key === 'subject') return <DataTableCell key={col.key} variant="default" width="260px"><span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{t.subject}</span></DataTableCell>
-                        if (col.key === 'customer') return <DataTableCell key={col.key} variant="mono">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</DataTableCell>
-                        if (col.key === 'priority') return <DataTableCell key={col.key} variant="default">{priorityPill(t.priority)}</DataTableCell>
-                        if (col.key === 'status') return <DataTableCell key={col.key} variant="default">{statusPill(t.status)}</DataTableCell>
-                        if (col.key === 'assignee') return <DataTableCell key={col.key} variant="default">{resolveUserDisplay(t.assigned_agent_id, users)}</DataTableCell>
-                        if (col.key === 'sla') return <DataTableCell key={col.key} variant="default"><SlaBadge ticket={t} /></DataTableCell>
-                        return null
-                      })}
-                      {cf.cells(t.id)}
-                      <DataTableCell variant="muted" align="right" width="32px">
-                        <ArrowRightIcon size={14} />
-                      </DataTableCell>
+            {error && <ErrorBanner message={error} onRetry={loadData} />}
+            {tickets === null && !error && (
+              <div className="hd-skel-pad">
+                <SkeletonRows rows={6} />
+              </div>
+            )}
+            {tickets && tickets.length === 0 && !error && (
+              <EmptyState
+                icon={<InboxIcon size={40} />}
+                title="No tickets yet"
+                message="Create a ticket or adjust your filters."
+                action={canCreateTicket ? (
+                  <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>New ticket</Button>
+                ) : undefined}
+              />
+            )}
+
+            {tickets && tickets.length > 0 && (
+              <div className="grid-wrap">
+                <table className="grid">
+                  <thead>
+                    <tr>
+                      {cfg.columns.map((col) => (
+                        <th key={col.key} scope="col">{col.label}</th>
+                      ))}
+                      {cf.headers()}
+                      <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {tickets.map((t) => (
+                      // NOTE: kept as a plain row (not <DataTableRow>) because the click guard below —
+                      // ignore clicks that land on an inline-edit custom-field cell (td[role="button"]) —
+                      // needs the click event, which DataTableRow's onClick() signature doesn't expose.
+                      <tr key={t.id} className="row-link" onClick={(e) => { if (!(e.target as Element).closest('td[role="button"]')) setDetailId(t.id) }} style={{ cursor: 'pointer' }}>
+                        {cfg.columns.map((col) => {
+                          if (col.key === 'subject') return <DataTableCell key={col.key} variant="default" width="260px"><span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{t.subject}</span></DataTableCell>
+                          if (col.key === 'customer') return <DataTableCell key={col.key} variant="mono">{t.customer_id ? (names[t.customer_id] ?? t.customer_id.slice(0, 8)) : '—'}</DataTableCell>
+                          if (col.key === 'priority') return <DataTableCell key={col.key} variant="default">{priorityPill(t.priority)}</DataTableCell>
+                          if (col.key === 'status') return <DataTableCell key={col.key} variant="default">{statusPill(t.status)}</DataTableCell>
+                          if (col.key === 'assignee') return <DataTableCell key={col.key} variant="default">{resolveUserDisplay(t.assigned_agent_id, users)}</DataTableCell>
+                          if (col.key === 'sla') return <DataTableCell key={col.key} variant="default"><SlaBadge ticket={t} /></DataTableCell>
+                          return null
+                        })}
+                        {cf.cells(t.id)}
+                        <DataTableCell variant="muted" align="right" width="32px">
+                          <ArrowRightIcon size={14} />
+                        </DataTableCell>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -437,8 +451,7 @@ function TicketDetailModal({
       : k === 'pending' ? 'degraded'
       : k === 'resolved' || k === 'closed' ? 'neutral'
       : 'info'
-    const label = k === 'in_progress' ? 'In Progress' : s
-    return { label, variant }
+    return { label: humanizeStatus(s), variant }
   }
 
   const fields: RecordDrawerField[] = ticket ? [
@@ -592,7 +605,7 @@ function CreateTicketModal({
         <FormField label="Priority" htmlFor="hd-create-priority">
           <select id="hd-create-priority" className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority | '')}>
             <option value="">Default</option>
-            {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+            {PRIORITIES.map((p) => <option key={p} value={p}>{humanizeStatus(p)}</option>)}
           </select>
         </FormField>
         <FormField label="Queue" htmlFor="hd-create-queue">

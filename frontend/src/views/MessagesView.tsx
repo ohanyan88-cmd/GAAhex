@@ -191,10 +191,8 @@ export default function MessagesView({
       <div className="comms-head">
         <div className="vh-ic"><MessageIcon size={20} /></div>
         <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>Messages</h1>
-          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
-            Conversations
-          </div>
+          <h1 className="comms-title">Messages</h1>
+          <div className="sub comms-sub">Service conversations · ticket threads · customer chat</div>
         </div>
         <span className="spacer" />
       </div>
