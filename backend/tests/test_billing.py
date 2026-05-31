@@ -149,6 +149,46 @@ async def test_spec_4_5_refund_gated_by_approval_then_executed(client, admin):
     assert over.status_code in (202, 422), over.text
 
 
+async def test_spec_4_5_credit_note_gated_by_approval_then_issued(client, admin):
+    """SPEC §4.5 credit_note path: first POST /api/credit-notes → 202 approval_required;
+    decide APPROVED; second POST → 200 with the credit_note row issued and linked to invoice.
+    Cumulative-credit sum enforced (cannot over-credit beyond invoice.total)."""
+    inv = await _issued_invoice(client, admin, 10_000, "credit-note-spec45")
+
+    # 1st call → 202 + approval id, no row inserted yet
+    first = await client.post("/api/credit-notes", headers=admin,
+                              json={"invoice_id": inv["id"], "amount": 4_000, "reason": "service outage"})
+    assert first.status_code == 202, first.text
+    detail = first.json()["detail"]
+    assert detail["action_type"] == "credit_note"
+    approval_id = detail["approval_id"]
+
+    # Decide APPROVED
+    decided = await client.patch(f"/api/mandatory-approvals/{approval_id}/decide",
+                                 headers=admin, json={"decision": "APPROVED", "reason": "ok"})
+    assert decided.status_code == 200, decided.text
+
+    # 2nd call → 200 + credit_note row created and linked
+    second = await client.post("/api/credit-notes", headers=admin,
+                               json={"invoice_id": inv["id"], "amount": 4_000, "reason": "service outage"})
+    assert second.status_code == 200, second.text
+    cn = second.json()
+    assert cn["entity_key"] == "credit_note"
+    assert cn["status"] == "ISSUED"
+    assert cn["amount"] == 4_000
+    assert cn["invoice_id"] == inv["id"]
+    assert cn["number"], "auto-generated CN number expected"
+
+    # Approval row is now EXECUTED.
+    final = (await client.get(f"/api/mandatory-approvals/{approval_id}", headers=admin)).json()
+    assert final["status"] == "EXECUTED"
+
+    # Over-credit attempt (4000 already issued; invoice total 10000; ask for 7000 more) → 202 or 422.
+    over = await client.post("/api/credit-notes", headers=admin,
+                             json={"invoice_id": inv["id"], "amount": 7_000, "reason": "too much"})
+    assert over.status_code in (202, 422), over.text
+
+
 # ===================== manual invoice =====================
 
 async def test_manual_invoice_total_from_lines(client, admin):
