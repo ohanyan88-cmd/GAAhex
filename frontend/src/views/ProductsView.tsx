@@ -28,16 +28,6 @@ function mapProductStatus(p: Product): { label: string; variant: PillVariant } {
   if (status === 'RETIRED') return { label: 'retired', variant: 'neutral' }
   return { label: status.toLowerCase(), variant: 'neutral' }
 }
-
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
 }
 
 function renderProductCell(colKey: string, p: Product) {
@@ -283,14 +273,6 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                           {p.active !== false && (
                             <button className="btn btn-ghost btn-sm" onClick={() => retire(p)}>Retire</button>
                           )}
-                          <button
-                            className="iconbtn"
-                            aria-label="Row menu"
-                            title="Row actions"
-                            onClick={(e) => { e.stopPropagation(); console.log('[products] row menu', p.id) }}
-                          >
-                            <MoreVerticalIcon size={15} />
-                          </button>
                         </div>
                       </td>
                     </tr>
