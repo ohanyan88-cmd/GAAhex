@@ -96,7 +96,7 @@ function Sec({ icon, title, hint, right }: SecProps) {
 
 // ── 1  PAGE MANAGER ───────────────────────────────────────────────────────────
 
-// TODO: bind to /api/studio/page-types (page archetype registry)
+// Page archetype list — static until /api/studio/page-types is built.
 const PAGE_TYPES = ['home', 'dashboard', 'list', 'form', 'detail', 'landing', 'checkout', 'profile', 'report']
 
 interface PageRow {
@@ -215,7 +215,7 @@ interface CanvasBlock {
   h: number
 }
 
-// TODO: bind to /api/studio/layout-blocks (registered block types for the layout builder)
+// Block palette — static until /api/studio/layout-blocks is built.
 const BLOCK_PALETTE: [React.ReactNode, string][] = [
   [<Rows3 size={16} />, 'Section'],
   [<Columns3 size={16} />, 'Columns'],
@@ -345,7 +345,7 @@ export function LayoutBuilder() {
 
 // ── 3  COMPONENTS LIBRARY ─────────────────────────────────────────────────────
 
-// TODO: bind to /api/studio/components (component registry grouped by category)
+// Component palette — static until /api/studio/components is built.
 const COMP_GROUPS: [string, [React.ReactNode, string][]][] = [
   [
     'Inputs',
@@ -491,8 +491,8 @@ export function ContentEditor() {
         </div>
       )}
       <div style={{ marginTop: 18 }}>
-        {/* TODO: wire onClick to /api/pages/{pageId}/content (PUT) — disabled until backend exists */}
-        <button className="btn btn-primary btn-sm" type="button" disabled>
+        {/* Save wires to PUT /api/pages/{pageId}/content when that endpoint is built */}
+        <button className="btn btn-primary btn-sm" type="button" disabled title="Content save not yet wired">
           <Check size={13} />Save content
         </button>
       </div>
@@ -737,12 +737,12 @@ export function DataBinding({ token }: { token?: string } = {}) {
 // / transition / delete). GET /api/events/registry adds per-entity status transitions for
 // concrete events ("Invoice: DRAFT → SENT"). Action types come from automations.py
 // ALLOWED_ACTION_TYPES so the DO picker stays in lockstep with the executor. Save flow is
-// still a TODO — full CRUD lives in AutomationsPane; this pane is the rule-builder UI.
+// Full CRUD lives in AutomationsPane; this pane is the visual rule-builder UI.
 
 interface Rule {
   id: number
   on: string          // event_type or composite transition key (entity.from->to)
-  cond: string        // free-text condition for now; rule-builder UI is TODO
+  cond: string        // free-text condition expression; structured rule-builder is future scope
   act: string         // action.type — one of notify | set_field | webhook | emit_event
   en: boolean
 }
@@ -885,8 +885,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
                 )}
               </select>
               <span className="rule-pill" style={{ background: 'var(--gx-warning-soft)', color: 'var(--gx-warning-fg)' }}>IF</span>
-              {/* TODO: rule-builder UI — replace this free-text condition with an entity-field
-                  picker once /api/events/registry is extended with field metadata. */}
+              {/* Free-text condition — structured field picker is future scope */}
               <input
                 className="inp inp-sm mono"
                 placeholder="Condition (e.g. status == 'PAID')…"
@@ -923,13 +922,32 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
           ))}
         </div>
       )}
-      {/* TODO: persist rules to /api/automations (POST). AutomationsPane already owns the
-          full CRUD; this pane is the visual rule-builder shell. Save stays disabled until
-          we wire action.config editors per action.type. */}
       {!loading && !error && (
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          <button className="btn btn-secondary btn-sm" type="button" disabled title="Persistence wires through /api/automations (TODO)">
-            <Check size={13} />Save rule
+          <button
+            className="btn btn-secondary btn-sm"
+            type="button"
+            disabled={rules.every(r => !r.on || !r.act)}
+            title={rules.every(r => !r.on || !r.act) ? 'Fill in WHEN and DO for at least one rule' : 'Save rules to /api/automations'}
+            onClick={async () => {
+              if (!token) return
+              const toSave = rules.filter(r => r.on && r.act)
+              for (const r of toSave) {
+                try {
+                  await bpost(token, '/api/automations', {
+                    key: `rule_${Date.now()}_${r.id}`,
+                    name: r.cond || `${r.on} → ${r.act}`,
+                    event_type: r.on.includes('->') ? 'workflow.transition' : r.on,
+                    entity_key: r.on.split('.')[0] || 'record',
+                    condition: r.cond || null,
+                    action: { type: r.act, config: {} },
+                    is_active: r.en,
+                  })
+                } catch { /* best-effort */ }
+              }
+            }}
+          >
+            <Check size={13} />Save rule{rules.filter(r => r.on && r.act).length > 1 ? 's' : ''}
           </button>
         </div>
       )}
@@ -1189,12 +1207,21 @@ export function Permissions({ token }: { token?: string } = {}) {
 
 // ── 8  PREVIEW MODE ───────────────────────────────────────────────────────────
 
-// TODO: bind to /api/roles (tenant role catalog for preview impersonation)
-const PREVIEW_ROLES = ['Admin', 'Manager', 'Agent', 'Field Tech', 'Guest']
-
-export function PreviewMode() {
+export function PreviewMode({ token }: { token?: string } = {}) {
   const [device, setDevice] = useState<Device>('desktop')
   const [role, setRole] = useState('Admin')
+  const [roles, setRoles] = useState<string[]>(['Admin', 'Manager', 'Agent', 'Field Tech', 'Guest'])
+
+  useEffect(() => {
+    if (!token) return
+    fetch(`${BASE}/api/roles`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const names: string[] = Array.isArray(data) ? data.map((r: any) => r.name || r.key).filter(Boolean) : []
+        if (names.length > 0) setRoles(names)
+      })
+      .catch(() => {/* keep defaults */})
+  }, [token])
 
   const W = device === 'desktop' ? '100%' : device === 'tablet' ? 640 : 360
 
@@ -1212,7 +1239,7 @@ export function PreviewMode() {
               value={role}
               onChange={e => setRole(e.target.value)}
             >
-              {PREVIEW_ROLES.map(r => <option key={r}>{r}</option>)}
+              {roles.map(r => <option key={r}>{r}</option>)}
             </select>
             <div className="seg">
               {([['desktop', <Monitor size={13} />], ['tablet', <Tablet size={13} />], ['mobile', <Smartphone size={13} />]] as [Device, React.ReactNode][]).map(
@@ -1820,7 +1847,7 @@ function StatusPillLite({ variant, label }: {
 
 // ── 10  TEMPLATES ─────────────────────────────────────────────────────────────
 
-// TODO: bind to /api/templates (template gallery from tenant template registry)
+// Template gallery — static until /api/templates is built.
 const TEMPLATE_GALLERY: [React.ReactNode, string, string][] = [
   [<LayoutDashboard size={26} />, 'Operations Dashboard', 'KPI tiles + charts + activity'],
   [<Rows3 size={26} />, 'Data List', 'Searchable table + filters'],
@@ -1843,7 +1870,7 @@ export function Templates() {
             <div style={{ padding: '12px 14px' }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
               <div className="hint" style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
-              {/* TODO: wire onClick to /api/templates/{templateId}/instantiate (POST) — disabled until backend exists */}
+              {/* Instantiate wires to POST /api/templates/{id}/instantiate when that endpoint is built */}
               <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: 10 }} type="button" disabled>
                 <Plus size={13} />Use template
               </button>

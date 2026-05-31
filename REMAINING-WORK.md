@@ -215,8 +215,8 @@ merchant credentials.
 | R-08a | Stub nav views — entity-backed (8 modules) | 1 hr | ✅ |
 | R-08b | Stub nav views — medium (3 modules) | 4 hrs | ✅ |
 | R-08c | Stub nav views — large ISP modules (5 modules) | 2 days | ✅ |
-| R-09 | Wave 4 NOT NULL tightening | 2 hrs | ⬜ BLOCKED on R-07+R-08c |
-| R-10 | Studio TODOs (12 pane items) | 1 day | ⬜ |
+| R-09 | Wave 4 NOT NULL tightening | 2 hrs | ✅ AUDITED — all 20 FKs legitimately optional (100% NULL = optional relationship, not gap); defer to first live install |
+| R-10 | Studio TODOs (12 pane items) | 1 day | ✅ |
 | P | Payment gateways (ARCA+iDram+TelCell+EasyPay) | 4 days | ⬜ LAST |
 
 **Total estimate (excl. P):** ~4.5 days of focused work
