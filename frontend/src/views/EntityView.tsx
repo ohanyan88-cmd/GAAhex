@@ -510,8 +510,11 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     await runBulk('delete')
   }
 
-  // B21: workflow column only appears when canEdit; adjust colSpan accordingly
-  const colSpan = cols.length + 3 + (hasWorkflow && canEdit ? 1 : 0)
+  // B21: workflow column only appears when canEdit; adjust colSpan accordingly.
+  // Header skips cols[1] (folded into cols[0] as a cell-meta subtitle) — so the body uses
+  // cols.length - 1 data <td>s when there are at least 2 data fields, else cols.length.
+  const dataCellCount = cols.length >= 2 ? cols.length - 1 : cols.length
+  const colSpan = 1 /* checkbox */ + dataCellCount + 1 /* status */ + (hasWorkflow && canEdit ? 1 : 0) + 1 /* actions */
 
   // Derive a sub-headline for ViewHead: show total count when known, else record count in view
   const countLabel = total !== null
@@ -819,7 +822,12 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                       aria-label="Select all"
                     />
                   </th>
-                  {cols.map((c) => <th key={c.key} scope="col">{c.label}</th>)}
+                  {/* Header skips cols[1] because the body folds it into a cell-meta subtitle
+                      under cols[0]. Header + body cell counts therefore match exactly:
+                      checkbox · cols[0] · cols[2..] · Status · (Move to) · Actions. */}
+                  {cols.map((c, ci) => (
+                    ci === 1 ? null : <th key={c.key} scope="col">{c.label}</th>
+                  ))}
                   <th scope="col">Status</th>
                   {hasWorkflow && canEdit && <th scope="col">Move to</th>}
                   <th scope="col"><span className="sr-only">Actions</span></th>
@@ -832,32 +840,31 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                       <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" />
                     </td>
                     {cols.map((c, ci) => (
-                      <td key={c.key}>
-                        {ci === 0 ? (
-                          /* First data column gets the row-link + cell-meta treatment */
-                          <>
-                            <button
-                              className="row-link"
-                              onClick={() => openEdit(r)}
-                              disabled={!canEdit}
-                              style={canEdit ? undefined : { cursor: 'default', pointerEvents: 'none' }}
-                            >
-                              {renderCell(c, r) || <span className="muted">—</span>}
-                            </button>
-                            {/* Show second non-status field as cell-meta if it exists */}
-                            {cols[1] && (
-                              <div className="cell-meta">
-                                {String(cellValue(cols[1], r) ?? '')}
-                              </div>
-                            )}
-                          </>
-                        ) : ci === 1 ? (
-                          /* Second column is already inlined as cell-meta above — skip rendering standalone */
-                          null
-                        ) : (
-                          renderCell(c, r)
-                        )}
-                      </td>
+                      ci === 1 ? null : (
+                        <td key={c.key}>
+                          {ci === 0 ? (
+                            /* First data column gets the row-link + cell-meta treatment */
+                            <>
+                              <button
+                                className="row-link"
+                                onClick={() => openEdit(r)}
+                                disabled={!canEdit}
+                                style={canEdit ? undefined : { cursor: 'default', pointerEvents: 'none' }}
+                              >
+                                {renderCell(c, r) || <span className="muted">—</span>}
+                              </button>
+                              {/* Show second non-status field as cell-meta if it exists */}
+                              {cols[1] && (
+                                <div className="cell-meta">
+                                  {String(cellValue(cols[1], r) ?? '')}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            renderCell(c, r)
+                          )}
+                        </td>
+                      )
                     ))}
                     <td>
                       {r.status ? (

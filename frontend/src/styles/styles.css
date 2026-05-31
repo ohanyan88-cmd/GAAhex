@@ -454,37 +454,21 @@ h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); line-height: var(
   padding: 2px 8px; border-radius: var(--pill);
 }
 
-/* ===================== TABLE / GRID ===================== */
-.grid {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+/* ===================== TABLE / GRID =====================
+   Consolidated. The canonical rule lives further down with `table.grid` (search
+   for the "table" heading near line ~1800) — it owns padding, color, hover, sel
+   state under the gx-* token system. The few non-token visuals that aren't
+   covered there (surface bg, border, radius, shadow on the table chrome itself)
+   live right here so a grid-class table renders as a contained card. */
+table.grid {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
 }
-.grid th {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--text-3); font-weight: var(--fw-medium);
-  text-align: left;
-  padding: 10px var(--row-pad-x);
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-.grid td {
-  padding: var(--row-pad-y) var(--row-pad-x);
-  border-bottom: 1px solid var(--border-soft);
-  color: var(--text);
-  font-size: 13px;
-  vertical-align: middle;
-}
-.grid tr:last-child td { border-bottom: 0; }
-.grid tr:hover td { background: rgba(255,255,255,0.015); }
-.grid td.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.grid th.num { text-align: right; }
+table.grid td.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+table.grid th.num { text-align: right; }
 .row-actions { white-space: nowrap; display: flex; gap: 6px; }
 .row-link {
   background: transparent; border: 0; color: var(--text);
