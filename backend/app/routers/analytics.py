@@ -485,3 +485,227 @@ async def status_breakdown(user: User = Depends(current_user), s: AsyncSession =
         "invoices":      invoices,
         "subscriptions": subs,
     }
+
+
+# ==========================================================================================
+# 9. Task aging — workitems bucketed by age (only open / non-DONE)
+# ==========================================================================================
+
+@router.get("/task-aging")
+async def task_aging(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Open workitems (status != DONE/CANCELLED) bucketed by created_at age."""
+    await _gate(s, user)
+    t = user.tenant_id
+    now = _now()
+    d7  = now - timedelta(days=7)
+    d15 = now - timedelta(days=15)
+    d30 = now - timedelta(days=30)
+
+    def bucket(cond):
+        return func.coalesce(func.sum(case((cond, 1), else_=0)), 0)
+
+    open_cond = WorkItem.status.notin_(["DONE", "CANCELLED"])
+
+    row = (await s.execute(
+        select(
+            bucket(and_(open_cond, WorkItem.created_at >= d7)).label("d0_7"),
+            bucket(and_(open_cond, WorkItem.created_at < d7,  WorkItem.created_at >= d15)).label("d8_15"),
+            bucket(and_(open_cond, WorkItem.created_at < d15, WorkItem.created_at >= d30)).label("d16_30"),
+            bucket(and_(open_cond, WorkItem.created_at < d30)).label("d30_plus"),
+        ).where(WorkItem.tenant_id == t)
+    )).one()
+    return {
+        "d0_7":     int(row[0]),
+        "d8_15":    int(row[1]),
+        "d16_30":   int(row[2]),
+        "d30_plus": int(row[3]),
+    }
+
+
+# ==========================================================================================
+# 10. Ticket aging — same as task aging but for helpdesk tickets
+# ==========================================================================================
+
+@router.get("/ticket-aging")
+async def ticket_aging(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Open helpdesk tickets (status NOT in resolved set) bucketed by created_at age."""
+    await _gate(s, user)
+    t = user.tenant_id
+    now = _now()
+    d7  = now - timedelta(days=7)
+    d15 = now - timedelta(days=15)
+    d30 = now - timedelta(days=30)
+
+    def bucket(cond):
+        return func.coalesce(func.sum(case((cond, 1), else_=0)), 0)
+
+    open_cond = HelpdeskTicket.status.notin_(["RESOLVED", "CLOSED", "CANCELLED"])
+
+    row = (await s.execute(
+        select(
+            bucket(and_(open_cond, HelpdeskTicket.created_at >= d7)).label("d0_7"),
+            bucket(and_(open_cond, HelpdeskTicket.created_at < d7,  HelpdeskTicket.created_at >= d15)).label("d8_15"),
+            bucket(and_(open_cond, HelpdeskTicket.created_at < d15, HelpdeskTicket.created_at >= d30)).label("d16_30"),
+            bucket(and_(open_cond, HelpdeskTicket.created_at < d30)).label("d30_plus"),
+        ).where(HelpdeskTicket.tenant_id == t)
+    )).one()
+    return {
+        "d0_7":     int(row[0]),
+        "d8_15":    int(row[1]),
+        "d16_30":   int(row[2]),
+        "d30_plus": int(row[3]),
+    }
+
+
+# ==========================================================================================
+# 11. Risk heatmap — risks grouped by likelihood × impact (3x3 grid)
+# ==========================================================================================
+
+@router.get("/risk-heatmap")
+async def risk_heatmap(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Open risk records grouped by (likelihood, impact). Returns 3x3 grid counts."""
+    await _gate(s, user)
+    t = user.tenant_id
+
+    # Pull risk records' data field. Group in Python because the JSONB groupby
+    # would need two extracted columns which is cleaner as a post-pass over a small set.
+    rows = (await s.execute(
+        select(Record).where(
+            Record.tenant_id == t, Record.entity_key == "risk",
+            or_(Record.status.is_(None), Record.status.notin_(["CLOSED", "ACCEPTED"])),
+        )
+    )).scalars().all()
+
+    grid = {f"{li}_{im}": 0 for li in ["low","medium","high"] for im in ["low","medium","high"]}
+    for r in rows:
+        d = r.data or {}
+        li = str(d.get("likelihood", "")).lower()
+        im = str(d.get("impact", "")).lower()
+        # Normalize "med" or "high" or "low"; default unknown -> medium/medium
+        if li not in {"low","medium","high"}: li = "medium"
+        if im not in {"low","medium","high"}: im = "medium"
+        grid[f"{li}_{im}"] += 1
+
+    return grid
+
+
+# ==========================================================================================
+# 12. Leads by source — distribution of leads by data.source field
+# ==========================================================================================
+
+@router.get("/leads-by-source")
+async def leads_by_source(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Group lead records by their data->>'source' field. Raw SQL to dodge an asyncpg
+    parameter-binding quirk where the same JSON key is bound twice via the SQLAlchemy expression
+    layer."""
+    await _gate(s, user)
+    from sqlalchemy import text
+    rows = (await s.execute(
+        text("""
+            SELECT COALESCE(data->>'source','unknown') AS src, COUNT(*) AS cnt
+            FROM record
+            WHERE tenant_id = :tid AND entity_key = 'lead'
+            GROUP BY COALESCE(data->>'source','unknown')
+        """),
+        {"tid": str(user.tenant_id)}
+    )).all()
+    return {row[0]: int(row[1]) for row in rows}
+
+
+# ==========================================================================================
+# 13. Salesperson ranking — customers (and revenue if joinable) per assigned_to user
+# ==========================================================================================
+
+@router.get("/sales-by-user")
+async def sales_by_user(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Group customer records by data.assigned_to field. Returns name → customer count.
+
+    Real-data only: if no customer carries `assigned_to`, the response is {} and the
+    frontend hides the widget per real-data doctrine.
+    """
+    await _gate(s, user)
+    from sqlalchemy import text
+    rows = (await s.execute(
+        text("""
+            SELECT data->>'assigned_to' AS agent, COUNT(*) AS cnt
+            FROM record
+            WHERE tenant_id = :tid
+              AND entity_key = 'customer'
+              AND data->>'assigned_to' IS NOT NULL
+              AND data->>'assigned_to' <> ''
+            GROUP BY data->>'assigned_to'
+        """),
+        {"tid": str(user.tenant_id)}
+    )).all()
+    return {row[0]: int(row[1]) for row in rows}
+
+
+# ==========================================================================================
+# 14. RAG health — Red/Amber/Green project-style health from workitems + tickets
+# ==========================================================================================
+
+@router.get("/rag-health")
+async def rag_health(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Aggregate execution health into Red / Amber / Green buckets, derived from real data:
+      - RED: BLOCKED workitems + tickets > 7 days old + OVERDUE invoices
+      - AMBER: TODO workitems with due_at in the next 3 days + IN_PROGRESS tickets > 3 days old
+      - GREEN: everything else that's open
+    """
+    await _gate(s, user)
+    t = user.tenant_id
+    now = _now()
+    d3  = now - timedelta(days=3)
+    d7  = now - timedelta(days=7)
+
+    # RED
+    red_wi = (await s.execute(
+        select(func.count()).select_from(WorkItem).where(
+            WorkItem.tenant_id == t, WorkItem.status == "BLOCKED")
+    )).scalar_one()
+    red_tk = (await s.execute(
+        select(func.count()).select_from(HelpdeskTicket).where(
+            HelpdeskTicket.tenant_id == t,
+            HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
+            HelpdeskTicket.created_at < d7)
+    )).scalar_one()
+    red_inv = (await s.execute(
+        select(func.count()).select_from(Invoice).where(
+            Invoice.tenant_id == t,
+            or_(Invoice.status == "OVERDUE",
+                and_(Invoice.status == "ISSUED", Invoice.due_at < now)))
+    )).scalar_one()
+
+    # AMBER
+    amber_wi = (await s.execute(
+        select(func.count()).select_from(WorkItem).where(
+            WorkItem.tenant_id == t,
+            WorkItem.status == "TODO",
+            WorkItem.due_at != None,
+            WorkItem.due_at < (now + timedelta(days=3)),  # noqa: E711
+        )
+    )).scalar_one()
+    amber_tk = (await s.execute(
+        select(func.count()).select_from(HelpdeskTicket).where(
+            HelpdeskTicket.tenant_id == t,
+            HelpdeskTicket.status == "IN_PROGRESS",
+            HelpdeskTicket.created_at < d3)
+    )).scalar_one()
+
+    # GREEN — open items not in red/amber
+    green_wi = (await s.execute(
+        select(func.count()).select_from(WorkItem).where(
+            WorkItem.tenant_id == t,
+            WorkItem.status.in_(["TODO", "IN_PROGRESS"]))
+    )).scalar_one()
+    green_tk = (await s.execute(
+        select(func.count()).select_from(HelpdeskTicket).where(
+            HelpdeskTicket.tenant_id == t,
+            HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]))
+    )).scalar_one()
+
+    red   = int(red_wi) + int(red_tk) + int(red_inv)
+    amber = int(amber_wi) + int(amber_tk)
+    # Green is total open MINUS what's already in red/amber (avoid double count)
+    green = max(0, (int(green_wi) + int(green_tk)) - amber - (int(red_wi) + int(red_tk)))
+
+    return {"red": red, "amber": amber, "green": green}

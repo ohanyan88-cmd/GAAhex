@@ -16,11 +16,13 @@
 // Permission gates: invoice.view gates revenue / AR widgets.
 // Real data only — empty fetch = widget hides, never placeholder numbers.
 import { useEffect, useState } from 'react'
-import { BarChart3, TrendingUp, TrendingDown, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, type LucideIcon } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, Settings, type LucideIcon } from 'lucide-react'
 import { GearIcon } from '../components/icons'
 import { money } from '../lib/money'
 import { fetchCapabilities, can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { BASE } from '../lib/billing'
+import { loadSelected, saveSelected } from '../lib/dashboard-catalog'
+import ChartPicker from '../components/ChartPicker'
 
 const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 type Range = '7d' | '30d' | 'qtd' | 'ytd'
@@ -474,6 +476,17 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   const [weekly,       setWeekly]       = useState<Fetched<any[]>>({ state: 'loading' })
   const [heatmap,      setHeatmap]      = useState<Fetched<any[]>>({ state: 'loading' })
   const [statusBreak,  setStatusBreak]  = useState<Fetched<any>>({ state: 'loading' })
+  const [taskAging,    setTaskAging]    = useState<Fetched<any>>({ state: 'loading' })
+  const [ticketAging,  setTicketAging]  = useState<Fetched<any>>({ state: 'loading' })
+  const [riskHeatmap,  setRiskHeatmap]  = useState<Fetched<any>>({ state: 'loading' })
+  const [leadSources,  setLeadSources]  = useState<Fetched<any>>({ state: 'loading' })
+  const [salesByUser,  setSalesByUser]  = useState<Fetched<any>>({ state: 'loading' })
+  const [ragHealth,    setRagHealth]    = useState<Fetched<any>>({ state: 'loading' })
+
+  // Layout — which chart IDs the user has chosen
+  const [selected, setSelected] = useState<Set<string>>(() => loadSelected())
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const isShown = (id: string) => selected.has(id)
 
   useEffect(() => {
     let alive = true
@@ -536,18 +549,20 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
     return () => { alive = false }
   }, [token, range])
 
-  // Customer growth (new leads per month) + churn overlay
+  // Customer growth — REAL data from weekly-trend endpoint (no fake/random/derived)
   useEffect(() => {
     let alive = true
-    const months = range === '7d' ? 3 : range === '30d' ? 6 : range === 'qtd' ? 6 : 12
-    fetch(`${BASE}/api/analytics/revenue-trend?months=${months}`, { headers: authH(token) })
+    const weeksN = range === '7d' ? 6 : range === '30d' ? 10 : range === 'qtd' ? 13 : 26
+    fetch(`${BASE}/api/analytics/weekly-trend?weeks=${weeksN}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (!alive || !Array.isArray(d)) return
-        // Use invoiced as proxy for active billing, churn from metrics
-        const labels = d.map((b: any) => b.month as string)
-        const new_   = d.map((b: any) => Math.round(Number(b.invoiced) / 1_000_000 * 8 + 2))
-        const churned = d.map((_: any, i: number) => Math.round(Math.random() * 3 + 1))
+        if (!alive || !Array.isArray(d) || d.length === 0) {
+          if (alive) setCustomerData({ state: 'hide' })
+          return
+        }
+        const labels  = d.map((b: any) => String(b.week))
+        const new_    = d.map((b: any) => Number(b.customers) || 0)
+        const churned = d.map((b: any) => Number(b.churns) || 0)
         setCustomerData({ state: 'ok', value: { new_, churned, labels } })
       })
       .catch(() => { if (alive) setCustomerData({ state: 'hide' }) })
@@ -618,6 +633,82 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
     return () => { alive = false }
   }, [token])
 
+  // Task aging — workitems by age bucket
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/task-aging`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setTaskAging(d ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setTaskAging({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Ticket aging — helpdesk tickets by age bucket
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/ticket-aging`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setTicketAging(d ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setTicketAging({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Risk heatmap — 3x3 grid
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/risk-heatmap`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive) return
+        const total = d ? Object.values(d).reduce((s: number, v: any) => s + (Number(v) || 0), 0) : 0
+        setRiskHeatmap(total > 0 ? { state: 'ok', value: d } : { state: 'hide' })
+      })
+      .catch(() => { if (alive) setRiskHeatmap({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Lead sources
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/leads-by-source`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive) return
+        const entries = d ? Object.entries(d) : []
+        setLeadSources(entries.length > 0 ? { state: 'ok', value: d } : { state: 'hide' })
+      })
+      .catch(() => { if (alive) setLeadSources({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Sales by user
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/sales-by-user`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive) return
+        const entries = d ? Object.entries(d) : []
+        setSalesByUser(entries.length > 0 ? { state: 'ok', value: d } : { state: 'hide' })
+      })
+      .catch(() => { if (alive) setSalesByUser({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // RAG health
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/rag-health`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive) return
+        const total = d ? (d.red ?? 0) + (d.amber ?? 0) + (d.green ?? 0) : 0
+        setRagHealth(total > 0 ? { state: 'ok', value: d } : { state: 'hide' })
+      })
+      .catch(() => { if (alive) setRagHealth({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
   const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
   const ov = overview.state === 'ok' ? overview.value : null
 
@@ -640,6 +731,15 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
           <div className="seg">
             {rangeBtn('7d','7d')}{rangeBtn('30d','30d')}{rangeBtn('qtd','QTD')}{rangeBtn('ytd','YTD')}
           </div>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => setPickerOpen(true)}
+            title="Customize which charts are shown"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Settings size={13} />
+            Customize ({selected.size})
+          </button>
           {canConfigure && onConfigure && (
             <button className="btn btn-ghost btn-sm" onClick={onConfigure}>
               <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
@@ -648,7 +748,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
         </div>
 
         {/* KPI Strip */}
-        {ov && showRevenue && (
+        {isShown('kpi-strip') && ov && showRevenue && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '12px', marginBottom: '18px' }}>
             <KPICard label="MRR" value={money(ov.mrr)} sublabel={`${ov.active_subscriptions} active subs`}
               color="var(--azure-500)" icon={Banknote}
@@ -663,46 +763,51 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
         )}
 
         {/* Row 1: Revenue bar + Subscription donut */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '18px', marginBottom: '18px' }}>
+        {(isShown('revenue-bar') || isShown('sub-donut')) && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
-          {showRevenue && (
-            <Card title="Revenue vs Churn" icon={BarChart3}>
-              {revTrend.state === 'loading' && <ChartSkeleton />}
-              {revTrend.state === 'ok' && (
-                <>
-                  <BarChart data={revTrend.value.map(b => ({
-                    label: b.month, primary: b.collected, secondary: b.churn ?? 0
-                  }))} />
-                  <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--gx-text-3)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 10, height: 10, background: 'var(--azure-500)', borderRadius: 2 }} />Collected
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 10, height: 10, background: 'var(--gx-gold)', borderRadius: 2 }} />Churn events
-                    </span>
-                  </div>
-                </>
-              )}
-            </Card>
-          )}
-
-          <Card title="Subscription Mix" icon={PieChart}>
-            {subMix.state === 'loading' && <ChartSkeleton h={120} />}
-            {subMix.state === 'ok' && (
-              <DonutChart slices={subMix.value.map((s, i) => ({
-                label: s.product_name ?? 'Unknown',
-                value: s.count,
-                color: PLAN_COLORS[i % PLAN_COLORS.length],
-              }))} />
+            {isShown('revenue-bar') && showRevenue && (
+              <Card title="Revenue vs Churn" icon={BarChart3}>
+                {revTrend.state === 'loading' && <ChartSkeleton />}
+                {revTrend.state === 'ok' && (
+                  <>
+                    <BarChart data={revTrend.value.map(b => ({
+                      label: b.month, primary: b.collected, secondary: b.churn ?? 0
+                    }))} />
+                    <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--gx-text-3)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ width: 10, height: 10, background: 'var(--azure-500)', borderRadius: 2 }} />Collected
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ width: 10, height: 10, background: 'var(--gx-gold)', borderRadius: 2 }} />Churn events
+                      </span>
+                    </div>
+                  </>
+                )}
+              </Card>
             )}
-            {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No subscription data</div>}
-          </Card>
-        </div>
+
+            {isShown('sub-donut') && (
+              <Card title="Subscription Mix" icon={PieChart}>
+                {subMix.state === 'loading' && <ChartSkeleton h={120} />}
+                {subMix.state === 'ok' && (
+                  <DonutChart slices={subMix.value.map((s, i) => ({
+                    label: s.product_name ?? 'Unknown',
+                    value: s.count,
+                    color: PLAN_COLORS[i % PLAN_COLORS.length],
+                  }))} />
+                )}
+                {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No subscription data</div>}
+              </Card>
+            )}
+          </div>
+        )}
 
         {/* Row 2: Revenue area + Customer growth line */}
+        {(isShown('payment-area') || isShown('customer-line')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
-          {showRevenue && (
+          {isShown('payment-area') && showRevenue && (
             <Card title="Payment Trend" icon={TrendingUp}>
               {revTrend.state === 'loading' && <ChartSkeleton h={120} />}
               {revTrend.state === 'ok' && (
@@ -711,6 +816,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
             </Card>
           )}
 
+          {isShown('customer-line') && (
           <Card title="New vs Churned Subs" icon={Users}>
             {customerData.state === 'loading' && <ChartSkeleton h={120} />}
             {customerData.state === 'ok' && (
@@ -718,25 +824,29 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                 data={customerData.value.labels.map((l, i) => ({
                   label: l, v1: customerData.value.new_[i], v2: customerData.value.churned[i]
                 }))}
-                series1Label="New"
-                series2Label="Churned"
+                series1Label="New customers"
+                series2Label="Churns"
               />
             )}
+            {customerData.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No customer activity data</div>}
           </Card>
+          )}
         </div>
+        )}
 
         {/* Row 3: AR aging + Revenue metrics line + Funnel */}
+        {(isShown('ar-aging') || isShown('monthly-revenue') || isShown('funnel')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
-          {showRevenue && (
+          {isShown('ar-aging') && showRevenue && (
             <Card title="AR Aging" icon={AlertTriangle}>
               {arAging.state === 'loading' && <ChartSkeleton h={100} />}
               {arAging.state === 'ok' && (
                 <HorizontalBarChart buckets={[
                   { label: 'Current',   value: arAging.value.current, color: 'var(--gx-success,#22c55e)' },
-                  { label: '1–30 days', value: arAging.value.d1_30,   color: 'var(--azure-400)' },
-                  { label: '31–60 days',value: arAging.value.d31_60,  color: 'var(--gx-warning,#f59e0b)' },
-                  { label: '61–90 days',value: arAging.value.d61_90,  color: '#f97316' },
+                  { label: '1-30 days', value: arAging.value.d1_30,   color: 'var(--azure-400)' },
+                  { label: '31-60 days',value: arAging.value.d31_60,  color: 'var(--gx-warning,#f59e0b)' },
+                  { label: '61-90 days',value: arAging.value.d61_90,  color: '#f97316' },
                   { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger,#ef4444)' },
                 ].filter(b => b.value > 0)} />
               )}
@@ -744,7 +854,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
             </Card>
           )}
 
-          {showRevenue && (
+          {isShown('monthly-revenue') && showRevenue && (
             <Card title="Monthly Revenue vs Prior" icon={BarChart3}>
               {revMetrics.state === 'loading' && <ChartSkeleton h={100} />}
               {revMetrics.state === 'ok' && (
@@ -755,15 +865,18 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
             </Card>
           )}
 
+          {isShown('funnel') && (
           <Card title="Sales Funnel" icon={ArrowRight}>
             {funnel.state === 'loading' && <ChartSkeleton h={100} />}
             {funnel.state === 'ok' && <FunnelChart stages={funnel.value} />}
             {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No pipeline data</div>}
           </Card>
+          )}
         </div>
+        )}
 
         {/* === SECTION: Week vs Week Comparisons === */}
-        {compare.state === 'ok' && (
+        {isShown('wow-cards') && compare.state === 'ok' && (
           <>
             <div style={{ marginTop: '12px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Week vs Last Week
@@ -778,8 +891,12 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
               <ComparisonCard label="Tickets opened"    thisVal={compare.value.week.tickets.this}      lastVal={compare.value.week.tickets.last}      invertColor />
               <ComparisonCard label="Workitems done"    thisVal={compare.value.week.workitems_done.this} lastVal={compare.value.week.workitems_done.last} />
             </div>
+          </>
+        )}
 
-            {/* === SECTION: Month vs Last Month === */}
+        {/* === SECTION: Month vs Last Month === */}
+        {isShown('mom-cards') && compare.state === 'ok' && (
+          <>
             <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Month vs Last Month
             </div>
@@ -793,12 +910,17 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
               <ComparisonCard label="Tickets opened"    thisVal={compare.value.month.tickets.this}      lastVal={compare.value.month.tickets.last}      invertColor />
               <ComparisonCard label="Workitems done"    thisVal={compare.value.month.workitems_done.this} lastVal={compare.value.month.workitems_done.last} />
             </div>
+          </>
+        )}
 
-            {/* === SECTION: Quarter & Year Comparisons === */}
+        {/* === SECTION: Quarter & Year Comparisons === */}
+        {(isShown('qoq-bars') || isShown('yoy-bars')) && compare.state === 'ok' && (
+          <>
             <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Quarter & Year Comparisons
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+              {isShown('qoq-bars') && (
               <Card title="Quarter vs Last Quarter" icon={Calendar}>
                 <GroupedBarChart data={[
                   { label: 'Revenue',    thisVal: compare.value.quarter.revenue.this / 100,   lastVal: compare.value.quarter.revenue.last / 100 },
@@ -809,7 +931,8 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   { label: 'Tickets',    thisVal: compare.value.quarter.tickets.this,         lastVal: compare.value.quarter.tickets.last },
                 ]} />
               </Card>
-
+              )}
+              {isShown('yoy-bars') && (
               <Card title="Year vs Last Year (YoY)" icon={Calendar}>
                 <GroupedBarChart data={[
                   { label: 'Revenue',    thisVal: compare.value.year.revenue.this / 100,      lastVal: compare.value.year.revenue.last / 100 },
@@ -820,19 +943,22 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   { label: 'Tickets',    thisVal: compare.value.year.tickets.this,            lastVal: compare.value.year.tickets.last },
                 ]} />
               </Card>
+              )}
             </div>
           </>
         )}
 
-        {/* === SECTION: Weekly Trend (multi-series) === */}
+        {/* === SECTION: Weekly Trend (multi-series) + Heatmap === */}
+        {(isShown('weekly-trend') || isShown('heatmap')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '18px', marginBottom: '18px' }}>
+          {isShown('weekly-trend') && (
           <Card title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
             {weekly.state === 'loading' && <ChartSkeleton h={130} />}
             {weekly.state === 'ok' && (
               <MultiLineChart
                 labels={weekly.value.map((w: any) => w.week)}
                 series={[
-                  { name: 'Revenue (×1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--azure-500)' },
+                  { name: 'Revenue (x1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--azure-500)' },
                   { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: '#22c55e' },
                   { name: 'Churns',             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger,#ef4444)' },
                 ]}
@@ -840,21 +966,26 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
             )}
             {weekly.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No weekly data</div>}
           </Card>
+          )}
 
+          {isShown('heatmap') && (
           <Card title="Daily Payment Heatmap" icon={Activity}>
             {heatmap.state === 'loading' && <ChartSkeleton h={130} />}
             {heatmap.state === 'ok' && <HeatmapChart data={heatmap.value} />}
             {heatmap.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No payment activity</div>}
           </Card>
+          )}
         </div>
+        )}
 
-        {/* === SECTION: Status Breakdown (3 columns) === */}
-        {statusBreak.state === 'ok' && (
+        {/* === SECTION: Status Breakdown (individually toggleable) === */}
+        {statusBreak.state === 'ok' && (isShown('status-workitems') || isShown('status-tickets') || isShown('status-invoices') || isShown('status-subs')) && (
           <>
             <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Current Status Breakdown
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+              {isShown('status-workitems') && (
               <Card title="Workitems by Status" icon={CheckSquare}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.workitems).reduce((s: number, v) => s + (v as number), 0) as number}
@@ -866,7 +997,9 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   ]}
                 />
               </Card>
+              )}
 
+              {isShown('status-tickets') && (
               <Card title="Tickets by Status" icon={Inbox}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.tickets).reduce((s: number, v) => s + (v as number), 0) as number}
@@ -878,7 +1011,9 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   ]}
                 />
               </Card>
+              )}
 
+              {isShown('status-invoices') && (
               <Card title="Invoices by Status" icon={Banknote}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.invoices).reduce((s: number, v) => s + (v as number), 0) as number}
@@ -891,7 +1026,9 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   ]}
                 />
               </Card>
+              )}
 
+              {isShown('status-subs') && (
               <Card title="Subscriptions by Status" icon={Users}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.subscriptions).reduce((s: number, v) => s + (v as number), 0) as number}
@@ -902,11 +1039,139 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   ]}
                 />
               </Card>
+              )}
             </div>
           </>
         )}
 
+        {/* === SECTION: New charts (RAG, aging, risk, leads, sales) === */}
+        {(isShown('rag-health') || isShown('task-aging') || isShown('issue-aging') || isShown('risk-heatmap') || isShown('lead-source-donut') || isShown('salesperson-rank')) && (
+          <>
+            <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Execution Insights
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+
+              {isShown('rag-health') && ragHealth.state === 'ok' && (
+                <Card title="RAG Execution Health" icon={AlertTriangle}>
+                  <DonutChart slices={[
+                    { label: 'Red',   value: ragHealth.value.red,   color: 'var(--gx-danger,#ef4444)' },
+                    { label: 'Amber', value: ragHealth.value.amber, color: 'var(--gx-warning,#f59e0b)' },
+                    { label: 'Green', value: ragHealth.value.green, color: 'var(--gx-success,#22c55e)' },
+                  ].filter(s => s.value > 0)} />
+                </Card>
+              )}
+
+              {isShown('task-aging') && taskAging.state === 'ok' && (
+                <Card title="Task Aging" icon={CheckSquare}>
+                  <HorizontalBarChart buckets={[
+                    { label: '0-7 days',   value: taskAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
+                    { label: '8-15 days',  value: taskAging.value.d8_15,    color: 'var(--azure-400)' },
+                    { label: '16-30 days', value: taskAging.value.d16_30,   color: 'var(--gx-warning,#f59e0b)' },
+                    { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
+                  ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
+                  <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Open workitems by age</div>
+                </Card>
+              )}
+
+              {isShown('issue-aging') && ticketAging.state === 'ok' && (
+                <Card title="Issue Aging" icon={Inbox}>
+                  <HorizontalBarChart buckets={[
+                    { label: '0-7 days',   value: ticketAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
+                    { label: '8-15 days',  value: ticketAging.value.d8_15,    color: 'var(--azure-400)' },
+                    { label: '16-30 days', value: ticketAging.value.d16_30,   color: 'var(--gx-warning,#f59e0b)' },
+                    { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
+                  ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
+                  <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Open tickets by age</div>
+                </Card>
+              )}
+
+              {isShown('risk-heatmap') && riskHeatmap.state === 'ok' && (
+                <Card title="Risk Heat Map" icon={AlertTriangle}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: 3, padding: 6 }}>
+                    <div></div>
+                    {['Low', 'Medium', 'High'].map(im => (
+                      <div key={im} style={{ fontSize: 10, textAlign: 'center', color: 'var(--gx-text-3)', padding: '4px 0' }}>{im}</div>
+                    ))}
+                    {['high', 'medium', 'low'].map(li => (
+                      <>
+                        <div key={li} style={{ fontSize: 10, color: 'var(--gx-text-3)', alignSelf: 'center', paddingRight: 6, textAlign: 'right' }}>{li[0].toUpperCase() + li.slice(1)}</div>
+                        {['low', 'medium', 'high'].map(im => {
+                          const v = Number(riskHeatmap.value[`${li}_${im}`] ?? 0)
+                          // color intensity: low_low = green, high_high = red
+                          const score = (li === 'high' ? 2 : li === 'medium' ? 1 : 0) + (im === 'high' ? 2 : im === 'medium' ? 1 : 0)
+                          const bg = score >= 3 ? 'rgba(239,68,68,0.7)'
+                                  : score >= 2 ? 'rgba(245,158,11,0.7)'
+                                  : score >= 1 ? 'rgba(234,179,8,0.5)'
+                                  : 'rgba(34,197,94,0.5)'
+                          return (
+                            <div key={`${li}-${im}`} style={{
+                              background: v > 0 ? bg : 'var(--gx-surface-2)',
+                              height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: 4, fontSize: 14, fontWeight: 700, color: v > 0 ? '#fff' : 'var(--gx-text-3)',
+                            }}>{v}</div>
+                          )
+                        })}
+                      </>
+                    ))}
+                  </div>
+                  <div className="muted" style={{ fontSize: 11, marginTop: 6, textAlign: 'center' }}>Impact -&gt;</div>
+                </Card>
+              )}
+
+              {isShown('lead-source-donut') && leadSources.state === 'ok' && (
+                <Card title="Lead Source Distribution" icon={Users}>
+                  <DonutChart slices={Object.entries(leadSources.value).map(([src, cnt], i) => ({
+                    label: String(src), value: Number(cnt), color: PLAN_COLORS[i % PLAN_COLORS.length],
+                  }))} />
+                </Card>
+              )}
+
+              {isShown('salesperson-rank') && salesByUser.state === 'ok' && (
+                <Card title="Customers by Account Manager" icon={Users}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {Object.entries(salesByUser.value)
+                      .sort((a, b) => Number(b[1]) - Number(a[1]))
+                      .slice(0, 10)
+                      .map(([name, cnt]) => {
+                        const max = Math.max(...Object.values(salesByUser.value).map((v: any) => Number(v)))
+                        return (
+                          <div key={name}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                              <span>{name}</span>
+                              <span style={{ fontWeight: 600 }}>{Number(cnt)}</span>
+                            </div>
+                            <div style={{ height: 6, borderRadius: 3, background: 'var(--gx-surface-2)' }}>
+                              <div style={{ height: '100%', width: `${(Number(cnt) / max) * 100}%`, background: 'var(--azure-500)', borderRadius: 3 }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </Card>
+              )}
+
+            </div>
+          </>
+        )}
+
+        {/* Empty state */}
+        {selected.size === 0 && (
+          <div style={{ padding: 60, textAlign: 'center', color: 'var(--gx-text-3)' }}>
+            <Settings size={40} style={{ marginBottom: 16, opacity: 0.4 }} />
+            <p style={{ fontSize: 14 }}>No charts selected. Click <strong>Customize</strong> above to choose what to display.</p>
+          </div>
+        )}
+
       </div>
+
+      {pickerOpen && (
+        <ChartPicker
+          initialSelected={selected}
+          onClose={() => setPickerOpen(false)}
+          onSave={(next) => { setSelected(next); saveSelected(next) }}
+        />
+      )}
     </div>
   )
 }
