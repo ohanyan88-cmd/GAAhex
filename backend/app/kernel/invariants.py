@@ -120,6 +120,78 @@ _OWN_ONLY_ACTIONS: frozenset[str] = frozenset({
 })
 
 
+# ---------------------------------------------------------------------------- §0.1 single-owner write — first-class tables
+#
+# SPEC §2.2 Ownership Matrix split:
+#
+#   1. Config-driven entities (Record rows keyed by `entity_key`) → governed by
+#      `entity_def.owner_module` (Step 3 backfill) + `assert_writer_owns_record` below.
+#
+#   2. First-class typed tables (`invoice`, `payment`, `service`, …) → carry no entity_def
+#      row, so ownership is encoded here in code and enforced via
+#      `assert_writer_owns_record_firstclass` from each first-class write router.
+#
+# The map keys are physical `__tablename__` strings so the guard is unambiguous when several
+# routers write the same table (e.g. billing.py writes invoice / payment / subscription). The
+# right-hand values come verbatim from SPEC §2.2 — "Invoices", "Payments", "Service Inventory",
+# etc. — so the seed file, the kernel, and the spec read the same words.
+FIRST_CLASS_OWNER_MAP: dict[str, str] = {
+    # Billing & Revenue
+    "invoice":           "Invoices",
+    "payment":           "Payments",
+    "credit_note":       "Invoices",          # SPEC §2.2: Credit Note → owner Invoices
+    "subscription":      "Billing Accounts",  # financial container under Customer
+    # Catalog
+    "product":           "Product Catalog",
+    # Operations
+    "service":           "Service Inventory",
+    "service_resource":  "Service Inventory",
+    # Sales / fulfillment
+    "order":             "Orders",
+    "order_item":        "Orders",
+    # Support
+    "helpdesk_ticket":   "Tickets",
+    "helpdesk_queue":    "Tickets",
+    # Work dispatch (SPEC §2.2 "Work Order — Owner: Work Orders")
+    "workitem":          "Work Orders",
+    # add more from SPEC §2.2 as their first-class tables land (asset, contract, etc.)
+}
+
+
+async def assert_writer_owns_record_firstclass(
+    s: AsyncSession,
+    *,
+    table_name: str,
+    writer_module: str,
+) -> None:
+    """SPEC §0.1 — Single owner, first-class table variant.
+
+    Use this for typed first-class tables (`invoice`, `payment`, `service`, …) whose ownership
+    can't be discovered via `entity_def.owner_module` because they don't have an entity_def
+    row. For config-driven Record-backed entities, use `assert_writer_owns_record`.
+
+    Looks up `table_name` in `FIRST_CLASS_OWNER_MAP` and raises `OwnerViolation` when
+    `writer_module` does not match.
+
+    No-op contract:
+        - `table_name` not in `FIRST_CLASS_OWNER_MAP` → no-op (legacy / not-yet-mapped path).
+          New first-class tables get a no-op until they're added to the map; this keeps the
+          kernel adoptable without flag-day breakage.
+
+    The `s` AsyncSession arg is accepted for forward compatibility — current logic is a pure
+    map lookup, but later steps may consult tenant-scoped overrides (e.g. an
+    `ownership_override` table) the same way the entity_def lookup works today.
+    """
+    expected = FIRST_CLASS_OWNER_MAP.get(table_name)
+    if expected is None:
+        return  # not in the map — skip (legacy path)
+    if writer_module != expected:
+        raise OwnerViolation(
+            f"SPEC §0.1: only the {expected!r} module may write to {table_name!r}. "
+            f"Caller declared writer_module={writer_module!r}."
+        )
+
+
 # ---------------------------------------------------------------------------- §0.1 single-owner write
 
 async def assert_writer_owns_record(

@@ -297,3 +297,100 @@ async def test_spec_4_5_low_discount_not_gated(client, admin):
     ]})).json()
     # Exactly 20% — gate is strictly >20%, so this passes through.
     assert inv["total"] == 8000
+
+
+# ===================== SPEC §0.1 first-class owner gating (Step INV1) =====================
+
+async def test_spec_0_1_admin_can_write_invoice_via_billing_router(client, admin):
+    """Happy-path proof: the Invoices module (billing.py) creates an invoice → 201.
+
+    This exercises `assert_writer_owns_record_firstclass(table_name='invoice',
+    writer_module='Invoices')` via the live router path. The router declares the
+    matching writer_module, so the §0.1 gate passes through.
+    """
+    cust = await _customer(client, admin, "Owner gate ok")
+    r = await client.post("/api/invoices", headers=admin, json={
+        "customer_id": cust,
+        "lines": [{"kind": "charge", "description": "Plan", "quantity": 1, "unit_amount": 1000}],
+    })
+    assert r.status_code == 201, r.text
+    assert r.json()["status"] == "DRAFT"
+
+
+async def test_spec_0_1_kernel_refuses_wrong_owner_on_invoice():
+    """The kernel function refuses a wrong writer_module declaration directly.
+
+    A malicious / mis-wired router declaring `writer_module='Sales'` for `invoice` must be
+    rejected with OwnerViolation — SPEC §0.1 single owner: only `Invoices` may write.
+    """
+    import pytest
+    from app.kernel import assert_writer_owns_record_firstclass, OwnerViolation
+    async with SessionLocal() as s:
+        with pytest.raises(OwnerViolation):
+            await assert_writer_owns_record_firstclass(
+                s, table_name="invoice", writer_module="Sales",
+            )
+
+
+async def test_spec_0_1_kernel_refuses_wrong_owner_on_payment():
+    """Same proof for `payment` — only the Payments module may write."""
+    import pytest
+    from app.kernel import assert_writer_owns_record_firstclass, OwnerViolation
+    async with SessionLocal() as s:
+        with pytest.raises(OwnerViolation):
+            await assert_writer_owns_record_firstclass(
+                s, table_name="payment", writer_module="Customer Care",
+            )
+
+
+async def test_spec_0_1_kernel_refuses_wrong_owner_on_service():
+    """Same proof for `service` — only Service Inventory may write."""
+    import pytest
+    from app.kernel import assert_writer_owns_record_firstclass, OwnerViolation
+    async with SessionLocal() as s:
+        with pytest.raises(OwnerViolation):
+            await assert_writer_owns_record_firstclass(
+                s, table_name="service", writer_module="Sales",
+            )
+
+
+async def test_spec_0_1_kernel_noop_when_table_not_in_map():
+    """Unmapped tables → no-op (legacy / not-yet-migrated path). No exception expected."""
+    from app.kernel import assert_writer_owns_record_firstclass
+    async with SessionLocal() as s:
+        # Should NOT raise — the kernel falls back to no-op on unknown tables.
+        await assert_writer_owns_record_firstclass(
+            s, table_name="some_unmapped_legacy_table", writer_module="anything",
+        )
+
+
+async def test_spec_0_1_kernel_accepts_correct_owner():
+    """The happy-path call shape: correct owner declaration passes silently."""
+    from app.kernel import assert_writer_owns_record_firstclass
+    async with SessionLocal() as s:
+        # Each correct module should pass without raising.
+        await assert_writer_owns_record_firstclass(s, table_name="invoice", writer_module="Invoices")
+        await assert_writer_owns_record_firstclass(s, table_name="payment", writer_module="Payments")
+        await assert_writer_owns_record_firstclass(s, table_name="service", writer_module="Service Inventory")
+        await assert_writer_owns_record_firstclass(s, table_name="order", writer_module="Orders")
+        await assert_writer_owns_record_firstclass(s, table_name="workitem", writer_module="Work Orders")
+
+
+async def test_spec_2_2_first_class_owner_map_matches_spec():
+    """Snapshot of the SPEC §2.2 ownership matrix for first-class tables.
+
+    Every entry here comes verbatim from SPEC §2.2; if this snapshot ever breaks, either the
+    SPEC moved or the map drifted — both deserve a deliberate decision, not a silent change.
+    """
+    from app.kernel import FIRST_CLASS_OWNER_MAP
+    assert FIRST_CLASS_OWNER_MAP["invoice"] == "Invoices"
+    assert FIRST_CLASS_OWNER_MAP["payment"] == "Payments"
+    assert FIRST_CLASS_OWNER_MAP["credit_note"] == "Invoices"
+    assert FIRST_CLASS_OWNER_MAP["subscription"] == "Billing Accounts"
+    assert FIRST_CLASS_OWNER_MAP["product"] == "Product Catalog"
+    assert FIRST_CLASS_OWNER_MAP["service"] == "Service Inventory"
+    assert FIRST_CLASS_OWNER_MAP["service_resource"] == "Service Inventory"
+    assert FIRST_CLASS_OWNER_MAP["order"] == "Orders"
+    assert FIRST_CLASS_OWNER_MAP["helpdesk_ticket"] == "Tickets"
+    assert FIRST_CLASS_OWNER_MAP["helpdesk_queue"] == "Tickets"
+    assert FIRST_CLASS_OWNER_MAP["workitem"] == "Work Orders"

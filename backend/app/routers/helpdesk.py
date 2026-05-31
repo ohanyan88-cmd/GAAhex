@@ -22,7 +22,10 @@ from ..models.helpdesk import HelpdeskQueue, HelpdeskTicket
 from ..models.job import JobRun
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
-from ..kernel import assert_can, AccessDenied
+from ..kernel import (
+    assert_can, AccessDenied,
+    assert_writer_owns_record_firstclass, OwnerViolation,
+)
 from .auth import current_user
 from .records import _node_paths, _paginate
 
@@ -38,6 +41,20 @@ _STATUSES = {"OPEN", "IN_PROGRESS", "PENDING", "RESOLVED", "CLOSED"}
 
 def _deny(perm: str):
     raise HTTPException(403, f"Not allowed: {perm}")
+
+
+async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:
+    """SPEC §0.1 first-class table owner check (helper). OwnerViolation → 409.
+
+    helpdesk.py writes both helpdesk_queue and helpdesk_ticket (both owned by the Tickets
+    module per SPEC §2.2).
+    """
+    try:
+        await assert_writer_owns_record_firstclass(
+            s, table_name=table_name, writer_module=writer_module,
+        )
+    except OwnerViolation as e:
+        raise HTTPException(409, detail=str(e))
 
 
 def _now() -> datetime:
@@ -140,6 +157,8 @@ async def create_queue(
     grants = await load_grants(s, user)
     if not can(grants, "helpdesk_queue", "manage"):
         _deny("helpdesk_queue.manage")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_queue.
+    await _owner_gate(s, table_name="helpdesk_queue", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
@@ -187,6 +206,8 @@ async def update_queue(
     if not can(grants, "helpdesk_queue", "manage"):
         _deny("helpdesk_queue.manage")
     q = await _get_queue(s, user, queue_id)
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_queue.
+    await _owner_gate(s, table_name="helpdesk_queue", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
@@ -232,6 +253,8 @@ async def delete_queue(
     if not can(grants, "helpdesk_queue", "manage"):
         _deny("helpdesk_queue.manage")
     q = await _get_queue(s, user, queue_id)
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_queue.
+    await _owner_gate(s, table_name="helpdesk_queue", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
@@ -295,6 +318,8 @@ async def create_ticket(
     grants = await load_grants(s, user)
     if not can(grants, "helpdesk_ticket", "create"):
         _deny("helpdesk_ticket.create")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="helpdesk_ticket",
@@ -372,6 +397,8 @@ async def update_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
@@ -427,6 +454,8 @@ async def assign_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (assign is a kind of edit;
     # mapped to 'edit' verb to match existing role grants — `assigned_agent_id` is the new owner).
     try:
@@ -474,6 +503,8 @@ async def resolve_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
@@ -508,6 +539,8 @@ async def reopen_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
@@ -540,6 +573,8 @@ async def close_ticket(
     if not can(grants, "helpdesk_ticket", "edit",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.edit")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="helpdesk_ticket",
@@ -571,6 +606,8 @@ async def delete_ticket(
     if not can(grants, "helpdesk_ticket", "delete",
                paths.get(str(t.owner_node_id)) if t.owner_node_id else None):
         _deny("helpdesk_ticket.delete")
+    # SPEC §0.1 single-owner (first-class) — only Tickets may write helpdesk_ticket.
+    await _owner_gate(s, table_name="helpdesk_ticket", writer_module="Tickets")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="delete", entity_key="helpdesk_ticket",

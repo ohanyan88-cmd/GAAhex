@@ -13,7 +13,9 @@ Public surface:
     - OwnerViolation, AccessDenied, DuplicateMasterData, CrossRegionDenied — typed exceptions
       mapped to HTTP 409 / 403 / 409 / 403 respectively.
     - ControlGateNotPassed         — SPEC §3 Stage 8 / §10.4 (Step 4) — HTTP 409 at routers.
-    - assert_writer_owns_record    — SPEC §0.1 single-owner write lock
+    - assert_writer_owns_record    — SPEC §0.1 single-owner write lock (config-driven entities)
+    - assert_writer_owns_record_firstclass — SPEC §0.1 single-owner write lock (first-class tables)
+    - FIRST_CLASS_OWNER_MAP        — SPEC §2.2 ownership matrix for first-class typed tables
     - assert_can                   — SPEC §0.2 default-deny facade
     - assert_no_inline_master_copies — SPEC §0.5 references-not-copies
     - assert_can_read_region       — SPEC §0.6 cross-region read guard
@@ -21,11 +23,13 @@ Public surface:
 """
 from .invariants import (
     MASTER_RECORD_KEYS,
+    FIRST_CLASS_OWNER_MAP,
     OwnerViolation,
     AccessDenied,
     DuplicateMasterData,
     CrossRegionDenied,
     assert_writer_owns_record,
+    assert_writer_owns_record_firstclass,
     assert_can,
     assert_no_inline_master_copies,
     assert_can_read_region,
@@ -61,6 +65,7 @@ from .workflow_engine import (
 
 __all__ = [
     "MASTER_RECORD_KEYS",
+    "FIRST_CLASS_OWNER_MAP",
     "OwnerViolation",
     "AccessDenied",
     "DuplicateMasterData",
@@ -70,6 +75,7 @@ __all__ = [
     "MANDATORY_APPROVAL_ACTIONS",
     "KpiEvaluationError",
     "assert_writer_owns_record",
+    "assert_writer_owns_record_firstclass",
     "assert_can",
     "assert_no_inline_master_copies",
     "assert_can_read_region",

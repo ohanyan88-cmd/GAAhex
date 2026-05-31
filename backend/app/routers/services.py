@@ -22,6 +22,7 @@ from ..access import load_grants, can
 from .. import workflow
 from ..kernel import (
     assert_can, AccessDenied,
+    assert_writer_owns_record_firstclass, OwnerViolation,
     assert_approval_or_raise, ApprovalRequired,
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
@@ -36,6 +37,16 @@ _RESOURCE_KINDS = {"ip", "mac", "port", "device", "circuit", "other"}
 
 def _deny(perm: str):
     raise HTTPException(403, f"Not allowed: {perm}")
+
+
+async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:
+    """SPEC §0.1 first-class table owner check (helper). OwnerViolation → 409."""
+    try:
+        await assert_writer_owns_record_firstclass(
+            s, table_name=table_name, writer_module=writer_module,
+        )
+    except OwnerViolation as e:
+        raise HTTPException(409, detail=str(e))
 
 
 def _now() -> datetime:
@@ -157,6 +168,8 @@ async def create_service(payload: dict, user: User = Depends(current_user), s: A
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "service", "create", owner_path):
         _deny("service.create")
+    # SPEC §0.1 single-owner (first-class) — only Service Inventory may write service.
+    await _owner_gate(s, table_name="service", writer_module="Service Inventory")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="service",
@@ -204,6 +217,8 @@ async def update_service(service_id: uuid.UUID, payload: dict, user: User = Depe
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.1 single-owner (first-class) — only Service Inventory may write service.
+    await _owner_gate(s, table_name="service", writer_module="Service Inventory")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="service",
@@ -231,6 +246,8 @@ async def _service_status_change(s, user, service_id, new_status: str, allowed_f
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.1 single-owner (first-class) — only Service Inventory may write service.
+    await _owner_gate(s, table_name="service", writer_module="Service Inventory")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (lifecycle transitions).
     try:
         await assert_can(s, user, action="edit", entity_key="service",
@@ -319,6 +336,8 @@ async def allocate_resource(service_id: uuid.UUID, payload: dict, user: User = D
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.1 single-owner (first-class) — service_resource is owned by Service Inventory.
+    await _owner_gate(s, table_name="service_resource", writer_module="Service Inventory")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="service",
@@ -351,6 +370,8 @@ async def release_resource(service_id: uuid.UUID, resource_id: uuid.UUID, user: 
     grants = await load_grants(s, user)
     if not can(grants, "service", "edit", await _node_path(s, svc.owner_node_id)):
         _deny("service.edit")
+    # SPEC §0.1 single-owner (first-class) — service_resource is owned by Service Inventory.
+    await _owner_gate(s, table_name="service_resource", writer_module="Service Inventory")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="service",

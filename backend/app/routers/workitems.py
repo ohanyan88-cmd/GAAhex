@@ -19,7 +19,10 @@ from ..models import User
 from ..models.workitem import WorkItem
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
-from ..kernel import assert_can, AccessDenied
+from ..kernel import (
+    assert_can, AccessDenied,
+    assert_writer_owns_record_firstclass, OwnerViolation,
+)
 from .auth import current_user
 from .records import _node_paths, _paginate
 
@@ -90,14 +93,35 @@ async def _get_workitem(s: AsyncSession, user: User, workitem_id) -> WorkItem:
 
 
 async def _kernel_gate(s: AsyncSession, user: User, w: WorkItem, action: str) -> None:
-    """SPEC §0.2 default-deny (Step 7) helper — Role × Department × Region × Ownership AND.
-    Maps AccessDenied to HTTP 403. Caller passes the SPEC verb."""
+    """SPEC §0 kernel gate helper — combines §0.1 owner check + §0.2 default-deny AND.
+
+    1) SPEC §0.1 single-owner (first-class): only Work Orders may write `workitem` (OwnerViolation
+       → 409 via `_owner_gate`).
+    2) SPEC §0.2 default-deny: Role × Department × Region × Ownership AND (AccessDenied → 403).
+
+    Both must pass. Every mutation route in this router calls this helper so the gate is uniform.
+    """
+    await _owner_gate(s)
     try:
         await assert_can(s, user, action=action, entity_key="workitem",
                          region_id=getattr(w, "region_id", None),
                          owner_user_id=w.assigned_user_id)
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
+
+
+async def _owner_gate(s: AsyncSession) -> None:
+    """SPEC §0.1 first-class table owner check (helper). OwnerViolation → 409.
+
+    workitems.py only writes the `workitem` table; SPEC §2.2 names "Work Orders" as the owner
+    module for WorkOrder records.
+    """
+    try:
+        await assert_writer_owns_record_firstclass(
+            s, table_name="workitem", writer_module="Work Orders",
+        )
+    except OwnerViolation as e:
+        raise HTTPException(409, detail=str(e))
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +191,8 @@ async def create_workitem(
     grants = await load_grants(s, user)
     if not can(grants, "workitem", "create"):
         _deny("workitem.create")
+    # SPEC §0.1 single-owner (first-class) — only Work Orders may write workitem.
+    await _owner_gate(s)
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="workitem",

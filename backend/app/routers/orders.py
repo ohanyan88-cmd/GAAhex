@@ -23,6 +23,7 @@ from ..access import load_grants, can
 from ..kernel import (
     assert_can_advance_to_scheduling, ControlGateNotPassed,
     assert_can, AccessDenied,
+    assert_writer_owns_record_firstclass, OwnerViolation,
 )
 from .. import workflow, notify_hooks
 from .auth import current_user
@@ -85,6 +86,16 @@ async def _next_order_number(s, tenant_id) -> str:
         select(func.count()).select_from(Order).where(Order.tenant_id == tenant_id)
     )).scalar_one()
     return f"ORD-{n + 1:05d}"
+
+
+async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:
+    """SPEC §0.1 first-class table owner check (helper). OwnerViolation → 409."""
+    try:
+        await assert_writer_owns_record_firstclass(
+            s, table_name=table_name, writer_module=writer_module,
+        )
+    except OwnerViolation as e:
+        raise HTTPException(409, detail=str(e))
 
 
 async def _replace_items(s, user: User, order: Order, lines_in) -> int:
@@ -181,6 +192,9 @@ async def create_order(payload: dict, user: User = Depends(current_user), s: Asy
     if not can(grants, "order", "create", owner_path):
         _deny("order.create")
 
+    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
+    await _owner_gate(s, table_name="order", writer_module="Orders")
+
     # SPEC §0.2 default-deny (Step 7) — kernel gate before any DB mutation. Region is None on
     # create (the order has no row yet); ownership is None (the order has no current owner).
     try:
@@ -226,6 +240,8 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
+    await _owner_gate(s, table_name="order", writer_module="Orders")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(
@@ -265,6 +281,8 @@ async def submit_order(order_id: uuid.UUID, user: User = Depends(current_user), 
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
+    await _owner_gate(s, table_name="order", writer_module="Orders")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(
@@ -299,6 +317,11 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+
+    # SPEC §0.1 single-owner (first-class) — only Orders may write order. Note: advance also
+    # creates Subscriptions on COMPLETED (Billing Accounts side-effect); that's the canonical
+    # SPEC §2.2 cross-module trigger (Order COMPLETE → Billing Accounts provisions Subscription).
+    await _owner_gate(s, table_name="order", writer_module="Orders")
 
     # SPEC §4 default-deny — proof-of-life wire-up of the kernel permissions engine. The legacy
     # role check above is preserved (Studio/M0 has roles to keep working); this kernel call
@@ -364,6 +387,8 @@ async def cancel_order(order_id: uuid.UUID, user: User = Depends(current_user), 
     grants = await load_grants(s, user)
     if not can(grants, "order", "edit", await _node_path(s, order.owner_node_id)):
         _deny("order.edit")
+    # SPEC §0.1 single-owner (first-class) — only Orders may write order.
+    await _owner_gate(s, table_name="order", writer_module="Orders")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(

@@ -27,6 +27,7 @@ from ..access import load_grants, can
 from .. import workflow, notify_hooks
 from ..kernel import (
     assert_can, AccessDenied,
+    assert_writer_owns_record_firstclass, OwnerViolation,
     assert_approval_or_raise, ApprovalRequired,
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
@@ -57,6 +58,21 @@ def _invoice_total(lines) -> int:
 
 def _deny(perm: str):
     raise HTTPException(403, f"Not allowed: {perm}")
+
+
+async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:
+    """SPEC §0.1 first-class table owner check (helper).
+
+    billing.py writes three first-class tables (invoice, payment, subscription) plus the
+    product catalog; each mutation declares its own writer_module per call so the SPEC §2.2
+    matrix is enforced per-table even though they share one router file. OwnerViolation → 409.
+    """
+    try:
+        await assert_writer_owns_record_firstclass(
+            s, table_name=table_name, writer_module=writer_module,
+        )
+    except OwnerViolation as e:
+        raise HTTPException(409, detail=str(e))
 
 
 def _money(value, field: str) -> int:
@@ -233,6 +249,8 @@ async def create_subscription(payload: dict, user: User = Depends(current_user),
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "subscription", "create", owner_path):
         _deny("subscription.create")
+    # SPEC §0.1 single-owner (first-class) — only Billing Accounts may write subscription.
+    await _owner_gate(s, table_name="subscription", writer_module="Billing Accounts")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="subscription",
@@ -304,6 +322,8 @@ async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Dep
     grants = await load_grants(s, user)
     if not can(grants, "subscription", "edit", await _node_path(s, sub.owner_node_id)):
         _deny("subscription.edit")
+    # SPEC §0.1 single-owner (first-class) — only Billing Accounts may write subscription.
+    await _owner_gate(s, table_name="subscription", writer_module="Billing Accounts")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="subscription",
@@ -377,6 +397,8 @@ async def _sub_status_change(s, user, sub_id, new_status: str, allowed_from: set
     grants = await load_grants(s, user)
     if not can(grants, "subscription", "edit", await _node_path(s, sub.owner_node_id)):
         _deny("subscription.edit")
+    # SPEC §0.1 single-owner (first-class) — only Billing Accounts may write subscription.
+    await _owner_gate(s, table_name="subscription", writer_module="Billing Accounts")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation; covers cancel/suspend/resume.
     try:
         await assert_can(s, user, action="edit", entity_key="subscription",
@@ -417,6 +439,10 @@ async def generate_invoice(sub_id: uuid.UUID, user: User = Depends(current_user)
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "create", await _node_path(s, sub.owner_node_id)):
         _deny("invoice.create")
+    # SPEC §0.1 single-owner (first-class) — only Invoices may write invoice. The subscription's
+    # next_invoice_at is bumped below as the canonical Billing-Run side-effect on the
+    # Billing-Accounts-owned subscription (SPEC §2.2 "Invoice — Created From: Billing Run").
+    await _owner_gate(s, table_name="invoice", writer_module="Invoices")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="invoice",
@@ -488,6 +514,8 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
     owner_path = await _node_path(s, user.primary_node_id)
     if not can(grants, "invoice", "create", owner_path):
         _deny("invoice.create")
+    # SPEC §0.1 single-owner (first-class) — only Invoices may write invoice.
+    await _owner_gate(s, table_name="invoice", writer_module="Invoices")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="invoice",
@@ -627,6 +655,8 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "edit", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.edit")
+    # SPEC §0.1 single-owner (first-class) — only Invoices may write invoice.
+    await _owner_gate(s, table_name="invoice", writer_module="Invoices")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="invoice",
@@ -667,6 +697,9 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     grants = await load_grants(s, user)
     if not can(grants, "payment", "create", await _node_path(s, inv.owner_node_id)):
         _deny("payment.create")
+    # SPEC §0.1 single-owner (first-class) — only Payments may write payment. The invoice PAID
+    # flip below is the Payments → Invoices side-effect (SPEC §2.2 Payment viewable in Invoice).
+    await _owner_gate(s, table_name="payment", writer_module="Payments")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="create", entity_key="payment",
@@ -798,6 +831,8 @@ async def void_invoice(inv_id: uuid.UUID, user: User = Depends(current_user),
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "edit", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.edit")
+    # SPEC §0.1 single-owner (first-class) — only Invoices may write invoice.
+    await _owner_gate(s, table_name="invoice", writer_module="Invoices")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="edit", entity_key="invoice",
@@ -878,6 +913,8 @@ async def create_product(payload: dict, user: User = Depends(current_user), s: A
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    # SPEC §0.1 single-owner (first-class) — only Product Catalog may write product.
+    await _owner_gate(s, table_name="product", writer_module="Product Catalog")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (catalog/config).
     try:
         await assert_can(s, user, action="manage", entity_key="product",
@@ -916,6 +953,8 @@ async def update_product(product_id: uuid.UUID, payload: dict, user: User = Depe
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    # SPEC §0.1 single-owner (first-class) — only Product Catalog may write product.
+    await _owner_gate(s, table_name="product", writer_module="Product Catalog")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="manage", entity_key="product",
@@ -952,6 +991,8 @@ async def retire_product(product_id: uuid.UUID, user: User = Depends(current_use
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    # SPEC §0.1 single-owner (first-class) — only Product Catalog may write product.
+    await _owner_gate(s, table_name="product", writer_module="Product Catalog")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation.
     try:
         await assert_can(s, user, action="manage", entity_key="product",
@@ -979,6 +1020,9 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "edit"):
         _deny("invoice.edit")
+    # SPEC §0.1 single-owner (first-class) — only Invoices may write invoice (dunning is the
+    # ISSUED → OVERDUE transition; an Invoices-internal sweep).
+    await _owner_gate(s, table_name="invoice", writer_module="Invoices")
     # SPEC §0.2 default-deny (Step 7) — kernel gate before mutation (tenant-wide sweep).
     try:
         await assert_can(s, user, action="edit", entity_key="invoice",
