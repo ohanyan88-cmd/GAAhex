@@ -1,9 +1,15 @@
+"""Password hashing + JWT helpers.
+
+Originally `app/security.py`; moved into the `app/security/` package when field-level
+encryption (SPEC §4.4) landed. Re-exported from `app.security` so existing imports
+(`from app.security import hash_password, ...`) keep working unchanged.
+"""
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
 
-from .config import settings
+from ..config import settings
 
 
 def hash_password(password: str) -> str:

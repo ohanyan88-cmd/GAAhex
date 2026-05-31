@@ -317,3 +317,115 @@ Each becomes a task in the ACTIVATE round, once the gates above are decided.
 9. Set up the vault binding in prod (post-Gev decision).
 10. PRE-modeling of ID/passport, tax number, bank details, salary as new `field_def` entries
     with `sensitive=true`, ready for first encrypted writes.
+
+---
+
+## 10. ACTIVATE — what shipped (2026-05-31)
+
+This section documents the FIRST ACTIVATE round. Items 1, 5, 6, 7, 9, and 10 from §9 remain
+deferred (still waiting on the Gev gates in §7); items 2, 3, 4, and 8 are addressed here at
+the level needed for the single column being encrypted now (`webhook_def.secret`).
+
+### What was built
+
+| File | What |
+|---|---|
+| `backend/app/security/` | Converted from a single `security.py` module into a **package** (no API change — re-exports `hash_password`, `verify_password`, `create_access_token`, `decode_token` from `app/security/auth.py` so every existing `from app.security import …` keeps working). |
+| `backend/app/security/field_crypto.py` | New module: Fernet-based AEAD helpers — `encrypt_str`, `decrypt_str`, and `EncryptedString` SQLAlchemy `TypeDecorator`. Key from env `GAAEX_FIELD_KEY`; loud-warning deterministic dev fallback when unset. |
+| `backend/app/security/__init__.py` | Re-exports auth helpers + the three field-crypto names. |
+| `backend/app/models/webhook.py` | `WebhookDef.secret` column type flipped from `String(255)` to `EncryptedString()`. All new writes encrypt; all reads decrypt; on-disk value is opaque ciphertext. |
+| `backend/alembic/versions/6389266f4c19_spec_4_4_widen_webhook_secret_for_.py` | Migration that widens `webhook_def.secret` from `varchar(255)` to `text` so Fernet tokens fit. Additive, reversible, no row mutation. |
+| `backend/scripts/encrypt_webhook_secrets.py` | One-shot operator-run backfill: reads each existing `webhook_def` row, encrypts the plaintext secret with the active Fernet key, writes it back. Idempotent (skips rows already in valid Fernet shape). Supports `DRY_RUN=true` for a read-only preview. |
+| `backend/tests/test_field_crypto.py` | 10 tests — helper round-trip, `None` passthrough, legacy-plaintext returns `None`, non-deterministic encrypt, ORM column round-trip via real `WebhookDef` row, raw-SQL confirms on-disk ciphertext, null-secret round-trip, key-rotation simulation, dev-key determinism, `TypeDecorator` direct unit test. All 10 PASS. |
+| `backend/requirements.txt` | Added `cryptography>=42.0.0`. |
+
+### Single column encrypted this round
+
+Only **`webhook_def.secret`** is encrypted at rest right now. The reasoning:
+
+- `app_user.password_hash` — already a one-way bcrypt hash (irreversible). Hashing is the
+  right primitive here, not encryption. No change.
+- `customer_user.password_hash` — same.
+- `refresh_token.token_hash` — SHA-256 of the bearer, raw token never persisted. No change.
+- `api_key.key_hash` — SHA-256, raw key returned once at create. No change.
+- Every other SPEC §4.4 HIGH-risk item (passport, tax number, bank details, salary,
+  network credentials) is **not yet modeled** — the columns don't exist. They'll get
+  `EncryptedString()` per column / `field_def.sensitive=true` per JSONB key in a later
+  ACTIVATE round, once those entities land in the schema.
+
+### Deployment runbook
+
+1. **Set `GAAEX_FIELD_KEY` in the target environment** before deploying. Generate via
+   `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+   Without this env var, the app falls back to a deterministic DEV key and logs a loud
+   warning — never acceptable for production.
+2. **Backup the database.** Standard pre-migration prudence.
+3. **Run the alembic migration** — widens `webhook_def.secret` to `TEXT`. Row data unchanged.
+   ```
+   cd backend
+   .venv/Scripts/python.exe -m alembic upgrade head
+   ```
+4. **Deploy the app code.** From this moment, every NEW write to `webhook_def.secret`
+   stores Fernet ciphertext. Existing rows are still plaintext.
+5. **Run the backfill script** to encrypt the existing plaintext secrets:
+   ```
+   cd backend
+   .venv/Scripts/python.exe -m scripts.encrypt_webhook_secrets
+   ```
+   Optionally `DRY_RUN=true` first to preview. The script is idempotent — re-running
+   only touches rows still in plaintext shape.
+6. **Verify.** After the script reports `encrypted=N skip_empty=M skip_already_cipher=K`,
+   confirm `K == N + total_existing` on a re-run (i.e. nothing in plaintext left).
+
+### Key rotation runbook (for future use)
+
+When a key needs to be rotated (compromise, scheduled rotation, etc.):
+
+1. Generate a new Fernet key.
+2. Update `GAAEX_FIELD_KEY` env var (in the vault / k8s secret / `.env`) to the **new** key.
+3. Restart the app — every new write now uses the new key. Existing rows can no longer be
+   decrypted; `decrypt_str` returns `None` for them (the helper is fail-soft, the API
+   returns `secret_unreadable: true` or similar UI placeholder).
+4. Run `backend/scripts/encrypt_webhook_secrets.py` against the rotated app. Plaintext-read
+   path is unavailable since the old key is gone — so the script can't migrate existing
+   ciphertext-under-old-key to ciphertext-under-new-key without the old key.
+
+⚠️ **Zero-downtime rotation requires a `MultiFernet` upgrade** — accept a comma-separated
+env var holding [NEW_KEY, OLD_KEY], decrypt with any key in the list, encrypt only with
+the first. That upgrade is **not in this round** because the active webhook_def fleet
+is small enough that a maintenance-window rotation is operationally acceptable. When the
+encrypted-field set grows (passport, salary, bank), upgrading to `MultiFernet` becomes
+mandatory — see §4 of this doc.
+
+### What is still out-of-scope after this round
+
+The seven gates in §7 remain open. In particular:
+
+- No `field_def.sensitive` column yet — JSONB `record.data` field-level encryption is
+  not wired (no entities have a sensitive JSONB field today).
+- No `field:<entity>.<col>:read` permission key — the **separate-grant** half of SPEC §4.4
+  is still untouched. `webhook_def.secret` is already gated by `config.manage`, which is the
+  closest analog; future sensitive fields will need finer-grained grants.
+- No audit-log redaction in `workflow.emit` — secret values do not currently appear in
+  event payloads (the only field encrypted today is `webhook_def.secret`, and webhook CRUD
+  doesn't ride on the workflow event chokepoint).
+- No vault binding in prod — the env-var approach is the dev/staging baseline; a Gev
+  decision on vault provider (§7) gates the prod cutover.
+
+### Verification (2026-05-31)
+
+```
+cd C:/Users/Admin/Desktop/Portal/backend
+.venv/Scripts/python.exe -c "from app.security import EncryptedString, encrypt_str, decrypt_str; print('OK')"
+# → prints "GAAEX_FIELD_KEY not set — using deterministic DEV key…" (expected in dev) then "OK"
+
+.venv/Scripts/python.exe -m pytest tests/test_field_crypto.py -v
+# → 10 passed in ~3s
+
+# regression check: existing security-touching tests still green when run in default order
+.venv/Scripts/python.exe -m pytest tests/test_auth.py tests/test_hardening.py tests/test_webhooks.py tests/test_field_crypto.py
+# → 35 passed, 1 xfailed (pre-existing — see test_delete_webhook_with_deliveries)
+```
+
+Alembic head after this round: **`6389266f4c19`** (down_revision `b9d1c2e3a4f5`, the
+prior merge head).

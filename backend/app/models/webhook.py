@@ -6,12 +6,19 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
+from ..security import EncryptedString
 
 
 class WebhookDef(Base):
     """An outbound webhook subscription: POST a signed payload to `url` whenever a kernel Event of a
     subscribed type fires. `events` is a JSONB list of event types (e.g. ["transition","invoice.paid"];
-    "*" subscribes to all). `secret` signs deliveries (HMAC-SHA256). Needs RLS (tenant isolation)."""
+    "*" subscribes to all). `secret` signs deliveries (HMAC-SHA256). Needs RLS (tenant isolation).
+
+    `secret` is encrypted at rest under SPEC §4.4 — the column type is `EncryptedString`,
+    so reads decrypt transparently and writes encrypt before persistence. The DB itself never
+    sees the plaintext signing key. Run `backend/scripts/encrypt_webhook_secrets.py` once after
+    the migration that widens the column to TEXT to backfill any legacy plaintext secrets.
+    """
     __tablename__ = "webhook_def"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -19,7 +26,7 @@ class WebhookDef(Base):
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
     events: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)   # subscribed event types ("*" = all)
-    secret: Mapped[str | None] = mapped_column(String(255), nullable=True)      # HMAC signing key
+    secret: Mapped[str | None] = mapped_column(EncryptedString(), nullable=True)  # HMAC signing key — SPEC §4.4 encrypted at rest
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
