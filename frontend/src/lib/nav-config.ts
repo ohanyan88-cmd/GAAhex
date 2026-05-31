@@ -110,7 +110,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('ent-hr',          'HR',          UsersIcon,    'entity', { slug: 'employees' },           'O'),
     i('ent-procurement', 'Procurement', PackageIcon,  undefined,                                 undefined, 'O'),
     i('ent-legal',       'Legal',       ShieldIcon,   undefined,                                 undefined, 'V'),
-    i('ent-audit-logs',  'Audit Logs',  ShieldIcon,   undefined,                                 undefined, 'O'),
+    i('ent-audit-logs',  'Audit Logs',  ShieldIcon,   'studio',                                  undefined, 'O'),
   ]),
 
   s('system', 'System', GearIcon, [

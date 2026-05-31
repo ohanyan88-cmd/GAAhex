@@ -631,21 +631,37 @@ export default function App() {
 }
 
 function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLabel: string }) {
+  // SPEC §1 modules that don't have a Portal view yet land here. Honest "coming soon" message,
+  // no scary "not enabled for this tenant" copy (that read as a config problem when it's just
+  // "this page hasn't been built yet").
+  void moduleId
   return (
-    <div>
-      <div className="view-head">
-        <div className="view-icon"><ServerIcon size={20} /></div>
-        <div className="view-title-wrap">
-          <h2>{moduleLabel}</h2>
-          <span className="view-sub">Module · coming soon</span>
+    <div className="view">
+      <div className="view-inner section-page fade">
+        <div className="crumbs">
+          <span style={{ color: 'var(--gx-text-1)' }}>{moduleLabel}</span>
+        </div>
+        <div className="view-head">
+          <div className="view-icon"><ServerIcon size={20} /></div>
+          <div className="view-title-wrap">
+            <h2>{moduleLabel}</h2>
+            <span className="view-sub">Coming soon</span>
+          </div>
+        </div>
+        <div style={{
+          marginTop: 60, padding: '40px 20px', textAlign: 'center',
+          background: 'var(--gx-surface)',
+          border: '1px solid var(--gx-border)',
+          borderRadius: 'var(--gx-radius-lg)',
+          maxWidth: 540, marginLeft: 'auto', marginRight: 'auto',
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 8 }}>
+            {moduleLabel}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--gx-text-3)' }}>
+            This page hasn't been built yet.
+          </div>
         </div>
       </div>
-      <div style={{ marginTop: 40, textAlign: 'center', color: 'var(--text-3)' }}>
-        <div style={{ fontSize: 13, marginBottom: 6 }}>
-          <strong style={{ color: 'var(--text-2)' }}>{moduleLabel}</strong> is not yet enabled for this tenant.
-        </div>
-        <div style={{ fontSize: 12 }}>Module ID: <code style={{ fontFamily: 'monospace' }}>{moduleId}</code></div>
-      </div>
-    </div>
   )
 }
