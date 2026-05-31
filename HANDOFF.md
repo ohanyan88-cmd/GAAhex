@@ -1,69 +1,100 @@
-# SESSION HANDOFF — Portal full sweep + Studio Prompts 1–6, 2026-05-31
+# SESSION HANDOFF — Portal SPEC kernel + polish, 2026-05-31
 
-> Owner = Gev (calls me Ընգեր). Account-switch handoff at ~usage limit.
+> Owner = Gev (calls me Ընգեր).
+> Repo: `ohanyan88-cmd/Portal` — **THE ACTIVE PRODUCT** (not the GAAex repo).
 > Read this → `git pull` → `git status` → continue from "What's next".
-> Repo: `ohanyan88-cmd/Portal` (sandbox copy of GAAex).
 
-## ✅ REPORT-ALL.md COMPLETE (2026-05-31, commit 124aba8)
+## Hard rules (load these into every session)
+- **Portal-only** — NEVER touch `C:\Users\Admin\Desktop\GAAex`. All work here.
+- **Orchestrator pushes** — agents commit locally; only main session runs `git push`.
+- Metadata/config — no hardcoded enums; everything in `_def` tables.
+- Real data only — missing → empty state, never fake.
+- DELETE old code, don't layer.
+- Stage 8 Control Gate is THE only gate; don't build a second.
 
-`handoff/REPORT-ALL.md` is live on main. Full audit: 52 ✅ / 3 ⚠️ / 9 ❌ / 2 🚫 across 66 pages.
+---
 
-## ⚠️ NEXT: Two InvoicesView luma bugs to fix
+## What's in Portal right now (current main)
 
-7 parallel agents were launched. Session cut at ~80% usage. **3 of 7 confirmed committed
-and pushed to remote before the cut:**
+### Kernel (full SPEC build)
+- 6 kernel steps complete: `record_def`, `stage_def`, `kpi_def`, ownership matrix, statuses, permissions engine
+- 7 SPEC §0 invariants enforced:
+  - #1 single-owner — facade ready; first-class table coverage deferred
+  - #2 default-deny — 4-layer `assert_can(Role × Dept × Region × Ownership)` operational, 18+ routers wired
+  - #3 financial immutability — DB triggers on invoice/payment DELETE
+  - #4 audit append-only — DB triggers on event UPDATE/DELETE
+  - #5 references not copies — `assert_no_inline_master_copies` ready; full router wiring deferred
+  - #6 region partition — schema present, full runtime guard deferred
+  - #7 KPI uniqueness — UNIQUE constraint on kpi_def
+- Stage 8 Control Gate enforced at orders advance
+- §0.6 Region table + seed + API
+- §4.5 Mandatory Approvals: scaffolding + 8 of 12 action paths wired (contract_change, payment_adjust, high_discount, customer_delete, role_perm_change, workflow_override, service_suspend, invoice_cancel)
+- §5 Workflow Orchestration: universal contract + W1-W5 + engine
+- §7 status seeds: Lead, Contract (Active/Terminated/Expired), Order (Cancelled), Payment (Chargeback)
+- §8 Customer Timeline: append-only feed from audit events
+- §9 KPI computation engine: formula_spec evaluator + /api/kpis + 4-6 seeded formulas
+- §1 Nav Registry: 9 groups + 71 modules per tenant + frontend nav-loader
 
-| File | Commit | Status |
-|------|--------|--------|
-| REPORT-S1-WORKSPACE.md | f5c7ec7 | ✅ 6/6 pages |
-| REPORT-S3-ORDERS.md | 912bd21 | ✅ 4/5 pages — ⚠️ InvoicesView luma bug (see below) |
-| REPORT-S8S9-SYSTEM-STUDIO.md | 73651bf | ✅ §8 5/5, §9 Studio complete |
+### Polish (Portal frontend)
+- Workspace section ✅ (Activity Feed redesign with avatars + day grouping + humanized text)
+- CRM section ✅ (13 pages, EntityView covers 8 in one file change, `.section-page` utility)
+- Orders & Revenue ⚠️ (4 of 5 pages — Revenue Assurance pending)
+- 5 cross-cutting design fixes ✅:
+  1. Table header alignment (Tailwind `.grid` utility clash fixed)
+  2. Responsive table overflow (RowActionsMenu ⋮ + min-width)
+  3. Modal/drawer redesign (RecordDrawer for detail panes)
+  4. KPI standardization (shared KPITile across 20 views)
+  5. Activity Feed redesign (humanize.ts helpers)
 
-**6 of 7 sections DONE and on remote. Only ONE missing:**
-- ❌ §2 CRM & Commercial (13 pages) → `handoff/REPORT-S2-CRM.md` — re-run this one agent
+### Studio Modules
+- Module 1 Security (Roles/Permissions/Users) ✅
+- Module 2 Data (Entities/Fields) ✅
+- Module 3 Notifications (Email/SMS/Push/InApp Templates + Rules) ✅
+- Module 4 Developer (Webhooks + API Docs) 🟡 in flight
+- Module 5 System Control (Feature Flags + Audit + Health) ⏳ pending
 
-**Done (committed + pushed):**
-- ✅ §1 Workspace → REPORT-S1-WORKSPACE.md (f5c7ec7)
-- ✅ §3 Orders & Revenue → REPORT-S3-ORDERS.md (912bd21) — ⚠️ InvoicesView luma bugs
-- ✅ §4 Customer Care → REPORT-S4-CARE.md (65b53f8)
-- ✅ §5 Network & Ops → REPORT-S5-NETOPS.md (3e5e72b)
-- ✅ §6+§7 Analytics + Enterprise → REPORT-S6S7-ANALYTICS-ENTERPRISE.md (3e5e72b)
-- ✅ §8+§9 System + Studio → REPORT-S8S9-SYSTEM-STUDIO.md (73651bf)
+---
 
-**Fix these two InvoicesView luma bugs (file: `frontend/src/views/InvoicesView.tsx`):**
-1. Line 115 — `renderInvoiceCell('amount')` uses raw `toLocaleString()` instead of `money()` → amounts 100× in list table
-2. KPI strip — divides by 1000 not 100000 → shows "1500.0k ֏" instead of "15.0k ֏"
+## Migration chain (single head: `b9d1c2e3a4f5`)
 
-**Also verify (browser):** §5 NetOps pages (Incidents, Sites, Devices, Warehouses, Fleet, Work Orders, Maintenance) — audit flagged them as stubs but they ARE wired via ENTITY_SLUGS in nav-config.ts. Quick browser check to confirm.
-
-**Non-urgent:** `GET /api/org/nodes` returns 422 (router ordering conflict) — UI unaffected.
-
-Check what landed after git pull:
 ```
-git log --oneline -20 | grep "REPORT-S"
-ls handoff/REPORT-S*.md
+Portal base → page_bindings (d3e4f5a6b7c8) → ... merge ...
+            → SPEC kernel chain (c5e9a3b1d7f4 → ... → 19f9f4bd6599 + 7a4b1e9c2f08)
+            → MERGE COMMIT b9d1c2e3a4f5
 ```
 
-**Expected files (one per agent):**
-- `handoff/REPORT-S1-WORKSPACE.md` — §1 Workspace (6 pages)
-- `handoff/REPORT-S2-CRM.md` — §2 CRM & Commercial (13 pages)
-- `handoff/REPORT-S3-ORDERS.md` — §3 Orders & Revenue (5 pages)
-- `handoff/REPORT-S4-CARE.md` — §4 Customer Care (9 pages)
-- `handoff/REPORT-S5-NETOPS.md` — §5 Network & Ops (12 pages)
-- `handoff/REPORT-S6S7-ANALYTICS-ENTERPRISE.md` — §6+§7 (11 pages)
-- `handoff/REPORT-S8S9-SYSTEM-STUDIO.md` — §8+§9 (5 pages + Studio)
+Alembic upgrade head runs clean on a fresh DB. Verified.
 
-**If some are missing:** re-run only the missing sections (see agent prompts in the previous
-session's HANDOFF context), then synthesize.
+---
 
-**Synthesis step (after all 7 files exist):**
-Read all 7 REPORT-S*.md files, concatenate them in section order, prepend a master summary
-table (every page → ✅/⚠️/❌/🚫 + one-line note), write to `handoff/REPORT-ALL.md`,
-commit + push.
+## In-flight (4 agents currently running, commit-only no-push)
 
-Backend is at http://127.0.0.1:8099 · login admin@demo.isp / admin123
+1. **Step 7.2** — remaining ~17 routers wired with `assert_can`
+2. **§4.4 ACTIVATE** — Fernet AEAD field encryption + webhook secret
+3. **Portal Care section polish** — 9 pages
+4. **Studio Module 4 Developer** — Webhooks + API Docs panes
+
+When each lands: orchestrator reviews + pushes.
+
+---
+
+## What's next (after the 4 in-flight land)
+
+| Pri | Task | Files |
+|---|---|---|
+| 1 | Studio Module 5 System Control (Feature Flags + Audit + Health) | `frontend/src/studio/` |
+| 2 | Step 2 ACTIVATE — FK migration from relationship map | `backend/app/models/`, new alembic |
+| 3 | First-class table owner gating (invoice/payment/service/product) | `backend/app/routers/` |
+| 4 | Portal polish — Orders & Revenue final (Revenue Assurance) | `frontend/src/views/RevenueAssuranceView.tsx` |
+| 5 | Portal polish — Network section (12 pages) | `frontend/src/views/` |
+| 6 | Portal polish — Analytics (4 pages) + Enterprise (7 pages) + System (5 pages) + Studio | `frontend/src/views/` |
+| 7 | Specialty modal migrations (deferred from RecordDrawer sweep) | `frontend/src/modals/` |
+| 8 | Full test suite verification + Live DB migration with backup | ops |
+
+---
 
 ## Stack-up commands
+
 ```
 docker start gaaex-db gaaex-redis
 cd C:\Users\Admin\Desktop\Portal\backend
@@ -76,162 +107,14 @@ npm run dev
 # login: admin@demo.isp / admin123
 ```
 
-## What's done (this session) — HEAD `5bb761a`
-
-### Page sweep §1–§9
-Every page in the 9-section taxonomy hardened: real data only, every button works,
-inert nav dropped, mock data removed. **~25+ critical wiring/display bugs caught.**
-
-Notable bugs fixed:
-- Subscriptions/Payments: luma (minor units) displayed directly → amounts 100× too large
-- HelpdeskView: filter sent lowercase, backend stores uppercase → 0 rows for any status filter
-- MessagesView: bubble alignment compared author vs thread creator → wrong for everyone but thread starter
-- OutboundView: typed `to` but backend returns `to_addr` → recipient always "(no recipient)"
-- SettingsView: Save was 422-ing on every attempt (sent 8 fields outside allow-list)
-- WebhooksView: 4 bugs (secret, deliveries shape, status enum, dead modal)
-- ResourcePoolsView: 3 wrong endpoint paths
-- ReportsView: response shape mismatch displayed NaN rows + fake Spark trend
-- ReportBuilderView: Export buttons sent JSON disguised as CSV/XLSX/PDF
-
-Nav pruned: ~85 dead sidebar items with no backend removed across all sections.
-
-### Studio §9 (Prompts 1–6 complete)
-
-**Prompt 1 — Shell + gate:** StudioShell Preview → quality.preview leaf; Publish → release.deployment leaf.
-
-**Prompt 2 — Tree + search:** 15 groups, deep-link leaves, search filter. Done in prior session.
-
-**Prompt 3 — Overview (9-layer architecture):** Layer stack + 6 support groups. Done in prior session.
-
-**Prompt 4 — Rich builders wired to real backend:**
-- 7 real-data panes (Fields/Views/Workflows/Roles/Reports/Dashboards/Automations) mounted
-  at canonical Studio leaves via `REAL_PANE_BY_LEAF_ID` table in StudioGenericPane
-- Token cleaned: 41 legacy → `--gx-*`
-
-**Prompt 5 — Archetype panes:** 38 `// TODO: bind to <service>` markers + 9 inert buttons disabled.
-
-**Prompt 6 — Relational + live wiring:**
-
-| Sub-area | What was built | Status |
-|---|---|---|
-| 1. Data Binding | Fetches real `/meta/entities` + fields; Save POSTs to `/api/page-bindings` | ✅ |
-| 2. Events registry | `/api/events/types` + `/api/events/registry`; ActionsLogic WHEN/DO selects | ✅ |
-| 3. Permissions → RBAC | Permissions matrix fetches real roles/perms; per-click PATCH with rollback | ✅ |
-| 4. Themes → live tokens | `Tenant.theme` JSONB + GET/PUT `/api/tenant/settings/theme`; AppearancePane wires live CSS vars + revert on unmount | ✅ |
-| 5. Audit trail | `/api/audit-log` (queryable Event log); VersionHistory pane → two tabs (page versions + audit log) | ✅ |
-| 5. Publish pipeline | `studio_page` + `studio_page_version` tables; Draft→Published + rollback + diff; every change audited | ✅ |
-| Feature flags | `feature_flag` table + CRUD; `useFlag()` hook (5-min cache, swappable interface); FeatureFlagsPane in Studio | ✅ |
-| Snapshot | `publishRegistry.ts` — 5 panes registered (DataBinding/ActionsLogic/AppearancePane/ArchCanvas/ArchForm); Save draft captures real state | ✅ |
-
-**Backend test suite: 556 passing, 0 regressions.**
-
-### Migrations applied (current DB head: `d3e4f5a6b7c8`)
+For a fresh test DB:
 ```
-b8c5e9d2f140  tenant.theme JSONB column
-a3d7e9f1b2c4  (prior head)
-b5e2d9f4c1a8  studio_page + studio_page_version tables
-c1d2e3f4a5b6  feature_flag table
-aa178a3a15f3  merge (b5e2 + c1d2)
-d3e4f5a6b7c8  page_binding table
+docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE portal_test;"
+$env:DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/portal_test"
+$env:OWNER_DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/portal_test"
+cd backend
+.venv\Scripts\python.exe -m alembic upgrade head
+.venv\Scripts\python.exe -m uvicorn app.main:app --port 8099
 ```
-
-### Other fixes
-- OrgView: 11 raw hex/legacy tokens → `--gx-*` (Heatmap/Map layouts)
-- InteractionsView: full rewrite from list table → kit Messenger pattern (.gx-comms)
-- ReportSchedulePanel: 3 bugs fixed (recipients shape, status case, undefined .sched-* classes)
-- 16 inert toast-only buttons removed across 6 list views
-- `seed.py` upsert: new permissions (e.g. `audit.view`) now inserted on startup for existing tenants
-- `backend/*.log` gitignored
-- Studio Prompt 7 API QA: all backend checks pass; visual browser QA was confirmed OK by Gev
-
-## ⚠️ PENDING TASK (interrupted mid-flight — do this first)
-
-**Produce `handoff/REPORT-ALL.md`** — a consolidated per-page completion report covering ALL pages across §1–§9 + Studio, following the template at `C:\Users\Admin\Downloads\CLAUDE_CODE_REPORT_TEMPLATE.md` EXACTLY.
-
-The template requires per page:
-1. Header (page name, route, file, commit)
-2. Widget → data wiring table (endpoint + evidence of real data)
-3. Button → action table (ZERO inert buttons)
-4. Non-negotiables checklist (grep for hardcoded values + states + permissions)
-5. Anything NOT done
-
-End with a master summary table: every page → ✅ verified / ⚠️ partial / ❌ not done / 🚫 N/A → one-line note.
-
-**How to produce it:** spin up 7 parallel agents (one per section pair, as was in progress):
-- Agent A: §1 WORKSPACE (6 active pages)
-- Agent B: §2 CRM (13 active pages)
-- Agent C: §3 ORDERS (5 active pages)
-- Agent D: §4 CARE (9 active pages)
-- Agent E: §5 NETWORK (12 active pages)
-- Agent F: §6 ANALYTICS + §7 ENTERPRISE (4+7 active pages)
-- Agent G: §8 SYSTEM + §9 STUDIO (5 active + Studio subsystem)
-
-Each agent: read view files, hit real endpoints (backend at :8099, login admin@demo.isp/admin123), grep for hardcoded values, produce section report text. Then synthesize all 7 into `handoff/REPORT-ALL.md` and commit+push.
-
-**Dropped pages (🚫 N/A in summary) — removed from nav, no backend:**
-§1: Recent Items, Team Workspace, Announcements
-§2: Pipeline, Retention, Churn, Sales Channels, Customer 360 (nav)
-§3: Qualification, Cart&CPQ, Fulfillment, Activations, Change Orders, Billing Accounts, Discounts, Collections, Dunning, Reconciliation, Credit Notes, Tariff Plans, Prepaid, Postpaid
-§4: Agent Console, Customer 360 (nav), Omnichannel Inbox, Call Center, Live Chat, Technical Support, Retention Desk
-§5: NOC, Monitoring, Coverage, Topology, Provisioning, IPAM, Field Ops, Dispatch, Routes, Mobile, Capacity, Inventory
-§6: KPI Center, Forecasting, AI Agents, AI Automations, AI Insights, AI Governance, Churn Prediction, Fraud Detection, Network Anomaly, Predictive Maintenance, Export Center
-§7: Finance, Accounting, Procurement, HR, Attendance, Onboarding, Time Tracking, Legal, E-Signatures, Assets (dup)
-§8: Tenants, Roles (nav), Teams, Workflows, API Mgmt, Notifications, Comm Center, Monitoring, Event Bus, Queues, Logs, Metrics, Traces, Adapters, Deployments, Regions, Feature Flags (nav), Secrets, Audit Logs (nav), Security, Backup
-
-## What's left
-
-### Studio Prompt 7 visual QA (quick, browser)
-All API checks pass. Open `http://localhost:5173` → login → gear → Studio. Click through
-15 groups, confirm leaves render, tree search works, Overview navigates. Visual-only check.
-
-### Studio Prompt 6 — draft snapshot content depth
-The current snapshot captures: `data.binding`, `logic.actions`, `appearance.theme`,
-`layout.canvas`, `config.form`. The ArchCanvas stores whatever nodes the user added to
-the flow builder (currently starts from `INITIAL_NODES` TODO seed). To make canvas
-content fully real, the canvas needs a real layout language — that's a bigger design
-decision (what's a "block"? how does it reference entity data?). Not urgent.
-
-### DataBinding persist-on-change
-Currently Save bindings is a manual button. Could auto-save on blur or after a debounce.
-Not urgent.
-
-### Prompt 6 sub-area 5 — page snapshot versioning at publish
-The "Preview/Staging" optional flag per page (viewable by SuperAdmin before publish)
-was mentioned as optional. Not built. Not urgent.
-
-### Studio Prompt 7 — WCAG 2.2 AA, light/dark themes, console errors
-Needs real browser session. Not automated.
-
-## Key architectural decisions made this session (for reference)
-- **Page versions** = `studio_page_version` table, JSONB snapshots, Draft→Published only (no Dev/Test/Stage/Prod)
-- **Feature flags** = DB-backed (`feature_flag` table), thin `useFlag()` interface (OpenFeature-swappable later)
-- **Publish pipeline** = mark draft published + bump pointer; rollback = repoint to older snapshot
-- **Snapshot registry** = publish-time collection from registered panes (not real-time sync)
-
-## Key file map (new this session)
-```
-frontend/src/studio/publishRegistry.ts   — snapshot collection registry
-frontend/src/lib/useFlag.ts              — feature flag hook (module-level cache)
-backend/app/routers/studio_pages.py      — page + version CRUD (9 endpoints)
-backend/app/routers/page_bindings.py     — component-entity binding persistence
-backend/app/routers/feature_flags.py     — feature flag CRUD
-backend/app/routers/events.py            — event types + registry for ActionsLogic
-backend/app/routers/audit_log.py         — queryable audit log (admin-scoped)
-backend/app/models/studio_page.py        — StudioPage + StudioPageVersion
-backend/app/models/page_binding.py       — PageBinding
-backend/app/models/feature_flag.py       — FeatureFlag
-```
-
-## Resume protocol
-1. `git pull` — confirm HEAD is `5bb761a` (or later)
-2. `git status` — should be clean
-3. Boot stack (commands at top of this file)
-4. Pick up from "What's left" above
-
-## Memory rules (wiped on /login — repo is truth)
-- ⛔ No inert buttons, no dead nav, no mock data (doctrine #2/3/4)
-- 🤝 Orchestrator mode — delegate building to in-window agents; brief + verify + commit
-- ⭐ Gev = Ընգեր — warm honest friend; push back when needed
-- 🔄 Account-switch → checkpoint to REPO, not memory
 
 — end handoff —
