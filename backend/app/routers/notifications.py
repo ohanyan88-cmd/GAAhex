@@ -7,6 +7,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.notification import NotificationDef, Notification
 from ..models.notification_pref import NotificationPref
@@ -526,6 +527,14 @@ async def compose_and_send(
     records the result as an OutboundMessage, and returns the serialized row with 201.
     Returns 503 when no adapter is registered for the requested channel.
     """
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate before external delivery.
+    # outbound_message writes are admin-grade (manual compose+send to external channels).
+    try:
+        await assert_can(s, user, action="create", entity_key="outbound_message",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
     adapter = adapter_registry.get(payload.channel)
     if adapter is None:
         raise HTTPException(503, "channel not available")
