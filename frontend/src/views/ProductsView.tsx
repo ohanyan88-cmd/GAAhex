@@ -28,7 +28,6 @@ function mapProductStatus(p: Product): { label: string; variant: PillVariant } {
   if (status === 'RETIRED') return { label: 'retired', variant: 'neutral' }
   return { label: status.toLowerCase(), variant: 'neutral' }
 }
-}
 
 function renderProductCell(colKey: string, p: Product) {
   switch (colKey) {
