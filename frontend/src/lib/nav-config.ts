@@ -66,17 +66,17 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('crm-contracts',       'Contracts',        FolderIcon,     'entity', { slug: 'contracts' },       'O'),
     i('crm-customers',       'Customers',        UsersIcon,      'entity', { slug: 'customers' },       'O'),
     i('crm-campaigns',       'Campaigns',        MailIcon,       'entity', { slug: 'campaigns' },       'O'),
-    i('crm-sales-channels',  'Sales Channels',   BuildingIcon,   undefined,                             undefined, 'O'),
+    i('crm-sales-channels',  'Sales Channels',   BuildingIcon,   'entity', { slug: 'sales-channels' }, 'O'),
     i('crm-product-catalog', 'Product Catalog',  ArchiveIcon,    'products',                            undefined, 'O'),
   ]),
 
   s('billing_revenue', 'Billing & Revenue', ReceiptIcon, [
-    i('br-tariff-plans',       'Tariff Plans',          BookmarkIcon,   undefined,                                 undefined, 'O'),
+    i('br-tariff-plans',       'Tariff Plans',          BookmarkIcon,   'entity', { slug: 'tariff-plans' },          'O'),
     i('br-billing-accounts',   'Billing Accounts',      BuildingIcon,   'accounts',                                undefined, 'O'),
     i('br-orders-validation',  'Orders & Validation',   ArchiveIcon,    'orders',                                  undefined, 'O'),
     i('br-invoices',           'Invoices',              ReceiptIcon,    'invoices',                                undefined, 'O'),
     i('br-payments',           'Payments',              CreditCardIcon, 'payments',                                undefined, 'O'),
-    i('br-collections',        'Collections',           InboxIcon,      undefined,                                 undefined, 'O'),
+    i('br-collections',        'Collections',           InboxIcon,      'entity', { slug: 'collections' },          'O'),
     i('br-revenue-assurance',  'Revenue Assurance',     ShieldIcon,     'revenue-assurance',                       undefined, 'V'),
   ]),
 
@@ -93,7 +93,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('net-scheduling',        'Scheduling',             CalendarIcon,   undefined,                             undefined, 'V'),
     i('net-dispatch',          'Dispatch Board',         TruckIcon,      undefined,                             undefined, 'V'),
     i('net-work-orders',       'Work Orders',            RowsIcon,       'entity', { slug: 'work-orders' },     'O'),
-    i('net-stock-inventory',   'Stock Inventory',        ArchiveIcon,    undefined,                             undefined, 'O'),
+    i('net-stock-inventory',   'Stock Inventory',        ArchiveIcon,    'entity', { slug: 'stock-items' },        'O'),
     i('net-warehouses',        'Warehouses',             BuildingIcon,   'entity', { slug: 'warehouses' },      'V'),
   ]),
 
@@ -105,20 +105,20 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   s('enterprise', 'Enterprise', BriefcaseIcon, [
-    i('ent-finance',     'Finance',     ChartIcon,    undefined,                                 undefined, 'V'),
-    i('ent-accounting',  'Accounting',  ReceiptIcon,  undefined,                                 undefined, 'O'),
+    i('ent-finance',     'Finance',     ChartIcon,    'entity', { slug: 'expenses' },               'V'),
+    i('ent-accounting',  'Accounting',  ReceiptIcon,  'invoices',                                 undefined, 'O'),
     i('ent-hr',          'HR',          UsersIcon,    'entity', { slug: 'employees' },           'O'),
-    i('ent-procurement', 'Procurement', PackageIcon,  undefined,                                 undefined, 'O'),
-    i('ent-legal',       'Legal',       ShieldIcon,   undefined,                                 undefined, 'V'),
+    i('ent-procurement', 'Procurement', PackageIcon,  'entity', { slug: 'purchase-orders' },       'O'),
+    i('ent-legal',       'Legal',       ShieldIcon,   'entity', { slug: 'contracts' },             'V'),
     i('ent-audit-logs',  'Audit Logs',  ShieldIcon,   'studio',                                  undefined, 'O'),
   ]),
 
   s('system', 'System', GearIcon, [
     i('sys-users',                 'Users',                 UsersIcon,      'entity', { slug: 'users' }),
-    i('sys-roles-permissions',     'Roles & Permissions',   ShieldIcon,     undefined),
+    i('sys-roles-permissions',     'Roles & Permissions',   ShieldIcon,     'entity', { slug: 'roles' }),
     i('sys-settings',              'Settings',              GearIcon,       'settings'),
-    i('sys-integrations',          'Integrations',          LayersIcon,     undefined),
-    i('sys-notifications-config',  'Notifications Config',  MailIcon,       undefined),
+    i('sys-integrations',          'Integrations',          LayersIcon,     'webhooks'),
+    i('sys-notifications-config',  'Notifications Config',  MailIcon,       'entity', { slug: 'notification-rules' }),
   ], { adminOnly: true }),
 
   s('studio', 'Studio', SparkleIcon, [
