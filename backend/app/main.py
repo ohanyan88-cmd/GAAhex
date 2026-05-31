@@ -18,6 +18,7 @@ from .seed_notifications import seed_notifications_if_empty
 from .seed_demo_loop import seed_demo_loop_if_empty
 from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
+from .seed_dev_bulk import seed_dev_bulk_if_empty, _dev_seed_enabled
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
 from .routers import auth, meta, records, reports, notifications, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings
@@ -45,6 +46,11 @@ async def lifespan(app: FastAPI):
     await seed_demo_loop_if_empty()   # one sample customer with the full daily loop (idempotent)
     await seed_catalog_if_missing()   # promote enterprise-nav stubs into real config-driven entities (idempotent)
     await seed_default_records_run()  # insert 2-3 starter rows per empty entity + grant request.* perms (idempotent)
+    # Dev-only bulk seeder — populates previously-sparse pages with 10 realistic Armenian-ISP
+    # customers + the full cross-referenced tree. Gated by env-var `GAAEX_DEV_SEED`; production
+    # leaves it unset → seeder never runs → DB stays empty-until-real. Idempotent.
+    if _dev_seed_enabled():
+        await seed_dev_bulk_if_empty()
     await migrate_interactions()      # copy interaction table rows → record table (idempotent)
     await start_scheduler(app)        # no-op unless settings.scheduler_enabled (auto batch jobs)
 
