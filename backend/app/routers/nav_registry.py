@@ -58,13 +58,13 @@ async def get_nav(
     """
     groups = (await s.execute(
         select(NavGroup)
-        .where(NavGroup.status == "active")
+        .where(NavGroup.tenant_id == user.tenant_id, NavGroup.status == "active")
         .order_by(NavGroup.order_)
     )).scalars().all()
 
     modules = (await s.execute(
         select(NavModule)
-        .where(NavModule.status == "active")
+        .where(NavModule.tenant_id == user.tenant_id, NavModule.status == "active")
         .order_by(NavModule.group_id, NavModule.order_)
     )).scalars().all()
 
