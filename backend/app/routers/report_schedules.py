@@ -25,6 +25,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import User
 from ..models.report import ReportDef
 from ..models.report_schedule import ReportSchedule
@@ -35,6 +36,15 @@ from .records import _paginate
 from .report_builder import run_report          # renders a saved report, org-scoped + fail-soft
 from .billing import _record_job_run, _now      # JobRun helper + tz-aware now (J96 job log)
 from .. import channels                          # dispatch(...) — the channel adapter delivery path
+
+
+async def _kernel_gate(s, user) -> None:
+    """Step 7.2 kernel gate for report-schedule writes — config-manage on report_schedule."""
+    try:
+        await assert_can(s, user, action="config_manage", entity_key="report_schedule",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 router = APIRouter(prefix="/api/report-schedules", tags=["report-schedules"])
 
@@ -130,6 +140,7 @@ async def create_schedule(payload: dict, user: User = Depends(current_user),
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    await _kernel_gate(s, user)  # SPEC §0.2 default-deny (Step 7.2)
 
     try:
         report_id = uuid.UUID(str(payload.get("report_id")))
@@ -184,6 +195,7 @@ async def update_schedule(schedule_id: uuid.UUID, payload: dict, user: User = De
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    await _kernel_gate(s, user)  # SPEC §0.2 default-deny (Step 7.2)
     r = await _get_owned(s, user, schedule_id)
 
     allowed = {"cadence", "channel", "recipients", "next_run_at", "status", "owner_node_id"}
@@ -239,6 +251,7 @@ async def pause_schedule(schedule_id: uuid.UUID, user: User = Depends(current_us
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    await _kernel_gate(s, user)  # SPEC §0.2 default-deny (Step 7.2)
     r = await _get_owned(s, user, schedule_id)
     r.status = "PAUSED"
     await s.commit()
@@ -253,6 +266,7 @@ async def resume_schedule(schedule_id: uuid.UUID, user: User = Depends(current_u
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    await _kernel_gate(s, user)  # SPEC §0.2 default-deny (Step 7.2)
     r = await _get_owned(s, user, schedule_id)
     r.status = "ACTIVE"
     await s.commit()
@@ -267,6 +281,7 @@ async def delete_schedule(schedule_id: uuid.UUID, user: User = Depends(current_u
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    await _kernel_gate(s, user)  # SPEC §0.2 default-deny (Step 7.2)
     r = await _get_owned(s, user, schedule_id)
     await s.delete(r)
     await s.commit()
@@ -299,6 +314,7 @@ async def run_due(as_of: str | None = None, user: User = Depends(current_user),
     grants = await load_grants(s, user)
     if not can(grants, "config", "manage"):
         _deny("config.manage")
+    await _kernel_gate(s, user)  # SPEC §0.2 default-deny (Step 7.2)
 
     if as_of:
         try:
