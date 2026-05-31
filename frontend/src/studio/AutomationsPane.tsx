@@ -280,7 +280,7 @@ export default function AutomationsPane({ token }: { token: string }) {
                 <th scope="col">Entity</th>
                 <th scope="col">Action</th>
                 <th scope="col">Active</th>
-                <th scope="col"></th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>

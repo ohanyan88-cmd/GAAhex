@@ -219,7 +219,7 @@ function TransitionsEditor({
                 <th scope="col">From</th>
                 <th scope="col">To</th>
                 <th scope="col">Guard (GXL, optional)</th>
-                <th scope="col"></th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -471,7 +471,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                             <th scope="col">Key</th>
                             <th scope="col">Label</th>
                             <th scope="col">Initial</th>
-                            <th scope="col"></th>
+                            <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                           </tr>
                         </thead>
                         <tbody>

@@ -241,7 +241,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 32 }}></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,7 +263,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                         return <td key={c.key} className={colTdClass(c.key)}>{cell}</td>
                       })}
                       {cf.cells(u.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                      <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                           <button
                             className="iconbtn"

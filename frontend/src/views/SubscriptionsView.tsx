@@ -330,7 +330,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 1 }} aria-label="Actions"></th>
+                    <th scope="col" className="actions-col" aria-label="Actions"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -345,7 +345,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                           </td>
                         ))}
                         {cf.cells(s.id)}
-                        <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                        <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {!canceled && (
                               <button className="btn btn-ghost btn-sm" title="Generate invoice for current period" onClick={() => generate(s.id)}>

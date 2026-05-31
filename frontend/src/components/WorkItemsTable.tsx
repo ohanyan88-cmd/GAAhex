@@ -103,7 +103,7 @@ export default function WorkItemsTable({
         <thead>
           <tr>
             {selectable && (
-              <th style={{ width: 32 }}>
+              <th scope="col" className="sel-col">
                 <input
                   type="checkbox"
                   checked={allOnPageSelected}
@@ -130,7 +130,7 @@ export default function WorkItemsTable({
               </th>
             ))}
             {cfHeaders}
-            <th style={{ width: 32 }}></th>
+            <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -198,7 +198,7 @@ function WorkItemRow({
   return (
     <tr className={selected ? 'sel' : ''} onClick={() => onRowClick(item)} style={{ cursor: 'pointer' }}>
       {selectable && (
-        <td onClick={(e) => { e.stopPropagation(); onToggleSelect?.(item.id) }} style={{ cursor: 'default' }}>
+        <td className="sel-col" onClick={(e) => { e.stopPropagation(); onToggleSelect?.(item.id) }} style={{ cursor: 'default' }}>
           <input
             type="checkbox"
             checked={selected}
@@ -245,7 +245,7 @@ function WorkItemRow({
         return null
       })}
       {cfCells}
-      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+      <td className="actions-col" onClick={(e) => e.stopPropagation()}>
         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
           {s === 'TODO' && (
             <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act('start')} title="Start">

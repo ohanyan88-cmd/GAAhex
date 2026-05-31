@@ -423,7 +423,7 @@ export default function UsersPane({ token }: { token: string }) {
                 <th scope="col">Primary node</th>
                 <th scope="col">Roles</th>
                 <th scope="col">Status</th>
-                <th scope="col"></th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -484,7 +484,7 @@ export default function UsersPane({ token }: { token: string }) {
                       {u.status}
                     </span>
                   </td>
-                  <td>
+                  <td className="actions-col">
                     <div className="row-actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="btn btn-ghost btn-sm"

@@ -830,7 +830,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   ))}
                   <th scope="col">Status</th>
                   {hasWorkflow && canEdit && <th scope="col">Move to</th>}
-                  <th scope="col"><span className="sr-only">Actions</span></th>
+                  <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -881,7 +881,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                         ))}
                       </td>
                     )}
-                    <td>
+                    <td className="actions-col">
                       <div className="row-actions">
                         {(def.key === 'lead' || def.key === 'customer') && (
                           <button className="iconbtn" aria-label={t('ai.title', 'AI assist')} title={t('ai.title', 'AI assist')} onClick={() => setAiRow(r)}>

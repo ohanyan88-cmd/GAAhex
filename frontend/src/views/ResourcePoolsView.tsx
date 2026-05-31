@@ -375,7 +375,7 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
                 <div className="card" style={{ overflow: 'hidden' }}>
                   <div className="grid-wrap">
                     <table className="grid">
-                      <thead><tr><th scope="col">Value</th><th scope="col">Service</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+                      <thead><tr><th scope="col">Value</th><th scope="col">Service</th><th scope="col">Status</th><th scope="col" className="actions-col"><span className="sr-only">Actions</span></th></tr></thead>
                       <tbody>
                         {allocs.map((a) => {
                           const rs = (a.status ?? '').toUpperCase()
@@ -387,7 +387,7 @@ function PoolDetail({ token, id, onBack }: { token: string; id: string; onBack: 
                                 ? <StatusPill variant="neutral" label="released" size="sm" />
                                 : <StatusPill variant="active" label="allocated" size="sm" />}
                               </td>
-                              <td><div className="row-actions" style={{ justifyContent: 'flex-end' }}>{rs !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(a.id)}>Release</button>}</div></td>
+                              <td className="actions-col"><div className="row-actions" style={{ justifyContent: 'flex-end' }}>{rs !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(a.id)}>Release</button>}</div></td>
                             </tr>
                           )
                         })}

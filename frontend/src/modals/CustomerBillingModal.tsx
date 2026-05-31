@@ -195,7 +195,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             ? <p className="muted">No subscriptions.</p>
             : (
               <table className="grid">
-                <thead><tr><th>Plan</th><th>Amount</th><th>Cycle</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Plan</th><th>Amount</th><th>Cycle</th><th>Status</th><th className="actions-col"><span className="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                   {subs.map((s) => (
                     <tr key={s.id}>
@@ -203,7 +203,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                       <td>{money(s.amount)}</td>
                       <td>{s.cycle ?? '—'}</td>
                       <td>{s.status ? <span className="pill">{s.status}</span> : '—'}</td>
-                      <td className="row-actions">
+                      <td className="actions-col row-actions">
                         {(s.status ?? '').toUpperCase() !== 'CANCELLED' && <button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button>}
                         {unrated[s.id] ? <button className="btn btn-ghost btn-sm" onClick={() => rateUsage(s.id)}>Rate usage ({unrated[s.id]})</button> : null}
                       </td>

@@ -147,7 +147,7 @@ export function PageManager() {
           <thead>
             <tr>
               <th>Page</th><th>Type</th><th>Status</th><th>Updated</th>
-              <th style={{ width: 120 }} />
+              <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -170,7 +170,7 @@ export function PageManager() {
                 </td>
                 <td><span className={statusCls(pg.status)}>{pg.status}</span></td>
                 <td className="hint" style={{ fontSize: 11.5 }}>{pg.updated}</td>
-                <td>
+                <td className="actions-col">
                   <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                     <button className="btn btn-ghost btn-sm btn-icon" title="Rename" type="button" onClick={() => rename(pg)}>
                       <FilePen size={14} />
@@ -629,7 +629,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
             <thead>
               <tr>
                 <th>Component</th><th>Data source</th><th>Field</th>
-                <th style={{ width: 40 }} />
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -680,7 +680,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
                         ))}
                       </select>
                     </td>
-                    <td>
+                    <td className="actions-col">
                       <button className="btn btn-ghost btn-sm btn-icon" type="button" onClick={() => del(b.id)}>
                         <X size={14} />
                       </button>
@@ -2245,7 +2245,7 @@ export function EntityBuilder() {
         <table className="grid">
           <thead>
             <tr>
-              <th>Key</th><th>Label</th><th>Type</th><th>Required</th><th>Options / ref</th><th />
+              <th>Key</th><th>Label</th><th>Type</th><th>Required</th><th>Options / ref</th><th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -2273,7 +2273,7 @@ export function EntityBuilder() {
                     onChange={e => upd(i, { extra: e.target.value })}
                   />
                 </td>
-                <td>
+                <td className="actions-col">
                   <button className="btn btn-ghost btn-sm btn-icon" type="button" onClick={() => rmField(i)} aria-label="Remove">
                     <X size={13} />
                   </button>

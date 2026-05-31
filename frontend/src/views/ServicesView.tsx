@@ -428,7 +428,7 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
                 <div className="card" style={{ overflow: 'hidden' }}>
                   <div className="grid-wrap">
                     <table className="grid">
-                      <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+                      <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col" className="actions-col"><span className="sr-only">Actions</span></th></tr></thead>
                       <tbody>
                         {resources.map((r) => {
                           const rs = (r.status ?? '').toUpperCase()
@@ -441,7 +441,7 @@ function ServiceDetail({ token, id, names, onBack }: { token: string; id: string
                                 ? <StatusPill variant="neutral" label="released" size="sm" />
                                 : <StatusPill variant="active" label="allocated" size="sm" />}
                               </td>
-                              <td><div className="row-actions" style={{ justifyContent: 'flex-end' }}>{rs !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>}</div></td>
+                              <td className="actions-col"><div className="row-actions" style={{ justifyContent: 'flex-end' }}>{rs !== 'RELEASED' && <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>}</div></td>
                             </tr>
                           )
                         })}

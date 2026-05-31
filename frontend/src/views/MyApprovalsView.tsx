@@ -126,7 +126,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
                       <th>Record</th>
                       <th>Transition</th>
                       <th>Requested</th>
-                      <th style={{ textAlign: 'right' }}>Decision</th>
+                      <th className="actions-col" style={{ textAlign: 'right' }}>Decision</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -146,7 +146,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
                         <td style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
                           {timeAgo(a.created_at)}
                         </td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td className="actions-col" style={{ textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', gap: 6 }}>
                             <button
                               className="btn btn-primary btn-sm"

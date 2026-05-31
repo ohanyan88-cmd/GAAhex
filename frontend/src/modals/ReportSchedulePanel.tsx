@@ -141,7 +141,7 @@ function ScheduleItem({
       <td>
         <StatusPill variant={pill.variant} label={pill.label} size="sm" />
       </td>
-      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+      <td className="actions-col" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
@@ -363,7 +363,7 @@ export default function ReportSchedulePanel({
                 <th scope="col">{t('sched.channel', 'Channel')}</th>
                 <th scope="col">{t('sched.nextRun', 'Next')}</th>
                 <th scope="col">{t('sched.status', 'Status')}</th>
-                <th scope="col" style={{ width: 1 }}></th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>

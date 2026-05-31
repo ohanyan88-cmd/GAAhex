@@ -193,7 +193,7 @@ function ReportsList({ token }: { token: string }) {
                     <th scope="col">Entity</th>
                     <th scope="col">Metric</th>
                     <th scope="col">Scope</th>
-                    <th scope="col"></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -592,7 +592,7 @@ function SchedulesList({ token }: { token: string }) {
                     <th scope="col">Recipients</th>
                     <th scope="col">Status</th>
                     <th scope="col">Next run</th>
-                    <th scope="col"></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>

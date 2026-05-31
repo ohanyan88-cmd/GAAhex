@@ -366,7 +366,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
                             <th scope="col">Type</th>
                             <th scope="col">Required</th>
                             <th scope="col">Options / ref</th>
-                            <th scope="col"></th>
+                            <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                           </tr>
                         </thead>
                         <tbody>

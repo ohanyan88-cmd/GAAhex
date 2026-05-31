@@ -236,7 +236,7 @@ export default function RolesPane({ token }: { token: string }) {
                 <th scope="col">Key</th>
                 <th scope="col">Label</th>
                 <th scope="col">Permissions</th>
-                <th scope="col"></th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>

@@ -269,7 +269,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                       </th>
                     ))}
                     {cf.headers()}
-                    <th style={{ width: 1 }}></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -295,7 +295,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                         return <td key={c.key}>{cell}</td>
                       })}
                       {cf.cells(w.id)}
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 1, whiteSpace: 'nowrap' }}>
+                      <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                           <button className="btn btn-ghost btn-sm" onClick={() => setDeliveriesFor(w)} title="View deliveries">Log</button>
                           {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => test(w)} title="Test webhook">Test</button>}

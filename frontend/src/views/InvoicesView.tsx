@@ -301,7 +301,7 @@ export default function InvoicesView({
               <tr>
                 {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
                 {cf.headers()}
-                <th scope="col"></th>
+                <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -313,7 +313,7 @@ export default function InvoicesView({
                     </td>
                   ))}
                   {cf.cells(inv.id)}
-                  <td>
+                  <td className="actions-col">
                     <div className="row-actions">
                       {canCreatePayment && (inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
                         <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />

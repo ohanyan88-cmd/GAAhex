@@ -249,7 +249,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                         </span>
                       </th>
                     ))}
-                    <th style={{ width: 32 }}></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -264,7 +264,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                         <td>{pn ? <span className="party-child">{p.name ?? '—'}</span> : (p.name ?? '—')}</td>
                         <td>{pn || <span style={{ color: 'var(--gx-text-3)' }}>—</span>}</td>
                         <td>{p.status ? <StatusPill variant={mapPartyStatus(p.status)} label={p.status} size="sm" /> : <span>—</span>}</td>
-                        <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                        <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             <button
                               className="iconbtn"

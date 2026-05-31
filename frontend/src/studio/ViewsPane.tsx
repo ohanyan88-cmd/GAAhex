@@ -258,7 +258,7 @@ export default function ViewsPane({ token }: { token: string }) {
                         <th scope="col">Sort</th>
                         <th scope="col">Columns</th>
                         <th scope="col">Created</th>
-                        <th scope="col"></th>
+                        <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody>

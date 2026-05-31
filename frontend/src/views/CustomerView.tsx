@@ -311,7 +311,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                         <th scope="col">{t('common.status', 'Status')}</th>
                         <th scope="col" className="num">{t('invoices.total', 'Total')}</th>
                         <th scope="col">{t('invoices.due', 'Due')}</th>
-                        <th scope="col"></th>
+                        <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                       </tr></thead>
                       <tbody>
                         {invoices.map((inv) => {
@@ -327,7 +327,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                               <td>{inv.status ? <StatusPill variant={mapCustomerStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</td>
                               <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
                               <td><span className="mono">{fmtDate(inv.due_at)}</span></td>
-                              <td className="row-actions">
+                              <td className="actions-col row-actions">
                                 {canEditInvoice && st === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</button>}
                                 {canEditInvoice && (st === 'ISSUED' || st === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</button>}
                               </td>

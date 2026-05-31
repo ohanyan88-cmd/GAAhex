@@ -278,7 +278,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                         </span>
                       </th>
                     ))}
-                    <th style={{ width: 32 }}></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -294,7 +294,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                       </td>
                       <td><span className="mono">{fmtDate(o.initiated_at)}</span></td>
                       <td><span className="mono">{fmtDate(o.confirmed_at)}</span></td>
-                      <td onClick={(e) => e.stopPropagation()} style={{ width: 32 }}>
+                      <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                           {o.payment_id && (
                             <button

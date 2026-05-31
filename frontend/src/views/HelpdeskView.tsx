@@ -291,7 +291,7 @@ export default function HelpdeskView({
                       <th key={col.key} scope="col">{col.label}</th>
                     ))}
                     {cf.headers()}
-                    <th scope="col"></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>

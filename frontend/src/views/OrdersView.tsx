@@ -342,7 +342,7 @@ export default function OrdersView({ token }: { token: string }) {
                         </span>
                       </th>
                     ))}
-                    <th style={{ width: 1 }}></th>
+                    <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -362,7 +362,7 @@ export default function OrdersView({ token }: { token: string }) {
                           : <span>—</span>}</td>
                         <td className="num"><span className="mono tnum">{money(o.total)}</span></td>
                         <td>{fmtDate(o.created_at)}</td>
-                        <td onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                        <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {canEdit && o.status === 'DRAFT' && (
                               <button className="btn btn-ghost btn-sm" title="Submit for provisioning" onClick={() => doSubmit(o)}>
