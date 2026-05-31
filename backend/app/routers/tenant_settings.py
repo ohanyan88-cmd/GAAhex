@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..kernel import assert_can, AccessDenied
 from ..models import Tenant, User
 from ..access import load_grants, can
 from .. import workflow
@@ -70,6 +71,12 @@ async def _require_settings(s: AsyncSession, user: User) -> None:
     grants = await load_grants(s, user)
     if not can(grants, "tenant", "settings"):
         raise HTTPException(403, "Not allowed: tenant.settings")
+    # SPEC §0.2 default-deny (Step 7.2) — kernel gate complements legacy role check.
+    try:
+        await assert_can(s, user, action="config_manage", entity_key="tenant",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
 
 
 @router.get("/settings")
