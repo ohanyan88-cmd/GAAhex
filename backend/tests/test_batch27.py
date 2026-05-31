@@ -73,21 +73,19 @@ def _groups(body: list) -> dict:
 # facets and per-match highlight are pending.
 # ---------------------------------------------------------------------------
 
-_A27_FACETS_PRESENT = False
-_A27_FACETS_REASON = "A27 not merged: 'facets' key absent from GET /api/search response (current format is a plain list)"
+# A27 enhancements are MERGED.
+# - Highlight: present on every match in the default grouped response.
+# - Facets: available via ?facets=true → {query, total, hits, facets} envelope.
+#   The facets test calls ?facets=true and reads body["facets"]["entity"].
+_A27_FACETS_PRESENT = True
+_A27_FACETS_REASON = ""
 
-_A27_HIGHLIGHT_PRESENT = False
-_A27_HIGHLIGHT_REASON = "A27 not merged: 'highlight' key absent from match objects in GET /api/search"
+_A27_HIGHLIGHT_PRESENT = True
+_A27_HIGHLIGHT_REASON = ""
 
-# We check by introspecting the response schema at collection time if possible,
-# otherwise the tests skip and pass on their own skipif conditions.
 try:
     from app.main import app as _app
     _routes = {r.path for r in _app.routes}
-    # Facets: only present if the search endpoint returns a dict (not a list)
-    # Current implementation returns list[] — facets are not merged.
-    # Highlight: same — not in current match schema.
-    # Both remain False until A27 enhancements land.
 except Exception:
     _routes = set()
 
@@ -212,8 +210,8 @@ async def test_blank_q_returns_empty_b27(client, admin):
 
 @pytest.mark.skipif(not _A27_FACETS_PRESENT, reason=_A27_FACETS_REASON)
 async def test_facets_per_entity_counts(client, admin):
-    """A27: the response includes a top-level `facets` dict mapping entity_key → count.
-    Counts must match the number of matching records created for each entity."""
+    """A27: GET /api/search?q=...&facets=true returns a {facets:{entity:{...}}} envelope.
+    Counts in facets.entity must match the number of matching records per entity_key."""
     tok = _uniq("facets")
     for i in range(3):
         r = await client.post("/api/leads", headers=admin, json={"name": f"{tok} fl {i}"})
@@ -222,11 +220,14 @@ async def test_facets_per_entity_counts(client, admin):
         r = await client.post("/api/customers", headers=admin, json={"name": f"{tok} fc {i}"})
         assert r.status_code == 201, r.text
 
-    body = await _search(client, admin, tok)
-    facets = body.get("facets") if isinstance(body, dict) else None
-    assert facets is not None, "A27 response must include a 'facets' key"
-    assert facets.get("lead", 0) == 3, f"expected facets.lead=3, got {facets.get('lead')}"
-    assert facets.get("customer", 0) == 2, f"expected facets.customer=2, got {facets.get('customer')}"
+    r = await client.get(f"/api/search?q={tok}&facets=true", headers=admin)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert isinstance(body, dict), "facets=true must return an object, not a list"
+    facets = body.get("facets", {})
+    entity_facets = facets.get("entity", {})
+    assert entity_facets.get("lead", 0) == 3, f"expected facets.entity.lead=3, got {entity_facets}"
+    assert entity_facets.get("customer", 0) == 2, f"expected facets.entity.customer=2, got {entity_facets}"
 
 
 # ===========================================================================
