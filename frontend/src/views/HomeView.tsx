@@ -78,7 +78,7 @@ function Greeting({ name }: { name: string }) {
   const h = new Date().getHours()
   const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
   return (
-    <div style={{ marginBottom: 'var(--sp-5)' }}>
+    <div style={{ marginBottom: '24px' }}>
       <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{greet}, {name || 'there'}</h1>
       <p style={{ margin: '4px 0 0', color: 'var(--gx-text-3)', fontSize: 13 }}>
         {new Date().toLocaleDateString('hy-AM', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -95,10 +95,10 @@ function PersonalKPIs({ taskCount, approvalCount, overdueCount }: { taskCount: n
     { Icon: AlertCircle, label: 'Overdue tasks', value: overdueCount, color: overdueCount > 0 ? 'var(--gx-danger,#ef4444)' : 'var(--gx-success,#22c55e)' },
   ]
   return (
-    <div style={{ display: 'flex', gap: 'var(--sp-3)', flexWrap: 'wrap', marginBottom: 'var(--sp-4)' }}>
+    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
       {kpis.map(({ Icon, label, value, color }) => (
-        <div key={label} className="card" style={{ padding: 'var(--sp-3) var(--sp-4)', minWidth: 150, flex: '1 1 150px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 4 }}>
+        <div key={label} className="card" style={{ padding: '12px 18px', minWidth: 150, flex: '1 1 150px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 4 }}>
             <Icon size={14} color={color} />
             <span className="muted" style={{ fontSize: 12 }}>{label}</span>
           </div>
@@ -118,7 +118,7 @@ function Widget({ icon: Icon, title, children, action }: {
 }) {
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="card-head" style={{ borderBottom: '1px solid var(--gx-border)', padding: 'var(--sp-3) var(--sp-4)' }}>
+      <div className="card-head" style={{ borderBottom: '1px solid var(--gx-border)', padding: '12px 18px' }}>
         <Icon size={14} color="var(--gx-text-3)" />
         <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{title}</h3>
         <span className="spacer" />
@@ -130,12 +130,12 @@ function Widget({ icon: Icon, title, children, action }: {
 }
 
 function EmptySlate({ message }: { message: string }) {
-  return <div style={{ padding: 'var(--sp-4)', color: 'var(--gx-text-3)', fontSize: 13, textAlign: 'center' }}>{message}</div>
+  return <div style={{ padding: '18px', color: 'var(--gx-text-3)', fontSize: 13, textAlign: 'center' }}>{message}</div>
 }
 
 function SkeletonList({ rows = 4 }: { rows?: number }) {
   return (
-    <div style={{ padding: 'var(--sp-2) 0' }}>
+    <div style={{ padding: '8px 0' }}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="skel-row"><div className="skel skel-cell" /></div>
       ))}
@@ -260,15 +260,15 @@ export default function HomeView({ token, onNavigate }: {
   const nav = (type: string, id?: string) => onNavigate?.(type, id)
 
   return (
-    <div className="view-root">
-      <div style={{ padding: 'var(--sp-4) var(--sp-6)', maxWidth: 1200 }}>
+    <div className="view">
+      <div className="view-inner" style={{ maxWidth: 1200 }}>
 
         <Greeting name={meData?.name ?? ''} />
 
         <PersonalKPIs taskCount={taskCount} approvalCount={approvalCount} overdueCount={overdueCount} />
 
         {/* Two-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
           {/* My Tasks */}
           <Widget icon={CheckSquare} title="My Tasks">
@@ -279,8 +279,8 @@ export default function HomeView({ token, onNavigate }: {
                 {tasks.value.map(w => (
                   <div key={w.id}
                     onClick={() => nav('workitems')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)',
-                      padding: 'var(--sp-2) var(--sp-4)', cursor: 'pointer',
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '8px 18px', cursor: 'pointer',
                       borderBottom: '1px solid var(--gx-border)' }}
                   >
                     <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
@@ -311,8 +311,8 @@ export default function HomeView({ token, onNavigate }: {
                 {approvals.value.map(a => (
                   <div key={a.id}
                     onClick={() => nav('my-approvals')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)',
-                      padding: 'var(--sp-2) var(--sp-4)', cursor: 'pointer',
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '8px 18px', cursor: 'pointer',
                       borderBottom: '1px solid var(--gx-border)' }}
                   >
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
@@ -340,8 +340,8 @@ export default function HomeView({ token, onNavigate }: {
                 {tickets.value.map(t => (
                   <div key={t.id}
                     onClick={() => nav('helpdesk', t.id)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)',
-                      padding: 'var(--sp-2) var(--sp-4)', cursor: 'pointer',
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '8px 18px', cursor: 'pointer',
                       borderBottom: '1px solid var(--gx-border)' }}
                   >
                     <span style={{ flex: 1, fontSize: 13, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -363,8 +363,8 @@ export default function HomeView({ token, onNavigate }: {
               <div>
                 {slots.value.map(sl => (
                   <div key={sl.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)',
-                      padding: 'var(--sp-2) var(--sp-4)', borderBottom: '1px solid var(--gx-border)' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '8px 18px', borderBottom: '1px solid var(--gx-border)' }}
                   >
                     <Clock size={13} style={{ color: 'var(--gx-text-3)', flexShrink: 0 }} />
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>
@@ -390,10 +390,10 @@ export default function HomeView({ token, onNavigate }: {
           {activity.state === 'loading' && <SkeletonList rows={5} />}
           {activity.state === 'hide' && <EmptySlate message="No recent activity recorded" />}
           {activity.state === 'ok' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--sp-2)', padding: 'var(--sp-3)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px', padding: '12px' }}>
               {activity.value.map(a => (
                 <div key={a.id} className="card card-hover"
-                  style={{ padding: 'var(--sp-2) var(--sp-3)', display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}
+                  style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <Activity size={12} style={{ color: 'var(--gx-text-3)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>

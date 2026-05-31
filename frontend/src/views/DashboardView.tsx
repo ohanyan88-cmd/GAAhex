@@ -148,7 +148,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
     return { d: `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`, color: sl.color, pct, label: sl.label, value: sl.value }
   })
   return (
-    <div style={{ display: 'flex', gap: 'var(--sp-4)', alignItems: 'center', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
       <svg viewBox={`0 0 140 140`} style={{ width: 140, height: 140, flexShrink: 0 }}>
         {paths.map((p, i) => (
           <path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={sw} strokeLinecap="butt" />
@@ -233,7 +233,7 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
   const W = 80, H = 28
   const pts = trend.map((v, i) => `${(i / Math.max(trend.length - 1, 1)) * W},${H - (v / maxT) * (H - 4)}`).join(' ')
   return (
-    <div className="card" style={{ padding: 'var(--sp-3) var(--sp-4)', position: 'relative', overflow: 'hidden' }}>
+    <div className="card" style={{ padding: '12px 18px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -401,11 +401,11 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   )
 
   return (
-    <div className="view-root">
-      <div style={{ padding: 'var(--sp-4) var(--sp-6)', maxWidth: 1400 }}>
+    <div className="view">
+      <div className="view-inner" style={{ maxWidth: 1400 }}>
 
         {/* Header */}
-        <div className="view-head" style={{ marginBottom: 'var(--sp-4)' }}>
+        <div className="view-head" style={{ marginBottom: '18px' }}>
           <div className="vh-ic"><BarChart3 size={20} /></div>
           <div>
             <h1 style={{ margin: 0 }}>Analytics Dashboard</h1>
@@ -424,7 +424,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
 
         {/* KPI Strip */}
         {ov && showRevenue && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 'var(--sp-3)', marginBottom: 'var(--sp-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '12px', marginBottom: '18px' }}>
             <KPICard label="MRR" value={money(ov.mrr)} sublabel={`${ov.active_subscriptions} active subs`}
               color="var(--azure-500)" icon={Banknote}
               trend={revTrend.state === 'ok' ? revTrend.value.map(b => b.collected) : []} />
@@ -438,7 +438,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
         )}
 
         {/* Row 1: Revenue bar + Subscription donut */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
           {showRevenue && (
             <Card title="Revenue vs Churn" icon={BarChart3}>
@@ -470,12 +470,12 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                 color: PLAN_COLORS[i % PLAN_COLORS.length],
               }))} />
             )}
-            {subMix.state === 'hide' && <div className="muted" style={{ padding: 'var(--sp-4)', fontSize: 13 }}>No subscription data</div>}
+            {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No subscription data</div>}
           </Card>
         </div>
 
         {/* Row 2: Revenue area + Customer growth line */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
           {showRevenue && (
             <Card title="Payment Trend" icon={TrendingUp}>
@@ -501,7 +501,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
         </div>
 
         {/* Row 3: AR aging + Revenue metrics line + Funnel */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
           {showRevenue && (
             <Card title="AR Aging" icon={AlertTriangle}>
@@ -515,7 +515,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                   { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger,#ef4444)' },
                 ].filter(b => b.value > 0)} />
               )}
-              {arAging.state === 'hide' && <div className="muted" style={{ padding: 'var(--sp-4)', fontSize: 13 }}>No outstanding AR</div>}
+              {arAging.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No outstanding AR</div>}
             </Card>
           )}
 
@@ -533,7 +533,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
           <Card title="Sales Funnel" icon={ArrowRight}>
             {funnel.state === 'loading' && <ChartSkeleton h={100} />}
             {funnel.state === 'ok' && <FunnelChart stages={funnel.value} />}
-            {funnel.state === 'hide' && <div className="muted" style={{ padding: 'var(--sp-4)', fontSize: 13 }}>No pipeline data</div>}
+            {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No pipeline data</div>}
           </Card>
         </div>
 
