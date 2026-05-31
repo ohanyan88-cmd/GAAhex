@@ -14,9 +14,11 @@ from sqlalchemy import select, func, or_, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import User, OrgNode, EntityDef, Record
+from ..models import User, OrgNode, EntityDef, Record, Event
 from ..models.billing import Subscription, Invoice, Payment
 from ..models.product import Product
+from ..models.workitem import WorkItem
+from ..models.helpdesk import HelpdeskTicket
 from ..access import load_grants, can, _has_perm, _scope_ok
 from .auth import current_user
 
@@ -235,3 +237,251 @@ async def ar_aging(user: User = Depends(current_user), s: AsyncSession = Depends
     )).one()
     return {"current": int(row[0]), "d1_30": int(row[1]), "d31_60": int(row[2]),
             "d61_90": int(row[3]), "d90_plus": int(row[4])}
+
+
+# ==========================================================================================
+# 5. Period-over-period comparisons — week vs week, month vs month, quarter, year
+# ==========================================================================================
+
+def _wstart(dt):
+    """Start of the ISO week containing `dt` (Monday 00:00 UTC)."""
+    return (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _qstart(dt):
+    q = ((dt.month - 1) // 3) * 3 + 1
+    return dt.replace(month=q, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _prev_qstart(dt):
+    qs = _qstart(dt)
+    prev = qs - timedelta(days=1)
+    return _qstart(prev)
+
+
+def _ystart(dt):
+    return dt.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _prev_ystart(dt):
+    return _ystart(dt).replace(year=dt.year - 1)
+
+
+@router.get("/comparisons")
+async def comparisons(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Period-over-period comparisons for ALL key metrics.
+
+    Returns this/last buckets for: week, month, quarter, year.
+    Metrics: revenue (paid), invoiced, payments_count, new_customers, new_leads,
+             churned_subs, active_subs, tickets_opened, workitems_completed.
+    """
+    grants = await _gate(s, user)
+    reach = await _org_reach(s, user, grants)
+    t = user.tenant_id
+    now = _now()
+
+    # --- window starts ---
+    this_week    = _wstart(now)
+    last_week    = this_week - timedelta(days=7)
+    this_month   = _month_start(now)
+    last_month   = _prev_month_start(this_month)
+    this_quarter = _qstart(now)
+    last_quarter = _prev_qstart(now)
+    this_year    = _ystart(now)
+    last_year    = _prev_ystart(now)
+
+    async def _sum_payments(since, until):
+        q = select(func.coalesce(func.sum(Payment.amount), 0)).select_from(Payment).where(
+            Payment.tenant_id == t, Payment.paid_at >= since, Payment.paid_at < until)
+        if reach is not None:
+            q = q.join(Invoice, Invoice.id == Payment.invoice_id).where(
+                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)))
+        return int((await s.execute(q)).scalar_one())
+
+    async def _count_payments(since, until):
+        q = select(func.count()).select_from(Payment).where(
+            Payment.tenant_id == t, Payment.paid_at >= since, Payment.paid_at < until)
+        if reach is not None:
+            q = q.join(Invoice, Invoice.id == Payment.invoice_id).where(
+                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)))
+        return int((await s.execute(q)).scalar_one())
+
+    async def _sum_invoiced(since, until):
+        return int((await s.execute(
+            select(func.coalesce(func.sum(Invoice.total), 0))
+            .where(Invoice.tenant_id == t, Invoice.created_at >= since, Invoice.created_at < until,
+                   *_node_cond(Invoice, reach))
+        )).scalar_one())
+
+    async def _count_new(entity_key, since, until):
+        return int((await s.execute(
+            select(func.count()).select_from(Record).where(
+                Record.tenant_id == t, Record.entity_key == entity_key,
+                Record.created_at >= since, Record.created_at < until,
+                *_node_cond(Record, reach))
+        )).scalar_one())
+
+    async def _count_churn(since, until):
+        return int((await s.execute(
+            select(func.count()).select_from(Event).where(
+                Event.tenant_id == t, Event.entity_key == "subscription",
+                Event.type == "transition",
+                Event.data["to"].astext == "CANCELLED",
+                Event.created_at >= since, Event.created_at < until)
+        )).scalar_one())
+
+    async def _count_tickets(since, until):
+        return int((await s.execute(
+            select(func.count()).select_from(HelpdeskTicket).where(
+                HelpdeskTicket.tenant_id == t,
+                HelpdeskTicket.created_at >= since, HelpdeskTicket.created_at < until)
+        )).scalar_one())
+
+    async def _count_workitems(since, until, status=None):
+        q = select(func.count()).select_from(WorkItem).where(
+            WorkItem.tenant_id == t,
+            WorkItem.created_at >= since, WorkItem.created_at < until)
+        if status:
+            q = q.where(WorkItem.status == status)
+        return int((await s.execute(q)).scalar_one())
+
+    # Build bucket pairs (this, last) for each window
+    windows = [
+        ("week",    this_week, now,             last_week, this_week),
+        ("month",   this_month, now,            last_month, this_month),
+        ("quarter", this_quarter, now,          last_quarter, this_quarter),
+        ("year",    this_year, now,             last_year, this_year),
+    ]
+
+    out = {}
+    for label, t_s, t_e, l_s, l_e in windows:
+        out[label] = {
+            "revenue":       {"this": await _sum_payments(t_s, t_e),   "last": await _sum_payments(l_s, l_e)},
+            "invoiced":      {"this": await _sum_invoiced(t_s, t_e),   "last": await _sum_invoiced(l_s, l_e)},
+            "payments":      {"this": await _count_payments(t_s, t_e), "last": await _count_payments(l_s, l_e)},
+            "new_customers": {"this": await _count_new("customer", t_s, t_e), "last": await _count_new("customer", l_s, l_e)},
+            "new_leads":     {"this": await _count_new("lead", t_s, t_e),     "last": await _count_new("lead", l_s, l_e)},
+            "churned":       {"this": await _count_churn(t_s, t_e),    "last": await _count_churn(l_s, l_e)},
+            "tickets":       {"this": await _count_tickets(t_s, t_e),  "last": await _count_tickets(l_s, l_e)},
+            "workitems":     {"this": await _count_workitems(t_s, t_e),"last": await _count_workitems(l_s, l_e)},
+            "workitems_done":{"this": await _count_workitems(t_s, t_e, "DONE"), "last": await _count_workitems(l_s, l_e, "DONE")},
+        }
+
+    return out
+
+
+# ==========================================================================================
+# 6. Weekly revenue trend — last N weeks of payment activity
+# ==========================================================================================
+
+@router.get("/weekly-trend")
+async def weekly_trend(weeks: int = 12, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Last `weeks` weeks of paid revenue + churn events + new customers, ISO-week buckets."""
+    await _gate(s, user)
+    t = user.tenant_id
+    weeks = max(1, min(int(weeks), 52))
+    now = _now()
+    start = _wstart(now) - timedelta(weeks=weeks - 1)
+
+    pw = func.to_char(func.date_trunc("week", Payment.paid_at), "IYYY-IW")
+    payments = {row[0]: int(row[1]) for row in (await s.execute(
+        select(pw.label("w"), func.coalesce(func.sum(Payment.amount), 0))
+        .where(Payment.tenant_id == t, Payment.paid_at >= start).group_by(pw)
+    )).all()}
+
+    cw = func.to_char(func.date_trunc("week", Record.created_at), "IYYY-IW")
+    customers = {row[0]: int(row[1]) for row in (await s.execute(
+        select(cw.label("w"), func.count())
+        .where(Record.tenant_id == t, Record.entity_key == "customer", Record.created_at >= start)
+        .group_by(cw)
+    )).all()}
+
+    ew = func.to_char(func.date_trunc("week", Event.created_at), "IYYY-IW")
+    churns = {row[0]: int(row[1]) for row in (await s.execute(
+        select(ew.label("w"), func.count())
+        .where(Event.tenant_id == t, Event.entity_key == "subscription",
+               Event.type == "transition", Event.data["to"].astext == "CANCELLED",
+               Event.created_at >= start).group_by(ew)
+    )).all()}
+
+    # Build week labels
+    out = []
+    for i in range(weeks):
+        wk_start = _wstart(now) - timedelta(weeks=weeks - 1 - i)
+        label = wk_start.strftime("%G-%V")
+        out.append({
+            "week":       label,
+            "date":       wk_start.strftime("%Y-%m-%d"),
+            "revenue":    payments.get(label, 0),
+            "customers":  customers.get(label, 0),
+            "churns":     churns.get(label, 0),
+        })
+    return out
+
+
+# ==========================================================================================
+# 7. Daily payment heatmap — last 90 days of payment volume
+# ==========================================================================================
+
+@router.get("/daily-heatmap")
+async def daily_heatmap(days: int = 90, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Daily payment count + amount, last `days` days. Drives a calendar-style heatmap."""
+    await _gate(s, user)
+    t = user.tenant_id
+    days = max(1, min(int(days), 365))
+    now = _now()
+    start = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    pd = func.to_char(func.date_trunc("day", Payment.paid_at), "YYYY-MM-DD")
+    rows = (await s.execute(
+        select(pd.label("d"), func.count(), func.coalesce(func.sum(Payment.amount), 0))
+        .where(Payment.tenant_id == t, Payment.paid_at >= start)
+        .group_by(pd)
+    )).all()
+    by_day = {row[0]: (int(row[1]), int(row[2])) for row in rows}
+
+    out = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        key = d.strftime("%Y-%m-%d")
+        cnt, amt = by_day.get(key, (0, 0))
+        out.append({"date": key, "count": cnt, "amount": amt})
+    return out
+
+
+# ==========================================================================================
+# 8. Status breakdown — workitems, tickets, invoices grouped by status (current snapshot)
+# ==========================================================================================
+
+@router.get("/status-breakdown")
+async def status_breakdown(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """One snapshot of status counts across workitems, helpdesk tickets, invoices, subscriptions."""
+    await _gate(s, user)
+    t = user.tenant_id
+
+    workitems = {row[0]: int(row[1]) for row in (await s.execute(
+        select(WorkItem.status, func.count())
+        .where(WorkItem.tenant_id == t).group_by(WorkItem.status)
+    )).all()}
+
+    tickets = {row[0]: int(row[1]) for row in (await s.execute(
+        select(HelpdeskTicket.status, func.count())
+        .where(HelpdeskTicket.tenant_id == t).group_by(HelpdeskTicket.status)
+    )).all()}
+
+    invoices = {row[0]: int(row[1]) for row in (await s.execute(
+        select(Invoice.status, func.count())
+        .where(Invoice.tenant_id == t).group_by(Invoice.status)
+    )).all()}
+
+    subs = {row[0]: int(row[1]) for row in (await s.execute(
+        select(Subscription.status, func.count())
+        .where(Subscription.tenant_id == t).group_by(Subscription.status)
+    )).all()}
+
+    return {
+        "workitems":     workitems,
+        "tickets":       tickets,
+        "invoices":      invoices,
+        "subscriptions": subs,
+    }

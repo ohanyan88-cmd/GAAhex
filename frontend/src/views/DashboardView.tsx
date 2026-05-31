@@ -16,7 +16,7 @@
 // Permission gates: invoice.view gates revenue / AR widgets.
 // Real data only — empty fetch = widget hides, never placeholder numbers.
 import { useEffect, useState } from 'react'
-import { BarChart3, TrendingUp, Users, Banknote, AlertTriangle, PieChart, ArrowRight, type LucideIcon } from 'lucide-react'
+import { BarChart3, TrendingUp, TrendingDown, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, type LucideIcon } from 'lucide-react'
 import { GearIcon } from '../components/icons'
 import { money } from '../lib/money'
 import { fetchCapabilities, can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -273,6 +273,185 @@ function Card({ title, icon: Icon, children, action }: {
 
 const PLAN_COLORS = ['var(--azure-500)', 'var(--azure-300)', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899']
 
+// Comparison card — "this vs last" with delta % and color-coded arrow
+function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.toLocaleString(), invertColor = false }: {
+  label: string; thisVal: number; lastVal: number
+  formatter?: (n: number) => string
+  invertColor?: boolean   // for metrics where decrease is good (e.g. churn)
+}) {
+  const delta    = thisVal - lastVal
+  const pctDelta = lastVal === 0 ? (thisVal > 0 ? 100 : 0) : (delta / lastVal) * 100
+  const up       = delta > 0
+  const flat     = delta === 0
+  // For "good = up" metrics (revenue), up = green. For invertColor (churn), up = red.
+  const goodUp   = !invertColor
+  const color = flat
+    ? 'var(--gx-text-3)'
+    : (up && goodUp) || (!up && !goodUp)
+      ? 'var(--gx-success,#22c55e)'
+      : 'var(--gx-danger,#ef4444)'
+  return (
+    <div className="card" style={{ padding: '14px 18px' }}>
+      <div className="muted" style={{ fontSize: 11, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontSize: 22, fontWeight: 700 }}>{formatter(thisVal)}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 600, color }}>
+          {!flat && (up ? <TrendingUp size={12} /> : <TrendingDown size={12} />)}
+          {flat ? '—' : `${pctDelta > 0 ? '+' : ''}${pctDelta.toFixed(1)}%`}
+        </span>
+      </div>
+      <div className="muted" style={{ fontSize: 11 }}>vs {formatter(lastVal)} prior</div>
+    </div>
+  )
+}
+
+// Grouped bar chart — two bars side by side per category (e.g. this period vs last)
+function GroupedBarChart({ data }: { data: { label: string; thisVal: number; lastVal: number }[] }) {
+  const max = Math.max(...data.flatMap(d => [d.thisVal, d.lastVal]), 1)
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160, padding: '4px 0' }}>
+        {data.map(d => (
+          <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 4, height: '100%' }} title={`${d.label}: this ${d.thisVal} vs last ${d.lastVal}`}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2, height: '85%' }}>
+              <div style={{ width: '40%', height: `${d.thisVal / max * 100}%`,
+                background: 'linear-gradient(180deg,var(--azure-400),var(--azure-600))',
+                borderRadius: '3px 3px 0 0', minHeight: d.thisVal > 0 ? 3 : 0 }} />
+              <div style={{ width: '40%', height: `${d.lastVal / max * 100}%`,
+                background: 'var(--gx-text-3)', opacity: 0.5,
+                borderRadius: '3px 3px 0 0', minHeight: d.lastVal > 0 ? 3 : 0 }} />
+            </div>
+            <span style={{ fontSize: 10, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 10, height: 10, background: 'var(--azure-500)', borderRadius: 2 }} />This period
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 10, height: 10, background: 'var(--gx-text-3)', opacity: 0.5, borderRadius: 2 }} />Last period
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// Multi-series line chart — N series on one chart
+function MultiLineChart({ labels, series }: {
+  labels: string[]
+  series: { name: string; values: number[]; color: string }[]
+}) {
+  if (labels.length < 2) return null
+  const allValues = series.flatMap(s => s.values)
+  const max = Math.max(...allValues, 1)
+  const W = 400, H = 130
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, overflow: 'visible' }}>
+        {series.map((s, si) => {
+          const pts = s.values.map((v, i) => `${(i / (labels.length - 1)) * W},${H - (v / max) * (H - 10)}`).join(' ')
+          return <polyline key={si} points={pts} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" />
+        })}
+      </svg>
+      <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
+        {series.map((s, i) => (
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 12, height: 2, background: s.color, borderRadius: 1 }} />{s.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Heatmap — calendar grid where cell intensity = activity level
+function HeatmapChart({ data }: { data: { date: string; count: number; amount: number }[] }) {
+  if (data.length === 0) return null
+  const maxCount = Math.max(...data.map(d => d.count), 1)
+  // Group into weeks (7 columns)
+  const cellSize = 12, cellGap = 2
+  const weeks = Math.ceil(data.length / 7)
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, ${cellSize}px)`, gridAutoFlow: 'column', gridTemplateRows: `repeat(7, ${cellSize}px)`, gap: cellGap, padding: '4px 0' }}>
+        {data.map(d => {
+          const intensity = d.count / maxCount
+          const bg = d.count === 0
+            ? 'var(--gx-surface-2)'
+            : `rgba(59,130,246,${0.15 + intensity * 0.85})`
+          return (
+            <div key={d.date}
+              title={`${d.date}: ${d.count} payments, ${(d.amount / 100).toLocaleString()} AMD`}
+              style={{ width: cellSize, height: cellSize, borderRadius: 2, background: bg, cursor: 'help' }}
+            />
+          )
+        })}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10, color: 'var(--gx-text-3)' }}>
+        <span>Less</span>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {[0.15, 0.35, 0.55, 0.75, 1].map(i => (
+            <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(59,130,246,${i})` }} />
+          ))}
+        </div>
+        <span>More</span>
+      </div>
+    </div>
+  )
+}
+
+// Stacked bar — show breakdown across categories per bucket
+function StackedBarChart({ buckets }: {
+  buckets: { label: string; segments: { name: string; value: number; color: string }[] }[]
+}) {
+  const totals = buckets.map(b => b.segments.reduce((s, sg) => s + sg.value, 0))
+  const max = Math.max(...totals, 1)
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 160 }}>
+        {buckets.map((b, bi) => {
+          const total = totals[bi]
+          return (
+            <div key={bi} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 1 }} title={b.label}>
+              <div style={{ height: `${total / max * 85}%`, display: 'flex', flexDirection: 'column-reverse', borderRadius: '3px 3px 0 0', overflow: 'hidden' }}>
+                {b.segments.filter(sg => sg.value > 0).map((sg, si) => (
+                  <div key={si} title={`${sg.name}: ${sg.value}`}
+                    style={{ flex: sg.value, background: sg.color, minHeight: 1 }} />
+                ))}
+              </div>
+              <span style={{ fontSize: 10, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Status row — small horizontal bar per status
+function StatusBreakdown({ buckets, total }: { buckets: { label: string; value: number; color: string }[]; total: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {buckets.map(b => {
+        const pct = total > 0 ? (b.value / total) * 100 : 0
+        return (
+          <div key={b.label}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
+              <span>{b.label}</span>
+              <span style={{ fontWeight: 600 }}>{b.value} · {pct.toFixed(0)}%</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 3, background: 'var(--gx-surface-2)' }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: 3 }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+
 // ─── main view ────────────────────────────────────────────────────────────────
 export default function DashboardView({ token, canConfigure = false, onConfigure, onNavigate }: {
   token: string; configVersion?: number
@@ -291,6 +470,10 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   const [revMetrics,   setRevMetrics]   = useState<Fetched<any[]>>({ state: 'loading' })
   const [customerData, setCustomerData] = useState<Fetched<{ new_: number[]; churned: number[]; labels: string[] }>>({ state: 'loading' })
   const [funnel,       setFunnel]       = useState<Fetched<any[]>>({ state: 'loading' })
+  const [compare,      setCompare]      = useState<Fetched<any>>({ state: 'loading' })
+  const [weekly,       setWeekly]       = useState<Fetched<any[]>>({ state: 'loading' })
+  const [heatmap,      setHeatmap]      = useState<Fetched<any[]>>({ state: 'loading' })
+  const [statusBreak,  setStatusBreak]  = useState<Fetched<any>>({ state: 'loading' })
 
   useEffect(() => {
     let alive = true
@@ -392,6 +575,48 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
     }).catch(() => { if (alive) setFunnel({ state: 'hide' }) })
     return () => { alive = false }
   }, [token, range])
+
+  // Period-over-period comparisons
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/comparisons`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setCompare(d ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setCompare({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Weekly trend (last 12 weeks)
+  useEffect(() => {
+    let alive = true
+    const weeksN = range === '7d' ? 4 : range === '30d' ? 8 : range === 'qtd' ? 13 : 26
+    fetch(`${BASE}/api/analytics/weekly-trend?weeks=${weeksN}`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setWeekly(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setWeekly({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token, range])
+
+  // Daily heatmap
+  useEffect(() => {
+    let alive = true
+    const daysN = range === '7d' ? 28 : range === '30d' ? 60 : range === 'qtd' ? 90 : 180
+    fetch(`${BASE}/api/analytics/daily-heatmap?days=${daysN}`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setHeatmap(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setHeatmap({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token, range])
+
+  // Status breakdown (current snapshot)
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/status-breakdown`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setStatusBreak(d ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setStatusBreak({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
 
   const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
   const ov = overview.state === 'ok' ? overview.value : null
@@ -536,6 +761,150 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
             {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No pipeline data</div>}
           </Card>
         </div>
+
+        {/* === SECTION: Week vs Week Comparisons === */}
+        {compare.state === 'ok' && (
+          <>
+            <div style={{ marginTop: '12px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Week vs Last Week
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+              <ComparisonCard label="Revenue (paid)"    thisVal={compare.value.week.revenue.this}      lastVal={compare.value.week.revenue.last}      formatter={(n) => money(n)} />
+              <ComparisonCard label="Invoiced"          thisVal={compare.value.week.invoiced.this}     lastVal={compare.value.week.invoiced.last}     formatter={(n) => money(n)} />
+              <ComparisonCard label="Payments"          thisVal={compare.value.week.payments.this}     lastVal={compare.value.week.payments.last} />
+              <ComparisonCard label="New customers"     thisVal={compare.value.week.new_customers.this} lastVal={compare.value.week.new_customers.last} />
+              <ComparisonCard label="New leads"         thisVal={compare.value.week.new_leads.this}    lastVal={compare.value.week.new_leads.last} />
+              <ComparisonCard label="Churned subs"      thisVal={compare.value.week.churned.this}      lastVal={compare.value.week.churned.last}      invertColor />
+              <ComparisonCard label="Tickets opened"    thisVal={compare.value.week.tickets.this}      lastVal={compare.value.week.tickets.last}      invertColor />
+              <ComparisonCard label="Workitems done"    thisVal={compare.value.week.workitems_done.this} lastVal={compare.value.week.workitems_done.last} />
+            </div>
+
+            {/* === SECTION: Month vs Last Month === */}
+            <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Month vs Last Month
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '18px' }}>
+              <ComparisonCard label="Revenue (paid)"    thisVal={compare.value.month.revenue.this}      lastVal={compare.value.month.revenue.last}      formatter={(n) => money(n)} />
+              <ComparisonCard label="Invoiced"          thisVal={compare.value.month.invoiced.this}     lastVal={compare.value.month.invoiced.last}     formatter={(n) => money(n)} />
+              <ComparisonCard label="Payments"          thisVal={compare.value.month.payments.this}     lastVal={compare.value.month.payments.last} />
+              <ComparisonCard label="New customers"     thisVal={compare.value.month.new_customers.this} lastVal={compare.value.month.new_customers.last} />
+              <ComparisonCard label="New leads"         thisVal={compare.value.month.new_leads.this}    lastVal={compare.value.month.new_leads.last} />
+              <ComparisonCard label="Churned subs"      thisVal={compare.value.month.churned.this}      lastVal={compare.value.month.churned.last}      invertColor />
+              <ComparisonCard label="Tickets opened"    thisVal={compare.value.month.tickets.this}      lastVal={compare.value.month.tickets.last}      invertColor />
+              <ComparisonCard label="Workitems done"    thisVal={compare.value.month.workitems_done.this} lastVal={compare.value.month.workitems_done.last} />
+            </div>
+
+            {/* === SECTION: Quarter & Year Comparisons === */}
+            <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Quarter & Year Comparisons
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+              <Card title="Quarter vs Last Quarter" icon={Calendar}>
+                <GroupedBarChart data={[
+                  { label: 'Revenue',    thisVal: compare.value.quarter.revenue.this / 100,   lastVal: compare.value.quarter.revenue.last / 100 },
+                  { label: 'Payments',   thisVal: compare.value.quarter.payments.this,        lastVal: compare.value.quarter.payments.last },
+                  { label: 'Customers',  thisVal: compare.value.quarter.new_customers.this,   lastVal: compare.value.quarter.new_customers.last },
+                  { label: 'Leads',      thisVal: compare.value.quarter.new_leads.this,       lastVal: compare.value.quarter.new_leads.last },
+                  { label: 'Churn',      thisVal: compare.value.quarter.churned.this,         lastVal: compare.value.quarter.churned.last },
+                  { label: 'Tickets',    thisVal: compare.value.quarter.tickets.this,         lastVal: compare.value.quarter.tickets.last },
+                ]} />
+              </Card>
+
+              <Card title="Year vs Last Year (YoY)" icon={Calendar}>
+                <GroupedBarChart data={[
+                  { label: 'Revenue',    thisVal: compare.value.year.revenue.this / 100,      lastVal: compare.value.year.revenue.last / 100 },
+                  { label: 'Payments',   thisVal: compare.value.year.payments.this,           lastVal: compare.value.year.payments.last },
+                  { label: 'Customers',  thisVal: compare.value.year.new_customers.this,      lastVal: compare.value.year.new_customers.last },
+                  { label: 'Leads',      thisVal: compare.value.year.new_leads.this,          lastVal: compare.value.year.new_leads.last },
+                  { label: 'Churn',      thisVal: compare.value.year.churned.this,            lastVal: compare.value.year.churned.last },
+                  { label: 'Tickets',    thisVal: compare.value.year.tickets.this,            lastVal: compare.value.year.tickets.last },
+                ]} />
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* === SECTION: Weekly Trend (multi-series) === */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '18px', marginBottom: '18px' }}>
+          <Card title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
+            {weekly.state === 'loading' && <ChartSkeleton h={130} />}
+            {weekly.state === 'ok' && (
+              <MultiLineChart
+                labels={weekly.value.map((w: any) => w.week)}
+                series={[
+                  { name: 'Revenue (×1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--azure-500)' },
+                  { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: '#22c55e' },
+                  { name: 'Churns',             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger,#ef4444)' },
+                ]}
+              />
+            )}
+            {weekly.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No weekly data</div>}
+          </Card>
+
+          <Card title="Daily Payment Heatmap" icon={Activity}>
+            {heatmap.state === 'loading' && <ChartSkeleton h={130} />}
+            {heatmap.state === 'ok' && <HeatmapChart data={heatmap.value} />}
+            {heatmap.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No payment activity</div>}
+          </Card>
+        </div>
+
+        {/* === SECTION: Status Breakdown (3 columns) === */}
+        {statusBreak.state === 'ok' && (
+          <>
+            <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Current Status Breakdown
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+              <Card title="Workitems by Status" icon={CheckSquare}>
+                <StatusBreakdown
+                  total={Object.values(statusBreak.value.workitems).reduce((s: number, v) => s + (v as number), 0) as number}
+                  buckets={[
+                    { label: 'TODO',        value: statusBreak.value.workitems.TODO ?? 0,        color: 'var(--gx-text-3)' },
+                    { label: 'In Progress', value: statusBreak.value.workitems.IN_PROGRESS ?? 0, color: 'var(--azure-500)' },
+                    { label: 'Blocked',     value: statusBreak.value.workitems.BLOCKED ?? 0,     color: 'var(--gx-danger,#ef4444)' },
+                    { label: 'Done',        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success,#22c55e)' },
+                  ]}
+                />
+              </Card>
+
+              <Card title="Tickets by Status" icon={Inbox}>
+                <StatusBreakdown
+                  total={Object.values(statusBreak.value.tickets).reduce((s: number, v) => s + (v as number), 0) as number}
+                  buckets={[
+                    { label: 'Open',     value: statusBreak.value.tickets.OPEN ?? 0,        color: 'var(--azure-500)' },
+                    { label: 'Pending',  value: statusBreak.value.tickets.PENDING ?? 0,     color: 'var(--gx-warning,#f59e0b)' },
+                    { label: 'Resolved', value: statusBreak.value.tickets.RESOLVED ?? 0,    color: 'var(--gx-success,#22c55e)' },
+                    { label: 'Closed',   value: statusBreak.value.tickets.CLOSED ?? 0,      color: 'var(--gx-text-3)' },
+                  ]}
+                />
+              </Card>
+
+              <Card title="Invoices by Status" icon={Banknote}>
+                <StatusBreakdown
+                  total={Object.values(statusBreak.value.invoices).reduce((s: number, v) => s + (v as number), 0) as number}
+                  buckets={[
+                    { label: 'Draft',   value: statusBreak.value.invoices.DRAFT ?? 0,   color: 'var(--gx-text-3)' },
+                    { label: 'Issued',  value: statusBreak.value.invoices.ISSUED ?? 0,  color: 'var(--azure-500)' },
+                    { label: 'Paid',    value: statusBreak.value.invoices.PAID ?? 0,    color: 'var(--gx-success,#22c55e)' },
+                    { label: 'Overdue', value: statusBreak.value.invoices.OVERDUE ?? 0, color: 'var(--gx-danger,#ef4444)' },
+                    { label: 'Void',    value: statusBreak.value.invoices.VOID ?? 0,    color: 'var(--gx-text-3)' },
+                  ]}
+                />
+              </Card>
+
+              <Card title="Subscriptions by Status" icon={Users}>
+                <StatusBreakdown
+                  total={Object.values(statusBreak.value.subscriptions).reduce((s: number, v) => s + (v as number), 0) as number}
+                  buckets={[
+                    { label: 'Active',    value: statusBreak.value.subscriptions.ACTIVE ?? 0,    color: 'var(--gx-success,#22c55e)' },
+                    { label: 'Suspended', value: statusBreak.value.subscriptions.SUSPENDED ?? 0, color: 'var(--gx-warning,#f59e0b)' },
+                    { label: 'Cancelled', value: statusBreak.value.subscriptions.CANCELLED ?? 0, color: 'var(--gx-danger,#ef4444)' },
+                  ]}
+                />
+              </Card>
+            </div>
+          </>
+        )}
 
       </div>
     </div>
