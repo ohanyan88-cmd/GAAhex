@@ -205,8 +205,8 @@ merchant credentials.
 
 | # | Item | Effort | Status |
 |---|---|---|---|
-| R-01 | Fix batch21 conftest skips | 30 min | ⬜ |
-| R-02 | Fix StudioRichPanes hardcoded URLs | 15 min | ⬜ |
+| R-01 | Fix batch21 conftest skips | 30 min | ✅ |
+| R-02 | Fix StudioRichPanes hardcoded URLs | 15 min | ✅ |
 | R-03 | OPS runbook + .env.production template | 1 hr | ⬜ |
 | R-04 | Search facets + highlight | 2 hrs | ⬜ |
 | R-05 | Wave 5 polymorphic triggers (asset/pipeline_item) | 1 hr | ⬜ |

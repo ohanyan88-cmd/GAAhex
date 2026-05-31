@@ -2,8 +2,7 @@ import { useRef, useState } from 'react'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
-
-const API = 'http://127.0.0.1:8099'
+import { BASE as API } from '../lib/billing'
 
 // ProfileModal — "My Profile": view + edit the signed-in user's own name, show their email,
 // and upload a profile picture (POST /api/me/avatar). On a successful upload the new avatar data

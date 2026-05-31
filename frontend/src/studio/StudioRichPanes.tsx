@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { registerSnapshot, unregisterSnapshot, collectSnapshot } from './publishRegistry'
-import { bget, bpatch, bpost, bput } from '../lib/billing'
+import { BASE, bget, bpatch, bpost, bput } from '../lib/billing'
 import { getEntities, getEntityDef } from '../lib/api'
 import { timeAgo } from '../lib/time'
 import { PermissionDenied, ErrorBanner, EmptyState, SkeletonRows } from '../components/States'
@@ -2539,7 +2539,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     if (!token) return
     setLoading(true); setError(null)
     try {
-      const r = await fetch('http://127.0.0.1:8099/api/feature-flags', {
+      const r = await fetch('${BASE}/api/feature-flags', {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -2558,7 +2558,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     const optimistic = flags.map(f => f.id === flag.id ? { ...f, enabled: !f.enabled } : f)
     setFlags(optimistic)
     try {
-      const r = await fetch(`http://127.0.0.1:8099/api/feature-flags/${flag.id}`, {
+      const r = await fetch(`${BASE}/api/feature-flags/${flag.id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !flag.enabled }),
@@ -2576,7 +2576,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     if (!token || !newKey.trim() || !newLabel.trim()) return
     setSaving(true)
     try {
-      const r = await fetch('http://127.0.0.1:8099/api/feature-flags', {
+      const r = await fetch('${BASE}/api/feature-flags', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2602,7 +2602,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     const prev = flags
     setFlags(prev.filter(f => f.id !== flag.id))
     try {
-      const r = await fetch(`http://127.0.0.1:8099/api/feature-flags/${flag.id}`, {
+      const r = await fetch(`${BASE}/api/feature-flags/${flag.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })

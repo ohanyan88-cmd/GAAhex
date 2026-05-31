@@ -32,6 +32,7 @@ async def _setup_db():
     from app.db import engine
     from app.models import Base
     from app.seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
+    from app.seed_demo_loop import seed_demo_loop_if_empty
 
     # CREATE EXTENSION IF NOT EXISTS is NOT atomic in Postgres: two concurrent
     # transactions can both see "doesn't exist", both try to create, one hits the
@@ -56,6 +57,9 @@ async def _setup_db():
     await seed_if_empty()
     await seed_meta_if_empty()
     await seed_access_if_empty()
+    # Run demo-loop seed BEFORE any test creates subscriptions — the seed guards on an empty
+    # subscription table, so it must fire first or it becomes a no-op for the whole session.
+    await seed_demo_loop_if_empty()
     yield
     await engine.dispose()
 

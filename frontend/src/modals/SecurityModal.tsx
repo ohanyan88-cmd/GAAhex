@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
-
-const API = 'http://127.0.0.1:8099'
+import { BASE as API } from '../lib/billing'
 
 // SecurityModal — "Security & Sign-in" for the signed-in user only: change own password
 // (POST /api/me/password). MFA + active sessions are honest "Coming soon" placeholders — they are
