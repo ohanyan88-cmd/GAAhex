@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon } from '../components/icons'
+import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import CommentsModal from '../modals/CommentsModal'
@@ -510,11 +511,12 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     await runBulk('delete')
   }
 
-  // B21: workflow column only appears when canEdit; adjust colSpan accordingly.
   // Header skips cols[1] (folded into cols[0] as a cell-meta subtitle) — so the body uses
   // cols.length - 1 data <td>s when there are at least 2 data fields, else cols.length.
+  // The old workflow "Move to" column is gone (transitions now live in the row-actions menu),
+  // so colSpan no longer needs a conditional for it.
   const dataCellCount = cols.length >= 2 ? cols.length - 1 : cols.length
-  const colSpan = 1 /* checkbox */ + dataCellCount + 1 /* status */ + (hasWorkflow && canEdit ? 1 : 0) + 1 /* actions */
+  const colSpan = 1 /* checkbox */ + dataCellCount + 1 /* status */ + 1 /* actions */
 
   // Derive a sub-headline for ViewHead: show total count when known, else record count in view
   const countLabel = total !== null
@@ -829,7 +831,9 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                     ci === 1 ? null : <th key={c.key} scope="col">{c.label}</th>
                   ))}
                   <th scope="col">Status</th>
-                  {hasWorkflow && canEdit && <th scope="col">Move to</th>}
+                  {/* Workflow "Move to" transitions used to live in their own column with a
+                      button-stack — they now collapse into the row-actions menu so they don't
+                      compete with the inline icons. */}
                   <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -871,50 +875,55 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                         <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" />
                       ) : ''}
                     </td>
-                    {/* B21: workflow transition column only shown when canEdit */}
-                    {hasWorkflow && canEdit && (
-                      <td>
-                        {nextFrom(r.status).map((to) => (
-                          <button key={to} className="btn btn-ghost btn-sm" onClick={() => doTransition(r.id, to)}>
-                            <ArrowRightIcon size={13} aria-hidden /> {to}
-                          </button>
-                        ))}
-                      </td>
-                    )}
-                    <td className="actions-col">
+                    <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                       <div className="row-actions">
-                        {(def.key === 'lead' || def.key === 'customer') && (
-                          <button className="iconbtn" aria-label={t('ai.title', 'AI assist')} title={t('ai.title', 'AI assist')} onClick={() => setAiRow(r)}>
-                            <SparkleIcon size={14} />
-                          </button>
-                        )}
-                        {def.key === 'customer' && onOpenCustomer && (
-                          <button className="iconbtn" aria-label={t('cust.openWorkspace', 'Open workspace')} title={t('cust.openWorkspace', 'Open workspace')} onClick={() => onOpenCustomer(r.id)}>
-                            <UsersIcon size={14} />
-                          </button>
-                        )}
-                        {def.key === 'customer' && (
-                          <button className="iconbtn" aria-label="Billing" title="Billing" onClick={() => setBillingRow(r)}>
-                            <ReceiptIcon size={14} />
-                          </button>
-                        )}
-                        <button className="iconbtn" aria-label="Activity" title="Activity" onClick={() => setActivityRow(r)}>
-                          <ClockIcon size={14} />
-                        </button>
-                        <button className="iconbtn" aria-label="Comments" title="Comments" onClick={() => setCommentsRow(r)}>
-                          <MessageIcon size={14} />
-                        </button>
-                        {/* B21: hide edit/delete when capability missing */}
-                        {canEdit && (
-                          <button className="iconbtn" aria-label={t('common.edit', 'Edit')} title={t('common.edit', 'Edit')} onClick={() => openEdit(r)}>
-                            <ArrowRightIcon size={14} />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button className="iconbtn" style={{ color: 'var(--gx-danger)' }} aria-label={t('common.delete', 'Delete')} title={t('common.delete', 'Delete')} onClick={() => doDelete(r)}>
-                            <CloseIcon size={14} />
-                          </button>
-                        )}
+                        {(() => {
+                          // Build menu items in declared order — capability/visibility
+                          // gates decide what actually appears. Workflow transitions
+                          // (was its own column with a button-stack) collapse in here
+                          // at the top, above a separator before delete.
+                          const transitions: RowAction[] = (hasWorkflow && canEdit)
+                            ? nextFrom(r.status).map((to) => ({
+                                key: `tr-${to}`,
+                                label: `Move to ${to}`,
+                                icon: <ArrowRightIcon size={14} />,
+                                onClick: () => doTransition(r.id, to),
+                              }))
+                            : []
+                          const ai: RowAction | null = (def.key === 'lead' || def.key === 'customer')
+                            ? { key: 'ai', label: t('ai.title', 'AI assist'), icon: <SparkleIcon size={14} />, onClick: () => setAiRow(r) }
+                            : null
+                          const open: RowAction | null = (def.key === 'customer' && onOpenCustomer)
+                            ? { key: 'open', label: t('cust.openWorkspace', 'Open workspace'), icon: <UsersIcon size={14} />, onClick: () => onOpenCustomer(r.id) }
+                            : null
+                          const billing: RowAction | null = def.key === 'customer'
+                            ? { key: 'billing', label: 'Billing', icon: <ReceiptIcon size={14} />, onClick: () => setBillingRow(r) }
+                            : null
+                          const activity: RowAction = { key: 'activity', label: 'Activity', icon: <ClockIcon size={14} />, onClick: () => setActivityRow(r) }
+                          const comments: RowAction = { key: 'comments', label: 'Comments', icon: <MessageIcon size={14} />, onClick: () => setCommentsRow(r) }
+                          const del: RowAction | null = canDelete
+                            ? { key: 'delete', label: t('common.delete', 'Delete'), icon: <TrashIcon size={14} />, danger: true, onClick: () => doDelete(r) }
+                            : null
+                          const actions: RowAction[] = [
+                            ...transitions,
+                            ...(ai ? [ai] : []),
+                            ...(open ? [open] : []),
+                            ...(billing ? [billing] : []),
+                            activity,
+                            comments,
+                            ...(del ? [del] : []),
+                          ]
+                          const primary: RowAction | undefined = canEdit
+                            ? { key: 'edit', label: t('common.edit', 'Edit'), icon: <EditIcon size={14} />, onClick: () => openEdit(r) }
+                            : undefined
+                          return (
+                            <RowActionsMenu
+                              primary={primary}
+                              actions={actions}
+                              ariaLabel={t('common.rowActions', 'Row actions')}
+                            />
+                          )
+                        })()}
                       </div>
                     </td>
                   </tr>

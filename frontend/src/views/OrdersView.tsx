@@ -22,6 +22,7 @@ import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ArchiveIcon, SearchIcon, GearIcon, CheckIcon, CloseIcon, ArrowRightIcon,
 } from '../components/icons'
+import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
@@ -364,21 +365,19 @@ export default function OrdersView({ token }: { token: string }) {
                         <td>{fmtDate(o.created_at)}</td>
                         <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                            {canEdit && o.status === 'DRAFT' && (
-                              <button className="btn btn-ghost btn-sm" title="Submit for provisioning" onClick={() => doSubmit(o)}>
-                                <ArrowRightIcon size={13} /> Submit
-                              </button>
-                            )}
-                            {canEdit && advLbl && (
-                              <button className="btn btn-ghost btn-sm" title={`Advance to ${advLbl}`} onClick={() => doAdvance(o)}>
-                                <CheckIcon size={13} /> {advLbl}
-                              </button>
-                            )}
-                            {canEdit && canFinalCancel && (
-                              <button className="iconbtn" title="Cancel order" onClick={() => doCancel(o)}>
-                                <CloseIcon size={13} />
-                              </button>
-                            )}
+                            {(() => {
+                              const actions: RowAction[] = []
+                              if (canEdit && o.status === 'DRAFT') {
+                                actions.push({ key: 'submit', label: 'Submit for provisioning', icon: <ArrowRightIcon size={14} />, onClick: () => doSubmit(o) })
+                              }
+                              if (canEdit && advLbl) {
+                                actions.push({ key: 'advance', label: `Advance to ${advLbl}`, icon: <CheckIcon size={14} />, onClick: () => doAdvance(o) })
+                              }
+                              if (canEdit && canFinalCancel) {
+                                actions.push({ key: 'cancel', label: 'Cancel order', icon: <CloseIcon size={14} />, danger: true, onClick: () => doCancel(o) })
+                              }
+                              return <RowActionsMenu actions={actions} ariaLabel="Order actions" />
+                            })()}
                           </div>
                         </td>
                       </tr>

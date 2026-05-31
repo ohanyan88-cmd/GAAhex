@@ -4,9 +4,10 @@ import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  ReceiptIcon, PauseIcon, PlayIcon,
+  ReceiptIcon, PauseIcon, PlayIcon, CloseIcon,
   SearchIcon, GearIcon,
 } from '../components/icons'
+import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
@@ -347,39 +348,33 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                         {cf.cells(s.id)}
                         <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                            {!canceled && (
-                              <button className="btn btn-ghost btn-sm" title="Generate invoice for current period" onClick={() => generate(s.id)}>
-                                Generate
-                              </button>
-                            )}
-                            {!canceled && (
-                              <button className="btn btn-ghost btn-sm" title="Rate metered usage" onClick={() => rateUsage(s.id)}>
-                                Rate
-                              </button>
-                            )}
-                            {st === 'ACTIVE' && (
-                              <button className="iconbtn" title="Suspend" onClick={() => action(s.id, 'suspend')}>
-                                <PauseIcon size={13} />
-                              </button>
-                            )}
-                            {st === 'SUSPENDED' && (
-                              <button className="iconbtn" title="Resume" onClick={() => action(s.id, 'resume')}>
-                                <PlayIcon size={13} />
-                              </button>
-                            )}
-                            {(st === 'ACTIVE' || st === 'SUSPENDED') && (
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                title="Cancel subscription"
-                                onClick={() => {
-                                  if (window.confirm(`Cancel subscription "${s.plan_name ?? s.id.slice(0, 8)}"? This cannot be undone.`)) {
-                                    action(s.id, 'cancel')
-                                  }
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            )}
+                            {(() => {
+                              const actions: RowAction[] = []
+                              if (!canceled) {
+                                actions.push({ key: 'gen', label: 'Generate invoice for current period', icon: <ReceiptIcon size={14} />, onClick: () => generate(s.id) })
+                                actions.push({ key: 'rate', label: 'Rate metered usage', icon: <GearIcon size={14} />, onClick: () => rateUsage(s.id) })
+                              }
+                              if (st === 'ACTIVE') {
+                                actions.push({ key: 'suspend', label: 'Suspend', icon: <PauseIcon size={14} />, onClick: () => action(s.id, 'suspend') })
+                              }
+                              if (st === 'SUSPENDED') {
+                                actions.push({ key: 'resume', label: 'Resume', icon: <PlayIcon size={14} />, onClick: () => action(s.id, 'resume') })
+                              }
+                              if (st === 'ACTIVE' || st === 'SUSPENDED') {
+                                actions.push({
+                                  key: 'cancel',
+                                  label: 'Cancel subscription',
+                                  icon: <CloseIcon size={14} />,
+                                  danger: true,
+                                  onClick: () => {
+                                    if (window.confirm(`Cancel subscription "${s.plan_name ?? s.id.slice(0, 8)}"? This cannot be undone.`)) {
+                                      action(s.id, 'cancel')
+                                    }
+                                  },
+                                })
+                              }
+                              return <RowActionsMenu actions={actions} ariaLabel="Subscription actions" />
+                            })()}
                           </div>
                         </td>
                       </tr>
