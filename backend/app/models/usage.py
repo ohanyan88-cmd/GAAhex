@@ -22,7 +22,9 @@ class UsageRecord(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     subscription_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("subscription.id"), nullable=True, index=True)
-    service_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)   # what was used (loose ref)
+    # SPEC §6 Wave 1: tightened from "loose ref" to a typed FK with index. Backfill/orphan-check
+    # is Wave 2; column stays nullable until Wave 4 NOT NULL gate.
+    service_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("service.id", ondelete="RESTRICT"), nullable=True, index=True)
     metric: Mapped[str] = mapped_column(String(20), nullable=False)         # gb|minutes|messages|other
     quantity: Mapped[float] = mapped_column(Numeric(18, 4), nullable=False, default=0)  # units consumed (may be fractional)
     unit_rate: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)        # luma per unit

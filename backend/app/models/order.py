@@ -40,6 +40,11 @@ class Order(Base):
     control_pass_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     control_pass_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # SPEC §6 Wave 1 (additive, nullable): pipeline_item_record_id is polymorphic (→ a record row
+    # with entity_key='deal'/'opportunity') — filtered at app layer until Wave 5. subscription_id
+    # is the reverse of the existing subscription→order link.
+    pipeline_item_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="RESTRICT"), nullable=True, index=True)
+    subscription_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("subscription.id", ondelete="RESTRICT"), nullable=True, index=True)
 
 
 class OrderItem(Base):

@@ -45,3 +45,10 @@ class HelpdeskTicket(Base):
     sla_breached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # SPEC §6 Wave 1 (additive, nullable): typed links from ticket → service / invoice / payment /
+    # asset record. asset_record_id is polymorphic (filtered to entity_key='asset' at app layer
+    # until Wave 5 lands the denormalized-entity_key CHECK).
+    service_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("service.id", ondelete="RESTRICT"), nullable=True, index=True)
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("invoice.id", ondelete="RESTRICT"), nullable=True, index=True)
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payment.id", ondelete="RESTRICT"), nullable=True, index=True)
+    asset_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="RESTRICT"), nullable=True, index=True)

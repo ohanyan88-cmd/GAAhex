@@ -596,3 +596,113 @@ It will NOT:
 - Add the polymorphic denormalized-entity_key CHECKs (separate round after prerequisite entity_defs).
 
 Awaiting Gev's ⛔ approval to proceed to the activate step.
+
+---
+
+## 10. Wave 1 ACTIVATED (2026-05-31)
+
+Wave 1 of the migration sequence (Section 5) is now live on the kernel.
+
+### Migration
+
+- **Revision:** `60a9edffdefe`
+- **down_revision:** `6389266f4c19`
+- **File:** `backend/alembic/versions/60a9edffdefe_step02_wave1_fk_additions.py`
+- **Title:** "Step 2 Wave 1: 22 additive nullable FKs per SPEC §6 relationship map"
+- **Shape:** for each of the 22 FKs the migration runs `add_column` (nullable UUID) + `create_index` + `create_foreign_key`. One row (`usage_record.service_id`) only gets the index + FK because the column already existed as a "loose ref" (§3 row #12). No backfill, no NOT NULL, no DROP.
+
+### The 22 FKs added (source.column → target.id, cascade)
+
+| § ref | Source.column → Target.id | Cascade |
+|---|---|---|
+| §3 #1  | `payment.customer_id` → `record.id` | RESTRICT |
+| §3 #2  | `payment.account_id` → `account.id` | RESTRICT |
+| §3 #3  | `helpdesk_ticket.service_id` → `service.id` | RESTRICT |
+| §3 #4  | `helpdesk_ticket.invoice_id` → `invoice.id` | RESTRICT |
+| §3 #5  | `helpdesk_ticket.payment_id` → `payment.id` | RESTRICT |
+| §3 #6  | `helpdesk_ticket.asset_record_id` → `record.id` | RESTRICT |
+| §3 #7  | `workitem.ticket_id` → `helpdesk_ticket.id` | RESTRICT |
+| §3 #8  | `workitem.service_id` → `service.id` | RESTRICT |
+| §3 #9  | `workitem.asset_record_id` → `record.id` | RESTRICT |
+| §3 #10 | `workitem.project_record_id` → `record.id` | RESTRICT |
+| §3 #11 | `workitem.invoice_id` → `invoice.id` | RESTRICT |
+| §3 #12 | `usage_record.service_id` → `service.id` (column pre-existed) | RESTRICT |
+| §3 #13 | `invoice_line.subscription_id` → `subscription.id` | RESTRICT |
+| §3 #14 | `invoice_line.service_id` → `service.id` | RESTRICT |
+| §3 #15 | `invoice_line.usage_record_id` → `usage_record.id` | RESTRICT |
+| §3 #16 | `order.pipeline_item_record_id` → `record.id` | RESTRICT |
+| §3 #17 | `order.subscription_id` → `subscription.id` | RESTRICT |
+| §3 #18 | `service.product_id` → `product.id` | RESTRICT |
+| §3 #20 | `service.activation_workitem_id` → `workitem.id` | SET NULL |
+| §3 #21 | `resource_pool.physical_asset_record_id` → `record.id` | SET NULL (§6.1 splitter bridge) |
+| §3 #26 | `calendar_event.customer_record_id` → `record.id` | SET NULL |
+| §3 #27 | `calendar_event.helpdesk_ticket_id` → `helpdesk_ticket.id` | SET NULL |
+
+22 total. RESTRICT is the default; SET NULL is used for the soft-link bridges where dropping the target shouldn't tombstone history (§6.1 splitter, activation work order, calendar event hints).
+
+### Verification transcript
+
+Verified on a fresh `portal_step2_test` database (Docker `gaaex-db`, port 5433):
+
+```
+$ docker exec -i gaaex-db psql -U gaaex -c "DROP DATABASE IF EXISTS portal_step2_test;"
+$ docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE portal_step2_test;"
+$ $env:DATABASE_URL = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/portal_step2_test"
+$ $env:OWNER_DATABASE_URL = $env:DATABASE_URL
+$ cd backend && .venv/Scripts/python.exe -m alembic upgrade head
+... (chain of upgrade lines)
+INFO  [alembic.runtime.migration] Running upgrade 6389266f4c19 -> 60a9edffdefe, Step 2 Wave 1: 22 additive nullable FKs per SPEC §6 relationship map
+```
+
+Constraint check:
+```
+$ docker exec -i gaaex-db psql -U gaaex -d portal_step2_test -c "SELECT conname FROM pg_constraint WHERE conname LIKE 'fk_%' AND conname IN ('fk_payment_customer_id', ...) ORDER BY conname;"
+                  conname                  
+-------------------------------------------
+ fk_calendar_event_customer_record_id
+ fk_calendar_event_helpdesk_ticket_id
+ fk_helpdesk_ticket_asset_record_id
+ fk_helpdesk_ticket_invoice_id
+ fk_helpdesk_ticket_payment_id
+ fk_helpdesk_ticket_service_id
+ fk_invoice_line_service_id
+ fk_invoice_line_subscription_id
+ fk_invoice_line_usage_record_id
+ fk_order_pipeline_item_record_id
+ fk_order_subscription_id
+ fk_payment_account_id
+ fk_payment_customer_id
+ fk_resource_pool_physical_asset_record_id
+ fk_service_activation_workitem_id
+ fk_service_product_id
+ fk_usage_record_service_id
+ fk_workitem_asset_record_id
+ fk_workitem_invoice_id
+ fk_workitem_project_record_id
+ fk_workitem_service_id
+ fk_workitem_ticket_id
+(22 rows)
+```
+
+Index + column checks returned 22/22 rows each. Test DB then dropped.
+
+### Touched model files
+
+- `backend/app/models/billing.py` — `InvoiceLine.{subscription_id, service_id, usage_record_id}`, `Payment.{customer_id, account_id}`
+- `backend/app/models/helpdesk.py` — `HelpdeskTicket.{service_id, invoice_id, payment_id, asset_record_id}`
+- `backend/app/models/workitem.py` — `WorkItem.{ticket_id, service_id, asset_record_id, project_record_id, invoice_id}`
+- `backend/app/models/usage.py` — `UsageRecord.service_id` (added FK + index to existing column)
+- `backend/app/models/order.py` — `Order.{pipeline_item_record_id, subscription_id}`
+- `backend/app/models/service.py` — `Service.{product_id, activation_workitem_id}`
+- `backend/app/models/respool.py` — `ResourcePool.physical_asset_record_id`
+- `backend/app/models/calendar.py` — `CalendarEvent.{customer_record_id, helpdesk_ticket_id}`
+
+### Deferred (NOT in this round)
+
+- **Wave 2 — data backfill.** Sketches for the 8 backfill-eligible FKs (#1, #2, #12, #13, #14, #15, #17, #18) remain in §5 Wave 2. The migration adds the FKs but leaves the new columns NULL for existing rows; multi-match ambiguity (esp. `invoice_line.subscription_id`/`service_id` chain) still requires a per-tenant dry-run before applying.
+- **Wave 4 — NOT NULL tightening.** Every Wave 1 FK stays nullable. Promotion to NOT NULL is a separate gated round once live data confirms backfill completeness.
+- **Wave 5 — polymorphic-target denormalized-entity_key CHECKs.** The seven polymorphic FKs (`helpdesk_ticket.asset_record_id`, `workitem.asset_record_id`, `workitem.project_record_id`, `order.pipeline_item_record_id`, `resource_pool.physical_asset_record_id`, `calendar_event.customer_record_id`, `payment.customer_id`) are filtered to the expected `entity_key` at the application layer only for now. The DB CHECK round depends on prerequisite entity_defs being seeded.
+- **Wave 6 — §6.1 Asset/Resource boundary CHECK.** The `service_resource.kind` CHECK forbidding asset-shaped kinds (`device`/`asset`/`serial`) is deferred until a dry-run round surfaces existing offenders.
+- **Row #19 service.tariff_record_id** — deferred until the `tariff_plan` entity_def is seeded.
+- **Row #22 interaction.ticket_id** — decision-point (add a parallel `helpdesk_ticket_id` column vs change the existing target). Not in Wave 1.
+

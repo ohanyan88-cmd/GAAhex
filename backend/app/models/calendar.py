@@ -36,3 +36,7 @@ class CalendarEvent(Base):
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     color: Mapped[str | None] = mapped_column(String(20), nullable=True)  # override calendar color
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # SPEC §6 Wave 1 (additive, nullable): soft-link a calendar event to the customer record or
+    # helpdesk ticket it concerns, surfacing it on Customer/Ticket timelines.
+    customer_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="SET NULL"), nullable=True, index=True)
+    helpdesk_ticket_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("helpdesk_ticket.id", ondelete="SET NULL"), nullable=True, index=True)

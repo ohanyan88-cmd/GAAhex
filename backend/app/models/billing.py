@@ -73,6 +73,11 @@ class InvoiceLine(Base):
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     unit_amount: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)     # luma
     line_total: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)      # luma
+    # SPEC §6 Wave 1 (additive, nullable): typed link from invoice line back to the BSS chain.
+    # Backfill + NOT NULL deferred — Wave 2/4.
+    subscription_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("subscription.id", ondelete="RESTRICT"), nullable=True, index=True)
+    service_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("service.id", ondelete="RESTRICT"), nullable=True, index=True)
+    usage_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usage_record.id", ondelete="RESTRICT"), nullable=True, index=True)
 
 
 class Payment(Base):
@@ -87,3 +92,7 @@ class Payment(Base):
     paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # SPEC §6 Wave 1 (additive, nullable): direct customer + account links (today reached only via
+    # invoice → customer/account). Backfill via invoice deferred to Wave 2.
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="RESTRICT"), nullable=True, index=True)
+    account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=True, index=True)

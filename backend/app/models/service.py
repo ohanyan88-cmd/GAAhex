@@ -30,6 +30,11 @@ class Service(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")  # PENDING|ACTIVE|SUSPENDED|TERMINATED
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # SPEC §6 Wave 1 (additive, nullable): direct product link (today reached via subscription),
+    # and soft-link to the WorkItem that activated this service. service.tariff_record_id (#19)
+    # is DEFERRED until the tariff_plan entity_def is seeded.
+    product_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("product.id", ondelete="RESTRICT"), nullable=True, index=True)
+    activation_workitem_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("workitem.id", ondelete="SET NULL"), nullable=True, index=True)
 
 
 class ServiceResource(Base):

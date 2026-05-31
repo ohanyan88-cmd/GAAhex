@@ -28,6 +28,10 @@ class ResourcePool(Base):
     kind: Mapped[str] = mapped_column(String(20), nullable=False)                       # ipv4|ipv6|vlan|phone|other
     spec: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)             # {cidr:...} | {from:...,to:...}
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # SPEC §6.1 Wave 1 splitter bridge (additive, nullable): the physical Asset record this pool
+    # was carved from (e.g. a physical splitter whose strands are the allocated values). Polymorphic
+    # (filtered to entity_key='asset' at app layer until Wave 5).
+    physical_asset_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="SET NULL"), nullable=True, index=True)
 
 
 class PoolAllocation(Base):
