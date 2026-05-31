@@ -6,8 +6,8 @@
 // 403 PermissionDenied, error banner, and the designed empty state.
 //
 // Polish pass (2026-05-31):
-//   - Wrapped in `.view-inner.workspace-page` so the page respects the
-//     standard Workspace max-width / padding rhythm.
+//   - Wrapped in `.view-inner.section-page` so the page respects the
+//     standard section max-width / padding rhythm.
 //   - The feed lives inside a single `.card` with consistent padding.
 //   - Wires row click-through via `onNavigate` — clicking a row opens the
 //     target record (helpdesk ticket → HelpdeskView, generic entity →
@@ -26,7 +26,7 @@ export default function ActivityFeedView({
 }) {
   return (
     <div className="view">
-      <div className="view-inner workspace-page fade">
+      <div className="view-inner section-page fade">
         <div className="crumbs">
           <span>Workspace</span>
           <span className="sep">/</span>

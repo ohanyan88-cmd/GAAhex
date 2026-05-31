@@ -2257,16 +2257,17 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
 }
 
 /* =========================================================================
-   WORKSPACE POLISH (added 2026-05-31)
+   SECTION POLISH (added 2026-05-31 · generalized 2026-05-31 for CRM)
    ------------------------------------------------------------------------
-   Page-container + page-header polish for the six Workspace pages
-   (Home / My Tasks / My Approvals / Calendar / Activity Feed / Saved Views)
-   plus the redesigned Activity Feed (avatars + action-type badges +
-   day-grouping + click-through).
+   Page-container + page-header polish for every section view (Workspace,
+   CRM, Billing, etc.) plus the redesigned Activity Feed (avatars +
+   action-type badges + day-grouping + click-through).
 
    SCOPE:
-     - `.view-inner.workspace-page` — applied to every Workspace page so the
+     - `.view-inner.section-page` — applied to every section page so the
        content respects a sensible max-width and consistent padding.
+       (Was `.workspace-page` — generalized in the CRM polish; all
+       consumers swapped in the same commit per "don't layer" doctrine.)
      - `.act-feed*`, `.act-row*`, `.act-avatar*`, `.act-badge*`,
        `.act-day-head` — the new global activity feed.
      - `.act-feed-card` — outer card for the Activity Feed page.
@@ -2274,8 +2275,12 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
    All colors/spacing pull from `--gx-*` tokens. Light + dark both work.
    ========================================================================= */
 
-/* ----- Workspace page container ------------------------------------------ */
-.view-inner.workspace-page {
+/* ----- Section page container ------------------------------------------- */
+/* `.section-page` is the canonical class for every section view (Workspace,
+   CRM, Billing, etc.) that needs a centered, capped-width content area.
+   Was `.workspace-page` until 2026-05-31 — generalized for the CRM polish
+   pass; all consumers were swapped in the same commit (don't layer). */
+.view-inner.section-page {
   max-width: 1320px;
   margin: 0 auto;
 }
@@ -2470,10 +2475,10 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
   .act-text { font-size: 12.5px; }
 }
 
-/* ----- Workspace page generic card chrome -------------------------------- */
-/* These rules apply on Workspace pages only, so they don't bleed into the
+/* ----- Section page generic card chrome --------------------------------- */
+/* These rules apply on section pages only, so they don't bleed into the
    broader app. Card containment + clean borders + tokenized shadow. */
-.workspace-page .card {
+.section-page .card {
   background: var(--gx-surface);
   border: 1px solid var(--gx-border);
   border-radius: var(--gx-radius-lg);

@@ -149,7 +149,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
   return (
     <div className="view">
-      <div className="view-inner fade">
+      <div className="view-inner section-page fade">
         <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
 
         <ViewHead

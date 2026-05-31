@@ -209,7 +209,7 @@ export default function MyTasksView({
   if (state.kind === 'forbidden') {
     return (
       <div className="view">
-        <div className="view-inner workspace-page fade">
+        <div className="view-inner section-page fade">
           <div className="crumbs">
             <span>Workspace</span>
             <span className="sep">/</span>
@@ -224,7 +224,7 @@ export default function MyTasksView({
 
   return (
     <div className="view">
-      <div className="view-inner workspace-page fade">
+      <div className="view-inner section-page fade">
         <div className="crumbs">
           <span>Workspace</span>
           <span className="sep">/</span>

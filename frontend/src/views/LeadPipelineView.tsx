@@ -7,7 +7,7 @@ import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import {
   PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon,
-  CloseIcon, UsersIcon, SearchIcon, GearIcon,
+  CloseIcon, UsersIcon, SearchIcon, GearIcon, InboxIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
@@ -152,7 +152,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
   }
 
   return (
-    <div className="view-inner fade">
+    <div className="view-inner section-page fade">
       <div className="crumbs">
         <span>CRM</span><span className="sep">/</span>
         <span style={{ color: 'var(--gx-text-1)' }}>{t('leads.pipeline', 'Lead Pipeline')}</span>
@@ -254,8 +254,14 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
 
       {!loading && filteredLeads.length === 0 && !showNew && (
         <EmptyState
+          icon={<InboxIcon size={40} />}
           title={t('leads.emptyTitle', 'No leads yet')}
           message={t('leads.empty', 'Create the first one to start the pipeline.')}
+          action={canCreate ? (
+            <button className="btn btn-primary btn-md" onClick={() => setShowNew(true)}>
+              <PlusIcon size={13} aria-hidden /> {t('leads.new', 'New lead')}
+            </button>
+          ) : undefined}
         />
       )}
 

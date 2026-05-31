@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -344,7 +344,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   if (fatal === 'notfound') return <NotFound what="entity" message={`No entity matches "${slug}".`} />
   if (fatal === 'denied') {
     return (
-      <div>
+      <div className="view-inner section-page fade">
         <div className="view-head"><h2>{def?.label_plural ?? slug}</h2></div>
         <PermissionDenied message={t('entity.permDenied', "You don't have permission to view these records.")} />
       </div>
@@ -526,7 +526,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       : def.label_plural.toLowerCase()
 
   return (
-    <div className="view-inner fade">
+    <div className="view-inner section-page fade">
         <div className="crumbs">
           <span>Records</span>
           <span className="sep">/</span>
@@ -737,6 +737,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
 
       {rows.length === 0 && !loading && !formOpen ? (
         <EmptyState
+          icon={<InboxIcon size={40} />}
           title={`${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
           message={canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
           action={canCreate ? (
@@ -932,6 +933,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   <tr>
                     <td colSpan={colSpan}>
                       <EmptyState
+                        icon={needle ? <SearchIcon size={40} /> : <InboxIcon size={40} />}
                         title={needle
                           ? t('entity.noMatch', 'No records match your search')
                           : `${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}

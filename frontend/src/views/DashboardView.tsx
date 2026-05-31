@@ -307,7 +307,7 @@ export default function DashboardView({
 
   return (
     <div className="view">
-      <div className="view-inner workspace-page gx-dash fade">
+      <div className="view-inner section-page gx-dash fade">
         <div className="crumbs">
           <span>Home</span>
           <span className="sep">/</span>
