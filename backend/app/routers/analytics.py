@@ -927,3 +927,84 @@ async def net_subscriber_growth(weeks: int = 12, user: User = Depends(current_us
             "net":     new_count - churn_count,
         })
     return out
+
+
+# ==========================================================================================
+# 20. SLA breach summary — support/tech/billing breach + at-risk counts (CEO layout)
+# ==========================================================================================
+
+@router.get("/sla-breach-summary")
+async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """SLA breaches grouped by department/role.
+
+    Returns:
+      {
+        "support":  {"breaches": int, "at_risk": int},
+        "tech":     {"breaches": int, "at_risk": int},  # workitems past due_at
+        "billing":  {"breaches": int, "at_risk": int},  # invoices past due_at
+      }
+    Breach = past SLA. At risk = within 25% of SLA budget remaining.
+    """
+    await _gate(s, user)
+    t = user.tenant_id
+    now = _now()
+
+    # Helpdesk: tickets older than 8h still open
+    eight_h_ago = now - timedelta(hours=8)
+    six_h_ago   = now - timedelta(hours=6)
+
+    helpdesk_breaches = int((await s.execute(
+        select(func.count()).select_from(HelpdeskTicket).where(
+            HelpdeskTicket.tenant_id == t,
+            HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
+            HelpdeskTicket.created_at < eight_h_ago,
+        )
+    )).scalar_one())
+    helpdesk_at_risk = int((await s.execute(
+        select(func.count()).select_from(HelpdeskTicket).where(
+            HelpdeskTicket.tenant_id == t,
+            HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
+            HelpdeskTicket.created_at >= eight_h_ago,
+            HelpdeskTicket.created_at < six_h_ago,
+        )
+    )).scalar_one())
+
+    # Workitems: due_at past now
+    tech_breaches = int((await s.execute(
+        select(func.count()).select_from(WorkItem).where(
+            WorkItem.tenant_id == t,
+            WorkItem.status.notin_(["DONE","CANCELLED"]),
+            WorkItem.due_at < now,
+        )
+    )).scalar_one())
+    tech_at_risk = int((await s.execute(
+        select(func.count()).select_from(WorkItem).where(
+            WorkItem.tenant_id == t,
+            WorkItem.status.notin_(["DONE","CANCELLED"]),
+            WorkItem.due_at >= now,
+            WorkItem.due_at < (now + timedelta(hours=12)),
+        )
+    )).scalar_one())
+
+    # Billing: ISSUED invoices past due_at
+    billing_breaches = int((await s.execute(
+        select(func.count()).select_from(Invoice).where(
+            Invoice.tenant_id == t,
+            Invoice.status == "ISSUED",
+            Invoice.due_at < now,
+        )
+    )).scalar_one())
+    billing_at_risk = int((await s.execute(
+        select(func.count()).select_from(Invoice).where(
+            Invoice.tenant_id == t,
+            Invoice.status == "ISSUED",
+            Invoice.due_at >= now,
+            Invoice.due_at < (now + timedelta(days=3)),
+        )
+    )).scalar_one())
+
+    return {
+        "support": {"breaches": helpdesk_breaches, "at_risk": helpdesk_at_risk},
+        "tech":    {"breaches": tech_breaches,     "at_risk": tech_at_risk},
+        "billing": {"breaches": billing_breaches,  "at_risk": billing_at_risk},
+    }

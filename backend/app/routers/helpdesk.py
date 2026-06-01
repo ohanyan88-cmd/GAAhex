@@ -34,6 +34,12 @@ router = APIRouter(prefix="/api/helpdesk", tags=["helpdesk"])
 # Valid status set
 _STATUSES = {"OPEN", "IN_PROGRESS", "PENDING", "RESOLVED", "CLOSED"}
 
+# SLA TTR — default minutes by priority when the ticket's queue has no default_sla_minutes.
+# Used by list_tickets to surface a computed `sla_ttr_remaining_mins` field per ticket.
+DEFAULT_SLA_MINS = {"LOW": 1440, "NORMAL": 480, "HIGH": 240, "URGENT": 60}
+# Closed statuses for which TTR is N/A (returned as null).
+_CLOSED_STATUSES = {"RESOLVED", "CLOSED", "CANCELLED"}
+
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -306,7 +312,36 @@ async def list_tickets(
         t for t in rows
         if can(grants, "helpdesk_ticket", "view", paths.get(str(t.owner_node_id)) if t.owner_node_id else None)
     ]
-    return [_ticket(t) for t in _paginate(visible, limit, offset)]
+    page = _paginate(visible, limit, offset)
+
+    # SLA TTR — fetch each referenced queue's default_sla_minutes in one shot so we can
+    # surface `sla_ttr_remaining_mins` per ticket. Closed tickets get null; everything
+    # else is queue.default_sla_minutes (or the priority-based fallback) minus age.
+    queue_ids = {t.queue_id for t in page if t.queue_id is not None}
+    queue_sla: dict = {}
+    if queue_ids:
+        qrows = (await s.execute(
+            select(HelpdeskQueue.id, HelpdeskQueue.default_sla_minutes).where(
+                HelpdeskQueue.tenant_id == user.tenant_id,
+                HelpdeskQueue.id.in_(queue_ids),
+            )
+        )).all()
+        queue_sla = {qid: mins for qid, mins in qrows}
+
+    now = _now()
+    out: list[dict] = []
+    for t in page:
+        d = _ticket(t)
+        if t.status in _CLOSED_STATUSES:
+            d["sla_ttr_remaining_mins"] = None
+        else:
+            sla_mins = queue_sla.get(t.queue_id) if t.queue_id is not None else None
+            if sla_mins is None:
+                sla_mins = DEFAULT_SLA_MINS.get(t.priority, DEFAULT_SLA_MINS["NORMAL"])
+            age_mins = (now - t.created_at).total_seconds() / 60
+            d["sla_ttr_remaining_mins"] = int(round(sla_mins - age_mins))
+        out.append(d)
+    return out
 
 
 @router.post("/tickets", status_code=201)
