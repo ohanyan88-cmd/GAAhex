@@ -40,6 +40,7 @@ import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
 import HomeView from './views/HomeView'
 import MasterLayoutDemoView from './views/MasterLayoutDemoView'
+import ComingSoonView from './views/ComingSoonView'
 import GlobalSearchView from './views/GlobalSearchView'
 import RecentItemsView from './views/RecentItemsView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
@@ -106,6 +107,7 @@ type View =
   | { type: 'dispatch-board' }
   | { type: 'coverage-gis' }
   | { type: 'master-demo' }
+  | { type: 'coming-soon'; id: string; title: string; parent: string }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
@@ -232,6 +234,11 @@ export default function App() {
       setView({ type: 'entity', slug: item.viewArgs!.slug })
       return
     }
+    if (item.viewType === 'coming-soon') {
+      const a = item.viewArgs!
+      setView({ type: 'coming-soon', id: a.id, title: a.title, parent: a.parent })
+      return
+    }
     setView({ type: item.viewType } as View)
   }
 
@@ -241,6 +248,9 @@ export default function App() {
     }
     if (item.viewType === 'entity') {
       return view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === item.viewArgs?.slug
+    }
+    if (item.viewType === 'coming-soon') {
+      return view.type === 'coming-soon' && (view as { type: 'coming-soon'; id: string }).id === item.viewArgs?.id
     }
     return view.type === item.viewType
   }
@@ -637,6 +647,8 @@ export default function App() {
                     onRoute={(r: StudioRoute) => setView({ type: 'studio', group: r.group, module: r.module, leaf: r.leaf })}
                     onBack={backFromStudio}
                   />
+              : view.type === 'coming-soon'
+                ? <ComingSoonView title={view.title} parent={view.parent} id={view.id} />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
               : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} />}
