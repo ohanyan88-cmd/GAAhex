@@ -50,6 +50,7 @@ from .product_version import ProductVersion
 from .tariff import TariffPlan
 from .payment_allocation import PaymentAllocation
 from .credit_note import CreditNote
+from .dunning import DunningPolicy, DunningCase, ServiceActionLog
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -92,4 +93,5 @@ __all__ = [
     "TariffPlan",
     "PaymentAllocation",
     "CreditNote",
+    "DunningPolicy", "DunningCase", "ServiceActionLog",
 ]

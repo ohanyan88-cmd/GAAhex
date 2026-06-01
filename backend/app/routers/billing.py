@@ -1608,6 +1608,12 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
 
+    # Phase B.2 — open a DunningCase for every account whose invoice flipped to OVERDUE.
+    # open_case is idempotent (returns the existing active case for the account), so re-runs
+    # never double-open. Import here to avoid an at-startup circular import with the dunning
+    # router which itself imports from .billing for the legacy run-dunning shape tests.
+    from ..services import dunning as dunning_service
+
     started = _now()
     try:
         now = _now()
@@ -1615,13 +1621,24 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
             select(Invoice).where(Invoice.tenant_id == user.tenant_id, Invoice.status == "ISSUED")
         )).scalars().all()
         newly = []
+        cases_opened = 0
         for inv in issued:
             if inv.due_at is not None and inv.due_at < now:
                 inv.status = "OVERDUE"
                 await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
                                     {"from": "ISSUED", "to": "OVERDUE"})
                 newly.append(inv)
-        summary = {"checked": len(issued), "marked_overdue": len(newly)}
+                # Phase B.2 hook — open a dunning case when the invoice is tied to an account.
+                # Idempotent: same account → returns existing active case (no duplicate).
+                if inv.account_id is not None:
+                    await dunning_service.open_case(
+                        s,
+                        account_id=inv.account_id,
+                        triggering_invoice_id=inv.id,
+                        tenant_id=user.tenant_id,
+                    )
+                    cases_opened += 1
+        summary = {"checked": len(issued), "marked_overdue": len(newly), "dunning_cases_opened": cases_opened}
         _record_job_run(s, user, "billing.run_dunning", "SUCCESS", summary, started)
         await s.commit()                              # persist status changes + the JobRun first
     except Exception as e:

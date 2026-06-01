@@ -156,11 +156,21 @@ async def allocate_payment(
         await session.flush()
 
     # ---- A.2 integration: recompute account balance when the payment is linked to an account. ----
+    resolved_account_id: uuid.UUID | None = None
     if pay.account_id is not None:
         await recompute_account_balance(session, pay.account_id)
+        resolved_account_id = pay.account_id
     elif inv.account_id is not None:
         # Fall back to the invoice's account_id (mirrors the existing payment-recompute hook).
         await recompute_account_balance(session, inv.account_id)
+        resolved_account_id = inv.account_id
+
+    # ---- B.2 integration: after balance lands, cure any active dunning cases if the account
+    # is now whole (current_balance >= 0). check_and_cure_for_payment is idempotent + null-safe.
+    if resolved_account_id is not None:
+        # Local import — avoid a cycle at module load (services.dunning pulls account_balance).
+        from .dunning import check_and_cure_for_payment as _check_and_cure
+        await _check_and_cure(session, account_id=resolved_account_id)
 
     return alloc
 
