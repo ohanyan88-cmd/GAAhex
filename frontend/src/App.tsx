@@ -306,7 +306,7 @@ export default function App() {
     return (
       <div className="login-wrap">
         <div className="login-brand">
-          <img src="/logo/GAAex-logo-reversed.svg" alt="GAAex" style={{ height: 64, position: 'relative', zIndex: 1 }} />
+          <img src="/logo/GAAex-logo-reversed.svg" alt="GAAex" style={{ height: 102, position: 'relative', zIndex: 1 }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div className="gx-eyebrow" style={{ marginBottom: 14 }}>THE OPERATING SYSTEM FOR ISPs</div>
             <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 40, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-.03em', margin: 0, maxWidth: 420 }}>
