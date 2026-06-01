@@ -1,31 +1,43 @@
 // RevenueAssuranceView — Wave A §3 dashboard for revenue leakage / collections health.
 //
-// Mirrors the DashboardView (Home) pattern from the kit's ModuleDashboard:
-//   crumbs → ViewHead (with Configure button) → KPI strip → 2-col (chart + secondary widget)
-//   → attention table.
+// Two tabs:
+//   1. Overview — original dashboard (KPI strip + revenue-trend chart + AR aging + overdue table).
+//   2. Findings — Phase B.3 worklist over /api/revenue-assurance/* (scan runs, findings triage).
 //
 // Doctrine: every value is fetched from a real backend endpoint. If a fetch fails or returns
 // nothing meaningful, the widget hides itself entirely — no dashes, no placeholders, no toast-only
 // banners. Hide-if-missing per CLAUDE_CODE_ALL_PAGES_PROMPTS.md rule 3.
 //
-// Endpoints used (all already live in backend/app/routers/analytics.py + billing.py):
-//   GET /api/analytics/revenue-trend?months=6   — main chart (collected vs invoiced)
-//   GET /api/analytics/overview                 — KPIs (AR outstanding, overdue, collections this/prev month)
-//   GET /api/analytics/ar-aging                 — secondary widget (aging buckets)
-//   GET /api/invoices?status=OVERDUE            — attention table (overdue invoices)
+// Endpoints used:
+//   GET  /api/analytics/revenue-trend?months=6   — main chart (collected vs invoiced)
+//   GET  /api/analytics/overview                 — KPIs (AR outstanding, overdue, collections this/prev month)
+//   GET  /api/analytics/ar-aging                 — secondary widget (aging buckets)
+//   GET  /api/invoices?status=OVERDUE            — overdue attention table
+//   POST /api/revenue-assurance/scan             — kick off a new scan (admin-gated)
+//   GET  /api/revenue-assurance/findings         — paginated findings list (analytics.view)
+//   POST /api/revenue-assurance/findings/{id}/ack
+//   POST /api/revenue-assurance/findings/{id}/resolve
+//   POST /api/revenue-assurance/findings/{id}/mark-false-positive (admin)
+//   GET  /api/revenue-assurance/scans            — newest scan run (for "Last scan" line)
 //
-// Permissions: gated on `invoice.view` (the data layer all four widgets live on). The Analytics
-// endpoints separately gate on analytics.view server-side; if that 403s a widget simply hides.
-import { useEffect, useState } from 'react'
-import { ShieldIcon, GearIcon, ReceiptIcon } from '../components/icons'
-import { Banknote, AlertTriangle, TrendingUp, BarChart3 } from 'lucide-react'
-import { bget, loadCustomers, type Invoice } from '../lib/billing'
+// Permissions: gated on `invoice.view` (the data layer all four overview widgets live on).
+// The Findings tab additionally treats backend 403 as PermissionDenied and 404 as "not available".
+import { useEffect, useMemo, useState } from 'react'
+import { ShieldIcon, GearIcon, ReceiptIcon, SearchIcon } from '../components/icons'
+import {
+  Banknote, AlertTriangle, TrendingUp, BarChart3,
+  ListChecks, Play, RefreshCw, ChevronLeft, ChevronRight,
+} from 'lucide-react'
+import { bget, bpost, loadCustomers, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { fetchCapabilities, can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { LineChart } from '../components/charts/LineChart'
 import { StatusPill, KPITile } from '../primitives'
-import { PermissionDenied } from '../components/States'
+import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
 import ViewHead from '../components/ViewHead'
+import { Modal } from '../components/Modal'
+import { toast } from '../components/Toast'
+import { timeAgo } from '../lib/time'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Overview = {
@@ -45,6 +57,76 @@ type AgingBuckets = { current: number; d1_30: number; d31_60: number; d61_90: nu
 // Per-widget fetch state machine. 'hide' is silent — the widget is omitted, not greyed out.
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
 
+// ── Phase B.3 types ─────────────────────────────────────────────────────────
+type FindingType = 'unbilled_service' | 'uninvoiced_subscription' | 'orphan_invoice'
+type FindingSeverity = 'low' | 'medium' | 'high' | 'critical'
+type FindingStatus = 'open' | 'investigating' | 'resolved' | 'false_positive'
+
+interface RaFinding {
+  id: string
+  tenant_id: string
+  finding_type: FindingType
+  severity: FindingSeverity
+  entity_type: 'service' | 'subscription' | 'invoice'
+  entity_id: string
+  summary: string
+  detail_json: Record<string, any>
+  detected_at: string
+  status: FindingStatus
+  ack_at: string | null
+  ack_by: string | null
+  resolved_at: string | null
+  resolved_by: string | null
+  resolution: string | null
+  scan_run_id: string | null
+}
+
+interface RaScanRun {
+  id: string
+  tenant_id: string
+  started_at: string
+  completed_at: string | null
+  status: 'running' | 'success' | 'failed'
+  findings_count: number
+  error_message: string | null
+  triggered_by: string | null
+}
+
+type TabKey = 'overview' | 'findings'
+
+const FINDING_TYPE_LABEL: Record<FindingType, string> = {
+  unbilled_service: 'Unbilled Service',
+  uninvoiced_subscription: 'Uninvoiced Sub',
+  orphan_invoice: 'Orphan Invoice',
+}
+
+const STATUS_LABEL: Record<FindingStatus, string> = {
+  open: 'Open',
+  investigating: 'Investigating',
+  resolved: 'Resolved',
+  false_positive: 'False positive',
+}
+
+type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+
+function statusToPill(s: FindingStatus): PillVariant {
+  switch (s) {
+    case 'open':           return 'critical'
+    case 'investigating':  return 'degraded'
+    case 'resolved':       return 'active'
+    case 'false_positive': return 'neutral'
+  }
+}
+
+function severityToPill(sev: FindingSeverity): PillVariant {
+  switch (sev) {
+    case 'critical': return 'critical'
+    case 'high':     return 'degraded'
+    case 'medium':   return 'info'
+    case 'low':      return 'neutral'
+  }
+}
+
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -63,6 +145,9 @@ export default function RevenueAssuranceView({
   const [caps, setCaps] = useState<Capabilities>(FULL_ACCESS)
   const [capsLoaded, setCapsLoaded] = useState(false)
   const [denied, setDenied] = useState(false)
+
+  // Tab state — Overview (default) wraps the original dashboard; Findings is the B.3 worklist.
+  const [tab, setTab] = useState<TabKey>('overview')
 
   // Each widget is independently fetched + hideable.
   const [overview, setOverview] = useState<Fetched<Overview>>({ state: 'loading' })
@@ -166,6 +251,157 @@ export default function RevenueAssuranceView({
     return () => { alive = false }
   }, [token, capsLoaded, canView])
 
+  // ── Findings tab state (FindingsState is declared below near the FindingsTab subcomponent) ──
+  const [findings, setFindings] = useState<FindingsState>({ state: 'loading' })
+  const [statusFilter, setStatusFilter] = useState<FindingStatus | 'all'>('open')
+  const [typeFilter, setTypeFilter] = useState<FindingType | 'all'>('all')
+  const [severityFilter, setSeverityFilter] = useState<FindingSeverity | 'all'>('all')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 25
+
+  // Last successful scan run (newest first), for the "Last scan: …" line.
+  const [lastScan, setLastScan] = useState<RaScanRun | null>(null)
+
+  // Resolve / FP modal state — null when closed.
+  const [actionModal, setActionModal] = useState<
+    | { kind: 'resolve' | 'false_positive'; finding: RaFinding; resolution: string; submitting: boolean }
+    | null
+  >(null)
+
+  // Capability test for admin actions (Run Scan / mark FP). Backend enforces; this gates the UI.
+  const canAdmin = canConfigure || canDo(caps, 'finding', 'edit')
+
+  // Build the findings query string from filters. Status='all' omits the param so the backend
+  // returns every status; finding_type and severity follow the same pattern.
+  function buildFindingsQuery(): string {
+    const qs: string[] = ['page=1', 'page_size=200']
+    if (statusFilter !== 'all') qs.push(`status=${encodeURIComponent(statusFilter)}`)
+    if (typeFilter !== 'all') qs.push(`finding_type=${encodeURIComponent(typeFilter)}`)
+    if (severityFilter !== 'all') qs.push(`severity=${encodeURIComponent(severityFilter)}`)
+    return qs.join('&')
+  }
+
+  async function loadFindings() {
+    setFindings({ state: 'loading' })
+    const res = await bget<any>(token, `/api/revenue-assurance/findings?${buildFindingsQuery()}`)
+    if (res.status === 403) { setFindings({ state: 'denied' }); return }
+    if (res.status === 404) { setFindings({ state: 'unavailable' }); return }
+    if (!res.ok) {
+      setFindings({ state: 'error', message: `Failed to load findings (${res.status})` })
+      return
+    }
+    // Tolerant shape — backend may return either an array or { items: [...] } pagination envelope.
+    const raw = res.data
+    const items: RaFinding[] = Array.isArray(raw)
+      ? raw as RaFinding[]
+      : Array.isArray(raw?.items)
+        ? raw.items as RaFinding[]
+        : Array.isArray(raw?.results)
+          ? raw.results as RaFinding[]
+          : []
+    if (items.length === 0) { setFindings({ state: 'empty' }); return }
+    setFindings({ state: 'ok', items })
+  }
+
+  async function loadLastScan() {
+    const res = await bget<any>(token, '/api/revenue-assurance/scans?page=1')
+    if (!res.ok) { setLastScan(null); return }
+    const raw = res.data
+    const items: RaScanRun[] = Array.isArray(raw)
+      ? raw as RaScanRun[]
+      : Array.isArray(raw?.items)
+        ? raw.items as RaScanRun[]
+        : Array.isArray(raw?.results)
+          ? raw.results as RaScanRun[]
+          : []
+    if (items.length === 0) { setLastScan(null); return }
+    // Newest first per API contract — but defend against ordering surprises.
+    const sorted = [...items].sort((a, b) => {
+      const ta = new Date(a.started_at).getTime(); const tb = new Date(b.started_at).getTime()
+      return tb - ta
+    })
+    setLastScan(sorted[0] ?? null)
+  }
+
+  // Initial + filter-driven fetch when the Findings tab becomes (or stays) active.
+  useEffect(() => {
+    if (!capsLoaded || !canView) return
+    if (tab !== 'findings') return
+    setPage(1)
+    void loadFindings()
+    void loadLastScan()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, capsLoaded, canView, tab, statusFilter, typeFilter, severityFilter])
+
+  // Derived KPI counts — always from the loaded list (status filter may scope these to the
+  // currently filtered view, which is the intentional behavior: the KPI strip reflects what
+  // the user is looking at).
+  const findingsList = findings.state === 'ok' ? findings.items : []
+  const kpiCounts = useMemo(() => {
+    const counts = { open: 0, investigating: 0, resolved: 0, false_positive: 0 }
+    for (const f of findingsList) counts[f.status]++
+    return counts
+  }, [findingsList])
+
+  const pageCount = Math.max(1, Math.ceil(findingsList.length / PAGE_SIZE))
+  const pageRows = findingsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  useEffect(() => { if (page > pageCount) setPage(1) }, [page, pageCount])
+
+  // ── Action handlers ────────────────────────────────────────────────────────
+  async function runScan() {
+    try {
+      const run = await bpost<RaScanRun>(token, '/api/revenue-assurance/scan', {})
+      const id = run?.id ? String(run.id).slice(0, 8) : 'unknown'
+      const count = typeof run?.findings_count === 'number' ? run.findings_count : null
+      toast.success(count != null
+        ? `Scan ${id} started · ${count} finding${count === 1 ? '' : 's'}`
+        : `Scan ${id} started`)
+      await loadFindings()
+      await loadLastScan()
+    } catch (e) {
+      toast.error((e as Error).message || 'Scan failed')
+    }
+  }
+
+  async function ackFinding(f: RaFinding) {
+    try {
+      await bpost(token, `/api/revenue-assurance/findings/${f.id}/ack`, {})
+      toast.success('Acknowledged')
+      await loadFindings()
+    } catch (e) {
+      toast.error((e as Error).message || 'Failed to acknowledge')
+    }
+  }
+
+  function openResolve(f: RaFinding) {
+    setActionModal({ kind: 'resolve', finding: f, resolution: '', submitting: false })
+  }
+  function openMarkFP(f: RaFinding) {
+    setActionModal({ kind: 'false_positive', finding: f, resolution: '', submitting: false })
+  }
+
+  async function submitActionModal() {
+    if (!actionModal) return
+    const { kind, finding, resolution } = actionModal
+    if (kind === 'resolve' && !resolution.trim()) return // resolution required
+    setActionModal({ ...actionModal, submitting: true })
+    try {
+      if (kind === 'resolve') {
+        await bpost(token, `/api/revenue-assurance/findings/${finding.id}/resolve`, { resolution: resolution.trim() })
+        toast.success('Finding resolved')
+      } else {
+        const body = resolution.trim() ? { resolution: resolution.trim() } : {}
+        await bpost(token, `/api/revenue-assurance/findings/${finding.id}/mark-false-positive`, body)
+        toast.success('Marked false positive')
+      }
+      setActionModal(null)
+      await loadFindings()
+    } catch (e) {
+      toast.error((e as Error).message || 'Action failed')
+      setActionModal((m) => m ? { ...m, submitting: false } : m)
+    }
+  }
+
   if (capsLoaded && !canView) {
     return <PermissionDenied message="You don't have permission to view revenue assurance." />
   }
@@ -211,7 +447,36 @@ export default function RevenueAssuranceView({
           ) : undefined}
         />
 
-        {kpiVisible && (
+        {/* Tab strip — PipelineView pattern (button row, bottom border on active). */}
+        <div
+          role="tablist"
+          aria-label="Revenue Assurance views"
+          style={{
+            display: 'flex',
+            gap: 4,
+            borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+            marginBottom: 16,
+            marginTop: 8,
+            paddingBottom: 0,
+          }}
+        >
+          <RaTabButton
+            active={tab === 'overview'}
+            onClick={() => setTab('overview')}
+            icon={<BarChart3 size={14} />}
+            label="Overview"
+            sub="KPIs · trend · aging · overdue"
+          />
+          <RaTabButton
+            active={tab === 'findings'}
+            onClick={() => setTab('findings')}
+            icon={<ListChecks size={14} />}
+            label="Findings"
+            sub="Triage revenue leakage signals"
+          />
+        </div>
+
+        {tab === 'overview' && kpiVisible && (
           <div className="kpi-strip">
             {showCollected && (
               <KPITile
@@ -257,7 +522,7 @@ export default function RevenueAssuranceView({
         )}
 
         {/* Two-column body: main chart left, AR aging right. Hide each independently. */}
-        {(trend.state !== 'hide' || aging.state !== 'hide') && (
+        {tab === 'overview' && (trend.state !== 'hide' || aging.state !== 'hide') && (
           <div className="cols">
             {trend.state !== 'hide' && (
               <div className="card">
@@ -297,7 +562,7 @@ export default function RevenueAssuranceView({
         )}
 
         {/* Needs-attention table: overdue invoices, sorted by balance. */}
-        {overdue.state !== 'hide' && (
+        {tab === 'overview' && overdue.state !== 'hide' && (
           <div className="card" style={{ marginTop: 18 }}>
             <div className="card-head">
               <AlertTriangle size={16} style={{ color: 'var(--gx-text-3)' }} />
@@ -338,6 +603,82 @@ export default function RevenueAssuranceView({
             </div>
           </div>
         )}
+
+        {/* ── Findings tab ──────────────────────────────────────────────── */}
+        {tab === 'findings' && (
+          <FindingsTab
+            state={findings}
+            statusFilter={statusFilter}
+            onStatusFilter={setStatusFilter}
+            typeFilter={typeFilter}
+            onTypeFilter={setTypeFilter}
+            severityFilter={severityFilter}
+            onSeverityFilter={setSeverityFilter}
+            canAdmin={canAdmin}
+            onRunScan={runScan}
+            lastScan={lastScan}
+            kpiCounts={kpiCounts}
+            pageRows={pageRows}
+            page={page}
+            pageCount={pageCount}
+            onPage={setPage}
+            totalRows={findingsList.length}
+            pageSize={PAGE_SIZE}
+            onRetry={loadFindings}
+            onAck={ackFinding}
+            onOpenResolve={openResolve}
+            onOpenMarkFP={openMarkFP}
+          />
+        )}
+
+        {/* Resolve / mark-FP modal — used by the Findings tab actions. */}
+        {actionModal && (
+          <Modal
+            open
+            onClose={() => actionModal.submitting ? undefined : setActionModal(null)}
+            title={actionModal.kind === 'resolve' ? 'Resolve finding' : 'Mark as false positive'}
+            subtitle={actionModal.finding.summary}
+            size="md"
+            footer={
+              <>
+                <button
+                  className="btn btn-ghost btn-md"
+                  onClick={() => setActionModal(null)}
+                  disabled={actionModal.submitting}
+                >Cancel</button>
+                <button
+                  className={'btn btn-md ' + (actionModal.kind === 'resolve' ? 'btn-primary' : 'btn-secondary')}
+                  onClick={submitActionModal}
+                  disabled={
+                    actionModal.submitting ||
+                    (actionModal.kind === 'resolve' && !actionModal.resolution.trim())
+                  }
+                >
+                  {actionModal.submitting
+                    ? 'Submitting…'
+                    : (actionModal.kind === 'resolve' ? 'Resolve' : 'Mark false positive')}
+                </button>
+              </>
+            }
+          >
+            <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span>
+                Resolution{actionModal.kind === 'resolve' ? ' *' : ' (optional)'}
+              </span>
+              <textarea
+                className="inp inp-md"
+                rows={4}
+                value={actionModal.resolution}
+                onChange={(e) => setActionModal({ ...actionModal, resolution: e.target.value })}
+                placeholder={
+                  actionModal.kind === 'resolve'
+                    ? 'Describe how this finding was resolved (e.g. issued invoice INV-1234)'
+                    : 'Optional context for why this is a false positive'
+                }
+              />
+            </label>
+          </Modal>
+        )}
       </div>
     </div>
   )
@@ -346,6 +687,385 @@ export default function RevenueAssuranceView({
 // ── Subcomponents ────────────────────────────────────────────────────────────
 // Note: the previous inline KpiTile was deleted in the KPI design-system sweep.
 // This view now uses the shared `<KPITile>` primitive imported above.
+
+// Tab button — kit pattern from PipelineView (label + sub line, bottom border on active).
+function RaTabButton({ active, onClick, icon, label, sub }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+        gap: 2,
+        padding: '10px 16px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
+        fontSize: 13,
+        fontWeight: active ? 600 : 500,
+        cursor: 'pointer',
+        marginBottom: -1,
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{icon}{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3, #94a3b8)' }}>{sub}</span>
+    </button>
+  )
+}
+
+// ── Findings tab ─────────────────────────────────────────────────────────────
+type FindingsState =
+  | { state: 'loading' }
+  | { state: 'ok'; items: RaFinding[] }
+  | { state: 'empty' }
+  | { state: 'denied' }
+  | { state: 'unavailable' }
+  | { state: 'error'; message: string }
+
+function FindingsTab(props: {
+  state: FindingsState
+  statusFilter: FindingStatus | 'all'
+  onStatusFilter: (s: FindingStatus | 'all') => void
+  typeFilter: FindingType | 'all'
+  onTypeFilter: (t: FindingType | 'all') => void
+  severityFilter: FindingSeverity | 'all'
+  onSeverityFilter: (s: FindingSeverity | 'all') => void
+  canAdmin: boolean
+  onRunScan: () => void
+  lastScan: RaScanRun | null
+  kpiCounts: { open: number; investigating: number; resolved: number; false_positive: number }
+  pageRows: RaFinding[]
+  page: number
+  pageCount: number
+  onPage: (p: number) => void
+  totalRows: number
+  pageSize: number
+  onRetry: () => void
+  onAck: (f: RaFinding) => void
+  onOpenResolve: (f: RaFinding) => void
+  onOpenMarkFP: (f: RaFinding) => void
+}) {
+  const {
+    state, statusFilter, onStatusFilter, typeFilter, onTypeFilter,
+    severityFilter, onSeverityFilter, canAdmin, onRunScan, lastScan,
+    kpiCounts, pageRows, page, pageCount, onPage, totalRows, pageSize,
+    onRetry, onAck, onOpenResolve, onOpenMarkFP,
+  } = props
+
+  if (state.state === 'denied') {
+    return <PermissionDenied message="You don't have permission to view revenue assurance findings." />
+  }
+
+  if (state.state === 'unavailable') {
+    return (
+      <EmptyState
+        icon={<ListChecks size={40} />}
+        title="Revenue Assurance endpoints not yet available"
+        message="The findings worklist will appear once the Phase B.3 backend is live."
+      />
+    )
+  }
+
+  return (
+    <div>
+      {/* Header row: filters + Run Scan + Last scan stamp */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center',
+        marginBottom: 16,
+      }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <FilterSelect
+            label="Status"
+            value={statusFilter}
+            onChange={(v) => onStatusFilter(v as FindingStatus | 'all')}
+            options={[
+              ['all', 'All statuses'],
+              ['open', 'Open'],
+              ['investigating', 'Investigating'],
+              ['resolved', 'Resolved'],
+              ['false_positive', 'False positive'],
+            ]}
+          />
+          <FilterSelect
+            label="Type"
+            value={typeFilter}
+            onChange={(v) => onTypeFilter(v as FindingType | 'all')}
+            options={[
+              ['all', 'All types'],
+              ['unbilled_service', FINDING_TYPE_LABEL.unbilled_service],
+              ['uninvoiced_subscription', FINDING_TYPE_LABEL.uninvoiced_subscription],
+              ['orphan_invoice', FINDING_TYPE_LABEL.orphan_invoice],
+            ]}
+          />
+          <FilterSelect
+            label="Severity"
+            value={severityFilter}
+            onChange={(v) => onSeverityFilter(v as FindingSeverity | 'all')}
+            options={[
+              ['all', 'All severities'],
+              ['critical', 'Critical'],
+              ['high', 'High'],
+              ['medium', 'Medium'],
+              ['low', 'Low'],
+            ]}
+          />
+        </div>
+
+        <span style={{ flex: 1 }} />
+
+        {lastScan && (
+          <span style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
+            Last scan: <strong style={{ color: 'var(--gx-text-2, #475569)' }} title={lastScan.started_at}>
+              {timeAgo(lastScan.started_at) || 'just now'}
+            </strong>
+            {' '}· {lastScan.findings_count} finding{lastScan.findings_count === 1 ? '' : 's'}
+          </span>
+        )}
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={onRetry}
+          title="Reload findings"
+        >
+          <RefreshCw size={13} /> Refresh
+        </button>
+        {canAdmin && (
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onRunScan}
+            title="Start a new scan run"
+          >
+            <Play size={13} /> Run Scan
+          </button>
+        )}
+      </div>
+
+      {/* KPI strip — derived client-side from loaded list */}
+      {state.state === 'ok' && (
+        <div className="kpi-strip" style={{ marginBottom: 16 }}>
+          <KPITile
+            label="Open"
+            value={kpiCounts.open}
+            size="sm"
+            danger={kpiCounts.open > 0}
+          />
+          <KPITile
+            label="Investigating"
+            value={kpiCounts.investigating}
+            size="sm"
+            warning={kpiCounts.investigating > 0}
+          />
+          <KPITile
+            label="Resolved"
+            value={kpiCounts.resolved}
+            size="sm"
+          />
+          <KPITile
+            label="False positives"
+            value={kpiCounts.false_positive}
+            size="sm"
+            muted
+          />
+        </div>
+      )}
+
+      {/* Body — loading / error / empty / table */}
+      {state.state === 'loading' && (
+        <p className="muted" style={{ padding: 18 }}>Loading findings…</p>
+      )}
+
+      {state.state === 'error' && (
+        <ErrorBanner message={state.message} onRetry={onRetry} />
+      )}
+
+      {state.state === 'empty' && (
+        <EmptyState
+          icon={<SearchIcon size={40} />}
+          title="No findings to triage."
+          message={lastScan
+            ? `Last scan ${timeAgo(lastScan.started_at) || 'just now'}.`
+            : 'Run a scan to detect revenue leakage.'}
+          action={canAdmin ? (
+            <button className="btn btn-primary btn-sm" onClick={onRunScan}>
+              <Play size={13} /> Run Scan
+            </button>
+          ) : undefined}
+        />
+      )}
+
+      {state.state === 'ok' && (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div className="grid-wrap" style={{ overflowX: 'auto' }}>
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th scope="col">Detected</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Entity</th>
+                  <th scope="col">Summary</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((f) => {
+                  const actionable = f.status === 'open' || f.status === 'investigating'
+                  return (
+                    <tr key={f.id}>
+                      <td>
+                        <span title={f.detected_at} style={{ color: 'var(--gx-text-2)' }}>
+                          {timeAgo(f.detected_at) || '—'}
+                        </span>
+                      </td>
+                      <td>
+                        <TypeChip type={f.finding_type} severity={f.severity} />
+                      </td>
+                      <td>
+                        <StatusPill
+                          variant={severityToPill(f.severity)}
+                          label={f.severity}
+                          size="sm"
+                        />
+                      </td>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 11, color: 'var(--gx-text-3)', textTransform: 'uppercase' }}>
+                            {f.entity_type}
+                          </span>
+                          <span className="mono" style={{ fontSize: 12 }}>
+                            {f.entity_id ? f.entity_id.slice(0, 8) : '—'}
+                          </span>
+                        </span>
+                      </td>
+                      <td style={{ maxWidth: 360 }}>
+                        <span style={{
+                          display: 'inline-block', maxWidth: '100%',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          verticalAlign: 'bottom',
+                        }} title={f.summary}>
+                          {f.summary}
+                        </span>
+                      </td>
+                      <td>
+                        <StatusPill
+                          variant={statusToPill(f.status)}
+                          label={STATUS_LABEL[f.status]}
+                          size="sm"
+                        />
+                      </td>
+                      <td className="actions-col" onClick={(e) => e.stopPropagation()}>
+                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
+                          {actionable && f.status === 'open' && (
+                            <button className="btn btn-ghost btn-sm" onClick={() => onAck(f)}>Ack</button>
+                          )}
+                          {actionable && (
+                            <button className="btn btn-ghost btn-sm" onClick={() => onOpenResolve(f)}>Resolve</button>
+                          )}
+                          {actionable && canAdmin && (
+                            <button className="btn btn-ghost btn-sm" onClick={() => onOpenMarkFP(f)}>False positive</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {pageRows.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      No findings on this page.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="table-foot">
+            <span className="hint">
+              {totalRows === 0
+                ? '0 findings'
+                : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} of ${totalRows}`}
+            </span>
+            <span className="spacer" />
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                className="btn btn-ghost btn-sm btn-icon"
+                disabled={page <= 1}
+                onClick={() => onPage(Math.max(1, page - 1))}
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map((p) => (
+                <button
+                  key={p}
+                  className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')}
+                  onClick={() => onPage(p)}
+                >{p}</button>
+              ))}
+              <button
+                className="btn btn-ghost btn-sm btn-icon"
+                disabled={page >= pageCount}
+                onClick={() => onPage(Math.min(pageCount, page + 1))}
+                aria-label="Next page"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FilterSelect({ label, value, onChange, options }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: [string, string][]
+}) {
+  return (
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
+      <span>{label}</span>
+      <select
+        className="inp inp-sm"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ fontSize: 12 }}
+      >
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </label>
+  )
+}
+
+// Compact type chip with a tinted background driven by severity bucket.
+function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeverity }) {
+  const tone = severity === 'critical' || severity === 'high'
+    ? { bg: 'rgba(239, 68, 68, 0.10)', fg: 'var(--gx-danger, #dc2626)' }
+    : severity === 'medium'
+      ? { bg: 'rgba(245, 158, 11, 0.10)', fg: 'var(--gx-warning, #d97706)' }
+      : { bg: 'var(--gx-bg-2, #f1f5f9)', fg: 'var(--gx-text-2, #475569)' }
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '2px 8px',
+      background: tone.bg,
+      color: tone.fg,
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+    }}>
+      {FINDING_TYPE_LABEL[type]}
+    </span>
+  )
+}
 
 // AR aging bars — same visual idiom as AnalyticsView.Aging, but driven by the typed buckets shape.
 function AgingBars({ buckets }: { buckets: AgingBuckets }) {
