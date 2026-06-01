@@ -6,8 +6,14 @@ Scope + audit exactly like services/respool. Permission gate: `party.*` / `accou
 
 NOTE on namespacing: fixed paths under /api ("/api/parties", "/api/accounts") → register BEFORE
 records.router.
+
+Phase A.2 — Billing Account balance + parent-child hierarchy. The five new columns
+(``current_balance``, ``credit_limit``, ``available_credit``, ``balance_updated_at``,
+``hierarchy_path``) are serialized on every account read. Three new endpoints expose the balance
+and a recompute trigger; account create maintains ``hierarchy_path`` from ``parent_account_id``.
 """
 import uuid
+from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -19,6 +25,12 @@ from ..models.party import Party, Account
 from ..access import load_grants, can
 from .. import workflow
 from ..kernel import assert_can, AccessDenied
+from ..services.account_balance import (
+    recompute_account_balance,
+    consolidated_balance,
+    rebuild_hierarchy_path,
+    rebuild_descendants_paths,
+)
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
 
@@ -63,7 +75,35 @@ def _account(a: Account) -> dict:
         "parent_account_id": str(a.parent_account_id) if a.parent_account_id else None,
         "status": a.status,
         "created_at": _iso(a.created_at),
+        # Phase A.2 — balance + hierarchy. Decimal columns are serialized as strings to preserve
+        # precision across the JSON boundary (same convention as Product MRC/NRC in A.1).
+        "current_balance": str(a.current_balance) if a.current_balance is not None else "0",
+        "credit_limit": str(a.credit_limit) if a.credit_limit is not None else "0",
+        "available_credit": str(a.available_credit) if a.available_credit is not None else "0",
+        "balance_updated_at": _iso(a.balance_updated_at),
+        "hierarchy_path": a.hierarchy_path,
     }
+
+
+def _balance_snapshot(a: Account) -> dict:
+    """Subset returned by /balance and /recompute-balance endpoints."""
+    return {
+        "id": str(a.id),
+        "current_balance": str(a.current_balance) if a.current_balance is not None else "0",
+        "credit_limit": str(a.credit_limit) if a.credit_limit is not None else "0",
+        "available_credit": str(a.available_credit) if a.available_credit is not None else "0",
+        "balance_updated_at": _iso(a.balance_updated_at),
+    }
+
+
+def _parse_decimal_opt(value, field: str) -> Decimal | None:
+    """Optional Decimal parser — None passes through; bad input → 422."""
+    if value is None:
+        return None
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise HTTPException(422, f"'{field}' must be a decimal number")
 
 
 # ---- loaders / validation ----
@@ -214,14 +254,21 @@ async def create_account(payload: dict, user: User = Depends(current_user), s: A
     if parent_account_id is not None:
         await _get_account(s, user, parent_account_id)   # 404 if the parent isn't a known account
 
+    # Phase A.2 — optional credit_limit on create (defaults to 0). current_balance stays at 0
+    # until the first invoice/payment is hooked.
+    credit_limit = _parse_decimal_opt(payload.get("credit_limit"), "credit_limit") or Decimal("0")
+
     account = Account(
         tenant_id=user.tenant_id, owner_node_id=user.primary_node_id, holder_party_id=holder_party_id,
         type=atype, currency=payload.get("currency", "AMD"), billing_cycle=payload.get("billing_cycle", "monthly"),
         credit_terms=payload.get("credit_terms"), parent_account_id=parent_account_id,
         status=payload.get("status", "active"),
+        credit_limit=credit_limit,
     )
     s.add(account)
     await s.flush()
+    # Phase A.2 — maintain hierarchy_path on create. Root: id::text. Child: parent.path + "." + id.
+    await rebuild_hierarchy_path(s, account.id)
     await workflow.emit(s, user.tenant_id, "create", "account", account.id, user.id,
                         {"holder_party_id": str(holder_party_id), "type": atype})
     await s.commit()
@@ -236,3 +283,122 @@ async def get_account(account_id: uuid.UUID, user: User = Depends(current_user),
     if not can(grants, "account", "view", await _node_path(s, account.owner_node_id)):
         _deny("account.view")
     return _account(account)
+
+
+@router.patch("/accounts/{account_id}")
+async def update_account(account_id: uuid.UUID, payload: dict,
+                         user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Phase A.2 — edit a subset of account fields. Special-case ``parent_account_id`` triggers a
+    materialized-path rebuild for the moved node AND its descendants. ``credit_limit`` triggers a
+    recompute so ``available_credit`` is refreshed."""
+    account = await _get_account(s, user, account_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "account", "edit", await _node_path(s, account.owner_node_id)):
+        _deny("account.edit")
+    try:
+        await assert_can(s, user, action="edit", entity_key="account",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    reparented = False
+    if "parent_account_id" in payload:
+        new_parent = payload["parent_account_id"]
+        if new_parent is not None:
+            if str(new_parent) == str(account.id):
+                raise HTTPException(422, "an account cannot be its own parent")
+            await _get_account(s, user, new_parent)
+        account.parent_account_id = new_parent
+        reparented = True
+    if "credit_limit" in payload:
+        account.credit_limit = _parse_decimal_opt(payload["credit_limit"], "credit_limit") or Decimal("0")
+    if "credit_terms" in payload:
+        account.credit_terms = payload["credit_terms"]
+    if "status" in payload:
+        account.status = payload["status"] or account.status
+
+    await s.flush()
+    if reparented:
+        # Rebuild path for the moved node + every descendant beneath it.
+        await rebuild_descendants_paths(s, account.id)
+    if "credit_limit" in payload:
+        # available_credit depends on credit_limit; recompute to keep the cache consistent.
+        await recompute_account_balance(s, account.id)
+
+    await workflow.emit(s, user.tenant_id, "update", "account", account.id, user.id,
+                        {k: payload[k] for k in payload if k in
+                         ("parent_account_id", "credit_limit", "credit_terms", "status")})
+    await s.commit()
+    await s.refresh(account)
+    return _account(account)
+
+
+# ==========================================================================================
+# Phase A.2 — balance endpoints.
+# ==========================================================================================
+
+@router.get("/accounts/{account_id}/balance")
+async def get_account_balance(account_id: uuid.UUID,
+                              user: User = Depends(current_user),
+                              s: AsyncSession = Depends(get_session)):
+    """Return this account's CACHED balance snapshot (no recursion, no recompute)."""
+    account = await _get_account(s, user, account_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "account", "view", await _node_path(s, account.owner_node_id)):
+        _deny("account.view")
+    return _balance_snapshot(account)
+
+
+@router.get("/accounts/{account_id}/balance/consolidated")
+async def get_consolidated_balance(account_id: uuid.UUID,
+                                   user: User = Depends(current_user),
+                                   s: AsyncSession = Depends(get_session)):
+    """Aggregate balance across the subtree rooted at ``account_id`` (root included).
+
+    Walks descendants via ``hierarchy_path`` LIKE prefix (or falls back to a recursive
+    parent-walk CTE if the path is missing). Returns:
+
+        {
+            root_balance, consolidated_balance, consolidated_credit_limit, subtree_size
+        }
+    """
+    account = await _get_account(s, user, account_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "account", "view", await _node_path(s, account.owner_node_id)):
+        _deny("account.view")
+
+    result = await consolidated_balance(s, account.id)
+    return {
+        "root_account_id": str(account.id),
+        "root_balance": str(result["root_balance"]),
+        "consolidated_balance": str(result["consolidated_balance"]),
+        "consolidated_credit_limit": str(result["consolidated_credit_limit"]),
+        "subtree_size": result["subtree_size"],
+    }
+
+
+@router.post("/accounts/{account_id}/recompute-balance")
+async def recompute_account_balance_endpoint(account_id: uuid.UUID,
+                                             user: User = Depends(current_user),
+                                             s: AsyncSession = Depends(get_session)):
+    """Admin-gated authoritative recompute of one account's balance. Returns the new snapshot.
+
+    Permission: ``account.edit`` (held by super_admin via ``*``). Use this when the cached
+    balance has drifted from the underlying invoice/payment ground truth (e.g. after a manual
+    DB fix-up, or as a routine reconciliation sweep).
+    """
+    account = await _get_account(s, user, account_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "account", "edit", await _node_path(s, account.owner_node_id)):
+        _deny("account.edit")
+    try:
+        await assert_can(s, user, action="edit", entity_key="account",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    await recompute_account_balance(s, account.id)
+    await workflow.emit(s, user.tenant_id, "recompute-balance", "account", account.id, user.id, {})
+    await s.commit()
+    await s.refresh(account)
+    return _balance_snapshot(account)

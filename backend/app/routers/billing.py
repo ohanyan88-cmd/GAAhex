@@ -34,6 +34,7 @@ from ..kernel import (
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
 from ..services.product_versions import current_version_for, mint_new_version
+from ..services.account_balance import recompute_account_balance
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
@@ -695,6 +696,10 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
     inv.due_at = due
     await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
                         {"from": "DRAFT", "to": "ISSUED", "due_at": _iso(due)})
+    # Phase A.2 — recompute the associated account's balance now that this invoice is billed.
+    # Skip silently when account_id is null (additive Stage-1 — many rows still link via customer_id only).
+    if inv.account_id is not None:
+        await recompute_account_balance(s, inv.account_id)
     await s.commit()
     await s.refresh(inv)
     return _invoice(inv, await _invoice_lines(s, inv.id))
@@ -795,6 +800,11 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
                          "adjust": is_adjust})
     if approved_approval is not None:
         await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
+    # Phase A.2 — recompute the account balance after a payment lands. Prefer payment.account_id
+    # (Wave 1 additive link) and fall back to invoice.account_id. Skip silently when both null.
+    acc_id = pay.account_id or inv.account_id
+    if acc_id is not None:
+        await recompute_account_balance(s, acc_id)
     await s.commit()
     await s.refresh(pay)
     return _payment(pay)
@@ -904,6 +914,16 @@ async def refund_payment(
 
     if approved is not None:
         await mark_approval_executed(s, approval_id=approved.id, actor_user_id=user.id)
+    # Phase A.2 — recompute the account balance after a refund (a payment delta).
+    # Prefer payment.account_id, fall back to the parent invoice's account_id.
+    acc_id = pay.account_id
+    if acc_id is None:
+        inv_row = (await s.execute(
+            select(Invoice.account_id).where(Invoice.id == pay.invoice_id)
+        )).scalar_one_or_none()
+        acc_id = inv_row
+    if acc_id is not None:
+        await recompute_account_balance(s, acc_id)
     await s.commit()
     await s.refresh(pay)
     return _payment(pay)
@@ -1192,6 +1212,9 @@ async def void_invoice(inv_id: uuid.UUID, user: User = Depends(current_user),
                         {"from": old_status, "to": "VOID"})
     if approved is not None:
         await mark_approval_executed(s, approval_id=approved.id, actor_user_id=user.id)
+    # Phase A.2 — recompute the account balance: a voided invoice no longer counts as billed.
+    if inv.account_id is not None:
+        await recompute_account_balance(s, inv.account_id)
     await s.commit()
     await s.refresh(inv)
     return _invoice(inv, await _invoice_lines(s, inv.id))

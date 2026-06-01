@@ -8,8 +8,9 @@ Resolution falls back to `customer_id` (see app/resolvers.py). Nothing migrates 
 House style: tenant_id + nullable owner_node_id like every BSS table; money is luma (AMD)."""
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import String, ForeignKey, DateTime, func
+from sqlalchemy import String, ForeignKey, DateTime, Numeric, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -46,3 +47,14 @@ class Account(Base):
     parent_account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("account.id"), nullable=True, index=True)  # HQ→per-site
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    # ---- Phase A.2: balance + hierarchy ----
+    # current_balance is SIGNED: NEGATIVE = customer owes us, POSITIVE = credit on the account.
+    # credit_limit is the max NEGATIVE balance allowed before an order-block kicks in.
+    # available_credit = max(0, credit_limit + current_balance) — cached for fast Stage-8 lookups.
+    # hierarchy_path is a materialized path (dot-joined UUIDs) maintained manually for portability.
+    current_balance: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, server_default="0", default=Decimal("0"))
+    credit_limit: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, server_default="0", default=Decimal("0"))
+    available_credit: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, server_default="0", default=Decimal("0"))
+    balance_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    hierarchy_path: Mapped[str | None] = mapped_column(String, nullable=True)
