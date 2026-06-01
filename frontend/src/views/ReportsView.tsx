@@ -14,7 +14,7 @@ import { KPITile } from '../primitives'
 // NOT touch shared api.ts. No charting library; no new CSS.
 // Doctrine: real data only — we don't have a historical series for entity counts, so no
 // sparkline is rendered (rule 3: missing → hide; never fake a trend).
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 type Summary = { entity_key: string; route_slug: string; label_plural: string; count: number }

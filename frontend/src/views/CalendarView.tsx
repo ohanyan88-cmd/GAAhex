@@ -6,7 +6,7 @@ import {
 } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 
 type CalEvent = {
   id: string; title: string; start_at: string; end_at: string | null

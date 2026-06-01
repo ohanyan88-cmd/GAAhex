@@ -18,7 +18,7 @@ import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
 import { humanizeEntity } from '../lib/humanize'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 type Approval = {

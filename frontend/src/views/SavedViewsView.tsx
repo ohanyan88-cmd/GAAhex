@@ -18,7 +18,7 @@ import { EmptyState, SkeletonRows, ErrorBanner } from '../components/States'
 import { BookmarkIcon, InboxIcon } from '../components/icons'
 import { getEntities } from '../lib/api'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 type SavedView = {

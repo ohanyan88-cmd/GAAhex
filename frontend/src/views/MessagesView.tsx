@@ -10,7 +10,7 @@ import {
   SendHorizontalIcon,
 } from '../components/icons'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 // Emoji palette for the composer picker. Per icons.tsx convention, emoji are

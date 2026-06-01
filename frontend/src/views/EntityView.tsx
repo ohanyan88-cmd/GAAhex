@@ -50,7 +50,7 @@ type Row = Record<string, any>
 type Mode = 'idle' | 'creating' | 'editing'
 type SavedView = { id: string | number; name: string; q?: string; filter?: string; sort?: string }
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 // B25 — export format availability probe: HEAD /{slug}/export?format=X; 404 → hide that button.

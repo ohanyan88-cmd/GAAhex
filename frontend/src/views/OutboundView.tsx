@@ -12,7 +12,7 @@ import { composeOutbound } from '../lib/api'
 import { usePageConfig } from '../lib/pageConfig'
 
 // Outbound delivery log (A12 GET /api/outbound) — admin view. Degrades quietly on 404.
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 // Field names mirror the backend `_serialize_outbound` payload (notifications.py).

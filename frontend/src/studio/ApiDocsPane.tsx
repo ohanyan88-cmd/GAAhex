@@ -19,7 +19,7 @@ import {
 } from '../components/icons'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: 'Bearer ' + token })
 
 // ---------------------------------------------------------------------------

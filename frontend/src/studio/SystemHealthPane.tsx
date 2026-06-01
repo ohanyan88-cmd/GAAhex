@@ -21,7 +21,7 @@ import {
 } from '../components/icons'
 import { timeAgo } from '../lib/time'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const REFRESH_MS = 30_000
 
 // ---------------------------------------------------------------------------

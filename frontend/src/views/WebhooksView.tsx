@@ -19,7 +19,7 @@ import { useCustomFields } from '../components/CustomCells'
 import { StatusPill, KPITile } from '../primitives'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 // Backend never returns the secret value — only `has_secret: bool` — so the column is a presence indicator.

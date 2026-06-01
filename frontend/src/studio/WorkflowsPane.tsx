@@ -4,7 +4,7 @@ import {
   ArrowRightIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon, ChartIcon, EditIcon,
 } from '../components/icons'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: 'Bearer ' + token })
 
 class FetchError extends Error {
