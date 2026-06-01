@@ -63,6 +63,22 @@ def _order(o: Order, items: list[OrderItem] | None = None) -> dict:
         "status": o.status,
         "total": o.total,
         "created_at": _iso(o.created_at),
+        # Phase B.1 — Stage 8 Control Gate + deposit fields. Surfaced on the list payload so the
+        # frontend OrdersView Stage 8 pill can render the real verdict instead of defaulting to
+        # "Pending". Decimal → str preserves precision (mirrors Accounts A.2/A.3); UUID → str;
+        # datetime → ISO.
+        "control_pass": o.control_pass,
+        "control_pass_at": _iso(o.control_pass_at),
+        "control_pass_by": str(o.control_pass_by) if o.control_pass_by else None,
+        "credit_check_status": o.credit_check_status,
+        "control_gate_block_reason": o.control_gate_block_reason,
+        "deposit_required": str(o.deposit_required) if o.deposit_required is not None else None,
+        "deposit_collected": str(o.deposit_collected) if o.deposit_collected is not None else None,
+        "deposit_held_until": _iso(o.deposit_held_until),
+        "payment_method_id": str(o.payment_method_id) if o.payment_method_id else None,
+        "deposit_payment_id": str(o.deposit_payment_id) if o.deposit_payment_id else None,
+        "install_substage": o.install_substage,
+        "install_substage_at": _iso(o.install_substage_at),
     }
     if items is not None:
         out["items"] = [_item(it) for it in items]
