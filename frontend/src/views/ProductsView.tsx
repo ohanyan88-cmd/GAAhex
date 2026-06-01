@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, bpatch, type Product } from '../lib/billing'
+import {
+  COMMERCIAL_PRODUCT_CATEGORIES, SUPPORTING_PRODUCT_CATEGORIES,
+  type ProductCategory,
+} from '../lib/lifecycle'
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
@@ -56,6 +60,11 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   const [sortDir, setSortDir] = useState<1 | -1>(1)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
+  // Category filter — UI today. Backend Product has no `category` column yet; if/when
+  // it lands, this state becomes the actual filter key. Falls back to a tolerant
+  // `(p as any).category` read so any custom-field category populated through Studio
+  // already participates in the filter.
+  const [category, setCategory] = useState<ProductCategory | 'All'>('All')
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
@@ -66,7 +75,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   }
 
   useEffect(() => { load() }, [token])
-  useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
+  useEffect(() => { setPage(1) }, [query, sortKey, sortDir, category])
 
   async function save() {
     if (!draft || !draft.name.trim() || (!draft.id && !draft.key.trim())) return
@@ -103,8 +112,15 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return all
+    const cat = category
     return all.filter((p) => {
+      if (cat !== 'All') {
+        // Tolerant category read — `category` is not yet a first-class column;
+        // Studio custom-field populates it, otherwise the chip filter is a no-match.
+        const pc = String((p as any).category ?? '').trim()
+        if (pc !== cat) return false
+      }
+      if (!q) return true
       const fields = [
         p.name ?? '',
         p.key ?? '',
@@ -113,7 +129,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
       ].join(' ').toLowerCase()
       return fields.includes(q)
     })
-  }, [all, query])
+  }, [all, query, category])
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered
@@ -202,6 +218,23 @@ export default function ProductsView({ token, canConfigure = false, configVersio
             )}
           </div>
         )}
+
+        {/* Category chips — Commercial vs Supporting grouping per approved catalog model. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', margin: '12px 0 8px' }}>
+          <CategoryChip label="All" active={category === 'All'} onClick={() => setCategory('All')} primary />
+          <CategoryGroup
+            title="Commercial Products"
+            categories={COMMERCIAL_PRODUCT_CATEGORIES}
+            active={category}
+            onPick={setCategory}
+          />
+          <CategoryGroup
+            title="Supporting Products"
+            categories={SUPPORTING_PRODUCT_CATEGORIES}
+            active={category}
+            onPick={setCategory}
+          />
+        </div>
 
         {draft && (
           <div className="rec-form">
@@ -320,6 +353,50 @@ export default function ProductsView({ token, canConfigure = false, configVersio
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function CategoryChip({ label, active, onClick, primary = false }: { label: string; active: boolean; onClick: () => void; primary?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        padding: '5px 11px',
+        background: active
+          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-primary, #2563eb)')
+          : 'var(--gx-bg-2, #f1f5f9)',
+        color: active ? '#ffffff' : 'var(--gx-text-2, #475569)',
+        border: '1px solid ' + (active
+          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-primary, #2563eb)')
+          : 'var(--gx-border, #e2e8f0)'),
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: active ? 600 : 500,
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function CategoryGroup<T extends string>({ title, categories, active, onPick }: {
+  title: string
+  categories: readonly T[]
+  active: T | 'All'
+  onPick: (c: T | 'All') => void
+}) {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 12px', background: 'var(--gx-surface, #ffffff)', border: '1px solid var(--gx-border, #e2e8f0)', borderRadius: 10 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3, #94a3b8)', letterSpacing: '0.06em', marginRight: 4 }}>
+        {title}
+      </span>
+      {categories.map((c) => (
+        <CategoryChip key={c} label={c} active={active === c} onClick={() => onPick(c)} />
+      ))}
     </div>
   )
 }

@@ -23,8 +23,9 @@ import ResourcePoolsView from './views/ResourcePoolsView'
 import AccountsView from './views/AccountsView'
 import PartiesView from './views/PartiesView'
 import AnalyticsView from './views/AnalyticsView'
-import LeadPipelineView from './views/LeadPipelineView'
+import PipelineView from './views/PipelineView'
 import CustomerView from './views/CustomerView'
+import CustomersListView from './views/CustomersListView'
 import AskGaaexView from './views/AskGaaexView'
 import HelpdeskView from './views/HelpdeskView'
 import PaymentGatewayView from './views/PaymentGatewayView'
@@ -570,7 +571,7 @@ export default function App() {
               : view.type === 'analytics'
                 ? <AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'lead-pipeline'
-                ? <LeadPipelineView token={token} onOpenCustomer={openCustomer} canConfigure={!!user?.can_configure} capabilities={capabilities} />
+                ? <PipelineView token={token} onOpenCustomer={openCustomer} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'customer'
                 ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} onOpenInvoices={(initialStatus) => setView({ type: 'invoices', initialStatus })} />
               : view.type === 'ask'

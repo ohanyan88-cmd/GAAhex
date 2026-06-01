@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { timeAgo } from '../lib/time'
 import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
+import { COMMUNICATION_CHANNELS, type CommunicationChannel } from '../lib/lifecycle'
 import {
   MessageIcon,
   SearchIcon,
@@ -94,6 +95,10 @@ export default function MessagesView({
   const [sendError, setSendError] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
   const [showAttach, setShowAttach] = useState(false)
+  // Channel chips — UI-only for now. The backend Thread model doesn't carry a channel
+  // discriminator yet, so chip clicks act as a visual filter only ("All" = show all threads).
+  // When the channel column lands, this state becomes the actual filter key for /api/threads.
+  const [channel, setChannel] = useState<CommunicationChannel | 'All'>('All')
   const bodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -190,11 +195,53 @@ export default function MessagesView({
     >
       <div className="comms-head">
         <div className="vh-ic"><MessageIcon size={20} /></div>
-        <div>
-          <h1 className="comms-title">Messages</h1>
-          <div className="sub comms-sub">Service conversations · ticket threads · customer chat</div>
+        <div style={{ minWidth: 0 }}>
+          <h1 className="comms-title">Communications</h1>
+          <div className="sub comms-sub">
+            Conversations with leads, customers, orders, and tickets across approved channels.
+            <span style={{ marginLeft: 8, color: 'var(--gx-text-3, #94a3b8)' }}>
+              · Communication Channel = how we talk to the person · Lead Source = how the lead came into the business
+            </span>
+          </div>
         </div>
         <span className="spacer" />
+      </div>
+
+      {/* Channel chips — UI filter today; will gate /api/threads once the channel column lands. */}
+      <div
+        role="tablist"
+        aria-label="Communication channel"
+        style={{
+          display: 'flex', flexWrap: 'wrap', gap: 6,
+          padding: '8px 16px 0',
+          borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+        }}
+      >
+        {(['All', ...COMMUNICATION_CHANNELS] as const).map((c) => {
+          const active = channel === c
+          return (
+            <button
+              key={c}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setChannel(c as typeof channel)}
+              style={{
+                padding: '6px 12px',
+                background: active ? 'var(--gx-primary, #2563eb)' : 'var(--gx-bg-2, #f1f5f9)',
+                color:      active ? '#ffffff' : 'var(--gx-text-2, #475569)',
+                border: '1px solid ' + (active ? 'var(--gx-primary, #2563eb)' : 'var(--gx-border, #e2e8f0)'),
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: active ? 600 : 500,
+                cursor: 'pointer',
+                marginBottom: 8,
+              }}
+              title={c === 'All' ? 'All channels' : `Filter to ${c}`}
+            >
+              {c}
+            </button>
+          )
+        })}
       </div>
 
       <div className="msgr">

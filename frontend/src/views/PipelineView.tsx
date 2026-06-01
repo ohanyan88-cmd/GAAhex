@@ -1,0 +1,228 @@
+// Pipeline page — split into THREE views per the ISP workflow model:
+//
+//   1. Sales Pipeline       — sales-owned acquisition (LEAD → CONTRACT SIGNED)
+//   2. Customer Lifecycle   — full end-to-end journey (14 stages, cross-department)
+//   3. Service Delivery     — post-contract delivery (ORDER → MONITORING, with owner per stage)
+//
+// Tab 1 wraps the existing kanban (LeadPipelineView) — live data, no behavior change.
+// Tabs 2 & 3 are read-only visualization of stages + owners + control gates. They
+// do NOT invent fake data; they show stage structure + meta only, with placeholder
+// counts/cards that the real workflow engine will fill once it ships.
+import { useState } from 'react'
+import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
+import LeadPipelineView from './LeadPipelineView'
+import {
+  LIFECYCLE_STAGES, SALES_PIPELINE_STAGES, SERVICE_DELIVERY_STAGES,
+  CONTROL_GATE_DEFINITIONS, type LifecycleStage,
+} from '../lib/lifecycle'
+import { ArrowRightIcon, UsersIcon, LayersIcon, TruckIcon } from '../components/icons'
+
+type PipelineTab = 'sales' | 'lifecycle' | 'delivery'
+
+interface PipelineViewProps {
+  token:        string
+  onOpenCustomer?: (id: string) => void
+  canConfigure?: boolean
+  onConfigure?: () => void
+  capabilities?: Capabilities
+}
+
+export default function PipelineView(props: PipelineViewProps) {
+  const [tab, setTab] = useState<PipelineTab>('sales')
+
+  return (
+    <div className="view">
+      <div className="view-inner section-page fade">
+        {/* Three-pipeline tab bar */}
+        <div
+          role="tablist"
+          aria-label="Pipeline views"
+          style={{
+            display: 'flex',
+            gap: 4,
+            borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+            marginBottom: 16,
+            paddingBottom: 0,
+          }}
+        >
+          <TabButton active={tab === 'sales'}     onClick={() => setTab('sales')}
+            icon={<ArrowRightIcon size={14} />} label="Sales Pipeline"
+            sub="LEAD → CONTRACT SIGNED · Sales-owned" />
+          <TabButton active={tab === 'lifecycle'} onClick={() => setTab('lifecycle')}
+            icon={<LayersIcon size={14} />} label="Customer Lifecycle"
+            sub="LEAD → MONITORING · Cross Department" />
+          <TabButton active={tab === 'delivery'}  onClick={() => setTab('delivery')}
+            icon={<TruckIcon size={14} />} label="Service Delivery Pipeline"
+            sub="ORDER CREATED → MONITORING · Post-contract" />
+        </div>
+
+        {tab === 'sales' && (
+          <LeadPipelineView {...props} />
+        )}
+
+        {tab === 'lifecycle' && (
+          <StageBoard
+            title="Customer Lifecycle"
+            owner="Cross Department"
+            description="Full end-to-end customer/service lifecycle. For management — shows the complete journey from initial lead through active service monitoring."
+            stages={LIFECYCLE_STAGES}
+          />
+        )}
+
+        {tab === 'delivery' && (
+          <StageBoard
+            title="Service Delivery Pipeline"
+            owner="Cross Department"
+            description="Post-contract delivery and activation pipeline. Each stage names the owning department; cards will surface assigned user + SLA + blocked-reason metadata once the workflow engine ships."
+            stages={SERVICE_DELIVERY_STAGES}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TabButton(props: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string }) {
+  return (
+    <button
+      role="tab"
+      aria-selected={props.active}
+      onClick={props.onClick}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+        gap: 2,
+        padding: '10px 16px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: props.active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        color: props.active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
+        fontSize: 13,
+        fontWeight: props.active ? 600 : 500,
+        cursor: 'pointer',
+        marginBottom: -1,
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{props.icon}{props.label}</span>
+      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3, #94a3b8)' }}>{props.sub}</span>
+    </button>
+  )
+}
+
+function StageBoard({ title, owner, description, stages }: { title: string; owner: string; description: string; stages: LifecycleStage[] }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
+        <div>
+          <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 600 }}>{title}</h2>
+          <div style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
+            <UsersIcon size={12} /> Owner: <strong style={{ color: 'var(--gx-text-2, #475569)' }}>{owner}</strong>
+          </div>
+        </div>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--gx-text-3, #64748b)', maxWidth: 720, marginTop: 0, marginBottom: 18 }}>
+        {description}
+      </p>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${Math.min(stages.length, 5)}, minmax(180px, 1fr))`,
+          gap: 12,
+          marginBottom: 24,
+          overflowX: 'auto',
+        }}
+      >
+        {stages.map((s, i) => (
+          <StageCard key={s.key} stage={s} index={i} />
+        ))}
+      </div>
+
+      <div style={{
+        background: 'var(--gx-bg-2, #f8fafc)',
+        border: '1px solid var(--gx-border, #e2e8f0)',
+        borderRadius: 'var(--gx-radius-lg, 12px)',
+        padding: 16,
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3, #64748b)', letterSpacing: '0.06em', marginBottom: 10 }}>
+          Control gates referenced in this pipeline
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          {uniqueGates(stages).map((gate) => (
+            <div key={gate} style={{
+              background: 'var(--gx-surface, #ffffff)',
+              border: '1px solid var(--gx-border, #e2e8f0)',
+              borderRadius: 8, padding: 12,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1, #0f172a)', marginBottom: 4 }}>{gate}</div>
+              <div style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)', lineHeight: 1.5 }}>
+                {CONTROL_GATE_DEFINITIONS[gate]}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
+  return (
+    <div
+      style={{
+        background: 'var(--gx-surface, #ffffff)',
+        border: '1px solid var(--gx-border, #e2e8f0)',
+        borderRadius: 10,
+        padding: 12,
+        minHeight: 140,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: 8, right: 10,
+        fontSize: 10, fontWeight: 700,
+        color: 'var(--gx-text-3, #94a3b8)',
+        fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
+      }}>
+        #{index + 1}
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1, #0f172a)', paddingRight: 24 }}>
+        {stage.label}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--gx-text-3, #64748b)' }}>
+        Owner: <strong style={{ color: 'var(--gx-text-2, #475569)' }}>{stage.owner}</strong>
+      </div>
+      {stage.gate && (
+        <div style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span style={{
+            display: 'inline-block',
+            padding: '2px 7px',
+            background: 'var(--gx-bg-2, #f1f5f9)',
+            color: 'var(--gx-text-2, #475569)',
+            border: '1px solid var(--gx-border, #e2e8f0)',
+            borderRadius: 999,
+            fontSize: 10,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}>
+            {stage.gate}
+          </span>
+        </div>
+      )}
+      <div style={{ marginTop: stage.gate ? 6 : 'auto', fontSize: 11, color: 'var(--gx-text-3, #94a3b8)', fontStyle: 'italic' }}>
+        No assignments yet
+      </div>
+    </div>
+  )
+}
+
+function uniqueGates(stages: LifecycleStage[]) {
+  const seen: string[] = []
+  for (const s of stages) {
+    if (s.gate && !seen.includes(s.gate)) seen.push(s.gate)
+  }
+  return seen as (keyof typeof CONTROL_GATE_DEFINITIONS)[]
+}
