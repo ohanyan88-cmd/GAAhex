@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
 import { createRecord, transitionRecord } from '../lib/api'
-import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { EmptyState as StatesEmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 // StatusPill removed — using inline kit board-card pattern instead
 import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import {
   PlusIcon, SparkleIcon, PhoneIcon, MailIcon, ArrowRightIcon,
-  CloseIcon, UsersIcon, SearchIcon, GearIcon, InboxIcon,
+  CloseIcon, UsersIcon, GearIcon, InboxIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
 import FieldInput, { type Field } from '../components/FieldInput'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
-import { KPITile } from '../primitives'
 import { LEAD_SOURCES } from '../lib/lifecycle'
+import { PageShell, type KPISpec } from '../page-shell'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the DESIGN prototype:
 // live /api/leads data, token theming, SVG icons, metadata-driven lifecycle
@@ -32,7 +31,7 @@ const SLUG = 'leads'
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 
-export default function LeadPipelineView({ token, onOpenCustomer, canConfigure = false, onConfigure, capabilities = FULL_ACCESS }: { token: string; onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void; capabilities?: Capabilities }) {
+export default function LeadPipelineView({ token, onOpenCustomer, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, embedded = false }: { token: string; onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void; capabilities?: Capabilities; /** When true, skip the outer PageShell (used when nested inside PipelineView's tab panel). */ embedded?: boolean }) {
   const canCreate = can(capabilities, 'lead', 'create')
   const canEdit   = can(capabilities, 'lead', 'edit')
   const { t } = useI18n()
@@ -113,7 +112,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
       }
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 404) { setConvertNA(true); toast.error(t('leads.convertNA', 'Lead conversion isn’t available yet')) }
+      if (err.status === 404) { setConvertNA(true); toast.error(t('leads.convertNA', "Lead conversion isn't available yet")) }
       else toast.error(err.message || t('leads.convertError', 'Could not convert the lead'))
     } finally { setConverting(null) }
   }
@@ -152,75 +151,39 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
     LOST: 'var(--gx-danger)',
   }
 
-  return (
-    <div className="view-inner section-page fade">
-      <div className="crumbs">
-        <span>CRM</span><span className="sep">/</span>
-        <span style={{ color: 'var(--gx-text-1)' }}>{t('leads.pipeline', 'Lead Pipeline')}</span>
-      </div>
+  // KPIs derived client-side from loaded leads array — zero fallbacks when not yet loaded.
+  const kpis: KPISpec[] = [
+    {
+      label: t('leads.open', 'Open'),
+      value: open,
+      subtitle: 'in pipeline',
+      onClick: () => setSearch(''),
+    },
+    {
+      label: t('leads.converted', 'Converted'),
+      value: converted,
+      subtitle: 'won',
+      premium: true,
+    },
+    {
+      label: t('leads.lost', 'Lost'),
+      value: lost,
+      subtitle: 'closed-lost',
+      muted: true,
+    },
+  ]
 
-      <ViewHead
-        icon={<ArrowRightIcon size={18} />}
-        title={t('leads.pipeline', 'Lead Pipeline')}
-        sub={loading ? 'Loading…' : `${columns.length} stage${columns.length === 1 ? '' : 's'} · workflow configured in Studio`}
-        actions={
-          <>
-            {canConfigure && onConfigure && (
-              <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
-                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-              </button>
-            )}
-            {canCreate && (
-              <button className="btn btn-primary btn-sm" onClick={() => setShowNew((v) => !v)}>
-                <PlusIcon size={13} />{t('leads.new', 'New lead')}
-              </button>
-            )}
-          </>
-        }
-      />
-
-      {/* KPI strip — shared KPITile primitive, identical to every other dashboard. */}
-      {!loading && allLeads.length > 0 && (
-        <div className="kpi-strip">
-          <KPITile
-            label={t('leads.open', 'Open')}
-            value={open}
-            subtitle="in pipeline"
-            size="sm"
-            onClick={() => setSearch('')}
-            ariaLabel={`Open leads — ${open}. Click to clear filter.`}
-          />
-          <KPITile
-            label={t('leads.converted', 'Converted')}
-            value={converted}
-            subtitle="won"
-            size="sm"
-            premium
-          />
-          <KPITile
-            label={t('leads.lost', 'Lost')}
-            value={lost}
-            subtitle="closed-lost"
-            size="sm"
-            muted
-          />
+  // Shared body used in both standalone (PageShell) and embedded (inside PipelineView tab) modes.
+  const body = (
+    <>
+      {/* Configure gear — shown only when canConfigure is active */}
+      {canConfigure && onConfigure && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+          <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
+            <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
+          </button>
         </div>
       )}
-
-      {/* Toolbar */}
-      <div className="toolbar">
-        <div className="tb-search" style={{ width: 280 }}>
-          <SearchIcon size={15} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('leads.search', 'Search leads…')}
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
-          />
-          {search && <button onClick={() => setSearch('')} className="tb-icon" style={{ width: 22, height: 22 }}><CloseIcon size={12} /></button>}
-        </div>
-        <span className="spacer" />
-      </div>
 
       {error && <ErrorBanner message={error} onRetry={() => { setError(''); load() }} />}
       {loading && <div className="hint" style={{ padding: 24 }}>{t('common.loading', 'Loading…')}</div>}
@@ -278,7 +241,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
       )}
 
       {!loading && filteredLeads.length === 0 && !showNew && (
-        <EmptyState
+        <StatesEmptyState
           icon={<InboxIcon size={40} />}
           title={t('leads.emptyTitle', 'No leads yet')}
           message={t('leads.empty', 'Create the first one to start the pipeline.')}
@@ -360,6 +323,24 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
           })}
         </div>
       )}
-    </div>
+    </>
+  )
+
+  // When embedded inside another PageShell (e.g. PipelineView tab), skip the outer shell.
+  if (embedded) return body
+
+  return (
+    <PageShell
+      type="pipeline"
+      breadcrumb={['CRM', 'Leads']}
+      icon={<InboxIcon size={18} />}
+      title="Leads"
+      subtitle="Central raw entry inbox"
+      kpis={!loading && allLeads.length > 0 ? kpis : undefined}
+      primaryAction={canCreate ? { label: '+ New Lead', onClick: () => setShowNew(true) } : undefined}
+      filters={{ search: { value: search, onChange: setSearch, placeholder: 'Search leads…' } }}
+    >
+      {body}
+    </PageShell>
   )
 }

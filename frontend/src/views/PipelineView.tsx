@@ -16,6 +16,7 @@ import {
   CONTROL_GATE_DEFINITIONS, type LifecycleStage,
 } from '../lib/lifecycle'
 import { ArrowRightIcon, UsersIcon, LayersIcon, TruckIcon } from '../components/icons'
+import { PageShell } from '../page-shell'
 
 type PipelineTab = 'sales' | 'lifecycle' | 'delivery'
 
@@ -31,54 +32,58 @@ export default function PipelineView(props: PipelineViewProps) {
   const [tab, setTab] = useState<PipelineTab>('sales')
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        {/* Three-pipeline tab bar */}
-        <div
-          role="tablist"
-          aria-label="Pipeline views"
-          style={{
-            display: 'flex',
-            gap: 4,
-            borderBottom: '1px solid var(--gx-border, #e2e8f0)',
-            marginBottom: 16,
-            paddingBottom: 0,
-          }}
-        >
-          <TabButton active={tab === 'sales'}     onClick={() => setTab('sales')}
-            icon={<ArrowRightIcon size={14} />} label="Sales Pipeline"
-            sub="LEAD → CONTRACT SIGNED · Sales-owned" />
-          <TabButton active={tab === 'lifecycle'} onClick={() => setTab('lifecycle')}
-            icon={<LayersIcon size={14} />} label="Customer Lifecycle"
-            sub="LEAD → MONITORING · Cross Department" />
-          <TabButton active={tab === 'delivery'}  onClick={() => setTab('delivery')}
-            icon={<TruckIcon size={14} />} label="Service Delivery Pipeline"
-            sub="ORDER CREATED → MONITORING · Post-contract" />
-        </div>
-
-        {tab === 'sales' && (
-          <LeadPipelineView {...props} />
-        )}
-
-        {tab === 'lifecycle' && (
-          <StageBoard
-            title="Customer Lifecycle"
-            owner="Cross Department"
-            description="Full end-to-end customer/service lifecycle. For management — shows the complete journey from initial lead through active service monitoring."
-            stages={LIFECYCLE_STAGES}
-          />
-        )}
-
-        {tab === 'delivery' && (
-          <StageBoard
-            title="Service Delivery Pipeline"
-            owner="Cross Department"
-            description="Post-contract delivery and activation pipeline. Each stage names the owning department; cards will surface assigned user + SLA + blocked-reason metadata once the workflow engine ships."
-            stages={SERVICE_DELIVERY_STAGES}
-          />
-        )}
+    <PageShell
+      type="pipeline"
+      breadcrumb={['CRM', 'Pipeline']}
+      icon={<ArrowRightIcon size={18} />}
+      title="Pipeline"
+      subtitle="Sales Pipeline · Customer Lifecycle · Service Delivery"
+    >
+      {/* Three-pipeline tab bar */}
+      <div
+        role="tablist"
+        aria-label="Pipeline views"
+        style={{
+          display: 'flex',
+          gap: 4,
+          borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+          marginBottom: 16,
+          paddingBottom: 0,
+        }}
+      >
+        <TabButton active={tab === 'sales'}     onClick={() => setTab('sales')}
+          icon={<ArrowRightIcon size={14} />} label="Sales Pipeline"
+          sub="LEAD → CONTRACT SIGNED · Sales-owned" />
+        <TabButton active={tab === 'lifecycle'} onClick={() => setTab('lifecycle')}
+          icon={<LayersIcon size={14} />} label="Customer Lifecycle"
+          sub="LEAD → MONITORING · Cross Department" />
+        <TabButton active={tab === 'delivery'}  onClick={() => setTab('delivery')}
+          icon={<TruckIcon size={14} />} label="Service Delivery Pipeline"
+          sub="ORDER CREATED → MONITORING · Post-contract" />
       </div>
-    </div>
+
+      {tab === 'sales' && (
+        <LeadPipelineView {...props} embedded />
+      )}
+
+      {tab === 'lifecycle' && (
+        <StageBoard
+          title="Customer Lifecycle"
+          owner="Cross Department"
+          description="Full end-to-end customer/service lifecycle. For management — shows the complete journey from initial lead through active service monitoring."
+          stages={LIFECYCLE_STAGES}
+        />
+      )}
+
+      {tab === 'delivery' && (
+        <StageBoard
+          title="Service Delivery Pipeline"
+          owner="Cross Department"
+          description="Post-contract delivery and activation pipeline. Each stage names the owning department; cards will surface assigned user + SLA + blocked-reason metadata once the workflow engine ships."
+          stages={SERVICE_DELIVERY_STAGES}
+        />
+      )}
+    </PageShell>
   )
 }
 
