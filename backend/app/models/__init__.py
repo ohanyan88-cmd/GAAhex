@@ -57,6 +57,9 @@ from .payment_method import PaymentMethod
 from .splitter import SplitterStrandAllocation
 from .vlan import VlanAssignment
 from .cpe_binding import CpeBinding
+from .olt_tree import OltChassis, OltCard, OltPort, Onu
+from .telemetry import OpticalPowerSample, OtdrTest
+from .technician_location import TechnicianLocationPing
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -103,4 +106,7 @@ __all__ = [
     "RaFinding", "RaScanRun",
     "PaymentMethod",
     "SplitterStrandAllocation", "VlanAssignment", "CpeBinding",
+    "OltChassis", "OltCard", "OltPort", "Onu",
+    "OpticalPowerSample", "OtdrTest",
+    "TechnicianLocationPing",
 ]
