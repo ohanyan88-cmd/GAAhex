@@ -1,7 +1,8 @@
 // Billing API helpers + types — matches the merged A9 contract (backend/app/routers/billing.py).
 // Money is integer luma (minor units; 100 = 1 ֏). Optional endpoints (products, dunning) are
 // treated as "not available yet" on 404 and degrade quietly.
-export const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
+export { BASE }
 export const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 export type Subscription = {

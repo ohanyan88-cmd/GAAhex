@@ -1,4 +1,4 @@
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
 
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 

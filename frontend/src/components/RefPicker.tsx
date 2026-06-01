@@ -5,7 +5,7 @@ import { WarningIcon } from './icons'
 // The backend stores a ref's target as the entity KEY in field.config.target (see seed.py /
 // meta.py). We map that key → route_slug via /meta/entities, then load the target's records.
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 type EntityMeta = { key: string; label: string; label_plural: string; route_slug: string; icon?: string }

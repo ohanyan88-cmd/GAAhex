@@ -11,7 +11,7 @@ import { toast } from './Toast'
 import { EditIcon, CheckIcon, CloseIcon } from './icons'
 import { Upload } from 'lucide-react'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 
 // "Yerevan Net" → "YN", "Tenant" → "T", "" → "GX". Matches the kit's ini() but keeps the GAAex
 // fallback the rest of the app uses for empty user names.

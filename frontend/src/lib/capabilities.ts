@@ -7,7 +7,7 @@
 // e.g. { "lead": { view: true, create: false, edit: false, delete: false } }
 // A missing entity key also means full-access (default-open).
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
 
 export type Verb = 'view' | 'create' | 'edit' | 'delete'
 

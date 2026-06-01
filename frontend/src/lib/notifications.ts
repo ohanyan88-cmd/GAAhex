@@ -12,7 +12,7 @@
 // There is NO server-side "clear all" — `clearAll` archives each unread item client-side
 // and returns once the awaited Promise.all settles.
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 // Server-side shape from notifications.py:_serialize — we only consume the fields the kit needs.

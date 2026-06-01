@@ -1,7 +1,7 @@
 // metrics.ts — Home dashboard time-series endpoints. One thin helper per series so the
 // view doesn't have to know route paths or response shapes.
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 export type RevenueRange = '7d' | '30d' | 'qtd' | 'ytd'

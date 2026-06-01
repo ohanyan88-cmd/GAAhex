@@ -120,7 +120,7 @@ function transform(groups: ApiNavGroup[]): NavSectionDef[] {
   })
 }
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
 
 /**
  * Attempt to load the nav tree from GAAex `/api/nav`. Returns the transformed

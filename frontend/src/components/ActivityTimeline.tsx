@@ -11,7 +11,7 @@ import {
 } from './icons'
 import { EmptyState, PermissionDenied, ErrorBanner } from './States'
 
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 type Item = {

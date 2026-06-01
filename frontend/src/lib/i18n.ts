@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 // re-renders subscribers on language change. Strings load once per language from E16
 // `GET /api/i18n/{lang}`; if that 404s (older build) the dict stays empty and t() falls back to the
 // English text passed as the second arg. Choice persisted in localStorage('gaaex-lang'), like theme.
-const BASE = 'http://127.0.0.1:8099'
+import { BASE } from './config'
 
 export type Lang = 'en' | 'hy' | 'ru'
 
