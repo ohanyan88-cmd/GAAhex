@@ -32,8 +32,20 @@ import {
 import { PageShell, type KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
 
+// ── Stage 8 types ────────────────────────────────────────────────────────────
+// Mirrors the response shape of POST /api/orders/{id}/stage8-check.
+type Stage8CheckKey = 'credit_check' | 'deposit' | 'payment_method' | 'mandatory_approvals'
+type Stage8CheckStatus = 'PASS' | 'FAIL' | 'PENDING' | 'NOT_REQUIRED' | 'EXPIRED' | 'NOT_LINKED'
+type Stage8Status = {
+  pass: boolean
+  blockers: string[]
+  checks: Record<Stage8CheckKey, Stage8CheckStatus>
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
-// Mirrors the dict shape from orders.py::_order().
+// Mirrors the dict shape from orders.py::_order(). Stage 8 fields are optional —
+// when the backend serializer hasn't been extended to include them they're simply
+// undefined and the UI degrades (pill shows "Pending", deposit buttons hide).
 type OrderRow = {
   id: string
   number: string
@@ -43,6 +55,15 @@ type OrderRow = {
   total: number                           // luma
   created_at: string | null
   items?: OrderItemRow[]
+  // ── Stage 8 (Phase B.1) ──
+  control_pass?: boolean | null
+  control_pass_at?: string | null
+  control_gate_block_reason?: string | null
+  deposit_required?: string | number | null     // Decimal AMD, serialized as string
+  deposit_collected?: string | number | null
+  deposit_held_until?: string | null
+  payment_method_id?: string | null
+  deposit_payment_id?: string | null
 }
 
 type OrderItemRow = {
@@ -78,6 +99,37 @@ function nextAdvanceLabel(status: string): string | null {
   return null
 }
 
+// Stage 8 column pill — derived from the persisted control_pass verdict on the
+// order row. Clicking the pill opens the full Stage 8 drawer (which fetches the
+// fresh predicate via /stage8-check).
+function stage8RowPill(o: OrderRow): { variant: PillVariant; label: string; title?: string } {
+  const cp = o.control_pass
+  if (cp === true)  return { variant: 'active',   label: 'Pass' }
+  if (cp === false) return { variant: 'critical', label: 'Fail', title: o.control_gate_block_reason ?? undefined }
+  return { variant: 'neutral', label: 'Pending' }
+}
+
+// Map a Stage 8 per-check status → pill variant.
+function stage8CheckVariant(s: Stage8CheckStatus): PillVariant {
+  switch (s) {
+    case 'PASS':         return 'active'
+    case 'FAIL':         return 'critical'
+    case 'PENDING':      return 'info'
+    case 'NOT_REQUIRED': return 'neutral'
+    case 'EXPIRED':      return 'critical'
+    case 'NOT_LINKED':   return 'critical'
+    default:             return 'neutral'
+  }
+}
+
+// Decimal-or-number → number (luma-free; the deposit fields are AMD Decimals
+// serialized as strings, NOT luma — backend collect_deposit body is "amount").
+function toAmd(v: string | number | null | undefined): number {
+  if (v == null) return 0
+  const n = typeof v === 'string' ? parseFloat(v) : v
+  return isFinite(n) ? n : 0
+}
+
 // ── View ─────────────────────────────────────────────────────────────────────
 export default function OrdersView({ token }: { token: string }) {
   const [list, setList] = useState<OrderRow[] | null>(null)
@@ -99,6 +151,7 @@ export default function OrdersView({ token }: { token: string }) {
   // Modal state.
   const [createOpen, setCreateOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [stage8Id, setStage8Id] = useState<string | null>(null)
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
@@ -135,10 +188,13 @@ export default function OrdersView({ token }: { token: string }) {
   const inFlightCount = all.filter((o) => o.status === 'SUBMITTED' || o.status === 'PROVISIONING').length
   const completedCount = all.filter((o) => o.status === 'COMPLETED').length
   const completedValue = all.filter((o) => o.status === 'COMPLETED').reduce((s, o) => s + (o.total || 0), 0)
+  // Stage 8: SUBMITTED orders that haven't passed the gate yet.
+  const awaitingStage8 = all.filter((o) => o.status === 'SUBMITTED' && o.control_pass !== true).length
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Drafts', value: draftCount, subtitle: 'not yet submitted', onClick: () => setStatusFilter('DRAFT') },
     { label: 'In flight', value: inFlightCount, subtitle: 'submitted or provisioning', warning: true, onClick: () => setStatusFilter('SUBMITTED') },
+    { label: 'Awaiting Stage 8', value: awaitingStage8, subtitle: 'gate not passed', warning: awaitingStage8 > 0, onClick: () => setStatusFilter('SUBMITTED') },
     { label: 'Completed', value: completedCount, subtitle: 'provisioned', premium: true, onClick: () => setStatusFilter('COMPLETED') },
     { label: 'Completed value', value: money(completedValue), subtitle: 'sum of totals' },
   ] : []
@@ -304,6 +360,7 @@ export default function OrdersView({ token }: { token: string }) {
                         </span>
                       </th>
                     ))}
+                    <th scope="col">Stage 8</th>
                     <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
@@ -324,6 +381,23 @@ export default function OrdersView({ token }: { token: string }) {
                           : <span>—</span>}</td>
                         <td className="num"><span className="mono tnum">{money(o.total)}</span></td>
                         <td>{fmtDate(o.created_at)}</td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const p = stage8RowPill(o)
+                            return (
+                              <button
+                                type="button"
+                                className="btn-reset"
+                                title={p.title ?? `Open Stage 8 checks for ${o.number}`}
+                                onClick={() => setStage8Id(o.id)}
+                                style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                                aria-label={`Stage 8 ${p.label} — open details`}
+                              >
+                                <StatusPill variant={p.variant} label={p.label} size="sm" />
+                              </button>
+                            )
+                          })()}
+                        </td>
                         <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {(() => {
@@ -346,7 +420,7 @@ export default function OrdersView({ token }: { token: string }) {
                   })}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ padding: 0 }}>
+                      <td colSpan={7} style={{ padding: 0 }}>
                         <EmptyState
                           icon={<SearchIcon size={34} />}
                           title="No matching orders"
@@ -401,6 +475,21 @@ export default function OrdersView({ token }: { token: string }) {
             onClose={() => { setDetailId(null); load() }}
           />
         )}
+
+        {/* Stage 8 control-gate drawer */}
+        {stage8Id && (() => {
+          const ord = all.find((o) => o.id === stage8Id) ?? null
+          return (
+            <Stage8Modal
+              token={token}
+              order={ord}
+              orderId={stage8Id}
+              canEdit={canEdit}
+              onClose={() => setStage8Id(null)}
+              onChanged={load}
+            />
+          )
+        })()}
     </PageShell>
   )
 }
@@ -619,5 +708,316 @@ function OrderDetailModal({
         </div>
       )}
     </>
+  )
+}
+
+// ── Stage 8 modal ────────────────────────────────────────────────────────────
+// Renders the Stage 8 Control Gate panel for one order:
+//   * 4 check rows (Credit Check / Deposit / Payment Method / Approvals)
+//   * blockers list
+//   * Re-run check, Apply verdict, Release to Provisioning, Collect deposit
+// On mount fetches POST /api/orders/{id}/stage8-check. Re-run reuses the same
+// route. Apply / Release / Collect-deposit hit their own routes and refetch.
+function Stage8Modal({
+  token, order, orderId, canEdit, onClose, onChanged,
+}: {
+  token: string
+  order: OrderRow | null            // snapshot from the list (for deposit_required/status); null if list missed
+  orderId: string
+  canEdit: boolean
+  onClose: () => void
+  onChanged: () => void             // tell parent to refetch /api/orders
+}) {
+  const [check, setCheck] = useState<Stage8Status | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [denied, setDenied] = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
+  const [depositOpen, setDepositOpen] = useState(false)
+
+  async function runCheck() {
+    setError(''); setDenied(false); setUnavailable(false); setLoading(true)
+    try {
+      // /stage8-check is a POST predicate (read-only) — call via bpost so the
+      // helper raises on non-2xx, then catch + classify here.
+      const data = await bpost<Stage8Status>(token, `/api/orders/${orderId}/stage8-check`)
+      setCheck(data)
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      if (err.status === 403) { setDenied(true) }
+      else if (err.status === 404) { setUnavailable(true) }
+      else { setError(err.message || 'Failed to run Stage 8 check') }
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => { runCheck() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [orderId])
+
+  async function doApply() {
+    if (busy) return
+    setBusy(true)
+    try {
+      const updated = await bpost<{ stage8?: Stage8Status }>(token, `/api/orders/${orderId}/stage8-apply`)
+      toast.success('Stage 8 verdict applied')
+      if (updated?.stage8) setCheck(updated.stage8)
+      onChanged()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function doRelease() {
+    if (busy) return
+    setBusy(true)
+    try {
+      await bpost(token, `/api/orders/${orderId}/release`)
+      toast.success(`Order released to provisioning`)
+      onChanged()
+      onClose()
+    } catch (e) {
+      // 409 → backend includes the block reason in detail; surface verbatim.
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Deposit gating uses the snapshot order; if the snapshot is missing or the
+  // backend hasn't extended /api/orders to include the deposit fields yet, we
+  // show the button conservatively (only when we can prove a shortfall).
+  const depositReq = toAmd(order?.deposit_required)
+  const depositColl = toAmd(order?.deposit_collected)
+  const depositShortfall = depositReq > 0 && depositColl < depositReq
+
+  // Release button: only meaningful when the live check says pass AND the order
+  // is currently SUBMITTED. Apply must run first if control_pass is still stale.
+  const canRelease = !!check?.pass && order?.status === 'SUBMITTED'
+
+  // 4 fixed check rows — render in a stable order regardless of what the
+  // backend returns (missing key → render as Pending so the user sees the slot).
+  const checkRows: { key: Stage8CheckKey; label: string }[] = [
+    { key: 'credit_check',       label: 'Credit check' },
+    { key: 'deposit',            label: 'Deposit' },
+    { key: 'payment_method',     label: 'Payment method' },
+    { key: 'mandatory_approvals', label: 'Mandatory approvals' },
+  ]
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={order ? `Stage 8 — Order ${order.number}` : 'Stage 8 control gate'}
+      subtitle={order ? humanizeStatus(order.status) : undefined}
+      size="md"
+      footer={
+        <>
+          <button className="btn btn-ghost btn-sm" disabled={loading || busy} onClick={runCheck}>
+            Re-run check
+          </button>
+          {canEdit && (
+            <button className="btn btn-secondary btn-sm" disabled={loading || busy || denied || unavailable} onClick={doApply}>
+              Apply verdict
+            </button>
+          )}
+          {canEdit && depositShortfall && (
+            <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => setDepositOpen(true)}>
+              Collect deposit
+            </button>
+          )}
+          {canEdit && canRelease && (
+            <button className="btn btn-primary btn-sm" disabled={busy} onClick={doRelease}>
+              <ArrowRightIcon size={13} /> Release to Provisioning
+            </button>
+          )}
+        </>
+      }
+    >
+      {denied && (
+        <p className="muted" style={{ margin: 0 }}>
+          Permission denied — Stage 8 checks require admin.
+        </p>
+      )}
+      {unavailable && (
+        <p className="muted" style={{ margin: 0 }}>
+          Stage 8 endpoint not yet available.
+        </p>
+      )}
+      {error && !denied && !unavailable && (
+        <ErrorBanner message={error} onRetry={runCheck} />
+      )}
+      {!denied && !unavailable && !error && (
+        <>
+          {/* Overall verdict band */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+            borderRadius: 8, border: '1px solid var(--gx-border-subtle)',
+            background: 'var(--gx-surface-2)', marginBottom: 12,
+          }}>
+            <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>Verdict</span>
+            {loading
+              ? <span className="muted" style={{ fontSize: 12 }}>Running…</span>
+              : check
+                ? <StatusPill
+                    variant={check.pass ? 'active' : 'critical'}
+                    label={check.pass ? 'Pass' : 'Fail'}
+                    size="sm"
+                  />
+                : <span className="muted" style={{ fontSize: 12 }}>—</span>}
+          </div>
+
+          {/* 4 check rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {checkRows.map((row) => {
+              const v: Stage8CheckStatus = (check?.checks?.[row.key] ?? 'PENDING') as Stage8CheckStatus
+              return (
+                <div key={row.key} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', border: '1px solid var(--gx-border-subtle)', borderRadius: 6,
+                }}>
+                  <span style={{ fontSize: 13, color: 'var(--gx-text-1)' }}>{row.label}</span>
+                  {loading && !check
+                    ? <span className="muted" style={{ fontSize: 12 }}>…</span>
+                    : <StatusPill variant={stage8CheckVariant(v)} label={humanizeStatus(v)} size="sm" />}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Blockers */}
+          {check && check.blockers && check.blockers.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
+                Blockers
+              </div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
+                {check.blockers.map((b, i) => <li key={i}>{b}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Deposit snapshot (only when the row has deposit data) */}
+          {order && depositReq > 0 && (
+            <div style={{
+              marginTop: 14, padding: '10px 12px', borderRadius: 8,
+              border: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)',
+            }}>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
+                Deposit
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span>Collected</span>
+                <span className="mono tnum">{depositColl.toLocaleString()} ֏</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span>Required</span>
+                <span className="mono tnum">{depositReq.toLocaleString()} ֏</span>
+              </div>
+              {depositShortfall && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gx-warning-fg)', marginTop: 4 }}>
+                  <span>Shortfall</span>
+                  <span className="mono tnum">{(depositReq - depositColl).toLocaleString()} ֏</span>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Collect-deposit nested modal */}
+      {depositOpen && (
+        <CollectDepositModal
+          token={token}
+          orderId={orderId}
+          suggested={depositShortfall ? (depositReq - depositColl) : 0}
+          onClose={() => setDepositOpen(false)}
+          onDone={() => { setDepositOpen(false); onChanged(); runCheck() }}
+        />
+      )}
+    </Modal>
+  )
+}
+
+// ── Collect-deposit nested modal ─────────────────────────────────────────────
+function CollectDepositModal({
+  token, orderId, suggested, onClose, onDone,
+}: {
+  token: string
+  orderId: string
+  suggested: number                  // AMD shortfall to pre-fill
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [amount, setAmount] = useState<string>(suggested > 0 ? String(suggested) : '')
+  const [paymentMethodId, setPaymentMethodId] = useState<string>('')
+  const [busy, setBusy] = useState(false)
+
+  async function submit() {
+    const amt = parseFloat(amount)
+    if (!isFinite(amt) || amt <= 0 || busy) return
+    setBusy(true)
+    try {
+      const body: { amount: number; payment_method_id?: string } = { amount: amt }
+      const pm = paymentMethodId.trim()
+      if (pm) body.payment_method_id = pm
+      await bpost(token, `/api/orders/${orderId}/collect-deposit`, body)
+      toast.success(`Deposit collected: ${amt.toLocaleString()} ֏`)
+      onDone()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Collect deposit"
+      size="sm"
+      footer={
+        <>
+          <button className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <button
+            className="btn btn-primary btn-md"
+            disabled={busy || !isFinite(parseFloat(amount)) || parseFloat(amount) <= 0}
+            onClick={submit}
+          >
+            {busy ? 'Collecting…' : 'Collect'}
+          </button>
+        </>
+      }
+    >
+      <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
+        <label className="field">
+          <span>Amount (֏) <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
+          <input
+            className="inp inp-md inp-numeric"
+            type="number"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            autoFocus
+          />
+        </label>
+        <label className="field">
+          <span>Payment method ID <span className="muted" style={{ fontSize: 11 }}>(optional)</span></span>
+          <input
+            className="inp inp-md"
+            value={paymentMethodId}
+            onChange={(e) => setPaymentMethodId(e.target.value)}
+            placeholder="UUID — leave blank for cash/transfer"
+          />
+        </label>
+        <p className="hint" style={{ fontSize: 11, margin: 0 }}>
+          When a payment method ID is provided the backend simulates a card charge.
+          Otherwise the deposit is recorded without gateway activity.
+        </p>
+      </div>
+    </Modal>
   )
 }

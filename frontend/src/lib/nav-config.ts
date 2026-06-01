@@ -75,20 +75,21 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('br-billing-accounts',    'Billing Accounts',    BuildingIcon,   'accounts'),
     i('br-invoices',            'Invoices',            ReceiptIcon,    'invoices'),
     i('br-payments',            'Payments',            CreditCardIcon, 'payments'),
+    i('br-payment-methods',     'Payment Methods',     CreditCardIcon, 'payment-methods'),
     i('br-collections',         'Collections',         InboxIcon,      'collections'),
     i('br-revenue-assurance',   'Revenue Assurance',   ShieldIcon,     'revenue-assurance'),
   ]),
 
   s('tech_noc', 'Tech & NOC', ServerIcon, [
-    i('noc-dashboard',           'Tech & NOC Dashboard',     ServerIcon,   'dashboards'),
+    i('noc-dashboard',           'Tech & NOC Dashboard',     ServerIcon,   'noc-dashboard'),
     i('noc-service-qualification','Service Qualification',   CheckIcon,    'coverage-gis'),
-    i('noc-installation-board',  'Installation Board',       TruckIcon,    'coming-soon', { id: 'install-jobs', title: 'Installation Board', parent: 'Tech & NOC' }),
+    i('noc-installation-board',  'Installation Board',       TruckIcon,    'installation-board'),
     i('noc-support-tickets',     'Support Tickets',          InboxIcon,    'helpdesk'),
     i('noc-support-dispatch',    'Support Dispatch Board',   ActivityIcon, 'dispatch-board'),
     i('noc-provisioning',        'Provisioning',             GearIcon,     'provisioning'),
     i('noc-incidents',           'Incidents & Outages',      ShieldIcon,   'entity', { slug: 'incidents' }),
     i('noc-infra-projects',      'Infrastructure Projects',  LayersIcon,   'coming-soon', { id: 'infrastructure-projects', title: 'Infrastructure Projects', parent: 'Tech & NOC' }),
-    i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'entity', { slug: 'assets' }),
+    i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'network-inventory'),
   ]),
 
   s('analytics_ai', 'Analytics & AI', ChartIcon, [

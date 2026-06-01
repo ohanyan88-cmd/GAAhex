@@ -12,6 +12,7 @@ import UserMenu from './components/UserMenu'
 import ConfigureDrawer from './modals/ConfigureDrawer'
 import InvoicesView from './views/InvoicesView'
 import PaymentsView from './views/PaymentsView'
+import PaymentMethodsView from './views/PaymentMethodsView'
 import SubscriptionsView from './views/SubscriptionsView'
 import ProductsView from './views/ProductsView'
 import TariffPlansView from './views/TariffPlansView'
@@ -48,10 +49,13 @@ import GlobalSearchView from './views/GlobalSearchView'
 import RecentItemsView from './views/RecentItemsView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
 import NetworkTopologyView from './views/NetworkTopologyView'
+import NetworkInventoryView from './views/NetworkInventoryView'
 import ProvisioningView from './views/ProvisioningView'
 import SchedulingView from './views/SchedulingView'
 import DispatchBoardView from './views/DispatchBoardView'
+import InstallationBoardView from './views/InstallationBoardView'
 import CoverageView from './views/CoverageView'
+import NocDashboardView from './views/NocDashboardView'
 import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
@@ -79,6 +83,7 @@ type View =
   | { type: 'activity-feed' }
   | { type: 'invoices'; initialStatus?: string }
   | { type: 'payments' }
+  | { type: 'payment-methods' }
   | { type: 'subscriptions' }
   | { type: 'products' }
   | { type: 'tariff-plans' }
@@ -107,10 +112,13 @@ type View =
   | { type: 'recent-items' }
   | { type: 'team-workspace' }
   | { type: 'network-topology' }
+  | { type: 'network-inventory' }
   | { type: 'provisioning' }
   | { type: 'scheduling' }
   | { type: 'dispatch-board' }
+  | { type: 'installation-board' }
   | { type: 'coverage-gis' }
+  | { type: 'noc-dashboard' }
   | { type: 'master-demo' }
   | { type: 'coming-soon'; id: string; title: string; parent: string }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
@@ -641,20 +649,28 @@ export default function App() {
                 ? <TeamWorkspaceView token={token} />
               : view.type === 'network-topology'
                 ? <NetworkTopologyView token={token} />
+              : view.type === 'network-inventory'
+                ? <NetworkInventoryView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'provisioning'
                 ? <ProvisioningView token={token} />
               : view.type === 'scheduling'
                 ? <SchedulingView token={token} />
               : view.type === 'dispatch-board'
                 ? <DispatchBoardView token={token} />
+              : view.type === 'installation-board'
+                ? <InstallationBoardView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'coverage-gis'
                 ? <CoverageView token={token} />
+              : view.type === 'noc-dashboard'
+                ? <NocDashboardView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'saved-views'
                 ? <SavedViewsView token={token} onOpenEntity={(slug) => setView({ type: 'entity', slug })} />
               : view.type === 'invoices'
                 ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} capabilities={capabilities} />
               : view.type === 'payments'
                 ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+              : view.type === 'payment-methods'
+                ? <PaymentMethodsView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'gateway'
                 ? <PaymentGatewayView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'subscriptions'

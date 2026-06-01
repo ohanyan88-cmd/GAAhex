@@ -268,6 +268,20 @@ export default function RevenueAssuranceView({
     | null
   >(null)
 
+  // Drilldown drawer state — holds the currently-open finding plus a per-id fetch state.
+  // The detail endpoint returns the full row (same shape as list, but always fresh from DB),
+  // so we re-fetch on open to pick up status transitions made by other operators.
+  type DetailState =
+    | { state: 'loading' }
+    | { state: 'ok'; value: RaFinding }
+    | { state: 'error'; message: string }
+  const [drawerFinding, setDrawerFinding] = useState<RaFinding | null>(null)
+  const [drawerDetail, setDrawerDetail] = useState<DetailState>({ state: 'loading' })
+  // Cache customer names so re-opening the same row doesn't refetch. Keyed by customer_id (uuid).
+  const [customerNameCache, setCustomerNameCache] = useState<Record<string, string | null>>({})
+  // null = not yet looked up; '' = lookup completed but no name (we'll just show uuid)
+  const [drawerCustomer, setDrawerCustomer] = useState<{ id: string; name: string | null } | null>(null)
+
   // Capability test for admin actions (Run Scan / mark FP). Backend enforces; this gates the UI.
   const canAdmin = canConfigure || canDo(caps, 'finding', 'edit')
 
@@ -395,11 +409,63 @@ export default function RevenueAssuranceView({
         toast.success('Marked false positive')
       }
       setActionModal(null)
+      // Close the drilldown drawer too (action centralized through it would otherwise
+      // leave it open showing stale status — reload happens regardless via loadFindings).
+      setDrawerFinding(null)
+      setDrawerDetail({ state: 'loading' })
+      setDrawerCustomer(null)
       await loadFindings()
     } catch (e) {
       toast.error((e as Error).message || 'Action failed')
       setActionModal((m) => m ? { ...m, submitting: false } : m)
     }
+  }
+
+  // Drilldown drawer: open on row click, fetch fresh detail + (optional) customer name.
+  async function openDrawer(f: RaFinding) {
+    setDrawerFinding(f)
+    setDrawerDetail({ state: 'loading' })
+    setDrawerCustomer(null)
+    // Detail fetch — keep the seed finding visible (from the list) while the fresh row loads.
+    const res = await bget<RaFinding>(token, `/api/revenue-assurance/findings/${f.id}`)
+    if (!res.ok || !res.data || typeof res.data !== 'object') {
+      // Fall back to the list row — the list row IS the same shape, just possibly stale.
+      // We still show the drawer; the detail-state stays 'error' so a small note appears.
+      setDrawerDetail({ state: 'error', message: `Could not fetch latest details (${res.status})` })
+    } else {
+      setDrawerDetail({ state: 'ok', value: res.data })
+    }
+    // Customer lookup — only if detail_json carries a customer_id.
+    const fresh = res.ok && res.data ? res.data : f
+    const cid = fresh.detail_json?.customer_id
+    if (cid && typeof cid === 'string') {
+      if (cid in customerNameCache) {
+        setDrawerCustomer({ id: cid, name: customerNameCache[cid] })
+      } else {
+        const cres = await bget<any>(token, `/api/customers/${cid}`)
+        let name: string | null = null
+        if (cres.ok && cres.data && typeof cres.data === 'object') {
+          name = cres.data.name ?? cres.data.title ?? cres.data.display_name ?? null
+        }
+        // Cache even on 404/403 (as null) so we don't refetch a known-missing customer.
+        setCustomerNameCache((m) => ({ ...m, [cid]: name }))
+        setDrawerCustomer({ id: cid, name })
+      }
+    }
+  }
+
+  function closeDrawer() {
+    setDrawerFinding(null)
+    setDrawerDetail({ state: 'loading' })
+    setDrawerCustomer(null)
+  }
+
+  // Drawer-action wrappers: same backend calls, but close the drawer on completion.
+  async function drawerAck() {
+    const target = drawerDetail.state === 'ok' ? drawerDetail.value : drawerFinding
+    if (!target) return
+    await ackFinding(target)
+    closeDrawer()
   }
 
   if (capsLoaded && !canView) {
@@ -636,6 +702,7 @@ export default function RevenueAssuranceView({
             onAck={ackFinding}
             onOpenResolve={openResolve}
             onOpenMarkFP={openMarkFP}
+            onOpenDrawer={openDrawer}
           />
         )}
 
@@ -686,6 +753,20 @@ export default function RevenueAssuranceView({
               />
             </label>
           </Modal>
+        )}
+
+        {/* Drilldown drawer — opens on row click in the Findings table. */}
+        {drawerFinding && (
+          <FindingDrawer
+            seed={drawerFinding}
+            detail={drawerDetail}
+            customer={drawerCustomer}
+            canAdmin={canAdmin}
+            onClose={closeDrawer}
+            onAck={drawerAck}
+            onOpenResolve={(f) => openResolve(f)}
+            onOpenMarkFP={(f) => openMarkFP(f)}
+          />
         )}
     </PageShell>
   )
@@ -755,12 +836,13 @@ function FindingsTab(props: {
   onAck: (f: RaFinding) => void
   onOpenResolve: (f: RaFinding) => void
   onOpenMarkFP: (f: RaFinding) => void
+  onOpenDrawer: (f: RaFinding) => void
 }) {
   const {
     state, statusFilter, onStatusFilter, typeFilter, onTypeFilter,
     severityFilter, onSeverityFilter, canAdmin, onRunScan, lastScan,
     kpiCounts, pageRows, page, pageCount, onPage, totalRows, pageSize,
-    onRetry, onAck, onOpenResolve, onOpenMarkFP,
+    onRetry, onAck, onOpenResolve, onOpenMarkFP, onOpenDrawer,
   } = props
 
   if (state.state === 'denied') {
@@ -922,7 +1004,12 @@ function FindingsTab(props: {
                 {pageRows.map((f) => {
                   const actionable = f.status === 'open' || f.status === 'investigating'
                   return (
-                    <tr key={f.id}>
+                    <tr
+                      key={f.id}
+                      onClick={() => onOpenDrawer(f)}
+                      style={{ cursor: 'pointer' }}
+                      title="View finding details"
+                    >
                       <td>
                         <span title={f.detected_at} style={{ color: 'var(--gx-text-2)' }}>
                           {timeAgo(f.detected_at) || '—'}
@@ -1101,6 +1188,322 @@ function AgingBars({ buckets }: { buckets: AgingBuckets }) {
           <span className="bar-val">{money(r.amount)}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Drilldown drawer ─────────────────────────────────────────────────────────
+// Opens when a row in the Findings table is clicked. Surfaces:
+//   • header: type label + severity pill + detected_at relative
+//   • summary text
+//   • entity context (entity_type/uuid + optional customer name + decoded detail_json fields)
+//   • status flow (open → investigating → resolved/false_positive)
+//   • ack + resolution blocks (when present)
+//   • centralized action buttons (Ack / Resolve / Mark FP) gated by canAdmin
+//
+// The drawer reuses the SAME backend endpoints as the per-row buttons (ack/resolve/mark-FP)
+// — the row-resolution/false-positive flow goes through the existing actionModal so the user
+// gets the resolution textarea modal on top of the drawer, which keeps the drawer state
+// intact until success (the parent closes the drawer on submit success).
+function FindingDrawer(props: {
+  seed: RaFinding                                            // the row that was clicked (immediate paint)
+  detail:                                                     // fresh fetch state for /findings/{id}
+    | { state: 'loading' }
+    | { state: 'ok'; value: RaFinding }
+    | { state: 'error'; message: string }
+  customer: { id: string; name: string | null } | null       // resolved customer (null until lookup done)
+  canAdmin: boolean
+  onClose: () => void
+  onAck: () => void
+  onOpenResolve: (f: RaFinding) => void
+  onOpenMarkFP: (f: RaFinding) => void
+}) {
+  const { seed, detail, customer, canAdmin, onClose, onAck, onOpenResolve, onOpenMarkFP } = props
+  // Prefer the fresh-fetched row; fall back to the clicked row while loading or on detail error.
+  const f: RaFinding = detail.state === 'ok' ? detail.value : seed
+  const actionable = f.status === 'open' || f.status === 'investigating'
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={FINDING_TYPE_LABEL[f.finding_type] ?? f.finding_type}
+      subtitle={f.id ? f.id : undefined}
+      size="lg"
+      hero={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <StatusPill variant={severityToPill(f.severity)} label={f.severity} size="sm" />
+          <StatusPill variant={statusToPill(f.status)} label={STATUS_LABEL[f.status]} size="sm" />
+          <span style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }} title={f.detected_at}>
+            Detected {timeAgo(f.detected_at) || fmtDate(f.detected_at)}
+          </span>
+          {detail.state === 'loading' && (
+            <span style={{ fontSize: 11, color: 'var(--gx-text-3)', marginLeft: 'auto' }}>Refreshing…</span>
+          )}
+          {detail.state === 'error' && (
+            <span style={{ fontSize: 11, color: 'var(--gx-warning, #d97706)', marginLeft: 'auto' }} title={detail.message}>
+              Using cached row
+            </span>
+          )}
+        </div>
+      }
+      footer={
+        <>
+          {canAdmin && actionable && f.status === 'open' && (
+            <button className="btn btn-ghost btn-md" onClick={onAck}>Acknowledge</button>
+          )}
+          {canAdmin && actionable && (
+            <button className="btn btn-secondary btn-md" onClick={() => onOpenMarkFP(f)}>Mark False Positive…</button>
+          )}
+          {canAdmin && actionable && (
+            <button className="btn btn-primary btn-md" onClick={() => onOpenResolve(f)}>Resolve…</button>
+          )}
+          <button className="btn btn-ghost btn-md" onClick={onClose}>Close</button>
+        </>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Summary text */}
+        <section>
+          <div style={drawerSectionTitleStyle}>Summary</div>
+          <p style={{ margin: 0, color: 'var(--gx-text-1, #0f172a)', fontSize: 13, lineHeight: 1.5 }}>
+            {f.summary || <span style={{ color: 'var(--gx-text-3)' }}>No summary recorded.</span>}
+          </p>
+        </section>
+
+        {/* Entity context card */}
+        <section style={drawerCardStyle}>
+          <div style={drawerSectionTitleStyle}>Entity context</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+            <div>
+              <span style={drawerLabelStyle}>Entity</span>
+              <span style={{ fontSize: 11, color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 6 }}>
+                {f.entity_type}
+              </span>
+              <span className="mono" style={{ fontSize: 12 }} title={f.entity_id}>
+                {f.entity_id ? f.entity_id.slice(0, 8) : '—'}
+              </span>
+            </div>
+
+            {customer && (
+              <div>
+                <span style={drawerLabelStyle}>Customer</span>
+                {customer.name
+                  ? <span style={{ color: 'var(--gx-text-1)' }}>{customer.name}</span>
+                  : <span className="mono" style={{ fontSize: 12 }} title={customer.id}>{customer.id.slice(0, 8)}</span>}
+              </div>
+            )}
+
+            <DetailJsonFields detail={f.detail_json} />
+          </div>
+        </section>
+
+        {/* Status flow card */}
+        <section style={drawerCardStyle}>
+          <div style={drawerSectionTitleStyle}>Status flow</div>
+          <StatusFlow current={f.status} />
+        </section>
+
+        {/* Acknowledgement block */}
+        {f.ack_at && (
+          <section style={drawerCardStyle}>
+            <div style={drawerSectionTitleStyle}>Acknowledged</div>
+            <div style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>
+              {f.ack_by && (
+                <>
+                  <span className="mono" style={{ fontSize: 12 }} title={f.ack_by}>{f.ack_by.slice(0, 8)}</span>
+                  <span> · </span>
+                </>
+              )}
+              <span title={f.ack_at}>{timeAgo(f.ack_at) || fmtDate(f.ack_at)}</span>
+            </div>
+          </section>
+        )}
+
+        {/* Resolution block */}
+        {(f.status === 'resolved' || f.status === 'false_positive' || f.resolved_at) && (
+          <section style={drawerCardStyle}>
+            <div style={drawerSectionTitleStyle}>
+              {f.status === 'false_positive' ? 'Marked false positive' : 'Resolved'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>
+              {f.resolved_by && (
+                <>
+                  <span className="mono" style={{ fontSize: 12 }} title={f.resolved_by}>{f.resolved_by.slice(0, 8)}</span>
+                  <span> · </span>
+                </>
+              )}
+              {f.resolved_at && <span title={f.resolved_at}>{timeAgo(f.resolved_at) || fmtDate(f.resolved_at)}</span>}
+              {f.resolution && (
+                <p style={{ marginTop: 8, marginBottom: 0, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {f.resolution}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+const drawerSectionTitleStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: 0.4,
+  color: 'var(--gx-text-3, #64748b)',
+  marginBottom: 8,
+}
+
+const drawerCardStyle: React.CSSProperties = {
+  padding: 12,
+  background: 'var(--gx-surface-2, #f8fafc)',
+  border: '1px solid var(--gx-border-subtle, #e2e8f0)',
+  borderRadius: 8,
+}
+
+const drawerLabelStyle: React.CSSProperties = {
+  display: 'inline-block',
+  minWidth: 84,
+  fontSize: 11,
+  color: 'var(--gx-text-3, #64748b)',
+  fontWeight: 500,
+}
+
+// Decode the known detail_json fields nicely; fall back to formatted JSON for the rest.
+function DetailJsonFields({ detail }: { detail: Record<string, any> | null | undefined }) {
+  if (!detail || typeof detail !== 'object' || Object.keys(detail).length === 0) {
+    return (
+      <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>No additional context.</div>
+    )
+  }
+  // Known keys we render nicely; everything else goes into the catch-all <pre>.
+  const KNOWN = new Set(['customer_id', 'gap_days', 'activated_at', 'cycle_start', 'cycle_end'])
+  const rest: Record<string, any> = {}
+  for (const [k, v] of Object.entries(detail)) {
+    if (!KNOWN.has(k)) rest[k] = v
+  }
+  const gap = typeof detail.gap_days === 'number' ? detail.gap_days : null
+  const activatedAt = typeof detail.activated_at === 'string' ? detail.activated_at : null
+  const cycleStart = typeof detail.cycle_start === 'string' ? detail.cycle_start : null
+  const cycleEnd = typeof detail.cycle_end === 'string' ? detail.cycle_end : null
+  const hasCycle = !!(cycleStart || cycleEnd)
+  const restHasContent = Object.keys(rest).length > 0
+
+  return (
+    <>
+      {gap != null && (
+        <div>
+          <span style={drawerLabelStyle}>Gap</span>
+          <span>Service has been active {gap} day{gap === 1 ? '' : 's'} without billing</span>
+        </div>
+      )}
+      {activatedAt && (
+        <div>
+          <span style={drawerLabelStyle}>Activated</span>
+          <span title={activatedAt}>
+            {timeAgo(activatedAt) || fmtDate(activatedAt)}
+            <span style={{ marginLeft: 8, color: 'var(--gx-text-3)', fontSize: 11 }}>{activatedAt}</span>
+          </span>
+        </div>
+      )}
+      {hasCycle && (
+        <div>
+          <span style={drawerLabelStyle}>Cycle</span>
+          <span>
+            {cycleStart ? fmtDate(cycleStart) : '?'} → {cycleEnd ? fmtDate(cycleEnd) : '?'}
+          </span>
+        </div>
+      )}
+      {restHasContent && (
+        <div>
+          <div style={{ ...drawerLabelStyle, marginBottom: 4 }}>Other</div>
+          <pre style={{
+            margin: 0,
+            padding: 8,
+            background: 'var(--gx-surface-1, #ffffff)',
+            border: '1px solid var(--gx-border-subtle, #e2e8f0)',
+            borderRadius: 6,
+            fontSize: 11,
+            lineHeight: 1.5,
+            color: 'var(--gx-text-2)',
+            overflowX: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+          }}>{JSON.stringify(rest, null, 2)}</pre>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Visual status flow: open → investigating → resolved (or → false_positive).
+// The terminal state replaces "Resolved" when status is false_positive.
+function StatusFlow({ current }: { current: FindingStatus }) {
+  const steps: { key: FindingStatus; label: string }[] = current === 'false_positive'
+    ? [
+        { key: 'open', label: 'Open' },
+        { key: 'investigating', label: 'Investigating' },
+        { key: 'false_positive', label: 'False positive' },
+      ]
+    : [
+        { key: 'open', label: 'Open' },
+        { key: 'investigating', label: 'Investigating' },
+        { key: 'resolved', label: 'Resolved' },
+      ]
+  // Steps prior to (and including) `current` are highlighted.
+  const order = { open: 0, investigating: 1, resolved: 2, false_positive: 2 } as const
+  const currentIdx = order[current]
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {steps.map((s, i) => {
+        const reached = order[s.key] <= currentIdx
+        const isCurrent = s.key === current
+        return (
+          <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 10px',
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: isCurrent ? 600 : 500,
+              background: isCurrent
+                ? (s.key === 'resolved'
+                    ? 'rgba(16, 185, 129, 0.12)'
+                    : s.key === 'false_positive'
+                      ? 'rgba(100, 116, 139, 0.12)'
+                      : s.key === 'investigating'
+                        ? 'rgba(245, 158, 11, 0.12)'
+                        : 'rgba(239, 68, 68, 0.12)')
+                : reached ? 'var(--gx-surface-1, #ffffff)' : 'transparent',
+              color: isCurrent
+                ? (s.key === 'resolved'
+                    ? 'var(--gx-success, #059669)'
+                    : s.key === 'false_positive'
+                      ? 'var(--gx-text-2, #475569)'
+                      : s.key === 'investigating'
+                        ? 'var(--gx-warning, #d97706)'
+                        : 'var(--gx-danger, #dc2626)')
+                : reached ? 'var(--gx-text-2)' : 'var(--gx-text-3)',
+              border: '1px solid ' + (isCurrent
+                ? 'transparent'
+                : reached ? 'var(--gx-border-subtle, #e2e8f0)' : 'var(--gx-border-subtle, #e2e8f0)'),
+            }}>
+              {s.label}
+            </span>
+            {i < steps.length - 1 && (
+              <span style={{
+                width: 18,
+                height: 1,
+                background: 'var(--gx-border, #e2e8f0)',
+                display: 'inline-block',
+              }} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
