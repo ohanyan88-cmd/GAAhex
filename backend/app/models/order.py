@@ -9,7 +9,7 @@ coordinator's migration + any RLS policy must quote it too ("order")."""
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, Boolean, Integer, ForeignKey, DateTime, func
+from sqlalchemy import String, BigInteger, Boolean, Integer, ForeignKey, DateTime, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,6 +45,12 @@ class Order(Base):
     # is the reverse of the existing subscription→order link.
     pipeline_item_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="RESTRICT"), nullable=True, index=True)
     subscription_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("subscription.id", ondelete="RESTRICT"), nullable=True, index=True)
+    # Workspace / Stage 8 Control-Gate surface columns (additive). `credit_check_status` is a short
+    # verdict tag (e.g. 'pending'|'ok'|'fail') for the credit sub-step; `control_gate_block_reason`
+    # is the human-readable explanation shown in the user's workspace when an order is held at the
+    # gate. Both nullable — orders that already passed control before this column existed stay NULL.
+    credit_check_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    control_gate_block_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class OrderItem(Base):

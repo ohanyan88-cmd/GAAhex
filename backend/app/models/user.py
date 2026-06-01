@@ -38,3 +38,10 @@ class User(Base):
     # uses NULL + a known seeded email (admin@demo.isp) to force a first-login password change.
     # /api/me/password stamps this on successful change.
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Workspace module (/api/me/workspace-role) — admin-set primary workspace role + the user's
+    # manual override. Both nullable; the resolver falls back to Assignment.role.key when both are
+    # NULL, and to 'general' when nothing maps. Kept as plain String(40) (not an FK) because the
+    # value space is the frontend LayoutRegistry, NOT role_def.key — see ROLE_DEF_TO_WORKSPACE
+    # in app/routers/workspace.py for the mapping.
+    primary_role_key: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    workspace_role_override: Mapped[str | None] = mapped_column(String(40), nullable=True)

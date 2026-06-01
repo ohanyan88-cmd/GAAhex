@@ -475,6 +475,17 @@ _SPEC_ROLE_SPECS: list[tuple[str, str, str, list[str]]] = [
         "leave_request.*", "payroll_run.view",
         "request.view", "request.create", "request.edit", "request.delete",
     ]),
+    # Workspace module role_def keys (see app/routers/workspace.py ROLE_DEF_TO_WORKSPACE). These
+    # exist so admins can assign users to a role whose key matches the workspace layout — the
+    # frontend's "My Work" page morphs accordingly. Empty permission set on purpose: admins assign
+    # the right permission grants manually in Studio (the workspace module is layout-only, it does
+    # NOT carry baseline rights). Idempotent: skipped if `(tenant_id, key)` already exists.
+    ("sales_d2d",          "D2D Sales Agent",      "node",   []),
+    ("sales_retail",       "Retail Shop Agent",    "node",   []),
+    ("sales_b2b",          "B2B Account Manager",  "node",   []),
+    ("billing_specialist", "Billing Specialist",   "tenant", []),
+    ("executive",          "Executive",            "tenant", []),  # no-op if the SPEC §4.3 row above already exists
+    ("noc_engineer",       "NOC Engineer",         "tenant", []),
 ]
 
 

@@ -282,3 +282,64 @@ async def portal_setup(client: AsyncClient, admin):
         "cid_a": cid_a,
         "token_a": token_a,
     }
+
+
+# ===================== Workspace module: /api/me/workspace-role =====================
+
+@pytest.mark.asyncio
+async def test_workspace_role_resolution_and_override(client: AsyncClient, admin):
+    """Workspace foundation — GET resolves a role, PATCH override sets/clears it.
+
+    Verifies the full round-trip an admin would see in the "My Work" page:
+      1. GET returns 200 with `resolved_role` (in the valid set) + `source`.
+      2. PATCH override='b2b_am' returns 200 and the resolved role flips to b2b_am/override.
+      3. GET re-confirms b2b_am+override persists across requests.
+      4. PATCH override=null clears it (resolution falls back to non-override source).
+    """
+    from app.routers.workspace import VALID_WORKSPACE_ROLES
+
+    # 1. Baseline — admin has *some* resolution (super_admin → ceo via derived, or fallback).
+    r = await client.get("/api/me/workspace-role", headers=admin)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert "resolved_role" in body and "source" in body
+    assert body["resolved_role"] in VALID_WORKSPACE_ROLES
+    baseline_source = body["source"]
+    assert baseline_source in {"override", "primary", "derived", "fallback"}
+
+    # 2. Override to b2b_am.
+    r = await client.patch(
+        "/api/me/workspace-role",
+        headers=admin,
+        json={"override": "b2b_am"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["resolved_role"] == "b2b_am"
+    assert body["source"] == "override"
+
+    # 3. GET sees the override (persisted).
+    r = await client.get("/api/me/workspace-role", headers=admin)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["resolved_role"] == "b2b_am"
+    assert body["source"] == "override"
+
+    # 4. Clear the override — should fall back to whatever the baseline was (NOT override).
+    r = await client.patch(
+        "/api/me/workspace-role",
+        headers=admin,
+        json={"override": None},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["source"] != "override"
+    assert body["resolved_role"] in VALID_WORKSPACE_ROLES
+
+    # 5. Invalid override rejected — protects the layout registry.
+    r = await client.patch(
+        "/api/me/workspace-role",
+        headers=admin,
+        json={"override": "not_a_real_role"},
+    )
+    assert r.status_code == 400, r.text
