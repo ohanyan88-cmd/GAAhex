@@ -1,11 +1,13 @@
 import os
 import asyncio
 
-# Point the app at an isolated test database BEFORE importing any app module. Set BOTH the app and
-# the owner URL to gaaex_test (overriding any .env that may flip these for RLS) so tests never touch
-# the dev DB — the suite runs as the gaaex owner on gaaex_test (no RLS policies via create_all).
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test"
-os.environ["OWNER_DATABASE_URL"] = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test"
+# Point the app at an isolated test database BEFORE importing any app module. Respect any URL the
+# environment already supplied (CI sets DATABASE_URL to its own postgres service on :5432); only
+# fall back to the local-dev default (:5433) when nothing was set. The session fixture explicitly
+# DROPs + CREATEs gaaex_test against this URL, so the dev DB (gaaex) is never touched as long as
+# the configured URL points at a test database — which CI's workflow guarantees.
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test")
+os.environ.setdefault("OWNER_DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test")
 
 import asyncpg
 import pytest
@@ -22,8 +24,14 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _setup_db():
-    # (re)create a clean test database
-    admin = await asyncpg.connect("postgresql://gaaex:gaaex@localhost:5433/gaaex")
+    # (re)create a clean test database. Derive the admin URL (database='postgres') from the
+    # configured DATABASE_URL so this works against whatever host/port the environment uses —
+    # localhost:5433 locally, CI's postgres-service port in CI. Strip the SQLAlchemy driver
+    # prefix because asyncpg.connect takes a plain libpq-style URL.
+    from urllib.parse import urlparse, urlunparse
+    p = urlparse(os.environ["DATABASE_URL"].replace("postgresql+asyncpg://", "postgresql://"))
+    admin_url = urlunparse(p._replace(path="/postgres"))
+    admin = await asyncpg.connect(admin_url)
     await admin.execute("DROP DATABASE IF EXISTS gaaex_test WITH (FORCE)")
     await admin.execute("CREATE DATABASE gaaex_test")
     await admin.close()
