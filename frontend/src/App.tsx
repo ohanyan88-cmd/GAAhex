@@ -480,18 +480,6 @@ export default function App() {
           })}
         </div>
 
-        <div className="sb-foot">
-          <button
-            className="sb-item"
-            style={{ paddingLeft: 10 }}
-            onClick={() => { if (user?.can_configure) { setPrevView(view); setView({ type: 'studio' }) } }}
-            title={user?.can_configure ? 'Open Studio' : 'Studio (admin only)'}
-          >
-            <span className="ic"><Wand size={15} /></span>
-            <span>Studio</span>
-            <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>config</span>
-          </button>
-        </div>
       </aside>
 
       <div className="main">
