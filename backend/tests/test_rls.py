@@ -7,7 +7,9 @@ bound to the dedicated NOSUPERUSER `gaaex_app` role (the role the app flips to f
 
 Plan + rationale: GAAex-Vision/2-kernel/16a-rls-implementation.md §3.
 """
+import os
 import uuid
+from urllib.parse import urlparse, urlunparse
 
 import pytest_asyncio
 from sqlalchemy import text
@@ -15,7 +17,16 @@ from sqlalchemy import text
 from app.db import engine        # gaaex (owner) engine on gaaex_test — used here only for setup
 from sqlalchemy.ext.asyncio import create_async_engine
 
-APP_ROLE_URL = "postgresql+asyncpg://gaaex_app:gaaex_app@localhost:5433/gaaex_test"
+
+def _app_role_url() -> str:
+    """Derive the gaaex_app-role URL from the configured DATABASE_URL so we land on the same
+    Postgres instance (5433 locally, CI's service port in CI) but as the NOSUPERUSER app role
+    that RLS isolation must actually be tested against."""
+    p = urlparse(os.environ["DATABASE_URL"])
+    return urlunparse(p._replace(netloc=f"gaaex_app:gaaex_app@{p.hostname}:{p.port}"))
+
+
+APP_ROLE_URL = _app_role_url()
 GUC = "gaaex.tenant_id"
 
 
