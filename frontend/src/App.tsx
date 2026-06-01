@@ -312,8 +312,28 @@ export default function App() {
             <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 40, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-.03em', margin: 0, maxWidth: 420 }}>
               Every department.<br />Every role.<br /><span style={{ color: 'var(--gx-gold)' }}>One system.</span>
             </h1>
-            <p style={{ color: 'var(--gx-text-2)', fontSize: 14, marginTop: 18, maxWidth: 380, lineHeight: 1.6 }}>
-              CRM, billing, network, field ops, finance &amp; more — rendered from configuration, built in Studio.
+            <ul style={{
+              listStyle: 'none', padding: 0, margin: '22px 0 18px',
+              display: 'flex', flexDirection: 'column', gap: 6,
+              fontFamily: 'var(--gx-font-display)',
+              fontSize: 18, fontWeight: 500,
+              color: 'var(--gx-text-1, #fff)',
+              letterSpacing: '-.01em',
+            }}>
+              {['CRM', 'Billing', 'Network', 'Field Ops', 'Finance & More'].map((m) => (
+                <li key={m} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{
+                    display: 'inline-block',
+                    width: 4, height: 4,
+                    background: 'var(--gx-gold)',
+                    borderRadius: 999,
+                  }} />
+                  {m}
+                </li>
+              ))}
+            </ul>
+            <p style={{ color: 'var(--gx-text-2)', fontSize: 14, maxWidth: 380, lineHeight: 1.6, margin: 0 }}>
+              Configurable modules and workflows<br />built for ISPs.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 22, position: 'relative', zIndex: 1 }}>
