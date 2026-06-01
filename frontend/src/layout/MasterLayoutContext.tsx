@@ -3,6 +3,9 @@
 // Pages publish content into named slots (PageHeaderSlot, TabsSlot, MainSlot, SidecarSlot).
 // Zone components subscribe to slots and wrap the content in their fixed chrome.
 //
+// Also owns the nav-expansion state (LeftNav 240px ↔ 56px rail), driven by the
+// Zone 0 sidebar-toggle button. Pages don't touch this directly — Zone 0 owns it.
+//
 // Property: the page never renders chrome (header/tab-bar/split) directly. It only
 // declares what goes IN the chrome. The Master Layout owns the structural contract.
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
@@ -16,8 +19,8 @@ interface MasterLayoutCtx {
   register: (name: SlotName, node: ReactNode | null) => void
   sidecarCollapsed: boolean
   setSidecarCollapsed: (v: boolean) => void
-  sidebarOpen: boolean
-  setSidebarOpen: (v: boolean) => void
+  navExpanded: boolean
+  setNavExpanded: (v: boolean) => void
 }
 
 const Ctx = createContext<MasterLayoutCtx | null>(null)
@@ -25,7 +28,7 @@ const Ctx = createContext<MasterLayoutCtx | null>(null)
 export function MasterLayoutProvider({ children }: { children: ReactNode }) {
   const [slots, setSlots] = useState<SlotsMap>({})
   const [sidecarCollapsed, setSidecarCollapsed] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [navExpanded, setNavExpanded] = useState(true)
 
   // Stable register fn — slot components call register('main', node) on mount and
   // register('main', null) on unmount (cleanup). Setting null removes the slot.
@@ -42,8 +45,8 @@ export function MasterLayoutProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<MasterLayoutCtx>(
-    () => ({ slots, register, sidecarCollapsed, setSidecarCollapsed, sidebarOpen, setSidebarOpen }),
-    [slots, register, sidecarCollapsed, sidebarOpen],
+    () => ({ slots, register, sidecarCollapsed, setSidecarCollapsed, navExpanded, setNavExpanded }),
+    [slots, register, sidecarCollapsed, navExpanded],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

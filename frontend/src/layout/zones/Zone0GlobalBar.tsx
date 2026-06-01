@@ -1,14 +1,16 @@
 // Zone 0 — Global Top Bar (56px, persistent on every page).
 //
-// Layout: [Sidebar toggle] [Logo] [Brand]    [Search]    [Bell] [Avatar + Name]
+// Layout: [Sidebar toggle]    [Search]    [Bell] [Avatar + Name]
 //
-// Always rendered. Never customized by pages. The contract.
+// The tenant brand mark lives in the LeftNav top, not here — Zone 0 starts to the
+// right of the nav column. The toggle button collapses/expands the LeftNav.
+// Always rendered. Never customized by pages.
 import { Menu, Bell, ChevronDown, Search } from 'lucide-react'
 import { useMasterLayout } from '../MasterLayoutContext'
 
 export interface Zone0Props {
-  tenantInitials: string         // "DI"
-  tenantName:     string         // "Demo ISP"
+  tenantInitials: string         // unused in Zone 0 (kept for prop-compatibility w/ LeftNav brand)
+  tenantName:     string         // unused in Zone 0 (kept for prop-compatibility w/ LeftNav brand)
   userInitials:   string         // "DA"
   userName:       string         // "Demo Admin"
   userRole:       string         // "Administrator"
@@ -19,24 +21,20 @@ export interface Zone0Props {
 }
 
 export default function Zone0GlobalBar(props: Zone0Props) {
-  const { sidebarOpen, setSidebarOpen } = useMasterLayout()
+  const { navExpanded, setNavExpanded } = useMasterLayout()
 
   return (
     <header className="zone-0">
-      {/* LEFT */}
+      {/* LEFT — toggle only (brand moved to LeftNav top) */}
       <div className="zone-0-left">
         <button
           className="zone-0-iconbtn"
-          aria-label={sidebarOpen ? 'Collapse sidebar' : 'Open sidebar'}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={navExpanded ? 'Collapse navigation' : 'Expand navigation'}
+          title={navExpanded ? 'Collapse navigation' : 'Expand navigation'}
+          onClick={() => setNavExpanded(!navExpanded)}
         >
           <Menu size={18} />
         </button>
-
-        <div className="zone-0-tenant">
-          <div className="zone-0-logo" title={props.tenantName}>{props.tenantInitials}</div>
-          <span className="zone-0-brand">{props.tenantName}</span>
-        </div>
       </div>
 
       {/* CENTER — global search hotkey container */}

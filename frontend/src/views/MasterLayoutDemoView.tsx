@@ -1,15 +1,11 @@
-// MasterLayoutDemoView — reference implementation of the 4-Zone Master Layout API.
+// MasterLayoutDemoView — reference implementation of the 4-Zone Master Layout API
+// plus the LeftNav. Proves the contract end-to-end:
 //
-// This page exists ONLY to prove the contract:
-//   - Zone 0 is owned by MasterLayout (page passes props for tenant + user identity)
-//   - Zone 1 is published via <PageHeaderSlot />
-//   - Zone 2 is published via <TabsSlot />
-//   - Zone 3 Left is published via <MainSlot>
-//   - Zone 3 Right is published via <SidecarSlot>
+//   - LeftNav owns the left column (240px / 56px rail, Zone-0 toggle drives state)
+//   - Zone 0 owns the global top bar (toggle + search + bell + profile)
+//   - Zone 1 / Zone 2 / Zone 3 are slot-driven from the page
 //
-// Use this as the copy-paste template for every real page from this point forward.
-// If a page needs something the zones don't expose, the right answer is to extend
-// the slot API — never to bypass the layout.
+// Use this as the copy-paste template for every real page from now on.
 import { useState } from 'react'
 import {
   MasterLayout,
@@ -17,7 +13,12 @@ import {
   TabsSlot,
   MainSlot,
   SidecarSlot,
+  type NavConfig,
 } from '../layout'
+import {
+  HomeIcon, CheckIcon, UsersIcon, MessageIcon, CalendarIcon,
+  InboxIcon, ArrowRightIcon, MailIcon,
+} from '../components/icons'
 import { Plus, Save } from 'lucide-react'
 
 export interface MasterLayoutDemoViewProps {
@@ -31,9 +32,39 @@ export interface MasterLayoutDemoViewProps {
 
 export default function MasterLayoutDemoView(props: MasterLayoutDemoViewProps) {
   const [tab, setTab] = useState<'overview' | 'activity' | 'audit'>('overview')
+  const [activeNav, setActiveNav] = useState<string>('ws-home')
+
+  // Hard-coded WORKSPACE + CRM per Gev's spec (2026-06-01). Items match nav-config exactly.
+  const nav: NavConfig = {
+    brand: { initials: props.tenantInitials, name: props.tenantName },
+    activeId: activeNav,
+    onItemClick: (id) => setActiveNav(id),
+    sections: [
+      {
+        id: 'workspace', label: 'WORKSPACE',
+        items: [
+          { id: 'ws-home',           label: 'Home',           icon: HomeIcon },
+          { id: 'ws-my-work',        label: 'My Work',        icon: CheckIcon, badge: 4 },
+          { id: 'ws-team',           label: 'Team Workspace', icon: UsersIcon },
+          { id: 'ws-communications', label: 'Communications', icon: MessageIcon },
+          { id: 'ws-calendar',       label: 'Calendar',       icon: CalendarIcon },
+        ],
+      },
+      {
+        id: 'crm', label: 'CRM',
+        items: [
+          { id: 'crm-leads',     label: 'Leads',     icon: InboxIcon, badge: 12 },
+          { id: 'crm-pipeline',  label: 'Pipeline',  icon: ArrowRightIcon },
+          { id: 'crm-customers', label: 'Customers', icon: UsersIcon },
+          { id: 'crm-campaigns', label: 'Campaigns', icon: MailIcon },
+        ],
+      },
+    ],
+  }
 
   return (
     <MasterLayout
+      nav={nav}
       zone0={{
         tenantInitials:    props.tenantInitials,
         tenantName:        props.tenantName,
@@ -65,7 +96,7 @@ export default function MasterLayoutDemoView(props: MasterLayoutDemoViewProps) {
       />
 
       <MainSlot>
-        <DemoMainPanel tab={tab} />
+        <DemoMainPanel tab={tab} activeNav={activeNav} />
       </MainSlot>
 
       <SidecarSlot>
@@ -75,7 +106,7 @@ export default function MasterLayoutDemoView(props: MasterLayoutDemoViewProps) {
   )
 }
 
-function DemoMainPanel({ tab }: { tab: 'overview' | 'activity' | 'audit' }) {
+function DemoMainPanel({ tab, activeNav }: { tab: 'overview' | 'activity' | 'audit'; activeNav: string }) {
   return (
     <div style={{
       background: '#ffffff',
@@ -85,18 +116,20 @@ function DemoMainPanel({ tab }: { tab: 'overview' | 'activity' | 'audit' }) {
       boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
     }}>
       <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.06em', marginBottom: 12 }}>
-        Zone 3 — Main · tab: {tab}
+        Zone 3 — Main · nav: {activeNav} · tab: {tab}
       </div>
 
       {tab === 'overview' && (
         <>
           <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px', color: '#0f172a' }}>
-            This is the main workspace panel.
+            Try the controls.
           </h2>
-          <p style={{ fontSize: 13, lineHeight: 1.6, color: '#475569', margin: 0 }}>
-            It re-renders when you click a different tab above. The sidecar on the right
-            stays mounted across tab switches — that's the persistence contract.
-          </p>
+          <ul style={{ fontSize: 13, lineHeight: 1.7, color: '#475569', margin: 0, paddingLeft: 18 }}>
+            <li>Hamburger in Zone 0 toggles the LeftNav between 240px and 56px rail.</li>
+            <li>Zones 1/2/3 reflow automatically — no horizontal cut-off.</li>
+            <li>Click items in the LeftNav: active state highlights, page header tracks the selection.</li>
+            <li>Switch tabs above — the sidecar on the right stays mounted across tab changes.</li>
+          </ul>
         </>
       )}
 
@@ -105,9 +138,9 @@ function DemoMainPanel({ tab }: { tab: 'overview' | 'activity' | 'audit' }) {
           <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 12px', color: '#0f172a' }}>Recent activity</h2>
           <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
             {[
-              { who: 'System',    what: 'Provisioned the demo workspace', when: 'just now' },
+              { who: 'System',     what: 'Provisioned the demo workspace', when: 'just now' },
               { who: 'Demo Admin', what: 'Opened the layout sample page',  when: '2 min ago' },
-              { who: 'Demo Admin', what: 'Switched to tab "Activity"',     when: 'a moment ago' },
+              { who: 'Demo Admin', what: 'Toggled the LeftNav rail',       when: 'a moment ago' },
             ].map((row, i) => (
               <li key={i} style={{ padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid #f1f5f9', fontSize: 13 }}>
                 <span style={{ fontWeight: 600, color: '#0f172a' }}>{row.who}</span>
@@ -133,9 +166,9 @@ function DemoMainPanel({ tab }: { tab: 'overview' | 'activity' | 'audit' }) {
             fontFamily: 'ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace',
             overflowX: 'auto',
           }}>
-{`2026-06-01T08:00:00Z  page.opened          actor=demo-admin
-2026-06-01T08:00:04Z  tab.switched         from=overview to=activity
-2026-06-01T08:00:09Z  tab.switched         from=activity to=audit`}
+{`2026-06-01T08:00:00Z  page.opened     actor=demo-admin
+2026-06-01T08:00:04Z  nav.toggled     state=rail
+2026-06-01T08:00:09Z  nav.itemClick   id=${activeNav}`}
           </pre>
         </>
       )}

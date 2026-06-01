@@ -1,19 +1,24 @@
 /* ============================================================================
-   Master Layout — the immutable 4-Zone page shell
+   Master Layout — the immutable 4-Zone shell + LeftNav
    ============================================================================
 
-   Zone 0: 56px global bar (persistent)
-   Zone 1: 64px page header (dynamic, slot-driven)
-   Zone 2: 44px context tabs (optional, slot-driven)
-   Zone 3: 1fr workspace split 65/35 (slot-driven, sidecar may collapse)
+   Grid:
+     Column 1 — LeftNav (240px expanded / 56px rail, transitions smoothly)
+     Column 2 — Zones stacked:
+                Row 1: Zone 0 (56px global bar)
+                Row 2: Zone 1 (64px page header)
+                Row 3: Zone 2 (auto / 44px tabs, or 0 when not published)
+                Row 4: Zone 3 (1fr workspace split 65/35)
 
-   The grid is fixed. No page may override these dimensions.
+   Toggling the LeftNav (Zone 0's hamburger) animates the column width —
+   Zones 1/2/3 reflow automatically. The grid is fixed; no page may override.
    ============================================================================ */
 
 .master-layout {
+  --nav-w: 240px;
   display: grid;
+  grid-template-columns: var(--nav-w) 1fr;
   grid-template-rows: 56px 64px auto 1fr;
-  grid-template-columns: 1fr;
   height: 100vh;
   width: 100%;
   background: #f6f8fb;
@@ -21,15 +26,149 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, "Noto Sans", sans-serif;
   overflow: hidden;
+  transition: grid-template-columns 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.master-layout--nav-rail { --nav-w: 56px; }
+
+/* Place children on the grid */
+.master-nav { grid-column: 1; grid-row: 1 / -1; }
+.zone-0    { grid-column: 2; grid-row: 1; }
+.zone-1    { grid-column: 2; grid-row: 2; }
+.zone-2    { grid-column: 2; grid-row: 3; }
+.zone-3    { grid-column: 2; grid-row: 4; }
+
+/* ============================================================================
+   LEFT NAV
+   ============================================================================ */
+
+.master-nav {
+  background: #0f172a;
+  color: #cbd5e1;
+  border-right: 1px solid #1e293b;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Brand mark at top — same height as Zone 0 so the top edges align */
+.master-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 12px;
+  border-bottom: 1px solid #1e293b;
+  flex-shrink: 0;
+}
+.master-nav--rail .master-nav-brand { padding: 0; justify-content: center; }
+
+.master-nav-brand-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #2563eb, #1e3a8a);
+  color: #ffffff;
+  font-weight: 700; font-size: 12px;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.master-nav-brand-name {
+  font-size: 14px; font-weight: 600; color: #f1f5f9;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Section / item list */
+.master-nav-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 0 16px;
+}
+.master-nav-body::-webkit-scrollbar       { width: 6px; }
+.master-nav-body::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+.master-nav-sec      { padding: 10px 0 4px; }
+.master-nav-sec-head {
+  padding: 6px 18px 8px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: #64748b;
+  user-select: none;
+}
+
+.master-nav-list { list-style: none; margin: 0; padding: 0; }
+
+.master-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 12px);
+  margin: 1px 6px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: background 120ms, color 120ms;
+}
+.master-nav-item:hover { background: #1e293b; color: #f1f5f9; }
+.master-nav-item--active {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+.master-nav-item--active:hover { background: #1d4ed8; }
+
+.master-nav-item-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+}
+
+.master-nav-item-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.master-nav-item-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  background: #ef4444; color: #ffffff;
+  border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+}
+
+/* Rail-mode item: center the icon, hide labels/badges */
+.master-nav--rail .master-nav-item {
+  justify-content: center;
+  padding: 8px 0;
+  width: calc(100% - 8px);
+  margin: 1px 4px;
+}
+.master-nav-item-dot {
+  position: absolute;
+  top: 6px; right: 10px;
+  width: 6px; height: 6px;
+  background: #ef4444;
+  border-radius: 999px;
 }
 
 /* ============================================================================
-   ZONE 0 — Global Top Bar
+   ZONE 0 — Global Top Bar (sits to the right of LeftNav)
    ============================================================================ */
 
 .zone-0 {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(360px, 720px) minmax(260px, 1fr);
+  grid-template-columns: auto minmax(360px, 720px) 1fr;
   align-items: center;
   gap: 16px;
   padding: 0 20px;
@@ -55,23 +194,6 @@
   transition: background 120ms, border-color 120ms;
 }
 .zone-0-iconbtn:hover { background: #f1f5f9; border-color: #e2e8f0; }
-
-.zone-0-tenant { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.zone-0-logo {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px;
-  background: linear-gradient(135deg, #1e3a8a, #2563eb);
-  color: #fff;
-  font-weight: 700; font-size: 11px;
-  border-radius: 8px;
-  letter-spacing: 0.02em;
-}
-.zone-0-brand {
-  font-weight: 600;
-  font-size: 14px;
-  color: #0f172a;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
 
 .zone-0-search {
   display: inline-flex; align-items: center; gap: 10px;
@@ -279,6 +401,7 @@
   height: 100%;
   overflow: hidden;
   position: relative;
+  min-width: 0;
 }
 .zone-3--collapsed { grid-template-columns: minmax(0, 1fr); }
 
@@ -346,4 +469,14 @@
   .zone-3 { grid-template-columns: minmax(0, 1fr); }
   .zone-3-right { display: none; }
   .zone-3-reopen { display: none; }
+}
+
+/* Force the nav to rail mode on very narrow viewports so content has room */
+@media (max-width: 760px) {
+  .master-layout { --nav-w: 56px !important; }
+  .master-nav .master-nav-brand-name,
+  .master-nav .master-nav-sec-head,
+  .master-nav .master-nav-item-label,
+  .master-nav .master-nav-item-badge { display: none; }
+  .master-nav .master-nav-item { justify-content: center; padding: 8px 0; }
 }

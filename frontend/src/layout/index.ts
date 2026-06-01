@@ -6,7 +6,9 @@
 //
 // Pages MUST NOT import zone components directly — the zones are owned by MasterLayout.
 export { default as MasterLayout } from './MasterLayout'
+export { default as LeftNav } from './LeftNav'
 export { MasterLayoutProvider, useMasterLayout, useSlot, useRegisterSlot } from './MasterLayoutContext'
+export type { NavConfig, NavSection, NavItem } from './LeftNav'
 
 // Slot publishers (page-author API)
 export { default as PageHeaderSlot } from './slots/PageHeaderSlot'

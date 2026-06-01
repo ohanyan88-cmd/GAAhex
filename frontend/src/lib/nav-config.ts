@@ -41,18 +41,13 @@ const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavIte
 
 export const NAV_SECTIONS: NavSectionDef[] = [
 
+  // WORKSPACE — locked to 5 items per Gev's spec (2026-06-01). Do not combine or rename.
   s('workspace', 'Workspace', HomeIcon, [
     i('ws-home',           'Home',             HomeIcon,       'home',                             undefined, 'V'),
     i('ws-my-work',        'My Work',          CheckIcon,      'mytasks',                          undefined, 'V'),
+    i('ws-team',           'Team Workspace',   UsersIcon,      'team-workspace',                   undefined, 'V'),
     i('ws-communications', 'Communications',   MessageIcon,    'messages',                         undefined, 'O'),
     i('ws-calendar',       'Calendar',         CalendarIcon,   'calendar',                         undefined, 'O'),
-    i('ws-global-search',  'Global Search',    InboxIcon,      'global-search',                    undefined, 'V'),
-    i('ws-kb',             'Knowledge Base',   BookmarkIcon,   'entity', { slug: 'kb-articles' },  'O'),
-    i('ws-activity',       'Activity Feed',    ActivityIcon,   'activity-feed',                    undefined, 'V'),
-    i('ws-saved',          'Saved Views',      BookmarkIcon,   'saved-views',                      undefined, 'V'),
-    i('ws-recent',         'Recent Items',     ClockIcon,      'recent-items',                     undefined, 'V'),
-    i('ws-team',           'Team Workspace',   UsersIcon,      'team-workspace',                   undefined, 'V'),
-    i('ws-announcements',  'Announcements',    MailIcon,       'entity', { slug: 'announcements' }, 'O'),
   ], { defaultOpen: true }),
 
   s('work_management', 'Work Management', CheckIcon, [
@@ -61,13 +56,13 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('wm-projects', 'Projects', LayersIcon,     'entity', { slug: 'projects' },       'O'),
   ]),
 
-  s('crm', 'CRM & Commercial', UsersIcon, [
-    i('crm-pipeline',        'Pipeline',         ArrowRightIcon, 'lead-pipeline',                       undefined, 'O'),
-    i('crm-contracts',       'Contracts',        FolderIcon,     'entity', { slug: 'contracts' },       'O'),
-    i('crm-customers',       'Customers',        UsersIcon,      'entity', { slug: 'customers' },       'O'),
-    i('crm-campaigns',       'Campaigns',        MailIcon,       'entity', { slug: 'campaigns' },       'O'),
-    i('crm-sales-channels',  'Sales Channels',   BuildingIcon,   'entity', { slug: 'sales-channels' }, 'O'),
-    i('crm-product-catalog', 'Product Catalog',  ArchiveIcon,    'products',                            undefined, 'O'),
+  // CRM — locked to 4 items per Gev's spec (2026-06-01). Do not combine or rename.
+  // Customers owns Accounts/Contacts/Sites/Contracts/SLAs inline (no separate Contracts entry).
+  s('crm', 'CRM', UsersIcon, [
+    i('crm-leads',     'Leads',     InboxIcon,      'entity', { slug: 'leads' },     'O'),
+    i('crm-pipeline',  'Pipeline',  ArrowRightIcon, 'lead-pipeline',                 undefined, 'O'),
+    i('crm-customers', 'Customers', UsersIcon,      'entity', { slug: 'customers' }, 'O'),
+    i('crm-campaigns', 'Campaigns', MailIcon,       'entity', { slug: 'campaigns' }, 'O'),
   ]),
 
   s('billing_revenue', 'Billing & Revenue', ReceiptIcon, [
