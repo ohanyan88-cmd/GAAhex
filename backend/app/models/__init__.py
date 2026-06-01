@@ -51,6 +51,8 @@ from .tariff import TariffPlan
 from .payment_allocation import PaymentAllocation
 from .credit_note import CreditNote
 from .dunning import DunningPolicy, DunningCase, ServiceActionLog
+from .ra_finding import RaFinding
+from .ra_scan_run import RaScanRun
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -94,4 +96,5 @@ __all__ = [
     "PaymentAllocation",
     "CreditNote",
     "DunningPolicy", "DunningCase", "ServiceActionLog",
+    "RaFinding", "RaScanRun",
 ]
