@@ -10,3 +10,4 @@ pyjwt>=2.10
 alembic>=1.14
 simpleeval>=0.9.13
 cryptography>=42.0.0           # SPEC §4.4 field-level encryption at rest (Fernet AEAD)
+httpx>=0.27                    # runtime: lazy-imported by adapters/payment/arca.py, adapters/sms.py, ai.py

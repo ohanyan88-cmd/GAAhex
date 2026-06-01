@@ -1,0 +1,10 @@
+.git
+.claude
+node_modules
+__pycache__
+.venv
+*.log
+*.tmp
+auth_temp.json
+token.txt
+cookies*.txt
