@@ -559,18 +559,6 @@ export default function App() {
 
           <span className="spacer" />
 
-          {canConfigureThisPage && !!user?.can_configure && (
-            <button
-              className="tb-icon"
-              aria-label="Configure page"
-              title="Configure this page in Studio"
-              onClick={openConfigure}
-              style={{ color: 'var(--gx-gold)' }}
-            >
-              <Wand size={16} />
-            </button>
-          )}
-
           <NotificationBell
             token={token!}
             entities={entities}
