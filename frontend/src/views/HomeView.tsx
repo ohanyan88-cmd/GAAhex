@@ -12,15 +12,22 @@
 // Role detection: derived from /api/me/capabilities. Manual override available via
 // the role selector chip (persisted in localStorage so a sales manager who wants
 // to see the support view can pin it).
+//
+// Migrated onto the PageShell framework (type=workspace): title / subtitle /
+// breadcrumb / icon / KPIs are now PageShell props; the body keeps the urgent
+// alerts band, quick-action shortcuts, role-specific widgets, and the role
+// override picker (its dropdown is non-trivial UI, not a static chip).
 import { useEffect, useState, useMemo } from 'react'
 import {
   CheckSquare, Clock, Shield, Activity, Inbox, AlertCircle,
   AlertTriangle, Users, Banknote, Plus, Search, MapPin,
-  Phone, Ticket, FileText, TrendingUp, ChevronDown,
+  Ticket, FileText, TrendingUp, ChevronDown,
   type LucideIcon,
 } from 'lucide-react'
 import { BASE } from '../lib/config'
 import { fetchCapabilities, type Capabilities } from '../lib/capabilities'
+import { PageShell, type KPISpec } from '../page-shell'
+import { HomeIcon } from '../components/icons'
 
 const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
@@ -49,6 +56,15 @@ const ROLE_LABEL: Record<Role, string> = {
   finance:  'Finance',
   admin:    'Administrator',
   general:  'Team Member',
+}
+
+const ROLE_SUBTITLE: Record<Role, string> = {
+  support: 'Support center',
+  sales:   'Sales overview',
+  tech:    'Tech bench',
+  finance: 'Finance desk',
+  admin:   'Administrator overview',
+  general: 'Your workspace',
 }
 
 const ROLE_COLOR: Record<Role, string> = {
@@ -160,28 +176,12 @@ function weekStartIso(): string {
   return d.toISOString()
 }
 
-// ── KPI tile component ─────────────────────────────────────────────────────
-function KPI({ label, value, target, unit, color = 'var(--azure-500)' }: {
-  label: string; value: number; target: number; unit?: string; color?: string
-}) {
-  const pct = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 100
-  const onTrack = target === 0 || value >= target
-  const barColor = target === 0 ? color : (pct >= 100 ? '#22c55e' : pct >= 70 ? color : pct >= 40 ? '#f59e0b' : '#ef4444')
-  const fmt = (n: number) => unit === '֏' ? `${Math.round(n / 1000)}k${unit}` : `${n.toLocaleString()}${unit ?? ''}`
-  return (
-    <div className="card" style={{ padding: '14px 18px' }}>
-      <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 22, fontWeight: 700, color: onTrack && target > 0 ? '#22c55e' : 'inherit' }}>{fmt(value)}</span>
-        {target > 0 && <span className="muted" style={{ fontSize: 12 }}>/ {fmt(target)}</span>}
-      </div>
-      {target > 0 && (
-        <div style={{ height: 5, borderRadius: 3, background: 'var(--gx-surface-2)' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: 'width .3s' }} />
-        </div>
-      )}
-    </div>
-  )
+// ── KPI value formatter (drops into KPISpec.value / .subtitle) ──────────────
+// Mirrors the formatting the old inline <KPI> tile used so the visual reads
+// the same when KPIBar renders these.
+function fmtKpi(n: number, unit?: string): string {
+  if (unit === '֏') return `${Math.round(n / 1000)}k`
+  return n.toLocaleString()
 }
 
 // ── Widget shell ─────────────────────────────────────────────────────────────
@@ -378,262 +378,267 @@ export default function HomeView({ token, onNavigate }: {
     })
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  const greet = () => {
-    const h = new Date().getHours()
-    return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
-  }
+  // ── Build KPISpec[] for PageShell ────────────────────────────────────────
+  // The old inline <KPI> tile rendered "value / target" with a progress bar +
+  // green/amber/red colorway by progress %. KPIBar (PageShell Zone B) renders
+  // a simpler tile, so we map progress semantics into KPISpec accents:
+  //   • on-track (value >= target, target > 0)  → deltaPositive + delta="on track"
+  //   • behind   (target > 0 && value < target) → warning accent
+  //   • info     (target === 0)                 → plain
+  // The target itself appears in `subtitle` so the X/Y framing is preserved.
+  const kpiSpecs: KPISpec[] = ROLE_KPIS[role].map(k => {
+    const v = kpiValue(k.key)
+    const onTrack = k.target > 0 && v >= k.target
+    const behind  = k.target > 0 && v < k.target
+    return {
+      label: k.label,
+      value: fmtKpi(v, k.unit),
+      unit: k.unit,
+      subtitle: k.target > 0 ? `target ${fmtKpi(k.target, k.unit)}${k.unit ?? ''}` : undefined,
+      delta: onTrack ? 'on track' : undefined,
+      deltaPositive: onTrack ? true : undefined,
+      warning: behind,
+      loading: tasks.state === 'loading' && tickets.state === 'loading',
+    }
+  })
 
+  // ── Render ────────────────────────────────────────────────────────────────
   const onAction = (target: string) => {
     if (target.startsWith('entity:')) onNavigate?.('entity', target.slice(7))
     else onNavigate?.(target)
   }
 
-  const kpis = ROLE_KPIS[role]
   const actions = ROLE_ACTIONS[role]
 
   return (
-    <div className="view">
-      <div className="view-inner" style={{ maxWidth: 1280 }}>
-
-        {/* Greeting + role chip */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>
-              {greet()}, {me?.name || 'there'}
-            </h1>
-            <p style={{ margin: '4px 0 0', color: 'var(--gx-text-3)', fontSize: 13 }}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setPickerOpen(!pickerOpen)}
-              className="card card-hover"
-              style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit' }}
-              title="Change role view"
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[role] }} />
-              <span style={{ fontSize: 12, fontWeight: 600 }}>{ROLE_LABEL[role]}</span>
-              {override && <span className="muted" style={{ fontSize: 10 }}>(override)</span>}
-              <ChevronDown size={12} />
-            </button>
-            {pickerOpen && (
-              <div className="card" style={{ position: 'absolute', right: 0, top: '110%', minWidth: 200, zIndex: 100, padding: 6 }}>
-                {(['support','sales','tech','finance','admin','general'] as Role[]).map(r => (
-                  <div
-                    key={r}
-                    onClick={() => {
-                      if (r === detectedRole) { setOverride(null); localStorage.removeItem(ROLE_OVERRIDE_KEY) }
-                      else { setOverride(r); localStorage.setItem(ROLE_OVERRIDE_KEY, r) }
-                      setPickerOpen(false)
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer', borderRadius: 4, background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[r] }} />
-                    <span style={{ fontSize: 13, flex: 1 }}>{ROLE_LABEL[r]}</span>
-                    {r === detectedRole && <span className="muted" style={{ fontSize: 10 }}>auto</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Action shortcuts */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-          {actions.map(({ label, icon: Icon, target, color }) => (
-            <button
-              key={label}
-              onClick={() => onAction(target)}
-              className="card card-hover"
-              style={{
-                padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
-                cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit',
-                background: 'var(--gx-surface)',
-                borderLeft: `3px solid ${color}`,
-              }}
-            >
-              <Icon size={14} color={color} />
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Urgent alerts band */}
-        {urgentItems.length > 0 && (
-          <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {urgentItems.map((u, i) => (
-              <div
-                key={i}
-                onClick={u.onClick}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 16px',
-                  borderRadius: 6,
-                  background: u.severity === 'red'
-                    ? 'rgba(239,68,68,0.08)'
-                    : 'rgba(245,158,11,0.08)',
-                  border: `1px solid ${u.severity === 'red' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                  cursor: u.onClick ? 'pointer' : 'default',
-                }}
-              >
-                <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger,#ef4444)' : 'var(--gx-warning,#f59e0b)'} />
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{u.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* KPI tiles row with targets */}
-        <div style={{ marginBottom: 14, fontSize: 12, fontWeight: 700, color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Today's targets
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 24 }}>
-          {kpis.map(k => (
-            <KPI key={k.key} label={k.label} value={kpiValue(k.key)} target={k.target} unit={k.unit} color={ROLE_COLOR[role]} />
-          ))}
-        </div>
-
-        {/* Role-specific widgets */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 20 }}>
-
-          {role === 'support' && (
-            <>
-              <Widget icon={Inbox} title="My Open Tickets" count={myTickets.filter(t => !['RESOLVED','CLOSED'].includes(t.status)).length}>
-                {tickets.state === 'loading' && <Skel />}
-                {myTickets.length === 0 ? <Empty msg="All clear" /> : myTickets.slice(0, 6).map(t => (
-                  <div key={t.id} onClick={() => onNavigate?.('helpdesk', t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
-                    <span className="badge badge-primary" style={{ fontSize: 11 }}>{t.status}</span>
-                  </div>
-                ))}
-              </Widget>
-
-              <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
-                {breachedTickets.length === 0 ? <Empty msg="No tickets past SLA" /> : breachedTickets.slice(0, 6).map(t => (
-                  <div key={t.id} onClick={() => onNavigate?.('helpdesk', t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <AlertTriangle size={13} color="var(--gx-danger,#ef4444)" />
-                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
-                    <span style={{ fontSize: 11, color: 'var(--gx-danger,#ef4444)' }}>{Math.round((Date.now()-Date.parse(t.created_at))/3600000)}h</span>
-                  </div>
-                ))}
-              </Widget>
-            </>
-          )}
-
-          {role === 'sales' && (
-            <>
-              <Widget icon={Users} title="My Pipeline" count={myLeads.length}>
-                {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
-                  <div key={l.id} onClick={() => onNavigate?.('entity', 'leads')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
-                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>{l.status}</span>
-                  </div>
-                ))}
-              </Widget>
-
-              <Widget icon={FileText} title="Active Quotes" count={quoteArr.filter(q => q.status === 'SENT').length}>
-                {quoteArr.length === 0 ? <Empty msg="No quotes yet" /> : quoteArr.filter(q => q.status === 'SENT').slice(0, 6).map(q => (
-                  <div key={q.id} onClick={() => onNavigate?.('entity', 'quotes')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13 }}>{q.data?.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
-                    {q.data?.amount && <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data.amount)/100).toLocaleString()}֏</span>}
-                  </div>
-                ))}
-              </Widget>
-            </>
-          )}
-
-          {role === 'tech' && (
-            <>
-              <Widget icon={MapPin} title="Today's Dispatches" count={myTodaySlots.length}>
-                {myTodaySlots.length === 0 ? <Empty msg="No dispatches scheduled today" /> : myTodaySlots.slice(0, 6).map(s => (
-                  <div key={s.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)' }}>
-                    <Clock size={13} color="var(--gx-text-3)" />
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{s.data?.title ?? 'Slot'}</span>
-                    {s.data?.time_from && <span className="mono muted" style={{ fontSize: 12 }}>{String(s.data.time_from)}</span>}
-                  </div>
-                ))}
-              </Widget>
-
-              <Widget icon={CheckSquare} title="Open Work Orders" count={tasksOpen.length}>
-                {tasksOpen.length === 0 ? <Empty msg="No open work orders" /> : tasksOpen.slice(0, 6).map(t => (
-                  <div key={t.id} onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
-                  </div>
-                ))}
-              </Widget>
-            </>
-          )}
-
-          {role === 'finance' && (
-            <>
-              <Widget icon={Banknote} title="Issued Invoices" count={invoiceArr.length}>
-                {invoiceArr.length === 0 ? <Empty msg="No outstanding invoices" /> : invoiceArr.slice(0, 6).map(i => (
-                  <div key={i.id} onClick={() => onNavigate?.('invoices')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13 }}>{i.number}</span>
-                    <span className="mono" style={{ fontSize: 12 }}>{Math.round(Number(i.total)/100).toLocaleString()}֏</span>
-                  </div>
-                ))}
-              </Widget>
-
-              <Widget icon={Shield} title="Pending Approvals" count={approvalArr.length}>
-                {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
-                  <div key={a.id} onClick={() => onNavigate?.('my-approvals')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                    <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
-                  </div>
-                ))}
-              </Widget>
-            </>
-          )}
-
-          {(role === 'admin' || role === 'general') && (
-            <>
-              <Widget icon={CheckSquare} title="My Tasks" count={tasksOpen.length}>
-                {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 6).map(t => (
-                  <div key={t.id} onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
-                  </div>
-                ))}
-              </Widget>
-
-              <Widget icon={Shield} title="Approvals Waiting" count={approvalArr.length}>
-                {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
-                  <div key={a.id} onClick={() => onNavigate?.('my-approvals')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                    <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                    <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
-                  </div>
-                ))}
-              </Widget>
-            </>
-          )}
-        </div>
-
-        {/* Recent activity — common to all roles */}
-        <Widget icon={Activity} title="My Recent Activity">
-          {activity.state === 'loading' && <Skel rows={5} />}
-          {activity.state === 'hide' && <Empty msg="No recent activity" />}
-          {activity.state === 'ok' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8, padding: 12 }}>
-              {activity.value.slice(0, 8).map(a => (
-                <div key={a.id} className="card card-hover" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Activity size={11} color="var(--gx-text-3)" />
-                  <span style={{ flex: 1, fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <span style={{ color: 'var(--gx-text-2)' }}>{a.type}</span>
-                    {a.entity_key && <span style={{ color: 'var(--gx-link)' }}> {a.entity_key.replace(/_/g, ' ')}</span>}
-                  </span>
-                  <span className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>{relTime(a.created_at)}</span>
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Home']}
+      icon={<HomeIcon size={18} />}
+      title="Home"
+      subtitle={ROLE_SUBTITLE[role]}
+      statusSummary={{ label: `You · ${ROLE_LABEL[role]}`, variant: 'info' }}
+      kpis={kpiSpecs}
+    >
+      {/* Role override picker — preserves the user's ability to pin a
+          different role's view (e.g. a sales manager wanting the support
+          dashboard). Auto-detected role is marked with an "auto" tag. */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setPickerOpen(!pickerOpen)}
+            className="card card-hover"
+            style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit' }}
+            title="Change role view"
+          >
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[role] }} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>{ROLE_LABEL[role]}</span>
+            {override && <span className="muted" style={{ fontSize: 10 }}>(override)</span>}
+            <ChevronDown size={12} />
+          </button>
+          {pickerOpen && (
+            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', minWidth: 200, zIndex: 100, padding: 6 }}>
+              {(['support','sales','tech','finance','admin','general'] as Role[]).map(r => (
+                <div
+                  key={r}
+                  onClick={() => {
+                    if (r === detectedRole) { setOverride(null); localStorage.removeItem(ROLE_OVERRIDE_KEY) }
+                    else { setOverride(r); localStorage.setItem(ROLE_OVERRIDE_KEY, r) }
+                    setPickerOpen(false)
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer', borderRadius: 4, background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[r] }} />
+                  <span style={{ fontSize: 13, flex: 1 }}>{ROLE_LABEL[r]}</span>
+                  {r === detectedRole && <span className="muted" style={{ fontSize: 10 }}>auto</span>}
                 </div>
               ))}
             </div>
           )}
-        </Widget>
-
+        </div>
       </div>
-    </div>
+
+      {/* Quick Action shortcuts */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+        {actions.map(({ label, icon: Icon, target, color }) => (
+          <button
+            key={label}
+            onClick={() => onAction(target)}
+            className="card card-hover"
+            style={{
+              padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
+              cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit',
+              background: 'var(--gx-surface)',
+              borderLeft: `3px solid ${color}`,
+            }}
+          >
+            <Icon size={14} color={color} />
+            <span style={{ fontSize: 13, fontWeight: 500 }}>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Urgent alerts band */}
+      {urgentItems.length > 0 && (
+        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {urgentItems.map((u, i) => (
+            <div
+              key={i}
+              onClick={u.onClick}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 16px',
+                borderRadius: 6,
+                background: u.severity === 'red'
+                  ? 'rgba(239,68,68,0.08)'
+                  : 'rgba(245,158,11,0.08)',
+                border: `1px solid ${u.severity === 'red' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                cursor: u.onClick ? 'pointer' : 'default',
+              }}
+            >
+              <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger,#ef4444)' : 'var(--gx-warning,#f59e0b)'} />
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{u.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Role-specific widgets */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 20 }}>
+
+        {role === 'support' && (
+          <>
+            <Widget icon={Inbox} title="My Open Tickets" count={myTickets.filter(t => !['RESOLVED','CLOSED'].includes(t.status)).length}>
+              {tickets.state === 'loading' && <Skel />}
+              {myTickets.length === 0 ? <Empty msg="All clear" /> : myTickets.slice(0, 6).map(t => (
+                <div key={t.id} onClick={() => onNavigate?.('helpdesk', t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
+                  <span className="badge badge-primary" style={{ fontSize: 11 }}>{t.status}</span>
+                </div>
+              ))}
+            </Widget>
+
+            <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
+              {breachedTickets.length === 0 ? <Empty msg="No tickets past SLA" /> : breachedTickets.slice(0, 6).map(t => (
+                <div key={t.id} onClick={() => onNavigate?.('helpdesk', t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <AlertTriangle size={13} color="var(--gx-danger,#ef4444)" />
+                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
+                  <span style={{ fontSize: 11, color: 'var(--gx-danger,#ef4444)' }}>{Math.round((Date.now()-Date.parse(t.created_at))/3600000)}h</span>
+                </div>
+              ))}
+            </Widget>
+          </>
+        )}
+
+        {role === 'sales' && (
+          <>
+            <Widget icon={Users} title="My Pipeline" count={myLeads.length}>
+              {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
+                <div key={l.id} onClick={() => onNavigate?.('entity', 'leads')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{l.status}</span>
+                </div>
+              ))}
+            </Widget>
+
+            <Widget icon={FileText} title="Active Quotes" count={quoteArr.filter(q => q.status === 'SENT').length}>
+              {quoteArr.length === 0 ? <Empty msg="No quotes yet" /> : quoteArr.filter(q => q.status === 'SENT').slice(0, 6).map(q => (
+                <div key={q.id} onClick={() => onNavigate?.('entity', 'quotes')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13 }}>{q.data?.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
+                  {q.data?.amount && <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data.amount)/100).toLocaleString()}֏</span>}
+                </div>
+              ))}
+            </Widget>
+          </>
+        )}
+
+        {role === 'tech' && (
+          <>
+            <Widget icon={MapPin} title="Today's Dispatches" count={myTodaySlots.length}>
+              {myTodaySlots.length === 0 ? <Empty msg="No dispatches scheduled today" /> : myTodaySlots.slice(0, 6).map(s => (
+                <div key={s.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)' }}>
+                  <Clock size={13} color="var(--gx-text-3)" />
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{s.data?.title ?? 'Slot'}</span>
+                  {s.data?.time_from && <span className="mono muted" style={{ fontSize: 12 }}>{String(s.data.time_from)}</span>}
+                </div>
+              ))}
+            </Widget>
+
+            <Widget icon={CheckSquare} title="Open Work Orders" count={tasksOpen.length}>
+              {tasksOpen.length === 0 ? <Empty msg="No open work orders" /> : tasksOpen.slice(0, 6).map(t => (
+                <div key={t.id} onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
+                </div>
+              ))}
+            </Widget>
+          </>
+        )}
+
+        {role === 'finance' && (
+          <>
+            <Widget icon={Banknote} title="Issued Invoices" count={invoiceArr.length}>
+              {invoiceArr.length === 0 ? <Empty msg="No outstanding invoices" /> : invoiceArr.slice(0, 6).map(i => (
+                <div key={i.id} onClick={() => onNavigate?.('invoices')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13 }}>{i.number}</span>
+                  <span className="mono" style={{ fontSize: 12 }}>{Math.round(Number(i.total)/100).toLocaleString()}֏</span>
+                </div>
+              ))}
+            </Widget>
+
+            <Widget icon={Shield} title="Pending Approvals" count={approvalArr.length}>
+              {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
+                <div key={a.id} onClick={() => onNavigate?.('my-approvals')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
+                  <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
+                </div>
+              ))}
+            </Widget>
+          </>
+        )}
+
+        {(role === 'admin' || role === 'general') && (
+          <>
+            <Widget icon={CheckSquare} title="My Tasks" count={tasksOpen.length}>
+              {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 6).map(t => (
+                <div key={t.id} onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
+                </div>
+              ))}
+            </Widget>
+
+            <Widget icon={Shield} title="Approvals Waiting" count={approvalArr.length}>
+              {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
+                <div key={a.id} onClick={() => onNavigate?.('my-approvals')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
+                  <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
+                </div>
+              ))}
+            </Widget>
+          </>
+        )}
+      </div>
+
+      {/* Recent activity — common to all roles */}
+      <Widget icon={Activity} title="My Recent Activity">
+        {activity.state === 'loading' && <Skel rows={5} />}
+        {activity.state === 'hide' && <Empty msg="No recent activity" />}
+        {activity.state === 'ok' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8, padding: 12 }}>
+            {activity.value.slice(0, 8).map(a => (
+              <div key={a.id} className="card card-hover" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Activity size={11} color="var(--gx-text-3)" />
+                <span style={{ flex: 1, fontSize: 12, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ color: 'var(--gx-text-2)' }}>{a.type}</span>
+                  {a.entity_key && <span style={{ color: 'var(--gx-link)' }}> {a.entity_key.replace(/_/g, ' ')}</span>}
+                </span>
+                <span className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap' }}>{relTime(a.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Widget>
+    </PageShell>
   )
 }

@@ -5,6 +5,7 @@ import {
   PlusIcon, CloseIcon, CheckIcon,
 } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
+import { PageShell } from '../page-shell'
 
 import { BASE } from '../lib/config'
 
@@ -348,28 +349,58 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
   const grid = buildGrid(year, month)
   const today = todayStr()
 
+  // Visible (non-hidden) events — feeds upcoming list AND KPI counts so the
+  // KPIs match what the user can actually see on screen.
+  const visibleEvents = events.filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
+
   // Upcoming events (visible/non-hidden, future-only from "today" forward in this month).
-  const upcoming = events
-    .filter(e => !e.calendar_id || !hiddenCals.has(e.calendar_id))
+  const upcoming = visibleEvents
     .filter(e => e.start_at.slice(0, 10) >= today)
     .sort((a, b) => a.start_at.localeCompare(b.start_at))
     .slice(0, 6)
 
-  return (
-    <div className="gx-comms comms-shell section-page fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 14, maxWidth: 1320, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-      <div className="comms-head">
-        <div className="vh-ic"><CalendarIcon size={20} /></div>
-        <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
-            {cfg.title}
-          </h1>
-          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
-            {calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)}
-            {loading ? ' · loading…' : ''}
-            {loadError ? ` · ${loadError}` : ''}
-          </div>
+  // KPI derivation — counted from the events ALREADY fetched for the current
+  // range. "This week" = Mon..Sun of the calendar week containing today.
+  const todayCount = visibleEvents.filter(e => e.start_at.slice(0, 10) === today).length
+  const weekStartIso = (() => {
+    const n = new Date()
+    const day = n.getDay()
+    const diff = day === 0 ? 6 : day - 1
+    const mon = new Date(n)
+    mon.setDate(n.getDate() - diff)
+    mon.setHours(0, 0, 0, 0)
+    return isoDate(mon)
+  })()
+  const weekEndIso = (() => {
+    const n = new Date()
+    const day = n.getDay()
+    const diff = day === 0 ? 6 : day - 1
+    const mon = new Date(n)
+    mon.setDate(n.getDate() - diff + 6)
+    mon.setHours(0, 0, 0, 0)
+    return isoDate(mon)
+  })()
+  const thisWeekCount = visibleEvents.filter(e => {
+    const d = e.start_at.slice(0, 10)
+    return d >= weekStartIso && d <= weekEndIso
+  }).length
+
+  // Sub-toolbar lives inside the body — the PageShell ActionBar's
+  // ViewSwitcher contract is for canonical view-kinds (table/board/calendar/
+  // map/timeline/gallery), not calendar sub-modes like month/week, so the
+  // month↔week toggle + date navigator stay in-body alongside the range label.
+  const rangeLabel =
+    calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)
+
+  const body = (
+    <>
+      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
+          {rangeLabel}
+          {loading ? ' · loading…' : ''}
+          {loadError ? ` · ${loadError}` : ''}
         </div>
-        <span className="spacer" />
+        <span className="spacer" style={{ flex: 1 }} />
         <div className="cal-nav">
           <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
             <ChevronLeftIcon size={18} />
@@ -383,9 +414,6 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           <button type="button" className={calView === 'month' ? 'on' : ''} onClick={() => setCalView('month')}>Month</button>
           <button type="button" className={calView === 'week' ? 'on' : ''} onClick={() => setCalView('week')}>Week</button>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => openNew()} type="button">
-          <PlusIcon size={14} />New event
-        </button>
       </div>
 
       <div className="cal-layout">
@@ -629,6 +657,27 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
       {/* suppress unused prefillDate lint — it drives the date passed to openNew */}
       {prefillDate === null && null}
-    </div>
+    </>
+  )
+
+  return (
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Calendar']}
+      icon={<CalendarIcon size={18} />}
+      title={cfg.title}
+      subtitle="Schedules & field dispatches"
+      kpis={[
+        { label: 'Today', value: todayCount, subtitle: todayCount === 0 ? 'no events' : undefined },
+        { label: 'This week', value: thisWeekCount, subtitle: thisWeekCount === 0 ? 'no events' : undefined },
+      ]}
+      primaryAction={{
+        label: 'New event',
+        icon: <PlusIcon size={14} />,
+        onClick: () => openNew(),
+      }}
+    >
+      {body}
+    </PageShell>
   )
 }

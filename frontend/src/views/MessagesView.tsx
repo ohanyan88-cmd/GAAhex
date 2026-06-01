@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { timeAgo } from '../lib/time'
 import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
 import { COMMUNICATION_CHANNELS, type CommunicationChannel } from '../lib/lifecycle'
+import { PageShell } from '../page-shell'
 import {
   MessageIcon,
   SearchIcon,
@@ -189,62 +190,37 @@ export default function MessagesView({
   }
 
   return (
-    <div
-      className="gx-comms comms-shell fade"
-      style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden' }}
+    <PageShell
+      type="communication"
+      breadcrumb={['Workspace', 'Communications']}
+      icon={<MessageIcon size={20} />}
+      title="Communications"
+      subtitle="Conversations with leads, customers, orders, and tickets across approved channels"
+      statusSummary={{
+        label: 'Channel = how we talk · Lead Source = how the lead came in',
+        variant: 'info',
+      }}
+      filters={{
+        search: {
+          value: query,
+          onChange: setQuery,
+          placeholder: 'Search conversations…',
+        },
+        quick: [
+          {
+            label: 'Channel',
+            value: channel,
+            options: [
+              { label: 'All', value: 'All' },
+              ...COMMUNICATION_CHANNELS.map((c) => ({ label: c, value: c })),
+            ],
+            onChange: (v) => setChannel(v as typeof channel),
+          },
+        ],
+      }}
+      workspaceClassName="gx-comms"
     >
-      <div className="comms-head">
-        <div className="vh-ic"><MessageIcon size={20} /></div>
-        <div style={{ minWidth: 0 }}>
-          <h1 className="comms-title">Communications</h1>
-          <div className="sub comms-sub">
-            Conversations with leads, customers, orders, and tickets across approved channels.
-            <span style={{ marginLeft: 8, color: 'var(--gx-text-3, #94a3b8)' }}>
-              · Communication Channel = how we talk to the person · Lead Source = how the lead came into the business
-            </span>
-          </div>
-        </div>
-        <span className="spacer" />
-      </div>
-
-      {/* Channel chips — UI filter today; will gate /api/threads once the channel column lands. */}
-      <div
-        role="tablist"
-        aria-label="Communication channel"
-        style={{
-          display: 'flex', flexWrap: 'wrap', gap: 6,
-          padding: '8px 16px 0',
-          borderBottom: '1px solid var(--gx-border, #e2e8f0)',
-        }}
-      >
-        {(['All', ...COMMUNICATION_CHANNELS] as const).map((c) => {
-          const active = channel === c
-          return (
-            <button
-              key={c}
-              role="tab"
-              aria-selected={active}
-              onClick={() => setChannel(c as typeof channel)}
-              style={{
-                padding: '6px 12px',
-                background: active ? 'var(--gx-primary, #2563eb)' : 'var(--gx-bg-2, #f1f5f9)',
-                color:      active ? '#ffffff' : 'var(--gx-text-2, #475569)',
-                border: '1px solid ' + (active ? 'var(--gx-primary, #2563eb)' : 'var(--gx-border, #e2e8f0)'),
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: active ? 600 : 500,
-                cursor: 'pointer',
-                marginBottom: 8,
-              }}
-              title={c === 'All' ? 'All channels' : `Filter to ${c}`}
-            >
-              {c}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="msgr">
+      <div className="msgr" style={{ gridColumn: '1 / -1' }}>
         {/* Conversation list */}
         <div className="msgr-list">
           <div className="msgr-search">
@@ -470,6 +446,6 @@ export default function MessagesView({
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

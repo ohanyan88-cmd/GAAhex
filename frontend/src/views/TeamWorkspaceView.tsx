@@ -2,7 +2,8 @@
 // Shows org nodes (departments/teams) with member counts pulled from /api/org/nodes
 // and /api/users. No mock fallbacks: missing data → empty state per section.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { UsersIcon, BuildingIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
@@ -32,58 +33,74 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
   const membersFor = (nodeId: string) => members.filter(m => m.owner_node_id === nodeId)
   const unassigned = members.filter(m => !m.owner_node_id)
 
-  return (
-    <div className="view-root">
-      <ViewHead icon={<UsersIcon size={20} />} title="Team Workspace" sub={loading ? undefined : `${nodes.length} team${nodes.length === 1 ? '' : 's'} · ${members.length} member${members.length === 1 ? '' : 's'}`} />
-      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
-        {loading && <SkeletonRows rows={6} />}
-        {error && <ErrorBanner message={error} />}
-        {!loading && !error && nodes.length === 0 && members.length === 0 && (
-          <EmptyState icon={<UsersIcon size={36} />} title="No teams yet" message="Org nodes and team members will appear here once your org structure is configured." />
-        )}
-        {!loading && nodes.map(node => {
-          const nodeMembers = membersFor(node.id)
-          return (
-            <div key={node.id} className="card" style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-3)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
-                <BuildingIcon size={16} className="muted" />
-                <span style={{ fontWeight: 600 }}>{node.name}</span>
-                <span className="badge badge-neutral" style={{ fontSize: 11 }}>{node.kind}</span>
-                <span className="muted" style={{ fontSize: 12, marginLeft: 'auto' }}>{nodeMembers.length} member{nodeMembers.length === 1 ? '' : 's'}</span>
-              </div>
-              {nodeMembers.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {nodeMembers.map(m => (
-                    <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
-                      <span style={{ fontSize: 14 }}>{m.name || m.email}</span>
-                      <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.role}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="muted" style={{ fontSize: 13 }}>No members assigned to this team.</p>
-              )}
-            </div>
-          )
-        })}
-        {!loading && unassigned.length > 0 && (
-          <div className="card" style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-3)' }}>
+  const kpis: KPISpec[] = [
+    { label: 'Teams', value: loading ? '—' : nodes.length, loading },
+    { label: 'Members', value: loading ? '—' : members.length, loading },
+    { label: 'Unassigned', value: loading ? '—' : unassigned.length, loading, warning: !loading && unassigned.length > 0 },
+  ]
+
+  const body = (
+    <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+      {loading && <SkeletonRows rows={6} />}
+      {error && <ErrorBanner message={error} />}
+      {!loading && !error && nodes.length === 0 && members.length === 0 && (
+        <EmptyState icon={<UsersIcon size={36} />} title="No teams yet" message="Org nodes and team members will appear here once your org structure is configured." />
+      )}
+      {!loading && nodes.map(node => {
+        const nodeMembers = membersFor(node.id)
+        return (
+          <div key={node.id} className="card" style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
-              <UsersIcon size={16} className="muted" />
-              <span style={{ fontWeight: 600 }}>Unassigned</span>
-              <span className="muted" style={{ fontSize: 12, marginLeft: 'auto' }}>{unassigned.length} member{unassigned.length === 1 ? '' : 's'}</span>
+              <BuildingIcon size={16} className="muted" />
+              <span style={{ fontWeight: 600 }}>{node.name}</span>
+              <span className="badge badge-neutral" style={{ fontSize: 11 }}>{node.kind}</span>
+              <span className="muted" style={{ fontSize: 12, marginLeft: 'auto' }}>{nodeMembers.length} member{nodeMembers.length === 1 ? '' : 's'}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {unassigned.map(m => (
-                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
-                  <span style={{ fontSize: 14 }}>{m.name || m.email}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.role}</span>
-                </div>
-              ))}
-            </div>
+            {nodeMembers.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {nodeMembers.map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
+                    <span style={{ fontSize: 14 }}>{m.name || m.email}</span>
+                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.role}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted" style={{ fontSize: 13 }}>No members assigned to this team.</p>
+            )}
           </div>
-        )}
-      </div>
+        )
+      })}
+      {!loading && unassigned.length > 0 && (
+        <div className="card" style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
+            <UsersIcon size={16} className="muted" />
+            <span style={{ fontWeight: 600 }}>Unassigned</span>
+            <span className="muted" style={{ fontSize: 12, marginLeft: 'auto' }}>{unassigned.length} member{unassigned.length === 1 ? '' : 's'}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {unassigned.map(m => (
+              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
+                <span style={{ fontSize: 14 }}>{m.name || m.email}</span>
+                <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.role}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  )
+
+  return (
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Team Workspace']}
+      icon={<UsersIcon size={18} />}
+      title="Team Workspace"
+      subtitle="Department shared queues & load balancing"
+      kpis={kpis}
+    >
+      {body}
+    </PageShell>
   )
 }

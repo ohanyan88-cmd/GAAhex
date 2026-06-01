@@ -9,12 +9,11 @@
 // Errors hide the table/board entirely and log to console (no banner).
 
 import { useEffect, useMemo, useState } from 'react'
-import ViewHead from '../components/ViewHead'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 import WorkItemsBoard from '../components/WorkItemsBoard'
 import { EmptyState, PermissionDenied, SkeletonRows, ErrorBanner } from '../components/States'
-import { CheckIcon, GearIcon, InboxIcon, SearchIcon, PlayIcon, PauseIcon, TrashIcon, CloseIcon } from '../components/icons'
-import { Plus, Rows3, Columns3 } from 'lucide-react'
+import { CheckIcon, GearIcon, InboxIcon, PlayIcon, PauseIcon, TrashIcon, CloseIcon } from '../components/icons'
+import { Plus } from 'lucide-react'
 import {
   listWorkItems, getWorkItem, createWorkItem, patchWorkItem,
   startWorkItem, completeWorkItem, blockWorkItem, cancelWorkItem, reopenWorkItem, deleteWorkItem,
@@ -26,6 +25,7 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import UserPicker from '../components/UserPicker'
 import { StatusPill } from '../primitives'
+import { PageShell, type KPISpec, type FiltersSpec, type PrimaryAction, type SecondaryAction, type ViewSwitcher } from '../page-shell'
 
 // Default column set for My Tasks. SLA is intentionally absent — WorkItem has
 // no `sla_due_at`. We surface `due_at` as the closest real proxy.
@@ -202,172 +202,159 @@ export default function MyTasksView({
   // → no subtitle (we can't honestly report counts).
   const subtitle: string | undefined = state.kind === 'ok'
     ? (overdueCount > 0 ? `${openCount} open · ${overdueCount} overdue` : `${openCount} open`)
+    : 'Personal execution bench'
+
+  // ── PageShell KPIs (real counts from the fetched list; hidden on non-ok). ──
+  // Per doctrine: 0 IS a real fetched value → render it. On forbidden/error we
+  // omit kpis entirely (no fake zeros).
+  const kpiSpec: KPISpec[] | undefined = state.kind === 'ok'
+    ? (() => {
+        const pendingCount = items.filter((i) => i.status === 'TODO').length
+        const doneCount = items.filter((i) => i.status === 'DONE').length
+        return [
+          { label: 'Open', value: openCount },
+          { label: 'Pending', value: pendingCount },
+          { label: 'Done', value: doneCount },
+          { label: 'Overdue', value: overdueCount, danger: overdueCount > 0 },
+        ]
+      })()
     : undefined
+
+  // ── PageShell filters spec (search + status + priority). ───────────────────
+  const filtersSpec: FiltersSpec = {
+    search: {
+      value: query,
+      onChange: setQuery,
+      placeholder: 'Search my tasks',
+    },
+    quick: [
+      {
+        label: 'Status',
+        value: statusFilter,
+        options: [
+          { label: 'All statuses', value: '' },
+          ...STATUS_FILTERS.map((s) => ({ label: statusLabel(s), value: s })),
+        ],
+        onChange: (next) => setStatusFilter(next as WorkItemStatus | ''),
+      },
+      {
+        label: 'Priority',
+        value: priorityFilter,
+        options: [
+          { label: 'All priorities', value: '' },
+          ...PRIORITIES.map((p) => ({
+            label: p.charAt(0) + p.slice(1).toLowerCase(),
+            value: p,
+          })),
+        ],
+        onChange: (next) => setPriorityFilter(next as WorkItemPriority | ''),
+      },
+    ],
+  }
+
+  // ── PageShell primary + secondary actions. ─────────────────────────────────
+  const primaryAction: PrimaryAction = {
+    label: '+ New Task',
+    icon: <Plus size={14} />,
+    onClick: () => setCreateOpen(true),
+  }
+  const secondaryActions: SecondaryAction[] | undefined =
+    canConfigure && onConfigure
+      ? [{ label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure }]
+      : undefined
+
+  // ── PageShell view switcher (Table / Board). ───────────────────────────────
+  const viewSwitcher: ViewSwitcher = {
+    current: mode,
+    options: ['table', 'board'],
+    onChange: (next) => setMode(next as ViewMode),
+  }
 
   // ── Render branches ────────────────────────────────────────────────────────
 
   if (state.kind === 'forbidden') {
     return (
-      <div className="view">
-        <div className="view-inner section-page fade">
-          <div className="crumbs">
-            <span>Workspace</span>
-            <span className="sep">/</span>
-            <span style={{ color: 'var(--gx-text-1)' }}>My Tasks</span>
-          </div>
-          <ViewHead icon={<CheckIcon size={18} />} title="My Tasks" />
-          <PermissionDenied />
-        </div>
-      </div>
+      <PageShell
+        type="workspace"
+        breadcrumb={['Workspace', 'My Work']}
+        icon={<CheckIcon size={18} />}
+        title="My Work"
+        subtitle="Personal execution bench"
+      >
+        <PermissionDenied />
+      </PageShell>
     )
   }
 
+  // ── Workspace body (loading / empty / table / board / error-hidden). ───────
+  const body = state.kind === 'error' ? null : state.kind === 'loading' ? (
+    <SkeletonRows rows={6} />
+  ) : sorted.length === 0 ? (
+    <EmptyState
+      icon={<InboxIcon size={40} />}
+      title={items.length === 0 ? 'No tasks assigned to you' : 'No tasks match your filters'}
+      message={items.length === 0
+        ? 'Tasks assigned to you will appear here.'
+        : 'Try clearing search or filters.'}
+    />
+  ) : mode === 'table' ? (
+    <WorkItemsTable
+      items={sorted}
+      columns={MY_TASKS_COLUMNS}
+      users={users}
+      customerNames={customerNames}
+      sortKey={sortKey}
+      sortDir={sortDir}
+      onSortChange={toggleSort}
+      onRowClick={handleRowClick}
+      onStatusChange={handleStatusChange}
+    />
+  ) : (
+    <WorkItemsBoard
+      items={sorted}
+      users={users}
+      onRowClick={handleRowClick}
+      onStatusChange={handleStatusChange}
+    />
+  )
+
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Workspace</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>My Tasks</span>
-        </div>
+    <>
+      <PageShell
+        type="workspace"
+        breadcrumb={['Workspace', 'My Work']}
+        icon={<CheckIcon size={18} />}
+        title="My Work"
+        subtitle={subtitle}
+        kpis={kpiSpec}
+        views={viewSwitcher}
+        primaryAction={primaryAction}
+        secondaryActions={secondaryActions}
+        filters={filtersSpec}
+      >
+        {body}
+      </PageShell>
 
-        <ViewHead
-          icon={<CheckIcon size={18} />}
-          title="My Tasks"
-          sub={subtitle}
-          actions={
-            <>
-              <div className="seg" role="tablist" aria-label="View mode">
-                <button
-                  role="tab"
-                  aria-selected={mode === 'table'}
-                  className={mode === 'table' ? 'on' : ''}
-                  onClick={() => setMode('table')}
-                >
-                  <Rows3 size={13} /> Table
-                </button>
-                <button
-                  role="tab"
-                  aria-selected={mode === 'board'}
-                  className={mode === 'board' ? 'on' : ''}
-                  onClick={() => setMode('board')}
-                >
-                  <Columns3 size={13} /> Board
-                </button>
-              </div>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                <Plus size={14} /> New
-              </button>
-            </>
-          }
+      {/* Detail/edit modal */}
+      {detailId && (
+        <MyTaskDetailModal
+          token={token}
+          id={detailId}
+          users={users}
+          customerNames={customerNames}
+          onClose={() => { setDetailId(null); loadData() }}
         />
+      )}
 
-        {/* Error: hide the table/board entirely. Nothing rendered + console.error in loadData. */}
-        {state.kind === 'error' ? null : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 320 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search my tasks"
-                  style={{
-                    flex: 1, background: 'none', border: 'none', outline: 'none',
-                    color: 'var(--gx-text-1)', fontSize: 13,
-                  }}
-                />
-              </div>
-              <select
-                className="inp inp-sm"
-                aria-label="Filter by priority"
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value as WorkItemPriority | '')}
-                style={{ marginLeft: 8 }}
-              >
-                <option value="">All priorities</option>
-                {PRIORITIES.map((p) => (
-                  <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>
-                ))}
-              </select>
-              <select
-                className="inp inp-sm"
-                aria-label="Filter by status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as WorkItemStatus | '')}
-                style={{ marginLeft: 8 }}
-              >
-                <option value="">All statuses</option>
-                {STATUS_FILTERS.map((s) => (
-                  <option key={s} value={s}>{statusLabel(s)}</option>
-                ))}
-              </select>
-              <span className="spacer" />
-            </div>
-
-            {state.kind === 'loading' ? (
-              <div style={{ padding: 14 }}>
-                <SkeletonRows rows={6} />
-              </div>
-            ) : sorted.length === 0 ? (
-              <EmptyState
-                icon={<InboxIcon size={40} />}
-                title={items.length === 0 ? 'No tasks assigned to you' : 'No tasks match your filters'}
-                message={items.length === 0
-                  ? 'Tasks assigned to you will appear here.'
-                  : 'Try clearing search or filters.'}
-              />
-            ) : mode === 'table' ? (
-              <WorkItemsTable
-                items={sorted}
-                columns={MY_TASKS_COLUMNS}
-                users={users}
-                customerNames={customerNames}
-                sortKey={sortKey}
-                sortDir={sortDir}
-                onSortChange={toggleSort}
-                onRowClick={handleRowClick}
-                onStatusChange={handleStatusChange}
-              />
-            ) : (
-              <div style={{ padding: 14 }}>
-                <WorkItemsBoard
-                  items={sorted}
-                  users={users}
-                  onRowClick={handleRowClick}
-                  onStatusChange={handleStatusChange}
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Detail/edit modal */}
-        {detailId && (
-          <MyTaskDetailModal
-            token={token}
-            id={detailId}
-            users={users}
-            customerNames={customerNames}
-            onClose={() => { setDetailId(null); loadData() }}
-          />
-        )}
-
-        {/* Create modal */}
-        {createOpen && (
-          <MyTaskCreateModal
-            token={token}
-            onClose={() => setCreateOpen(false)}
-            onDone={() => { setCreateOpen(false); loadData() }}
-          />
-        )}
-      </div>
-    </div>
+      {/* Create modal */}
+      {createOpen && (
+        <MyTaskCreateModal
+          token={token}
+          onClose={() => setCreateOpen(false)}
+          onDone={() => { setCreateOpen(false); loadData() }}
+        />
+      )}
+    </>
   )
 }
 
