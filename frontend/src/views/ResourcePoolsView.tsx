@@ -11,11 +11,11 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile, Button } from '../primitives'
+import { StatusPill, Button } from '../primitives'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + RecordDrawer detail with allocations.
 // Backend serializes the live allocation tally as `allocated_count` (see respool.py _pool()).
@@ -158,46 +158,33 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
   if (denied) return <PermissionDenied message={t('pools.denied', 'Resource pools are admin-only.')} />
 
+  // KPI tiles — per-kind counts derived from the loaded list. First tile premium.
+  const kpis: KPISpec[] = (all.length > 0 && Object.keys(byKind).length > 0)
+    ? Object.entries(byKind).map(([k, info], i) => ({
+        label: k.toUpperCase(),
+        value: info.count,
+        subtitle: info.hasAllocData ? `${info.allocs} allocation${info.allocs !== 1 ? 's' : ''}` : undefined,
+        premium: i === 0,
+      }))
+    : []
+
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs"><span>Network &amp; Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<PackageIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} pool${all.length !== 1 ? 's' : ''} · IPAM · VLAN · phone allocation`}
-          actions={!unavailable && (
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
-                <Plus size={14} /> {creating ? 'Close' : 'New pool'}
-              </button>
-            </>
-          )}
-        />
-
-        {all.length > 0 && Object.keys(byKind).length > 0 && (
-          <div className="kpi-strip">
-            {Object.entries(byKind).map(([k, info], i) => (
-              <KPITile
-                key={k}
-                label={k.toUpperCase()}
-                value={info.count}
-                subtitle={info.hasAllocData
-                  ? `${info.allocs} allocation${info.allocs !== 1 ? 's' : ''}`
-                  : undefined}
-                size="sm"
-                premium={i === 0}
-              />
-            ))}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Tech & NOC', cfg.title]}
+      icon={<PackageIcon size={18} />}
+      title={cfg.title}
+      subtitle="IPAM pools · VLAN ranges · phone numbers"
+      kpis={kpis}
+      primaryAction={!unavailable ? {
+        label: creating ? 'Close' : 'New pool',
+        icon: <Plus size={14} />,
+        onClick: () => setCreating((c) => !c),
+      } : undefined}
+      secondaryActions={!unavailable && canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         {creating && (
           <div className="card" style={{ padding: 14, marginBottom: 16 }}>
             <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
@@ -333,8 +320,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
             onClose={() => { setDetailId(null); load() }}
           />
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

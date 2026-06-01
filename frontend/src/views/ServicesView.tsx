@@ -10,11 +10,11 @@ import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight, Pause, Play, Trash2,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile, Button } from '../primitives'
+import { StatusPill, Button } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { humanizeStatus } from '../lib/humanize'
 
@@ -147,81 +147,38 @@ export default function ServicesView({ token, canConfigure = false, configVersio
     else { setSortKey(k); setSortDir(1) }
   }
 
+  const pendingCount = all.filter(s => (s.status ?? '').toUpperCase() === 'PENDING').length
   const activeCount = all.filter(s => (s.status ?? '').toUpperCase() === 'ACTIVE').length
   const suspendedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'SUSPENDED').length
   const terminatedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'TERMINATED').length
 
   if (denied) return <PermissionDenied message="You don't have permission to view services." />
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Total', value: all.length, subtitle: `${activeCount} active`, onClick: () => setStatus('') },
+    { label: 'Active', value: activeCount, subtitle: 'delivering', premium: true, onClick: () => setStatus('ACTIVE') },
+    ...(pendingCount > 0 ? [{ label: 'Pending', value: pendingCount, subtitle: 'awaiting activation', onClick: () => setStatus('PENDING') }] : []),
+    ...(suspendedCount > 0 ? [{ label: 'Suspended', value: suspendedCount, subtitle: 'action required', warning: true, onClick: () => setStatus('SUSPENDED') }] : []),
+    ...(terminatedCount > 0 ? [{ label: 'Terminated', value: terminatedCount, subtitle: 'closed', danger: true, onClick: () => setStatus('TERMINATED') }] : []),
+  ] : []
+
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs"><span>Network &amp; Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{page.title}</span></div>
-
-        <ViewHead
-          icon={<ServerIcon size={18} />}
-          title={page.title}
-          sub={`${all.length} service${all.length !== 1 ? 's' : ''} · provisioned inventory · lifecycle engine`}
-          actions={
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              {canCreate && (
-                <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                  <Plus size={14} /> New service
-                </button>
-              )}
-            </>
-          }
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Total"
-              value={all.length}
-              subtitle={`${activeCount} active`}
-              size="sm"
-              onClick={() => setStatus('')}
-              ariaLabel={`Total services — ${all.length}. Click to clear filter.`}
-            />
-            <KPITile
-              label="Active"
-              value={activeCount}
-              subtitle="delivering"
-              size="sm"
-              premium
-              onClick={() => setStatus('ACTIVE')}
-              ariaLabel={`Active services — ${activeCount}. Click to filter to active.`}
-            />
-            {suspendedCount > 0 && (
-              <KPITile
-                label="Suspended"
-                value={suspendedCount}
-                subtitle="action required"
-                size="sm"
-                warning
-                onClick={() => setStatus('SUSPENDED')}
-                ariaLabel={`Suspended services — ${suspendedCount}. Click to filter to suspended.`}
-              />
-            )}
-            {terminatedCount > 0 && (
-              <KPITile
-                label="Terminated"
-                value={terminatedCount}
-                subtitle="closed"
-                size="sm"
-                danger
-                onClick={() => setStatus('TERMINATED')}
-                ariaLabel={`Terminated services — ${terminatedCount}. Click to filter to terminated.`}
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Tech & NOC', page.title]}
+      icon={<ServerIcon size={18} />}
+      title={page.title}
+      subtitle="Active subscriber services"
+      kpis={kpis}
+      primaryAction={canCreate ? {
+        label: 'New service',
+        icon: <Plus size={14} />,
+        onClick: () => setCreateOpen(true),
+      } : undefined}
+      secondaryActions={canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         <div className="tabs">
           <button className={'tab' + (status === '' ? ' on' : '')} onClick={() => setStatus('')}>
             All <span className="tab-count">{all.length}</span>
@@ -345,8 +302,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
             onDone={() => { setCreateOpen(false); load() }}
           />
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

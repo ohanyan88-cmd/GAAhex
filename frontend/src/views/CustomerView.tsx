@@ -6,7 +6,7 @@ import { toast } from '../components/Toast'
 import { ErrorBanner, PermissionDenied, NotFound } from '../components/States'
 import ActivityTimeline from '../components/ActivityTimeline'
 import InteractionsView from './InteractionsView'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec, type StatusSummary, type StatusSummaryVariant } from '../page-shell'
 import {
   ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
   ClockIcon, CreditCardIcon, GearIcon,
@@ -327,40 +327,34 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   const invoices = data?.invoices ?? []
   const related = Object.entries(data?.related ?? {})
 
+  // Map the customer's CRM status onto the PageShell statusSummary chip variants.
+  function toSummaryVariant(v: PillVariant): StatusSummaryVariant {
+    if (v === 'active') return 'success'
+    if (v === 'degraded') return 'warning'
+    if (v === 'critical') return 'danger'
+    if (v === 'info') return 'info'
+    return 'neutral'
+  }
+  const statusSummary: StatusSummary | undefined = p?.status
+    ? { label: p.status, variant: toSummaryVariant(mapCustomerStatus(p.status)) }
+    : undefined
+
+  // Subtitle: short id mono token (kept literal in subtitle since PageShell subtitle is string).
+  const subtitle = p?.id ? `Customer 360 · ${p.id.slice(0, 8)}` : 'Customer 360'
+
   return (
-    <div className="view-inner fade">
-        <div className="crumbs">
-          <span>CRM</span><span className="sep">/</span>
-          <a onClick={onBack} style={{ cursor: 'pointer' }}>{t('nav.customers', 'Customers')}</a>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{name || t('cust.title', 'Customer')}</span>
-        </div>
-
-        <ViewHead
-          icon={<UsersIcon size={18} />}
-          title={
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-              {name || t('cust.title', 'Customer')}
-              {p?.status && <StatusPill variant={mapCustomerStatus(p.status)} label={p.status} size="sm" />}
-            </span>
-          }
-          sub={
-            p?.id ? <span className="mono" style={{ color: 'var(--gx-text-3)' }}>{p.id.slice(0, 8)}</span> : undefined
-          }
-          actions={
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button className="btn btn-ghost btn-sm" onClick={onBack}>
-                <ChevronLeftIcon size={13} /> {t('nav.customers', 'Customers')}
-              </button>
-            </>
-          }
-        />
-
+    <PageShell
+      type="workspace"
+      breadcrumb={['CRM', t('nav.customers', 'Customers'), name || t('cust.title', 'Customer')]}
+      icon={<UsersIcon size={18} />}
+      title={name || t('cust.title', 'Customer')}
+      subtitle={subtitle}
+      statusSummary={statusSummary}
+      secondaryActions={[
+        ...(canConfigure && onConfigure ? [{ label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure }] : []),
+        { label: t('nav.customers', 'Customers'), icon: <ChevronLeftIcon size={13} />, onClick: onBack },
+      ]}
+    >
         {error && <ErrorBanner message={error} onRetry={load} />}
         {!data && !error && (
           <>
@@ -628,7 +622,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
         {payInvoice && (
           <PaymentModal token={token} invoiceId={payInvoice.id} onClose={() => setPayInvoice(null)} onDone={() => { setPayInvoice(null); load() }} />
         )}
-    </div>
+    </PageShell>
   )
 }
 

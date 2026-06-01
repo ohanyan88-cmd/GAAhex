@@ -5,17 +5,17 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ChartIcon, ReceiptIcon, SearchIcon, GearIcon,
+  ActivityIcon, ReceiptIcon, SearchIcon, GearIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -141,57 +141,29 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
   if (denied) return <PermissionDenied message={t('usage.denied', "You don't have permission to view usage.")} />
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Records', value: all.length, subtitle: `${ratedCount} rated · ${unratedCount} unrated`, onClick: () => setRated('') },
+    { label: 'Total amount', value: `֏${(totalAmt / 1000).toFixed(1)}k`, subtitle: 'billed via subscription rules', premium: true },
+    ...(metrics.length > 0 ? [{ label: 'Metric types', value: metrics.length, subtitle: metrics.slice(0, 4).join(' · ') }] : []),
+  ] : []
+
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<ChartIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} record${all.length !== 1 ? 's' : ''} · metered · rated via subscription rules`}
-          actions={!unavailable && (
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button className="btn btn-primary btn-sm" onClick={() => setLogOpen(true)}>
-                <Plus size={14} /> Record usage
-              </button>
-            </>
-          )}
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Records"
-              value={all.length}
-              subtitle={`${ratedCount} rated · ${unratedCount} unrated`}
-              size="sm"
-              onClick={() => setRated('')}
-              ariaLabel={`Records — ${all.length}. Click to clear filter.`}
-            />
-            <KPITile
-              label="Total amount"
-              value={`֏${(totalAmt / 1000).toFixed(1)}k`}
-              subtitle="billed via subscription rules"
-              size="sm"
-              premium
-            />
-            {metrics.length > 0 && (
-              <KPITile
-                label="Metric types"
-                value={metrics.length}
-                subtitle={metrics.slice(0, 4).join(' · ')}
-                size="sm"
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="analytics"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<ActivityIcon size={18} />}
+      title={cfg.title}
+      subtitle="Subscription metering & bandwidth tracking"
+      kpis={kpis}
+      primaryAction={!unavailable ? {
+        label: 'Record usage',
+        icon: <Plus size={14} />,
+        onClick: () => setLogOpen(true),
+      } : undefined}
+      secondaryActions={!unavailable && canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         <div className="tabs">
           <button className={'tab' + (rated === '' ? ' on' : '')} onClick={() => setRated('')}>
             All <span className="tab-count">{all.length}</span>
@@ -317,8 +289,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
         )}
 
         {logOpen && <RecordUsageModal token={token} subs={subs} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

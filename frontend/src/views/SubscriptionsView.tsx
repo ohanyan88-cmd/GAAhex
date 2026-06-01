@@ -13,10 +13,10 @@ import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
@@ -196,75 +196,30 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
     else { setSortKey(k); setSortDir(1) }
   }
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Total subscriptions', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
+    { label: 'Active', value: activeCount, subtitle: 'recurring revenue', premium: true, onClick: () => setQuery('ACTIVE') },
+    ...(suspendedCount > 0 ? [{ label: 'Suspended', value: suspendedCount, subtitle: 'action required', warning: true, onClick: () => setQuery('SUSPENDED') }] : []),
+    ...(cancelledCount > 0 ? [{ label: 'Cancelled', value: cancelledCount, subtitle: 'closed', muted: true, onClick: () => setQuery('CANCELLED') }] : []),
+  ] : []
+
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs"><span>Orders &amp; Revenue</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<ReceiptIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} subscription${all.length !== 1 ? 's' : ''} · billed via the WorkItem engine`}
-          actions={
-            !unavailable ? (
-              <>
-                {canConfigure && onConfigure && (
-                  <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                  </button>
-                )}
-                <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
-                  <Plus size={14} /> {draft ? 'Close' : 'New subscription'}
-                </button>
-              </>
-            ) : undefined
-          }
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Total subscriptions"
-              value={all.length}
-              subtitle={`${activeCount} active`}
-              size="sm"
-              onClick={() => setQuery('')}
-              ariaLabel={`Total subscriptions — ${all.length}. Click to clear filter.`}
-            />
-            <KPITile
-              label="Active"
-              value={activeCount}
-              subtitle="recurring revenue"
-              size="sm"
-              premium
-              onClick={() => setQuery('ACTIVE')}
-              ariaLabel={`Active subscriptions — ${activeCount}. Click to filter to active.`}
-            />
-            {suspendedCount > 0 && (
-              <KPITile
-                label="Suspended"
-                value={suspendedCount}
-                subtitle="action required"
-                size="sm"
-                warning
-                onClick={() => setQuery('SUSPENDED')}
-                ariaLabel={`Suspended — ${suspendedCount}. Click to filter to suspended.`}
-              />
-            )}
-            {cancelledCount > 0 && (
-              <KPITile
-                label="Cancelled"
-                value={cancelledCount}
-                subtitle="closed"
-                size="sm"
-                muted
-                onClick={() => setQuery('CANCELLED')}
-                ariaLabel={`Cancelled — ${cancelledCount}. Click to filter to cancelled.`}
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<ReceiptIcon size={18} />}
+      title={cfg.title}
+      subtitle="Recurring subscription ledger"
+      kpis={kpis}
+      primaryAction={!unavailable ? {
+        label: draft ? 'Close' : 'New subscription',
+        icon: <Plus size={14} />,
+        onClick: () => setDraft(draft ? null : { ...EMPTY }),
+      } : undefined}
+      secondaryActions={!unavailable && canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         {draft && (
           <div className="rec-form">
             <label className="field">
@@ -432,7 +387,6 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }

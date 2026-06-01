@@ -5,7 +5,7 @@ import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { t } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
 import ReportSchedulePanel from '../modals/ReportSchedulePanel'
 import { EditIcon, PlusIcon, CloseIcon, TrashIcon } from '../components/icons'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
@@ -116,21 +116,18 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
   }
 
   return (
-    <div className="view-inner gx-dash fade">
-        <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>Report Builder</span></div>
-
-
-        <ViewHead
-          icon={<EditIcon size={20} />}
-          title="Report Builder"
-          sub={reports && !unavailable ? `${reports.length} saved report${reports.length === 1 ? '' : 's'}` : 'Compose re-runnable aggregations across configured entities'}
-          actions={!unavailable && (
-            <button className="btn btn-primary btn-sm" onClick={() => setBuilding((b) => !b)}>
-              {building ? <><CloseIcon size={13} /> Close</> : <><PlusIcon size={13} /> New report</>}
-            </button>
-          )}
-        />
-
+    <PageShell
+      type="configuration"
+      breadcrumb={['Analytics & AI', 'Report Builder']}
+      icon={<EditIcon size={20} />}
+      title="Report Builder"
+      subtitle="Build & configure saved reports"
+      primaryAction={!unavailable ? {
+        label: building ? 'Close' : 'New report',
+        icon: building ? <CloseIcon size={13} /> : <PlusIcon size={13} />,
+        onClick: () => setBuilding((b) => !b),
+      } : undefined}
+    >
         {/* Builder form — kit `.card` + `.rec-form` + `.field` pattern. */}
         {building && (
           <div className="card" style={{ marginBottom: 18 }}>
@@ -278,7 +275,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
             reports={(reports ?? []).map((r) => ({ id: r.id, name: r.name }))}
           />
         )}
-    </div>
+    </PageShell>
   )
 }
 

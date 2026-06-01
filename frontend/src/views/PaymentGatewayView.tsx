@@ -10,9 +10,9 @@ import {
   CreditCardIcon, ReceiptIcon, SearchIcon, ArrowRightIcon,
   ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, GearIcon,
 } from '../components/icons'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -147,75 +147,31 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
     else { setSortKey(k); setSortDir(1) }
   }
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Volume', value: `֏${(totalAmt / 1000).toFixed(1)}k`, subtitle: `${all.length} order${all.length !== 1 ? 's' : ''}`, premium: true },
+    { label: 'Paid', value: paidCount, subtitle: 'settled', onClick: () => setStatusFilter('PAID') },
+    ...(pendingCount > 0 ? [{ label: 'Pending', value: pendingCount, subtitle: 'awaiting confirmation', warning: true, onClick: () => setStatusFilter('PENDING') }] : []),
+    ...(failedCount > 0 ? [{ label: 'Failed/Expired', value: failedCount, subtitle: 'action required', danger: true, onClick: () => setStatusFilter('FAILED') }] : []),
+  ] : []
+
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<CreditCardIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} order${all.length !== 1 ? 's' : ''} · gateway adapters · reconciliation engine`}
-          actions={
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleReconcile}
-                disabled={reconciling}
-              >
-                <PlusIcon size={13} /> {reconciling ? 'Reconciling…' : 'Reconcile now'}
-              </button>
-            </>
-          }
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip" style={{ marginBottom: 18 }}>
-            <KPITile
-              label="Volume"
-              value={`֏${(totalAmt / 1000).toFixed(1)}k`}
-              subtitle={`${all.length} order${all.length !== 1 ? 's' : ''}`}
-              size="sm"
-              premium
-            />
-            <KPITile
-              label="Paid"
-              value={paidCount}
-              subtitle="settled"
-              size="sm"
-              onClick={() => setStatusFilter('PAID')}
-              ariaLabel={`Paid — ${paidCount}. Click to filter to paid.`}
-            />
-            {pendingCount > 0 && (
-              <KPITile
-                label="Pending"
-                value={pendingCount}
-                subtitle="awaiting confirmation"
-                size="sm"
-                warning
-                onClick={() => setStatusFilter('PENDING')}
-                ariaLabel={`Pending — ${pendingCount}. Click to filter to pending.`}
-              />
-            )}
-            {failedCount > 0 && (
-              <KPITile
-                label="Failed/Expired"
-                value={failedCount}
-                subtitle="action required"
-                size="sm"
-                danger
-                onClick={() => setStatusFilter('FAILED')}
-                ariaLabel={`Failed or expired — ${failedCount}. Click to filter to failed.`}
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<CreditCardIcon size={18} />}
+      title={cfg.title}
+      subtitle="Payment processor integration"
+      kpis={kpis}
+      primaryAction={{
+        label: reconciling ? 'Reconciling…' : 'Reconcile now',
+        icon: <PlusIcon size={13} />,
+        onClick: handleReconcile,
+        disabled: reconciling,
+      }}
+      secondaryActions={canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         <div className="tabs">
           {TAB_DEFS.map(([val, label]) => {
             const count = val === '' ? all.length : countFor(val)
@@ -358,7 +314,6 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }

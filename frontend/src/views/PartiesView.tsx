@@ -10,8 +10,8 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
-import { StatusPill, KPITile } from '../primitives'
+import { PageShell, type KPISpec } from '../page-shell'
+import { StatusPill } from '../primitives'
 
 // Parties UI (A17 /api/parties) — the "who" layer (individuals / organizations / carriers) that
 // Accounts hang off. Lighter than Accounts. Shows the parent→child hierarchy hint via an indent.
@@ -125,83 +125,34 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
 
   if (denied) return <PermissionDenied message={t('parties.denied', "You don't have permission to view parties.")} />
 
+  // KPI tiles — derived from the loaded list, no fabricated values.
+  const indivCount = all.filter(p => (p.type ?? '').toLowerCase() === 'individual').length
+  const orgCount = all.filter(p => (p.type ?? '').toLowerCase() === 'organization').length
+  const carrierCount = all.filter(p => (p.type ?? '').toLowerCase() === 'carrier').length
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Total', value: all.length, subtitle: 'parties on record', premium: true, onClick: () => setQuery('') },
+    ...(indivCount > 0 ? [{ label: 'Individuals', value: indivCount, subtitle: 'people', onClick: () => setQuery('individual') }] : []),
+    ...(orgCount > 0 ? [{ label: 'Organizations', value: orgCount, subtitle: 'companies', onClick: () => setQuery('organization') }] : []),
+    ...(carrierCount > 0 ? [{ label: 'Carriers', value: carrierCount, subtitle: 'upstream', onClick: () => setQuery('carrier') }] : []),
+  ] : []
+
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs">
-          <span>CRM</span><span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{t('nav.parties', 'Parties')}</span>
-        </div>
-
-        <ViewHead
-          icon={<UsersIcon size={18} />}
-          title={t('nav.parties', 'Parties')}
-          sub={`${all.length} record${all.length !== 1 ? 's' : ''} · individuals · organizations · carriers`}
-          actions={
-            !unavailable && (
-              <>
-                {canConfigure && onConfigure && (
-                  <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                  </button>
-                )}
-                <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
-                  <Plus size={14} /> {creating ? t('common.close', 'Close') : t('parties.new', 'New party')}
-                </button>
-              </>
-            )
-          }
-        />
-
-        {all.length > 0 && (() => {
-          const indivCount = all.filter(p => (p.type ?? '').toLowerCase() === 'individual').length
-          const orgCount = all.filter(p => (p.type ?? '').toLowerCase() === 'organization').length
-          const carrierCount = all.filter(p => (p.type ?? '').toLowerCase() === 'carrier').length
-          return (
-            <div className="kpi-strip">
-              <KPITile
-                label="Total"
-                value={all.length}
-                subtitle="parties on record"
-                size="sm"
-                premium
-                onClick={() => setQuery('')}
-                ariaLabel={`Total parties — ${all.length}. Click to clear filter.`}
-              />
-              {indivCount > 0 && (
-                <KPITile
-                  label="Individuals"
-                  value={indivCount}
-                  subtitle="people"
-                  size="sm"
-                  onClick={() => setQuery('individual')}
-                  ariaLabel={`Individuals — ${indivCount}. Click to filter.`}
-                />
-              )}
-              {orgCount > 0 && (
-                <KPITile
-                  label="Organizations"
-                  value={orgCount}
-                  subtitle="companies"
-                  size="sm"
-                  onClick={() => setQuery('organization')}
-                  ariaLabel={`Organizations — ${orgCount}. Click to filter.`}
-                />
-              )}
-              {carrierCount > 0 && (
-                <KPITile
-                  label="Carriers"
-                  value={carrierCount}
-                  subtitle="upstream"
-                  size="sm"
-                  onClick={() => setQuery('carrier')}
-                  ariaLabel={`Carriers — ${carrierCount}. Click to filter.`}
-                />
-              )}
-            </div>
-          )
-        })()}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Admin Panel', t('nav.parties', 'Parties')]}
+      icon={<UsersIcon size={18} />}
+      title={t('nav.parties', 'Parties')}
+      subtitle="Party records (persons + organizations)"
+      kpis={kpis}
+      primaryAction={!unavailable ? {
+        label: creating ? t('common.close', 'Close') : t('parties.new', 'New party'),
+        icon: <Plus size={14} />,
+        onClick: () => setCreating((c) => !c),
+      } : undefined}
+      secondaryActions={!unavailable && canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         {creating && (
           <div className="rec-form">
             <label className="field"><span>{t('parties.type', 'Type')}</span>
@@ -324,7 +275,6 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }

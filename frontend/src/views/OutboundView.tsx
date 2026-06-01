@@ -5,11 +5,12 @@ import { PermissionDenied } from '../components/States'
 import {
   InboxIcon, PlusIcon, MailIcon, SearchIcon,
   ClockIcon, CheckIcon, WarningIcon,
-  StarIcon, ReplyIcon, ForwardIcon, RefreshIcon,
+  StarIcon, ReplyIcon, ForwardIcon, RefreshIcon, GearIcon,
 } from '../components/icons'
 import { Modal } from '../components/Modal'
 import { composeOutbound } from '../lib/api'
 import { usePageConfig } from '../lib/pageConfig'
+import { PageShell } from '../page-shell'
 
 // Outbound delivery log (A12 GET /api/outbound) — admin view. Degrades quietly on 404.
 import { BASE } from '../lib/config'
