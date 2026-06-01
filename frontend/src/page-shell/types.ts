@@ -1,0 +1,181 @@
+// PageShell — public type surface.
+//
+// The page-type union is the single source of truth for how a page renders. It
+// drives default zone visibility (e.g. `placeholder` hides KPI & Action bars),
+// the default Workspace wrapper layout (e.g. `registry` → table-friendly,
+// `pipeline` → kanban-friendly), and the data attributes downstream CSS hooks
+// into. The shape is intentionally narrow — every prop is OPTIONAL except
+// `type`, `title`, and `children`. Pages opt into zones by passing the
+// matching prop; absent props = absent zones (see zone-visibility table in
+// PageShell.tsx for the resolution rules).
+import type { ReactNode } from 'react'
+
+/* ─── Page type system ──────────────────────────────────────────────────── */
+
+export type PageType =
+  | 'workspace'      // mixed dashboard / home / overview layout
+  | 'registry'       // list/table-centric (Customers, Products, Tariffs)
+  | 'pipeline'       // kanban / stage progression (Leads, Sales)
+  | 'operations'     // map + queue + status (Dispatch, NOC)
+  | 'analytics'      // charts + cards grid (Reports, Insights)
+  | 'communication'  // 3-pane list/thread/context (Inbox, Helpdesk)
+  | 'configuration'  // flexible settings/admin
+  | 'placeholder'    // coming-soon / stub state (no KPIs, no actions)
+
+/* ─── Status summary chip ────────────────────────────────────────────────── */
+
+export type StatusSummaryVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral'
+
+export interface StatusSummary {
+  label: string
+  variant?: StatusSummaryVariant
+}
+
+/* ─── KPI bar ────────────────────────────────────────────────────────────── */
+
+export interface KPISpec {
+  label: string
+  value: string | number
+  /** Optional unit (e.g. "AMD", "Mbps") shown next to the value. */
+  unit?: string
+  /** Optional delta string (e.g. "+4.2%"). */
+  delta?: string
+  /** Delta direction — drives green/red colorway. */
+  deltaPositive?: boolean
+  /** Sub-line under the value (e.g. "5 active"). */
+  subtitle?: ReactNode
+  /** Click handler — when present the tile becomes interactive. */
+  onClick?: () => void
+  /** Premium accent — at most one per page (caller enforces). */
+  premium?: boolean
+  /** Danger accent — value rendered in danger fg. */
+  danger?: boolean
+  /** Warning accent — value rendered in warning fg. */
+  warning?: boolean
+  /** Muted accent — value rendered in muted color. */
+  muted?: boolean
+  /** Loading skeleton state. */
+  loading?: boolean
+}
+
+/* ─── Action bar ─────────────────────────────────────────────────────────── */
+
+export interface PrimaryAction {
+  label: string
+  onClick: () => void
+  /** Optional icon (renders to the left of the label). */
+  icon?: ReactNode
+  disabled?: boolean
+  loading?: boolean
+}
+
+export interface SecondaryAction {
+  label: string
+  onClick: () => void
+  icon?: ReactNode
+  disabled?: boolean
+}
+
+export type ViewKind = 'table' | 'board' | 'calendar' | 'map' | 'timeline' | 'gallery'
+
+export interface ViewSwitcher {
+  current: ViewKind
+  options: ViewKind[]
+  onChange?: (next: ViewKind) => void
+}
+
+/* ─── Filter bar ─────────────────────────────────────────────────────────── */
+
+export interface SearchFilter {
+  value: string
+  onChange: (next: string) => void
+  placeholder?: string
+}
+
+export interface QuickFilterOption {
+  label: string
+  value: string
+}
+
+export interface QuickFilter {
+  label: string
+  value: string
+  options: QuickFilterOption[]
+  onChange: (next: string) => void
+}
+
+export interface SavedView {
+  id: string
+  name: string
+  isDefault?: boolean
+}
+
+export interface FiltersSpec {
+  search?: SearchFilter
+  quick?: QuickFilter[]
+  /** Advanced filter content — typically rendered inside a popover when the
+   *  "Advanced" toggle is clicked. PageShell renders the toggle; the page
+   *  controls what's in the drawer. */
+  advanced?: ReactNode
+  savedViews?: SavedView[]
+  /** Called when a saved view is selected. */
+  onSelectSavedView?: (id: string) => void
+}
+
+/* ─── Context panel (Zone F) ─────────────────────────────────────────────── */
+
+export interface ContextPanelSpec {
+  content: ReactNode
+  /** Default open state. The user can toggle via the panel header. */
+  defaultOpen?: boolean
+  /** Optional fixed title shown at the top of the drawer. */
+  title?: string
+}
+
+/* ─── Master PageShell props ─────────────────────────────────────────────── */
+
+export interface PageShellProps {
+  /** REQUIRED — drives default zone visibility & workspace wrapper layout. */
+  type: PageType
+
+  /* Zone A — header */
+  breadcrumb?: string[]
+  icon?: ReactNode
+  title: string
+  subtitle?: string
+  statusSummary?: string | StatusSummary
+
+  /* Zone B — KPI bar */
+  kpis?: KPISpec[]
+
+  /* Zone C — action bar */
+  views?: ViewSwitcher
+  primaryAction?: PrimaryAction
+  secondaryActions?: SecondaryAction[]
+
+  /* Zone D — filter bar */
+  filters?: FiltersSpec
+
+  /* Zone E — workspace body */
+  children?: ReactNode
+  /** Override the workspace wrapper className for one-off pages. */
+  workspaceClassName?: string
+
+  /* Zone F — context panel (optional) */
+  contextPanel?: ReactNode | ContextPanelSpec
+
+  /* Escape hatches */
+  className?: string
+}
+
+/* ─── Empty-state primitive ──────────────────────────────────────────────── */
+
+export interface EmptyStateProps {
+  icon?: ReactNode
+  title: string
+  message?: string
+  action?: ReactNode
+  /** Visual variant — `coming-soon` applies a stub treatment used by the
+   *  `placeholder` page type. */
+  variant?: 'default' | 'coming-soon' | 'error'
+}

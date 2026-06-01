@@ -1,0 +1,505 @@
+/* ============================================================================
+   PageShell — design-system framework styles
+   ----------------------------------------------------------------------------
+   ALL rules are scoped to .ps-* classnames so this CSS never collides with the
+   existing view styles. Tokens come from gaaex-tokens.css — no new colors, no
+   new fonts. Built for the existing dark theme; light-theme overrides come
+   for free via the same --gx-* tokens.
+   ============================================================================ */
+
+/* ─── Page shell root ───────────────────────────────────────────────────── */
+
+.ps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto 1fr;
+  grid-template-areas:
+    "header  context"
+    "kpis    context"
+    "actions context"
+    "filters context"
+    "body    context";
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  background: var(--gx-bg);
+  color: var(--gx-text-1);
+  font-family: var(--gx-font-sans);
+}
+
+.ps-header   { grid-area: header; }
+.ps-kpis     { grid-area: kpis; }
+.ps-actions  { grid-area: actions; }
+.ps-filters  { grid-area: filters; }
+.ps-body     { grid-area: body; min-height: 0; min-width: 0; overflow: auto; }
+.ps-context  { grid-area: context; }
+
+/* When the context panel is hidden, the layout becomes one column. */
+.ps[data-context="hidden"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "header"
+    "kpis"
+    "actions"
+    "filters"
+    "body";
+}
+
+/* ─── Zone A · PageHeader ────────────────────────────────────────────────── */
+
+.ps-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-3);
+  padding: var(--gx-space-7) var(--gx-space-8) var(--gx-space-5);
+  border-bottom: 1px solid var(--gx-divider);
+  background: var(--gx-bg);
+}
+
+.ps-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--gx-text-xs);
+  font-family: var(--gx-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gx-text-3);
+}
+.ps-breadcrumb-sep { opacity: 0.5; }
+
+.ps-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gx-space-4);
+}
+
+.ps-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--gx-radius-md);
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border);
+  color: var(--gx-text-2);
+}
+
+.ps-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ps-header-title {
+  font-family: var(--gx-font-display);
+  font-size: var(--gx-text-2xl);
+  font-weight: var(--gx-weight-semibold);
+  letter-spacing: var(--gx-tracking-tight);
+  color: var(--gx-text-1);
+  line-height: var(--gx-leading-tight);
+  margin: 0;
+}
+
+.ps-header-subtitle {
+  font-size: var(--gx-text-sm);
+  color: var(--gx-text-3);
+  line-height: var(--gx-leading-snug);
+}
+
+.ps-header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ─── Zone B · KPIBar ────────────────────────────────────────────────────── */
+
+.ps-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--gx-space-4);
+  padding: var(--gx-space-5) var(--gx-space-8);
+  background: var(--gx-bg);
+}
+
+/* If the page only has 3-5 tiles we don't want them stretched to absurd
+   widths on ultra-wide monitors — cap at 5 columns. */
+.ps-kpis[data-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ps-kpis[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ps-kpis[data-count="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+@media (max-width: 900px) {
+  .ps-kpis,
+  .ps-kpis[data-count="3"],
+  .ps-kpis[data-count="4"],
+  .ps-kpis[data-count="5"] {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+/* ─── Zone C · ActionBar ─────────────────────────────────────────────────── */
+
+.ps-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-4);
+  padding: var(--gx-space-4) var(--gx-space-8);
+  background: var(--gx-bg);
+  border-top: 1px solid var(--gx-border-subtle);
+  border-bottom: 1px solid var(--gx-border-subtle);
+}
+
+.ps-views {
+  display: inline-flex;
+  align-items: center;
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+
+.ps-view-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--gx-radius-sm);
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-medium);
+  background: transparent;
+  color: var(--gx-text-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--gx-dur-quick) var(--gx-ease-standard);
+}
+.ps-view-chip:hover { color: var(--gx-text-1); background: var(--gx-hover); }
+.ps-view-chip[aria-pressed="true"] {
+  background: var(--gx-surface);
+  color: var(--gx-text-1);
+  border-color: var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-xs);
+}
+.ps-view-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--gx-ring);
+}
+
+.ps-actions-spacer { flex: 1; }
+
+.ps-actions-secondaries {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gx-space-3);
+}
+
+/* ─── Zone D · FilterBar ─────────────────────────────────────────────────── */
+
+.ps-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-3);
+  padding: var(--gx-space-4) var(--gx-space-8);
+  background: var(--gx-bg-subtle);
+  border-bottom: 1px solid var(--gx-border-subtle);
+  flex-wrap: wrap;
+}
+
+.ps-filter-search { flex: 0 0 280px; max-width: 360px; }
+.ps-filter-quicks { display: inline-flex; align-items: center; gap: var(--gx-space-3); flex-wrap: wrap; }
+.ps-filter-tail { display: inline-flex; align-items: center; gap: var(--gx-space-3); margin-left: auto; }
+.ps-filter-advanced-pop {
+  position: absolute;
+  z-index: var(--gx-z-popover);
+  top: 100%;
+  margin-top: 6px;
+  min-width: 280px;
+  max-width: 480px;
+  background: var(--gx-elevated);
+  border: 1px solid var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-lg);
+  padding: var(--gx-space-4);
+}
+.ps-filter-advanced-wrap { position: relative; }
+
+.ps-saved-views-pop {
+  position: absolute;
+  z-index: var(--gx-z-popover);
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  min-width: 200px;
+  background: var(--gx-elevated);
+  border: 1px solid var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-lg);
+  padding: 4px;
+}
+.ps-saved-views-wrap { position: relative; }
+.ps-saved-view-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--gx-radius-sm);
+  font-size: var(--gx-text-sm);
+  color: var(--gx-text-2);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.ps-saved-view-item:hover { background: var(--gx-hover); color: var(--gx-text-1); }
+.ps-saved-view-default {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gx-gold);
+  margin-left: auto;
+}
+
+/* ─── Zone E · Workspace wrapper ─────────────────────────────────────────── */
+
+.ps-body { padding: 0; }
+
+.ps-workspace {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Per-type defaults — these are gentle layout hints, NOT impositions. Pages
+   are free to lay out their children however they want; these rules just set
+   the outer container's default padding and overflow behavior. */
+.ps-workspace[data-page-type="registry"] {
+  padding: var(--gx-space-5) var(--gx-space-8);
+  overflow: auto;
+}
+.ps-workspace[data-page-type="pipeline"] {
+  padding: var(--gx-space-5) var(--gx-space-8);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.ps-workspace[data-page-type="operations"] {
+  padding: var(--gx-space-5) var(--gx-space-8);
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--gx-space-5);
+  overflow: hidden;
+}
+.ps-workspace[data-page-type="analytics"] {
+  padding: var(--gx-space-5) var(--gx-space-8);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--gx-space-5);
+  overflow: auto;
+  align-content: start;
+}
+.ps-workspace[data-page-type="communication"] {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  height: 100%;
+  overflow: hidden;
+}
+.ps-workspace[data-page-type="configuration"] {
+  padding: var(--gx-space-5) var(--gx-space-8);
+  overflow: auto;
+}
+.ps-workspace[data-page-type="workspace"] {
+  padding: var(--gx-space-5) var(--gx-space-8);
+  overflow: auto;
+}
+.ps-workspace[data-page-type="placeholder"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gx-space-8);
+}
+
+/* ─── Zone F · ContextPanel ──────────────────────────────────────────────── */
+
+.ps-context {
+  width: 340px;
+  max-width: 340px;
+  border-left: 1px solid var(--gx-border);
+  background: var(--gx-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: width var(--gx-dur-base) var(--gx-ease-standard);
+  overflow: hidden;
+}
+.ps-context[data-open="false"] {
+  width: 36px;
+  max-width: 36px;
+}
+
+.ps-context-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--gx-space-4) var(--gx-space-4) var(--gx-space-3);
+  border-bottom: 1px solid var(--gx-border-subtle);
+  flex-shrink: 0;
+}
+.ps-context-title {
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-1);
+  letter-spacing: var(--gx-tracking-tight);
+}
+.ps-context-toggle {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--gx-text-3);
+  cursor: pointer;
+  border-radius: var(--gx-radius-sm);
+}
+.ps-context-toggle:hover { background: var(--gx-hover); color: var(--gx-text-1); }
+.ps-context-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--gx-space-4);
+  min-height: 0;
+}
+.ps-context[data-open="false"] .ps-context-body,
+.ps-context[data-open="false"] .ps-context-title { display: none; }
+.ps-context[data-open="false"] .ps-context-head {
+  border-bottom: none;
+  padding: var(--gx-space-3) 6px;
+  justify-content: center;
+}
+.ps-context[data-open="false"] .ps-context-toggle { margin-left: 0; }
+
+/* ─── EmptyState primitive ───────────────────────────────────────────────── */
+
+.ps-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gx-space-3);
+  text-align: center;
+  padding: var(--gx-space-9) var(--gx-space-5);
+  color: var(--gx-text-2);
+  max-width: 480px;
+  margin: 0 auto;
+}
+.ps-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border);
+  color: var(--gx-text-3);
+  margin-bottom: var(--gx-space-2);
+}
+.ps-empty-title {
+  font-family: var(--gx-font-display);
+  font-size: var(--gx-text-lg);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-1);
+  letter-spacing: var(--gx-tracking-tight);
+}
+.ps-empty-msg {
+  font-size: var(--gx-text-sm);
+  color: var(--gx-text-3);
+  line-height: var(--gx-leading-snug);
+  max-width: 380px;
+}
+.ps-empty-action { margin-top: var(--gx-space-3); }
+
+.ps-empty[data-variant="coming-soon"] .ps-empty-icon {
+  background: var(--gx-gold-soft);
+  border-color: rgba(197, 160, 89, 0.32);
+  color: var(--gx-gold);
+}
+.ps-empty[data-variant="error"] .ps-empty-icon {
+  background: var(--gx-danger-soft);
+  border-color: rgba(229, 72, 77, 0.32);
+  color: var(--gx-danger-fg);
+}
+
+/* ─── Status summary chip variants ───────────────────────────────────────── */
+
+.ps-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: var(--gx-radius-full);
+  font-size: var(--gx-text-xs);
+  font-weight: var(--gx-weight-medium);
+  background: var(--gx-neutral-soft);
+  color: var(--gx-text-2);
+}
+.ps-status-chip[data-variant="success"] { background: var(--gx-success-soft); color: var(--gx-success-fg); }
+.ps-status-chip[data-variant="warning"] { background: var(--gx-warning-soft); color: var(--gx-warning-fg); }
+.ps-status-chip[data-variant="danger"]  { background: var(--gx-danger-soft);  color: var(--gx-danger-fg); }
+.ps-status-chip[data-variant="info"]    { background: var(--gx-info-soft);    color: var(--gx-info-fg); }
+.ps-status-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* ─── PageShellDemoView — tab strip (validation page only) ───────────────── */
+
+.ps-demo-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--gx-bg);
+  min-height: 0;
+}
+.ps-demo-tabs {
+  display: flex;
+  gap: 2px;
+  padding: var(--gx-space-3) var(--gx-space-5);
+  background: var(--gx-bg-subtle);
+  border-bottom: 1px solid var(--gx-border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.ps-demo-tab {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--gx-radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--gx-text-2);
+  font-size: var(--gx-text-sm);
+  font-weight: var(--gx-weight-medium);
+  font-family: var(--gx-font-sans);
+  cursor: pointer;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.ps-demo-tab:hover { color: var(--gx-text-1); background: var(--gx-hover); }
+.ps-demo-tab[aria-pressed="true"] {
+  background: var(--gx-surface);
+  color: var(--gx-text-1);
+  border-color: var(--gx-border-strong);
+}
+.ps-demo-stage { flex: 1; min-height: 0; display: flex; }
+.ps-demo-stage > * { flex: 1; min-height: 0; min-width: 0; }
