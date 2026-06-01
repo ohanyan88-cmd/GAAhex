@@ -48,6 +48,8 @@ from .feature_flag import FeatureFlag
 from .page_binding import PageBinding
 from .product_version import ProductVersion
 from .tariff import TariffPlan
+from .payment_allocation import PaymentAllocation
+from .credit_note import CreditNote
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -88,4 +90,6 @@ __all__ = [
     "PageBinding",
     "ProductVersion",
     "TariffPlan",
+    "PaymentAllocation",
+    "CreditNote",
 ]

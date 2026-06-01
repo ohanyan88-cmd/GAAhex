@@ -59,6 +59,15 @@ class Invoice(Base):
     issued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Phase A.3 — Invoice immutability timestamps (SPEC §0.3). When an invoice transitions
+    # DRAFT → ISSUED its `posted_at` is set to now() and `locked_by` to the actor user.id.
+    # While `posted_at IS NULL` the invoice is mutable (DRAFT lifecycle). Once `posted_at IS
+    # NOT NULL` the row is locked: only `status` and `paid_at` may change (state-mutation
+    # doctrine; SPEC §0.3 allows UPDATE for state transitions). The app-layer enforcement
+    # lives in `services/invoice_lock.ensure_invoice_mutable` and is wired into every
+    # mutating path on /api/invoices in routers/billing.py.
+    posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    locked_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 
 class InvoiceLine(Base):

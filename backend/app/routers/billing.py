@@ -35,6 +35,12 @@ from ..kernel import (
 )
 from ..services.product_versions import current_version_for, mint_new_version
 from ..services.account_balance import recompute_account_balance
+from ..services.invoice_lock import ensure_invoice_mutable
+from ..services.payment_allocation import (
+    allocate_payment_atomic,
+    outstanding_for_invoice,
+)
+from ..models.payment_allocation import PaymentAllocation
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
@@ -189,6 +195,9 @@ def _invoice(inv: Invoice, lines: list[InvoiceLine] | None = None,
         "issued_at": _iso(inv.issued_at),
         "due_at": _iso(inv.due_at),
         "created_at": _iso(inv.created_at),
+        # Phase A.3 — immutability marker. NULL = mutable; NOT NULL = locked.
+        "posted_at": _iso(inv.posted_at),
+        "locked_by": str(inv.locked_by) if inv.locked_by else None,
     }
     if lines is not None:
         out["lines"] = [_line(l) for l in lines]
@@ -691,9 +700,18 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
 
     now = _now()
     due = _parse_dt((payload or {}).get("due_at"), "due_at", optional=True) or (now + timedelta(days=DEFAULT_DUE_DAYS))
+    # Phase A.3 — DRAFT → ISSUED is the post moment. Invoice is locked from now on (only
+    # status / paid_at may change after; see services/invoice_lock.py). posted_at is set
+    # ONCE — subsequent status transitions (PAID, OVERDUE, VOID) must not clobber it.
+    ensure_invoice_mutable(inv, "status")
+    ensure_invoice_mutable(inv, "issued_at")
+    ensure_invoice_mutable(inv, "due_at")
     inv.status = "ISSUED"
     inv.issued_at = now
     inv.due_at = due
+    if inv.posted_at is None:
+        inv.posted_at = now
+        inv.locked_by = user.id
     await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
                         {"from": "DRAFT", "to": "ISSUED", "due_at": _iso(due)})
     # Phase A.2 — recompute the associated account's balance now that this invoice is billed.
@@ -703,6 +721,138 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
     await s.commit()
     await s.refresh(inv)
     return _invoice(inv, await _invoice_lines(s, inv.id))
+
+
+# ==========================================================================================
+# Phase A.3 — Outstanding balance + Allocation reads
+# ==========================================================================================
+
+def _allocation(a: PaymentAllocation) -> dict:
+    return {
+        "id": str(a.id),
+        "payment_id": str(a.payment_id),
+        "invoice_id": str(a.invoice_id),
+        "amount": str(a.amount),
+        "applied_at": _iso(a.applied_at),
+        "applied_by": str(a.applied_by) if a.applied_by else None,
+    }
+
+
+@router.get("/invoices/{inv_id}/outstanding")
+async def get_invoice_outstanding(
+    inv_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Live outstanding snapshot for one invoice (Decimals as strings, 2 dp).
+
+    Formula:
+        outstanding = MAX(0,  invoice.total
+                            - SUM(payment_allocation.amount where invoice_id)
+                            - SUM(credit_note.amount where applied_to_invoice_id, status='APPLIED'))
+    """
+    inv = await _get_invoice(s, user, inv_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "invoice", "view", await _node_path(s, inv.owner_node_id)):
+        _deny("invoice.view")
+
+    paid = (await s.execute(
+        select(func.coalesce(func.sum(PaymentAllocation.amount), 0))
+        .where(PaymentAllocation.invoice_id == inv.id)
+    )).scalar_one()
+    from ..models.credit_note import CreditNote as _CreditNote  # local to avoid circularity at module load
+    credited = (await s.execute(
+        select(func.coalesce(func.sum(_CreditNote.amount), 0))
+        .where(
+            _CreditNote.applied_to_invoice_id == inv.id,
+            _CreditNote.status == "APPLIED",
+        )
+    )).scalar_one()
+    total_d = Decimal(str(inv.total or 0))
+    paid_d = Decimal(str(paid or 0))
+    credited_d = Decimal(str(credited or 0))
+    outstanding = total_d - paid_d - credited_d
+    if outstanding < 0:
+        outstanding = Decimal("0")
+
+    def _fmt(d: Decimal) -> str:
+        return f"{d.quantize(Decimal('0.01'))}"
+
+    return {
+        "id": str(inv.id),
+        "total": _fmt(total_d),
+        "paid": _fmt(paid_d),
+        "credited": _fmt(credited_d),
+        "outstanding": _fmt(outstanding),
+    }
+
+
+@router.get("/invoices/{inv_id}/allocations")
+async def list_invoice_allocations(
+    inv_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """List every PaymentAllocation row that has been applied against this invoice."""
+    inv = await _get_invoice(s, user, inv_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "invoice", "view", await _node_path(s, inv.owner_node_id)):
+        _deny("invoice.view")
+    rows = (await s.execute(
+        select(PaymentAllocation)
+        .where(PaymentAllocation.invoice_id == inv.id)
+        .order_by(PaymentAllocation.applied_at)
+    )).scalars().all()
+    return [_allocation(r) for r in rows]
+
+
+@router.post("/payments/{payment_id}/allocate", status_code=200)
+async def allocate_payment_endpoint(
+    payment_id: uuid.UUID,
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Atomically apply a Payment across one or more Invoices.
+
+    Body: ``{"allocations": [{"invoice_id": <uuid>, "amount": <decimal>}, ...]}``
+
+    ALL allocations succeed or NONE persist. The service-layer SAVEPOINT in
+    services/payment_allocation.allocate_payment_atomic enforces atomicity. Each accepted
+    allocation triggers the auto-PAID flip + recompute_account_balance hook.
+    """
+    pay = (await s.execute(
+        select(Payment).where(Payment.id == payment_id, Payment.tenant_id == user.tenant_id)
+    )).scalar_one_or_none()
+    if pay is None:
+        raise HTTPException(404, "Payment not found")
+
+    grants = await load_grants(s, user)
+    if not can(grants, "payment", "edit"):
+        _deny("payment.edit")
+    # SPEC §0.1 single-owner — only Payments may mutate payment-side rows.
+    await _owner_gate(s, table_name="payment", writer_module="Payments")
+    # SPEC §0.2 default-deny.
+    try:
+        await assert_can(s, user, action="edit", entity_key="payment",
+                         region_id=None, owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    allocations = payload.get("allocations")
+    if not isinstance(allocations, list) or not allocations:
+        raise HTTPException(422, "allocations must be a non-empty list")
+
+    rows = await allocate_payment_atomic(
+        s, payment_id=payment_id, allocations=allocations,
+        tenant_id=user.tenant_id, actor_id=user.id,
+    )
+    await workflow.emit(s, user.tenant_id, "allocate", "payment", payment_id, user.id, {
+        "count": len(rows),
+        "total_allocated": str(sum((Decimal(str(r.amount)) for r in rows), Decimal("0"))),
+    })
+    await s.commit()
+    return {"allocations": [_allocation(r) for r in rows]}
 
 
 # ==========================================================================================
