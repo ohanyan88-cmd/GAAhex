@@ -14,6 +14,7 @@ import InvoicesView from './views/InvoicesView'
 import PaymentsView from './views/PaymentsView'
 import SubscriptionsView from './views/SubscriptionsView'
 import ProductsView from './views/ProductsView'
+import TariffPlansView from './views/TariffPlansView'
 import ReportBuilderView from './views/ReportBuilderView'
 import OutboundView from './views/OutboundView'
 import WebhooksView from './views/WebhooksView'
@@ -79,6 +80,7 @@ type View =
   | { type: 'payments' }
   | { type: 'subscriptions' }
   | { type: 'products' }
+  | { type: 'tariff-plans' }
   | { type: 'usage' }
   | { type: 'report-builder' }
   | { type: 'outbound' }
@@ -619,6 +621,8 @@ export default function App() {
                 ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'products'
                 ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
+              : view.type === 'tariff-plans'
+                ? <TariffPlansView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'report-builder'
                 ? <ReportBuilderView token={token} entities={entities} />
               : view.type === 'outbound'

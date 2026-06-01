@@ -70,7 +70,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
 
   s('billing_revenue', 'Billing & Revenue', ReceiptIcon, [
     i('br-product-catalog',     'Product Catalog',     PackageIcon,    'products'),
-    i('br-tariff-plans',        'Tariff Plans',        BookmarkIcon,   'coming-soon', { id: 'tariff-plans', title: 'Tariff Plans', parent: 'Billing & Revenue' }),
+    i('br-tariff-plans',        'Tariff Plans',        BookmarkIcon,   'tariff-plans'),
     i('br-orders-validation',   'Orders & Validation', ArchiveIcon,    'orders'),
     i('br-billing-accounts',    'Billing Accounts',    BuildingIcon,   'accounts'),
     i('br-invoices',            'Invoices',            ReceiptIcon,    'invoices'),

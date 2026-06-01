@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
 import { initiatePayment, confirmDevPayment, isDevFlow } from '../lib/paymentgw'
 import { money, toMinor } from '../lib/money'
+import { timeAgo } from '../lib/time'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
@@ -16,6 +17,35 @@ import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { KPITile } from '../primitives'
+
+// A.3 endpoints return Decimal STRINGS in major units (e.g. "100.50"). Existing money() expects
+// integer luma (minor). Convert at the boundary so we keep one display formatter.
+function decStrToLuma(s: string | null | undefined): number {
+  if (s === null || s === undefined) return 0
+  const n = parseFloat(s)
+  return isNaN(n) ? 0 : Math.round(n * 100)
+}
+function moneyDec(s: string | null | undefined): string {
+  return money(decStrToLuma(s))
+}
+
+type Outstanding = {
+  id: string
+  total: string
+  paid: string
+  credited: string
+  outstanding: string
+  computed_at?: string | null
+}
+
+type Allocation = {
+  id: string
+  payment_id: string
+  invoice_id?: string
+  amount: string
+  applied_at: string | null
+  applied_by: string | null
+}
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -159,6 +189,8 @@ export default function InvoicesView({
   // Permission gates (rule 6) — backend re-checks too, this just hides buttons the user can't use.
   const canEditInvoice = can(capabilities, 'invoice', 'edit')
   const canCreatePayment = can(capabilities, 'payment', 'create')
+  // Allocate is admin-gated server-side — front-end mirrors with payment.edit, or canConfigure as fallback.
+  const canAllocatePayment = can(capabilities, 'payment', 'edit') || canConfigure
 
   // When the parent flips the deep-link status (e.g. switching customers in 360), re-sync the filter.
   useEffect(() => { setStatus(initialStatus ?? '') }, [initialStatus])
@@ -223,7 +255,7 @@ export default function InvoicesView({
     ['VOID', 'Void'],
   ]
 
-  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} onBack={() => { setDetailId(null); load() }} />
+  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} canAllocatePayment={canAllocatePayment} onBack={() => { setDetailId(null); load() }} />
 
   return (
     <div className="view">
@@ -368,12 +400,13 @@ export default function InvoicesView({
   )
 }
 
-function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, onBack }: {
+function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, canAllocatePayment, onBack }: {
   token: string
   id: string
   names: Record<string, string>
   canEditInvoice: boolean
   canCreatePayment: boolean
+  canAllocatePayment: boolean
   onBack: () => void
 }) {
   const [inv, setInv] = useState<Invoice | null>(null)
@@ -531,6 +564,13 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, onB
               </table>
             </div>
           )}
+
+          <AllocationPanel
+            token={token}
+            invoiceId={id}
+            canAllocate={canAllocatePayment}
+            onChanged={load}
+          />
         </>
       )}
 
@@ -599,6 +639,254 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
           <span>Note</span>
           <input className="inp inp-md" value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" />
         </label>
+      </div>
+    </Modal>
+  )
+}
+
+// ── Phase A.3 allocation panel ────────────────────────────────────────────────
+// Renders live outstanding snapshot + allocations list + admin-gated Allocate action.
+// All amount values from these endpoints arrive as decimal STRINGS in major units; we
+// convert to luma at the boundary so money() stays the only display formatter.
+function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
+  token: string
+  invoiceId: string
+  canAllocate: boolean
+  /** Called after a successful allocate — parent should re-fetch invoice (status may flip to PAID). */
+  onChanged: () => void
+}) {
+  const [out, setOut] = useState<Outstanding | null>(null)
+  const [allocs, setAllocs] = useState<Allocation[] | null>(null)
+  const [forbidden, setForbidden] = useState(false)
+  const [unavailable, setUnavailable] = useState(false)
+  const [err, setErr] = useState('')
+  const [open, setOpen] = useState(false)
+
+  async function load() {
+    setErr(''); setForbidden(false); setUnavailable(false)
+    const [oRes, aRes] = await Promise.all([
+      bget<Outstanding>(token, `/api/invoices/${invoiceId}/outstanding`),
+      bget<Allocation[]>(token, `/api/invoices/${invoiceId}/allocations`),
+    ])
+    if (oRes.status === 403 || aRes.status === 403) { setForbidden(true); return }
+    if (oRes.status === 404 || aRes.status === 404) { setUnavailable(true); return }
+    if (!oRes.ok || !aRes.ok) { setErr('Failed to load allocation data'); return }
+    setOut(oRes.data)
+    setAllocs(Array.isArray(aRes.data) ? aRes.data : [])
+  }
+
+  useEffect(() => { load() /* eslint-disable-line react-hooks/exhaustive-deps */ }, [token, invoiceId])
+
+  // Refresh both A.3 reads + bubble to parent (so the parent invoice row's status can flip).
+  async function refresh() { await load(); onChanged() }
+
+  if (forbidden) {
+    return (
+      <div className="card" style={{ marginTop: 24, padding: 16, borderColor: 'var(--gx-danger)' }}>
+        <strong>Allocations not available</strong>
+        <p className="muted" style={{ margin: '6px 0 0' }}>
+          You don't have permission to view allocation details for this invoice.
+        </p>
+      </div>
+    )
+  }
+  if (unavailable) {
+    return (
+      <div style={{ marginTop: 24 }}>
+        <EmptyState
+          icon={<ReceiptIcon size={28} />}
+          title="Allocation endpoints not yet available"
+          message="This invoice's allocation tracking will appear here once the Phase A.3 endpoints are live."
+        />
+      </div>
+    )
+  }
+  if (err) {
+    return (
+      <div style={{ marginTop: 24 }}>
+        <ErrorBanner message={err} onRetry={load} />
+      </div>
+    )
+  }
+  if (!out || allocs === null) {
+    return <p className="muted" style={{ marginTop: 24 }}>Loading allocations…</p>
+  }
+
+  const totalNum = parseFloat(out.total) || 0
+  const outNum = parseFloat(out.outstanding) || 0
+  // Color: green if fully settled, red if fully unpaid, amber in between.
+  const outColor = outNum <= 0
+    ? 'var(--gx-success)'
+    : outNum >= totalNum
+      ? 'var(--gx-danger)'
+      : 'var(--gx-warning)'
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+        Outstanding &amp; allocations
+      </div>
+
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, alignItems: 'end' }}>
+          <div>
+            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Total</div>
+            <div className="num mono" style={{ fontSize: 15 }}>{moneyDec(out.total)}</div>
+          </div>
+          <div>
+            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Paid</div>
+            <div className="num mono" style={{ fontSize: 15 }}>{moneyDec(out.paid)}</div>
+          </div>
+          <div>
+            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Credited</div>
+            <div className="num mono" style={{ fontSize: 15 }}>{moneyDec(out.credited)}</div>
+          </div>
+          <div>
+            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Outstanding</div>
+            <div className="num mono" style={{ fontSize: 17, fontWeight: 700, color: outColor }}>
+              {moneyDec(out.outstanding)}
+            </div>
+          </div>
+        </div>
+        {out.computed_at && (
+          <div className="muted" style={{ fontSize: 11, marginTop: 10 }}>
+            Last computed {timeAgo(out.computed_at)}
+          </div>
+        )}
+        {canAllocate && outNum > 0 && (
+          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
+              Allocate payment
+            </button>
+          </div>
+        )}
+      </div>
+
+      {allocs.length === 0 ? (
+        <p className="muted" style={{ margin: 0 }}>No allocations applied yet.</p>
+      ) : (
+        <table className="grid">
+          <thead>
+            <tr>
+              <th>Applied</th>
+              <th>Payment</th>
+              <th className="num">Amount (֏)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allocs.map(a => (
+              <tr key={a.id}>
+                <td className="mono" title={a.applied_at ?? ''}>{a.applied_at ? timeAgo(a.applied_at) : '—'}</td>
+                <td className="mono" title={a.payment_id}>{a.payment_id.slice(0, 8)}</td>
+                <td className="num">{moneyDec(a.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {open && (
+        <AllocateModal
+          token={token}
+          invoiceId={invoiceId}
+          outstanding={out.outstanding}
+          onClose={() => setOpen(false)}
+          onDone={() => { setOpen(false); refresh() }}
+        />
+      )}
+    </div>
+  )
+}
+
+function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
+  token: string
+  invoiceId: string
+  outstanding: string
+  onClose: () => void
+  onDone: () => void
+}) {
+  // v1: user pastes a Payment UUID + types an amount in major ֏. Backend (POST /payments/{id}/allocate)
+  // rejects over-allocation with 409; we surface the message inline. Autocomplete is out of scope here.
+  const [paymentId, setPaymentId] = useState('')
+  const [amount, setAmount] = useState(outstanding) // pre-fill with the outstanding amount
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function validUuid(s: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.trim())
+  }
+
+  async function submit() {
+    if (saving) return
+    setError('')
+    const id = paymentId.trim()
+    if (!validUuid(id)) { setError('Enter a valid Payment UUID.'); return }
+    const amt = parseFloat(amount)
+    if (!isFinite(amt) || amt <= 0) { setError('Enter a positive amount.'); return }
+    setSaving(true)
+    try {
+      await bpost(token, `/api/payments/${id}/allocate`, {
+        allocations: [{ invoice_id: invoiceId, amount: amt.toFixed(2) }],
+      })
+      toast.success('Payment allocated')
+      onDone()
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      // 409 = over-allocation / state conflict; surface the backend message verbatim.
+      // 403 = admin gate; same treatment. Otherwise generic.
+      setError(err.message || 'Allocation failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Allocate payment"
+      subtitle={`Outstanding ${moneyDec(outstanding)}`}
+      size="sm"
+      footer={
+        <>
+          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary btn-md" disabled={saving || !paymentId || !amount} onClick={submit}>
+            {saving ? 'Allocating…' : 'Allocate'}
+          </button>
+        </>
+      }
+    >
+      <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
+        <label className="field">
+          <span>Payment UUID</span>
+          <input
+            className="inp inp-md mono"
+            value={paymentId}
+            onChange={(e) => setPaymentId(e.target.value)}
+            placeholder="00000000-0000-0000-0000-000000000000"
+            autoFocus
+          />
+        </label>
+        <label className="field">
+          <span>Amount (֏)</span>
+          <input
+            className="inp inp-md inp-numeric"
+            type="number"
+            step="0.01"
+            min="0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </label>
+        {error && (
+          <div style={{ marginTop: 8, color: 'var(--gx-danger)', fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+        <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+          The backend will reject over-allocation; if amounts change while this dialog is open, the
+          server response will explain — just retry after refreshing.
+        </p>
       </div>
     </Modal>
   )

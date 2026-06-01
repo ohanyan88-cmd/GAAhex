@@ -9,7 +9,7 @@ import {
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, RefreshCw,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import ViewHead from '../components/ViewHead'
@@ -34,6 +34,51 @@ type Account = {
 
 const TYPES = ['residential', 'business', 'wholesale']
 const CYCLES = ['monthly', 'yearly']
+
+// Phase A.2 — balance + hierarchy contracts. The backend serializes Decimal columns as STRINGS
+// (e.g. "1234.56") to preserve precision; we keep them as strings in state and format on render.
+type BalanceSnapshot = {
+  current_balance: string
+  credit_limit: string
+  available_credit: string
+  balance_updated_at: string | null
+}
+type ConsolidatedBalance = {
+  root_account_id: string
+  root_balance: string
+  consolidated_balance: string
+  consolidated_credit_limit: string
+  subtree_size: number
+}
+// Sentinel for per-row balance state: undefined = not fetched yet, null = fetched but unavailable
+// (403/404 on this account), object = real snapshot.
+type BalanceCell = BalanceSnapshot | null
+
+// Balance is delivered as a Decimal string in MAJOR units (֏), not luma. `money()` from lib/money
+// expects integer luma, so we format here. Hide-if-missing: return em-dash for null/blank.
+function moneyDecimal(s: string | null | undefined): string {
+  if (s === null || s === undefined || s === '') return '—'
+  const n = Number(s)
+  if (!isFinite(n)) return '—'
+  const fmt = n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return `${fmt} ֏`
+}
+
+// Balance sign tone: NEGATIVE = customer owes us (red), POSITIVE = credit on account (green),
+// zero = default. Returns an inline style snippet to keep the column tnum + right-aligned.
+function balanceTone(s: string | null | undefined): string {
+  if (s === null || s === undefined || s === '') return 'var(--gx-text-1)'
+  const n = Number(s)
+  if (!isFinite(n) || n === 0) return 'var(--gx-text-1)'
+  return n < 0 ? 'var(--gx-danger, #d6336c)' : 'var(--gx-success, #2f9e44)'
+}
+
+// Numeric value of a Decimal-string for sorting. Treat missing as 0 so sort is stable.
+function decimalNum(s: string | null | undefined): number {
+  if (s === null || s === undefined || s === '') return 0
+  const n = Number(s)
+  return isFinite(n) ? n : 0
+}
 
 // Account status → StatusPill primitive variant (configurable statuses tolerated).
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
@@ -79,13 +124,87 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
+  // Phase A.2 — per-account balance snapshots (Decimal strings). Keyed by account.id.
+  // `balanceApiDown` flips to true on the FIRST 404 from /balance to avoid hammering the API for
+  // every row when the endpoint isn't deployed; existing list still renders, cells degrade to '—'.
+  const [balances, setBalances] = useState<Record<string, BalanceCell>>({})
+  const [balanceApiDown, setBalanceApiDown] = useState(false)
+  const [recomputing, setRecomputing] = useState<Record<string, boolean>>({})
+  // Admin gate for the recompute action. `can(capabilities, 'account', 'edit')` is the spec's
+  // preferred check, but AccountsView isn't given the capabilities map (one-file scope rule), so
+  // we fall back to the `canConfigure` prop the parent already wires in — superadmin in practice.
+  const canRecompute = canConfigure
+
+  // Fetch a single account's balance snapshot. 403/404 on this row → store `null` and degrade to
+  // '—' in the cells; a global 404 (endpoint missing) flips `balanceApiDown` once and stops further
+  // attempts. Other errors are swallowed (cell shows '—' until next refresh).
+  async function fetchBalance(accountId: string, opts?: { silent?: boolean }): Promise<BalanceCell> {
+    if (balanceApiDown) return null
+    const res = await bget<BalanceSnapshot>(token, `/api/accounts/${accountId}/balance`)
+    if (res.status === 404 && !opts?.silent) {
+      // First 404 ⇒ feature unavailable. Toast once and stop further fetches.
+      setBalanceApiDown((prev) => {
+        if (!prev) toast.info(t('accounts.balanceUnavailable', 'Account balance API unavailable — falling back to basic listing'))
+        return true
+      })
+      return null
+    }
+    if (res.status === 403 || res.status === 404) return null
+    if (!res.ok || !res.data) return null
+    return res.data
+  }
+
+  // Bulk-fetch all visible accounts' balances in parallel after the list loads. Each row's cell is
+  // independent — one failure doesn't block the others.
+  async function loadAllBalances(rows: Account[]) {
+    if (balanceApiDown || rows.length === 0) return
+    const results = await Promise.all(
+      rows.map(async (a) => [a.id, await fetchBalance(a.id)] as const)
+    )
+    setBalances((prev) => {
+      const next = { ...prev }
+      for (const [id, snap] of results) next[id] = snap
+      return next
+    })
+  }
+
+  async function refreshOneBalance(accountId: string) {
+    const snap = await fetchBalance(accountId, { silent: true })
+    setBalances((prev) => ({ ...prev, [accountId]: snap }))
+  }
+
+  async function recompute(accountId: string) {
+    if (recomputing[accountId]) return
+    setRecomputing((m) => ({ ...m, [accountId]: true }))
+    try {
+      const snap = await bpost<BalanceSnapshot>(token, `/api/accounts/${accountId}/recompute-balance`)
+      // Trust the response body to avoid a second round-trip, but fall back to a refetch if shape
+      // is unexpected (defensive — the endpoint contract is documented but admin-only).
+      if (snap && typeof snap === 'object' && 'current_balance' in snap) {
+        setBalances((prev) => ({ ...prev, [accountId]: snap }))
+      } else {
+        await refreshOneBalance(accountId)
+      }
+      toast.success(t('accounts.balanceRecomputed', 'Balance recomputed'))
+    } catch (e) {
+      toast.error((e as Error).message || t('accounts.recomputeFailed', 'Recompute failed'))
+    } finally {
+      setRecomputing((m) => {
+        const next = { ...m }; delete next[accountId]; return next
+      })
+    }
+  }
+
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
     const res = await bget<Account[]>(token, '/api/accounts')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) { setError(t('accounts.loadError', 'Failed to load accounts')); setList([]); return }
-    setList(Array.isArray(res.data) ? res.data : [])
+    const rows = Array.isArray(res.data) ? res.data : []
+    setList(rows)
+    setBalances({})            // wipe stale snapshots before refetch
+    loadAllBalances(rows)      // fire-and-forget; cells render '—' until each resolves
   }
 
   useEffect(() => { load() }, [token])
@@ -105,7 +224,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   }
 
   if (denied) return <PermissionDenied message={t('accounts.denied', "You don't have permission to view accounts.")} />
-  if (detailId) return <AccountDetail token={token} id={detailId} parties={parties} onBack={() => { setDetailId(null); load() }} />
+  if (detailId) return <AccountDetail token={token} id={detailId} parties={parties} canRecompute={canRecompute} onBack={() => { setDetailId(null); load() }} />
 
   const all = list ?? []
 
@@ -130,6 +249,17 @@ export default function AccountsView({ token, canConfigure = false, configVersio
     if (!sortKey) return filtered
     const k = sortKey
     const dir = sortDir
+    // Numeric sort for balance columns (Decimal strings); string sort for everything else.
+    if (k === 'balance' || k === 'credit_limit' || k === 'available') {
+      const getNum = (a: Account): number => {
+        const snap = balances[a.id]
+        if (!snap) return 0
+        if (k === 'balance') return decimalNum(snap.current_balance)
+        if (k === 'credit_limit') return decimalNum(snap.credit_limit)
+        return decimalNum(snap.available_credit)
+      }
+      return [...filtered].sort((a, b) => (getNum(a) - getNum(b)) * dir)
+    }
     const get = (a: Account): string => {
       switch (k) {
         case 'type': return a.type ?? ''
@@ -142,7 +272,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
     }
     return [...filtered].sort((a, b) => String(get(a)).localeCompare(String(get(b))) * dir)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered, sortKey, sortDir, parties])
+  }, [filtered, sortKey, sortDir, parties, balances])
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -351,7 +481,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   )
 }
 
-function AccountDetail({ token, id, parties, onBack }: { token: string; id: string; parties: Party[]; onBack: () => void }) {
+function AccountDetail({ token, id, parties, onBack }: { token: string; id: string; parties: Party[]; canRecompute: boolean; onBack: () => void }) {
   const { t } = useI18n()
   const [acct, setAcct] = useState<Account | null>(null)
   const [error, setError] = useState('')
