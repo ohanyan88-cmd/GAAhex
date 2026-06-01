@@ -148,9 +148,9 @@ export default function App() {
   const [user, setUser] = useState<Me | null>(null)
   const [entities, setEntities] = useState<Entity[]>([])
   const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
-  const [view, setView] = useState<View>({ type: 'org' })
+  const [view, setView] = useState<View>({ type: 'home' })
   const [prevView, setPrevView] = useState<View>({ type: 'home' })
-  const [customerReturn, setCustomerReturn] = useState<View>({ type: 'org' })
+  const [customerReturn, setCustomerReturn] = useState<View>({ type: 'home' })
   const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
   const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)   // …or for this bespoke page (page-config, not an entity)
   const [pageConfigVersion, setPageConfigVersion] = useState(0)   // bumped on a page-config save so the live view re-reads it
@@ -279,7 +279,7 @@ export default function App() {
   }
 
   function logout() {
-    setToken(null); setUser(null); setEntities([]); setView({ type: 'org' }); setCapabilities(FULL_ACCESS)
+    setToken(null); setUser(null); setEntities([]); setView({ type: 'home' }); setCapabilities(FULL_ACCESS)
     setNavSections(NAV_SECTIONS)
     setOpenSections(new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)))
   }
