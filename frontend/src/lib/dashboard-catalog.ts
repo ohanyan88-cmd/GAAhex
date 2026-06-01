@@ -45,7 +45,7 @@ export const CHART_CATALOG: ChartDef[] = [
   { id: 'burnup',             category: 'Progress Tracking',  title: 'Progress Burn-up',         description: 'Scope vs done over time', implemented: false },
 
   // ── Schedule & Delivery ───────────────────────────────────────────────────
-  { id: 'gantt',              category: 'Schedule & Delivery',title: 'Gantt Chart',              description: 'Projects + milestones + dependencies', implemented: false },
+  { id: 'gantt',              category: 'Schedule & Delivery',title: 'Gantt Chart',              description: 'Projects with start/due dates as horizontal bars', implemented: true },
   { id: 'milestone-timeline', category: 'Schedule & Delivery',title: 'Milestone Timeline',       description: 'Horizontal milestone timeline', implemented: false },
   { id: 'delivery-roadmap',   category: 'Schedule & Delivery',title: 'Delivery Roadmap',         description: 'Quarterly delivery roadmap', implemented: false },
   { id: 'schedule-variance',  category: 'Schedule & Delivery',title: 'Schedule Variance Trend',  description: 'Days early/late per project', implemented: false },
@@ -120,12 +120,16 @@ export const CHART_CATALOG: ChartDef[] = [
   { id: 'win-rate',           category: 'Sales / Commercial', title: 'Win Rate Trend',           description: '% deals won per month', implemented: false },
   { id: 'territory-perf',     category: 'Sales / Commercial', title: 'Territory Performance',    description: 'Sales per region', implemented: false },
   { id: 'lead-source-donut',  category: 'Sales / Commercial', title: 'Lead Source Distribution', description: 'Leads grouped by source', implemented: true },
+  { id: 'pareto-leads',       category: 'Sales / Commercial', title: 'Lead Sources Pareto',      description: 'Bar + cumulative-% line; 80/20 rule', implemented: true },
+  { id: 'sankey-leads',       category: 'Sales / Commercial', title: 'Sales Conversion (Sankey)',description: 'Lead → Opportunity → Deal → Customer flow', implemented: true },
 
   // ── Customer Execution ────────────────────────────────────────────────────
   { id: 'sub-donut',          category: 'Customer Execution', title: 'Subscription Mix (donut)', description: 'Active subs by plan', implemented: true },
   { id: 'customer-line',      category: 'Customer Execution', title: 'New vs Churned Subs',      description: '2-series line chart', implemented: true },
   { id: 'status-subs',        category: 'Customer Execution', title: 'Subscriptions by Status',  description: 'Active / suspended / cancelled', implemented: true },
   { id: 'churn-trend',        category: 'Customer Execution', title: 'Churn Trend',              description: 'Monthly churn events', implemented: false },
+  { id: 'net-subscriber-growth',category:'Customer Execution', title: 'Net Subscriber Growth',    description: 'New - churned subs per week', implemented: true },
+  { id: 'geographic-map',     category: 'Customer Execution', title: 'Geographic Distribution',  description: 'Sites + customers plotted by lat/lon', implemented: true },
   { id: 'csat',               category: 'Customer Execution', title: 'CSAT Score',               description: 'Customer satisfaction trend', implemented: false },
   { id: 'nps',                category: 'Customer Execution', title: 'NPS Trend',                description: 'Net Promoter Score', implemented: false },
 
@@ -151,6 +155,8 @@ export const DEFAULT_SELECTION = [
   'qoq-bars', 'yoy-bars',
   'weekly-trend', 'heatmap',
   'status-workitems', 'status-tickets', 'status-invoices', 'status-subs',
+  'gantt', 'pareto-leads', 'sankey-leads', 'geographic-map', 'net-subscriber-growth',
+  'rag-health', 'task-aging', 'issue-aging', 'risk-heatmap', 'lead-source-donut', 'salesperson-rank',
 ]
 
 const LS_KEY = 'gaaex.dashboard.selected.v1'

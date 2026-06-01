@@ -1,79 +1,113 @@
-# SESSION HANDOFF — Portal, 2026-06-01 (post-dashboard split + full test data)
+# SESSION HANDOFF — Portal, 2026-06-01 (audit P0/P1 cleared + 5 new advanced charts)
 
-> Owner = Gev (calls me Ընгер).
+> Owner = Gev (calls me Ընգեր).
 > Repo: `ohanyan88-cmd/Portal` — THE ACTIVE PRODUCT. NEVER touch Desktop\GAAex.
 > Read this → `git pull` → `git status` → continue from "What's next".
 
 ## Hard rules (every session)
 - **Portal-only** — NEVER touch `C:\Users\Admin\Desktop\GAAex`
 - **Orchestrator pushes** — agents commit locally; only main session runs `git push`
-- **No clarifying gates** — autonomous execution
+- **No fake / mock / hardcoded data** — every chart fetches from a real backend endpoint
 - DELETE old code, don't layer
 - Stage 8 Control Gate is THE only gate
 
 ---
 
-## State at HEAD (`3d3dd77`, pushed)
+## State at HEAD (pushed, clean)
 
-- **Tests: 664 passing, 0 failing, 0 skipped**
-- Migration head: `b3d5f7a9c1e2` (live dev DB upgraded)
-- Branch: `main` — clean working tree, HEAD == origin/main
+- **Tests: 666 passing, 0 failing**
+- Migration head: `c5e7f3a9b1d8` (live dev DB upgraded)
+- Branch: `main`, HEAD == origin/main
 
-### What landed this session
+### What landed this session (in order)
 
-| Commit | Subject |
+| Commit prefix | Subject |
 |---|---|
-| `5435dac` | catalog: 71 entities expanded → 556 fields (avg 7.8/entity), full status flows |
-| `a93baf7` | test data: `import_test_data.py` (1,150 Armenian records, 74 entities) + `seed_dashboard_data.py` |
-| `fadb5a5` | test data: `seed_churn_data.py` — 37 churned subs, churn events per 7d/30d/QTD/YTD window |
-| `5ea6fee` | **HomeView** (personal per-employee) split from **DashboardView** (company analytics) |
-| `3d3dd77` | fix: --sp-* → px values; .view/.view-inner layout classes — panels no longer overlap |
+| `feat(dashboard)` | WoW/MoM/QoQ/YoY comparisons, weekly multi-line, daily heatmap, 4 status breakdowns |
+| `feat(dashboard)` | Chart picker: 70-chart catalog (24 implemented); fix fake customerData → real weekly data; 6 new endpoints |
+| `fix(audit-P0-1)` | Hardcoded `localhost:8099` → `VITE_API_BASE` env var (10 frontend files + `lib/config.ts`) |
+| `feat(audit-P0-2)` | `httpx` moved to runtime `requirements.txt`; production Dockerfiles for backend + frontend |
+| `feat(audit-P0-3)` | `.github/workflows/ci.yml` — backend (pytest+ruff+pip-audit) + frontend (tsc+npm audit) + secret scan |
+| `feat(audit-P1)` | Security headers middleware (X-Frame, X-Content-Type, Referrer-Policy, HSTS) + 1 test |
+| `feat(audit-P1)` | DB indexes (record/workitem.status, event.created_at) + first-login forced password change |
+| `feat(dashboard)` | **5 new advanced charts: Gantt, Pareto, Sankey, Geographic Map, Net Subscriber Growth** |
 
 ---
 
-## Current DB state (live dev)
-
-| Table | Count |
-|---|---|
-| Records (74 entity types) | 1,150+ Armenian test records |
-| Subscriptions | 108 total (71 active, 37 churned) |
-| Invoices | 984 |
-| Payments | 957 |
-| Usage records | 441 |
-| MRR | 745,400 AMD |
-| Total collected | 4.5M+ AMD |
-
-To re-seed a fresh DB:
-```bash
-.venv/Scripts/python.exe -m scripts.import_test_data
-.venv/Scripts/python.exe -m scripts.seed_dashboard_data
-.venv/Scripts/python.exe -m scripts.seed_churn_data
-```
-
----
-
-## Architecture split: Home vs Dashboard
+## Architecture: Home vs Dashboard
 
 | View | Route | What it shows |
 |---|---|---|
 | **HomeView** (`'home'`) | Workspace → Home | Personal: MY tasks, MY approvals, MY tickets, TODAY's schedule, MY activity |
-| **DashboardView** (`'dashboards'`) | Analytics → Dashboards | Company: 7 chart types, MRR, AR aging, churn, sub mix, funnel — 7d/30d/QTD/YTD |
+| **DashboardView** (`'dashboards'`) | Analytics → Dashboards | Company-wide: **29 charts now**, picker-configurable, 7d/30d/QTD/YTD |
 
-Both use `.view` + `.view-inner` layout classes. All spacing in hard px values (no `--sp-*` tokens).
+### Dashboard charts (29 fully implemented)
+- 4 KPI cards (MRR / AR / Collected / New leads)
+- Revenue vs Churn bar · Subscription Donut · Payment Area · New vs Churned line
+- AR Aging · Monthly Revenue · Sales Funnel
+- WoW (8 cards) · MoM (8 cards) · QoQ + YoY grouped bars
+- Weekly Multi-line · Daily Payment Heatmap
+- 4 Status Breakdowns (workitems / tickets / invoices / subs)
+- RAG Health Donut · Task Aging · Issue Aging · Risk Heatmap · Lead Source Donut · Salesperson Ranking
+- **Gantt (projects) · Pareto (lead sources) · Sankey (sales conversion) · Geographic Map · Net Subscriber Growth**
+
+41 more chart slots reserved as catalog stubs (visible in picker as "coming soon").
 
 ---
 
-## What's next (REMAINING-WORK.md status)
+## Backend analytics endpoints (all real-data SQL aggregates)
 
-All R-01 → R-10 complete. P (payment gateways) complete to credential-slot level.
+```
+GET /api/analytics/overview
+GET /api/analytics/revenue-trend?months=N
+GET /api/analytics/subscription-mix
+GET /api/analytics/ar-aging
+GET /api/analytics/comparisons             — week/month/quarter/year vs prior
+GET /api/analytics/weekly-trend?weeks=N
+GET /api/analytics/daily-heatmap?days=N
+GET /api/analytics/status-breakdown
+GET /api/analytics/task-aging
+GET /api/analytics/ticket-aging
+GET /api/analytics/risk-heatmap
+GET /api/analytics/leads-by-source
+GET /api/analytics/sales-by-user
+GET /api/analytics/rag-health
+GET /api/analytics/gantt                   — projects with start/due dates
+GET /api/analytics/pareto/{entity}?group_field=
+GET /api/analytics/sankey-leads
+GET /api/analytics/geo-points              — sites + customers with lat/lon
+GET /api/analytics/net-subscriber-growth?weeks=N
+```
 
-**Remaining open items (no code changes needed, just decisions or external gates):**
+---
 
-1. **Payment gateway credentials** — ARCA_MERCHANT + ARCA_PASSWORD from ACBA; IDRAM_MERCHANT_ID + IDRAM_SECRET_KEY from Unibank; TELCELL_MERCHANT + TELCELL_KEY from VivaCell-MTS; EasyPay docs from easypay.am
-2. **Design reskin** — Gev said new design files coming → when they arrive, FULL DELETE old CSS + new design (feedback-design-full-delete.md in memory). Don't touch design until Gev says so.
-3. **Wave 4 NOT NULL** — deferred until first real customer install gives live data
-4. **3 deferred KPI formulas source data** — already have coverage_check + schedule_slot entities seeded; data needs to accumulate
-5. **Studio builder depth** — `/api/studio/page-types`, `/api/studio/layout-blocks`, `/api/studio/components` endpoints (backend + Studio pane wiring)
+## Production-readiness state
+
+| Item | Status |
+|---|---|
+| CI/CD on PR + push to main | ✅ `.github/workflows/ci.yml` |
+| Backend production Dockerfile (multi-stage, non-root, healthcheck) | ✅ `backend/Dockerfile` |
+| Frontend production Dockerfile (Node build + nginx) | ✅ `frontend/Dockerfile` |
+| `.dockerignore` files (root + backend + frontend) | ✅ |
+| `httpx` in runtime requirements | ✅ moved from dev to runtime |
+| Frontend API base configurable via env | ✅ `VITE_API_BASE` |
+| Security headers (X-Frame, X-Content-Type, Referrer-Policy, HSTS) | ✅ middleware live |
+| First-login forced password change for seeded admin | ✅ + 1 test |
+| DB indexes on hot status/created_at columns | ✅ migration `c5e7f3a9b1d8` |
+| `.env.production.example` | ✅ + new `VITE_API_BASE` section |
+| Real-data-only doctrine | ✅ fake customerData computation removed |
+
+---
+
+## What's still open
+
+1. **22 other frontend files** still have `const BASE = 'http://127.0.0.1:8099'` (studio panes + 8 views + 1 modal). Same refactor pattern as the 10 done in P0-1 — just hadn't been in scope. Quick follow-up.
+2. **41 chart catalog stubs** — visible in picker as "coming soon". Top priorities if you want more:
+   - Burnup/Burndown · CFD · Sprint Velocity · Project Bubble Chart · EVM (EV/PV/AC)
+   - Revenue Waterfall · MRR Trend · ARPU Trend · Coverage Expansion · ARR
+   - CSAT/NPS · Customer Onboarding Progress · Win Rate Trend · Pipeline Progress
+3. **Payment gateway credentials** — waiting on you (external, ARCA/iDram/TelCell/EasyPay merchant onboarding).
+4. **Design reskin** — waiting on you to deliver new design files (memory rule: full-delete old when they arrive).
 
 ---
 
@@ -88,8 +122,9 @@ cd C:\Users\Admin\Desktop\Portal\backend
 Frontend (new shell):
 ```powershell
 cd C:\Users\Admin\Desktop\Portal\frontend
-npm run dev     # → http://localhost:5173
+npm run dev      # → http://localhost:5173
 # login: admin@demo.isp / admin123
+# On first login you'll see must_change_password=true — change via Settings → Security
 ```
 
 Tests:
@@ -100,4 +135,4 @@ cd C:\Users\Admin\Desktop\Portal\backend
 
 ---
 
-— end handoff · HEAD 3d3dd77 · clean · Gev switching accounts now —
+— end handoff · 666/0 · clean · pushed —

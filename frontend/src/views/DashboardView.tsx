@@ -275,6 +275,214 @@ function Card({ title, icon: Icon, children, action }: {
 
 const PLAN_COLORS = ['var(--azure-500)', 'var(--azure-300)', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899']
 
+// Gantt — projects as horizontal bars positioned by date range
+function GanttChart({ projects }: { projects: { id: string; name: string; start_date: string; due_date: string; status: string; owner?: string }[] }) {
+  if (projects.length === 0) return null
+  // Compute overall time range from all start/end dates
+  const starts = projects.map(p => new Date(p.start_date).getTime()).filter(t => !isNaN(t))
+  const ends   = projects.map(p => new Date(p.due_date).getTime()).filter(t => !isNaN(t))
+  const minT = Math.min(...starts)
+  const maxT = Math.max(...ends)
+  const span = Math.max(1, maxT - minT)
+  const statusColor = (s: string) => ({
+    'PLANNING':  'var(--gx-text-3)',
+    'ACTIVE':    'var(--azure-500)',
+    'ON_HOLD':   'var(--gx-warning,#f59e0b)',
+    'DONE':      'var(--gx-success,#22c55e)',
+    'CANCELLED': 'var(--gx-danger,#ef4444)',
+  }[s] ?? 'var(--gx-text-3)')
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
+      {projects.slice(0, 12).map(p => {
+        const s = new Date(p.start_date).getTime()
+        const e = new Date(p.due_date).getTime()
+        const leftPct  = ((s - minT) / span) * 100
+        const widthPct = Math.max(2, ((e - s) / span) * 100)
+        return (
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+            <span style={{ width: 110, textAlign: 'right', color: 'var(--gx-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</span>
+            <div style={{ flex: 1, position: 'relative', height: 16, background: 'var(--gx-surface-2)', borderRadius: 3 }}>
+              <div title={`${p.start_date} to ${p.due_date} - ${p.status}`}
+                style={{
+                  position: 'absolute', left: `${leftPct}%`, width: `${widthPct}%`,
+                  top: 1, bottom: 1, background: statusColor(p.status), borderRadius: 3,
+                }} />
+            </div>
+            <span style={{ width: 60, fontSize: 10, color: 'var(--gx-text-3)', textAlign: 'right' }}>{p.status}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Pareto — bar chart with cumulative-% line overlay
+function ParetoChart({ data }: { data: { category: string; count: number; cum_pct: number }[] }) {
+  if (data.length === 0) return null
+  const maxCount = Math.max(...data.map(d => d.count), 1)
+  return (
+    <div>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 4, height: 160 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', position: 'relative' }} title={`${d.category}: ${d.count} (${d.cum_pct}% cum)`}>
+            <div style={{
+              height: `${(d.count / maxCount) * 80}%`,
+              background: i < 3 ? 'var(--azure-500)' : 'var(--gx-text-3)',
+              borderRadius: '3px 3px 0 0',
+            }} />
+            <span style={{ fontSize: 9, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{d.category}</span>
+          </div>
+        ))}
+        {/* Cumulative % overlay line */}
+        <svg viewBox={`0 0 ${data.length} 100`} preserveAspectRatio="none"
+             style={{ position: 'absolute', inset: 0, height: '80%', pointerEvents: 'none' }}>
+          <polyline
+            points={data.map((d, i) => `${i + 0.5},${100 - d.cum_pct}`).join(' ')}
+            fill="none" stroke="var(--gx-gold)" strokeWidth="0.8" vectorEffect="non-scaling-stroke"
+          />
+          <line x1="0" y1="20" x2={data.length} y2="20" stroke="var(--gx-warning,#f59e0b)" strokeDasharray="2 2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+        </svg>
+      </div>
+      <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: 'var(--gx-text-3)' }}>
+        <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--azure-500)', borderRadius: 2, marginRight: 4 }} />Top 3</span>
+        <span><span style={{ display: 'inline-block', width: 9, height: 2, background: 'var(--gx-gold)', verticalAlign: 'middle', marginRight: 4 }} />Cumulative %</span>
+        <span style={{ marginLeft: 'auto' }}>80% target line</span>
+      </div>
+    </div>
+  )
+}
+
+// Sankey — simple horizontal flow with 4 stacked columns + connecting bands
+function SankeyChart({ data }: { data: { nodes: { id: string; name: string; value: number }[]; links: { source: string; target: string; value: number }[] } }) {
+  const max = Math.max(...data.nodes.map(n => n.value), 1)
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 160 }}>
+        {data.nodes.map((n, i) => {
+          const h = (n.value / max) * 100
+          const conv = i > 0 ? Math.round((n.value / Math.max(data.nodes[i - 1].value, 1)) * 100) : null
+          return (
+            <>
+              <div key={n.id} style={{ flex: '0 0 16%', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                <div style={{ width: '80%', height: `${Math.max(h, 5)}%`,
+                  background: PLAN_COLORS[i % PLAN_COLORS.length], borderRadius: 3,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontWeight: 700, fontSize: 13,
+                }}>{n.value}</div>
+                <div style={{ fontSize: 11, marginTop: 4, fontWeight: 600 }}>{n.name}</div>
+                {conv !== null && (
+                  <div style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>{conv}% conv</div>
+                )}
+              </div>
+              {i < data.nodes.length - 1 && (
+                <div key={`arrow-${i}`} style={{
+                  flex: 1, height: 2, background: 'linear-gradient(90deg, var(--azure-500), var(--gx-text-3))',
+                  position: 'relative',
+                }}>
+                  <div style={{
+                    position: 'absolute', right: -5, top: -3, width: 0, height: 0,
+                    borderLeft: '6px solid var(--gx-text-3)',
+                    borderTop: '4px solid transparent', borderBottom: '4px solid transparent',
+                  }} />
+                </div>
+              )}
+            </>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Geographic — simple lat/lon dots projected into a bounding box
+function GeoMap({ points }: { points: { id: string; kind: string; name: string; lat: number; lon: number; status: string | null }[] }) {
+  if (points.length === 0) return null
+  const lats = points.map(p => p.lat)
+  const lons = points.map(p => p.lon)
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats)
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons)
+  const latSpan = Math.max(0.01, maxLat - minLat)
+  const lonSpan = Math.max(0.01, maxLon - minLon)
+  const kindColor = (k: string) => ({
+    site: 'var(--azure-500)',
+    tower: 'var(--gx-gold)',
+    customer: '#22c55e',
+    coverage_check: '#ec4899',
+  } as Record<string, string>)[k] ?? 'var(--gx-text-3)'
+  const W = 100, H = 70
+  return (
+    <div>
+      <div style={{
+        position: 'relative', width: '100%', height: 180, background: 'var(--gx-surface-2)',
+        borderRadius: 4, overflow: 'hidden', border: '1px solid var(--gx-border)',
+      }}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+          {/* dotted grid */}
+          {Array.from({ length: 10 }).map((_, i) => (
+            <line key={`gx-${i}`} x1={i * 10} y1="0" x2={i * 10} y2={H} stroke="var(--gx-border)" strokeWidth="0.2" />
+          ))}
+          {Array.from({ length: 7 }).map((_, i) => (
+            <line key={`gy-${i}`} x1="0" y1={i * 10} x2={W} y2={i * 10} stroke="var(--gx-border)" strokeWidth="0.2" />
+          ))}
+          {points.slice(0, 200).map(p => {
+            const x = ((p.lon - minLon) / lonSpan) * (W - 4) + 2
+            // Invert lat — north is up
+            const y = ((maxLat - p.lat) / latSpan) * (H - 4) + 2
+            return (
+              <circle key={p.id} cx={x} cy={y} r="1.2" fill={kindColor(p.kind)} opacity="0.85">
+                <title>{`${p.name} (${p.kind})`}</title>
+              </circle>
+            )
+          })}
+        </svg>
+      </div>
+      <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
+        {Object.entries(points.reduce((acc, p) => { acc[p.kind] = (acc[p.kind] || 0) + 1; return acc }, {} as Record<string, number>)).map(([k, n]) => (
+          <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: kindColor(k) }} />
+            {k.replace(/_/g, ' ')} ({n})
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Net Subscriber Growth — bar chart with net (new - churn) per week
+function NetGrowthChart({ data }: { data: { week: string; new: number; churned: number; net: number }[] }) {
+  if (data.length === 0) return null
+  const max = Math.max(...data.map(d => Math.max(d.new, d.churned, 1)))
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140 }}>
+        {data.map(d => (
+          <div key={d.week} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 1 }} title={`${d.week}: +${d.new} new, -${d.churned} churn, net ${d.net}`}>
+            <div style={{
+              height: `${(d.new / max) * 50}%`,
+              background: 'var(--gx-success,#22c55e)',
+              borderRadius: '2px 2px 0 0',
+              minHeight: d.new > 0 ? 2 : 0,
+            }} />
+            <div style={{
+              height: `${(d.churned / max) * 50}%`,
+              background: 'var(--gx-danger,#ef4444)',
+              borderRadius: '0 0 2px 2px',
+              minHeight: d.churned > 0 ? 2 : 0,
+            }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--gx-text-3)' }}>
+        <span>Net change: {data.reduce((s, d) => s + d.net, 0)}</span>
+        <span style={{ display: 'flex', gap: 10 }}>
+          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success,#22c55e)', borderRadius: 2, marginRight: 4 }} />New</span>
+          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-danger,#ef4444)', borderRadius: 2, marginRight: 4 }} />Churned</span>
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // Comparison card — "this vs last" with delta % and color-coded arrow
 function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.toLocaleString(), invertColor = false }: {
   label: string; thisVal: number; lastVal: number
@@ -482,6 +690,11 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   const [leadSources,  setLeadSources]  = useState<Fetched<any>>({ state: 'loading' })
   const [salesByUser,  setSalesByUser]  = useState<Fetched<any>>({ state: 'loading' })
   const [ragHealth,    setRagHealth]    = useState<Fetched<any>>({ state: 'loading' })
+  const [gantt,        setGantt]        = useState<Fetched<any[]>>({ state: 'loading' })
+  const [pareto,       setPareto]       = useState<Fetched<any[]>>({ state: 'loading' })
+  const [sankey,       setSankey]       = useState<Fetched<any>>({ state: 'loading' })
+  const [geoPoints,    setGeoPoints]    = useState<Fetched<any[]>>({ state: 'loading' })
+  const [netGrowth,    setNetGrowth]    = useState<Fetched<any[]>>({ state: 'loading' })
 
   // Layout — which chart IDs the user has chosen
   const [selected, setSelected] = useState<Set<string>>(() => loadSelected())
@@ -708,6 +921,61 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
       .catch(() => { if (alive) setRagHealth({ state: 'hide' }) })
     return () => { alive = false }
   }, [token])
+
+  // Gantt — projects with start/due dates
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/gantt`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setGantt(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setGantt({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Pareto — lead sources for now (most populated)
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/pareto/lead?group_field=source&limit=8`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setPareto(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setPareto({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Sankey
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/sankey-leads`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive) return
+        const total = d?.nodes ? d.nodes.reduce((s: number, n: any) => s + (Number(n.value) || 0), 0) : 0
+        setSankey(total > 0 ? { state: 'ok', value: d } : { state: 'hide' })
+      })
+      .catch(() => { if (alive) setSankey({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Geographic points
+  useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/api/analytics/geo-points`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setGeoPoints(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setGeoPoints({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token])
+
+  // Net subscriber growth (12-week trend)
+  useEffect(() => {
+    let alive = true
+    const weeksN = range === '7d' ? 6 : range === '30d' ? 10 : range === 'qtd' ? 13 : 26
+    fetch(`${BASE}/api/analytics/net-subscriber-growth?weeks=${weeksN}`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setNetGrowth(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
+      .catch(() => { if (alive) setNetGrowth({ state: 'hide' }) })
+    return () => { alive = false }
+  }, [token, range])
 
   const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
   const ov = overview.state === 'ok' ? overview.value : null
@@ -1148,6 +1416,53 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                         )
                       })}
                   </div>
+                </Card>
+              )}
+
+            </div>
+          </>
+        )}
+
+        {/* === SECTION: Advanced execution charts === */}
+        {(isShown('gantt') || isShown('exec-summary') || isShown('sankey-leads') || isShown('pareto-leads') || isShown('geographic-map') || isShown('net-subscriber-growth')) && (
+          <>
+            <div style={{ marginTop: '8px', marginBottom: '14px', fontSize: 13, fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Strategic & Operational Charts
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+
+              {isShown('gantt') && gantt.state === 'ok' && (
+                <Card title="Project Gantt" icon={Calendar}>
+                  <GanttChart projects={gantt.value} />
+                </Card>
+              )}
+              {isShown('gantt') && gantt.state === 'hide' && (
+                <Card title="Project Gantt" icon={Calendar}>
+                  <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No projects with start/due dates</div>
+                </Card>
+              )}
+
+              {isShown('pareto-leads') && pareto.state === 'ok' && (
+                <Card title="Lead Sources Pareto" icon={BarChart3}>
+                  <ParetoChart data={pareto.value} />
+                </Card>
+              )}
+
+              {isShown('sankey-leads') && sankey.state === 'ok' && (
+                <Card title="Sales Conversion Flow (Sankey)" icon={ArrowRight}>
+                  <SankeyChart data={sankey.value} />
+                </Card>
+              )}
+
+              {isShown('geographic-map') && geoPoints.state === 'ok' && (
+                <Card title="Geographic Distribution" icon={Activity}>
+                  <GeoMap points={geoPoints.value} />
+                </Card>
+              )}
+
+              {isShown('net-subscriber-growth') && netGrowth.state === 'ok' && (
+                <Card title="Net Subscriber Growth (Weekly)" icon={Users}>
+                  <NetGrowthChart data={netGrowth.value} />
                 </Card>
               )}
 

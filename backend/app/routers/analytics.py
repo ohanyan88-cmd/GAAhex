@@ -709,3 +709,221 @@ async def rag_health(user: User = Depends(current_user), s: AsyncSession = Depen
     green = max(0, (int(green_wi) + int(green_tk)) - amber - (int(red_wi) + int(red_tk)))
 
     return {"red": red, "amber": amber, "green": green}
+
+
+# ==========================================================================================
+# 15. Gantt — projects with start/end dates from records.data
+# ==========================================================================================
+
+@router.get("/gantt")
+async def gantt(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Project records (entity_key='project') sorted by start_date for a Gantt chart.
+
+    Real data only — pulls projects with both start_date and due_date in data JSONB.
+    Returns name, owner, status, start_date, due_date, progress.
+    """
+    await _gate(s, user)
+    rows = (await s.execute(
+        select(Record).where(
+            Record.tenant_id == user.tenant_id,
+            Record.entity_key == "project",
+        )
+    )).scalars().all()
+
+    out = []
+    for r in rows:
+        d = r.data or {}
+        start = d.get("start_date")
+        due   = d.get("due_date")
+        if not start or not due:
+            continue
+        out.append({
+            "id":         str(r.id),
+            "name":       d.get("name", "Untitled project"),
+            "owner":      d.get("owner"),
+            "status":     r.status or "PLANNING",
+            "start_date": start,
+            "due_date":   due,
+            "priority":   d.get("priority"),
+            "budget":     d.get("budget"),
+        })
+    # Sort oldest start first
+    out.sort(key=lambda p: p["start_date"])
+    return out
+
+
+# ==========================================================================================
+# 16. Pareto — top categories of a target entity by count (e.g. lead sources, ticket categories)
+# ==========================================================================================
+
+@router.get("/pareto/{entity_key}")
+async def pareto(entity_key: str, group_field: str = "category", limit: int = 10,
+                 user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Pareto distribution of `entity_key` records grouped by `data->>group_field`.
+
+    Returns top `limit` categories sorted by count desc. Frontend overlays the 80% line.
+    Generic — works for lead sources, ticket categories, complaint reasons, etc.
+    """
+    await _gate(s, user)
+    from sqlalchemy import text as sql_text
+    # Only allow alphanumeric + underscore to avoid injection. The group_field is bound
+    # via string interpolation because PostgreSQL JSONB key access can't use a bind parameter.
+    if not entity_key.replace("_", "").isalnum() or not group_field.replace("_", "").isalnum():
+        raise HTTPException(422, "entity_key and group_field must be alphanumeric/underscore only")
+
+    rows = (await s.execute(
+        sql_text(f"""
+            SELECT COALESCE(data->>'{group_field}','unknown') AS cat, COUNT(*) AS cnt
+            FROM record
+            WHERE tenant_id = :tid AND entity_key = :ek
+            GROUP BY COALESCE(data->>'{group_field}','unknown')
+            ORDER BY cnt DESC
+            LIMIT :lim
+        """),
+        {"tid": str(user.tenant_id), "ek": entity_key, "lim": int(limit)}
+    )).all()
+    total = sum(int(r[1]) for r in rows)
+    out, cum = [], 0
+    for cat, cnt in rows:
+        cum += int(cnt)
+        out.append({
+            "category":   cat,
+            "count":      int(cnt),
+            "cumulative": cum,
+            "pct":        round(int(cnt) / total * 100, 1) if total else 0,
+            "cum_pct":    round(cum / total * 100, 1) if total else 0,
+        })
+    return out
+
+
+# ==========================================================================================
+# 17. Sankey — lead → opportunity → deal → customer conversion flow
+# ==========================================================================================
+
+@router.get("/sankey-leads")
+async def sankey_leads(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Conversion flow: lead → opportunity → deal → customer. Nodes + links.
+
+    Counts are absolute record counts. The frontend renders this as a Sankey or funnel.
+    """
+    await _gate(s, user)
+    t = user.tenant_id
+
+    async def _count(entity_key: str) -> int:
+        return int((await s.execute(
+            select(func.count()).select_from(Record).where(
+                Record.tenant_id == t, Record.entity_key == entity_key)
+        )).scalar_one())
+
+    leads     = await _count("lead")
+    opps      = await _count("opportunity")
+    deals     = await _count("deal")
+    customers = await _count("customer")
+
+    return {
+        "nodes": [
+            {"id": "lead",        "name": "Leads",         "value": leads},
+            {"id": "opportunity", "name": "Opportunities", "value": opps},
+            {"id": "deal",        "name": "Deals",         "value": deals},
+            {"id": "customer",    "name": "Customers",     "value": customers},
+        ],
+        "links": [
+            {"source": "lead",        "target": "opportunity", "value": min(leads, opps)},
+            {"source": "opportunity", "target": "deal",        "value": min(opps,  deals)},
+            {"source": "deal",        "target": "customer",    "value": min(deals, customers)},
+        ],
+    }
+
+
+# ==========================================================================================
+# 18. Geographic — sites + customers with lat/lon for map plotting
+# ==========================================================================================
+
+@router.get("/geo-points")
+async def geo_points(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Sites (entity_key='site') and customers (data.lat/lon) with geographic coordinates.
+
+    Returns points grouped by kind so the frontend can color-code on a Leaflet map.
+    Real data only — entries without lat/lon are silently omitted.
+    """
+    await _gate(s, user)
+    t = user.tenant_id
+
+    rows = (await s.execute(
+        select(Record).where(
+            Record.tenant_id == t,
+            Record.entity_key.in_(["site", "tower", "customer", "coverage_check"]),
+        )
+    )).scalars().all()
+
+    points = []
+    for r in rows:
+        d = r.data or {}
+        lat_raw = d.get("lat") or d.get("latitude")
+        lon_raw = d.get("lon") or d.get("lng") or d.get("longitude")
+        if not lat_raw or not lon_raw:
+            continue
+        try:
+            lat = float(str(lat_raw).replace(",", "."))
+            lon = float(str(lon_raw).replace(",", "."))
+        except (TypeError, ValueError):
+            continue
+        # sanity-check bounds (rough Armenia + nearby)
+        if not (35 < lat < 45) or not (40 < lon < 50):
+            continue
+        points.append({
+            "id":     str(r.id),
+            "kind":   r.entity_key,
+            "name":   d.get("name") or d.get("address") or "Point",
+            "lat":    lat,
+            "lon":    lon,
+            "status": r.status,
+        })
+    return points
+
+
+# ==========================================================================================
+# 19. Net subscriber growth — new subs - churns per week
+# ==========================================================================================
+
+@router.get("/net-subscriber-growth")
+async def net_subscriber_growth(weeks: int = 12, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Net subscriber growth per week = NEW subscriptions started minus CANCELLED transitions.
+
+    Real, agg-only — reads Subscription.started_at for the new side and Event for the churn side.
+    """
+    await _gate(s, user)
+    t = user.tenant_id
+    weeks = max(1, min(int(weeks), 52))
+    now = _now()
+    start = _wstart(now) - timedelta(weeks=weeks - 1)
+
+    sw = func.to_char(func.date_trunc("week", Subscription.started_at), "IYYY-IW")
+    started = {row[0]: int(row[1]) for row in (await s.execute(
+        select(sw.label("w"), func.count())
+        .where(Subscription.tenant_id == t, Subscription.started_at >= start)
+        .group_by(sw)
+    )).all()}
+
+    ew = func.to_char(func.date_trunc("week", Event.created_at), "IYYY-IW")
+    churns = {row[0]: int(row[1]) for row in (await s.execute(
+        select(ew.label("w"), func.count())
+        .where(Event.tenant_id == t, Event.entity_key == "subscription",
+               Event.type == "transition", Event.data["to"].astext == "CANCELLED",
+               Event.created_at >= start).group_by(ew)
+    )).all()}
+
+    out = []
+    for i in range(weeks):
+        wk_start = _wstart(now) - timedelta(weeks=weeks - 1 - i)
+        lbl = wk_start.strftime("%G-%V")
+        new_count   = started.get(lbl, 0)
+        churn_count = churns.get(lbl, 0)
+        out.append({
+            "week":    lbl,
+            "date":    wk_start.strftime("%Y-%m-%d"),
+            "new":     new_count,
+            "churned": churn_count,
+            "net":     new_count - churn_count,
+        })
+    return out
