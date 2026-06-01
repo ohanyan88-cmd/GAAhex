@@ -313,7 +313,7 @@ export default function App() {
               Every department.<br />Every role.<br /><span style={{ color: 'var(--gx-gold)' }}>One system.</span>
             </h1>
             <ul style={{
-              listStyle: 'none', padding: 0, margin: '22px 0 18px',
+              listStyle: 'none', padding: 0, margin: '22px 0 0',
               display: 'flex', flexDirection: 'column', gap: 6,
               fontFamily: 'var(--gx-font-display)',
               fontSize: 18, fontWeight: 500,
@@ -332,18 +332,15 @@ export default function App() {
                 </li>
               ))}
             </ul>
-            <p style={{ color: 'var(--gx-text-2)', fontSize: 14, maxWidth: 380, lineHeight: 1.6, margin: 0 }}>
-              Configurable modules and workflows<br />built for ISPs.
-            </p>
           </div>
-          <div style={{ display: 'flex', gap: 22, position: 'relative', zIndex: 1 }}>
-            {[['18', 'modules'], ['99.98%', 'uptime'], ['0', 'hardcoded screens']].map(s => (
-              <div key={s[1]}>
-                <div style={{ fontFamily: 'var(--gx-font-display)', fontSize: 22, fontWeight: 600, color: '#fff' }}>{s[0]}</div>
-                <div style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>{s[1]}</div>
-              </div>
-            ))}
-          </div>
+          <p style={{
+            color: 'var(--gx-text-2)',
+            fontSize: 14, lineHeight: 1.6, maxWidth: 380,
+            margin: 0,
+            position: 'relative', zIndex: 1,
+          }}>
+            Configurable modules and workflows<br />built for ISPs.
+          </p>
         </div>
         <div className="login-card">
           <form className="login-form fade" onSubmit={handleLogin}>
