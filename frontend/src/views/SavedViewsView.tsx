@@ -13,10 +13,10 @@
 // be 403 to this user); a fully empty aggregate → empty state.
 
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
 import { EmptyState, SkeletonRows, ErrorBanner } from '../components/States'
 import { BookmarkIcon, InboxIcon } from '../components/icons'
 import { getEntities } from '../lib/api'
+import { PageShell } from '../page-shell'
 
 import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
@@ -90,78 +90,70 @@ export default function SavedViewsView({
   useEffect(() => { load() }, [token])
 
   const items = state.kind === 'ok' ? state.items : []
-  const subtitle = state.kind === 'ok' ? `${items.length} saved` : undefined
+  const subtitle = state.kind === 'ok' ? `${items.length} saved` : 'Personal & shared saved filters'
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Workspace</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>Saved Views</span>
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Saved Views']}
+      icon={<BookmarkIcon size={18} />}
+      title="Saved Views"
+      subtitle={subtitle}
+    >
+      {state.kind === 'error' ? (
+        <ErrorBanner message={state.message} onRetry={load} />
+      ) : (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          {state.kind === 'loading' ? (
+            <div style={{ padding: 14 }}>
+              <SkeletonRows rows={5} />
+            </div>
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={<InboxIcon size={40} />}
+              title="No saved views yet"
+              message="Save a filter / column set from any list page and it will appear here."
+            />
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Entity</th>
+                    <th>Scope</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((v) => {
+                    const clickable = !!onOpenEntity && !!v.route_slug
+                    return (
+                      <tr
+                        key={v.id}
+                        onClick={clickable ? () => onOpenEntity!(v.route_slug) : undefined}
+                        style={{ cursor: clickable ? 'pointer' : 'default' }}
+                        title={clickable ? `Open ${v.entity_label}` : undefined}
+                      >
+                        <td style={{ fontWeight: 500 }}>{v.name}</td>
+                        <td style={{ color: 'var(--gx-text-2)' }}>{v.entity_label}</td>
+                        <td>
+                          {v.shared
+                            ? <span className="pill pill-info">Shared</span>
+                            : <span className="pill pill-neutral">Personal</span>}
+                        </td>
+                        <td className="mono tnum" style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                          {v.created_at ? new Date(v.created_at).toLocaleDateString() : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-
-        <ViewHead
-          icon={<BookmarkIcon size={18} />}
-          title="Saved Views"
-          sub={subtitle ?? 'Filters and column sets saved from list pages'}
-        />
-
-        {state.kind === 'error' ? (
-          <ErrorBanner message={state.message} onRetry={load} />
-        ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            {state.kind === 'loading' ? (
-              <div style={{ padding: 14 }}>
-                <SkeletonRows rows={5} />
-              </div>
-            ) : items.length === 0 ? (
-              <EmptyState
-                icon={<InboxIcon size={40} />}
-                title="No saved views yet"
-                message="Save a filter / column set from any list page and it will appear here."
-              />
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="grid">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Entity</th>
-                      <th>Scope</th>
-                      <th>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((v) => {
-                      const clickable = !!onOpenEntity && !!v.route_slug
-                      return (
-                        <tr
-                          key={v.id}
-                          onClick={clickable ? () => onOpenEntity!(v.route_slug) : undefined}
-                          style={{ cursor: clickable ? 'pointer' : 'default' }}
-                          title={clickable ? `Open ${v.entity_label}` : undefined}
-                        >
-                          <td style={{ fontWeight: 500 }}>{v.name}</td>
-                          <td style={{ color: 'var(--gx-text-2)' }}>{v.entity_label}</td>
-                          <td>
-                            {v.shared
-                              ? <span className="pill pill-info">Shared</span>
-                              : <span className="pill pill-neutral">Personal</span>}
-                          </td>
-                          <td className="mono tnum" style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
-                            {v.created_at ? new Date(v.created_at).toLocaleDateString() : '—'}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </PageShell>
   )
 }

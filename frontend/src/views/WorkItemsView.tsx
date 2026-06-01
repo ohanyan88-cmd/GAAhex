@@ -20,11 +20,12 @@ import {
 import {
   Plus, ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -206,95 +207,42 @@ export default function WorkItemsView({
     else { setSortKey(k); setSortDir(1) }
   }
 
+  // KPI specs derived from allItems counts
+  const kpis: KPISpec[] = allItems.length > 0 ? [
+    { label: 'TODO',        value: allItems.filter(i => i.status === 'TODO').length },
+    { label: 'In Progress', value: inProgressCount, warning: inProgressCount > 0 },
+    { label: 'Blocked',     value: blockedCount,     danger: blockedCount > 0 },
+    { label: 'Done',        value: doneCount,        premium: true },
+  ] : []
+
   if (unavailable) {
     return (
-      <div className="view">
-        <div className="view-inner fade">
-          <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-          <ViewHead
-            icon={<RowsIcon size={18} />}
-            title={cfg.title}
-            sub="Driven by the WorkItem movement engine · stages configured in Studio"
-          />
-          <EmptyState
-            icon={<InboxIcon size={40} />}
-            title="Work Items aren't available yet"
-            message="This service will appear here once the work items module is enabled."
-          />
-        </div>
-      </div>
+      <PageShell
+        type="operations"
+        breadcrumb={['Tech & NOC', 'Work Items']}
+        icon={<RowsIcon size={18} />}
+        title="Work Items"
+        subtitle="Field operations work queue"
+      >
+        <EmptyState
+          icon={<InboxIcon size={40} />}
+          title="Work Items aren't available yet"
+          message="This service will appear here once the work items module is enabled."
+        />
+      </PageShell>
     )
   }
 
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Operations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<RowsIcon size={18} />}
-          title={cfg.title}
-          sub={`${allCount} records · driven by the WorkItem movement engine`}
-          actions={
-            <>
-              {canConfigure && (
-                <button className="btn btn-ghost btn-sm">
-                  <GearIcon size={13} /> Workflow
-                </button>
-              )}
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                <Plus size={14} /> New work item
-              </button>
-            </>
-          }
-        />
-
-        {allItems.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Active"
-              value={activeCount}
-              subtitle={`of ${allCount} work item${allCount !== 1 ? 's' : ''}`}
-              size="sm"
-              onClick={() => setTab('active')}
-              ariaLabel={`Active — ${activeCount}. Click to filter to active.`}
-            />
-            <KPITile
-              label="In progress"
-              value={inProgressCount}
-              subtitle="currently being worked"
-              size="sm"
-              warning
-              onClick={() => setQuery('IN_PROGRESS')}
-              ariaLabel={`In progress — ${inProgressCount}. Click to filter.`}
-            />
-            <KPITile
-              label="Done"
-              value={doneCount}
-              subtitle="completed"
-              size="sm"
-              premium
-              onClick={() => setQuery('DONE')}
-              ariaLabel={`Done — ${doneCount}. Click to filter to done.`}
-            />
-            {blockedCount > 0 && (
-              <KPITile
-                label="Blocked"
-                value={blockedCount}
-                subtitle="action required"
-                size="sm"
-                danger
-                onClick={() => setQuery('BLOCKED')}
-                ariaLabel={`Blocked — ${blockedCount}. Click to filter to blocked.`}
-              />
-            )}
-          </div>
-        )}
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Work Items']}
+      icon={<RowsIcon size={18} />}
+      title="Work Items"
+      subtitle="Field operations work queue"
+      kpis={kpis.length > 0 ? kpis : undefined}
+      primaryAction={{ label: 'New work item', onClick: () => setCreateOpen(true) }}
+    >
 
         {/* Tabs — kit .tabs/.tab/.tab-count */}
         <div className="tabs">
@@ -412,8 +360,7 @@ export default function WorkItemsView({
             onDone={() => { setCreateOpen(false); loadData() }}
           />
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

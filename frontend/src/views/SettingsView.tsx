@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { bget, bput } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { PermissionDenied, SkeletonRows, EmptyState } from '../components/States'
-import { GearIcon, CheckIcon, EditIcon } from '../components/icons'
+import { GearIcon, CheckIcon } from '../components/icons'
 import { useI18n, setLang, type Lang } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
 
 // Backend `/api/tenant/settings` (PUT) only accepts: name, currency, locale, logo_text, logo_url.
 // Any field outside that allow-list 422s. We render ONLY what persists — doctrine rules 2, 3, 4.
@@ -72,94 +72,85 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
 
   if (denied) return <PermissionDenied message={t('settings.denied', "You don't have permission to manage settings.")} />
 
-  // States: skeleton → unavailable empty-state → real form.
-  if (loading) {
-    return (
-      <div className="view-inner fade" style={{ maxWidth: 880 }}>
-        <SkeletonRows rows={6} />
-      </div>
-    )
-  }
-
-  if (unavailable || !loaded) {
-    return (
-      <div className="view-inner fade" style={{ maxWidth: 880 }}>
-        <EmptyState
-          title={t('settings.unavailable', 'Settings unavailable')}
-          message="The /api/tenant/settings endpoint did not respond."
-        />
-      </div>
-    )
-  }
-
-  const sections = [
-    {
-      title: 'General',
-      rows: [
+  const sections = !loading && !unavailable && loaded
+    ? [
         {
-          label: 'Display name',
-          el: <input className="inp inp-sm" style={{ width: 240 }} value={name} onChange={e => setName(e.target.value)} />,
+          title: 'General',
+          rows: [
+            {
+              label: 'Display name',
+              el: <input className="inp inp-sm" style={{ width: 240 }} value={name} onChange={e => setName(e.target.value)} />,
+            },
+            {
+              label: 'Default locale',
+              el: (
+                <select className="inp inp-sm" style={{ width: 240 }} value={locale} onChange={e => setLocale(e.target.value as Lang)}>
+                  <option value="en">English (en)</option>
+                  <option value="hy">Հայերեն (hy-AM)</option>
+                </select>
+              ),
+            },
+            {
+              label: 'Currency',
+              el: <input className="inp inp-sm" style={{ width: 240 }} value={currency} onChange={e => setCurrency(e.target.value)} />,
+            },
+            {
+              label: 'Logo text',
+              el: <input className="inp inp-sm" style={{ width: 240 }} value={logoText} onChange={e => setLogoText(e.target.value)} />,
+            },
+          ],
         },
-        {
-          label: 'Default locale',
-          el: (
-            <select className="inp inp-sm" style={{ width: 240 }} value={locale} onChange={e => setLocale(e.target.value as Lang)}>
-              <option value="en">English (en)</option>
-              <option value="hy">Հայերեն (hy-AM)</option>
-            </select>
-          ),
-        },
-        {
-          label: 'Currency',
-          el: <input className="inp inp-sm" style={{ width: 240 }} value={currency} onChange={e => setCurrency(e.target.value)} />,
-        },
-        {
-          label: 'Logo text',
-          el: <input className="inp inp-sm" style={{ width: 240 }} value={logoText} onChange={e => setLogoText(e.target.value)} />,
-        },
-      ],
-    },
-  ]
+      ]
+    : []
 
   return (
-    <div className="view-inner fade" style={{ maxWidth: 880 }}>
-      <div className="crumbs">
-        <span>System</span><span className="sep">/</span>
-        <span style={{ color: 'var(--gx-text-1)' }}>{t('nav.settings', 'Settings')}</span>
-      </div>
+    <PageShell
+      type="configuration"
+      breadcrumb={['Admin Panel', 'Settings']}
+      icon={<GearIcon size={20} />}
+      title="Settings"
+      subtitle="Tenant configuration"
+      primaryAction={!loading && !unavailable && loaded ? {
+        label: saving ? 'Saving…' : 'Save',
+        onClick: save,
+        disabled: saving,
+        icon: <CheckIcon size={14} />,
+      } : undefined}
+    >
+      <div style={{ maxWidth: 880 }}>
+        {loading && <SkeletonRows rows={6} />}
 
-      <ViewHead
-        icon={<GearIcon size={20} />}
-        title={t('nav.settings', 'Settings')}
-        sub="Tenant configuration · enforced by the kernel"
-        actions={
-          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
-            <CheckIcon size={14} />{saving ? 'Saving…' : 'Save'}
-          </button>
-        }
-      />
+        {!loading && (unavailable || !loaded) && (
+          <EmptyState
+            title={t('settings.unavailable', 'Settings unavailable')}
+            message="The /api/tenant/settings endpoint did not respond."
+          />
+        )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {sections.map(s => (
-          <div className="card" key={s.title}>
-            <div className="card-head"><h3>{s.title}</h3></div>
-            <div style={{ padding: '4px 18px 8px' }}>
-              {s.rows.map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 0', borderBottom: i < s.rows.length - 1 ? '1px solid var(--gx-border-subtle)' : 'none' }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{r.label}</span>
-                  {r.el}
+        {!loading && !unavailable && loaded && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {sections.map(s => (
+              <div className="card" key={s.title}>
+                <div className="card-head"><h3>{s.title}</h3></div>
+                <div style={{ padding: '4px 18px 8px' }}>
+                  {s.rows.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 0', borderBottom: i < s.rows.length - 1 ? '1px solid var(--gx-border-subtle)' : 'none' }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{r.label}</span>
+                      {r.el}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
+              </div>
+            ))}
 
-        {loaded.onboarded_at && (
-          <div className="hint" style={{ fontSize: 11, color: 'var(--gx-text-3)', textAlign: 'right' }}>
-            Onboarded {new Date(loaded.onboarded_at).toLocaleDateString()}
+            {loaded.onboarded_at && (
+              <div className="hint" style={{ fontSize: 11, color: 'var(--gx-text-3)', textAlign: 'right' }}>
+                Onboarded {new Date(loaded.onboarded_at).toLocaleDateString()}
+              </div>
+            )}
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

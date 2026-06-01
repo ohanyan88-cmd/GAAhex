@@ -1,8 +1,9 @@
-// DispatchBoardView — Network → Dispatch Board.
+// DispatchBoardView — Tech & NOC → Support Dispatch Board.
 // Workitems grouped by status — TODO / IN_PROGRESS / DONE / BLOCKED columns.
 // Real data from GET /api/workitems. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { TruckIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
@@ -37,11 +38,31 @@ export default function DispatchBoardView({ token }: { token: string }) {
     return acc
   }, {})
 
-  const active = items.filter(i => i.status !== 'DONE').length
+  const kpis: KPISpec[] = loading
+    ? [
+        { label: 'To Do', value: 0, loading: true },
+        { label: 'In Progress', value: 0, loading: true },
+        { label: 'Blocked', value: 0, loading: true },
+        { label: 'Done', value: 0, loading: true },
+      ]
+    : items.length === 0
+    ? []
+    : [
+        { label: 'To Do', value: byStatus['TODO']?.length ?? 0 },
+        { label: 'In Progress', value: byStatus['IN_PROGRESS']?.length ?? 0 },
+        { label: 'Blocked', value: byStatus['BLOCKED']?.length ?? 0, danger: (byStatus['BLOCKED']?.length ?? 0) > 0 },
+        { label: 'Done', value: byStatus['DONE']?.length ?? 0 },
+      ]
 
   return (
-    <div className="view-root">
-      <ViewHead icon={<TruckIcon size={20} />} title="Dispatch Board" sub={loading ? undefined : `${active} active · ${items.length} total`} />
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Support Dispatch Board']}
+      icon={<TruckIcon size={20} />}
+      title="Support Dispatch Board"
+      subtitle="Field operations dispatch"
+      kpis={kpis.length > 0 ? kpis : undefined}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         {loading && <SkeletonRows rows={8} />}
         {error && <ErrorBanner message={error} />}
@@ -77,6 +98,6 @@ export default function DispatchBoardView({ token }: { token: string }) {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

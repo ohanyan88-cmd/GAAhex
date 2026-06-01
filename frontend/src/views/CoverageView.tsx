@@ -1,9 +1,10 @@
-// CoverageView — Network → Coverage & GIS.
+// CoverageView — Tech & NOC → Service Qualification.
 // Lists coverage_check records with pass/fail stats.
 // When lat/lon data is present, shows coordinates.
 // Real data from GET /api/coverage-checks. Real data only.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { ShieldIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
@@ -27,15 +28,36 @@ export default function CoverageView({ token }: { token: string }) {
 
   const pass = checks.filter(c => (c.data?.result ?? c.status) === 'PASS').length
   const fail = checks.filter(c => (c.data?.result ?? c.status) === 'FAIL').length
+  const pending = checks.filter(c => {
+    const r = c.data?.result ?? c.status
+    return r !== 'PASS' && r !== 'FAIL'
+  }).length
   const pct = checks.length > 0 ? Math.round(pass / checks.length * 100) : null
 
+  const kpis: KPISpec[] = loading
+    ? [
+        { label: 'Pass', value: 0, loading: true },
+        { label: 'Fail', value: 0, loading: true },
+        { label: 'Pending', value: 0, loading: true },
+      ]
+    : checks.length === 0
+    ? []
+    : [
+        { label: 'Pass', value: pass },
+        { label: 'Fail', value: fail, danger: fail > 0 },
+        { label: 'Pending', value: pending, warning: pending > 0 },
+        ...(pct !== null ? [{ label: 'Coverage rate', value: `${pct}%` }] : []),
+      ]
+
   return (
-    <div className="view-root">
-      <ViewHead
-        icon={<ShieldIcon size={20} />}
-        title="Coverage & GIS"
-        sub={loading ? undefined : checks.length === 0 ? undefined : `${pass} pass · ${fail} fail${pct !== null ? ` · ${pct}% coverage` : ''}`}
-      />
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Service Qualification']}
+      icon={<ShieldIcon size={20} />}
+      title="Service Qualification"
+      subtitle="Network coverage check & feasibility"
+      kpis={kpis.length > 0 ? kpis : undefined}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
@@ -43,46 +65,29 @@ export default function CoverageView({ token }: { token: string }) {
           <EmptyState icon={<ShieldIcon size={36} />} title="No coverage checks" message="Run feasibility checks against customer addresses to populate coverage data." />
         )}
         {!loading && checks.length > 0 && (
-          <>
-            {pct !== null && (
-              <div style={{ display: 'flex', gap: 'var(--sp-4)', marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>
-                {[
-                  { label: 'Total checks', value: checks.length },
-                  { label: 'Pass', value: pass },
-                  { label: 'Fail', value: fail },
-                  { label: 'Coverage rate', value: `${pct}%` },
-                ].map(stat => (
-                  <div key={stat.label} className="card" style={{ padding: 'var(--sp-3) var(--sp-4)', minWidth: 120 }}>
-                    <div className="muted" style={{ fontSize: 12 }}>{stat.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 700 }}>{stat.value}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <table className="grid" style={{ width: '100%' }}>
-              <thead><tr><th>Address</th><th>Result</th><th>Lat</th><th>Lon</th></tr></thead>
-              <tbody>
-                {checks.map(c => {
-                  const d = c.data ?? {}
-                  const result = String(d.result ?? c.status ?? '—')
-                  return (
-                    <tr key={c.id}>
-                      <td style={{ fontWeight: 500 }}>{String(d.address ?? '—')}</td>
-                      <td>
-                        <span className={`badge ${result === 'PASS' ? 'badge-success' : result === 'FAIL' ? 'badge-danger' : 'badge-neutral'}`}>
-                          {result}
-                        </span>
-                      </td>
-                      <td className="mono muted" style={{ fontSize: 12 }}>{d.lat ? String(d.lat) : '—'}</td>
-                      <td className="mono muted" style={{ fontSize: 12 }}>{d.lon ? String(d.lon) : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </>
+          <table className="grid" style={{ width: '100%' }}>
+            <thead><tr><th>Address</th><th>Result</th><th>Lat</th><th>Lon</th></tr></thead>
+            <tbody>
+              {checks.map(c => {
+                const d = c.data ?? {}
+                const result = String(d.result ?? c.status ?? '—')
+                return (
+                  <tr key={c.id}>
+                    <td style={{ fontWeight: 500 }}>{String(d.address ?? '—')}</td>
+                    <td>
+                      <span className={`badge ${result === 'PASS' ? 'badge-success' : result === 'FAIL' ? 'badge-danger' : 'badge-neutral'}`}>
+                        {result}
+                      </span>
+                    </td>
+                    <td className="mono muted" style={{ fontSize: 12 }}>{d.lat ? String(d.lat) : '—'}</td>
+                    <td className="mono muted" style={{ fontSize: 12 }}>{d.lon ? String(d.lon) : '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -1,8 +1,9 @@
-// NetworkTopologyView — Network → Network Topology.
+// NetworkTopologyView — Tech & NOC → Network Topology.
 // Lists sites/POPs from /api/sites (entity records with entity_key='site').
 // Shows status, kind, address. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { ServerIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
@@ -34,9 +35,29 @@ export default function NetworkTopologyView({ token }: { token: string }) {
   const live = sites.filter(s => s.status === 'LIVE').length
   const planned = sites.filter(s => s.status === 'PLANNED').length
 
+  const kpis: KPISpec[] = loading
+    ? [
+        { label: 'Nodes', value: 0, loading: true },
+        { label: 'Live', value: 0, loading: true },
+        { label: 'Planned', value: 0, loading: true },
+      ]
+    : sites.length === 0
+    ? []
+    : [
+        { label: 'Nodes', value: sites.length },
+        { label: 'Live', value: live },
+        { label: 'Planned', value: planned },
+      ]
+
   return (
-    <div className="view-root">
-      <ViewHead icon={<ServerIcon size={20} />} title="Network Topology" sub={loading ? undefined : `${sites.length} site${sites.length === 1 ? '' : 's'} · ${live} live · ${planned} planned`} />
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Network Topology']}
+      icon={<ServerIcon size={20} />}
+      title="Network Topology"
+      subtitle="Logical connectivity graph"
+      kpis={kpis.length > 0 ? kpis : undefined}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
@@ -73,6 +94,6 @@ export default function NetworkTopologyView({ token }: { token: string }) {
           </table>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

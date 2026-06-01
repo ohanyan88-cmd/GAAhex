@@ -9,11 +9,12 @@
 // Network error → ErrorBanner. Mutations refresh the list on success.
 
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
 import { EmptyState, PermissionDenied, SkeletonRows, ErrorBanner } from '../components/States'
 import {
   CheckIcon, CloseIcon, InboxIcon, ArrowRightIcon,
 } from '../components/icons'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
 import { humanizeEntity } from '../lib/humanize'
@@ -83,100 +84,94 @@ export default function MyApprovalsView({ token }: { token: string }) {
   }
 
   const items = state.kind === 'ok' ? state.items : []
-  const subtitle: string | undefined = state.kind === 'ok'
-    ? `${items.length} pending`
-    : undefined
+
+  const kpis: KPISpec[] = state.kind === 'ok'
+    ? [{ label: 'Pending', value: items.length, subtitle: 'awaiting decision', warning: items.length > 0 }]
+    : []
+
+  if (state.kind === 'forbidden') return <PermissionDenied />
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Workspace</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>My Approvals</span>
-        </div>
-
-        <ViewHead
-          icon={<CheckIcon size={18} />}
-          title="My Approvals"
-          sub={subtitle ?? 'Pending transitions waiting on your decision'}
-        />
-
-        {state.kind === 'forbidden' ? (
-          <PermissionDenied />
-        ) : state.kind === 'error' ? (
-          <ErrorBanner message={state.message} onRetry={load} />
-        ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            {state.kind === 'loading' ? (
-              <div style={{ padding: 14 }}>
-                <SkeletonRows rows={5} />
-              </div>
-            ) : items.length === 0 ? (
-              <EmptyState
-                icon={<InboxIcon size={40} />}
-                title="No approvals waiting"
-                message="Pending transitions that need your decision will appear here."
-              />
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="grid">
-                  <thead>
-                    <tr>
-                      <th>Entity</th>
-                      <th>Record</th>
-                      <th>Transition</th>
-                      <th>Requested</th>
-                      <th className="actions-col" style={{ textAlign: 'right' }}>Decision</th>
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'My Approvals']}
+      icon={<CheckIcon size={18} />}
+      title="My Approvals"
+      subtitle={state.kind === 'ok' ? `${items.length} pending` : 'Pending approvals requiring your action'}
+      kpis={kpis}
+    >
+      {state.kind === 'error' ? (
+        <ErrorBanner message={state.message} onRetry={load} />
+      ) : (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          {state.kind === 'loading' ? (
+            <div style={{ padding: 14 }}>
+              <SkeletonRows rows={5} />
+            </div>
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={<InboxIcon size={40} />}
+              title="No approvals waiting"
+              message="Pending transitions that need your decision will appear here."
+            />
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>Entity</th>
+                    <th>Record</th>
+                    <th>Transition</th>
+                    <th>Requested</th>
+                    <th className="actions-col" style={{ textAlign: 'right' }}>Decision</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((a) => (
+                    <tr key={a.id}>
+                      <td style={{ color: 'var(--gx-text-2)' }}>{humanizeEntity(a.entity_key)}</td>
+                      <td className="mono" style={{ color: 'var(--gx-link)' }}>
+                        {a.record_id.slice(0, 8)}
+                      </td>
+                      <td>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span className="pill pill-neutral">{a.from_status}</span>
+                          <ArrowRightIcon size={12} />
+                          <span className="pill pill-info">{a.to_status}</span>
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                        {timeAgo(a.created_at)}
+                      </td>
+                      <td className="actions-col" style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            disabled={busy === a.id}
+                            onClick={() => decide(a.id, 'approve')}
+                            title="Approve this transition"
+                          >
+                            <CheckIcon size={12} /> Approve
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            disabled={busy === a.id}
+                            onClick={() => decide(a.id, 'reject')}
+                            title="Reject this transition"
+                            style={{ color: 'var(--gx-danger-fg)' }}
+                          >
+                            <CloseIcon size={12} /> Reject
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((a) => (
-                      <tr key={a.id}>
-                        <td style={{ color: 'var(--gx-text-2)' }}>{humanizeEntity(a.entity_key)}</td>
-                        <td className="mono" style={{ color: 'var(--gx-link)' }}>
-                          {a.record_id.slice(0, 8)}
-                        </td>
-                        <td>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <span className="pill pill-neutral">{a.from_status}</span>
-                            <ArrowRightIcon size={12} />
-                            <span className="pill pill-info">{a.to_status}</span>
-                          </span>
-                        </td>
-                        <td style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
-                          {timeAgo(a.created_at)}
-                        </td>
-                        <td className="actions-col" style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: 6 }}>
-                            <button
-                              className="btn btn-primary btn-sm"
-                              disabled={busy === a.id}
-                              onClick={() => decide(a.id, 'approve')}
-                              title="Approve this transition"
-                            >
-                              <CheckIcon size={12} /> Approve
-                            </button>
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              disabled={busy === a.id}
-                              onClick={() => decide(a.id, 'reject')}
-                              title="Reject this transition"
-                              style={{ color: 'var(--gx-danger-fg)' }}
-                            >
-                              <CloseIcon size={12} /> Reject
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </PageShell>
   )
 }

@@ -14,8 +14,9 @@ import ActivityTimeline from '../components/ActivityTimeline'
 import { useI18n } from '../lib/i18n'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
-import ViewHead from '../components/ViewHead'
 import { StatusPill } from '../primitives'
+import { PageShell } from '../page-shell'
+import type { PageType, KPISpec, SecondaryAction } from '../page-shell'
 
 const PAGE_SIZE = 50
 
@@ -52,6 +53,55 @@ type SavedView = { id: string | number; name: string; q?: string; filter?: strin
 
 import { BASE } from '../lib/config'
 const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+
+// ── PageShell metadata map ─────────────────────────────────────────────────
+// Static breadcrumb + page-type per known slug. Custom entities fall back to
+// ['Records', capitalize(slug)] / 'registry'.
+
+type SlugMeta = { breadcrumb: string[]; type: PageType; subtitle?: string }
+
+const SLUG_META: Record<string, SlugMeta> = {
+  'leads':                { breadcrumb: ['CRM', 'Leads'],                    type: 'registry' },
+  'customers':            { breadcrumb: ['CRM', 'Customers'],                type: 'registry' },
+  'campaigns':            { breadcrumb: ['CRM', 'Campaigns'],                type: 'registry' },
+  'users':                { breadcrumb: ['Admin Panel', 'Users'],            type: 'configuration' },
+  'roles':                { breadcrumb: ['Admin Panel', 'Roles'],            type: 'configuration' },
+  'incidents':            { breadcrumb: ['Tech & NOC', 'Incidents'],         type: 'operations' },
+  'assets':               { breadcrumb: ['Tech & NOC', 'Assets'],            type: 'operations' },
+  'expenses':             { breadcrumb: ['Enterprise', 'Finance'],           type: 'registry' },
+  'employees':            { breadcrumb: ['Enterprise', 'HR'],                type: 'registry' },
+  'purchase-orders':      { breadcrumb: ['Enterprise', 'Procurement'],       type: 'registry' },
+  'contracts':            { breadcrumb: ['Enterprise', 'Legal'],             type: 'registry' },
+  'notification-rules':   { breadcrumb: ['Admin Panel', 'Notifications'],    type: 'configuration' },
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ')
+}
+
+function pagePropsForSlug(slug: string, def: Def | null): { breadcrumb: string[]; type: PageType; title: string; subtitle: string } {
+  const meta = SLUG_META[slug] ?? { breadcrumb: ['Records', capitalize(slug)], type: 'registry' as PageType }
+  const title = def?.label_plural ?? capitalize(slug)
+  const subtitle = meta.subtitle ?? ''
+  return { breadcrumb: meta.breadcrumb, type: meta.type, title, subtitle }
+}
+
+function deriveEntityKPIs(def: Def, rows: Row[], total: number | null): KPISpec[] {
+  const count = total ?? rows.length
+  const kpis: KPISpec[] = [
+    { label: 'Total', value: count },
+  ]
+  // Per-status KPIs when the entity has statuses (max 4 to avoid bar overflow)
+  const statuses = def.statuses ?? []
+  if (statuses.length > 0) {
+    const shown = statuses.slice(0, 4)
+    for (const s of shown) {
+      const c = rows.filter((r) => r.status === s.key).length
+      kpis.push({ label: s.label, value: c, muted: c === 0 })
+    }
+  }
+  return kpis
+}
 
 // B25 — export format availability probe: HEAD /{slug}/export?format=X; 404 → hide that button.
 // CSV is always available (no probe); XLSX + PDF are probed in parallel on slug change.
@@ -343,11 +393,11 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   if (loading && !def && !fatal) return <LoadingState />
   if (fatal === 'notfound') return <NotFound what="entity" message={`No entity matches "${slug}".`} />
   if (fatal === 'denied') {
+    const fp = pagePropsForSlug(slug, def)
     return (
-      <div className="view-inner section-page fade">
-        <div className="view-head"><h2>{def?.label_plural ?? slug}</h2></div>
+      <PageShell type={fp.type} breadcrumb={fp.breadcrumb} icon={<RowsIcon size={18} />} title={fp.title} subtitle={fp.subtitle}>
         <PermissionDenied message={t('entity.permDenied', "You don't have permission to view these records.")} />
-      </div>
+      </PageShell>
     )
   }
   if (!def) return <ErrorBanner message={t('entity.loadError', 'Could not load this entity.')} />
@@ -518,88 +568,48 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   const dataCellCount = cols.length >= 2 ? cols.length - 1 : cols.length
   const colSpan = 1 /* checkbox */ + dataCellCount + 1 /* status */ + 1 /* actions */
 
-  // Derive a sub-headline for ViewHead: show total count when known, else record count in view
+  // Derive a sub-headline: show total count when known, else record count in view
   const countLabel = total !== null
     ? `${total.toLocaleString()} ${def.label_plural.toLowerCase()}`
     : rows.length > 0
       ? `${rows.length.toLocaleString()} ${def.label_plural.toLowerCase()}`
       : def.label_plural.toLowerCase()
 
-  return (
-    <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Records</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{def.label_plural}</span>
-        </div>
+  // PageShell page props — slug-driven breadcrumb + type
+  const pp = pagePropsForSlug(slug, def)
 
-        {/* ── Page header ───────────────────────────────────────────── */}
-        <ViewHead
-          icon={<RowsIcon size={18} />}
-          title={def.label_plural}
-          sub={countLabel}
-          actions={
-            <>
-              {/* Export button (ghost, always visible in header when formats are available) */}
-              {exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf) && (
-                <div className="saved-views" role="group" aria-label={t('export.label', 'Export')}>
-                  {exportFormats.csv && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={exporting !== null}
-                      onClick={() => doExport('csv')}
-                      aria-label={t('export.csv', 'Export CSV')}
-                    >
-                      <DownloadIcon size={13} aria-hidden /> CSV
-                    </button>
-                  )}
-                  {exportFormats.xlsx && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={exporting !== null}
-                      onClick={() => doExport('xlsx')}
-                      aria-label={t('export.xlsx', 'Export XLSX')}
-                    >
-                      <DownloadIcon size={13} aria-hidden /> XLSX
-                    </button>
-                  )}
-                  {exportFormats.pdf && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={exporting !== null}
-                      onClick={() => doExport('pdf')}
-                      aria-label={t('export.pdf', 'Export PDF')}
-                    >
-                      <DownloadIcon size={13} aria-hidden /> PDF
-                    </button>
-                  )}
-                </div>
-              )}
-              {canConfigure && onConfigure && (
-                <button
-                  className="btn btn-ghost btn-sm hide-sm"
-                  onClick={onConfigure}
-                  title={t('common.configurePageTitle', 'Configure this page')}
-                >
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              {/* B21: New button — only when can create; Close button when form is open */}
-              {formOpen ? (
-                <button className="btn btn-ghost btn-sm" onClick={closeForm}>
-                  <CloseIcon size={13} aria-hidden /> {t('common.close', 'Close')}
-                </button>
-              ) : canCreate ? (
-                <button className="btn btn-primary btn-sm" onClick={openCreate}>
-                  <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
-                </button>
-              ) : null}
-            </>
-          }
-        />
+  // PageShell: primaryAction (New / Close form)
+  const shellPrimary = formOpen
+    ? { label: t('common.close', 'Close'), icon: <CloseIcon size={13} aria-hidden />, onClick: closeForm }
+    : canCreate
+      ? { label: `${t('common.new', 'New')} ${def.label}`, icon: <PlusIcon size={13} aria-hidden />, onClick: openCreate }
+      : undefined
+
+  // PageShell: secondaryActions — export buttons + configure
+  const shellSecondary: SecondaryAction[] = []
+  if (exportFormats !== null) {
+    if (exportFormats.csv)  shellSecondary.push({ label: 'CSV',  icon: <DownloadIcon size={13} aria-hidden />, onClick: () => doExport('csv'),  disabled: exporting !== null })
+    if (exportFormats.xlsx) shellSecondary.push({ label: 'XLSX', icon: <DownloadIcon size={13} aria-hidden />, onClick: () => doExport('xlsx'), disabled: exporting !== null })
+    if (exportFormats.pdf)  shellSecondary.push({ label: 'PDF',  icon: <DownloadIcon size={13} aria-hidden />, onClick: () => doExport('pdf'),  disabled: exporting !== null })
+  }
+  if (canConfigure && onConfigure) {
+    shellSecondary.push({ label: t('common.configurePageTitle', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure })
+  }
+
+  // PageShell: KPI bar — total + per-status (max 4 statuses shown)
+  const shellKpis = deriveEntityKPIs(def, rows, total)
+
+  return (
+    <PageShell
+      type={pp.type}
+      breadcrumb={pp.breadcrumb}
+      icon={<RowsIcon size={18} />}
+      title={pp.title}
+      subtitle={countLabel}
+      kpis={shellKpis}
+      primaryAction={shellPrimary}
+      secondaryActions={shellSecondary.length > 0 ? shellSecondary : undefined}
+    >
 
       {/* B21: read-only hint */}
       {readOnly && (
@@ -1011,7 +1021,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           onClose={() => setAiRow(null)}
         />
       )}
-    </div>
+    </PageShell>
   )
 }
 

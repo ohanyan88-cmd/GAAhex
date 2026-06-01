@@ -13,10 +13,11 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { t } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill, KPITile } from '../primitives'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 import { BASE } from '../lib/config'
@@ -170,63 +171,31 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
 
   if (denied) return <PermissionDenied message={t('webhooks.denied', 'Webhooks are admin-only.')} />
 
+  const kpis: KPISpec[] = all.length > 0
+    ? [
+        { label: 'Endpoints', value: all.length, subtitle: `${activeCount} enabled`, onClick: () => setQuery('') },
+        { label: 'Enabled', value: activeCount, subtitle: 'delivering events', premium: true, onClick: () => setQuery('enabled') },
+        ...(disabledCount > 0 ? [{ label: 'Disabled', value: disabledCount, subtitle: 'no deliveries', muted: true, onClick: () => setQuery('disabled') }] : []),
+      ]
+    : []
+
   return (
-    <div className="view">
-      <div className="view-inner fade">
-        <div className="crumbs"><span>Integrations</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<ServerIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} endpoint${all.length !== 1 ? 's' : ''} · event subscriptions · signed deliveries`}
-          actions={!unavailable && (
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              {canConfigure && (
-                <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
-                  <Plus size={14} /> {draft ? 'Close' : 'New webhook'}
-                </button>
-              )}
-            </>
-          )}
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Endpoints"
-              value={all.length}
-              subtitle={`${activeCount} enabled`}
-              size="sm"
-              onClick={() => setQuery('')}
-              ariaLabel={`Endpoints — ${all.length}. Click to clear filter.`}
-            />
-            <KPITile
-              label="Enabled"
-              value={activeCount}
-              subtitle="delivering events"
-              size="sm"
-              premium
-              onClick={() => setQuery('enabled')}
-              ariaLabel={`Enabled webhooks — ${activeCount}. Click to filter.`}
-            />
-            {disabledCount > 0 && (
-              <KPITile
-                label="Disabled"
-                value={disabledCount}
-                subtitle="no deliveries"
-                size="sm"
-                muted
-                onClick={() => setQuery('disabled')}
-                ariaLabel={`Disabled webhooks — ${disabledCount}. Click to filter.`}
-              />
-            )}
-          </div>
-        )}
+    <PageShell
+      type="configuration"
+      breadcrumb={['Admin Panel', 'Integrations']}
+      icon={<ServerIcon size={18} />}
+      title="Integrations"
+      subtitle="Webhook endpoints & external API connections"
+      kpis={kpis}
+      primaryAction={!unavailable && canConfigure ? {
+        label: draft ? 'Close' : 'New webhook',
+        onClick: () => setDraft(draft ? null : { ...EMPTY }),
+        icon: draft ? undefined : <Plus size={14} />,
+      } : undefined}
+      secondaryActions={!unavailable && canConfigure && onConfigure ? [
+        { label: 'Configure', onClick: onConfigure, icon: <GearIcon size={13} /> },
+      ] : undefined}
+    >
 
         {draft && (
           <div className="rec-form">
@@ -352,8 +321,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
         {deliveriesFor && (
           <DeliveriesModal token={token} webhook={deliveriesFor} onClose={() => setDeliveriesFor(null)} />
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

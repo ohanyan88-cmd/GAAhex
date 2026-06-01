@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import { bget } from '../lib/billing'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { ChartIcon, GearIcon } from '../components/icons'
+import { ChartIcon } from '../components/icons'
 import { KPITile } from '../primitives'
 import { useI18n } from '../lib/i18n'
-import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
 import { LineChart } from '../components/charts/LineChart'
 import { Spark } from '../components/charts/Spark'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 
 // Analytics (A18 /api/analytics/*) — KPIs + charts re-laid into the kit's `gx-dash` dashboard
 // pattern: KPI strip on top (.kpis with sparklines + delta pills), two-column charts body
@@ -66,45 +67,36 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
 
   if (denied) return <PermissionDenied message={t('analytics.denied', "You don't have permission to view analytics.")} />
 
+  // KPIs derived from overview API data
+  const kpis: KPISpec[] | undefined = (!loading && overview) ? [
+    { label: t('analytics.mrr', 'MRR'),                  value: money(pick(overview, 'mrr').value),                  premium: true },
+    { label: t('analytics.activeSubs', 'Active subs'),    value: pick(overview, 'active_subscriptions').value },
+    { label: t('analytics.arOutstanding', 'AR outstanding'), value: money(pick(overview, 'ar_outstanding').value) },
+    { label: t('analytics.collected', 'Collected (mo)'), value: money(pick(overview, 'collected_this_month').value) },
+    { label: t('analytics.newLeads', 'New leads (30d)'), value: pick(overview, 'new_leads_30d').value },
+  ] : undefined
+
   return (
-    <div className="view-inner gx-dash fade">
-        <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<ChartIcon size={20} />}
-          title={cfg.title}
-          sub={t('analytics.sub', 'Live KPIs and revenue insight')}
-          actions={
-            <>
-              <div className="seg" role="tablist" aria-label="Range">
-                <button type="button" className={range === '30d' ? 'on' : ''} onClick={() => setRange('30d')}>30d</button>
-                <button type="button" className={range === 'qtd' ? 'on' : ''} onClick={() => setRange('qtd')}>QTD</button>
-                <button type="button" className={range === 'ytd' ? 'on' : ''} onClick={() => setRange('ytd')}>YTD</button>
-              </div>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-            </>
-          }
-        />
-
+    <PageShell
+      type="analytics"
+      breadcrumb={['Analytics & AI', 'Analytics']}
+      icon={<ChartIcon size={18} />}
+      title="Analytics"
+      subtitle="Revenue & operational metrics"
+      kpis={kpis}
+      secondaryActions={[
+        { label: '30d', onClick: () => setRange('30d') },
+        { label: 'QTD', onClick: () => setRange('qtd') },
+        { label: 'YTD', onClick: () => setRange('ytd') },
+      ]}
+    >
         {loading && <p className="muted">{t('common.loading', 'Loading…')}</p>}
         {error && <ErrorBanner message={error} onRetry={load} />}
         {unavailable && <EmptyState icon={<ChartIcon size={40} />} title={t('analytics.unavailable', "Analytics aren't available yet")} message={t('analytics.unavailableMsg', 'KPIs and charts will appear here once the analytics service is enabled.')} />}
 
         {!loading && !unavailable && !error && overview && (
           <>
-            {/* KPI strip — first KPI gets the gold marquee accent. */}
-            <div className="kpis">
-              <Kpi label={t('analytics.mrr', 'MRR')} m={pick(overview, 'mrr')} money goodUp marquee t={t} />
-              <Kpi label={t('analytics.activeSubs', 'Active subscriptions')} m={pick(overview, 'active_subscriptions')} goodUp t={t} />
-              <Kpi label={t('analytics.arOutstanding', 'AR outstanding')} m={pick(overview, 'ar_outstanding')} money t={t} />
-              <Kpi label={t('analytics.overdue', 'Overdue')} m={pick(overview, 'overdue')} money t={t} />
-              <Kpi label={t('analytics.collected', 'Collected this month')} m={pick(overview, 'collected_this_month')} money goodUp t={t} />
-              <Kpi label={t('analytics.newLeads', 'New leads (30d)')} m={pick(overview, 'new_leads_30d')} goodUp t={t} />
-            </div>
+            {/* KPI strip — rendered by PageShell KPIBar via kpis prop above */}
 
             {/* Charts body — two columns: revenue trend (line) left, subscription mix (donut) right.
                 AR aging cascades as a full-width card underneath. */}
@@ -144,7 +136,7 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
             )}
           </>
         )}
-    </div>
+    </PageShell>
   )
 }
 

@@ -13,9 +13,9 @@
 //     target record (helpdesk ticket → HelpdeskView, generic entity →
 //     EntityView for that slug).
 
-import ViewHead from '../components/ViewHead'
 import ActivityTimeline, { type ActivityNavTarget } from '../components/ActivityTimeline'
 import { ActivityIcon } from '../components/icons'
+import { PageShell } from '../page-shell'
 
 export default function ActivityFeedView({
   token,
@@ -25,24 +25,16 @@ export default function ActivityFeedView({
   onNavigate?: (target: ActivityNavTarget) => void
 }) {
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Workspace</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>Activity Feed</span>
-        </div>
-
-        <ViewHead
-          icon={<ActivityIcon size={18} />}
-          title="Activity Feed"
-          sub="Recent actions across records you can see"
-        />
-
-        <div className="card act-feed-card">
-          <ActivityTimeline token={token} onNavigate={onNavigate} />
-        </div>
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Activity Feed']}
+      icon={<ActivityIcon size={18} />}
+      title="Activity Feed"
+      subtitle="System-wide event stream"
+    >
+      <div className="card act-feed-card">
+        <ActivityTimeline token={token} onNavigate={onNavigate} />
       </div>
-    </div>
+    </PageShell>
   )
 }

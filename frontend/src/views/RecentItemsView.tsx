@@ -3,10 +3,10 @@
 // the signed-in user's actions). Displays the last-touched records in chronological
 // order. No mock fallbacks: API errors → error banner, empty → empty state.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { ClockIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
+import { PageShell } from '../page-shell'
 
 const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
@@ -59,8 +59,13 @@ export default function RecentItemsView({ token, onNavigate }: {
   })
 
   return (
-    <div className="view-root">
-      <ViewHead icon={<ClockIcon size={20} />} title="Recent Items" sub={loading ? undefined : `${unique.length} item${unique.length === 1 ? '' : 's'}`} />
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Recent Items']}
+      icon={<ClockIcon size={20} />}
+      title="Recent Items"
+      subtitle={loading ? 'Recently visited records' : `${unique.length} item${unique.length === 1 ? '' : 's'}`}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         {loading && <SkeletonRows rows={8} />}
         {error && <ErrorBanner message={error} />}
@@ -86,6 +91,6 @@ export default function RecentItemsView({ token, onNavigate }: {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   )
 }

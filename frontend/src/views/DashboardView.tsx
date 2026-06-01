@@ -17,12 +17,14 @@
 // Real data only — empty fetch = widget hides, never placeholder numbers.
 import { useEffect, useState } from 'react'
 import { BarChart3, TrendingUp, TrendingDown, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, Settings, type LucideIcon } from 'lucide-react'
-import { GearIcon } from '../components/icons'
+import { GearIcon, ChartIcon } from '../components/icons'
 import { money } from '../lib/money'
 import { fetchCapabilities, can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { BASE } from '../lib/billing'
 import { loadSelected, saveSelected } from '../lib/dashboard-catalog'
 import ChartPicker from '../components/ChartPicker'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 
 const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 type Range = '7d' | '30d' | 'qtd' | 'ytd'
@@ -980,55 +982,31 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
   const ov = overview.state === 'ok' ? overview.value : null
 
-  const rangeBtn = (r: Range, label: string) => (
-    <button key={r} className={range === r ? 'on' : ''} onClick={() => setRange(r)}>{label}</button>
-  )
+  // KPIs from overview data — only rendered when data is available and user can view revenue
+  const kpis: KPISpec[] | undefined = (isShown('kpi-strip') && ov && showRevenue) ? [
+    { label: 'MRR',                 value: money(ov.mrr),                  subtitle: `${ov.active_subscriptions} active subs`, premium: true },
+    { label: 'AR Outstanding',      value: money(ov.ar_outstanding),        subtitle: `${ov.overdue_count} overdue`, warning: ov.overdue_count > 0 },
+    { label: 'Collected This Month',value: money(ov.collected_this_month),  subtitle: `vs ${money(ov.collected_prev_month)} last month` },
+    { label: 'New Leads (30d)',      value: ov.new_leads_30d,               subtitle: `vs ${ov.new_leads_prev_30d} prior 30d` },
+  ] : undefined
 
   return (
-    <div className="view">
-      <div className="view-inner" style={{ maxWidth: 1400 }}>
-
-        {/* Header */}
-        <div className="view-head" style={{ marginBottom: '18px' }}>
-          <div className="vh-ic"><BarChart3 size={20} /></div>
-          <div>
-            <h1 style={{ margin: 0 }}>Analytics Dashboard</h1>
-            <p className="muted" style={{ margin: 0, fontSize: 12 }}>Company-wide operations overview</p>
-          </div>
-          <span className="spacer" />
-          <div className="seg">
-            {rangeBtn('7d','7d')}{rangeBtn('30d','30d')}{rangeBtn('qtd','QTD')}{rangeBtn('ytd','YTD')}
-          </div>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => setPickerOpen(true)}
-            title="Customize which charts are shown"
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Settings size={13} />
-            Customize ({selected.size})
-          </button>
-          {canConfigure && onConfigure && (
-            <button className="btn btn-ghost btn-sm" onClick={onConfigure}>
-              <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-            </button>
-          )}
-        </div>
-
-        {/* KPI Strip */}
-        {isShown('kpi-strip') && ov && showRevenue && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '12px', marginBottom: '18px' }}>
-            <KPICard label="MRR" value={money(ov.mrr)} sublabel={`${ov.active_subscriptions} active subs`}
-              color="var(--azure-500)" icon={Banknote}
-              trend={revTrend.state === 'ok' ? revTrend.value.map(b => b.collected) : []} />
-            <KPICard label="AR Outstanding" value={money(ov.ar_outstanding)} sublabel={`${ov.overdue_count} overdue`}
-              color={ov.overdue_count > 0 ? 'var(--gx-warning,#f59e0b)' : 'inherit'} icon={AlertTriangle} />
-            <KPICard label="Collected This Month" value={money(ov.collected_this_month)}
-              sublabel={`vs ${money(ov.collected_prev_month)} last month`} color="var(--gx-success,#22c55e)" icon={TrendingUp} />
-            <KPICard label="New Leads (30d)" value={String(ov.new_leads_30d)}
-              sublabel={`vs ${ov.new_leads_prev_30d} prior 30d`} icon={Users} />
-          </div>
-        )}
+    <PageShell
+      type="analytics"
+      breadcrumb={['Analytics & AI', 'Operational Dashboards']}
+      icon={<ChartIcon size={18} />}
+      title="Dashboards"
+      subtitle="Operational KPI dashboards"
+      kpis={kpis}
+      secondaryActions={[
+        { label: `7d`,  onClick: () => setRange('7d') },
+        { label: `30d`, onClick: () => setRange('30d') },
+        { label: `QTD`, onClick: () => setRange('qtd') },
+        { label: `YTD`, onClick: () => setRange('ytd') },
+        { label: `Customize (${selected.size})`, onClick: () => setPickerOpen(true) },
+      ]}
+    >
+      <div style={{ maxWidth: 1400, width: '100%' }}>
 
         {/* Row 1: Revenue bar + Subscription donut */}
         {(isShown('revenue-bar') || isShown('sub-donut')) && (
@@ -1487,6 +1465,6 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
           onSave={(next) => { setSelected(next); saveSelected(next) }}
         />
       )}
-    </div>
+    </PageShell>
   )
 }

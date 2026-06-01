@@ -1,8 +1,9 @@
-// ProvisioningView — Network → Provisioning.
+// ProvisioningView — Tech & NOC → Provisioning.
 // Activation queue: services in PENDING status, ordered by created_at.
 // Real data from GET /api/services?status=PENDING. Real data only.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { GearIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
@@ -33,9 +34,30 @@ export default function ProvisioningView({ token }: { token: string }) {
     return () => { alive = false }
   }, [token])
 
+  const pending = services.filter(s => s.status === 'PENDING').length
+  const active = services.filter(s => s.status === 'ACTIVE').length
+
+  const kpis: KPISpec[] = loading
+    ? [
+        { label: 'Pending', value: 0, loading: true },
+        { label: 'Active', value: 0, loading: true },
+      ]
+    : services.length === 0
+    ? []
+    : [
+        { label: 'Pending', value: pending, warning: pending > 0 },
+        { label: 'Active', value: active },
+      ]
+
   return (
-    <div className="view-root">
-      <ViewHead icon={<GearIcon size={20} />} title="Provisioning Queue" sub={loading ? undefined : `${services.length} pending activation${services.length === 1 ? '' : 's'}`} />
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Provisioning']}
+      icon={<GearIcon size={20} />}
+      title="Provisioning"
+      subtitle="Service activation pipeline · Stages 9–11"
+      kpis={kpis.length > 0 ? kpis : undefined}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
@@ -60,6 +82,6 @@ export default function ProvisioningView({ token }: { token: string }) {
           </table>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

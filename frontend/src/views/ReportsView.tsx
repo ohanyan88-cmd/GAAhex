@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SkeletonRows, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { DownloadIcon, GearIcon } from '../components/icons'
-import ViewHead from '../components/ViewHead'
+import { BookmarkIcon } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
 import { can, type Capabilities } from '../lib/capabilities'
 import { KPITile } from '../primitives'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 
 // Reports — consumes the Reports API (Task A). Re-laid into the kit's `gx-dash` dashboard
 // pattern: a KPI strip of entity counts (each tile is clickable — selecting one drives the
@@ -153,24 +154,21 @@ export default function ReportsView({
 
   if (denied) return <PermissionDenied message="You don't have permission to view reports." />
 
-  return (
-    <div className="view-inner gx-dash fade section-page">
-        <div className="crumbs"><span>Insights</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
+  // KPIs: total reportable count + entity type count (only when data has loaded)
+  const kpis: KPISpec[] | undefined = !loading && summary.length > 0 ? [
+    { label: 'Total records',   value: fmtNum(totalReportable), premium: true },
+    { label: 'Entity types',    value: summary.length },
+  ] : undefined
 
-        <ViewHead
-          icon={<DownloadIcon size={20} />}
-          title={cfg.title}
-          sub={summary.length > 0
-            ? `${summary.length} entity type${summary.length === 1 ? '' : 's'} · ${fmtNum(totalReportable)} record${totalReportable === 1 ? '' : 's'}`
-            : 'Reports across configured entities'}
-          actions={
-            canConfigure && onConfigure ? (
-              <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
-                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-              </button>
-            ) : null
-          }
-        />
+  return (
+    <PageShell
+      type="analytics"
+      breadcrumb={['Analytics & AI', 'Reports & AI Insights']}
+      icon={<BookmarkIcon size={18} />}
+      title="Reports"
+      subtitle="Saved reports & scheduled exports"
+      kpis={kpis}
+    >
 
         {error && <ErrorBanner message={error} onRetry={loadSummary} />}
 
@@ -231,7 +229,7 @@ export default function ReportsView({
             )}
           </>
         )}
-    </div>
+    </PageShell>
   )
 }
 

@@ -21,7 +21,7 @@ import { usePageConfig, type CustomFieldDef } from '../lib/pageConfig'
 import { useCustomFields, CustomFieldChip } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
 import { Modal } from '../components/Modal'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
 import { toast } from '../components/Toast'
 import { createOrgNode, renameOrgNode, moveOrgNode, deleteOrgNode, OrgWriteError } from '../lib/api'
 import {
@@ -1979,35 +1979,21 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
 
   return (
     <OrgEditContext.Provider value={edit}>
-      <div className="view-inner fade section-page">
-          <div className="crumbs">
-            <span>System</span><span className="sep">/</span>
-            <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
-          </div>
-
-          <ViewHead
-            icon={<LayersIcon size={18} />}
-            title={cfg.title}
-            sub={`${nodeCount} node${nodeCount === 1 ? '' : 's'}${activeLabel ? ` · ${activeLabel}` : ''}`}
-            actions={(
-              <>
-                {canConfigure && onConfigure && (
-                  <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                  </button>
-                )}
-                {editing && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm org-add-node-btn"
-                    onClick={() => setEditState({ kind: 'add', parent: null })}
-                  >
-                    <PlusIcon size={14} /> <span>Add node</span>
-                  </button>
-                )}
-              </>
-            )}
-          />
+      <PageShell
+        type="configuration"
+        breadcrumb={['Admin Panel', 'Organisation']}
+        icon={<BuildingIcon size={18} />}
+        title="Organisation"
+        subtitle="Org node hierarchy"
+        primaryAction={editing ? {
+          label: 'Add node',
+          onClick: () => setEditState({ kind: 'add', parent: null }),
+          icon: <PlusIcon size={14} />,
+        } : undefined}
+        secondaryActions={canConfigure && onConfigure ? [
+          { label: 'Configure', onClick: onConfigure, icon: <GearIcon size={13} /> },
+        ] : undefined}
+      >
 
           {/* The layout switcher is a wide 13-tab segmented control, so it gets its own
               full-width row below the title rather than being crammed into the header
@@ -2091,7 +2077,7 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
           {editState?.kind === 'delete' && (
             <DeleteNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
           )}
-      </div>
+      </PageShell>
     </OrgEditContext.Provider>
   )
 }

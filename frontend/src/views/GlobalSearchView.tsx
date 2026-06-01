@@ -2,10 +2,10 @@
 // Real data from GET /api/search?q=... Facets from ?facets=true.
 // No mock fallbacks: empty q → empty state, API errors → error banner.
 import { useState, useCallback, useEffect, useRef } from 'react'
-import ViewHead from '../components/ViewHead'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
-import { InboxIcon } from '../components/icons'
+import { InboxIcon, SearchIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
+import { PageShell } from '../page-shell'
 
 const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
@@ -59,10 +59,16 @@ export default function GlobalSearchView({ token, onNavigate }: {
   }
 
   const totalMatches = groups.reduce((s, g) => s + g.matches.length, 0)
+  const resultCount = total || totalMatches
 
   return (
-    <div className="view-root">
-      <ViewHead icon={<InboxIcon size={20} />} title="Global Search" sub={q && !loading ? `${total || totalMatches} result${(total || totalMatches) === 1 ? '' : 's'}` : undefined} />
+    <PageShell
+      type="workspace"
+      breadcrumb={['Workspace', 'Global Search']}
+      icon={<SearchIcon size={20} />}
+      title="Global Search"
+      subtitle={q && !loading ? `${resultCount} result${resultCount === 1 ? '' : 's'}` : 'Search across all records'}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         <input
           ref={inputRef}
@@ -116,6 +122,6 @@ export default function GlobalSearchView({ token, onNavigate }: {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   )
 }

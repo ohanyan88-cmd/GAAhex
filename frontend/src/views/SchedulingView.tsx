@@ -1,8 +1,9 @@
-// SchedulingView — Network → Scheduling.
+// SchedulingView — Tech & NOC → Scheduling.
 // Lists schedule_slot records sorted by date, grouped by status.
 // Real data from GET /api/schedule-slots. Real data only.
 import { useEffect, useState } from 'react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { CalendarIcon } from '../components/icons'
 import { BASE } from '../lib/billing'
@@ -35,9 +36,29 @@ export default function SchedulingView({ token }: { token: string }) {
   const open = byStatus['OPEN']?.length ?? 0
   const filled = byStatus['FILLED']?.length ?? 0
 
+  const kpis: KPISpec[] = loading
+    ? [
+        { label: 'Open', value: 0, loading: true },
+        { label: 'Filled', value: 0, loading: true },
+        { label: 'Cancelled', value: 0, loading: true },
+      ]
+    : slots.length === 0
+    ? []
+    : [
+        { label: 'Open', value: open },
+        { label: 'Filled', value: filled },
+        { label: 'Cancelled', value: byStatus['CANCELLED']?.length ?? 0, muted: true },
+      ]
+
   return (
-    <div className="view-root">
-      <ViewHead icon={<CalendarIcon size={20} />} title="Scheduling" sub={loading ? undefined : `${open} open · ${filled} filled`} />
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Scheduling']}
+      icon={<CalendarIcon size={20} />}
+      title="Scheduling"
+      subtitle="Technician calendar & field dispatch slots"
+      kpis={kpis.length > 0 ? kpis : undefined}
+    >
       <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
@@ -72,6 +93,6 @@ export default function SchedulingView({ token }: { token: string }) {
           )
         })}
       </div>
-    </div>
+    </PageShell>
   )
 }

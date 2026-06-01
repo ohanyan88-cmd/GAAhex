@@ -7,7 +7,6 @@ import {
 import { loadCustomers } from '../lib/billing'
 import { listUsers, type User } from '../lib/users'
 import UserPicker, { resolveUserDisplay } from '../components/UserPicker'
-import ViewHead from '../components/ViewHead'
 import { Modal } from '../components/Modal'
 import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { toast } from '../components/Toast'
@@ -19,6 +18,8 @@ import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { humanizeStatus } from '../lib/humanize'
+import { PageShell } from '../page-shell'
+import type { KPISpec } from '../page-shell'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -177,47 +178,44 @@ export default function HelpdeskView({
   useEffect(() => { loadQueues() }, [token])
   useEffect(() => { loadData() }, [token, statusFilter, queueFilter, mineOnly, selectedQueue])
 
+  // Derive KPIs from loaded tickets
+  const allTickets = tickets ?? []
+  const kpis: KPISpec[] = tickets !== null ? [
+    { label: 'Open',        value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'OPEN').length },
+    { label: 'Assigned',    value: allTickets.filter(t => t.assigned_agent_id != null).length },
+    { label: 'In Progress', value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'IN_PROGRESS').length },
+    { label: 'Escalated',   value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'ESCALATED').length, warning: true },
+    { label: 'Resolved',    value: allTickets.filter(t => (t.status ?? '').toUpperCase() === 'RESOLVED').length },
+  ] : []
+
   if (unavailable) {
     return (
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Customer Care</span><span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
-        </div>
-        <ViewHead icon={<InboxIcon size={20} />} title={cfg.title} />
+      <PageShell
+        type="operations"
+        breadcrumb={['Tech & NOC', 'Support Tickets']}
+        icon={<InboxIcon size={18} />}
+        title="Support Tickets"
+        subtitle="Helpdesk queue · SLA tracking"
+      >
         <EmptyState
           icon={<InboxIcon size={40} />}
           title="Helpdesk isn't available yet"
           message="Ticket support will appear here once the helpdesk service is enabled."
         />
-      </div>
+      </PageShell>
     )
   }
 
-  const ticketCount = tickets?.length ?? 0
-  const headSub = selectedQueue
-    ? queues.find((q) => q.id === selectedQueue)?.name
-    : ticketCount > 0
-      ? `${ticketCount} ticket${ticketCount !== 1 ? 's' : ''} · queues, SLAs, agent assignment`
-      : 'Queues, SLAs, agent assignment'
-
   return (
-    <div className="view-inner section-page fade">
-      <div className="crumbs">
-        <span>Customer Care</span><span className="sep">/</span>
-        <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
-      </div>
-
-      <ViewHead
-        icon={<InboxIcon size={20} />}
-        title={cfg.title}
-        sub={headSub}
-        actions={canCreateTicket ? (
-          <Button variant="primary" size="sm" leftIcon={Plus} onClick={() => setCreateOpen(true)}>
-            New ticket
-          </Button>
-        ) : null}
-      />
+    <PageShell
+      type="operations"
+      breadcrumb={['Tech & NOC', 'Support Tickets']}
+      icon={<InboxIcon size={18} />}
+      title="Support Tickets"
+      subtitle="Helpdesk queue · SLA tracking"
+      kpis={kpis.length > 0 ? kpis : undefined}
+      primaryAction={canCreateTicket ? { label: 'New ticket', onClick: () => setCreateOpen(true) } : undefined}
+    >
 
       <div className="hd-shell">
         {/* Left rail — queues (carded) */}
@@ -368,7 +366,7 @@ export default function HelpdeskView({
           onDone={() => { setCreateQueueOpen(false); loadQueues() }}
         />
       )}
-    </div>
+    </PageShell>
   )
 }
 
