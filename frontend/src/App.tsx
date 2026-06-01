@@ -411,50 +411,73 @@ export default function App() {
                   <ChevronRightIcon size={14} className="chev" />
                 </button>
                 {isOpen && (
-                  <div className="sb-items">
-                    {sec.items.map((item) => (
-                      <button
-                        key={item.id}
-                        className={'sb-item' + (isItemActive(item) ? ' on' : '')}
-                        onClick={(e) => navItemClick(item, e)}
-                      >
-                        <span className="ic"><item.icon size={15} /></span>
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    {/* Direct leaf items */}
+                    {sec.items.length > 0 && (
+                      <div className="sb-items">
+                        {sec.items.map((item) => (
+                          <button
+                            key={item.id}
+                            className={'sb-item' + (isItemActive(item) ? ' on' : '')}
+                            onClick={(e) => navItemClick(item, e)}
+                          >
+                            <span className="ic"><item.icon size={15} /></span>
+                            <span>{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Nested sub-sections (one level deep). Used by Admin Panel to house
+                        Records (auto-injected from extraEntities) + System + Dev Internals + Studio. */}
+                    {sec.subsections?.map((sub) => {
+                      const isAdminRecords = sec.id === 'admin_panel' && sub.id === 'admin_records'
+                      const items: NavItemDef[] = isAdminRecords
+                        ? extraEntities.map((en) => ({
+                            id: `extra-${en.key}`,
+                            label: en.label_plural,
+                            icon: RowsIcon,
+                            viewType: 'entity',
+                            viewArgs: { slug: en.route_slug },
+                          }))
+                        : sub.items
+                      if (items.length === 0) return null  // hide empty subsections (e.g. Records when no custom entities)
+                      const subKey = `${sec.id}/${sub.id}`
+                      const subOpen = openSections.has(subKey)
+                      return (
+                        <div key={sub.id} className="sb-sec" style={{ paddingLeft: 8 }}>
+                          <button
+                            className={'sb-sec-btn' + (subOpen ? ' open' : '')}
+                            onClick={(e) => toggleSection(subKey, e)}
+                            aria-expanded={subOpen}
+                            style={{ fontSize: 12, opacity: 0.85 }}
+                          >
+                            <sub.icon size={14} />
+                            <span>{sub.label}</span>
+                            <ChevronRightIcon size={12} className="chev" />
+                          </button>
+                          {subOpen && (
+                            <div className="sb-items">
+                              {items.map((item) => (
+                                <button
+                                  key={item.id}
+                                  className={'sb-item' + (isItemActive(item) ? ' on' : '')}
+                                  onClick={(e) => navItemClick(item, e)}
+                                >
+                                  <span className="ic"><item.icon size={15} /></span>
+                                  <span>{item.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </>
                 )}
               </div>
             )
           })}
-
-          {extraEntities.length > 0 && (
-            <div className="sb-sec">
-              <button
-                className={'sb-sec-btn' + (openSections.has('records') ? ' open' : '')}
-                onClick={(e) => toggleSection('records', e)}
-                aria-expanded={openSections.has('records')}
-              >
-                <RowsIcon size={16} />
-                <span>Records</span>
-                <ChevronRightIcon size={14} className="chev" />
-              </button>
-              {openSections.has('records') && (
-                <div className="sb-items">
-                  {extraEntities.map((en) => (
-                    <button
-                      key={en.key}
-                      className={'sb-item' + (view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === en.route_slug ? ' on' : '')}
-                      onClick={() => setView({ type: 'entity', slug: en.route_slug })}
-                    >
-                      <span className="ic"><RowsIcon size={15} /></span>
-                      <span>{en.label_plural}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="sb-foot">

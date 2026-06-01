@@ -4,7 +4,7 @@ import {
   ServerIcon, TruckIcon, PackageIcon, BriefcaseIcon,
   SparkleIcon, MessageIcon, LayersIcon, ShieldIcon,
   GearIcon, ActivityIcon, BuildingIcon, CalendarIcon,
-  EditIcon, BookmarkIcon, MailIcon,
+  EditIcon, BookmarkIcon, MailIcon, RowsIcon,
   CreditCardIcon, ArrowRightIcon, CheckIcon,
 } from '../components/icons'
 
@@ -20,8 +20,13 @@ export type NavSectionDef = {
   id: string
   label: string
   icon: ComponentType<{ size?: number; className?: string }>
+  /** Direct leaf items rendered under this section. */
   items: NavItemDef[]
+  /** Optional nested sub-sections rendered after `items` (one level of nesting supported). */
+  subsections?: NavSectionDef[]
+  /** Restrict visibility to users with `can_configure` (i.e. the existing config.manage permission — our SuperAdmin gate). */
   adminOnly?: boolean
+  /** Pre-expanded on first render. */
   defaultOpen?: boolean
 }
 
@@ -40,6 +45,10 @@ const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavIte
 // ─────────────────────────────────────────────────────────────────────────────
 // Left navigation — locked spec rewritten 2026-06-01 per Gev's directive.
 // Hierarchy is the source of truth. Do not reorder, rename, or split items.
+//
+// Admin grouping (2026-06-01 refinement): System + Dev Internals + Studio +
+// Records are no longer top-level. They live as sub-sections inside ADMIN PANEL,
+// which is gated by user.can_configure (the existing SuperAdmin permission).
 // ─────────────────────────────────────────────────────────────────────────────
 export const NAV_SECTIONS: NavSectionDef[] = [
 
@@ -94,28 +103,38 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('ent-legal-audit',      'Legal & Security Audit',  ShieldIcon,  'entity', { slug: 'contracts' }),
   ]),
 
-  s('system', 'System', GearIcon, [
-    i('sys-users',                'Users',                 UsersIcon,  'entity', { slug: 'users' }),
-    i('sys-roles-permissions',    'Roles & Permissions',   ShieldIcon, 'entity', { slug: 'roles' }),
-    i('sys-settings',             'Settings',              GearIcon,   'settings'),
-    i('sys-integrations',         'Integrations',          LayersIcon, 'webhooks'),
-    i('sys-notifications-config', 'Notifications Config',  MailIcon,   'entity', { slug: 'notification-rules' }),
-  ], { adminOnly: true }),
+  // ADMIN PANEL — SuperAdmin (user.can_configure) only. Houses Records (auto-injected
+  // dynamic entities) + System + Dev Internals + Studio as sub-sections.
+  s('admin_panel', 'Admin Panel', ShieldIcon, [], {
+    adminOnly: true,
+    subsections: [
+      // Records — placeholder. App.tsx injects the dynamic extra-entity items into this
+      // subsection's `items` at render time.
+      s('admin_records', 'Records', RowsIcon, []),
 
-  s('dev_internals', 'Dev Internals', LayersIcon, [
-    i('dev-master-layout', 'Master Layout Demo', LayersIcon, 'master-demo'),
-  ], { adminOnly: true }),
+      s('system', 'System', GearIcon, [
+        i('sys-users',                'Users',                 UsersIcon,  'entity', { slug: 'users' }),
+        i('sys-roles-permissions',    'Roles & Permissions',   ShieldIcon, 'entity', { slug: 'roles' }),
+        i('sys-settings',             'Settings',              GearIcon,   'settings'),
+        i('sys-integrations',         'Integrations',          LayersIcon, 'webhooks'),
+        i('sys-notifications-config', 'Notifications Config',  MailIcon,   'entity', { slug: 'notification-rules' }),
+      ]),
 
-  s('studio', 'Studio', SparkleIcon, [
-    i('std-experience',     'Experience',     SparkleIcon, 'studio'),
-    i('std-data',           'Data',           LayersIcon,  'studio'),
-    i('std-logic',          'Logic',          EditIcon,    'studio'),
-    i('std-security',       'Security',       ShieldIcon,  'studio'),
-    i('std-intelligence',   'Intelligence',   SparkleIcon, 'studio'),
-    i('std-quality',        'Quality',        CheckIcon,   'studio'),
-    i('std-release',        'Release',        PackageIcon, 'studio'),
-    i('std-governance',     'Governance',     ShieldIcon,  'studio'),
-    i('std-system-control', 'System Control', GearIcon,    'studio'),
-  ], { adminOnly: true }),
+      s('dev_internals', 'Dev Internals', LayersIcon, [
+        i('dev-master-layout', 'Master Layout Demo', LayersIcon, 'master-demo'),
+      ]),
+
+      s('studio', 'Studio', SparkleIcon, [
+        i('std-experience',     'Experience',     SparkleIcon, 'studio'),
+        i('std-data',           'Data',           LayersIcon,  'studio'),
+        i('std-logic',          'Logic',          EditIcon,    'studio'),
+        i('std-security',       'Security',       ShieldIcon,  'studio'),
+        i('std-intelligence',   'Intelligence',   SparkleIcon, 'studio'),
+        i('std-quality',        'Quality',        CheckIcon,   'studio'),
+        i('std-release',        'Release',        PackageIcon, 'studio'),
+        i('std-governance',     'Governance',     ShieldIcon,  'studio'),
+        i('std-system-control', 'System Control', GearIcon,    'studio'),
+      ]),
+    ],
+  }),
 ]
-
