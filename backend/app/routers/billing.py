@@ -12,6 +12,7 @@ records.router in main.py. See the wiring report.
 import calendar
 import uuid
 from datetime import date, datetime, time, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
@@ -23,6 +24,7 @@ from ..models import User, Record
 from ..models.billing import Subscription, Invoice, InvoiceLine, Payment
 from ..models.job import JobRun
 from ..models.product import Product
+from ..models.product_version import ProductVersion
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
 from ..kernel import (
@@ -31,6 +33,7 @@ from ..kernel import (
     assert_approval_or_raise, ApprovalRequired,
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
+from ..services.product_versions import current_version_for, mint_new_version
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
@@ -40,7 +43,18 @@ router = APIRouter(prefix="/api", tags=["billing"])
 _CYCLES = {"monthly", "yearly"}
 _METHODS = {"cash", "card", "transfer"}
 _LINE_KINDS = {"charge", "discount", "tax"}
+_PRORATION_MODES = {"daily", "secondly", "none"}
 DEFAULT_DUE_DAYS = 14
+
+
+def _parse_decimal_opt(value, field: str) -> Decimal | None:
+    """Optional Decimal parser for Phase A.1 product pricing — None passes through; bad input → 422."""
+    if value is None:
+        return None
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise HTTPException(422, f"'{field}' must be a decimal number")
 
 
 def _signed_line_total(kind: str, line_total: int) -> int:
@@ -152,6 +166,11 @@ def _line(l: InvoiceLine) -> dict:
 def _product(p: Product) -> dict:
     return {"id": str(p.id), "key": p.key, "name": p.name, "description": p.description,
             "default_amount": p.default_amount, "cycle": p.cycle, "active": p.active,
+            # Phase A.1 — Decimal MRC/NRC + proration mode. Serialize Decimals as strings to
+            # preserve precision across the JSON boundary; clients can re-parse with Decimal().
+            "recurring_price": str(p.recurring_price) if p.recurring_price is not None else None,
+            "one_time_price": str(p.one_time_price) if p.one_time_price is not None else None,
+            "proration_mode": p.proration_mode,
             "created_at": _iso(p.created_at)}
 
 
@@ -1230,9 +1249,17 @@ async def create_product(payload: dict, user: User = Depends(current_user), s: A
     if clash:
         raise HTTPException(409, f"A product with key '{key}' already exists")
 
+    # Phase A.1 — optional Decimal pricing + proration mode. Parsed defensively (None passes through).
+    rp = _parse_decimal_opt(payload.get("recurring_price"), "recurring_price")
+    ot = _parse_decimal_opt(payload.get("one_time_price"), "one_time_price")
+    pm = payload.get("proration_mode", "daily")
+    if pm not in _PRORATION_MODES:
+        raise HTTPException(422, f"proration_mode must be one of {sorted(_PRORATION_MODES)}")
+
     prod = Product(
         tenant_id=user.tenant_id, key=key, name=name, description=payload.get("description"),
         default_amount=_money(payload.get("default_amount", 0), "default_amount"), cycle=cycle,
+        recurring_price=rp, one_time_price=ot, proration_mode=pm,
         active=bool(payload.get("active", True)),
     )
     s.add(prod)
@@ -1271,6 +1298,15 @@ async def update_product(product_id: uuid.UUID, payload: dict, user: User = Depe
         if payload["cycle"] not in _CYCLES:
             raise HTTPException(422, f"cycle must be one of {sorted(_CYCLES)}")
         prod.cycle = payload["cycle"]
+    # Phase A.1 — Decimal pricing + proration mode are PATCH-mutable.
+    if "recurring_price" in payload:
+        prod.recurring_price = _parse_decimal_opt(payload["recurring_price"], "recurring_price")
+    if "one_time_price" in payload:
+        prod.one_time_price = _parse_decimal_opt(payload["one_time_price"], "one_time_price")
+    if "proration_mode" in payload:
+        if payload["proration_mode"] not in _PRORATION_MODES:
+            raise HTTPException(422, f"proration_mode must be one of {sorted(_PRORATION_MODES)}")
+        prod.proration_mode = payload["proration_mode"]
     if "active" in payload:
         prod.active = bool(payload["active"])
 
@@ -1301,6 +1337,80 @@ async def retire_product(product_id: uuid.UUID, user: User = Depends(current_use
     await s.commit()
     await s.refresh(prod)
     return _product(prod)
+
+
+# ==========================================================================================
+# Phase A.1 — Product versioning. Mint a new version when pricing/spec changes; list history.
+# Reads open to any tenant user; writes require `config.manage` (admin).
+# ==========================================================================================
+
+def _serialize_version(v: ProductVersion) -> dict:
+    return {
+        "id": str(v.id),
+        "product_id": str(v.product_id),
+        "version_no": v.version_no,
+        "effective_from": _iso(v.effective_from),
+        "effective_to": _iso(v.effective_to),
+        "recurring_price": str(v.recurring_price) if v.recurring_price is not None else None,
+        "one_time_price": str(v.one_time_price) if v.one_time_price is not None else None,
+        "cycle": v.cycle,
+        "spec_json": dict(v.spec_json or {}),
+        "superseded_by_id": str(v.superseded_by_id) if v.superseded_by_id else None,
+        "created_at": _iso(v.created_at),
+    }
+
+
+@router.get("/products/{product_id}/versions")
+async def list_product_versions(
+    product_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """List every minted version of a product, ordered by ``version_no`` ascending."""
+    await _get_product(s, user, product_id)  # 404 + tenant check
+    rows = (await s.execute(
+        select(ProductVersion)
+        .where(ProductVersion.product_id == product_id)
+        .order_by(ProductVersion.version_no)
+    )).scalars().all()
+    return [_serialize_version(v) for v in rows]
+
+
+@router.post("/products/{product_id}/versions", status_code=201)
+async def create_product_version(
+    product_id: uuid.UUID,
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Mint a new ProductVersion. Closes the prior open version's ``effective_to`` and chains it."""
+    grants = await load_grants(s, user)
+    if not can(grants, "config", "manage"):
+        _deny("config.manage")
+    prod = await _get_product(s, user, product_id)
+
+    attrs: dict = {
+        # If caller didn't supply, snapshot the product's CURRENT values — that's the typical
+        # "mint a version after editing the product" flow.
+        "recurring_price": payload.get("recurring_price", prod.recurring_price),
+        "one_time_price": payload.get("one_time_price", prod.one_time_price),
+        "cycle": payload.get("cycle", prod.cycle),
+        "spec_json": payload.get("spec_json") or {
+            "key": prod.key,
+            "name": prod.name,
+            "description": prod.description,
+            "default_amount": prod.default_amount,
+            "cycle": prod.cycle,
+            "recurring_price": str(prod.recurring_price) if prod.recurring_price is not None else None,
+            "one_time_price": str(prod.one_time_price) if prod.one_time_price is not None else None,
+            "proration_mode": prod.proration_mode,
+            "active": bool(prod.active),
+        },
+    }
+    v = await mint_new_version(s, product_id, attrs, actor=user.id)
+    await s.commit()
+    await s.refresh(v)
+    return _serialize_version(v)
 
 
 # ==========================================================================================

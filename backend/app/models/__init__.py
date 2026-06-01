@@ -46,6 +46,8 @@ from .page_field_value import PageFieldValue
 from .studio_page import StudioPage, StudioPageVersion
 from .feature_flag import FeatureFlag
 from .page_binding import PageBinding
+from .product_version import ProductVersion
+from .tariff import TariffPlan
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -84,4 +86,6 @@ __all__ = [
     "StudioPageVersion",
     "FeatureFlag",
     "PageBinding",
+    "ProductVersion",
+    "TariffPlan",
 ]

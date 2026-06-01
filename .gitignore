@@ -28,9 +28,11 @@ openapi_temp.json
 r_*.json
 verify_*_output.txt
 
-# Session debris — one-off scripts
+# Session debris — one-off scripts (specific names, NOT wildcards — a previous
+# `test_p*.py` pattern silently swallowed test_proration.py + test_product_versioning.py).
 gen_report.py
 gen_rpt.py
-test_p*.py
+test_p45.py
+test_p67.py
 write_report.py
 write_rpt*.py
