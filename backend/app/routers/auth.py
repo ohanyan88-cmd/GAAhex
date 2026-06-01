@@ -32,6 +32,11 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     refresh_token: str | None = None        # additive — existing access_token/token_type unchanged
+    # Set on /auth/login when the seeded default admin (admin@demo.isp) still has
+    # password_changed_at IS NULL. The frontend uses this flag to route to a forced change-password
+    # screen; the access token is still issued so the client can call /api/me/password with it.
+    # Default False everywhere else (refresh, non-seeded users) — keeps the response shape stable.
+    must_change_password: bool = False
 
 
 class RefreshIn(BaseModel):
@@ -83,8 +88,12 @@ async def login(body: LoginIn, s: AsyncSession = Depends(get_owner_session)):
     # Single-tenant mode: tenant binding comes from config.the_tenant_id_async(), not the JWT.
     token = create_access_token(str(user.id), {"email": user.email})
     refresh = await _issue_refresh_token(s, user)
+    # Forced first-login change for the seeded default admin only: if its password_changed_at is
+    # still NULL it's still on the seed `admin123` password. The access token IS issued so the
+    # client can call /api/me/password with it; the flag just routes the UI to the change screen.
+    must_change = user.email == "admin@demo.isp" and user.password_changed_at is None
     await s.commit()
-    return TokenOut(access_token=token, refresh_token=refresh)
+    return TokenOut(access_token=token, refresh_token=refresh, must_change_password=must_change)
 
 
 @router.post("/refresh", response_model=TokenOut)

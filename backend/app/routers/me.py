@@ -14,6 +14,7 @@ Fixed paths under /api ("/api/me"), so this router is registered BEFORE records.
 """
 import base64
 import binascii
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -91,5 +92,8 @@ async def change_password(
 
     row = await _own_row(s, user)
     row.password_hash = hash_password(body.new_password)
+    # Stamp the change so /auth/login stops returning must_change_password=true for this user
+    # (the forced-first-login flow for the seeded default admin keys off NULL here).
+    row.password_changed_at = datetime.now(timezone.utc)
     await s.commit()
     return {"ok": True}

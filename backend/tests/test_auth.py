@@ -123,3 +123,40 @@ def test_password_policy_accepts_strong():
     # >= min length, has a letter and a digit → no exception
     validate_password_strength("abcd1234")
     validate_password_strength("Str0ngEnough")
+
+
+# ---- forced first-login password change (seeded admin only) ----
+
+async def test_seeded_admin_must_change_password_on_first_login(client):
+    """The seeded default admin has password_changed_at=NULL → /auth/login must return
+    must_change_password=true. After /api/me/password succeeds, the next login must no longer flag
+    it. We change the password back to the seed value at the end so the rest of the suite (which
+    logs in as admin@demo.isp/admin123 in test_auth.py and conftest.admin) continues to work."""
+    new_password = "Ch@nged-Pw-1"
+    # 1. seeded admin — must be flagged on login.
+    first = await _login(client)
+    assert first.get("must_change_password") is True
+    # 2. change the password using the access token from step 1.
+    r = await client.post(
+        "/api/me/password",
+        headers=_bearer(first["access_token"]),
+        json={"current_password": "admin123", "new_password": new_password},
+    )
+    assert r.status_code == 200, r.text
+    try:
+        # 3. login with the NEW password — flag must NOT be true (absent or false both ok).
+        second = await _login(client, password=new_password)
+        assert not second.get("must_change_password")
+    finally:
+        # Restore the seed password so the rest of the session's admin logins keep working.
+        # We deliberately log in fresh to get a usable token even if step 3 asserted.
+        restore_login = await client.post(
+            "/auth/login", json={"email": "admin@demo.isp", "password": new_password}
+        )
+        assert restore_login.status_code == 200, restore_login.text
+        revert = await client.post(
+            "/api/me/password",
+            headers=_bearer(restore_login.json()["access_token"]),
+            json={"current_password": new_password, "new_password": "admin123"},
+        )
+        assert revert.status_code == 200, revert.text

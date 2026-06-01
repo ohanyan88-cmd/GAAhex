@@ -34,3 +34,7 @@ class User(Base):
     # backfill — NULL = no department membership (the kernel treats it accordingly).
     department: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Last time this user's password was changed. NULL = seeded/never-changed. The login handler
+    # uses NULL + a known seeded email (admin@demo.isp) to force a first-login password change.
+    # /api/me/password stamps this on successful change.
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
