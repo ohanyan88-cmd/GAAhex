@@ -10,6 +10,7 @@ import ViewHead from '../components/ViewHead'
 import {
   ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
   ClockIcon, CreditCardIcon, GearIcon,
+  ServerIcon, FolderIcon, WarningIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
@@ -68,6 +69,18 @@ type ConsolidatedBalance = {
   consolidated_credit_limit: string
   subtree_size: number
 }
+
+// Customer 360 inline tabs — five related-record slices the operator can drill through
+// without leaving the customer page. Tabs are lazy-loaded on first activation and cached.
+type TabKey = 'accounts' | 'contacts' | 'sites' | 'contracts' | 'slas'
+const TAB_ORDER: TabKey[] = ['accounts', 'contacts', 'sites', 'contracts', 'slas']
+
+// Contact / Site / Contract are entity records: backend response is a plain list of
+// { id, status, owner_node_id, data: {...} } where ref-fields land in `data`.
+type EntityRow = { id: string; status?: string | null; owner_node_id?: string | null; data?: Record<string, any>; [k: string]: any }
+
+// Helpdesk ticket shape we render in the SLAs tab (subset of helpdesk.ts `Ticket`).
+type SlaRow = { id: string; subject?: string; status?: string | null; priority?: string | null; customer_id?: string | null; sla_due_at?: string | null; sla_breached?: boolean | null; created_at?: string | null }
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -157,6 +170,19 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   const [balanceFatal, setBalanceFatal] = useState(false)
   const [showConsolidated, setShowConsolidated] = useState(false)
 
+  // Customer 360 inline tabs (Accounts · Contacts · Sites · Contracts · SLAs).
+  // Each tab fetches its own slice lazily on first activation and caches the result.
+  // tabData[tab] === undefined → not loaded yet; null → unavailable (403/404/error); array → real data.
+  // tabFatal[tab] carries a non-empty string when the endpoint is denied / missing so we
+  // render the right muted state without losing the count badge for tabs that did load.
+  const [tab, setTab] = useState<TabKey>('accounts')
+  const [tabData, setTabData] = useState<Record<TabKey, any[] | null | undefined>>({
+    accounts: undefined, contacts: undefined, sites: undefined, contracts: undefined, slas: undefined,
+  })
+  const [tabFatal, setTabFatal] = useState<Record<TabKey, '' | 'denied' | 'notfound' | 'error'>>({
+    accounts: '', contacts: '', sites: '', contracts: '', slas: '',
+  })
+
   async function loadAccountsAndBalances() {
     setAccounts(undefined); setBalances({}); setSelectedAccountId(null)
     setConsolidated(null); setBalanceFatal(false); setShowConsolidated(false)
@@ -190,6 +216,66 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     }
   }
 
+  // Lazy-load a single tab's data. Idempotent: if already loaded or in-flight, no-op.
+  // Each tab maps to a best-effort endpoint; we keep the failure modes uniform so the
+  // tab body can render the right muted state (denied / not-found / empty / data).
+  async function loadTab(key: TabKey) {
+    if (tabData[key] !== undefined) return  // already loaded (or explicitly null)
+    // Mark in-flight (still undefined → keep skeleton; switch to a sentinel via a no-op set)
+    // We use a closure-local optimistic guard rather than another state — concurrent
+    // clicks on the same tab are harmless because bget is cheap and idempotent.
+    const setOne = (rows: any[] | null, why: '' | 'denied' | 'notfound' | 'error' = '') => {
+      setTabData((p) => ({ ...p, [key]: rows }))
+      setTabFatal((p) => ({ ...p, [key]: why }))
+    }
+    if (key === 'accounts') {
+      // Mirror loadAccountsAndBalances: same endpoint shape, but as a flat list for the table.
+      const r = await bget<Account[]>(token, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
+      if (r.status === 403) return setOne(null, 'denied')
+      if (r.status === 404) return setOne(null, 'notfound')
+      if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
+      setOne(r.data)
+      return
+    }
+    if (key === 'contacts' || key === 'sites' || key === 'contracts') {
+      // Entity endpoints don't accept a `customer` query — they accept a GXL `filter` expression.
+      // We try filter-first; if that 4xxs we fall back to fetch-all + client-side filter so the
+      // tab still works on backends that haven't grown the filter clause we ask for.
+      const slug = key  // /api/contacts, /api/sites, /api/contracts
+      const filterExpr = encodeURIComponent(`customer == "${customerId}"`)
+      let r = await bget<EntityRow[]>(token, `/api/${slug}?filter=${filterExpr}&limit=500`)
+      if (r.status === 403) return setOne(null, 'denied')
+      if (r.status === 404) return setOne(null, 'notfound')
+      if (!r.ok || !Array.isArray(r.data)) {
+        // Fall back to fetch-all and client-filter (treats a busted filter as "fetch everything").
+        r = await bget<EntityRow[]>(token, `/api/${slug}?limit=500`)
+        if (r.status === 403) return setOne(null, 'denied')
+        if (r.status === 404) return setOne(null, 'notfound')
+        if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
+      }
+      // Always client-filter as belt-and-braces; the entity `customer` ref-field stores the
+      // customer record id as a string in `data.customer`. If the endpoint already filtered
+      // server-side, this is a no-op pass-through.
+      const rows = (r.data ?? []).filter((row) => {
+        const d = row.data ?? {}
+        return d.customer === customerId || d.customer_id === customerId
+      })
+      setOne(rows)
+      return
+    }
+    if (key === 'slas') {
+      // Helpdesk doesn't expose a customer filter — fetch and client-filter. Cap to keep this
+      // bounded; the SLAs tab is meant to highlight problem tickets, not be the full list.
+      const r = await bget<SlaRow[]>(token, `/api/helpdesk/tickets?limit=200`)
+      if (r.status === 403) return setOne(null, 'denied')
+      if (r.status === 404) return setOne(null, 'notfound')
+      if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
+      const rows = r.data.filter((t) => t.customer_id === customerId)
+      setOne(rows)
+      return
+    }
+  }
+
   async function load() {
     setError(''); setFatal(null); setData(null)
     const res = await bget<C360>(token, `/api/customers/${customerId}/360`)
@@ -211,6 +297,17 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   // Financial summary lives off a separate endpoint family — fetch in parallel with the 360 load
   // so it doesn't block the rest of the page. Refreshes when the customer id changes.
   useEffect(() => { loadAccountsAndBalances() }, [token, customerId])
+  // Tabs: reset the cache when the customer changes, then eager-load the default tab so the
+  // operator sees data on first paint (the other four still wait for their first click).
+  useEffect(() => {
+    setTab('accounts')
+    setTabData({ accounts: undefined, contacts: undefined, sites: undefined, contracts: undefined, slas: undefined })
+    setTabFatal({ accounts: '', contacts: '', sites: '', contracts: '', slas: '' })
+    loadTab('accounts')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, customerId])
+  // Whenever the active tab changes, ensure its data is loaded. No-op if cached.
+  useEffect(() => { loadTab(tab) /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab])
 
   async function issue(id: string) {
     try {
@@ -358,6 +455,47 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               balanceFatal={balanceFatal}
               t={t}
             />
+
+            {/* Customer 360 inline tabs — Accounts · Contacts · Sites · Contracts · SLAs.
+                Each tab lazy-loads on first activation; counts come from the loaded data.
+                Tabs that haven't been visited yet show a blank badge until clicked. */}
+            <div
+              role="tablist"
+              aria-label={t('cust.relatedTabs', 'Related records')}
+              style={{
+                display: 'flex',
+                gap: 4,
+                borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+                marginTop: 22,
+                marginBottom: 16,
+                paddingBottom: 0,
+                overflowX: 'auto',
+              }}
+            >
+              {TAB_ORDER.map((k) => {
+                const rows = tabData[k]
+                const count = Array.isArray(rows) ? rows.length : null
+                return (
+                  <CustomerTabButton
+                    key={k}
+                    active={tab === k}
+                    label={tabLabel(k, t)}
+                    count={count}
+                    icon={tabIcon(k)}
+                    onClick={() => setTab(k)}
+                  />
+                )
+              })}
+            </div>
+
+            <div role="tabpanel" aria-label={tabLabel(tab, t)} style={{ marginBottom: 22 }}>
+              <CustomerTabBody
+                tab={tab}
+                rows={tabData[tab]}
+                fatal={tabFatal[tab]}
+                t={t}
+              />
+            </div>
 
             {/* Services */}
             <div className="section-head">
@@ -705,6 +843,309 @@ function FinancialSummaryCard({
           : updatedAt
             ? <>{t('cust.lastComputed', 'Last computed')} · {relTime(updatedAt)}</>
             : t('cust.neverComputed', 'Never computed')}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customer 360 inline tabs — labels, icons, button, and body renderers.
+// Styling matches PipelineView.tsx (inline button row, bottom border on active).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function tabLabel(k: TabKey, t: (k: string, fb?: string) => string): string {
+  switch (k) {
+    case 'accounts':  return t('cust.tab.accounts', 'Accounts')
+    case 'contacts':  return t('cust.tab.contacts', 'Contacts')
+    case 'sites':     return t('cust.tab.sites', 'Sites')
+    case 'contracts': return t('cust.tab.contracts', 'Contracts')
+    case 'slas':      return t('cust.tab.slas', 'SLAs')
+  }
+}
+
+function tabIcon(k: TabKey): React.ReactNode {
+  switch (k) {
+    case 'accounts':  return <CreditCardIcon size={13} />
+    case 'contacts':  return <PhoneIcon size={13} />
+    case 'sites':     return <ServerIcon size={13} />
+    case 'contracts': return <FolderIcon size={13} />
+    case 'slas':      return <WarningIcon size={13} />
+  }
+}
+
+// Inline tab button — bottom-border highlight on active, count badge on the right.
+// `count === null` (tab not yet loaded) renders no badge so we don't show "· 0" prematurely.
+function CustomerTabButton({ active, label, count, icon, onClick }: {
+  active: boolean
+  label: string
+  count: number | null
+  icon: React.ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '10px 14px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
+        fontSize: 13,
+        fontWeight: active ? 600 : 500,
+        cursor: 'pointer',
+        marginBottom: -1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{icon}{label}</span>
+      {count !== null && (
+        <span
+          aria-label={`${count} ${label}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 20,
+            height: 18,
+            padding: '0 6px',
+            borderRadius: 9,
+            fontSize: 11,
+            fontWeight: 600,
+            background: active ? 'var(--gx-primary, #2563eb)' : 'var(--gx-bg-2, #f1f5f9)',
+            color: active ? '#fff' : 'var(--gx-text-3, #64748b)',
+          }}
+        >
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// Switchboard for the active tab's body. Loading → skeleton; fatal → muted state; data → table.
+function CustomerTabBody({ tab, rows, fatal, t }: {
+  tab: TabKey
+  rows: any[] | null | undefined
+  fatal: '' | 'denied' | 'notfound' | 'error'
+  t: (k: string, fb?: string) => string
+}) {
+  // Loading skeleton — 4 shimmering rows so the tab visually communicates "data incoming".
+  if (rows === undefined) {
+    return (
+      <div className="card" style={{ padding: 14 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 2 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  // Fatal states — match the rest of the page's muted-paragraph idiom rather than full banner.
+  if (rows === null) {
+    if (fatal === 'denied')   return <p className="muted">{t('cust.tabDenied', 'Permission denied for this tab.')}</p>
+    if (fatal === 'notfound') return <p className="muted">{t('cust.tabNotFound', 'Endpoint not yet available — coming soon.')}</p>
+    return <p className="muted">{t('cust.tabError', 'Could not load this tab.')}</p>
+  }
+  // Dispatch per-tab renderer. Each is a small inline component to keep the file local + cohesive.
+  if (tab === 'accounts')  return <AccountsTabBody rows={rows} t={t} />
+  if (tab === 'contacts')  return <ContactsTabBody rows={rows} t={t} />
+  if (tab === 'sites')     return <SitesTabBody rows={rows} t={t} />
+  if (tab === 'contracts') return <ContractsTabBody rows={rows} t={t} />
+  return <SlasTabBody rows={rows} t={t} />
+}
+
+// Accounts tab — short id, type, currency, cycle, status (no per-row balance to keep this fast;
+// the Financial Summary card above already shows balance with the per-account picker).
+function AccountsTabBody({ rows, t }: { rows: any[]; t: (k: string, fb?: string) => string }) {
+  if (rows.length === 0) {
+    return <p className="muted">{t('cust.tab.accountsEmpty', 'No billing accounts linked to this customer.')}</p>
+  }
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">{t('cust.tab.acctId', 'Account')}</th>
+            <th scope="col">{t('cust.tab.acctType', 'Type')}</th>
+            <th scope="col">{t('cust.tab.acctCurrency', 'Currency')}</th>
+            <th scope="col">{t('cust.tab.acctCycle', 'Billing cycle')}</th>
+            <th scope="col">{t('common.status', 'Status')}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((a) => (
+              <tr key={a.id}>
+                <td><span className="mono">{(a.id ?? '').slice(0, 8)}</span></td>
+                <td>{a.type ?? '—'}</td>
+                <td>{a.currency ?? '—'}</td>
+                <td>{a.billing_cycle ?? '—'}</td>
+                <td>{a.status ? <StatusPill variant={mapCustomerStatus(a.status)} label={a.status} size="sm" /> : <span>—</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Contacts tab — entity records with data.{name,role|title,email,phone,primary}.
+function ContactsTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: string) => string }) {
+  if (rows.length === 0) {
+    return <p className="muted">{t('cust.tab.contactsEmpty', 'No contacts on file.')}</p>
+  }
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">{t('cust.tab.contactName', 'Name')}</th>
+            <th scope="col">{t('cust.tab.contactRole', 'Role')}</th>
+            <th scope="col">{t('cust.tab.contactEmail', 'Email')}</th>
+            <th scope="col">{t('cust.tab.contactPhone', 'Phone')}</th>
+            <th scope="col">{t('cust.tab.contactPrimary', 'Primary?')}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const d = r.data ?? {}
+              return (
+                <tr key={r.id}>
+                  <td>{d.name ?? <span className="mono">{(r.id ?? '').slice(0, 8)}</span>}</td>
+                  <td>{d.role ?? d.title ?? '—'}</td>
+                  <td>{d.email
+                    ? <a href={`mailto:${d.email}`} style={{ color: 'var(--gx-link)' }}>{d.email}</a>
+                    : '—'}</td>
+                  <td>{d.phone
+                    ? <a href={`tel:${d.phone}`} style={{ color: 'var(--gx-link)' }}>{d.phone}</a>
+                    : '—'}</td>
+                  <td>{d.primary === true || d.is_primary === true
+                    ? <StatusPill variant="active" label={t('common.yes', 'Yes')} size="sm" />
+                    : <span className="muted">—</span>}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Sites tab — entity records with data.{name,address,activated_at}; site status lives on the row.
+function SitesTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: string) => string }) {
+  if (rows.length === 0) {
+    return <p className="muted">{t('cust.tab.sitesEmpty', 'No service sites linked.')}</p>
+  }
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">{t('cust.tab.siteName', 'Name')}</th>
+            <th scope="col">{t('cust.tab.siteAddress', 'Address')}</th>
+            <th scope="col">{t('common.status', 'Status')}</th>
+            <th scope="col">{t('cust.tab.siteActivated', 'Activated')}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const d = r.data ?? {}
+              return (
+                <tr key={r.id}>
+                  <td>{d.name ?? <span className="mono">{(r.id ?? '').slice(0, 8)}</span>}</td>
+                  <td>{d.address ?? '—'}</td>
+                  <td>{r.status ? <StatusPill variant={mapCustomerStatus(r.status)} label={r.status} size="sm" /> : <span>—</span>}</td>
+                  <td><span className="mono">{fmtDate(d.activated_at ?? d.installed_at ?? null)}</span></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Contracts tab — entity records with data.{contract_number,start_date,end_date,tariff_plan}; status on row.
+function ContractsTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: string) => string }) {
+  if (rows.length === 0) {
+    return <p className="muted">{t('cust.tab.contractsEmpty', 'No contracts on file.')}</p>
+  }
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">{t('cust.tab.contractNum', 'Contract #')}</th>
+            <th scope="col">{t('common.status', 'Status')}</th>
+            <th scope="col">{t('cust.tab.contractFrom', 'Effective from')}</th>
+            <th scope="col">{t('cust.tab.contractTo', 'Expires at')}</th>
+            <th scope="col">{t('cust.tab.contractPlan', 'Tariff plan')}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const d = r.data ?? {}
+              return (
+                <tr key={r.id}>
+                  <td><span className="mono">{d.contract_number ?? (r.id ?? '').slice(0, 8)}</span></td>
+                  <td>{r.status ? <StatusPill variant={mapCustomerStatus(r.status)} label={r.status} size="sm" /> : <span>—</span>}</td>
+                  <td><span className="mono">{fmtDate(d.start_date ?? d.effective_from ?? null)}</span></td>
+                  <td><span className="mono">{fmtDate(d.end_date ?? d.expires_at ?? null)}</span></td>
+                  <td>{d.tariff_plan ?? d.plan ?? '—'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// SLAs tab — helpdesk tickets for this customer that carry SLA fields. Breach gets a danger pill;
+// due-time renders as both an absolute timestamp and a muted relative hint.
+function SlasTabBody({ rows, t }: { rows: SlaRow[]; t: (k: string, fb?: string) => string }) {
+  if (rows.length === 0) {
+    return <p className="muted">{t('cust.tab.slasEmpty', 'No SLA-tracked tickets for this customer.')}</p>
+  }
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">{t('cust.tab.slaTicket', 'Ticket')}</th>
+            <th scope="col">{t('cust.tab.slaPriority', 'Priority')}</th>
+            <th scope="col">{t('common.status', 'Status')}</th>
+            <th scope="col">{t('cust.tab.slaDue', 'SLA due')}</th>
+            <th scope="col">{t('cust.tab.slaBreach', 'Breach')}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((tk) => (
+              <tr key={tk.id}>
+                <td>{tk.subject ?? <span className="mono">{(tk.id ?? '').slice(0, 8)}</span>}</td>
+                <td>{tk.priority ?? '—'}</td>
+                <td>{tk.status ? <StatusPill variant={mapCustomerStatus(tk.status)} label={tk.status} size="sm" /> : <span>—</span>}</td>
+                <td>
+                  <span className="mono">{fmtDate(tk.sla_due_at)}</span>
+                  {tk.sla_due_at && (
+                    <span className="muted" style={{ marginLeft: 6, fontSize: 11 }}>{relTime(tk.sla_due_at)}</span>
+                  )}
+                </td>
+                <td>{tk.sla_breached
+                  ? <StatusPill variant="critical" label={t('cust.tab.slaBreached', 'Breached')} size="sm" />
+                  : <span className="muted">—</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

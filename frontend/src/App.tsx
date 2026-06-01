@@ -40,6 +40,7 @@ import SettingsView from './views/SettingsView'
 import OrgView from './views/OrgView'
 import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
+import CollectionsView from './views/CollectionsView'
 import HomeView from './views/HomeView'
 import MasterLayoutDemoView from './views/MasterLayoutDemoView'
 import ComingSoonView from './views/ComingSoonView'
@@ -101,6 +102,7 @@ type View =
   | { type: 'gateway' }
   | { type: 'orders' }
   | { type: 'revenue-assurance' }
+  | { type: 'collections' }
   | { type: 'global-search' }
   | { type: 'recent-items' }
   | { type: 'team-workspace' }
@@ -655,6 +657,8 @@ export default function App() {
                 ? <OrdersView token={token} />
               : view.type === 'revenue-assurance'
                 ? <RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
+              : view.type === 'collections'
+                ? <CollectionsView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'studio'
                 ? <StudioShell
                     token={token}

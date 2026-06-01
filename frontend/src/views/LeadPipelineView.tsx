@@ -14,6 +14,7 @@ import ViewHead from '../components/ViewHead'
 import FieldInput, { type Field } from '../components/FieldInput'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { KPITile } from '../primitives'
+import { LEAD_SOURCES } from '../lib/lifecycle'
 
 // Lead Pipeline — a kanban over the CONFIG-driven `lead` entity, mirroring the DESIGN prototype:
 // live /api/leads data, token theming, SVG icons, metadata-driven lifecycle
@@ -227,19 +228,43 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
       {/* New lead inline form — config-driven from Studio entity fields */}
       {showNew && def && (
         <form className="rec-form" onSubmit={createLead} style={{ marginBottom: 14 }}>
-          {def.fields.filter((f) => f.type !== 'status').map((f) => (
-            <FieldInput
-              key={f.key}
-              field={f}
-              token={token}
-              mode="creating"
-              currentStatus={null}
-              errorField={null}
-              errorMsg=""
-              value={form[f.key]}
-              onChange={(v) => setForm({ ...form, [f.key]: v })}
-            />
-          ))}
+          {def.fields.filter((f) => f.type !== 'status').map((f) => {
+            // TODO: Backend entity_def for lead.source still lists historical options.
+            // We override here (frontend-only) to present the 6 approved business sources
+            // (Shop/Website/Referral/D2D/Telesales/B2B). Legacy stored values render as-is.
+            // A future migration could promote LEAD_SOURCES to per-tenant config (see FACE/config split).
+            if (f.key.toLowerCase() === 'source') {
+              return (
+                <label key={f.key} className="field">
+                  <span>{f.label ?? 'Source'}{f.required && ' *'}</span>
+                  <select
+                    className="inp inp-md"
+                    value={form[f.key] ?? ''}
+                    required={!!f.required}
+                    onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  >
+                    <option value="">Select source…</option>
+                    {LEAD_SOURCES.map((src) => (
+                      <option key={src} value={src}>{src}</option>
+                    ))}
+                  </select>
+                </label>
+              )
+            }
+            return (
+              <FieldInput
+                key={f.key}
+                field={f}
+                token={token}
+                mode="creating"
+                currentStatus={null}
+                errorField={null}
+                errorMsg=""
+                value={form[f.key]}
+                onChange={(v) => setForm({ ...form, [f.key]: v })}
+              />
+            )
+          })}
           <div className="rec-form-actions">
             <span className="spacer" />
             <button className="btn btn-ghost btn-sm" type="button" onClick={() => setShowNew(false)}>

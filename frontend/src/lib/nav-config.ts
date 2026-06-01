@@ -75,7 +75,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('br-billing-accounts',    'Billing Accounts',    BuildingIcon,   'accounts'),
     i('br-invoices',            'Invoices',            ReceiptIcon,    'invoices'),
     i('br-payments',            'Payments',            CreditCardIcon, 'payments'),
-    i('br-collections',         'Collections',         InboxIcon,      'coming-soon', { id: 'collections', title: 'Collections', parent: 'Billing & Revenue' }),
+    i('br-collections',         'Collections',         InboxIcon,      'collections'),
     i('br-revenue-assurance',   'Revenue Assurance',   ShieldIcon,     'revenue-assurance'),
   ]),
 
