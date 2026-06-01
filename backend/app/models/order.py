@@ -67,6 +67,27 @@ class Order(Base):
     deposit_payment_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("payment.id"), nullable=True, index=True,
     )
+    # NOC Phase A — Stages 9-11 install-board sub-states. Per the locked architecture decision,
+    # the order's top-level ``status`` stays at 'PROVISIONING' for the whole install pipeline;
+    # ``install_substage`` discriminates the sub-stage (RESOURCE_ALLOC → CPE_BOUND → ACTIVATED).
+    # The three FK columns link the order to its first-class resource rows so the install-board
+    # API can hand back a complete snapshot in one round-trip.
+    install_substage: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    install_substage_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+    )
+    splitter_strand_allocation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("splitter_strand_allocation.id"),
+        nullable=True,
+        index=True,
+    )
+    vlan_assignment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("vlan_assignment.id"), nullable=True, index=True,
+    )
+    cpe_binding_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("cpe_binding.id"), nullable=True, index=True,
+    )
 
 
 class OrderItem(Base):

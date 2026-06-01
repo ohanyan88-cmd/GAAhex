@@ -54,6 +54,9 @@ from .dunning import DunningPolicy, DunningCase, ServiceActionLog
 from .ra_finding import RaFinding
 from .ra_scan_run import RaScanRun
 from .payment_method import PaymentMethod
+from .splitter import SplitterStrandAllocation
+from .vlan import VlanAssignment
+from .cpe_binding import CpeBinding
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -99,4 +102,5 @@ __all__ = [
     "DunningPolicy", "DunningCase", "ServiceActionLog",
     "RaFinding", "RaScanRun",
     "PaymentMethod",
+    "SplitterStrandAllocation", "VlanAssignment", "CpeBinding",
 ]
