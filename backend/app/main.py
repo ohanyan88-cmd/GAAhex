@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text, select
 
 from .config import settings
@@ -98,6 +99,38 @@ async def lifespan(app: FastAPI):
         await stop_scheduler(app)
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Audit-P1 — set standard browser security headers on every response.
+
+    Adds clickjacking / MIME-sniff / referrer / XSS / HSTS / permissions headers.
+    Never overrides a header the downstream app already set, so endpoint-specific
+    overrides (e.g. a special CSP on one route) still win.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        headers = response.headers
+
+        defaults = {
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            # Modern guidance: explicitly OFF; browsers use CSP instead.
+            "X-XSS-Protection": "0",
+            "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        }
+        for name, value in defaults.items():
+            if name not in headers:
+                headers[name] = value
+
+        # HSTS only on HTTPS requests — sending it over plain HTTP is a no-op
+        # at best and a foot-gun at worst (dev/test traffic stays unaffected).
+        if request.url.scheme == "https" and "Strict-Transport-Security" not in headers:
+            headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        return response
+
+
 app = FastAPI(title="GAAex API", version="0.0.1-m0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
@@ -107,6 +140,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Audit-P1 — security headers on every response. Registered between CORS and the
+# rate limiter so it sits in the response path for all normal traffic.
+app.add_middleware(SecurityHeadersMiddleware)
 # Abuse guard — OFF unless settings.rate_limit_enabled (so tests/dev are unaffected). In-process.
 app.add_middleware(apikeys.RateLimitMiddleware)
 

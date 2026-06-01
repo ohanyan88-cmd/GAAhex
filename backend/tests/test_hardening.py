@@ -217,6 +217,20 @@ async def test_500_error_returns_clean_response_no_traceback(client: AsyncClient
     assert r.status_code in (401, 500)
 
 
+# ===================== Audit-P1: Security headers middleware =====================
+
+@pytest.mark.asyncio
+async def test_security_headers_present_on_public_endpoint(client: AsyncClient):
+    """Audit-P1 — SecurityHeadersMiddleware sets clickjacking / MIME-sniff / referrer
+    headers on every response. /api/health is public (no auth, no DB) and a good probe."""
+    r = await client.get("/api/health")
+    assert r.status_code == 200, r.text
+
+    assert r.headers.get("X-Frame-Options") == "DENY"
+    assert r.headers.get("X-Content-Type-Options") == "nosniff"
+    assert "Referrer-Policy" in r.headers
+
+
 # ===================== Portal setup fixture =====================
 
 @pytest_asyncio.fixture(scope="module")
