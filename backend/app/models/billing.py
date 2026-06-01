@@ -95,7 +95,11 @@ class Payment(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
-    invoice_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("invoice.id"), nullable=False, index=True)
+    # Phase B.1: nullable to permit DEPOSIT payments — Stage 8 collects a deposit BEFORE any
+    # invoice exists for the order. Regular invoice payments still set this. Code paths that
+    # join Payment → Invoice already filter by Payment.invoice_id IS NOT NULL / .in_(...) so
+    # null-invoice deposit rows are excluded from those queries naturally.
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("invoice.id"), nullable=True, index=True)
     amount: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)          # luma
     method: Mapped[str] = mapped_column(String(20), nullable=False)                     # cash|card|transfer
     paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

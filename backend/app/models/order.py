@@ -8,8 +8,9 @@ NOTE: the table is named "order" (a SQL reserved word) — SQLAlchemy quotes it 
 coordinator's migration + any RLS policy must quote it too ("order")."""
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import String, BigInteger, Boolean, Integer, ForeignKey, DateTime, Text, func
+from sqlalchemy import String, BigInteger, Boolean, Integer, ForeignKey, DateTime, Text, Numeric, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -51,6 +52,21 @@ class Order(Base):
     # gate. Both nullable — orders that already passed control before this column existed stay NULL.
     credit_check_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     control_gate_block_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Phase B.1 — Stage 8 deposit + payment-method linkage. Deposits are Decimal AMD (NOT luma)
+    # because the operator UI / collection desk thinks in whole ֏ + fractional cents, not minor
+    # units. `deposit_held_until` is the release date — NULL = held indefinitely until manual
+    # release. `payment_method_id` is the vaulted card the order will be billed against (NULL
+    # until the customer/agent picks one); `deposit_payment_id` is the back-reference to the
+    # Payment row recording the collected deposit (NULL until /collect-deposit fires).
+    deposit_required: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    deposit_collected: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    deposit_held_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    payment_method_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("payment_method.id"), nullable=True, index=True,
+    )
+    deposit_payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("payment.id"), nullable=True, index=True,
+    )
 
 
 class OrderItem(Base):

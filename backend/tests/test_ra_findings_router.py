@@ -236,3 +236,32 @@ async def test_list_scans_pagination_shape(client, admin):
     assert "items" in body and "total" in body and "page" in body
     assert body["page"] == 1
     assert body["total"] >= 1
+
+
+# ===================== GET /findings/{id} returns the single finding row =====================
+
+async def test_get_single_finding(client, admin):
+    """``GET /api/revenue-assurance/findings/{id}`` returns the row's full detail_json."""
+    tid = await _admin_tenant_id()
+    cid = await _new_customer_id(client, admin)
+    await _seed_uncovered_service(tid, cid)
+    await client.post("/api/revenue-assurance/scan", headers=admin, json={})
+
+    # Pick a fresh finding from the list, then GET it by id.
+    listing = (await client.get(
+        "/api/revenue-assurance/findings?status=open", headers=admin,
+    )).json()
+    assert listing["items"], "scan should have produced at least one open finding"
+    fid = listing["items"][0]["id"]
+
+    r = await client.get(f"/api/revenue-assurance/findings/{fid}", headers=admin)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["id"] == fid
+    # detail_json is always a dict — even when empty.
+    assert isinstance(body["detail_json"], dict)
+    # An unknown id 404s.
+    bogus = (await client.get(
+        f"/api/revenue-assurance/findings/{uuid.uuid4()}", headers=admin,
+    ))
+    assert bogus.status_code == 404

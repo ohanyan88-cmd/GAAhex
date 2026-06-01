@@ -14,10 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from decimal import Decimal, InvalidOperation
+
 from ..db import get_session
 from ..models import User
 from ..models.order import Order, OrderItem
-from ..models.billing import Subscription
+from ..models.billing import Subscription, Payment
+from ..models.payment_method import PaymentMethod
 from ..models.product import Product
 from ..access import load_grants, can
 from ..kernel import (
@@ -26,6 +29,8 @@ from ..kernel import (
     assert_writer_owns_record_firstclass, OwnerViolation,
 )
 from .. import workflow, notify_hooks
+from ..services.payment_gateway_adapter import get_payment_gateway
+from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
 from .auth import current_user
 from .records import _node_path, _node_paths              # reuse the exact records scope primitives
 from .billing import _money, _now, _add_cycle, _customer_or_422, _deny   # reuse billing helpers (DRY)
@@ -347,6 +352,20 @@ async def advance_order(order_id: uuid.UUID, user: User = Depends(current_user),
     # SPEC §3 / §10.4 — Stage 8 Control Gate. Fires on the Sales→Fulfillment crossing only
     # (SUBMITTED → PROVISIONING here; the explicit Scheduling stage isn't modeled yet).
     if frm == "SUBMITTED" and nxt == "PROVISIONING":
+        # Phase B.1: when control_pass hasn't been flipped TRUE yet, compute the full Stage 8
+        # predicate so callers get a precise blocker list (credit / deposit / payment_method /
+        # mandatory_approvals) rather than just the generic "control_pass != TRUE" message.
+        # When control_pass IS already TRUE (Revenue Control's verdict stand-in for older flows
+        # / tests), defer to the kernel gate alone — re-running compute here could surface stale
+        # checks (e.g. a credit_check_status still NULL on legacy rows that operator manually
+        # passed). Mirrors /release semantics.
+        if order.control_pass is not True:
+            stage8 = await compute_stage8_status(s, order.id)
+            if not stage8["pass"]:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Stage 8 Control Gate not passed: " + " | ".join(stage8["blockers"]),
+                )
         try:
             await assert_can_advance_to_scheduling(s, order_id=order.id, control_pass=order.control_pass)
         except ControlGateNotPassed as e:
@@ -407,3 +426,220 @@ async def cancel_order(order_id: uuid.UUID, user: User = Depends(current_user), 
     await s.commit()
     await s.refresh(order)
     return _order(order, await _items(s, order.id))
+
+
+# ==========================================================================================
+# Phase B.1 — Stage 8 Control Gate + deposit collection
+# ==========================================================================================
+
+
+async def _require_admin_or_order_edit(
+    s: AsyncSession, user: User, order: Order,
+) -> None:
+    """Stage 8 mutators are admin-gated. Accept ``order.edit`` (existing scope) or
+    ``config.manage`` (super_admin)."""
+    grants = await load_grants(s, user)
+    if can(grants, "order", "edit", await _node_path(s, order.owner_node_id)) or \
+       can(grants, "config", "manage"):
+        return
+    _deny("order.edit")
+
+
+def _parse_decimal(value, field: str) -> Decimal:
+    """Coerce an incoming amount to Decimal; 422 on garbage. Used for deposit amounts (which
+    are Decimal AMD, not luma integers — the collection desk thinks in whole ֏)."""
+    if value is None:
+        raise HTTPException(422, f"'{field}' is required")
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise HTTPException(422, f"'{field}' must be a decimal number")
+
+
+@router.post("/orders/{order_id}/stage8-check")
+async def stage8_check(
+    order_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Run the Stage 8 Control Gate predicate read-only.
+
+    Does NOT mutate the order. Returns the structured per-check status so the UI can render
+    the "Stage 8 status" panel. Auth: order.view (anyone who can see the order can check it).
+    """
+    order = await _get_order(s, user, order_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "order", "view", await _node_path(s, order.owner_node_id)):
+        _deny("order.view")
+    return await compute_stage8_status(s, order.id)
+
+
+@router.post("/orders/{order_id}/stage8-apply")
+async def stage8_apply(
+    order_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Compute Stage 8 + persist the verdict to the order.
+
+    Writes ``control_pass``, ``control_pass_at``, ``control_pass_by`` + ``control_gate_block_reason``.
+    Admin-gated (Stage 8 verdict is a Revenue Control decision). Idempotent: re-running on the
+    same inputs produces the same result.
+    """
+    order = await _get_order(s, user, order_id)
+    await _require_admin_or_order_edit(s, user, order)
+    await _owner_gate(s, table_name="order", writer_module="Orders")
+
+    await apply_stage8_result(s, order.id, actor_id=user.id)
+    await s.commit()
+    await s.refresh(order)
+
+    # Return the order snapshot + the fresh predicate (handy for the UI without a second call).
+    result = _order(order, await _items(s, order.id))
+    result["stage8"] = await compute_stage8_status(s, order.id)
+    result["control_pass"] = order.control_pass
+    result["control_gate_block_reason"] = order.control_gate_block_reason
+    return result
+
+
+@router.post("/orders/{order_id}/release")
+async def release_order(
+    order_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Advance ``Order.status`` from SUBMITTED → PROVISIONING after enforcing Stage 8.
+
+    Calls ``apply_stage8_result`` first to refresh the verdict, then refuses with 409 +
+    ``control_gate_block_reason`` if the gate is closed. Admin-gated.
+    """
+    order = await _get_order(s, user, order_id)
+    await _require_admin_or_order_edit(s, user, order)
+    await _owner_gate(s, table_name="order", writer_module="Orders")
+
+    if order.status != "SUBMITTED":
+        raise HTTPException(
+            409,
+            f"Only a SUBMITTED order can be released (status is {order.status})",
+        )
+
+    # Run the predicate fresh + persist the verdict (idempotent).
+    await apply_stage8_result(s, order.id, actor_id=user.id)
+    await s.flush()
+
+    if not order.control_pass:
+        raise HTTPException(
+            409,
+            f"Stage 8 Control Gate not passed: {order.control_gate_block_reason}",
+        )
+
+    await _set_status(s, user, order, "SUBMITTED", "PROVISIONING")
+    await s.commit()
+    await s.refresh(order)
+    return _order(order, await _items(s, order.id))
+
+
+@router.post("/orders/{order_id}/collect-deposit")
+async def collect_deposit(
+    order_id: uuid.UUID,
+    payload: dict,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Record a deposit collection against the order.
+
+    Body:
+      ``amount`` (decimal, required — Decimal AMD, NOT luma)
+      ``payment_method_id`` (uuid, optional — when present, simulate a charge through
+                              ``LoggingGateway.charge`` and tag the resulting Payment.note)
+
+    Creates a Payment row with:
+      * ``method='card'``
+      * ``invoice_id=NULL`` (deposits exist BEFORE any invoice for the order)
+      * ``customer_id`` + ``account_id`` copied from the order
+      * ``note`` carrying the deposit marker + (when card-charged) the synthetic charge_id
+
+    Links the order via ``deposit_payment_id`` (FIRST collection only — subsequent collections
+    accumulate ``deposit_collected`` but the link points at the FIRST payment). Updates
+    ``deposit_collected += amount``. Admin-gated.
+    """
+    order = await _get_order(s, user, order_id)
+    await _require_admin_or_order_edit(s, user, order)
+    await _owner_gate(s, table_name="order", writer_module="Orders")
+
+    amount = _parse_decimal(payload.get("amount"), "amount")
+    if amount <= Decimal("0"):
+        raise HTTPException(422, "'amount' must be > 0")
+
+    # Optional payment_method_id → simulate the charge through the gateway adapter.
+    payment_method_id_raw = payload.get("payment_method_id")
+    pm: PaymentMethod | None = None
+    charge_marker: str | None = None
+    if payment_method_id_raw is not None:
+        try:
+            pm_uuid = uuid.UUID(str(payment_method_id_raw))
+        except ValueError:
+            raise HTTPException(422, "'payment_method_id' is not a valid UUID")
+        pm = (await s.execute(
+            select(PaymentMethod).where(
+                PaymentMethod.id == pm_uuid,
+                PaymentMethod.tenant_id == user.tenant_id,
+            )
+        )).scalar_one_or_none()
+        if pm is None:
+            raise HTTPException(422, "payment_method_id does not reference a known payment method")
+        if pm.status != "active":
+            raise HTTPException(409, f"payment method status is {pm.status!r}, expected 'active'")
+
+        gw = get_payment_gateway()
+        # Deposit amount in cents — Decimal AMD × 100, rounded down to int.
+        amount_cents = int(Decimal(amount) * 100)
+        charge_result = await gw.charge(
+            gateway_token=pm.gateway_token,
+            amount_cents=amount_cents,
+            currency="AMD",
+            description=f"Deposit for order {order.number}",
+        )
+        charge_marker = charge_result.get("charge_id")
+        pm.last_used_at = _now()
+
+    # Persist the Payment row. amount is stored in luma (BigInteger) per billing.py contract:
+    # Decimal AMD → luma = int(amount * 100). The deposit marker + synthetic charge_id live in
+    # `note` so reads can identify deposit rows + correlate to the gateway charge.
+    note_parts = [f"deposit:order:{order.id}"]
+    if charge_marker is not None:
+        note_parts.append(f"gateway_charge_id={charge_marker}")
+    note = " | ".join(note_parts)
+
+    deposit_payment = Payment(
+        tenant_id=user.tenant_id,
+        invoice_id=None,  # deposits exist before any invoice
+        amount=int(Decimal(amount) * 100),
+        method="card",
+        customer_id=order.customer_id,
+        account_id=order.account_id,
+        note=note,
+    )
+    s.add(deposit_payment)
+    await s.flush()
+
+    # Accumulate the deposit_collected total + link the FIRST payment.
+    current = Decimal(order.deposit_collected) if order.deposit_collected is not None else Decimal("0")
+    order.deposit_collected = current + amount
+    if order.deposit_payment_id is None:
+        order.deposit_payment_id = deposit_payment.id
+
+    await workflow.emit(
+        s, user.tenant_id, "collect_deposit", "order", order.id, user.id,
+        {"amount": str(amount), "payment_id": str(deposit_payment.id),
+         "gateway_charge_id": charge_marker},
+    )
+    await s.commit()
+    await s.refresh(order)
+    return {
+        "order": _order(order, await _items(s, order.id)),
+        "payment_id": str(deposit_payment.id),
+        "deposit_collected": str(order.deposit_collected),
+        "deposit_required": str(order.deposit_required) if order.deposit_required is not None else None,
+        "gateway_charge_id": charge_marker,
+    }
