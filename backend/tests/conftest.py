@@ -60,6 +60,19 @@ async def _setup_db():
         if result.first() is None:
             raise RuntimeError("ltree extension missing after CREATE — DB setup failed")
 
+    # NOC Phase C: PostGIS extension — needed for fiber_route/outage_path partial indexes
+    # that may CAST to geometry in raw SQL. Install before create_all so the extension is
+    # available for any migration that references PostGIS types / functions.
+    async with engine.connect() as c:
+        try:
+            await c.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+            await c.commit()
+        except Exception as e:
+            # Swallow race / already-exists; re-raise anything else.
+            if "postgis" not in str(e).lower() and "extension" not in str(e).lower():
+                raise
+            await c.rollback()
+
     async with engine.begin() as c:
         await c.run_sync(Base.metadata.create_all)
     await seed_if_empty()
