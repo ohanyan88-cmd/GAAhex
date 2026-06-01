@@ -20,9 +20,9 @@ import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
 import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { InboxIcon, SearchIcon, ChevronRightIcon } from '../components/icons'
+import { InboxIcon, SearchIcon } from '../components/icons'
 import { Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
+import { PageShell } from '../page-shell'
 import { StatusPill, KPITile } from '../primitives'
 import { useI18n } from '../lib/i18n'
 import { timeAgo } from '../lib/time'
@@ -165,20 +165,13 @@ export default function CollectionsView({
   }, [policies])
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Billing &amp; Revenue</span>
-          <ChevronRightIcon size={14} />
-          <span style={{ color: 'var(--gx-text-1)' }}>{t('collections.title', 'Collections')}</span>
-        </div>
-
-        <ViewHead
-          icon={<InboxIcon size={18} />}
-          title={t('collections.title', 'Collections')}
-          sub={t('collections.sub', 'Overdue accounts under dunning · automated escalation ladder')}
-        />
-
+    <PageShell
+      type="pipeline"
+      breadcrumb={['Billing & Revenue', t('collections.title', 'Collections')]}
+      icon={<InboxIcon size={18} />}
+      title={t('collections.title', 'Collections')}
+      subtitle={t('collections.sub', 'Overdue accounts under dunning · automated escalation ladder')}
+    >
         {/* Tab bar — same pattern as PipelineView */}
         <div
           role="tablist"
@@ -225,8 +218,7 @@ export default function CollectionsView({
             reload={loadPolicies}
           />
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

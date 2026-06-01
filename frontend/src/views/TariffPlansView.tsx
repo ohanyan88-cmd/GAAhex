@@ -18,14 +18,14 @@ import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  BookmarkIcon, SearchIcon,
+  BookmarkIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
-import { StatusPill, KPITile } from '../primitives'
+import { PageShell, type KPISpec } from '../page-shell'
+import { StatusPill } from '../primitives'
 
 interface TariffPlan {
   id: string
@@ -246,6 +246,12 @@ export default function TariffPlansView({
   const activeCount = all.filter((p) => p.active).length
   const retiredCount = all.filter((p) => !p.active).length
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Total', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
+    { label: 'Active', value: activeCount, subtitle: 'offerable', premium: true },
+    ...(retiredCount > 0 ? [{ label: 'Retired', value: retiredCount, subtitle: 'read-only', muted: true }] : []),
+  ] : []
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return all
@@ -313,58 +319,20 @@ export default function TariffPlansView({
   }
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Billing &amp; Revenue</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>Tariff Plans</span>
-        </div>
-
-        <ViewHead
-          icon={<BookmarkIcon size={18} />}
-          title="Tariff Plans"
-          sub={
-            list == null
-              ? 'Loading…'
-              : `${all.length} plan${all.length !== 1 ? 's' : ''}${all.length > 0 ? ` · ${activeCount} active` : ''}`
-          }
-          actions={!unavailable && !denied && canWrite && (
-            <button className="btn btn-primary btn-sm" onClick={() => (draft ? setDraft(null) : openCreate())}>
-              <Plus size={14} /> {draft ? 'Close' : 'New tariff plan'}
-            </button>
-          )}
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Catalog size"
-              value={all.length}
-              subtitle={`${activeCount} active`}
-              size="sm"
-              onClick={() => setQuery('')}
-              ariaLabel={`Catalog size — ${all.length}. Click to clear filter.`}
-            />
-            <KPITile
-              label="Active"
-              value={activeCount}
-              subtitle="offerable"
-              size="sm"
-              premium
-            />
-            {retiredCount > 0 && (
-              <KPITile
-                label="Retired"
-                value={retiredCount}
-                subtitle="read-only"
-                size="sm"
-                muted
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', 'Tariff Plans']}
+      icon={<BookmarkIcon size={18} />}
+      title="Tariff Plans"
+      subtitle="Configurable pricing tiers for ISP services"
+      kpis={kpis}
+      primaryAction={!unavailable && !denied && canWrite ? {
+        label: draft ? 'Close' : 'New tariff plan',
+        icon: <Plus size={14} />,
+        onClick: () => (draft ? setDraft(null) : openCreate()),
+      } : undefined}
+      filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search tariff plans…' } }}
+    >
         {draft && canWrite && (
           <div className="rec-form">
             {!draft.id && (
@@ -505,19 +473,6 @@ export default function TariffPlansView({
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search tariff plans"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <span className="spacer" />
-            </div>
-
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
@@ -637,7 +592,6 @@ export default function TariffPlansView({
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }

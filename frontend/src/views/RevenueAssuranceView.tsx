@@ -34,7 +34,7 @@ import { fetchCapabilities, can as canDo, FULL_ACCESS, type Capabilities } from 
 import { LineChart } from '../components/charts/LineChart'
 import { StatusPill, KPITile } from '../primitives'
 import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
@@ -425,28 +425,36 @@ export default function RevenueAssuranceView({
     ? (collectedDelta / ovOk.collected_prev_month) * 100
     : null
 
-  const kpiVisible = showAr || showOverdue || showOverdueCount || showCollected
+  // Build KPI specs from real overview data (hide tiles where data is absent)
+  const kpis: KPISpec[] = [
+    ...(showCollected ? [{
+      label: 'Collected this month',
+      value: money(ovOk!.collected_this_month!),
+      premium: true,
+      delta: collectedDelta != null
+        ? (collectedPct != null
+            ? `${Math.abs(collectedPct).toFixed(0)}% vs prev`
+            : `${money(Math.abs(collectedDelta))} vs prev`)
+        : undefined,
+      deltaPositive: collectedDelta != null ? collectedDelta >= 0 : undefined,
+    }] : []),
+    ...(showAr ? [{ label: 'AR outstanding', value: money(ovOk!.ar_outstanding!) }] : []),
+    ...(showOverdue ? [{ label: 'Overdue value', value: money(ovOk!.overdue_total!), danger: true }] : []),
+    ...(showOverdueCount ? [{ label: 'Overdue invoices', value: (ovOk!.overdue_count!).toLocaleString() }] : []),
+  ]
 
   return (
-    <div className="view">
-      <div className="view-inner gx-dash fade section-page">
-        <div className="crumbs">
-          <span>Revenue</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>Revenue Assurance</span>
-        </div>
-
-        <ViewHead
-          icon={<ShieldIcon size={20} />}
-          title="Revenue Assurance"
-          sub="Collections health · leakage · aged receivables"
-          actions={canConfigure && onConfigure ? (
-            <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-              <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-            </button>
-          ) : undefined}
-        />
-
+    <PageShell
+      type="analytics"
+      breadcrumb={['Billing & Revenue', 'Revenue Assurance']}
+      icon={<ShieldIcon size={18} />}
+      title="Revenue Assurance"
+      subtitle="Service ↔ Subscription ↔ Invoice leakage detection"
+      kpis={kpis}
+      secondaryActions={canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         {/* Tab strip — PipelineView pattern (button row, bottom border on active). */}
         <div
           role="tablist"
@@ -476,7 +484,7 @@ export default function RevenueAssuranceView({
           />
         </div>
 
-        {tab === 'overview' && kpiVisible && (
+        {tab === 'overview' && kpis.length > 0 && (
           <div className="kpi-strip">
             {showCollected && (
               <KPITile
@@ -679,8 +687,7 @@ export default function RevenueAssuranceView({
             </label>
           </Modal>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

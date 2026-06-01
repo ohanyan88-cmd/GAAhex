@@ -12,11 +12,11 @@ import {
   CreditCardIcon, SearchIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
+import { PageShell, type KPISpec } from '../page-shell'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
-import { KPITile } from '../primitives'
 
 // A.3 endpoints return Decimal STRINGS in major units (e.g. "100.50"). Existing money() expects
 // integer luma (minor). Convert at the boundary so we keep one display formatter.
@@ -246,6 +246,13 @@ export default function InvoicesView({
   const paidCount = countFor('PAID')
   const overdueCount = countFor('OVERDUE')
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Total billed', value: `֏${(totalBilled / 100000).toFixed(1)}k`, subtitle: `${all.length} invoice${all.length !== 1 ? 's' : ''}`, premium: true, onClick: () => setStatus('') },
+    { label: 'Outstanding', value: `֏${(outstanding / 100000).toFixed(1)}k`, subtitle: `${countFor('ISSUED')} issued · ${overdueCount} overdue`, warning: outstanding > 0, onClick: () => setStatus('ISSUED') },
+    { label: 'Paid', value: paidCount, subtitle: `of ${all.length} invoices`, onClick: () => setStatus('PAID') },
+    ...(overdueCount > 0 ? [{ label: 'Overdue', value: overdueCount, subtitle: 'action required', danger: true, onClick: () => setStatus('OVERDUE') }] : []),
+  ] : []
+
   const TAB_DEFS: Array<[string, string]> = [
     ['', 'All'],
     ['DRAFT', 'Draft'],
@@ -258,73 +265,22 @@ export default function InvoicesView({
   if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} canAllocatePayment={canAllocatePayment} onBack={() => { setDetailId(null); load() }} />
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-      <div className="crumbs">
-        <span>Orders &amp; Revenue</span>
-        <span className="sep">/</span>
-        <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
-      </div>
-      <ViewHead
-        icon={<ReceiptIcon size={18} />}
-        title={cfg.title}
-        sub={`${all.length} records · currency AMD (֏) · billing engine`}
-        actions={
-          <>
-            {canEditInvoice && (
-              <button className="btn btn-ghost btn-sm" onClick={runDunning}>Run dunning</button>
-            )}
-            {canConfigure && canEditInvoice && !cycleNA && (
-              <button className="btn btn-primary btn-sm" onClick={runCycle} disabled={cycleBusy}>
-                {cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle')}
-              </button>
-            )}
-          </>
-        }
-      />
-
-      {all.length > 0 && (
-        <div className="kpi-strip" style={{ marginBottom: 18 }}>
-          <KPITile
-            label="Total billed"
-            value={`֏${(totalBilled / 100000).toFixed(1)}k`}
-            subtitle={`${all.length} invoice${all.length !== 1 ? 's' : ''}`}
-            size="sm"
-            premium
-            onClick={() => setStatus('')}
-            ariaLabel={`Total billed. Click to see all invoices.`}
-          />
-          <KPITile
-            label="Outstanding"
-            value={`֏${(outstanding / 100000).toFixed(1)}k`}
-            subtitle={`${countFor('ISSUED')} issued · ${overdueCount} overdue`}
-            size="sm"
-            warning={outstanding > 0}
-            onClick={() => setStatus('ISSUED')}
-            ariaLabel={`Outstanding amount. Click to filter to issued.`}
-          />
-          <KPITile
-            label="Paid"
-            value={paidCount}
-            subtitle={`of ${all.length} invoices`}
-            size="sm"
-            onClick={() => setStatus('PAID')}
-            ariaLabel={`Paid — ${paidCount}. Click to filter to paid.`}
-          />
-          {overdueCount > 0 && (
-            <KPITile
-              label="Overdue"
-              value={overdueCount}
-              subtitle="action required"
-              size="sm"
-              danger
-              onClick={() => setStatus('OVERDUE')}
-              ariaLabel={`Overdue — ${overdueCount}. Click to filter to overdue.`}
-            />
-          )}
-        </div>
-      )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<ReceiptIcon size={18} />}
+      title={cfg.title}
+      subtitle="Immutable billing ledger"
+      kpis={kpis}
+      secondaryActions={[
+        ...(canEditInvoice ? [{ label: 'Run dunning', onClick: runDunning }] : []),
+        ...(canConfigure && canEditInvoice && !cycleNA ? [{
+          label: cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle'),
+          onClick: runCycle,
+          disabled: cycleBusy,
+        }] : []),
+      ]}
+    >
       <div className="tabs">
         {TAB_DEFS.map(([val, label]) => {
           const count = val === '' ? all.length : countFor(val)
@@ -395,8 +351,7 @@ export default function InvoicesView({
           </div>
         </div>
       )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

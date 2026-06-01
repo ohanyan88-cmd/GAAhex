@@ -12,10 +12,11 @@ import {
   ChevronLeft, ChevronRight, RefreshCw,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
+import { PageShell, type KPISpec } from '../page-shell'
 import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 
 // Accounts UI (A17 /api/accounts) — the money/billing layer on a Party. Stage 1 may be dormant
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
@@ -227,6 +228,15 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   if (detailId) return <AccountDetail token={token} id={detailId} parties={parties} canRecompute={canRecompute} onBack={() => { setDetailId(null); load() }} />
 
   const all = list ?? []
+  const activeCount = all.filter(a => (a.status ?? '').toUpperCase() === 'ACTIVE').length
+  const businessCount = all.filter(a => (a.type ?? '').toLowerCase() === 'business').length
+  const residentialCount = all.filter(a => (a.type ?? '').toLowerCase() === 'residential').length
+
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Accounts', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
+    { label: 'Business', value: businessCount, subtitle: 'billable', premium: true, onClick: () => setQuery('business') },
+    { label: 'Residential', value: residentialCount, subtitle: 'consumer', onClick: () => setQuery('residential') },
+  ] : []
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -296,79 +306,22 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   }
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Billing</span><span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span>
-        </div>
-
-        <ViewHead
-          icon={<BuildingIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} record${all.length !== 1 ? 's' : ''} · billing accounts on parties`}
-          actions={
-            !unavailable && (
-              <>
-                {canConfigure && onConfigure && (
-                  <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                    <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                  </button>
-                )}
-                <button className="btn btn-primary btn-sm" onClick={() => setCreating((c) => !c)}>
-                  <Plus size={14} /> {creating ? t('common.close', 'Close') : t('accounts.new', 'New account')}
-                </button>
-              </>
-            )
-          }
-        />
-
-        {all.length > 0 && (() => {
-          const activeCount = all.filter(a => (a.status ?? '').toUpperCase() === 'ACTIVE').length
-          const suspendedCount = all.filter(a => (a.status ?? '').toUpperCase() === 'SUSPENDED').length
-          const typeCount = new Set(all.map(a => a.type).filter(Boolean)).size
-          return (
-            <div className="kpi-strip">
-              <KPITile
-                label="Accounts"
-                value={all.length}
-                subtitle={`${activeCount} active`}
-                size="sm"
-                onClick={() => setQuery('')}
-                ariaLabel={`Total accounts — ${all.length}. Click to clear filter.`}
-              />
-              <KPITile
-                label="Active"
-                value={activeCount}
-                subtitle="billable"
-                size="sm"
-                premium
-                onClick={() => setQuery('ACTIVE')}
-                ariaLabel={`Active accounts — ${activeCount}. Click to filter to active.`}
-              />
-              {suspendedCount > 0 && (
-                <KPITile
-                  label="Suspended"
-                  value={suspendedCount}
-                  subtitle="action required"
-                  size="sm"
-                  warning
-                  onClick={() => setQuery('SUSPENDED')}
-                  ariaLabel={`Suspended accounts — ${suspendedCount}. Click to filter to suspended.`}
-                />
-              )}
-              {typeCount > 0 && (
-                <KPITile
-                  label="Types"
-                  value={typeCount}
-                  subtitle="residential · business · wholesale"
-                  size="sm"
-                />
-              )}
-            </div>
-          )
-        })()}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<BuildingIcon size={18} />}
+      title={cfg.title}
+      subtitle="Multi-tenant B2B parent-child accounting"
+      kpis={kpis}
+      primaryAction={!unavailable ? {
+        label: creating ? t('common.close', 'Close') : t('accounts.new', 'New account'),
+        icon: <Plus size={14} />,
+        onClick: () => setCreating((c) => !c),
+      } : undefined}
+      secondaryActions={canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         {creating && (
           <div className="rec-form">
             <label className="field"><span>{t('accounts.holder', 'Holder party')} *</span>
@@ -397,19 +350,6 @@ export default function AccountsView({ token, canConfigure = false, configVersio
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search accounts"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <span className="spacer" />
-            </div>
-
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
@@ -476,8 +416,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

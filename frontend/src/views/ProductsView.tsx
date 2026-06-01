@@ -15,10 +15,10 @@ import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
@@ -110,6 +110,12 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   const activeCount = all.filter(p => p.active !== false).length
   const retiredCount = all.filter(p => p.active === false).length
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Catalog size', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
+    { label: 'Active', value: activeCount, subtitle: 'offerable', premium: true, onClick: () => setQuery('active') },
+    ...(retiredCount > 0 ? [{ label: 'Retired', value: retiredCount, subtitle: 'read-only', muted: true, onClick: () => setQuery('retired') }] : []),
+  ] : []
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     const cat = category
@@ -164,61 +170,22 @@ export default function ProductsView({ token, canConfigure = false, configVersio
   }
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs"><span>Billing</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<ArchiveIcon size={18} />}
-          title={cfg.title}
-          sub={`${all.length} product${all.length !== 1 ? 's' : ''} · catalog drives subscription pricing`}
-          actions={!unavailable && (
-            <>
-              {canConfigure && onConfigure && (
-                <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                  <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-                </button>
-              )}
-              <button className="btn btn-primary btn-sm" onClick={() => setDraft(draft ? null : { ...EMPTY })}>
-                <Plus size={14} /> {draft ? 'Close' : 'New product'}
-              </button>
-            </>
-          )}
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Catalog size"
-              value={all.length}
-              subtitle={`${activeCount} active`}
-              size="sm"
-              onClick={() => setQuery('')}
-              ariaLabel={`Catalog size — ${all.length}. Click to clear filter.`}
-            />
-            <KPITile
-              label="Active"
-              value={activeCount}
-              subtitle="offerable"
-              size="sm"
-              premium
-              onClick={() => setQuery('active')}
-              ariaLabel={`Active products — ${activeCount}. Click to filter to active.`}
-            />
-            {retiredCount > 0 && (
-              <KPITile
-                label="Retired"
-                value={retiredCount}
-                subtitle="read-only"
-                size="sm"
-                muted
-                onClick={() => setQuery('retired')}
-                ariaLabel={`Retired products — ${retiredCount}. Click to filter.`}
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<ArchiveIcon size={18} />}
+      title={cfg.title}
+      subtitle="Product catalog drives subscription pricing"
+      kpis={kpis}
+      primaryAction={!unavailable ? {
+        label: draft ? 'Close' : 'New product',
+        icon: <Plus size={14} />,
+        onClick: () => setDraft(draft ? null : { ...EMPTY }),
+      } : undefined}
+      secondaryActions={canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+    >
         {/* Category chips — Commercial vs Supporting grouping per approved catalog model. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', margin: '12px 0 8px' }}>
           <CategoryChip label="All" active={category === 'All'} onClick={() => setCategory('All')} primary />
@@ -352,8 +319,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 

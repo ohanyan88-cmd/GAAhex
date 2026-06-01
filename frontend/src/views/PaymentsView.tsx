@@ -10,10 +10,10 @@ import {
   ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
+import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill } from '../primitives'
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -81,6 +81,11 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
   const pList = payments ?? []
   const totalSettled = pList.reduce((a, p) => a + (p.amount ?? 0), 0)
   const methodsActive = [...new Set(pList.map(p => p.method).filter(Boolean))]
+
+  const kpis: KPISpec[] = pList.length > 0 ? [
+    { label: 'Total collected', value: money(totalSettled), subtitle: `${pList.length} settlement${pList.length !== 1 ? 's' : ''}`, premium: true },
+    ...(methodsActive.length > 0 ? [{ label: 'Methods', value: methodsActive.map(humanizeStatus).join(' · '), subtitle: 'used' }] : []),
+  ] : []
 
   function renderCell(colKey: string, p: Payment) {
     switch (colKey) {
@@ -154,43 +159,18 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
   }
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs"><span>Orders &amp; Revenue</span><span className="sep">/</span><span style={{ color: 'var(--gx-text-1)' }}>{cfg.title}</span></div>
-
-        <ViewHead
-          icon={<CreditCardIcon size={18} />}
-          title={cfg.title}
-          sub={`${pList.length} record${pList.length !== 1 ? 's' : ''}`}
-          actions={
-            canConfigure && onConfigure ? (
-              <button className="btn btn-ghost btn-sm" onClick={onConfigure} title="Configure this page">
-                <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-              </button>
-            ) : null
-          }
-        />
-
-        {pList.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Total collected"
-              value={money(totalSettled)}
-              subtitle={`${pList.length} settlement${pList.length !== 1 ? 's' : ''}`}
-              size="sm"
-              premium
-            />
-            {methodsActive.length > 0 && (
-              <KPITile
-                label="Methods"
-                value={methodsActive.map(humanizeStatus).join(' · ')}
-                subtitle="used"
-                size="sm"
-              />
-            )}
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', cfg.title]}
+      icon={<CreditCardIcon size={18} />}
+      title={cfg.title}
+      subtitle="Payment ledger"
+      kpis={kpis}
+      secondaryActions={canConfigure && onConfigure ? [
+        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+      ] : undefined}
+      filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search payments…' } }}
+    >
         {error && <ErrorBanner message={error} onRetry={load} />}
         {payments === null && !error && <p className="muted">Loading…</p>}
 
@@ -204,19 +184,6 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
 
         {payments !== null && payments.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search payments"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <span className="spacer" />
-            </div>
-
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
@@ -283,7 +250,6 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }

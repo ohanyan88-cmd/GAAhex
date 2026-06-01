@@ -29,8 +29,8 @@ import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import ViewHead from '../components/ViewHead'
-import { StatusPill, KPITile } from '../primitives'
+import { PageShell, type KPISpec } from '../page-shell'
+import { StatusPill } from '../primitives'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 // Mirrors the dict shape from orders.py::_order().
@@ -136,6 +136,13 @@ export default function OrdersView({ token }: { token: string }) {
   const completedCount = all.filter((o) => o.status === 'COMPLETED').length
   const completedValue = all.filter((o) => o.status === 'COMPLETED').reduce((s, o) => s + (o.total || 0), 0)
 
+  const kpis: KPISpec[] = all.length > 0 ? [
+    { label: 'Drafts', value: draftCount, subtitle: 'not yet submitted', onClick: () => setStatusFilter('DRAFT') },
+    { label: 'In flight', value: inFlightCount, subtitle: 'submitted or provisioning', warning: true, onClick: () => setStatusFilter('SUBMITTED') },
+    { label: 'Completed', value: completedCount, subtitle: 'provisioned', premium: true, onClick: () => setStatusFilter('COMPLETED') },
+    { label: 'Completed value', value: money(completedValue), subtitle: 'sum of totals' },
+  ] : []
+
   // Permission gates.
   const canView = canDo(caps, 'order', 'view')
   const canCreate = canDo(caps, 'order', 'create')
@@ -218,68 +225,35 @@ export default function OrdersView({ token }: { token: string }) {
   }
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Orders &amp; Revenue</span>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>Orders</span>
-        </div>
-
-        <ViewHead
-          icon={<ArchiveIcon size={18} />}
-          title="Orders"
-          sub={`${all.length} order${all.length !== 1 ? 's' : ''} · provisioning lifecycle`}
-          actions={
-            !unavailable ? (
-              <>
-                {canCreate && (
-                  <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
-                    <Plus size={14} /> New order
-                  </button>
-                )}
-              </>
-            ) : undefined
-          }
-        />
-
-        {all.length > 0 && (
-          <div className="kpi-strip">
-            <KPITile
-              label="Drafts"
-              value={draftCount}
-              subtitle="not yet submitted"
-              size="sm"
-              onClick={() => setStatusFilter('DRAFT')}
-              ariaLabel={`Drafts — ${draftCount}. Click to filter to draft.`}
-            />
-            <KPITile
-              label="In flight"
-              value={inFlightCount}
-              subtitle="submitted or provisioning"
-              size="sm"
-              warning
-              onClick={() => setStatusFilter('SUBMITTED')}
-              ariaLabel={`In flight — ${inFlightCount}. Click to filter.`}
-            />
-            <KPITile
-              label="Completed"
-              value={completedCount}
-              subtitle="provisioned"
-              size="sm"
-              premium
-              onClick={() => setStatusFilter('COMPLETED')}
-              ariaLabel={`Completed — ${completedCount}. Click to filter to completed.`}
-            />
-            <KPITile
-              label="Completed value"
-              value={money(completedValue)}
-              subtitle="sum of totals"
-              size="sm"
-            />
-          </div>
-        )}
-
+    <PageShell
+      type="registry"
+      breadcrumb={['Billing & Revenue', 'Orders & Validation']}
+      icon={<ArchiveIcon size={18} />}
+      title="Orders & Validation"
+      subtitle="Order pipeline · Stage 8 control gate"
+      kpis={kpis}
+      primaryAction={!unavailable && canCreate ? {
+        label: 'New order',
+        icon: <Plus size={14} />,
+        onClick: () => setCreateOpen(true),
+      } : undefined}
+      filters={{
+        search: { value: query, onChange: setQuery, placeholder: 'Search orders…' },
+        quick: [{
+          label: 'Status',
+          value: statusFilter,
+          options: [
+            { label: 'All statuses', value: '' },
+            { label: 'Draft', value: 'DRAFT' },
+            { label: 'Submitted', value: 'SUBMITTED' },
+            { label: 'Provisioning', value: 'PROVISIONING' },
+            { label: 'Completed', value: 'COMPLETED' },
+            { label: 'Cancelled', value: 'CANCELLED' },
+          ],
+          onChange: setStatusFilter,
+        }],
+      }}
+    >
         {error && <ErrorBanner message={error} onRetry={load} />}
         {list === null && !error && <p className="muted">Loading…</p>}
         {unavailable && (
@@ -304,33 +278,6 @@ export default function OrdersView({ token }: { token: string }) {
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search orders"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <select
-                className="inp inp-sm"
-                aria-label="Filter by status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ marginLeft: 8 }}
-              >
-                <option value="">All statuses</option>
-                <option value="DRAFT">Draft</option>
-                <option value="SUBMITTED">Submitted</option>
-                <option value="PROVISIONING">Provisioning</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-              <span className="spacer" />
-            </div>
-
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
@@ -454,8 +401,7 @@ export default function OrdersView({ token }: { token: string }) {
             onClose={() => { setDetailId(null); load() }}
           />
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 
