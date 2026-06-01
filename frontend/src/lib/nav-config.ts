@@ -121,6 +121,10 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('sys-notifications-config',  'Notifications Config',  MailIcon,       'entity', { slug: 'notification-rules' }),
   ], { adminOnly: true }),
 
+  s('dev_internals', 'Dev Internals', LayersIcon, [
+    i('dev-master-layout', 'Master Layout Demo', LayersIcon, 'master-demo'),
+  ], { adminOnly: true }),
+
   s('studio', 'Studio', SparkleIcon, [
     i('std-experience',     'Experience',       SparkleIcon, 'studio'),
     i('std-data',           'Data',             LayersIcon,  'studio'),

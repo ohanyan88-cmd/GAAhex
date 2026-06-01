@@ -39,6 +39,7 @@ import OrgView from './views/OrgView'
 import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
 import HomeView from './views/HomeView'
+import MasterLayoutDemoView from './views/MasterLayoutDemoView'
 import GlobalSearchView from './views/GlobalSearchView'
 import RecentItemsView from './views/RecentItemsView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
@@ -104,6 +105,7 @@ type View =
   | { type: 'scheduling' }
   | { type: 'dispatch-board' }
   | { type: 'coverage-gis' }
+  | { type: 'master-demo' }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
@@ -337,6 +339,28 @@ export default function App() {
           </form>
         </div>
       </div>
+    )
+  }
+
+  // Master Layout demo: owns the whole viewport (its own Zone 0 replaces the legacy topbar
+  // and sidebar). Early-return before the legacy shell renders.
+  if (view.type === 'master-demo' && user) {
+    const initials = (user.name || user.email || '?')
+      .split(/\s+/)
+      .map((s) => s[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
+    return (
+      <MasterLayoutDemoView
+        tenantInitials="DI"
+        tenantName="Demo ISP"
+        userInitials={initials || 'U'}
+        userName={user.name || user.email}
+        userRole={user.can_configure ? 'Administrator' : 'Member'}
+        onExit={() => setView({ type: 'home' })}
+      />
     )
   }
 

@@ -9,6 +9,7 @@ import './styles/tailwind.css'
 import './styles/color-tokens.css'
 import './styles/styles.css'
 import './styles/studio.css'
+import './layout/master-layout.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
