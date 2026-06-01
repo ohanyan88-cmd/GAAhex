@@ -2,9 +2,9 @@ import type { ComponentType } from 'react'
 import {
   HomeIcon, ChartIcon, UsersIcon, ArchiveIcon, InboxIcon, ReceiptIcon,
   ServerIcon, TruckIcon, PackageIcon, BriefcaseIcon,
-  SparkleIcon, MessageIcon, FolderIcon, LayersIcon, ShieldIcon,
+  SparkleIcon, MessageIcon, LayersIcon, ShieldIcon,
   GearIcon, ActivityIcon, BuildingIcon, CalendarIcon,
-  ClockIcon, RowsIcon, EditIcon, BookmarkIcon, MailIcon,
+  EditIcon, BookmarkIcon, MailIcon,
   CreditCardIcon, ArrowRightIcon, CheckIcon,
 } from '../components/icons'
 
@@ -14,7 +14,6 @@ export type NavItemDef = {
   icon: ComponentType<{ size?: number; className?: string }>
   viewType?: string
   viewArgs?: Record<string, string>
-  placement?: 'O' | 'V'
 }
 
 export type NavSectionDef = {
@@ -32,88 +31,75 @@ const i = (
   icon: NavItemDef['icon'],
   viewType?: string,
   viewArgs?: NavItemDef['viewArgs'],
-  placement?: 'O' | 'V',
 ): NavItemDef =>
-  ({ id, label, icon, placement, ...(viewType ? { viewType, ...(viewArgs ? { viewArgs } : {}) } : {}) })
+  ({ id, label, icon, ...(viewType ? { viewType, ...(viewArgs ? { viewArgs } : {}) } : {}) })
 
 const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavItemDef[], opts?: Partial<NavSectionDef>): NavSectionDef =>
   ({ id, label, icon, items, ...opts })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Left navigation — locked spec rewritten 2026-06-01 per Gev's directive.
+// Hierarchy is the source of truth. Do not reorder, rename, or split items.
+// ─────────────────────────────────────────────────────────────────────────────
 export const NAV_SECTIONS: NavSectionDef[] = [
 
-  // WORKSPACE — locked to 5 items per Gev's spec (2026-06-01). Do not combine or rename.
   s('workspace', 'Workspace', HomeIcon, [
-    i('ws-home',           'Home',             HomeIcon,       'home',                             undefined, 'V'),
-    i('ws-my-work',        'My Work',          CheckIcon,      'mytasks',                          undefined, 'V'),
-    i('ws-team',           'Team Workspace',   UsersIcon,      'team-workspace',                   undefined, 'V'),
-    i('ws-communications', 'Communications',   MessageIcon,    'messages',                         undefined, 'O'),
-    i('ws-calendar',       'Calendar',         CalendarIcon,   'calendar',                         undefined, 'O'),
+    i('ws-home',           'Home',             HomeIcon,     'home'),
+    i('ws-my-work',        'My Work',          CheckIcon,    'mytasks'),
+    i('ws-team',           'Team Workspace',   UsersIcon,    'team-workspace'),
+    i('ws-communications', 'Communications',   MessageIcon,  'messages'),
+    i('ws-calendar',       'Calendar',         CalendarIcon, 'calendar'),
   ], { defaultOpen: true }),
 
-  s('work_management', 'Work Management', CheckIcon, [
-    i('wm-tasks',    'Tasks',    CheckIcon,      'mytasks',                            undefined, 'O'),
-    i('wm-tickets',  'Tickets',  InboxIcon,      'helpdesk',                           undefined, 'O'),
-    i('wm-projects', 'Projects', LayersIcon,     'entity', { slug: 'projects' },       'O'),
-  ]),
-
-  // CRM — locked to 4 items per Gev's spec (2026-06-01). Do not combine or rename.
-  // Customers owns Accounts/Contacts/Sites/Contracts/SLAs inline (no separate Contracts entry).
   s('crm', 'CRM', UsersIcon, [
-    i('crm-leads',     'Leads',     InboxIcon,      'entity', { slug: 'leads' },     'O'),
-    i('crm-pipeline',  'Pipeline',  ArrowRightIcon, 'lead-pipeline',                 undefined, 'O'),
-    i('crm-customers', 'Customers', UsersIcon,      'entity', { slug: 'customers' }, 'O'),
-    i('crm-campaigns', 'Campaigns', MailIcon,       'entity', { slug: 'campaigns' }, 'O'),
+    i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
+    i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),
+    i('crm-customers',      'Customers',      UsersIcon,      'entity', { slug: 'customers' }),
+    i('crm-customer-tasks', 'Customer Tasks', CheckIcon,      'entity', { slug: 'customer-tasks' }),
+    i('crm-campaigns',      'Campaigns',      MailIcon,       'entity', { slug: 'campaigns' }),
   ]),
 
   s('billing_revenue', 'Billing & Revenue', ReceiptIcon, [
-    i('br-tariff-plans',       'Tariff Plans',          BookmarkIcon,   'entity', { slug: 'tariff-plans' },          'O'),
-    i('br-billing-accounts',   'Billing Accounts',      BuildingIcon,   'accounts',                                undefined, 'O'),
-    i('br-orders-validation',  'Orders & Validation',   ArchiveIcon,    'orders',                                  undefined, 'O'),
-    i('br-invoices',           'Invoices',              ReceiptIcon,    'invoices',                                undefined, 'O'),
-    i('br-payments',           'Payments',              CreditCardIcon, 'payments',                                undefined, 'O'),
-    i('br-collections',        'Collections',           InboxIcon,      'entity', { slug: 'collections' },          'O'),
-    i('br-revenue-assurance',  'Revenue Assurance',     ShieldIcon,     'revenue-assurance',                       undefined, 'V'),
+    i('br-product-catalog',     'Product Catalog',     PackageIcon,    'products'),
+    i('br-tariff-plans',        'Tariff Plans',        BookmarkIcon,   'entity', { slug: 'tariff-plans' }),
+    i('br-orders-validation',   'Orders & Validation', ArchiveIcon,    'orders'),
+    i('br-billing-accounts',    'Billing Accounts',    BuildingIcon,   'accounts'),
+    i('br-invoices',            'Invoices',            ReceiptIcon,    'invoices'),
+    i('br-payments',            'Payments',            CreditCardIcon, 'payments'),
+    i('br-collections',         'Collections',         InboxIcon,      'entity', { slug: 'collections' }),
+    i('br-revenue-assurance',   'Revenue Assurance',   ShieldIcon,     'revenue-assurance'),
   ]),
 
-  s('network_operations', 'Network & Operations', ServerIcon, [
-    i('net-noc-dashboard',     'NOC Dashboard',          ChartIcon,      'dashboards',                          undefined, 'V'),
-    i('net-monitoring',        'Network Monitoring',     ActivityIcon,   'entity', { slug: 'alarms' },          'O'),
-    i('net-incidents',         'Incidents & Outages',    InboxIcon,      'entity', { slug: 'incidents' },       'O'),
-    i('net-coverage',          'Coverage & GIS',         ServerIcon,     'coverage-gis',                        undefined, 'O'),
-    i('net-topology',          'Network Topology',       ServerIcon,     'network-topology',                    undefined, 'V'),
-    i('net-provisioning',      'Provisioning',           GearIcon,       'provisioning',                        undefined, 'V'),
-    i('net-service-inventory', 'Service Inventory',      ServerIcon,     'services',                            undefined, 'O'),
-    i('net-resource-inv',      'Resource Inventory',     PackageIcon,    'resource-pools',                      undefined, 'O'),
-    i('net-asset-mgmt',        'Asset Management',       PackageIcon,    'entity', { slug: 'assets' },          'O'),
-    i('net-scheduling',        'Scheduling',             CalendarIcon,   'scheduling',                          undefined, 'V'),
-    i('net-dispatch',          'Dispatch Board',         TruckIcon,      'dispatch-board',                      undefined, 'V'),
-    i('net-work-orders',       'Work Orders',            RowsIcon,       'entity', { slug: 'work-orders' },     'O'),
-    i('net-stock-inventory',   'Stock Inventory',        ArchiveIcon,    'entity', { slug: 'stock-items' },        'O'),
-    i('net-warehouses',        'Warehouses',             BuildingIcon,   'entity', { slug: 'warehouses' },      'V'),
+  s('tech_noc', 'Tech & NOC', ServerIcon, [
+    i('noc-dashboard',           'Tech & NOC Dashboard',     ServerIcon,   'dashboards'),
+    i('noc-service-qualification','Service Qualification',   CheckIcon,    'coverage-gis'),
+    i('noc-installation-board',  'Installation Board',       TruckIcon,    'entity', { slug: 'install-jobs' }),
+    i('noc-support-tickets',     'Support Tickets',          InboxIcon,    'helpdesk'),
+    i('noc-support-dispatch',    'Support Dispatch Board',   ActivityIcon, 'dispatch-board'),
+    i('noc-provisioning',        'Provisioning',             GearIcon,     'provisioning'),
+    i('noc-incidents',           'Incidents & Outages',      ShieldIcon,   'entity', { slug: 'incidents' }),
+    i('noc-infra-projects',      'Infrastructure Projects',  LayersIcon,   'entity', { slug: 'infrastructure-projects' }),
+    i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'entity', { slug: 'assets' }),
   ]),
 
   s('analytics_ai', 'Analytics & AI', ChartIcon, [
-    i('aa-dashboards',         'Dashboards',          ChartIcon,    'dashboards',                  undefined, 'V'),
-    i('aa-reports',            'Reports',             BookmarkIcon, 'reports',                     undefined, 'O'),
-    i('aa-executive-dashboard','Executive Dashboard', ChartIcon,    'dashboards',                  undefined, 'V'),
-    i('aa-ai-insights',        'AI Insights',         SparkleIcon,  'ask',                         undefined, 'O'),
+    i('aa-dashboards', 'Operational Dashboards', ChartIcon,    'dashboards'),
+    i('aa-reports-ai', 'Reports & AI Insights',  SparkleIcon,  'reports'),
   ]),
 
   s('enterprise', 'Enterprise', BriefcaseIcon, [
-    i('ent-finance',     'Finance',     ChartIcon,    'entity', { slug: 'expenses' },               'V'),
-    i('ent-accounting',  'Accounting',  ReceiptIcon,  'invoices',                                 undefined, 'O'),
-    i('ent-hr',          'HR',          UsersIcon,    'entity', { slug: 'employees' },           'O'),
-    i('ent-procurement', 'Procurement', PackageIcon,  'entity', { slug: 'purchase-orders' },       'O'),
-    i('ent-legal',       'Legal',       ShieldIcon,   'entity', { slug: 'contracts' },             'V'),
-    i('ent-audit-logs',  'Audit Logs',  ShieldIcon,   'studio',                                  undefined, 'O'),
+    i('ent-finance',          'Back-Office Finance',     ChartIcon,   'entity', { slug: 'expenses' }),
+    i('ent-hr',               'Human Resources',         UsersIcon,   'entity', { slug: 'employees' }),
+    i('ent-procurement',      'Procurement & Vendors',   PackageIcon, 'entity', { slug: 'purchase-orders' }),
+    i('ent-legal-audit',      'Legal & Security Audit',  ShieldIcon,  'entity', { slug: 'contracts' }),
   ]),
 
   s('system', 'System', GearIcon, [
-    i('sys-users',                 'Users',                 UsersIcon,      'entity', { slug: 'users' }),
-    i('sys-roles-permissions',     'Roles & Permissions',   ShieldIcon,     'entity', { slug: 'roles' }),
-    i('sys-settings',              'Settings',              GearIcon,       'settings'),
-    i('sys-integrations',          'Integrations',          LayersIcon,     'webhooks'),
-    i('sys-notifications-config',  'Notifications Config',  MailIcon,       'entity', { slug: 'notification-rules' }),
+    i('sys-users',                'Users',                 UsersIcon,  'entity', { slug: 'users' }),
+    i('sys-roles-permissions',    'Roles & Permissions',   ShieldIcon, 'entity', { slug: 'roles' }),
+    i('sys-settings',             'Settings',              GearIcon,   'settings'),
+    i('sys-integrations',         'Integrations',          LayersIcon, 'webhooks'),
+    i('sys-notifications-config', 'Notifications Config',  MailIcon,   'entity', { slug: 'notification-rules' }),
   ], { adminOnly: true }),
 
   s('dev_internals', 'Dev Internals', LayersIcon, [
@@ -121,20 +107,15 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ], { adminOnly: true }),
 
   s('studio', 'Studio', SparkleIcon, [
-    i('std-experience',     'Experience',       SparkleIcon, 'studio'),
-    i('std-data',           'Data',             LayersIcon,  'studio'),
-    i('std-logic',          'Logic',            EditIcon,    'studio'),
-    i('std-security',       'Security',         ShieldIcon,  'studio'),
-    i('std-intelligence',   'Intelligence',     SparkleIcon, 'studio'),
-    i('std-quality',        'Quality',          CheckIcon,   'studio'),
-    i('std-release',        'Release',          PackageIcon, 'studio'),
-    i('std-governance',     'Governance',       ShieldIcon,  'studio'),
-    i('std-system-control', 'System Control',   GearIcon,    'studio'),
-    i('std-marketplace',    'Marketplace',      ArchiveIcon, 'studio'),
-    i('std-developer',      'Developer',        EditIcon,    'studio'),
-    i('std-notifications',  'Notifications',    MailIcon,    'studio'),
-    i('std-search',         'Search',           InboxIcon,   'studio'),
-    i('std-import-export',  'Import / Export',  ArrowRightIcon, 'studio'),
-    i('std-documentation',  'Documentation',    FolderIcon,  'studio'),
+    i('std-experience',     'Experience',     SparkleIcon, 'studio'),
+    i('std-data',           'Data',           LayersIcon,  'studio'),
+    i('std-logic',          'Logic',          EditIcon,    'studio'),
+    i('std-security',       'Security',       ShieldIcon,  'studio'),
+    i('std-intelligence',   'Intelligence',   SparkleIcon, 'studio'),
+    i('std-quality',        'Quality',        CheckIcon,   'studio'),
+    i('std-release',        'Release',        PackageIcon, 'studio'),
+    i('std-governance',     'Governance',     ShieldIcon,  'studio'),
+    i('std-system-control', 'System Control', GearIcon,    'studio'),
   ], { adminOnly: true }),
 ]
+
