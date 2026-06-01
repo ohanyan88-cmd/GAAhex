@@ -56,7 +56,7 @@ import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-con
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
-import { PanelLeft, Wand, LogIn, Shield } from 'lucide-react'
+import { PanelLeft, Wand, LogIn, Shield, Eye, EyeOff } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
@@ -187,6 +187,7 @@ export default function App() {
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
@@ -334,7 +335,39 @@ export default function App() {
             </label>
             <label className="field" style={{ marginBottom: 8 }}>
               <span>{t('auth.password', 'Password')}</span>
-              <input className={'inp' + (error ? ' inp-error' : '')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} aria-label={t('auth.password', 'Password')} />
+              <div style={{ position: 'relative' }}>
+                <input
+                  className={'inp' + (error ? ' inp-error' : '')}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  aria-label={t('auth.password', 'Password')}
+                  style={{ paddingRight: 38, width: '100%' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
+                  title={showPassword ? t('auth.hidePassword', 'Hide password') : t('auth.showPassword', 'Show password')}
+                  tabIndex={-1}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 4,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--gx-text-3, #94a3b8)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </label>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0 22px' }}>
               <label style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12.5, color: 'var(--gx-text-2)' }}>
