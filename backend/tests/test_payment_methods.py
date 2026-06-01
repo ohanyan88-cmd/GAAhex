@@ -210,21 +210,35 @@ async def test_non_admin_gets_403_on_writes(client, admin, agent):
 async def test_raw_card_data_never_stored(client, admin):
     """Vault a card and verify the DB row does NOT contain the raw PAN, CVV, or cardholder
     name in ANY field. Only safe display bits (last4, brand) + opaque token survive."""
+    import re
     cust = await _customer(client, admin, "PM Privacy Cust")
+    # Use distinctive non-hex/non-numeric values for CVV + name so substring matching
+    # is reliable. A 3-digit numeric CVV like "987" sporadically appears inside the
+    # random hex of gateway_token (`tok_log_<uuid4hex>`), creating a flaky test:
+    # ~30 hex-positions × 1/4096 = ~0.7% per-run false-positive rate. Use values that
+    # contain non-hex characters so a UUID hex collision is mathematically impossible.
     raw_pan = "4242424242424242"
-    raw_cvc = "987"
-    raw_name = "JANE DOE"
+    raw_cvc = "PRIVTEST-CVV-Z"
+    raw_name = "PRIVACY-TEST-CARDHOLDER"
     pm = await _vault(
         client, admin, cust,
         card_number=raw_pan, cvc=raw_cvc, cardholder_name=raw_name,
         exp_year=2030,
     )
 
+    # gateway_token shape is `tok_log_<uuid4hex>` by construction. Verify the shape
+    # independently; substring scanning the random hex is what makes the naive
+    # raw_cvc-in-sv test flaky.
+    token_pattern = re.compile(r"^tok_log_[0-9a-f]{32}$")
+
     # Pull the actual DB row and scan every column for any of the raw fields.
     async with SessionLocal() as s:
         row = (await s.execute(
             select(PaymentMethod).where(PaymentMethod.id == uuid.UUID(pm["id"]))
         )).scalar_one()
+        assert token_pattern.match(row.gateway_token), (
+            f"gateway_token does not have the expected `tok_log_<uuid4hex>` shape: {row.gateway_token!r}"
+        )
         for col in PaymentMethod.__table__.columns:
             v = getattr(row, col.name)
             if v is None:
