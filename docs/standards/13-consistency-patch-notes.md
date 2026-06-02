@@ -206,3 +206,37 @@ conformance items, not spec edits.
 
 ## Still open (unchanged)
 The 7 SOURCE NOT PROVIDED standards remain the only blocker to full closure.
+
+---
+
+# Fifth patch — the 7 missing standards written (files 16–22)
+
+Applied 2026-06-02. The 7 former SOURCE NOT PROVIDED standards were written code-accurate against
+the pulled Portal source, not abstractly. Zero placeholders remain.
+
+- **16 — Global Status** — `status_def` + `seed_statuses.py`: 9 SPEC §7 vocabularies (UPPER_SNAKE,
+  initial/terminal flags), General fallback set, entity mapping, guarded transitions emitting
+  STATUS_CHANGED, status vs stage vs deletionState separation.
+- **17 — Security & Permission** — `access.py` + `invariants.py` + `models/access.py`: positive
+  grant + wildcards + org-scope (node|subtree|tenant, ltree), RoleDeny hard-denials (deny beats
+  grant), Assignment department + region_scope, field-level view/edit gates, §0 invariants
+  (owner/default-deny/master-data/region), tenant RLS, secrets-at-rest, error→HTTP mapping.
+  Supersedes the thin RBAC notes in file 12.
+- **18 — Automation** — `automation.py` + `workflow_engine.py`: AutomationRule (single-entity,
+  single-step) vs WorkflowDef Universal Contract (cross-entity, multi-step, owner/SLA/approval/
+  failure); §5.3 action verbs; reused engines never duplicated; transaction-agnostic engine.
+- **19 — Integration** — `webhook.py` + `outbound.py` + vendor_webhooks: outbound webhooks (HMAC
+  secret encrypted at rest), delivery log, OutboundMessage channel adapters, idempotent inbound
+  vendor callbacks.
+- **20 — Data Validation** — `FieldDef` (16 types) + `records.py _validate`: server-side
+  enforcement, 422 rules, partial-vs-full required, type/option checks, references-not-copies
+  ordering, field-edit 403.
+- **21 — Search & Filter** — `search.py` + `saved_view.py` + `search_history.py`: org-scoped
+  global search with field redaction + ranking, response shapes, saved views, search history.
+- **22 — Navigation (base)** — `nav_module.py` + `page_config.py`: NavGroup/NavModule IA as data,
+  placement O/V, owner_module symmetry, locked SPEC §1 placement rules, PageConfig bespoke pages.
+  The locked tree (file 10) remains authoritative content.
+
+Index updated: 7 rows moved from `LOCKED / SOURCE NOT PROVIDED` to `LOCKED` with file numbers
+16–22. The only remaining gap is the build of the new modules (Comment, Attachment, Watcher, full
+Task, SLA, Relationship, Configuration, full Notification, Data Retention) — each standard-first.

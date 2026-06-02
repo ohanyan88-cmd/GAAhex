@@ -9,7 +9,7 @@ Legend — Status: `LOCKED` = full text present and patched. `LOCKED / SOURCE NO
 | # | Standard | Status | Source file | Key dependencies |
 |---|----------|--------|-------------|------------------|
 | 1 | Strategic Product Direction | LOCKED | 01 | (parent of all) |
-| 2 | Global Status | LOCKED / SOURCE NOT PROVIDED | 07 | Enum |
+| 2 | Global Status | LOCKED | 16 | Enum |
 | 3 | Department Ownership | LOCKED | 02 | Assignment |
 | 4 | Assignment | LOCKED | 02 | Department Ownership, Queue |
 | 5 | Queue Ownership | LOCKED | 02 | Assignment, Escalation |
@@ -27,18 +27,18 @@ Legend — Status: `LOCKED` = full text present and patched. `LOCKED / SOURCE NO
 | 17 | Watcher / Subscriber | LOCKED | 05 | Notification, Audit |
 | 18 | Notification | LOCKED | 05 | Watcher, Event System |
 | 19 | Event System | LOCKED | 06 | ID, Audit, Timeline, ActorType |
-| 20 | Automation | LOCKED / SOURCE NOT PROVIDED | 06 | Event System |
-| 21 | Integration | LOCKED / SOURCE NOT PROVIDED | 06 | Event System, Multi-Tenant |
-| 22 | Security & Permission | LOCKED / SOURCE NOT PROVIDED | 07 | Multi-Tenant, RBAC |
-| 23 | Data Validation | LOCKED / SOURCE NOT PROVIDED | 07 | Enum, API, Import/Export |
-| 24 | Search & Filter | LOCKED / SOURCE NOT PROVIDED | 07 | Security, Multi-Tenant |
+| 20 | Automation | LOCKED | 18 | Event System, Workflow |
+| 21 | Integration | LOCKED | 19 | Event System, Security, Multi-Tenant |
+| 22 | Security & Permission | LOCKED | 17 | Multi-Tenant, RBAC (supersedes file 12 notes) |
+| 23 | Data Validation | LOCKED | 20 | Enum, Security, Global Status |
+| 24 | Search & Filter | LOCKED | 21 | Security, Multi-Tenant |
 | 25 | Reporting & Analytics | LOCKED | 08 | Security, Event System, Multi-Tenant |
 | 26 | Import / Export | LOCKED | 08 | Data Validation, Security, Attachment |
 | 27 | Multi-Tenant | LOCKED | 08 | Security (applies everywhere) |
 | 28 | Localization | LOCKED | 08 | Enum, Naming |
 | 29 | Configuration | LOCKED | 08 | Security, Audit, Feature Flag |
 | 30 | Feature Flag | LOCKED | 08 | Configuration, Security, Multi-Tenant |
-| 31 | Navigation (locked tree authoritative) | LOCKED / SOURCE NOT PROVIDED (tree provided) | 10 | Security, Feature Flag |
+| 31 | Navigation (base + locked tree) | LOCKED | 22 | Security, Feature Flag, Ownership |
 | 32 | PageShell | LOCKED | 10 | Universal Page |
 | 33 | Universal Page | LOCKED | 10 | PageShell, Page Type |
 | 34 | Page Type | LOCKED | 10 | Universal Page, Tabs |
@@ -84,8 +84,9 @@ Legend — Status: `LOCKED` = full text present and patched. `LOCKED / SOURCE NO
 - Former `17 / 17` collision (Event System vs Notification) resolved: Notification = 18,
   Event System = 19. Both name-keyed; numbers are ordering only.
 - Former `22 vs 28` count mismatch resolved: a single contiguous sequence (1–70) with no
-  gaps and no duplicates. Seven entries are `SOURCE NOT PROVIDED` placeholders, counted
-  in sequence so cross-references stay stable.
+  gaps and no duplicates. The seven former `SOURCE NOT PROVIDED` entries (Global Status,
+  Security & Permission, Automation, Integration, Data Validation, Search & Filter, Navigation
+  base) are now written code-accurate as files 16–22. Zero placeholders remain.
 
 ## Canonical cross-cutting enums (defined once in file 03)
 

@@ -6,7 +6,8 @@ other locked standards already impose on it, so implementers know the non-negoti
 
 ---
 
-## Global Status Standard — LOCKED / SOURCE NOT PROVIDED
+## Global Status Standard — LOCKED (written: file 16)
+→ See **16-global-status-standard.md** (code-accurate). Was SOURCE NOT PROVIDED; now resolved.
 
 Referenced as standard #1 by the ownership and standards-definition documents.
 Imposed constraints from locked standards already in this set:
@@ -19,7 +20,8 @@ Full source text required before completion.
 
 ---
 
-## Security & Permission Standard — LOCKED / SOURCE NOT PROVIDED
+## Security & Permission Standard — LOCKED (written: file 17)
+→ See **17-security-permission-standard.md** (code-accurate). Supersedes the RBAC notes in file 12. Was SOURCE NOT PROVIDED; now resolved.
 
 Referenced everywhere data access exists. The RBAC / Permission Model Standard (file 12)
 provides the access-decision model, but the base Security & Permission Standard source text was
@@ -34,7 +36,8 @@ Full source text required before completion.
 
 ---
 
-## Data Validation Standard — LOCKED / SOURCE NOT PROVIDED
+## Data Validation Standard — LOCKED (written: file 20)
+→ See **20-data-validation-standard.md** (code-accurate). Was SOURCE NOT PROVIDED; now resolved.
 
 Referenced as the shared validation contract for UI, API, automation, integration, admin tools,
 background jobs, and import/export.
@@ -47,7 +50,8 @@ Full source text required before completion.
 
 ---
 
-## Search & Filter Standard — LOCKED / SOURCE NOT PROVIDED
+## Search & Filter Standard — LOCKED (written: file 21)
+→ See **21-search-filter-standard.md** (code-accurate). Was SOURCE NOT PROVIDED; now resolved.
 
 Referenced by Table, Pagination, Reporting, Reference Number, Import/Export, Multi-Tenant.
 Imposed constraints from locked standards already in this set:

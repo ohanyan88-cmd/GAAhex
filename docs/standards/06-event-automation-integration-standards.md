@@ -106,7 +106,8 @@ timelines, automations, notifications, integrations, audit, analytics, and futur
 
 ---
 
-## Automation Standard — LOCKED / SOURCE NOT PROVIDED
+## Automation Standard — LOCKED (written: file 18)
+→ See **18-automation-standard.md** (code-accurate). Was SOURCE NOT PROVIDED; now resolved.
 
 Referenced as locked by Event System, Workflow Engine, Notification, Reporting, Localization,
 Multi-Tenant, Background Job. **Source text was not provided to this patch.** No rules are
@@ -116,7 +117,8 @@ invented. Imposed constraints already binding it: event-only triggering (no UI-c
 
 ---
 
-## Integration Standard — LOCKED / SOURCE NOT PROVIDED
+## Integration Standard — LOCKED (written: file 19)
+→ See **19-integration-standard.md** (code-accurate). Was SOURCE NOT PROVIDED; now resolved.
 
 Referenced as locked by Event System, API, Webhook, Background Job, Multi-Tenant, Import/Export.
 **Source text was not provided to this patch.** No rules are invented. Imposed constraints:

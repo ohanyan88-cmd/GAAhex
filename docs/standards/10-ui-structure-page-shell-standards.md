@@ -106,7 +106,8 @@ full-width for tables/dashboards/monitoring/reporting/network/workspaces; constr
 forms/settings/focused/config. Sections have clear hierarchy (title, optional description, body,
 actions). Spacing tokens only; standardized breakpoints.
 
-## Navigation Standard (base) — LOCKED / SOURCE NOT PROVIDED
+## Navigation Standard (base) — LOCKED (written: file 22)
+→ See **22-navigation-standard.md** (code-accurate). The locked tree below remains authoritative content. Was SOURCE NOT PROVIDED; now resolved.
 Referenced as a base standard by Left Navigation, Header, PageShell, Feature Flag, and Security.
 **Source text was not provided (E18).** The locked navigation **tree** below is authoritative;
 the base Navigation Standard's behavior rules are pending. No rules invented.
