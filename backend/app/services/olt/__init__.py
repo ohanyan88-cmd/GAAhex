@@ -50,8 +50,9 @@ from .exceptions import (
 from .factory import get_driver_for_olt, register_driver, registered_vendors
 from .mock_driver import MockOltDriver
 # Importing the drivers package triggers auto-registration of every concrete
-# vendor driver (HuaweiDriver registers 'huawei' on its module body).
-from .drivers import HuaweiDriver
+# vendor driver (HuaweiDriver registers 'huawei', ZteDriver registers 'zte' on
+# their respective module bodies).
+from .drivers import HuaweiDriver, ZteDriver
 from .transport import (
     AsyncSshCliTransport,
     CliTransport,
@@ -87,6 +88,7 @@ __all__ = [
     "MockOltDriver",
     # Concrete vendor drivers
     "HuaweiDriver",
+    "ZteDriver",
     # Exceptions
     "OltError",
     "OltConnectionError",
