@@ -71,6 +71,19 @@ def _permission_specs(tenant_id) -> list[dict]:
     ):
         specs.append({"tenant_id": tenant_id, "key": f"comment.{verb}", "label": vl, "group": "comment"})
 
+    # Watcher / Subscriber Standard (file 05) — 6 keys from the locked Permission Registry (file 15).
+    # Cross-cutting, not bundled into any default role. Watching never grants permission and never
+    # counts toward KPI / SLA / workload (file 05 principle). manage_others = supervisor/admin scope.
+    for verb, vl in (
+        ("view",          "View watchers on an object"),
+        ("add",           "Add a watcher to an object"),
+        ("remove",        "Remove a watcher from an object"),
+        ("pause",         "Pause watcher notifications"),
+        ("resume",        "Resume paused watcher notifications"),
+        ("manage_others", "Manage other users' watchers (supervisor scope)"),
+    ):
+        specs.append({"tenant_id": tenant_id, "key": f"watch.{verb}", "label": vl, "group": "watch"})
+
     return specs
 
 
