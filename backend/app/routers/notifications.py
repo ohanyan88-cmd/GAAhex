@@ -51,6 +51,13 @@ async def emit_notification(
     entity_key: str | None = None,
     record_id=None,
     context: dict | None = None,
+    # Notification Standard extension kwargs (file 05 / D16).
+    # All optional — every existing call site works unchanged.
+    event_id=None,                          # D16: triggering event id
+    source: str | None = None,             # NotificationSource UPPER_SNAKE
+    severity: str | None = None,           # INFO|WARNING|ERROR|CRITICAL
+    recipient_type: str = "EMPLOYEE",      # RecipientType (default EMPLOYEE = user_id path)
+    std_category: str | None = None,       # Option A: canonical NotificationCategory
 ) -> Notification | None:
     """Create one inbox notification from its NotificationDef. Config-, condition-, and
     preference-gated.
@@ -106,6 +113,13 @@ async def emit_notification(
         entity_key=entity_key,
         record_id=record_id,
         digest_pending=digest_pending,   # lane E sends the digest and clears this flag
+        # Notification Standard extension fields (file 05 / D16).
+        event_id=event_id,
+        source=source,
+        severity=severity,
+        recipient_type=recipient_type,
+        std_category=std_category,
+        status="PENDING" if digest_pending else "DELIVERED",
     )
     s.add(note)
     await s.flush()

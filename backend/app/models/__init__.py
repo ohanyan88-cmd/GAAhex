@@ -22,6 +22,7 @@ from .watcher import Watcher
 from .task import Task, TaskDependency
 from .sla import SlaRecord, SlaEvent
 from .attachment import Attachment, AttachmentReference
+from .notification import NotificationDelivery  # extend existing import
 from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product

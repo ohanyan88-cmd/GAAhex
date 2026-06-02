@@ -120,6 +120,15 @@ def _permission_specs(tenant_id) -> list[dict]:
     ):
         specs.append({"tenant_id": tenant_id, "key": f"attachment.{verb}", "label": vl, "group": "attachment"})
 
+    # Notification Standard (file 05) — 4 keys from the locked Permission Registry (file 15).
+    for verb, vl in (
+        ("view",                "View notifications"),
+        ("manage_preferences",  "Manage notification preferences"),
+        ("acknowledge",         "Acknowledge notifications"),
+        ("dismiss",             "Dismiss notifications"),
+    ):
+        specs.append({"tenant_id": tenant_id, "key": f"notification.{verb}", "label": vl, "group": "notification"})
+
     return specs
 
 
