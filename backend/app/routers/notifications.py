@@ -81,6 +81,22 @@ async def emit_notification(
     if await _pref_opted_out(s, tenant_id, user_id, ndef):
         return None
 
+    # Suppression mode (file 05 NotificationSuppressionMode).
+    # Applied BEFORE creating the inbox row. Audit trail: suppressed emits
+    # return None (no row) — callers can't distinguish from pref-opted-out,
+    # which is the correct generic denial surface.
+    mode = getattr(ndef, "suppression_mode", None) or "NONE"
+    if mode == "MUTE":
+        # Never deliver — not even to inbox.
+        return None
+    if mode == "DEDUPLICATE":
+        window = getattr(ndef, "dedup_window_seconds", None) or _DEDUP_WINDOW_SECONDS
+        if await check_deduplicate(s, tenant_id=tenant_id, def_key=def_key,
+                                   user_id=user_id, window_seconds=window):
+            return None  # duplicate within window — suppress
+    # AGGREGATE / THROTTLE: future modes. Currently fall through to NONE behaviour.
+    # The model + migration is in place; the logic lands when the mode is exercised.
+
     # A26: resolve the recipient's delivery preference (mode/channels/muted) for this notification's
     # category / def_key. The in-app inbox row is created UNCONDITIONALLY below — prefs only gate the
     # EXTERNAL fan-out and the digest hand-off. `_resolve_pref` returns None when the user has NO

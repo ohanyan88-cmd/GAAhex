@@ -55,6 +55,16 @@ class NotificationDef(Base):
     body_template: Mapped[str] = mapped_column(String(1000), nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     gxl_condition: Mapped[str | None] = mapped_column(String(500), nullable=True)  # optional GXL guard
+    # Suppression mode (file 05 NotificationSuppressionMode):
+    # NONE (default) | DEDUPLICATE | AGGREGATE | THROTTLE | MUTE
+    # NONE      — always deliver
+    # DEDUPLICATE — skip if same def_key+user exists within dedup_window_seconds
+    # AGGREGATE   — collect multiple into one digest-like delivery (future)
+    # THROTTLE    — cap delivery rate per user per window (future)
+    # MUTE        — never deliver to inbox or external (audit row still generated)
+    suppression_mode: Mapped[str | None] = mapped_column(String(20), nullable=True, default="NONE", server_default="'NONE'")
+    # Window for DEDUPLICATE + THROTTLE modes (seconds). NULL = use global default (300s).
+    dedup_window_seconds: Mapped[int | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

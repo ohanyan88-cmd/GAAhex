@@ -126,6 +126,7 @@ def _permission_specs(tenant_id) -> list[dict]:
         ("manage_preferences",  "Manage notification preferences"),
         ("acknowledge",         "Acknowledge notifications"),
         ("dismiss",             "Dismiss notifications"),
+        ("manage",              "Manage notification system (run sweeps, admin inbox)"),
     ):
         specs.append({"tenant_id": tenant_id, "key": f"notification.{verb}", "label": vl, "group": "notification"})
 
