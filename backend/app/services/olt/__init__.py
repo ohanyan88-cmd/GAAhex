@@ -49,6 +49,22 @@ from .exceptions import (
 )
 from .factory import get_driver_for_olt, register_driver, registered_vendors
 from .mock_driver import MockOltDriver
+from .transport import (
+    AsyncSshCliTransport,
+    CliTransport,
+    MockCliTransport,
+    MockNetconfTransport,
+    MockSnmpTransport,
+    NcclientNetconfTransport,
+    NetconfTransport,
+    PysnmpTransport,
+    SnmpTransport,
+    TransportAuthError,
+    TransportConnectionError,
+    TransportError,
+    TransportProtocolError,
+    TransportTimeoutError,
+)
 
 __all__ = [
     # Protocol + result dataclasses
@@ -73,4 +89,19 @@ __all__ = [
     "OltCredentialsError",
     "OltTimeoutError",
     "OltNotSupportedError",
+    # Transport layer (M1-B Phase 2)
+    "TransportError",
+    "TransportConnectionError",
+    "TransportAuthError",
+    "TransportTimeoutError",
+    "TransportProtocolError",
+    "CliTransport",
+    "AsyncSshCliTransport",
+    "SnmpTransport",
+    "PysnmpTransport",
+    "NetconfTransport",
+    "NcclientNetconfTransport",
+    "MockCliTransport",
+    "MockSnmpTransport",
+    "MockNetconfTransport",
 ]
