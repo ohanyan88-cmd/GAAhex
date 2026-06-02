@@ -30,7 +30,7 @@ _logger = logging.getLogger("gaahex.field_crypto")
 
 # Deterministic 32-byte raw key → 44-char url-safe base64 Fernet key. Used only when
 # ``GAAHEX_FIELD_KEY`` is unset; logs a loud warning every time it's selected.
-_DEV_RAW = b"gaahex-dev-fernet-key-32bytes-len"  # exactly 32 bytes
+_DEV_RAW = b"gaahex-dev-fernet-key-32byte-len"  # exactly 32 bytes
 _DEV_KEY = base64.urlsafe_b64encode(_DEV_RAW)
 
 
