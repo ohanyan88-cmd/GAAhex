@@ -1,0 +1,85 @@
+/* =========================================================================
+   PROMPT 5 — Data tables / list views (Invoices first)
+   Verbatim from design-system/ui_kits/portal/app.css (lines 103-178, 408-409),
+   scoped to the kit's tokens. NOTE: .kpis / .kpi / .cols intentionally NOT
+   copied — the live app already uses a local `.widgets` / `.widget` pattern
+   (with a conflicting local `.kpi { font-size:38px; font-family:mono }` for
+   the big number). Importing the kit's container `.kpi` would clobber that
+   across every dashboard. KPI strip styling lives under `.kpi-strip` only.
+   ========================================================================= */
+.view { flex:1; overflow-y:auto; overflow-x:hidden; }
+.view-inner { padding:22px 26px 40px; width:100%; box-sizing:border-box; }
+.crumbs { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--gx-text-3); margin-bottom:14px; }
+.crumbs .sep { opacity:.5; }
+
+/* table
+   IMPORTANT — root-cause fix (2026-05-31): Tailwind's `.grid` utility class sets
+   `display: grid` (specificity 0,1,0). The browser's UA default `display: table`
+   for <table> is overridden by that utility, which then cascades to thead/tbody
+   becoming `display: block`. The header row and body row end up in completely
+   different layout systems — that's why headers compressed to the left while
+   bodies spanned full width across every list page.
+   Fix: force `display: table` on `table.grid` (specificity 0,1,1 beats the
+   utility) and `table-layout: fixed` so columns are computed from the HEADER
+   row, then explicitly size the narrow fixed columns (.sel-col, .actions-col)
+   so empty header cells don't collapse to zero width. */
+table.grid {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+/* min-width forces horizontal scroll on the wrap instead of squashing columns.
+   Scoped to .grid-wrap so embedded/modal tables (which size to their own panel)
+   aren't forced to 900px and clipped. Rationale for the 900 floor:
+   sel-col(40) + actions-col(96) + ~5 data columns at ~140px ≈ 836 — bumping to
+   900 gives the action menu room and keeps "Move to ACTIVE/CHURNED" text from
+   touching the next column. Anything narrower than ~900px viewport triggers
+   .grid-wrap's overflow-x:auto instead of column overlap. */
+.grid-wrap > table.grid { min-width: 900px; }
+table.grid > thead { display: table-header-group; }
+table.grid > tbody { display: table-row-group; }
+table.grid > thead > tr,
+table.grid > tbody > tr { display: table-row; }
+table.grid th, table.grid td { display: table-cell; }
+table.grid th { text-align:left; padding:10px 14px; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-3); border-bottom:1px solid var(--gx-border); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+table.grid td { padding:11px 14px; border-bottom:1px solid var(--gx-border-subtle); color:var(--gx-text-1); overflow:hidden; text-overflow:ellipsis; }
+/* Narrow fixed columns. With table-layout:fixed, empty <th> cells get 0 width
+   unless we size them. Apply these classes to BOTH the <th> and the <td>.
+   actions-col stays visible (overflow:visible) so icon-rows don't get clipped. */
+table.grid th.sel-col, table.grid td.sel-col { width:40px; padding-left:12px; padding-right:6px; overflow:visible; }
+/* actions-col: was 200px to fit a 6-7 icon stack — now collapsed to a single ⋮ menu
+   (plus at most one primary inline icon), so a slimmer column is enough. */
+table.grid th.actions-col, table.grid td.actions-col { width:96px; overflow:visible; }
+table.grid td .row-actions-menu { justify-content:flex-end; }
+table.grid td .row-actions { justify-content:flex-end; }
+table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }
+table.grid tbody tr:hover { background:var(--gx-hover); }
+table.grid tbody tr.sel { background:var(--gx-selected); }
+
+/* entity pages: kpi strip / toolbar / table footer
+   .kpi-strip .kpi mirrors .gx-dash .kpi so list views render kit-shaped tiles
+   (the legacy app-wide .kpi { font-size:38px; font-family:mono } at line 959 would
+   otherwise win and reduce these to bare numeric text). */
+.kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin-bottom:16px; }
+.kpi-strip .kpi {
+  min-width:0; overflow:hidden; position:relative;
+  background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg);
+  padding:14px 16px; box-shadow:var(--gx-shadow-sm);
+  transition:box-shadow var(--gx-dur-base), transform var(--gx-dur-base);
+  display:flex; flex-direction:column; gap:6px;
+  /* reset the legacy .kpi rule */
+  font-size:inherit; font-family:inherit; color:var(--gx-text-1); font-weight:normal; line-height:normal;
+}
+.kpi-strip .kpi:hover { box-shadow:var(--gx-shadow-md); transform:translateY(-1px); }
+.kpi-strip .kpi .klbl { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); }
+.kpi-strip .kpi .kval { font-family:var(--gx-font-display); font-weight:600; letter-spacing:-.02em; margin:6px 0 8px; color:var(--gx-text-1); }
+.kpi-strip .kpi--marquee { box-shadow:var(--gx-glow-gold); border-color:transparent; }
+.kpi-strip .kpi--marquee::before { content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--gx-gold); border-radius:99px; }
+.toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.toolbar .tb-search { height:34px; }
+.table-foot { display:flex; align-items:center; gap:10px; padding:12px 16px; border-top:1px solid var(--gx-border-subtle); }
+
+/* bulk action bar */
+.bulkbar { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; gap:8px; padding:8px 14px; background:var(--gx-elevated); border-bottom:1px solid var(--gx-primary); box-shadow:var(--gx-shadow-sm); }

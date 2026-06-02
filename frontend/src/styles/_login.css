@@ -1,0 +1,24 @@
+/* =========================================================================
+   Login — split-screen brand panel + form (kit Login.jsx)
+   ========================================================================= */
+.login-wrap { height:100vh; display:grid; grid-template-columns:1fr 1fr; }
+.login-brand {
+  background: radial-gradient(120% 120% at 20% 0%, #16294a 0%, #0A1322 55%, #070d18 100%);
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 48px; position: relative; overflow: hidden;
+}
+.login-brand::after {
+  content: ""; position: absolute; inset: 0;
+  background: url("/logo/GAAhex-mark.svg") no-repeat 130% 60%;
+  background-size: 62%; opacity: .05;
+}
+.login-card {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; background: var(--gx-bg);
+}
+.login-form { width: 100%; max-width: 360px; }
+@media (max-width: 900px) {
+  .login-wrap { grid-template-columns: 1fr; }
+  .login-brand { padding: 32px; min-height: 320px; }
+  .login-card { padding: 32px 24px; }
+}

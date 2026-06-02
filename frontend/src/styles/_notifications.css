@@ -1,0 +1,25 @@
+/* ===================== NOTIFICATIONS (NotificationBell, P4) ===================== */
+.notif-wrap { position:relative; }
+.notif-pop {
+  position:absolute; top:calc(100% + 6px); right:0;
+  z-index:var(--gx-z-popover);
+  width:380px; max-height:520px;
+  background:var(--gx-surface-1);
+  border:1px solid var(--gx-border);
+  border-radius:var(--gx-radius-lg);
+  display:flex; flex-direction:column;
+  padding:0;
+}
+.notif-head { display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid var(--gx-border-subtle); }
+.notif-list { overflow-y:auto; max-height:380px; padding:4px 0; }
+.notif-item {
+  display:flex; align-items:flex-start; gap:10px;
+  width:100%; padding:10px 14px;
+  background:transparent; border:0; cursor:pointer; text-align:left;
+  transition:background var(--gx-dur-fast);
+}
+.notif-item:hover { background:var(--gx-hover); }
+.notif-item.unread { background:var(--gx-primary-soft); }
+.notif-item.unread:hover { background:var(--gx-hover); }
+.notif-ic { flex-shrink:0; width:28px; height:28px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:var(--gx-surface-2); }
+.notif-foot { display:flex; align-items:center; gap:6px; padding:10px 14px; border-top:1px solid var(--gx-border-subtle); }

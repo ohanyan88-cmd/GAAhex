@@ -1,0 +1,45 @@
+/* ===================== STUDIO ===================== */
+/* Scope the layout grid to the container DIV only — the data tables also carry a `studio`
+   class (`.grid.studio`), and a bare `.studio { display:grid }` was blockifying their
+   thead/tbody and breaking column alignment. */
+div.studio {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 18px;
+}
+.studio-nav {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 2px;
+  height: max-content;
+  position: sticky; top: 80px;
+}
+.studio-nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); padding: 10px 8px 4px; }
+.studio-nav-item {
+  display: flex; align-items: center; gap: 9px;
+  background: transparent; border: 0; cursor: pointer;
+  padding: 7px 9px; border-radius: var(--r-sm);
+  color: var(--text-2); font-size: 13px;
+  text-align: left;
+  font-weight: var(--fw-medium);
+}
+.studio-nav-item:hover { background: var(--surface-2); color: var(--text); }
+.studio-nav-item.on { background: var(--accent-soft); color: var(--accent); }
+.studio-pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.studio .grid td { padding: 6px 10px; font-size: 12.5px; vertical-align: middle; }
+.studio .grid th { padding: 8px 10px; font-size: 10px; }
+
+/* Kit toggle switch (.gx-toggle + .knob) — used in SettingsView and anywhere kit-rendered */
+.gx-toggle { position:relative; width:38px; height:22px; border-radius:11px; background:var(--gx-border-strong); border:0; padding:0; cursor:pointer; transition:background var(--gx-dur-base); flex:none; }
+.gx-toggle.on { background:var(--gx-primary); }
+.gx-toggle .knob { position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform var(--gx-dur-base); box-shadow:0 1px 3px rgba(0,0,0,.25); }
+.gx-toggle.on .knob { transform:translateX(16px); }

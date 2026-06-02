@@ -1,0 +1,33 @@
+/* ===================== EMPTY / LOADING / ERROR ===================== */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-2);
+}
+.empty-state-icon { width: 48px; height: 48px; color: var(--text-3); }
+.empty-state h3 { color: var(--text); }
+.empty-state p { color: var(--text-3); font-size: 13px; max-width: 380px; margin: 0; }
+
+.loading-state {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 40px 24px;
+  color: var(--text-3);
+}
+.spin-icon { animation: spin-icon 0.75s linear infinite; }
+
+.error-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--r-md);
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.error-banner-icon { color: var(--danger); flex: none; margin-top: 1px; }
+.error-banner-title { font-weight: var(--fw-semibold); font-size: 13px; }
+.error-banner-msg { font-size: 12px; color: var(--text-2); }

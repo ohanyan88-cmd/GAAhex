@@ -1,0 +1,128 @@
+/* =========================================================================
+   HELPDESK POLISH (Care section · 2026-05-31)
+   ------------------------------------------------------------------------
+   Carded queue rail + main content split inside `.section-page` (1320px cap).
+   Replaces the previous inline-styled flex layout with a tokenized two-pane
+   shell that respects light/dark via --gx-* variables only.
+
+   SCOPE:
+     - `.hd-shell`   — outer 2-column grid (queues rail + main pane)
+     - `.hd-rail*`   — left rail card (queue list + counts)
+     - `.hd-main`    — right column wrapper (gap above content card)
+     - `.hd-card`    — main content card (toolbar + table inside)
+     - `.hd-toolbar` — filter bar overrides (no bottom margin inside card)
+     - `.hd-mine`    — "My tickets" checkbox label
+     - `.hd-skel-pad`, `.hd-rail-empty` — small spacing tweaks
+   ========================================================================= */
+.section-page .hd-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 16px;
+  align-items: flex-start;
+}
+.section-page .hd-rail {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+}
+.section-page .hd-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 8px;
+}
+.section-page .hd-rail-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gx-text-3);
+}
+.section-page .hd-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.section-page .hd-rail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--gx-radius-md);
+  background: none;
+  border: 1px solid transparent;
+  color: var(--gx-text-2);
+  font-size: 13px;
+  font-family: var(--gx-font-sans);
+  cursor: pointer;
+  transition: background var(--gx-dur-fast), color var(--gx-dur-fast);
+}
+.section-page .hd-rail-item:hover {
+  background: var(--gx-hover);
+  color: var(--gx-text-1);
+}
+.section-page .hd-rail-item:focus-visible {
+  outline: 2px solid var(--gx-primary);
+  outline-offset: -2px;
+}
+.section-page .hd-rail-item.on {
+  background: var(--gx-selected);
+  color: var(--gx-text-1);
+  font-weight: 600;
+}
+.section-page .hd-rail-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.section-page .hd-rail-count {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  flex-shrink: 0;
+}
+.section-page .hd-rail-empty {
+  font-size: 12px;
+  padding: 6px 10px;
+  margin: 0;
+}
+.section-page .hd-main {
+  min-width: 0;
+}
+.section-page .hd-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.section-page .hd-toolbar {
+  margin-bottom: 0;
+}
+.section-page .hd-mine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gx-text-2);
+}
+.section-page .hd-skel-pad {
+  padding: 6px 0;
+}
+
+/* Responsive: collapse the rail above the main column on narrow widths. */
+@media (max-width: 880px) {
+  .section-page .hd-shell {
+    grid-template-columns: 1fr;
+  }
+  .section-page .hd-rail {
+    position: static;
+  }
+}

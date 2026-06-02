@@ -1,0 +1,18 @@
+/* ===================== EMOJI / ICON PICKER ===================== */
+.emoji-pop, .icon-picker-pop {
+  position: fixed;
+  width: 320px; height: 340px;
+  z-index: var(--z-toast);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.emoji-search { padding: 8px; border-bottom: 1px solid var(--border); }
+.emoji-tabs { display: flex; gap: 2px; padding: 6px 8px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.emoji-tab { background: transparent; border: 0; color: var(--text-3); font-size: 11px; padding: 4px 9px; border-radius: var(--r-sm); cursor: pointer; white-space: nowrap; }
+.emoji-tab.on { background: var(--primary-soft); color: var(--text); }
+.emoji-grid { flex: 1; overflow-y: auto; padding: 8px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.emoji-cell { background: transparent; border: 0; font-size: 20px; padding: 4px; border-radius: var(--r-sm); cursor: pointer; display: grid; place-items: center; aspect-ratio: 1; }
+.emoji-cell:hover { background: var(--surface-2); }
+.emoji-cell.on { background: var(--accent-soft); color: var(--accent); }
+.emoji-empty { grid-column: 1 / -1; padding: 20px; text-align: center; color: var(--text-3); font-size: 12px; }

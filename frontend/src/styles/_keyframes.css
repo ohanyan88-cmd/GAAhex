@@ -1,0 +1,27 @@
+/* ===================== KEYFRAMES ===================== */
+@keyframes overlay-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlay-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes drawer-slide-in { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes spin-icon { to { transform: rotate(360deg); } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1100px) {
+  .studio { grid-template-columns: 1fr; }
+  .studio-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+}
+@media (max-width: 600px) {
+  .rec-form { grid-template-columns: 1fr; }
+  .card { width: calc(100vw - 32px); padding: 20px; }
+  .view-head-actions { width: 100%; }
+}

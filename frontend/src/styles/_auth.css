@@ -1,0 +1,59 @@
+/* ===================== AUTH / LOGIN ===================== */
+/* Transparent so the fixed ambient gradient on <body> glows through behind the
+   glass login card. The ::before adds a faint extra wash for depth on the auth screen. */
+.center { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: transparent; }
+.center::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(800px 500px at 20% 0%, rgba(28,59,104,0.18), transparent 60%),
+    radial-gradient(700px 500px at 100% 100%, rgba(197,160,89,0.10), transparent 60%);
+}
+.card {
+  position: relative;
+  background: var(--surface);
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  /* GLASS — soft inset highlight on top of the elevation shadow (blur removed per kit spec) */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-card);
+  border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.card-wide { width: 720px; }
+.logo-lg {
+  width: 100%; height: 72px; margin: 6px 0 4px;
+  display: grid; place-items: center;
+  background: linear-gradient(140deg, #142D4F, var(--brand) 60%, #2E5A9C);
+  border-radius: var(--r-md);
+  color: #fff;
+  font-weight: var(--fw-bold);
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  position: relative; overflow: hidden;
+}
+.logo-lg::after {
+  content: ""; position: absolute; right: -20px; bottom: -20px;
+  width: 90px; height: 90px;
+  background: radial-gradient(circle, var(--accent), transparent 60%);
+  opacity: 0.35;
+}
+.logo-sm {
+  width: 32px; height: 32px;
+  background: linear-gradient(140deg, #142D4F, #2E5A9C);
+  border-radius: var(--r-sm); display: grid; place-items: center;
+  color: #fff; font-weight: var(--fw-bold); font-size: 12px;
+}
+
+/* Wizard step indicator */
+.wiz-steps { display: flex; align-items: center; gap: 0; margin-bottom: 18px; }
+.wiz-step { display: flex; align-items: center; gap: 8px; color: var(--text-3); font-size: 12px; }
+.wiz-step + .wiz-step { margin-left: 8px; }
+.wiz-step-no {
+  width: 24px; height: 24px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text-3);
+  display: grid; place-items: center; font-weight: var(--fw-semibold); font-size: 12px;
+}
+.wiz-step.on { color: var(--text); }
+.wiz-step.on .wiz-step-no { background: var(--accent); color: var(--accent-text); }
+.wiz-step.done .wiz-step-no { background: var(--success); color: #fff; }
+.wiz-conn { flex: 1; height: 1px; background: var(--border); margin: 0 6px; }
+.wiz-conn.done { background: var(--success); }

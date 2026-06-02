@@ -1,0 +1,11 @@
+/* ===================== COMPOSER / COMMENTS ===================== */
+.composer { display: flex; flex-direction: column; gap: 8px; }
+.composer textarea { min-height: 70px; }
+.composer-actions { display: flex; align-items: center; gap: 8px; }
+.composer-actions .btn { margin-left: auto; }
+.comments { display: flex; flex-direction: column; gap: 10px; max-height: 46vh; overflow-y: auto; margin-bottom: 14px; }
+.comment { background: var(--surface-2); border-radius: var(--r-md); padding: 9px 11px; }
+.comment-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.comment-author { font-weight: var(--fw-semibold); font-size: 13px; }
+.comment-time { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+.comment-body { font-size: 13px; line-height: var(--lh-base); white-space: pre-wrap; word-break: break-word; }

@@ -1,0 +1,53 @@
+/* ===================== TABLE / GRID =====================
+   Consolidated. The canonical rule lives further down with `table.grid` (search
+   for the "table" heading near line ~1800) — it owns padding, color, hover, sel
+   state under the gx-* token system. The few non-token visuals that aren't
+   covered there (surface bg, border, radius, shadow on the table chrome itself)
+   live right here so a grid-class table renders as a contained card. */
+table.grid {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+table.grid td.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+table.grid th.num { text-align: right; }
+.row-actions { white-space: nowrap; display: flex; gap: 6px; }
+
+/* Detail-pane metadata grid + action row used by Invoices/Accounts/MyTasks/WorkItems/CustomerBilling.
+   Was referenced from JSX but never defined; rendered as bare divs. */
+.bill-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 18px;
+  padding: 14px 16px;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  margin-bottom: 14px;
+}
+.bill-meta > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bill-meta .muted { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gx-text-3); }
+.bill-actions {
+  grid-column: 1 / -1;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding-top: 10px; margin-top: 4px;
+  border-top: 1px solid var(--gx-border-subtle);
+}
+.bill-section-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--gx-text-1);
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--gx-border-subtle);
+  margin-bottom: 12px;
+}
+.row-link {
+  background: transparent; border: 0; color: var(--text);
+  font-weight: var(--fw-semibold); padding: 0; cursor: pointer;
+  font-size: 13px;
+}
+.row-link:hover { color: var(--accent); }
+.cell-meta { color: var(--text-3); font-size: 11px; font-family: var(--font-mono); margin-top: 1px; }
+.cell-main { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-action { white-space: nowrap; text-align: right; color: var(--text-3); width: 32px; }

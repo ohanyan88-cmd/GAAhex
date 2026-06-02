@@ -1,0 +1,35 @@
+/* ═══════════════════════ GLASS SURFACES ═══════════════════════
+   The semantic --surface / --surface-2 tokens are now translucent (rgba), so
+   the ambient gradient on <body> glows through. These rules add the shared
+   glass recipe — backdrop blur + the soft inset/drop shadow — to the real
+   surface classes the app uses for chrome, cards, panels, tables, modals and
+   popovers. Each class already paints `background: var(--surface)` (or -2) via
+   its own rule; here we only layer the blur + glass shadow on top.
+   (Sidebar + header are handled in their own rules with a stronger blur.) */
+.widget,
+.grid,
+.rec-form,
+.card,
+.studio-nav,
+.studio-pane,
+.kcol,
+.org-card,
+.org-lane,
+.org-map,
+.spans-stat,
+.spans-legend,
+.org-heatmap-legend,
+.org-raci-legend,
+.empty-state,
+.notif-pop,
+.org-kebab-menu,
+.emoji-pop,
+.icon-picker-pop {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+/* Popovers/menus keep their stronger elevation drop shadow but gain the glass
+   inset highlight + blur (their own rule sets --shadow-pop / --shadow-card). */
+.notif-pop,
+.org-kebab-menu,
+.emoji-pop,
+.icon-picker-pop { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-pop); }

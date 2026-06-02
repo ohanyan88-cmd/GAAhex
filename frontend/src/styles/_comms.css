@@ -1,0 +1,157 @@
+/* =========================================================================
+   PROMPT 11 — Communications: Messenger + Email + full Calendar
+   Verbatim from design-system/ui_kits/portal/app.css:
+     - .comms-shell / .comms-head           (lines 245-249)
+     - messenger: .msgr / .msgr-list / .msgr-search / .convo / .chat / .chat-head /
+       .chat-body / .chat-day / .bubble-row / .bubble / .chat-composer
+                                            (lines 251-271)
+     - .msgr-tabs / .msgr-tab                (lines 273-277)
+     - .convo position+menu / .chat-head.tb-icon.on (lines 279-283)
+     - .chat-wrap / .chat-info / .info-act   (lines 285-290)
+     - .bubble-wrap / .bubble-react / .reaction-chip (lines 292-303)
+     - typing indicator                      (lines 305-310)
+     - emoji-pop / pop-scrim                 (lines 312-317)
+     - email: .mail / .mail-folders / .mail-folder / .mail-list / .mail-row /
+       .mail-read                            (lines 319-331)
+     - full calendar: .cal-layout / .cal-rail / .cal-nav / .minical-grid /
+       .minical-h / .minical-d / .cal-cal / .cal-check / .cal-grid / .cal-h /
+       .cal-cell / .cal-day / .cal-evs / .cal-ev / .cal-more (lines 333-360)
+     - responsive collapse (<900px)          (lines 362-369)
+
+   SCOPING NOTE: every rule below is scoped under `.gx-comms` so that any future
+   global `.cal-*` / `.msgr*` / `.mail*` rule cannot bleed into these views. The legacy
+   un-scoped calendar block (`.cal-shell .cal-side .cal-main .cal-head .cal-dow .cal-day
+   .cal-day-num .cal-chip .cal-mini*`) used to live around line 1511 and was deleted —
+   it was dead code and was layering a 96px-min-height surface-colored pill behind every
+   `.cal-day` span (visible as a dark oval in off-month cells).
+
+   Each of MessagesView, CalendarView, OutboundView opts in by adding `gx-comms` to its
+   outer wrapper.
+   ========================================================================= */
+
+/* immersive surface that fills the view height */
+.gx-comms.comms-shell,
+.gx-comms .comms-shell { display:flex; flex-direction:column; height:100%; padding:18px 22px; gap:14px; }
+.gx-comms .comms-head { display:flex; align-items:center; gap:12px; flex-shrink:0; }
+.gx-comms .comms-head .vh-ic { width:38px; height:38px; border-radius:var(--gx-radius-md); background:var(--gx-primary-soft); color:var(--gx-info-fg); display:flex; align-items:center; justify-content:center; }
+.gx-comms .comms-title { font-family:var(--gx-font-display); font-size:21px; font-weight:600; margin:0; letter-spacing:-.02em; color:var(--gx-text-1); }
+.gx-comms .comms-sub { color:var(--gx-text-3); font-size:12.5px; }
+
+/* messenger */
+.gx-comms .msgr { flex:1; min-height:0; display:grid; grid-template-columns:320px 1fr; border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); overflow:hidden; background:var(--gx-surface); }
+.gx-comms .msgr-list { display:flex; flex-direction:column; border-right:1px solid var(--gx-border-subtle); min-height:0; }
+.gx-comms .msgr-search { display:flex; align-items:center; gap:8px; margin:12px; padding:0 11px; height:34px; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); color:var(--gx-text-3); }
+.gx-comms .convo { display:flex; align-items:center; gap:11px; padding:10px 12px; border:none; background:none; cursor:pointer; width:100%; border-left:2px solid transparent; transition:background var(--gx-dur-fast); position:relative; }
+.gx-comms .convo:hover { background:var(--gx-hover); }
+.gx-comms .convo.on { background:var(--gx-selected); border-left-color:var(--gx-primary); }
+.gx-comms .chat { display:flex; flex-direction:column; min-height:0; background:var(--gx-bg); }
+.gx-comms .chat-head { display:flex; align-items:center; gap:11px; padding:11px 16px; border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface); flex-shrink:0; }
+.gx-comms .chat-head .tb-icon { width:32px; height:32px; }
+.gx-comms .chat-head .tb-icon.on { background:var(--gx-primary-soft); color:var(--gx-primary); }
+.gx-comms .chat-body { flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:8px; background:radial-gradient(120% 80% at 50% 0%, var(--gx-bg-subtle), var(--gx-bg)); }
+.gx-comms .chat-day { align-self:center; font-size:10.5px; color:var(--gx-text-3); background:var(--gx-surface-2); border:1px solid var(--gx-border-subtle); padding:3px 10px; border-radius:99px; margin-bottom:6px; }
+.gx-comms .bubble-row { display:flex; }
+.gx-comms .bubble-row.out { justify-content:flex-end; }
+.gx-comms .bubble { max-width:72%; padding:9px 12px 6px; border-radius:14px; font-size:13px; line-height:1.45; position:relative; }
+.gx-comms .bubble.in { background:var(--gx-surface-2); border:1px solid var(--gx-border-subtle); border-bottom-left-radius:4px; color:var(--gx-text-1); }
+.gx-comms .bubble.out { background:linear-gradient(180deg,var(--azure-500),var(--azure-600)); color:#fff; border-bottom-right-radius:4px; }
+.gx-comms .bubble .bt { display:block; font-size:9.5px; opacity:.7; text-align:right; margin-top:3px; font-family:var(--gx-font-mono); }
+.gx-comms .chat-composer { display:flex; align-items:center; gap:8px; padding:12px 14px; border-top:1px solid var(--gx-border-subtle); background:var(--gx-surface); flex-shrink:0; }
+.gx-comms .chat-composer .tb-icon { width:34px; height:34px; }
+.gx-comms .chat-composer .tb-icon.on { background:var(--gx-primary-soft); color:var(--gx-primary); }
+
+/* messenger: channel tabs */
+.gx-comms .msgr-tabs { display:flex; gap:4px; padding:0 10px 10px; flex-wrap:wrap; }
+.gx-comms .msgr-tab { display:inline-flex; align-items:center; gap:5px; height:26px; padding:0 10px; border:1px solid var(--gx-border); background:var(--gx-bg-subtle); color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:11.5px; font-weight:500; border-radius:99px; cursor:pointer; transition:all var(--gx-dur-fast); }
+.gx-comms .msgr-tab:hover { border-color:var(--gx-border-strong); color:var(--gx-text-1); }
+.gx-comms .msgr-tab.on { background:var(--gx-primary-soft); border-color:var(--gx-primary); color:var(--gx-info-fg); font-weight:600; }
+
+/* conversation row → div with hover menu */
+.gx-comms .convo .convo-menu { opacity:0; transition:opacity var(--gx-dur-fast); flex-shrink:0; }
+.gx-comms .convo:hover .convo-menu { opacity:1; }
+
+/* chat wrap holds body + optional info panel */
+.gx-comms .chat-wrap { flex:1; min-height:0; display:flex; }
+.gx-comms .chat-wrap .chat-body { flex:1; }
+.gx-comms .chat-info { width:244px; flex-shrink:0; border-left:1px solid var(--gx-border-subtle); background:var(--gx-surface); padding:14px 16px; overflow-y:auto; }
+.gx-comms .info-act { display:flex; flex-direction:column; align-items:center; gap:5px; flex:1; padding:9px 0; border:1px solid var(--gx-border); background:var(--gx-bg-subtle); border-radius:var(--gx-radius-md); color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:10.5px; cursor:pointer; transition:all var(--gx-dur-fast); }
+.gx-comms .info-act:hover { border-color:var(--gx-border-strong); color:var(--gx-text-1); background:var(--gx-surface-2); }
+
+/* message bubble: reactions + double-tap */
+.gx-comms .bubble-wrap { display:flex; flex-direction:column; max-width:72%; }
+.gx-comms .bubble-row.out .bubble-wrap { align-items:flex-end; }
+.gx-comms .bubble-wrap .bubble { max-width:100%; }
+.gx-comms .bubble-react { position:absolute; top:-30px; display:none; gap:2px; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-radius:99px; padding:3px 5px; box-shadow:var(--gx-shadow-md); z-index:5; }
+.gx-comms .bubble-row.out .bubble-react { right:0; }
+.gx-comms .bubble-row.in .bubble-react { left:0; }
+.gx-comms .bubble:hover .bubble-react { display:flex; }
+.gx-comms .bubble-react button { border:none; background:none; cursor:pointer; font-size:14px; padding:1px 3px; border-radius:50%; line-height:1; }
+.gx-comms .bubble-react button:hover { background:var(--gx-hover); transform:scale(1.2); }
+.gx-comms .reaction-chip { margin-top:-6px; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-radius:99px; padding:1px 6px; font-size:12px; box-shadow:var(--gx-shadow-xs); z-index:2; }
+
+/* typing indicator */
+.gx-comms .bubble.typing { display:inline-flex; gap:4px; padding:11px 14px; }
+.gx-comms .bubble.typing span { width:6px; height:6px; border-radius:50%; background:var(--gx-text-3); animation:gxtyping 1.2s infinite ease-in-out; }
+.gx-comms .bubble.typing span:nth-child(2) { animation-delay:.18s; }
+.gx-comms .bubble.typing span:nth-child(3) { animation-delay:.36s; }
+@keyframes gxtyping { 0%,60%,100% { transform:translateY(0); opacity:.4; } 30% { transform:translateY(-4px); opacity:1; } }
+
+/* emoji popover + quick replies + attach (scrim) */
+.gx-comms .pop-scrim { position:fixed; inset:0; z-index:9; }
+.gx-comms .emoji-pop { position:absolute; bottom:42px; left:0; z-index:10; display:grid; grid-template-columns:repeat(8,1fr); gap:2px; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-radius:var(--gx-radius-md); box-shadow:var(--gx-shadow-lg); padding:8px; width:264px; }
+.gx-comms .emoji-pop button { border:none; background:none; cursor:pointer; font-size:18px; padding:5px; border-radius:var(--gx-radius-sm); line-height:1; }
+.gx-comms .emoji-pop button:hover { background:var(--gx-hover); transform:scale(1.15); }
+.gx-comms .chat-composer .menu { z-index:10; }
+
+/* email */
+.gx-comms .mail { flex:1; min-height:0; display:grid; grid-template-columns:200px 340px 1fr; border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); overflow:hidden; background:var(--gx-surface); }
+.gx-comms .mail-folders { border-right:1px solid var(--gx-border-subtle); padding:12px 10px; background:var(--gx-bg-subtle); overflow-y:auto; }
+.gx-comms .mail-folder { display:flex; align-items:center; gap:10px; width:100%; height:34px; padding:0 10px; border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12.5px; border-radius:var(--gx-radius-sm); cursor:pointer; transition:all var(--gx-dur-fast); }
+.gx-comms .mail-folder:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+.gx-comms .mail-folder.on { background:var(--gx-primary-soft); color:var(--gx-info-fg); font-weight:600; }
+.gx-comms .mail-list { display:flex; flex-direction:column; border-right:1px solid var(--gx-border-subtle); min-height:0; }
+.gx-comms .mail-row { display:block; width:100%; text-align:left; padding:11px 14px; border:none; background:none; border-bottom:1px solid var(--gx-border-subtle); border-left:2px solid transparent; cursor:pointer; transition:background var(--gx-dur-fast); }
+.gx-comms .mail-row:hover { background:var(--gx-hover); }
+.gx-comms .mail-row.on { background:var(--gx-selected); border-left-color:var(--gx-primary); }
+.gx-comms .mail-row.unread { border-left-color:var(--gx-gold); }
+.gx-comms .mail-read { display:flex; flex-direction:column; min-height:0; background:var(--gx-bg); }
+.gx-comms .mail-read .tb-icon { width:32px; height:32px; }
+
+/* full calendar */
+.gx-comms .cal-layout { flex:1; min-height:0; display:grid; grid-template-columns:240px 1fr; gap:14px; }
+.gx-comms .cal-rail { overflow-y:auto; padding-right:4px; }
+.gx-comms .cal-nav { display:flex; align-items:center; gap:4px; }
+.gx-comms .cal-nav .tb-icon { width:30px; height:30px; }
+.gx-comms .minical-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.gx-comms .minical-h { font-size:9px; color:var(--gx-text-3); text-align:center; padding:2px 0; }
+.gx-comms .minical-d { aspect-ratio:1; border:none; background:none; color:var(--gx-text-2); font-size:11px; font-family:var(--gx-font-mono); border-radius:var(--gx-radius-sm); cursor:pointer; }
+.gx-comms .minical-d:hover { background:var(--gx-hover); }
+.gx-comms .minical-d.sel { background:var(--gx-primary-soft); color:var(--gx-info-fg); }
+.gx-comms .minical-d.today { background:var(--gx-primary); color:#fff; font-weight:700; }
+.gx-comms .cal-cal { display:flex; align-items:center; gap:9px; padding:5px 4px; cursor:pointer; }
+.gx-comms .cal-check { width:16px; height:16px; border-radius:4px; border:1.5px solid; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.gx-comms .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+.gx-comms .cal-grid.full { flex:1; grid-template-rows:auto repeat(6,1fr); height:100%; }
+.gx-comms .cal-h { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--gx-text-2); padding:8px 10px; border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
+.gx-comms .cal-cell { border-right:1px solid var(--gx-border-subtle); border-bottom:1px solid var(--gx-border-subtle); padding:6px; display:flex; flex-direction:column; gap:3px; overflow:hidden; cursor:pointer; transition:background var(--gx-dur-fast); }
+.gx-comms .cal-cell:hover { background:var(--gx-hover); }
+.gx-comms .cal-cell.off { background:var(--gx-bg-subtle); color:var(--gx-text-3); cursor:default; }
+.gx-comms .cal-cell.off:hover { background:var(--gx-bg-subtle); }
+.gx-comms .cal-cell.sel { background:var(--gx-selected); }
+.gx-comms .cal-cell.big { min-height:0; }
+.gx-comms .cal-day { font-size:12px; font-weight:600; font-family:var(--gx-font-mono); color:var(--gx-text-2); width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+.gx-comms .cal-day.today { background:var(--gx-primary); color:#fff; }
+.gx-comms .cal-cell.off .cal-day { color:var(--gx-text-3); }
+.gx-comms .cal-evs { display:flex; flex-direction:column; gap:2px; overflow:hidden; }
+.gx-comms .cal-ev { font-size:10.5px; padding:2px 6px; border-radius:4px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gx-comms .cal-more { font-size:10px; color:var(--gx-text-3); padding:0 6px; }
+
+@media (max-width:900px) {
+  .gx-comms.comms-shell,
+  .gx-comms .comms-shell { padding:14px; }
+  .gx-comms .msgr { grid-template-columns:1fr; }
+  .gx-comms .msgr-list { display:none; }
+  .gx-comms .mail { grid-template-columns:1fr; }
+  .gx-comms .mail-folders, .gx-comms .mail-list { display:none; }
+  .gx-comms .cal-layout { grid-template-columns:1fr; }
+}

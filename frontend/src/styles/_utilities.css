@@ -1,0 +1,25 @@
+/* ===================== UTIL ===================== */
+.row { display: flex; align-items: center; gap: 10px; }
+.col { display: flex; flex-direction: column; }
+.gap-4 { gap: 4px; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-24 { gap: 24px; }
+.spacer { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.hide-sm { }
+.no-wrap { white-space: nowrap; }
+
+/* Density */
+[data-density="compact"] {
+  --row-pad-y: 5px;
+  --row-pad-x: 8px;
+  --control-pad-y: 5px;
+}
+[data-density="compact"] .inp-md { height: 32px; }
+[data-density="compact"] .btn-md { height: 32px; }

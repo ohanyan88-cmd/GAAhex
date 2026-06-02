@@ -1,0 +1,91 @@
+/* =========================================================================
+   PROMPT 7 — Dashboards (KPIs + charts)
+   Adapted from design-system/ui_kits/portal/app.css (lines 113-126 +
+   168-170 for .seg). EVERY kit `.kpi*` and `.cols` rule is prefixed with
+   `.gx-dash ` so the kit's `.kpi { padding/border }` container does NOT
+   collide with the app-wide `.kpi { font-size:38px; font-family:mono }`
+   that is the legacy "big number" treatment (see PROMPT 5 note above).
+   The dashboard view sets the root container to .gx-dash so these styles
+   only apply inside it.
+   ========================================================================= */
+
+/* KPI grid + tile */
+.gx-dash .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+/* The KPI tile is a <button> with inline style `border:none` (DashboardView.tsx) which
+   overrides this CSS border, so a border-color hover alone is invisible. We add an
+   `outline` (not affected by inline border styles, doesn't shift layout) that goes
+   gold on hover, plus glow shadow + background tint + a more visible lift — all from
+   existing tokens. See `.gx-dash .kpi:hover` below. */
+.gx-dash .kpi { min-width:0; overflow:hidden; position:relative;
+  background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg);
+  padding:16px; box-shadow:var(--gx-shadow-sm);
+  outline:var(--gx-border-2) solid transparent; outline-offset:-2px;
+  transition:box-shadow var(--gx-dur-base), transform var(--gx-dur-base),
+             border-color var(--gx-dur-base), outline-color var(--gx-dur-base),
+             background-color var(--gx-dur-base);
+  /* Reset the legacy app-wide ".kpi { font-size:38px; font-family:mono; color:accent }"
+     for elements INSIDE .gx-dash so the tile container itself stays card-shaped. */
+  font-size:inherit; font-family:inherit; color:var(--gx-text-1); font-weight:normal; line-height:normal;
+}
+.gx-dash .kpi:hover {
+  outline:var(--gx-border-3) solid var(--gx-gold);
+  border-color:var(--gx-gold);
+  box-shadow:var(--gx-shadow-md);
+  transform:translateY(-2px);
+}
+.gx-dash .kpi .klbl { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); }
+.gx-dash .kpi .kval { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; color:var(--gx-text-1); }
+.gx-dash .kpi .kfoot { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.gx-dash .kpi .kdelta { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-family:var(--gx-font-sans); font-weight:500; }
+.gx-dash .kpi .kdelta.up { color:var(--gx-success-fg); }
+.gx-dash .kpi .kdelta.down { color:var(--gx-danger-fg); }
+
+/* Marquee KPI — gold rail + gold glow ring (one tile per dash) */
+.gx-dash .kpi--marquee { box-shadow:var(--gx-glow-gold); border-color:transparent; }
+.gx-dash .kpi--marquee::before { content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--gx-gold); border-radius:99px; }
+
+/* Two-column body (chart + breakdown) */
+.gx-dash .cols { display:grid; grid-template-columns:1.6fr 1fr; gap:18px; }
+.gx-dash .cols > * { min-width:0; }
+@media (max-width:900px) { .gx-dash .cols { grid-template-columns:1fr; } .gx-dash .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+/* Card chrome — kit uses these on dashboards; mirror them under .gx-dash so
+   the dashboard cards render with the kit's surface + header even if global
+   .card was already declared. */
+.gx-dash .card { background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg); box-shadow:var(--gx-shadow-sm); }
+.gx-dash .card-head { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--gx-border-subtle); }
+.gx-dash .card-head h3 { font-family:var(--gx-font-sans); font-size:14px; font-weight:600; margin:0; color:var(--gx-text-1); }
+.gx-dash .card-head .spacer { flex:1; }
+.gx-dash .card-head .hint { color:var(--gx-text-3); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+.gx-dash .card-pad { padding:18px; }
+
+/* Segmented control (.seg) — global base, used in calendar, studio, settings, dashboard */
+.seg { display:inline-flex; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); padding:2px; gap:2px; }
+.seg button { border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12px; font-weight:500; padding:5px 12px; border-radius:var(--gx-radius-sm); cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all var(--gx-dur-fast); }
+.seg button:hover { color:var(--gx-text-1); }
+.seg button.on { background:var(--gx-surface); color:var(--gx-text-1); box-shadow:var(--gx-shadow-xs); }
+.seg button:disabled { opacity:0.4; cursor:default; }
+/* Alias for backward compat with .gx-dash scope */
+.gx-dash .seg { background:var(--gx-bg-subtle); }
+
+/* Donut component layout (Donut.tsx) */
+.gx-dash .gx-donut { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.gx-dash .gx-donut-ring { position:relative; flex-shrink:0; }
+.gx-dash .gx-donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+.gx-dash .gx-donut-total { font-family:var(--gx-font-display); font-size:18px; font-weight:600; color:var(--gx-text-1); letter-spacing:-.01em; }
+.gx-dash .gx-donut-cap { font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); margin-top:2px; }
+.gx-dash .gx-donut-legend { display:flex; flex-direction:column; gap:8px; flex:1; min-width:120px; }
+.gx-dash .gx-donut-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--gx-text-1); }
+.gx-dash .gx-donut-dot { width:9px; height:9px; border-radius:3px; flex-shrink:0; }
+.gx-dash .gx-donut-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-dash .gx-donut-pct { font-family:var(--gx-font-mono); font-variant-numeric:tabular-nums; color:var(--gx-text-3); font-size:11px; }
+
+/* LineChart legend (chart SVG is self-styled inline) */
+.gx-dash .gx-linechart { width:100%; }
+.gx-dash .gx-linechart-legend { display:flex; gap:14px; margin-top:8px; font-size:11px; color:var(--gx-text-3); flex-wrap:wrap; }
+.gx-dash .gx-linechart-legend-item { display:inline-flex; align-items:center; gap:6px; }
+.gx-dash .gx-linechart-legend-dot { width:9px; height:9px; border-radius:2px; }
+
+/* Tab strip lives outside the dashboard meta head but inside the dashboard
+   container: nothing to override here — the global .tabs/.tab styles already
+   cover it. The board picker stays as-is. */
