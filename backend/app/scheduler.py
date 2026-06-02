@@ -64,6 +64,7 @@ from .routers.report_schedules import run_due
 from .routers.digests import run_digests
 from .routers.helpdesk import run_sla_breach_sweep
 from .routers.payment_gateway import run_payment_reconcile
+from .routers.notifications import run_expired_sweep, run_retry_sweep
 
 log = logging.getLogger("gaaex.scheduler")
 
@@ -138,6 +139,11 @@ _JOBS = (
     ("helpdesk.sla_breach",         lambda s, actor: run_sla_breach_sweep(user=actor, s=s)),
     # B33: reconcile PENDING payment orders — settle confirmed, expire stale.
     ("payment.reconcile",           lambda s, actor: run_payment_reconcile(user=actor, s=s)),
+    # Notification Standard phase 3 (file 05):
+    # Expire notifications past their expires_at (PENDING/DELIVERED → EXPIRED).
+    ("notification.run_expired_sweep", lambda s, actor: run_expired_sweep(s, tenant_id=actor.tenant_id, actor=actor)),
+    # Retry failed external deliveries; dead-letter after _MAX_DELIVERY_RETRIES.
+    ("notification.run_retry_sweep",   lambda s, actor: run_retry_sweep(s, tenant_id=actor.tenant_id, actor=actor)),
 )
 
 

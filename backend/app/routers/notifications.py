@@ -124,8 +124,21 @@ async def emit_notification(
     s.add(note)
     await s.flush()
 
-    # The inbox row above is ALWAYS kept (non-breaking invariant). Only EXTERNAL dispatch is gated.
-    # Fully fail-soft — a delivery problem must never break the emit.
+    # Record IN_APP delivery row — the inbox is always "delivered" on creation.
+    try:
+        from datetime import datetime, timezone as _tz
+        s.add(NotificationDelivery(
+            tenant_id=tenant_id,
+            notification_id=note.id,
+            channel="IN_APP",
+            status="DELIVERED",
+            attempted_at=datetime.now(_tz.utc),
+        ))
+        await s.flush()
+    except Exception:
+        pass  # best-effort
+
+    # External dispatch (email/SMS/push) — fail-soft, records its own delivery row.
     if send_external:
         await _dispatch_external(s, tenant_id, user_id, ndef, note)
 
@@ -148,15 +161,59 @@ async def _resolve_address(s: AsyncSession, tenant_id, user_id, channel: str) ->
     return None
 
 
-async def _dispatch_external(s: AsyncSession, tenant_id, user_id, ndef: NotificationDef, note: Notification) -> None:
+def _canon_channel(ch: str) -> str:
+    """Map legacy lowercase channel names to canonical UPPER_SNAKE (D9, file 05)."""
+    return {"inapp": "IN_APP", "email": "EMAIL", "sms": "SMS", "push": "PUSH",
+            "webhook": "IN_APP"}.get(ch.lower(), ch.upper())
+
+
+async def _dispatch_external(
+    s: AsyncSession, tenant_id, user_id, ndef: NotificationDef, note: Notification
+) -> None:
+    """Dispatch to an external channel and record a NotificationDelivery row.
+
+    Delivery result:
+      SENT     — channels.dispatch returned without exception (best-effort; not a delivery receipt)
+      FAILED   — exception raised by dispatch
+      REJECTED — no address resolved for the channel (no phone, etc.)
+
+    Fully fail-soft — never propagates into the caller's transaction.
+    """
+    from datetime import datetime, timezone
+    attempted_at = datetime.now(timezone.utc)
+    channel = _canon_channel(ndef.channel)
+    result_detail: str | None = None
+    status: str
+
     try:
         to_addr = await _resolve_address(s, tenant_id, user_id, ndef.channel)
+        # Always call channels.dispatch even when to_addr is None — channels.dispatch handles
+        # the missing-address case by recording an OutboundMessage(FAILED) which is the
+        # channel-layer observable record. We then layer a NotificationDelivery on top.
         await channels.dispatch(
             s, tenant_id=tenant_id, channel=ndef.channel, to=to_addr,
             subject=note.title, body=note.body, def_key=ndef.key, user_id=user_id,
         )
+        status = "SENT" if to_addr else "REJECTED"
+        if to_addr is None:
+            result_detail = f"No address for channel={ndef.channel}"
+    except Exception as exc:
+        status = "FAILED"
+        result_detail = str(exc)[:300]
+
+    # Record the delivery attempt — fail-soft (a write failure must not crash the emit).
+    try:
+        s.add(NotificationDelivery(
+            tenant_id=tenant_id,
+            notification_id=note.id,
+            channel=channel,
+            status=status,
+            attempted_at=attempted_at,
+            result_detail=result_detail,
+        ))
+        await s.flush()
     except Exception:
-        return  # never propagate into the emit
+        pass  # delivery logging is best-effort
 
 
 async def _pref_opted_out(s: AsyncSession, tenant_id, user_id, ndef: NotificationDef) -> bool:
@@ -596,6 +653,218 @@ async def list_deliveries(
         ).order_by(NotificationDelivery.attempted_at)
     )).scalars().all()
     return [_serialize_delivery(d) for d in rows]
+
+
+# ---- Notification Standard Phase 3 — sweep jobs (file 05) ----
+
+# Maximum retry attempts before a notification delivery is dead-lettered.
+# Retry schedule: 1 min → 5 min → 15 min → 60 min (the scheduler cadence gates timing).
+_MAX_DELIVERY_RETRIES = 4
+
+# Deduplication window — suppress identical notifications (same def_key + user) within this window.
+_DEDUP_WINDOW_SECONDS = 300  # 5 minutes default; configurable via Config standard when ready
+
+
+async def check_deduplicate(
+    s: AsyncSession,
+    *,
+    tenant_id,
+    def_key: str,
+    user_id,
+    window_seconds: int = _DEDUP_WINDOW_SECONDS,
+) -> bool:
+    """Return True if a notification with the same def_key + user exists within window_seconds.
+    Used by emit_notification callers to suppress DEDUPLICATE mode notifications.
+    v1: simple time-window dedup; AGGREGATE / THROTTLE / MUTE are future suppression modes.
+    """
+    try:
+        from datetime import timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=window_seconds)
+        existing = (await s.execute(
+            select(Notification.id).where(
+                Notification.tenant_id == tenant_id,
+                Notification.user_id == user_id,
+                Notification.def_key == def_key,
+                Notification.created_at >= cutoff,
+            ).limit(1)
+        )).scalar_one_or_none()
+        return existing is not None
+    except Exception:
+        return False  # dedup failure → deliver (fail-open is safer than fail-silent)
+
+
+async def run_expired_sweep(s: AsyncSession, *, tenant_id, actor) -> dict:
+    """Mark PENDING/DELIVERED notifications with expires_at < now() as EXPIRED.
+    Runs as a scheduled background job. Records a JobRun.
+    """
+    from .billing import _record_job_run
+    _JOB_KEY = "notification.run_expired_sweep"
+    started = datetime.now(timezone.utc)
+    try:
+        result = await s.execute(
+            update(Notification)
+            .where(
+                Notification.tenant_id == tenant_id,
+                Notification.expires_at.isnot(None),
+                Notification.expires_at < started,
+                Notification.status.in_(["PENDING", "DELIVERED"]),
+            )
+            .values(status="EXPIRED")
+        )
+        expired = result.rowcount
+        summary = {"expired": expired}
+        _record_job_run(s, actor, _JOB_KEY, "SUCCESS", summary, started)
+        await s.commit()
+        return summary
+    except Exception as exc:
+        summary = {"expired": 0, "error": str(exc)[:200]}
+        try:
+            _record_job_run(s, actor, _JOB_KEY, "ERROR", summary, started)
+            await s.commit()
+        except Exception:
+            pass
+        return summary
+
+
+async def run_retry_sweep(s: AsyncSession, *, tenant_id, actor) -> dict:
+    """Retry failed external deliveries. Per notification:
+    - If failed delivery attempts < _MAX_DELIVERY_RETRIES → re-dispatch.
+    - If >= _MAX_DELIVERY_RETRIES → dead-letter (write DEAD_LETTERED row, status=FAILED).
+    Records a JobRun.
+    """
+    from .billing import _record_job_run
+    from sqlalchemy import func as sqlfunc
+    _JOB_KEY = "notification.run_retry_sweep"
+    started = datetime.now(timezone.utc)
+    retried = 0
+    dead_lettered = 0
+    errors = 0
+
+    try:
+        # Find notifications that have at least one FAILED delivery and are not yet FAILED/EXPIRED.
+        failed_notif_ids = (await s.execute(
+            select(NotificationDelivery.notification_id).where(
+                NotificationDelivery.status == "FAILED",
+            ).join(
+                Notification,
+                NotificationDelivery.notification_id == Notification.id,
+            ).where(
+                Notification.tenant_id == tenant_id,
+                Notification.status.in_(["PENDING", "DELIVERED"]),
+            ).distinct()
+        )).scalars().all()
+
+        for notif_id in failed_notif_ids:
+            try:
+                note = (await s.execute(
+                    select(Notification).where(Notification.id == notif_id)
+                )).scalar_one_or_none()
+                if note is None:
+                    continue
+
+                # Count total attempts for this notification.
+                attempt_count = (await s.execute(
+                    select(sqlfunc.count()).select_from(NotificationDelivery).where(
+                        NotificationDelivery.notification_id == notif_id,
+                    )
+                )).scalar_one()
+
+                if attempt_count >= _MAX_DELIVERY_RETRIES:
+                    # Dead-letter — max retries exhausted.
+                    s.add(NotificationDelivery(
+                        tenant_id=tenant_id,
+                        notification_id=notif_id,
+                        channel="IN_APP",  # sentinel for dead-letter record
+                        status="DEAD_LETTERED",
+                        attempted_at=started,
+                        result_detail=f"Exhausted after {attempt_count} attempts",
+                    ))
+                    note.status = "FAILED"
+                    await s.flush()
+                    dead_lettered += 1
+                else:
+                    # Re-attempt: find the channel from the last FAILED delivery row.
+                    last_failed = (await s.execute(
+                        select(NotificationDelivery).where(
+                            NotificationDelivery.notification_id == notif_id,
+                            NotificationDelivery.status == "FAILED",
+                        ).order_by(NotificationDelivery.attempted_at.desc()).limit(1)
+                    )).scalar_one_or_none()
+                    if last_failed is None:
+                        continue
+
+                    channel = last_failed.channel.lower().replace("_", "")  # "EMAIL" → "email"
+                    channel_key = {"email": "email", "sms": "sms", "push": "push",
+                                   "inapp": "inapp", "in_app": "inapp"}.get(channel, "email")
+                    to_addr = await _resolve_address(s, tenant_id, note.user_id, channel_key)
+                    attempt_at = started
+                    result: str
+                    detail: str | None = None
+                    try:
+                        if to_addr:
+                            await channels.dispatch(
+                                s, tenant_id=tenant_id, channel=channel_key, to=to_addr,
+                                subject=note.title, body=note.body,
+                                def_key=note.def_key, user_id=note.user_id,
+                            )
+                            result = "SENT"
+                        else:
+                            result = "REJECTED"
+                            detail = f"No address for channel={channel_key}"
+                    except Exception as exc2:
+                        result = "FAILED"
+                        detail = str(exc2)[:200]
+                    s.add(NotificationDelivery(
+                        tenant_id=tenant_id,
+                        notification_id=notif_id,
+                        channel=last_failed.channel,
+                        status=result,
+                        attempted_at=attempt_at,
+                        result_detail=detail,
+                    ))
+                    await s.flush()
+                    retried += 1
+            except Exception:
+                errors += 1
+
+        summary = {"retried": retried, "dead_lettered": dead_lettered, "errors": errors}
+        _record_job_run(s, actor, _JOB_KEY, "SUCCESS" if errors == 0 else "ERROR", summary, started)
+        await s.commit()
+        return summary
+    except Exception as exc:
+        summary = {"retried": 0, "dead_lettered": 0, "errors": 1, "message": str(exc)[:200]}
+        try:
+            _record_job_run(s, actor, _JOB_KEY, "ERROR", summary, started)
+            await s.commit()
+        except Exception:
+            pass
+        return summary
+
+
+# ---- manual trigger endpoints for the two new sweep jobs ----
+
+@router.post("/run-expired-sweep")
+async def trigger_expired_sweep(
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Manually trigger the expired-notification sweep. Requires notification.manage."""
+    grants = await load_grants(s, user)
+    if not can(grants, "notification", "manage"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    return await run_expired_sweep(s, tenant_id=user.tenant_id, actor=user)
+
+
+@router.post("/run-retry-sweep")
+async def trigger_retry_sweep(
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Manually trigger the failed-delivery retry sweep. Requires notification.manage."""
+    grants = await load_grants(s, user)
+    if not can(grants, "notification", "manage"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    return await run_retry_sweep(s, tenant_id=user.tenant_id, actor=user)
 
 
 # ---- outbound delivery log (admin) — on the /api router ----
