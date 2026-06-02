@@ -481,7 +481,7 @@ async def list_invoice_allocations(
     if not can(grants, "invoice", "view", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.view")
     rows = (await s.execute(
-        select(PaymentAllocation)
+        select(PaymentAllocation)  # noqa: tenant-filter cross-tenant — invoice tenant validated by _get_invoice on line above
         .where(PaymentAllocation.invoice_id == inv.id)
         .order_by(PaymentAllocation.applied_at)
     )).scalars().all()

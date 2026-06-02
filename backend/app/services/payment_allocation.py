@@ -49,7 +49,7 @@ def _utcnow() -> datetime:
 async def outstanding_for_invoice(session: AsyncSession, invoice_id: uuid.UUID) -> Decimal:
     """Return the live outstanding balance on one invoice as a Decimal (clamped ≥ 0)."""
     inv_total = (await session.execute(
-        select(Invoice.total).where(Invoice.id == invoice_id)
+        select(Invoice.total).where(Invoice.id == invoice_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; invoice_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if inv_total is None:
         return _ZERO

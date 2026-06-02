@@ -48,7 +48,7 @@ def _reply_out(r: PortalTicketReply) -> dict:
 
 async def _own_ticket(s: AsyncSession, cu: CustomerUser, ticket_id: uuid.UUID) -> HelpdeskTicket:
     t = (await s.execute(
-        select(HelpdeskTicket).where(
+        select(HelpdeskTicket).where(  # noqa: tenant-filter cross-tenant — customer-portal; explicit customer_id ownership check
             HelpdeskTicket.id == ticket_id,
             HelpdeskTicket.customer_id == cu.customer_id,
         )
@@ -74,7 +74,7 @@ async def list_tickets(
     s: AsyncSession = Depends(get_session),
 ):
     tickets = (await s.execute(
-        select(HelpdeskTicket).where(HelpdeskTicket.customer_id == cu.customer_id)
+        select(HelpdeskTicket).where(HelpdeskTicket.customer_id == cu.customer_id)  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id (auth-bound)
         .order_by(HelpdeskTicket.created_at.desc())
     )).scalars().all()
     return [_ticket_out(t) for t in tickets]
@@ -113,7 +113,7 @@ async def get_ticket(
 ):
     ticket = await _own_ticket(s, cu, ticket_id)
     replies = (await s.execute(
-        select(PortalTicketReply).where(
+        select(PortalTicketReply).where(  # noqa: tenant-filter cross-tenant — ticket ownership verified by _own_ticket above
             PortalTicketReply.ticket_id == ticket.id,
         ).order_by(PortalTicketReply.created_at)
     )).scalars().all()

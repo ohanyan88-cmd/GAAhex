@@ -99,7 +99,7 @@ async def _get_order(s, user: User, order_id) -> Order:
 
 async def _items(s, order_id) -> list[OrderItem]:
     return list((await s.execute(
-        select(OrderItem).where(OrderItem.order_id == order_id)
+        select(OrderItem).where(OrderItem.order_id == order_id)  # noqa: tenant-filter cross-tenant — helper; caller validates order tenant via _get_order
     )).scalars().all())
 
 

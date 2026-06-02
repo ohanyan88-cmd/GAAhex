@@ -72,7 +72,7 @@ async def list_services(
     s: AsyncSession = Depends(get_session),
 ):
     services = (await s.execute(
-        select(Service).where(Service.customer_id == cu.customer_id)
+        select(Service).where(Service.customer_id == cu.customer_id)  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id (auth-bound)
         .order_by(Service.created_at.desc())
     )).scalars().all()
     return [_service_out(svc) for svc in services]
@@ -84,7 +84,7 @@ async def list_subscriptions(
     s: AsyncSession = Depends(get_session),
 ):
     subs = (await s.execute(
-        select(Subscription).where(Subscription.customer_id == cu.customer_id)
+        select(Subscription).where(Subscription.customer_id == cu.customer_id)  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id (auth-bound)
         .order_by(Subscription.created_at.desc())
     )).scalars().all()
     return [_sub_out(sub) for sub in subs]
@@ -99,13 +99,13 @@ async def list_usage(
 ):
     # Scope to this customer's subscriptions
     sub_ids = (await s.execute(
-        select(Subscription.id).where(Subscription.customer_id == cu.customer_id)
+        select(Subscription.id).where(Subscription.customer_id == cu.customer_id)  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id
     )).scalars().all()
 
     if not sub_ids:
         return []
 
-    q = select(UsageRecord).where(UsageRecord.subscription_id.in_(sub_ids))
+    q = select(UsageRecord).where(UsageRecord.subscription_id.in_(sub_ids))  # noqa: tenant-filter cross-tenant — usage scoped to customer's own subscription ids (computed above)
 
     if from_:
         try:

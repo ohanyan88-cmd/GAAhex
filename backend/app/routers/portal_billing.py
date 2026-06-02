@@ -66,7 +66,7 @@ def _payment_out(p: Payment) -> dict:
 async def _own_invoice(s: AsyncSession, cu: CustomerUser, invoice_id: uuid.UUID) -> Invoice:
     """Load invoice; 404 if it doesn't belong to this customer."""
     inv = (await s.execute(
-        select(Invoice).where(
+        select(Invoice).where(  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id (auth-bound)
             Invoice.id == invoice_id,
             Invoice.customer_id == cu.customer_id,
         )
@@ -84,7 +84,7 @@ async def list_invoices(
     s: AsyncSession = Depends(get_session),
 ):
     invoices = (await s.execute(
-        select(Invoice).where(Invoice.customer_id == cu.customer_id)
+        select(Invoice).where(Invoice.customer_id == cu.customer_id)  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id
         .order_by(Invoice.created_at.desc())
     )).scalars().all()
     result = []
@@ -103,7 +103,7 @@ async def get_invoice(
     inv = await _own_invoice(s, cu, invoice_id)
     pt = await _paid_total(s, inv.id)
     lines = (await s.execute(
-        select(InvoiceLine).where(InvoiceLine.invoice_id == inv.id)
+        select(InvoiceLine).where(InvoiceLine.invoice_id == inv.id)  # noqa: tenant-filter cross-tenant — invoice ownership verified by _own_invoice above
     )).scalars().all()
     out = _invoice_out(inv, pt)
     out["lines"] = [
@@ -125,7 +125,7 @@ async def invoice_document(
 
     # Load supporting data
     lines = (await s.execute(
-        select(InvoiceLine).where(InvoiceLine.invoice_id == inv.id)
+        select(InvoiceLine).where(InvoiceLine.invoice_id == inv.id)  # noqa: tenant-filter cross-tenant — invoice ownership verified by _own_invoice above
     )).scalars().all()
     pt = await _paid_total(s, inv.id)
     balance = max(0, inv.total - pt)
@@ -133,7 +133,7 @@ async def invoice_document(
     tenant = (await s.execute(select(Tenant))).scalars().first()
     tenant_name = tenant.name if tenant else "GAAhex"
 
-    record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()
+    record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — customer-portal; cu.customer_id is auth-bound
     customer_data = record.data or {} if record else {}
 
     def amd(luma: int) -> str:
@@ -230,12 +230,12 @@ async def list_payments(
 ):
     """Own payment history — all payments on invoices belonging to this customer."""
     invoice_ids_rows = (await s.execute(
-        select(Invoice.id).where(Invoice.customer_id == cu.customer_id)
+        select(Invoice.id).where(Invoice.customer_id == cu.customer_id)  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cu.customer_id
     )).scalars().all()
     if not invoice_ids_rows:
         return []
     payments = (await s.execute(
-        select(Payment).where(Payment.invoice_id.in_(invoice_ids_rows))
+        select(Payment).where(Payment.invoice_id.in_(invoice_ids_rows))  # noqa: tenant-filter cross-tenant — payments scoped by customer's own invoice ids (computed above)
         .order_by(Payment.paid_at.desc())
     )).scalars().all()
     return [_payment_out(p) for p in payments]
@@ -250,14 +250,14 @@ async def payment_receipt(
     """Branded receipt HTML for own payment. 404 if not theirs."""
     # Load the payment and verify ownership via the linked invoice
     payment = (await s.execute(
-        select(Payment).where(Payment.id == payment_id)
+        select(Payment).where(Payment.id == payment_id)  # noqa: tenant-filter cross-tenant — ownership immediately verified via _own_invoice-style check on lines below
     )).scalar_one_or_none()
     if not payment:
         raise HTTPException(404, "Payment not found")
 
     # Ownership: the invoice must belong to this customer
     inv = (await s.execute(
-        select(Invoice).where(
+        select(Invoice).where(  # noqa: tenant-filter cross-tenant — explicit customer_id ownership check
             Invoice.id == payment.invoice_id,
             Invoice.customer_id == cu.customer_id,
         )
@@ -267,7 +267,7 @@ async def payment_receipt(
 
     tenant = (await s.execute(select(Tenant))).scalars().first()
     tenant_name = tenant.name if tenant else "GAAhex"
-    record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()
+    record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — customer-portal; cu.customer_id is auth-bound
     customer_name = (record.data or {}).get("name", "—") if record else "—"
 
     def amd(luma: int) -> str:

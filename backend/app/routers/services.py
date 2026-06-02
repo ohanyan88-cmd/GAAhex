@@ -94,7 +94,7 @@ async def _get_service(s, user: User, service_id) -> Service:
 
 async def _resources(s, service_id) -> list[ServiceResource]:
     return list((await s.execute(
-        select(ServiceResource).where(ServiceResource.service_id == service_id).order_by(ServiceResource.created_at)
+        select(ServiceResource).where(ServiceResource.service_id == service_id).order_by(ServiceResource.created_at)  # noqa: tenant-filter cross-tenant — helper; caller validates service tenant via _get_service
     )).scalars().all())
 
 

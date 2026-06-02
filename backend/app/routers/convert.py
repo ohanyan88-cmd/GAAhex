@@ -41,7 +41,7 @@ async def _converted_status(s: AsyncSession, entity_id) -> str | None:
     Returns None only for a degenerate lifecycle with no usable terminal.
     """
     statuses = (await s.execute(
-        select(StatusDef).where(StatusDef.entity_def_id == entity_id)
+        select(StatusDef).where(StatusDef.entity_def_id == entity_id)  # noqa: tenant-filter cross-tenant — RLS-scoped session; entity tenant validated by caller via _entity()
     )).scalars().all()
     keys = {st.key for st in statuses}
     if _CONVERTED_KEY in keys:

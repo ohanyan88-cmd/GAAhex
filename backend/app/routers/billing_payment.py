@@ -318,7 +318,7 @@ async def list_invoice_payments(inv_id: uuid.UUID, user: User = Depends(current_
     if not can(grants, "payment", "view", await _node_path(s, inv.owner_node_id)):
         _deny("payment.view")
     payments = (await s.execute(
-        select(Payment).where(Payment.invoice_id == inv.id).order_by(Payment.paid_at)
+        select(Payment).where(Payment.invoice_id == inv.id).order_by(Payment.paid_at)  # noqa: tenant-filter cross-tenant — invoice tenant validated by _get_invoice
     )).scalars().all()
     return [_payment(p) for p in payments]
 

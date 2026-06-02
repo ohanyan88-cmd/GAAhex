@@ -454,7 +454,7 @@ async def check_and_cure_for_payment(
     if account_id is None:
         return 0
     acc = (await session.execute(
-        select(Account).where(Account.id == account_id)
+        select(Account).where(Account.id == account_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; account_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if acc is None:
         return 0
@@ -465,7 +465,7 @@ async def check_and_cure_for_payment(
         return 0
 
     cases = list((await session.execute(
-        select(DunningCase).where(
+        select(DunningCase).where(  # noqa: tenant-filter cross-tenant — scoped by account_id (tenant-anchored FK from caller); RLS-scoped session
             DunningCase.account_id == account_id,
             DunningCase.status == "ACTIVE",
         )

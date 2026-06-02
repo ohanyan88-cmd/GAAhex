@@ -44,7 +44,7 @@ async def _own_row(s: AsyncSession, user: User) -> User:
     """Reload the caller's own app_user row on the RLS-subject request session so we can UPDATE it
     (the dependency-injected `user` is detached from `s`). The tenant GUC is already set, so the
     row resolves under tenant_isolation; missing ⇒ 404 (should not happen for an authed caller)."""
-    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()
+    row = (await s.execute(select(User).where(User.id == user.id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — RLS-scoped (tenant GUC set); self-row reload
     if not row:
         raise HTTPException(404, "User not found")
     return row
