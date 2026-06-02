@@ -72,6 +72,15 @@ jobs:
         working-directory: backend
         run: ruff check app/ --exit-zero
 
+      # M1-A audit item #5 — static check that every SQLAlchemy query on a
+      # tenant-scoped table includes a `tenant_id` filter. Stdlib-only AST
+      # walker; pre-existing violations are recorded in
+      # backend/scripts/.tenant_filter_baseline so this gate only fails on
+      # NEW violations. Companion to the runtime audit
+      # (backend/app/tenant_query_audit.py).
+      - name: Tenant-filter static analysis
+        run: python backend/scripts/check_tenant_filter.py
+
       - name: Tests (pytest)
         working-directory: backend
         run: pytest --tb=short -q
