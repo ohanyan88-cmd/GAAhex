@@ -49,8 +49,11 @@ from .mock_driver import MockOltDriver
 
 _DRIVERS: dict[str, type] = {
     "mock": MockOltDriver,
-    # M1-B.3 adds: 'huawei': HuaweiDriver
-    # M1-B.4 adds: 'zte':    ZteDriver
+    # Concrete vendor drivers self-register at module-import time via
+    # ``register_driver()`` — see ``drivers/huawei.py`` (Phase 3) and the
+    # forthcoming ``drivers/zte.py`` (Phase 4). The package ``__init__`` imports
+    # the drivers package so that ``from app.services.olt import factory`` is
+    # enough to populate this map without callers needing per-vendor imports.
 }
 
 
