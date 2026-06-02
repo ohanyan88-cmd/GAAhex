@@ -1278,13 +1278,7 @@ async def _credited_total(s: AsyncSession, invoice_id: uuid.UUID, tenant_id: uui
 
 
 async def _next_credit_note_number(s: AsyncSession, tenant_id: uuid.UUID) -> str:
-    n = (await s.execute(
-        select(func.count()).select_from(Record).where(
-            Record.tenant_id == tenant_id,
-            Record.entity_key == "credit_note",
-        )
-    )).scalar_one()
-    return f"CN-{n + 1:05d}"
+    return await next_reference_number(s, tenant_id=tenant_id, prefix="CN", width=5)
 
 
 @router.post("/credit-notes", status_code=200)

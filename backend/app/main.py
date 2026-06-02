@@ -34,7 +34,7 @@ from .seed_regions import seed_demo_regions_if_empty
 from .seed_nav_registry import seed_nav_registry_if_empty
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle
 
 
 _log = logging.getLogger("gaaex")
@@ -187,6 +187,7 @@ app.include_router(configurations.router)         # /api/configurations — file
 app.include_router(escalations.router)            # /api/escalations — file 02 Escalation Standard
 app.include_router(relationships.router)          # /api/relationships — file 12 Relationship Standard
 app.include_router(imports_exports.router)        # /api/imports + /api/exports — file 08 Import/Export Standard
+app.include_router(lifecycle.router)              # /api/lifecycle — file 12 D14 deletion-state lifecycle (polymorphic)
 app.include_router(export.router)
 app.include_router(activity.router)
 app.include_router(audit_log.router)                # /api/audit-log (governance log; admin-scoped; before records)

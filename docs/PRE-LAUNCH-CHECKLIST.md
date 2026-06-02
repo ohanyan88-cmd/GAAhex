@@ -124,6 +124,8 @@ Status:
 | 43 | 🔴 Webhook SSRF guard | Off by default | Set `WEBHOOK_ALLOW_PRIVATE=false` in prod (it already is — just confirm) |
 | 44 | 🔴 Rate limiting | Off by default | Set `RATE_LIMIT_ENABLED=true`, tune `RATE_LIMIT_PER_MIN` |
 | 45 | 🔴 Comment hold DB trigger | Router-only today | Write BEFORE UPDATE / BEFORE DELETE trigger (same class as `b70ef3b98e27`). Hard precondition before first legal hold. Tracked in `app/models/comment.py:33` |
+| 45a | 🟡 PaymentMethodView wiring | Component shipped (Stripe Elements), not wired into App.tsx | `PaymentMethodView.tsx` exists; needs a view type added to `App.tsx`'s View union + an "Add Card" entry point (from PaymentMethodsView or similar). UX placement is a product decision. `VITE_STRIPE_PUBLISHABLE_KEY` env var also needs to be set for it to function. |
+| 45b | 🟡 9-tab CustomerView Activity duplication | Customer 360 now has Timeline tab AND a separate Activity section at the bottom | The C1 Object Detail 9-tab scaffold added Timeline tab per file 10. The pre-existing `ActivityTimeline` section at the bottom of CustomerView is now redundant — should be removed in a polish pass. |
 
 ---
 
