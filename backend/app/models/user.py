@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -12,7 +13,7 @@ class User(Base):
     """A person who logs in. Belongs to a tenant; sits on an org node (primary, for M0)."""
     __tablename__ = "app_user"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

@@ -94,7 +94,7 @@ export default function SavedViewsView({
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Saved Views']}
       icon={<BookmarkIcon size={18} />}
       title="Saved Views"

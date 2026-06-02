@@ -8,6 +8,7 @@ SPEC §0.4 AUDIT APPEND-ONLY (kernel invariant, alembic revision b70ef3b98e27):
   even against raw SQL access by a privileged operator (short of dropping the trigger itself,
   which would be a DDL-visible action).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -23,7 +24,7 @@ class Event(Base):
     audit log (M5). Append-only in spirit AND enforced at the DB layer (see module docstring)."""
     __tablename__ = "event"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     type: Mapped[str] = mapped_column(String(80), nullable=False)          # e.g. "transition"
     entity_key: Mapped[str | None] = mapped_column(String(80), nullable=True)

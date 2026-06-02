@@ -9,6 +9,7 @@ metadata (purpose) that doesn't belong on the generic IPAM row.
 One-to-one with ``PoolAllocation`` (UNIQUE pool_allocation_id) — never two VlanAssignment rows
 pointing at the same allocation.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -32,7 +33,7 @@ class VlanAssignment(Base):
         Index("ix_vlan_assign_service_purpose", "service_id", "purpose"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

@@ -344,7 +344,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['CRM', t('nav.customers', 'Customers'), name || t('cust.title', 'Customer')]}
       icon={<UsersIcon size={18} />}
       title={name || t('cust.title', 'Customer')}

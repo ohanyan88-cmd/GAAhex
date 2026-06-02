@@ -4,6 +4,7 @@ a freeform record of the resources a service consumes. Deliberately NOT a networ
 
 Mirrors the billing/record style (UUID, tenant_id, owner_node_id, timestamps); tenant + org scoped;
 emits audit Events. Sits at the end of the chain: order → subscription → service."""
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -19,7 +20,7 @@ class Service(Base):
     Subscription it fulfills."""
     __tablename__ = "service"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
@@ -42,7 +43,7 @@ class ServiceResource(Base):
     Released resources keep their row (status RELEASED) for history, never hard-deleted."""
     __tablename__ = "service_resource"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     service_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("service.id"), nullable=False, index=True)
     kind: Mapped[str] = mapped_column(String(40), nullable=False)                       # ip|mac|port|device|circuit|other

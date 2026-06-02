@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+
+from app.utils.ids import uuid7
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -124,7 +126,7 @@ async def create_binding(
 
     now = datetime.now(timezone.utc)
     binding = PageBinding(
-        id=uuid.uuid4(),
+        id=uuid7(),
         tenant_id=user.tenant_id,
         page_id=body.page_id,
         component_key=body.component_key.strip(),

@@ -209,7 +209,7 @@ export default function InstallationBoardView({
 
   return (
     <PageShell
-      type="pipeline"
+      type="PIPELINE"
       breadcrumb={['Tech & NOC', 'Installation Board']}
       icon={<TruckIcon size={18} />}
       title="Installation Board"

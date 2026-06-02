@@ -662,7 +662,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Calendar']}
       icon={<CalendarIcon size={18} />}
       title={cfg.title}

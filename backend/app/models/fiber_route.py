@@ -4,6 +4,7 @@ FiberRoute stores the physical fiber path as WKT text (not a PostGIS geometry co
 the ORM level — we store TEXT and let raw SQL queries cast when spatial queries are needed).
 OutagePath links an existing outage Record to a FiberRoute with an optional cut-point WKT.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -26,7 +27,7 @@ class FiberRoute(Base):
         Index("ix_fiber_route_tenant_status", "tenant_id", "status"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )
@@ -56,7 +57,7 @@ class OutagePath(Base):
         Index("ix_outage_path_fiber_route_id", "fiber_route_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

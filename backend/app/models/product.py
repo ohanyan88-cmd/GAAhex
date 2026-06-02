@@ -11,6 +11,7 @@ migrated to the Decimal price columns yet (and for legacy subscriptions/invoices
 the integer-luma amount). New code should write recurring_price/one_time_price; readers should
 prefer those and fall back to default_amount only when both are NULL.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -28,7 +29,7 @@ class Product(Base):
         UniqueConstraint("tenant_id", "key", name="uq_product_key"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)            # machine ref, unique per tenant
     name: Mapped[str] = mapped_column(String(160), nullable=False)          # display name

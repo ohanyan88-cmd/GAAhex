@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -12,7 +13,7 @@ class Tenant(Base):
     """The hard isolation boundary: one ISP company or group."""
     __tablename__ = "tenant"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="active")
     # ---- editable profile (onboarding wizard + app header); all additive & nullable ----

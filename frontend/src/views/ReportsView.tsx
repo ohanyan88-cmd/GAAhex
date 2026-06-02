@@ -162,7 +162,7 @@ export default function ReportsView({
 
   return (
     <PageShell
-      type="analytics"
+      type="ANALYTICS"
       breadcrumb={['Analytics & AI', 'Reports & AI Insights']}
       icon={<BookmarkIcon size={18} />}
       title="Reports"

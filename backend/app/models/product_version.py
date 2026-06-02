@@ -11,6 +11,7 @@ guarantee. The current Product row is the LIVE/editable view; the versions are t
 Money: Decimal here (Phase A.1 introduces Decimal MRC/NRC alongside the legacy integer-luma
 `default_amount` on Product — see product.py docstring).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -37,7 +38,7 @@ class ProductVersion(Base):
         UniqueConstraint("product_id", "version_no", name="uq_product_version_no"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     product_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("product.id", ondelete="CASCADE"), nullable=False, index=True,
     )

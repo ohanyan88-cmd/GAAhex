@@ -93,7 +93,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'My Approvals']}
       icon={<CheckIcon size={18} />}
       title="My Approvals"

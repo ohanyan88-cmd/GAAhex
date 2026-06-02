@@ -191,7 +191,7 @@ export default function HelpdeskView({
   if (unavailable) {
     return (
       <PageShell
-        type="operations"
+        type="OPERATIONS"
         breadcrumb={['Tech & NOC', 'Support Tickets']}
         icon={<InboxIcon size={18} />}
         title="Support Tickets"
@@ -208,7 +208,7 @@ export default function HelpdeskView({
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Support Tickets']}
       icon={<InboxIcon size={18} />}
       title="Support Tickets"

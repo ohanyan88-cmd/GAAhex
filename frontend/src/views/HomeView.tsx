@@ -412,7 +412,7 @@ export default function HomeView({ token, onNavigate }: {
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Home']}
       icon={<HomeIcon size={18} />}
       title="Home"

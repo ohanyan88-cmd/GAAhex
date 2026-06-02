@@ -275,7 +275,7 @@ export default function MyTasksView({
   if (state.kind === 'forbidden') {
     return (
       <PageShell
-        type="workspace"
+        type="WORKSPACE"
         breadcrumb={['Workspace', 'My Work']}
         icon={<CheckIcon size={18} />}
         title="My Work"
@@ -321,7 +321,7 @@ export default function MyTasksView({
   return (
     <>
       <PageShell
-        type="workspace"
+        type="WORKSPACE"
         breadcrumb={['Workspace', 'My Work']}
         icon={<CheckIcon size={18} />}
         title="My Work"

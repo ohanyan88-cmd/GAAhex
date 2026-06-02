@@ -331,7 +331,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
 
   return (
     <PageShell
-      type="pipeline"
+      type="PIPELINE"
       breadcrumb={['CRM', 'Leads']}
       icon={<InboxIcon size={18} />}
       title="Leads"

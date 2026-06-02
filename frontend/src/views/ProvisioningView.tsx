@@ -51,7 +51,7 @@ export default function ProvisioningView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Provisioning']}
       icon={<GearIcon size={20} />}
       title="Provisioning"

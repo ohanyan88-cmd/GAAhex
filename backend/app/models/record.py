@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -13,7 +14,7 @@ class Record(Base):
     bag for the config-defined fields. One table holds every entity type (entity_key)."""
     __tablename__ = "record"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     entity_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)

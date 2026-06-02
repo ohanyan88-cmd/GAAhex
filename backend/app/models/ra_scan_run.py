@@ -5,6 +5,7 @@ is the count of NEW findings the run produced (existing open findings on the sam
 partial-unique index rejected don't count). Triggered from ``POST /api/revenue-assurance/scan`` —
 ``triggered_by`` is the actor user.id, or NULL when fired by a scheduled job (future work).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -27,7 +28,7 @@ class RaScanRun(Base):
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

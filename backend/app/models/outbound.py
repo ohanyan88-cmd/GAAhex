@@ -3,6 +3,7 @@
 Every external-channel send (email/sms/webhook/console…) records one OutboundMessage — the
 observable, queryable record of what GAAex tried to send and whether it worked. In-app
 notifications are NOT logged here: the inbox `Notification` row is itself the delivery."""
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -16,7 +17,7 @@ from .base import Base
 class OutboundMessage(Base):
     __tablename__ = "outbound_message"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     channel: Mapped[str] = mapped_column(String(40), nullable=False)                   # inapp|email|sms|webhook|console
     to_addr: Mapped[str | None] = mapped_column(String(255), nullable=True)            # email / phone / — (channel-specific)

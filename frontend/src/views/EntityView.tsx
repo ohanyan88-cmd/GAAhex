@@ -56,23 +56,23 @@ const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
 
 // ── PageShell metadata map ─────────────────────────────────────────────────
 // Static breadcrumb + page-type per known slug. Custom entities fall back to
-// ['Records', capitalize(slug)] / 'registry'.
+// ['Records', capitalize(slug)] / 'REGISTRY'.
 
 type SlugMeta = { breadcrumb: string[]; type: PageType; subtitle?: string }
 
 const SLUG_META: Record<string, SlugMeta> = {
-  'leads':                { breadcrumb: ['CRM', 'Leads'],                    type: 'registry' },
-  'customers':            { breadcrumb: ['CRM', 'Customers'],                type: 'registry' },
-  'campaigns':            { breadcrumb: ['CRM', 'Campaigns'],                type: 'registry' },
-  'users':                { breadcrumb: ['Admin Panel', 'Users'],            type: 'configuration' },
-  'roles':                { breadcrumb: ['Admin Panel', 'Roles'],            type: 'configuration' },
-  'incidents':            { breadcrumb: ['Tech & NOC', 'Incidents'],         type: 'operations' },
-  'assets':               { breadcrumb: ['Tech & NOC', 'Assets'],            type: 'operations' },
-  'expenses':             { breadcrumb: ['Enterprise', 'Finance'],           type: 'registry' },
-  'employees':            { breadcrumb: ['Enterprise', 'HR'],                type: 'registry' },
-  'purchase-orders':      { breadcrumb: ['Enterprise', 'Procurement'],       type: 'registry' },
-  'contracts':            { breadcrumb: ['Enterprise', 'Legal'],             type: 'registry' },
-  'notification-rules':   { breadcrumb: ['Admin Panel', 'Notifications'],    type: 'configuration' },
+  'leads':                { breadcrumb: ['CRM', 'Leads'],                    type: 'REGISTRY' },
+  'customers':            { breadcrumb: ['CRM', 'Customers'],                type: 'REGISTRY' },
+  'campaigns':            { breadcrumb: ['CRM', 'Campaigns'],                type: 'REGISTRY' },
+  'users':                { breadcrumb: ['Admin Panel', 'Users'],            type: 'CONFIGURATION' },
+  'roles':                { breadcrumb: ['Admin Panel', 'Roles'],            type: 'CONFIGURATION' },
+  'incidents':            { breadcrumb: ['Tech & NOC', 'Incidents'],         type: 'OPERATIONS' },
+  'assets':               { breadcrumb: ['Tech & NOC', 'Assets'],            type: 'OPERATIONS' },
+  'expenses':             { breadcrumb: ['Enterprise', 'Finance'],           type: 'REGISTRY' },
+  'employees':            { breadcrumb: ['Enterprise', 'HR'],                type: 'REGISTRY' },
+  'purchase-orders':      { breadcrumb: ['Enterprise', 'Procurement'],       type: 'REGISTRY' },
+  'contracts':            { breadcrumb: ['Enterprise', 'Legal'],             type: 'REGISTRY' },
+  'notification-rules':   { breadcrumb: ['Admin Panel', 'Notifications'],    type: 'CONFIGURATION' },
 }
 
 function capitalize(s: string) {
@@ -80,7 +80,7 @@ function capitalize(s: string) {
 }
 
 function pagePropsForSlug(slug: string, def: Def | null): { breadcrumb: string[]; type: PageType; title: string; subtitle: string } {
-  const meta = SLUG_META[slug] ?? { breadcrumb: ['Records', capitalize(slug)], type: 'registry' as PageType }
+  const meta = SLUG_META[slug] ?? { breadcrumb: ['Records', capitalize(slug)], type: 'REGISTRY' as PageType }
   const title = def?.label_plural ?? capitalize(slug)
   const subtitle = meta.subtitle ?? ''
   return { breadcrumb: meta.breadcrumb, type: meta.type, title, subtitle }

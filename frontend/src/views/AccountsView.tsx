@@ -307,7 +307,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', cfg.title]}
       icon={<BuildingIcon size={18} />}
       title={cfg.title}

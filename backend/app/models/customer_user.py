@@ -4,6 +4,7 @@ Distinct from the staff User / RBAC system. A CustomerUser belongs to one tenant
 represents exactly one customer Record. Portal JWTs carry kind='customer' to keep the
 two token namespaces non-interchangeable.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -17,7 +18,7 @@ from .base import Base
 class CustomerUser(Base):
     __tablename__ = "customer_user"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

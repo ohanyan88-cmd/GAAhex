@@ -5,6 +5,7 @@ so `amount = round(quantity * unit_rate)` in **luma** (AMD minor units, like the
 Rating rolls a subscription's UNRATED usage into invoice lines (see routers/usage.py:rate_usage),
 flipping `rated=True` and linking the invoice. Tenant + org scoped; needs RLS (tenant isolation).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -18,7 +19,7 @@ from .base import Base
 class UsageRecord(Base):
     __tablename__ = "usage_record"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     subscription_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("subscription.id"), nullable=True, index=True)

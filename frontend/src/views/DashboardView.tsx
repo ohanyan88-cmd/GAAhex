@@ -992,7 +992,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
 
   return (
     <PageShell
-      type="analytics"
+      type="ANALYTICS"
       breadcrumb={['Analytics & AI', 'Operational Dashboards']}
       icon={<ChartIcon size={18} />}
       title="Dashboards"

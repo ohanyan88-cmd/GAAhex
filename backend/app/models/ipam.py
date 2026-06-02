@@ -7,6 +7,7 @@ or asset it serves.
 A partial-unique index on (tenant_id, address) WHERE released_at IS NULL
 prevents two simultaneously-active assignments for the same IP in a tenant.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -37,7 +38,7 @@ class IpAssignment(Base):
         Index("ix_ip_assignment_address_tenant", "address", "tenant_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

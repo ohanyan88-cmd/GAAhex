@@ -171,7 +171,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', cfg.title]}
       icon={<ArchiveIcon size={18} />}
       title={cfg.title}

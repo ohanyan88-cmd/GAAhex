@@ -10,11 +10,11 @@
 //   │ Zone           │ Rendered when                                         │
 //   ├────────────────┼──────────────────────────────────────────────────────┤
 //   │ A · Header     │ Always.                                               │
-//   │ B · KPIBar     │ `kpis` non-empty AND type ≠ 'placeholder'.            │
+//   │ B · KPIBar     │ `kpis` non-empty AND type ≠ 'PLACEHOLDER'.            │
 //   │ C · ActionBar  │ Any of {views, primaryAction, secondaryActions} AND   │
-//   │                │ type ≠ 'placeholder'.                                 │
+//   │                │ type ≠ 'PLACEHOLDER'.                                 │
 //   │ D · FilterBar  │ `filters` provided AND has content.                   │
-//   │ E · Workspace  │ Always — wraps `children`. If type === 'placeholder'  │
+//   │ E · Workspace  │ Always — wraps `children`. If type === 'PLACEHOLDER'  │
 //   │                │ and no children, renders a default EmptyState.        │
 //   │ F · ContextPnl │ `contextPanel` provided.                              │
 //   └────────────────┴──────────────────────────────────────────────────────┘
@@ -62,7 +62,10 @@ export function PageShell({
   contextPanel,
   className,
 }: PageShellProps) {
-  const isPlaceholder = type === 'placeholder'
+  const isPlaceholder = type === 'PLACEHOLDER'
+  // CSS hooks remain in lowercase (unchanged contract); the enum value is the
+  // canonical UPPER_SNAKE per standard 14. We translate here at the boundary.
+  const cssPageType = type.toLowerCase()
 
   // Zone visibility resolution (see header doc-comment above).
   const showKPIs = !isPlaceholder && !!kpis && kpis.length > 0
@@ -96,7 +99,7 @@ export function PageShell({
   return (
     <div
       className={rootCls}
-      data-page-type={type}
+      data-page-type={cssPageType}
       data-context={showContext ? 'shown' : 'hidden'}
     >
       <PageHeader

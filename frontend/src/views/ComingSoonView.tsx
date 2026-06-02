@@ -1,5 +1,5 @@
 // Reusable "Coming Soon" placeholder for routes that are locked in the nav but
-// don't have a real page implementation yet. Renders via PageShell type='placeholder':
+// don't have a real page implementation yet. Renders via PageShell type='PLACEHOLDER':
 //   - breadcrumbs (Section › Item) via PageShell header
 //   - page title via PageShell header
 //   - centered empty-state with a "Coming Soon" pill + description as children
@@ -23,7 +23,7 @@ export interface ComingSoonViewProps {
 export default function ComingSoonView({ title, parent, description, id }: ComingSoonViewProps) {
   return (
     <PageShell
-      type="placeholder"
+      type="PLACEHOLDER"
       breadcrumb={[parent, title]}
       icon={<LayersIcon size={18} />}
       title={title}

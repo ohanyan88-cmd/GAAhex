@@ -138,7 +138,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Admin Panel', t('nav.parties', 'Parties')]}
       icon={<UsersIcon size={18} />}
       title={t('nav.parties', 'Parties')}

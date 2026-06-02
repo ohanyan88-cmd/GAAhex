@@ -33,7 +33,7 @@ export default function PipelineView(props: PipelineViewProps) {
 
   return (
     <PageShell
-      type="pipeline"
+      type="PIPELINE"
       breadcrumb={['CRM', 'Pipeline']}
       icon={<ArrowRightIcon size={18} />}
       title="Pipeline"
@@ -199,6 +199,11 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
       <div style={{ fontSize: 11, color: 'var(--gx-text-3, #64748b)' }}>
         Owner: <strong style={{ color: 'var(--gx-text-2, #475569)' }}>{stage.owner}</strong>
       </div>
+      {stage.supporting.length > 0 && (
+        <div style={{ fontSize: 11, color: 'var(--gx-text-3, #94a3b8)' }}>
+          Supporting: <span style={{ color: 'var(--gx-text-2, #475569)' }}>{stage.supporting.join(', ')}</span>
+        </div>
+      )}
       {stage.gate && (
         <div style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           <span style={{

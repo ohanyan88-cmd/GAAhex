@@ -332,7 +332,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Network & Stock Inventory']}
       icon={<PackageIcon size={18} />}
       title="Network & Stock Inventory"

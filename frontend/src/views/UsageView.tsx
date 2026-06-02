@@ -149,7 +149,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
   return (
     <PageShell
-      type="analytics"
+      type="ANALYTICS"
       breadcrumb={['Billing & Revenue', cfg.title]}
       icon={<ActivityIcon size={18} />}
       title={cfg.title}

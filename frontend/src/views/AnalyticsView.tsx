@@ -78,7 +78,7 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
 
   return (
     <PageShell
-      type="analytics"
+      type="ANALYTICS"
       breadcrumb={['Analytics & AI', 'Analytics']}
       icon={<ChartIcon size={18} />}
       title="Analytics"

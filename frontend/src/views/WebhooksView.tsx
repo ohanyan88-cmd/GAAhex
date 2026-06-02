@@ -181,7 +181,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
 
   return (
     <PageShell
-      type="configuration"
+      type="CONFIGURATION"
       breadcrumb={['Admin Panel', 'Integrations']}
       icon={<ServerIcon size={18} />}
       title="Integrations"

@@ -22,7 +22,8 @@ Public surface:
 from __future__ import annotations
 
 from typing import Protocol, TypedDict
-from uuid import uuid4
+
+from app.utils.ids import uuid7
 
 
 class VaultResult(TypedDict):
@@ -128,11 +129,11 @@ class LoggingGateway:
     """v1 — deterministic synthetic vaulting. NEVER calls a real payment gateway.
 
     Behavior:
-      * ``vault_card``  — returns {gateway_token=f"tok_log_{uuid4().hex}", last4=card_number[-4:],
+      * ``vault_card``  — returns {gateway_token=f"tok_log_{uuid7().hex}", last4=card_number[-4:],
                           brand=infer_brand_from_iin(card_number), exp_month, exp_year}
-      * ``charge``      — returns {charge_id=f"ch_log_{uuid4().hex}", status='succeeded',
+      * ``charge``      — returns {charge_id=f"ch_log_{uuid7().hex}", status='succeeded',
                           amount_cents, currency}
-      * ``void``        — returns {void_id=f"vd_log_{uuid4().hex}", status='voided', charge_id}
+      * ``void``        — returns {void_id=f"vd_log_{uuid7().hex}", status='voided', charge_id}
 
     The raw card_number + cvc parameters are USED to compute the response (last4 / brand) but
     are NEVER persisted, logged, or returned. The caller (router) is the security boundary —
@@ -152,7 +153,7 @@ class LoggingGateway:
         last4 = s[-4:] if len(s) >= 4 else s.rjust(4, "0")
         brand = infer_brand_from_iin(s)
         return VaultResult(
-            gateway_token=f"tok_log_{uuid4().hex}",
+            gateway_token=f"tok_log_{uuid7().hex}",
             last4=last4,
             brand=brand,
             exp_month=int(exp_month),
@@ -168,7 +169,7 @@ class LoggingGateway:
         description: str | None = None,  # noqa: ARG002 — not needed for synthetic response
     ) -> dict:
         return {
-            "charge_id": f"ch_log_{uuid4().hex}",
+            "charge_id": f"ch_log_{uuid7().hex}",
             "status": "succeeded",
             "amount_cents": int(amount_cents),
             "currency": currency,
@@ -181,7 +182,7 @@ class LoggingGateway:
         charge_id: str,
     ) -> dict:
         return {
-            "void_id": f"vd_log_{uuid4().hex}",
+            "void_id": f"vd_log_{uuid7().hex}",
             "status": "voided",
             "charge_id": charge_id,
         }

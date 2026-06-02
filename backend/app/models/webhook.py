@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -21,7 +22,7 @@ class WebhookDef(Base):
     """
     __tablename__ = "webhook_def"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     url: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -36,7 +37,7 @@ class WebhookDelivery(Base):
     a real queue/worker with retries comes later. Needs RLS (tenant isolation)."""
     __tablename__ = "webhook_delivery"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     webhook_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("webhook_def.id"), nullable=False, index=True)
     event_type: Mapped[str] = mapped_column(String(80), nullable=False)

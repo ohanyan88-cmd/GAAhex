@@ -205,7 +205,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', cfg.title]}
       icon={<ReceiptIcon size={18} />}
       title={cfg.title}

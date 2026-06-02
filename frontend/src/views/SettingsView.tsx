@@ -105,7 +105,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
 
   return (
     <PageShell
-      type="configuration"
+      type="CONFIGURATION"
       breadcrumb={['Admin Panel', 'Settings']}
       icon={<GearIcon size={20} />}
       title="Settings"

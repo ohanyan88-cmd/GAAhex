@@ -128,7 +128,8 @@ async def provision_service_for_subscription(s, *, tenant_id, subscription: Subs
     Defaults to PENDING (provisioning still to be done); pass status="ACTIVE" to go live immediately."""
     svc = Service(
         tenant_id=tenant_id, owner_node_id=owner_node_id, customer_id=customer_id,
-        subscription_id=subscription.id, type="service", name=subscription.plan_name,
+        subscription_id=subscription.id, product_id=subscription.product_id,
+        type="service", name=subscription.plan_name,
         status=status, activated_at=_now() if status == "ACTIVE" else None,
     )
     s.add(svc)

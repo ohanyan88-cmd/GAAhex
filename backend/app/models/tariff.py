@@ -12,6 +12,7 @@ for A.1).
 Money lives as Decimal (Numeric) here because tariff math is per-unit and per-bracket; the integer
 luma convention applies only to Subscription/Invoice/Payment totals, not to per-unit rate cards.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -33,7 +34,7 @@ class TariffPlan(Base):
         UniqueConstraint("tenant_id", "key", name="uq_tariff_plan_key"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

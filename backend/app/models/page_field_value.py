@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -32,7 +33,7 @@ class PageFieldValue(Base):
         UniqueConstraint("tenant_id", "page_key", "row_id", name="uq_page_field_value_tenant_page_row"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     page_key: Mapped[str] = mapped_column(String(80), nullable=False)   # e.g. "services"
     row_id: Mapped[str] = mapped_column(String(255), nullable=False)    # natural id of the page's data row

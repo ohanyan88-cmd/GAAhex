@@ -166,7 +166,7 @@ export default function CollectionsView({
 
   return (
     <PageShell
-      type="pipeline"
+      type="PIPELINE"
       breadcrumb={['Billing & Revenue', t('collections.title', 'Collections')]}
       icon={<InboxIcon size={18} />}
       title={t('collections.title', 'Collections')}

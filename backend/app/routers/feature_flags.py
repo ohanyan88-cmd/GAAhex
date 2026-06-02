@@ -9,6 +9,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from app.utils.ids import uuid7
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -113,7 +115,7 @@ async def create_flag(
 
     now = datetime.now(timezone.utc)
     flag = FeatureFlag(
-        id=uuid.uuid4(),
+        id=uuid7(),
         tenant_id=user.tenant_id,
         key=body.key,
         label=body.label,

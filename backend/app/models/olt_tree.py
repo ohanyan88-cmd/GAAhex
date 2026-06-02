@@ -11,6 +11,7 @@ physically deleted (so audit trails + downstream FK references survive).
 Mirrors the splitter/cpe_binding style: UUID PK, tenant-scoped, timestamp-naive on
 the small status enums, partial-unique on live ONU serials.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -32,7 +33,7 @@ class OltChassis(Base):
         Index("ix_olt_chassis_olt_record_id", "olt_record_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )
@@ -58,7 +59,7 @@ class OltCard(Base):
         Index("ix_olt_card_chassis_id", "chassis_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )
@@ -88,7 +89,7 @@ class OltPort(Base):
         Index("ix_olt_port_status_polled", "status", "last_polled_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )
@@ -128,7 +129,7 @@ class Onu(Base):
         Index("ix_onu_status_last_seen", "status", "last_seen_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )

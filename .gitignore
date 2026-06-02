@@ -36,3 +36,6 @@ test_p45.py
 test_p67.py
 write_report.py
 write_rpt*.py
+
+# pre-cutover forensic pg_dumps — kept on disk for safety, not in history
+backend/dev-backup-*.sql

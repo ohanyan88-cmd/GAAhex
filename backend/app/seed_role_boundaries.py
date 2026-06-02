@@ -71,6 +71,8 @@ import uuid
 from sqlalchemy import select, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from app.utils.ids import uuid7
+
 from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasses RLS
 from .models import RoleDef, RoleDeny
 
@@ -210,7 +212,7 @@ async def seed_role_boundaries_if_empty() -> dict[str, int]:
                     if existing:
                         continue
                     s.add(RoleDeny(
-                        id=uuid.uuid4(),
+                        id=uuid7(),
                         tenant_id=tenant_id,
                         role_id=role_id,
                         denied_action=denied_action,

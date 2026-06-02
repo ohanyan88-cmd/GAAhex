@@ -63,7 +63,7 @@ export default function GlobalSearchView({ token, onNavigate }: {
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Global Search']}
       icon={<SearchIcon size={20} />}
       title="Global Search"

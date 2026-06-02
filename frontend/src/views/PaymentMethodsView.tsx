@@ -190,7 +190,7 @@ export default function PaymentMethodsView({
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', 'Payment Methods']}
       icon={<CreditCardIcon size={18} />}
       title="Payment Methods"

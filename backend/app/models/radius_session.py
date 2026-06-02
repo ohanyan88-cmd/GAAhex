@@ -8,6 +8,7 @@ we scope it to tenant to keep multi-tenant isolation.
 
 Partial index on status='active' makes "who is currently online" queries fast.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -36,7 +37,7 @@ class RadiusSession(Base):
         Index("ix_radius_session_service_id", "service_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

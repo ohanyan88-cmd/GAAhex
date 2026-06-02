@@ -4,6 +4,7 @@ A WorkItem is a discrete unit of work (task, install, repair, survey) assigned t
 optionally tied to a customer record.  scheduled_at + location support field-dispatch boards.
 Tenant + org scoped exactly like helpdesk; same RLS policy pattern.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -18,7 +19,7 @@ class WorkItem(Base):
     """A unit of work assigned to a user and tracked to completion."""
     __tablename__ = "workitem"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -27,8 +27,49 @@ from .records import _node_path, _node_paths, _paginate     # reuse the records 
 
 router = APIRouter(prefix="/api/interactions", tags=["interactions"])
 
-CHANNELS = {"call", "email", "chat", "sms", "note", "other"}
-DIRECTIONS = {"inbound", "outbound", "internal"}
+# Canonical CommunicationChannel / CommunicationDirection per standard 14
+# (E19/D10 + Customer Service ownership). UPPER_SNAKE.
+CHANNELS = {
+    "WHATSAPP", "MESSENGER", "SMS", "EMAIL", "CALLS",
+    "INTERNAL_CHAT", "PORTAL_MESSAGE", "SYSTEM_MESSAGE",
+}
+DIRECTIONS = {"INBOUND", "OUTBOUND", "INTERNAL", "SYSTEM"}
+
+# Legacy → canonical mapper for in-flight requests + seeded rows from the
+# previous lowercase vocabulary ({call|email|chat|sms|note|other},
+# {inbound|outbound|internal}). `note` and `other` had no clean target in the
+# new 8-value canonical set; we route them to INTERNAL_CHAT as the closest
+# internal-only surface (flagged in the migration; revisit if business
+# semantics differ).
+_LEGACY_CHANNEL_MAP = {
+    "call": "CALLS",
+    "email": "EMAIL",
+    "chat": "INTERNAL_CHAT",
+    "sms": "SMS",
+    "note": "INTERNAL_CHAT",   # ambiguous — flagged
+    "other": "INTERNAL_CHAT",  # ambiguous — flagged
+}
+_LEGACY_DIRECTION_MAP = {
+    "inbound": "INBOUND",
+    "outbound": "OUTBOUND",
+    "internal": "INTERNAL",
+}
+
+
+def _canon_channel(v: str | None) -> str | None:
+    if v is None:
+        return None
+    if v in CHANNELS:
+        return v
+    return _LEGACY_CHANNEL_MAP.get(v.lower(), v)
+
+
+def _canon_direction(v: str | None) -> str | None:
+    if v is None:
+        return None
+    if v in DIRECTIONS:
+        return v
+    return _LEGACY_DIRECTION_MAP.get(v.lower(), v)
 
 
 def _deny(perm: str):
@@ -146,7 +187,7 @@ async def list_interactions(
     if ticket is not None:
         q = q.where(Interaction.ticket_id == ticket)
     if channel:
-        q = q.where(Interaction.channel == channel)
+        q = q.where(Interaction.channel == _canon_channel(channel))
     rows = (await s.execute(q.order_by(Interaction.occurred_at.desc()))).scalars().all()
 
     paths = await _node_paths(s, user.tenant_id)
@@ -172,10 +213,10 @@ async def create_interaction(payload: dict, user: User = Depends(current_user), 
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
 
-    channel = payload.get("channel")
+    channel = _canon_channel(payload.get("channel"))
     if channel not in CHANNELS:
         raise HTTPException(422, f"channel must be one of {sorted(CHANNELS)}")
-    direction = payload.get("direction")
+    direction = _canon_direction(payload.get("direction"))
     if direction not in DIRECTIONS:
         raise HTTPException(422, f"direction must be one of {sorted(DIRECTIONS)}")
     body = (payload.get("body") or "").strip()

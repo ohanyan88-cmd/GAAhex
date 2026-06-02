@@ -6,6 +6,7 @@ integer luma (AMD), consistent with billing. Tenant + org scoped; emits audit Ev
 
 NOTE: the table is named "order" (a SQL reserved word) — SQLAlchemy quotes it automatically. The
 coordinator's migration + any RLS policy must quote it too ("order")."""
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -26,7 +27,7 @@ class Order(Base):
     """
     __tablename__ = "order"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
@@ -94,7 +95,7 @@ class OrderItem(Base):
     """A line on an order. `line_total` = quantity * unit_amount (luma)."""
     __tablename__ = "order_item"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("order.id"), nullable=False, index=True)
     product_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("product.id"), nullable=True, index=True)

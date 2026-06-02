@@ -13,6 +13,7 @@ import uuid
 from sqlalchemy import select, text
 
 from .db import OwnerSessionLocal as SessionLocal
+from .utils.ids import uuid7
 from .models import Tenant, EntityDef, Record
 from .models.interaction import Interaction
 
@@ -54,7 +55,7 @@ async def migrate_interactions() -> int:
                     data["ticket"] = str(ix.ticket_id)
 
                 rec = Record(
-                    id=uuid.uuid4(),
+                    id=uuid7(),
                     tenant_id=tenant.id,
                     owner_node_id=ix.owner_node_id,
                     entity_key="interaction",

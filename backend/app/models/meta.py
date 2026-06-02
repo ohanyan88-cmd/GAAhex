@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -16,7 +17,7 @@ class EntityDef(Base):
         UniqueConstraint("tenant_id", "route_slug", name="uq_entity_def_slug"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)            # snake_case, singular
     label: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -39,7 +40,7 @@ class FieldDef(Base):
     __tablename__ = "field_def"
     __table_args__ = (UniqueConstraint("entity_def_id", "key", name="uq_field_def_key"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     entity_def_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entity_def.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)            # snake_case
@@ -57,7 +58,7 @@ class StatusDef(Base):
     __tablename__ = "status_def"
     __table_args__ = (UniqueConstraint("entity_def_id", "key", name="uq_status_def_key"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     entity_def_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entity_def.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(60), nullable=False)            # UPPER_SNAKE
@@ -75,7 +76,7 @@ class RelationDef(Base):
     """A relationship between entities (defined now; used as the model matures)."""
     __tablename__ = "relation_def"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)
     from_entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("entity_def.id"), nullable=False)
@@ -123,7 +124,7 @@ class WorkflowDef(Base):
         UniqueConstraint("tenant_id", "key", name="uq_workflow_def_key"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     # NULLABLE for SPEC §5 cross-entity workflows (W1 spans Pipeline+Orders+Billing+...).
     # Step 4's Alembic migration (7a4b1e9c2f08) drops the NOT NULL via ALTER COLUMN ... DROP NOT NULL.

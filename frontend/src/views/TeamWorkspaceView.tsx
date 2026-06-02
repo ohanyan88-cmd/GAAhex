@@ -93,7 +93,7 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Team Workspace']}
       icon={<UsersIcon size={18} />}
       title="Team Workspace"

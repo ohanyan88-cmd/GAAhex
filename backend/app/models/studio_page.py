@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -12,7 +13,7 @@ class StudioPage(Base):
     """A logical page definition managed by Studio. One row per page per tenant."""
     __tablename__ = "studio_page"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(120), nullable=False)   # URL-safe slug
     label: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -41,7 +42,7 @@ class StudioPageVersion(Base):
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     page_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("studio_page.id"), nullable=False, index=True)
     version_no: Mapped[int] = mapped_column(Integer, nullable=False)

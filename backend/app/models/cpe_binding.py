@@ -13,6 +13,7 @@ The 'replaced' state lets the operator swap a faulty CPE: the old row keeps audi
 (mac, serial) pair frees up for the replacement row. MAC format is validated at the application
 layer (normalized to lowercase colon-separated octets).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -49,7 +50,7 @@ class CpeBinding(Base):
         Index("ix_cpe_binding_order", "order_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

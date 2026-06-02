@@ -8,6 +8,7 @@ later kernel-build steps.
 Tenant-scoped + carries the standard NULLIF-guarded tenant_isolation RLS policy applied in the
 companion migration; matches every other post-enable-RLS _def table.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -32,7 +33,7 @@ class StageDef(Base):
         UniqueConstraint("tenant_id", "sequence", name="uq_stage_def_sequence"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)            # snake_case, e.g. "lead", "order_validation"
     name: Mapped[str] = mapped_column(String(120), nullable=False)         # display, e.g. "Lead", "Order Validation"
@@ -101,7 +102,7 @@ class KpiDef(Base):
         UniqueConstraint("tenant_id", "key", name="uq_kpi_def_key"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)           # snake_case
     name: Mapped[str] = mapped_column(String(120), nullable=False)         # display

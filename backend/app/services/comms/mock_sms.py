@@ -10,12 +10,14 @@ import uuid
 from typing import Any
 from urllib.parse import parse_qs
 
+from app.utils.ids import uuid7
+
 from .exceptions import SmsGatewayCommandError
 from .sms import SmsSendResult
 
 
 def _short_uuid() -> str:
-    return uuid.uuid4().hex[:8]
+    return uuid7().hex[:8]
 
 
 def _segments(body: str) -> int:

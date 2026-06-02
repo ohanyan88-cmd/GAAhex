@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -14,7 +15,7 @@ class DashboardDef(Base):
     __tablename__ = "dashboard_def"
     __table_args__ = (UniqueConstraint("tenant_id", "key", name="uq_dashboard_def_key"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)            # snake_case
     label: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -30,7 +31,7 @@ class WidgetDef(Base):
     __tablename__ = "widget_def"
     __table_args__ = (UniqueConstraint("dashboard_def_id", "key", name="uq_widget_def_key"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     dashboard_def_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("dashboard_def.id"), nullable=False, index=True)
     key: Mapped[str] = mapped_column(String(80), nullable=False)            # snake_case

@@ -6,6 +6,7 @@ BSS tables gain an OPTIONAL nullable `account_id`; their existing `customer_id` 
 Resolution falls back to `customer_id` (see app/resolvers.py). Nothing migrates until a later batch.
 
 House style: tenant_id + nullable owner_node_id like every BSS table; money is luma (AMD)."""
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -21,7 +22,7 @@ class Party(Base):
     """WHO — a person or organization. May back-link to the existing CRM customer Record."""
     __tablename__ = "party"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     type: Mapped[str] = mapped_column(String(20), nullable=False, default="individual")  # individual|organization|carrier
@@ -36,7 +37,7 @@ class Account(Base):
     """THE MONEY — the billing/contract relationship held by a Party. A Party may have several."""
     __tablename__ = "account"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     holder_party_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("party.id"), nullable=False, index=True)

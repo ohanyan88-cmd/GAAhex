@@ -51,8 +51,9 @@ ENTITY_CATALOG = [
     e("interaction", "Interaction", "Interactions", "interactions", "phone",
       [f("customer",      "Customer",      "ref",      target="customer"),
        f("ticket",        "Ticket",        "ref",      target="ticket"),
-       f("channel",       "Channel",       "select",   True,  options=["call","email","chat","sms","note","in_person","other"]),
-       f("direction",     "Direction",     "select",   True,  options=["inbound","outbound","internal"]),
+       # Canonical CommunicationChannel / CommunicationDirection per standard 14 (UPPER_SNAKE).
+       f("channel",       "Channel",       "select",   True,  options=["WHATSAPP","MESSENGER","SMS","EMAIL","CALLS","INTERNAL_CHAT","PORTAL_MESSAGE","SYSTEM_MESSAGE"]),
+       f("direction",     "Direction",     "select",   True,  options=["INBOUND","OUTBOUND","INTERNAL","SYSTEM"]),
        f("subject",       "Subject",       "text"),
        f("body",          "Notes",         "textarea", True),
        f("duration_mins", "Duration (min)","number"),

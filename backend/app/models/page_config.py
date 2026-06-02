@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -28,7 +29,7 @@ class PageConfig(Base):
     __tablename__ = "page_config"
     __table_args__ = (UniqueConstraint("tenant_id", "page_key", name="uq_page_config_tenant_page"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     page_key: Mapped[str] = mapped_column(String(80), nullable=False)   # e.g. "services"
     config: Mapped[dict] = mapped_column(JSONB, nullable=False)         # presentation descriptor

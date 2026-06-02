@@ -282,7 +282,7 @@ export default function OrdersView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', 'Orders & Validation']}
       icon={<ArchiveIcon size={18} />}
       title="Orders & Validation"

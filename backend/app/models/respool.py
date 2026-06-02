@@ -6,6 +6,7 @@ keep their row for history (status RELEASED), freeing the value for re-allocatio
 over the thin Service domain — still inventory, not a live network controller.
 
 Mirrors service/record style (UUID, tenant_id, owner_node_id, timestamps); tenant + org scoped."""
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -21,7 +22,7 @@ class ResourcePool(Base):
     for ipv4/ipv6, or {"from":"100","to":"200"} for vlan/phone."""
     __tablename__ = "resource_pool"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
@@ -44,7 +45,7 @@ class PoolAllocation(Base):
               postgresql_where=text("status = 'ALLOCATED'")),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     pool_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("resource_pool.id"), nullable=False, index=True)
     value: Mapped[str] = mapped_column(String(120), nullable=False)                     # the allocated identifier

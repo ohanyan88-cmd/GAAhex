@@ -117,7 +117,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
 
   return (
     <PageShell
-      type="configuration"
+      type="CONFIGURATION"
       breadcrumb={['Analytics & AI', 'Report Builder']}
       icon={<EditIcon size={20} />}
       title="Report Builder"

@@ -13,6 +13,7 @@ the same condition can legitimately open a fresh finding.
 
 A worklist index on ``(tenant_id, status, detected_at)`` keeps the dashboard query cheap.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -48,7 +49,7 @@ class RaFinding(Base):
         ),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

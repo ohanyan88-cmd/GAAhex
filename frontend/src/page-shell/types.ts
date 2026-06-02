@@ -12,15 +12,17 @@ import type { ReactNode } from 'react'
 
 /* ─── Page type system ──────────────────────────────────────────────────── */
 
+// PageType — canonical UPPER_SNAKE per standard 14 (Central Enum Registry, E19)
+// and standard 10 (Page Type Standard). One of exactly 8 values.
 export type PageType =
-  | 'workspace'      // mixed dashboard / home / overview layout
-  | 'registry'       // list/table-centric (Customers, Products, Tariffs)
-  | 'pipeline'       // kanban / stage progression (Leads, Sales)
-  | 'operations'     // map + queue + status (Dispatch, NOC)
-  | 'analytics'      // charts + cards grid (Reports, Insights)
-  | 'communication'  // 3-pane list/thread/context (Inbox, Helpdesk)
-  | 'configuration'  // flexible settings/admin
-  | 'placeholder'    // coming-soon / stub state (no KPIs, no actions)
+  | 'WORKSPACE'      // mixed dashboard / home / overview layout
+  | 'REGISTRY'       // list/table-centric (Customers, Products, Tariffs)
+  | 'PIPELINE'       // kanban / stage progression (Leads, Sales)
+  | 'OPERATIONS'     // map + queue + status (Dispatch, NOC)
+  | 'ANALYTICS'      // charts + cards grid (Reports, Insights)
+  | 'COMMUNICATION'  // 3-pane list/thread/context (Inbox, Helpdesk)
+  | 'CONFIGURATION'  // flexible settings/admin
+  | 'PLACEHOLDER'    // coming-soon / stub state (no KPIs, no actions)
 
 /* ─── Status summary chip ────────────────────────────────────────────────── */
 

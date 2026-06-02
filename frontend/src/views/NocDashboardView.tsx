@@ -372,7 +372,7 @@ export default function NocDashboardView({
   if (forbidden || !canViewService) {
     return (
       <PageShell
-        type="operations"
+        type="OPERATIONS"
         breadcrumb={['Tech & NOC', 'Tech & NOC Dashboard']}
         icon={<ServerIcon size={18} />}
         title="Tech & NOC Dashboard"
@@ -386,7 +386,7 @@ export default function NocDashboardView({
   if (notFound) {
     return (
       <PageShell
-        type="operations"
+        type="OPERATIONS"
         breadcrumb={['Tech & NOC', 'Tech & NOC Dashboard']}
         icon={<ServerIcon size={18} />}
         title="Tech & NOC Dashboard"
@@ -591,7 +591,7 @@ export default function NocDashboardView({
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Tech & NOC Dashboard']}
       icon={<ServerIcon size={18} />}
       title="Tech & NOC Dashboard"

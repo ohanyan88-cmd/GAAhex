@@ -19,6 +19,7 @@ Placement legend (SPEC §1 [O]/[V]):
 Tenant-scoped throughout. The standard NULLIF-guarded `tenant_isolation` RLS policy is
 applied to both tables by the migration (`<hash>_nav_registry`).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -46,7 +47,7 @@ class NavGroup(Base):
         UniqueConstraint("tenant_id", "order", name="uq_nav_group_order"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )
@@ -89,7 +90,7 @@ class NavModule(Base):
         Index("ix_nav_module_owner_module", "owner_module"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

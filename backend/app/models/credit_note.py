@@ -17,6 +17,7 @@ Status doctrine (mirrors invoice/payment immutability — UPDATE allowed, DELETE
   ISSUED   → VOID      via /void  (cancellation before consumption; not implemented in A.3)
   any      → no DELETE (state changes only)
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -36,7 +37,7 @@ class CreditNote(Base):
         CheckConstraint("amount > 0", name="ck_credit_note_amount_positive"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

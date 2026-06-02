@@ -60,7 +60,7 @@ export default function RecentItemsView({ token, onNavigate }: {
 
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Recent Items']}
       icon={<ClockIcon size={20} />}
       title="Recent Items"

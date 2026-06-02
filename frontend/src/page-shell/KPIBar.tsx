@@ -4,7 +4,7 @@
 // language is identical to what already ships in ProductsView and dashboards.
 // Hidden by PageShell when:
 //   - kpis prop is missing or empty
-//   - type === 'placeholder'
+//   - type === 'PLACEHOLDER'
 import { KPITile } from '../primitives'
 import type { KPISpec } from './types'
 

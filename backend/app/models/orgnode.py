@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 
 from sqlalchemy import String, ForeignKey
@@ -16,7 +17,7 @@ class OrgNode(Base):
     """
     __tablename__ = "org_node"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

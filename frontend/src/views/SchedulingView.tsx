@@ -52,7 +52,7 @@ export default function SchedulingView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Scheduling']}
       icon={<CalendarIcon size={20} />}
       title="Scheduling"

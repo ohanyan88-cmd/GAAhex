@@ -320,7 +320,7 @@ export default function TariffPlansView({
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', 'Tariff Plans']}
       icon={<BookmarkIcon size={18} />}
       title="Tariff Plans"

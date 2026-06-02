@@ -3,6 +3,7 @@
 Kept separate from staff Interaction (which requires a non-null agent_user_id) because portal
 replies originate from customers, not staff agents. Linked to helpdesk_ticket by UUID reference.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -16,7 +17,7 @@ from .base import Base
 class PortalTicketReply(Base):
     __tablename__ = "portal_ticket_reply"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

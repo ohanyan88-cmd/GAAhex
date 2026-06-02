@@ -4,7 +4,7 @@
 //   [view switcher chips]  ──── (secondary actions) ──── [primary action]
 //
 // Rendered only when at least one of `views`, `primaryAction`, or
-// `secondaryActions` is present. Hidden by PageShell when type === 'placeholder'.
+// `secondaryActions` is present. Hidden by PageShell when type === 'PLACEHOLDER'.
 import type { PrimaryAction, SecondaryAction, ViewSwitcher, ViewKind } from './types'
 
 interface ActionBarProps {

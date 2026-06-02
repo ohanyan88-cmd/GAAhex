@@ -170,7 +170,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Tech & NOC', cfg.title]}
       icon={<PackageIcon size={18} />}
       title={cfg.title}

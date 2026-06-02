@@ -14,6 +14,7 @@ Immutability: like Invoice / Payment, allocations are state changes — there is
 in the application. Voiding an allocation would be a future state column; for A.3 we treat
 each row as the canonical record of what was settled.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -38,7 +39,7 @@ class PaymentAllocation(Base):
         Index("ix_payment_allocation_invoice_id", "invoice_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

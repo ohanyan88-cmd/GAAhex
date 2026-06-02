@@ -5,6 +5,7 @@ tenants; a row with a tenant_id is that tenant's OVERRIDE (tenant wins at read t
 handles the frontend looks up, e.g. `nav.dashboard`, `status.NEW`, `entity.lead.label`. Needs RLS on
 the tenant-scoped rows (global rows readable by all). Languages: `hy`, `en` (default `en`).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -19,7 +20,7 @@ class Translation(Base):
     __tablename__ = "translation"
     __table_args__ = (UniqueConstraint("tenant_id", "lang", "key", name="uq_translation_key"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=True, index=True)  # NULL = global default
     lang: Mapped[str] = mapped_column(String(8), nullable=False)            # hy | en
     key: Mapped[str] = mapped_column(String(160), nullable=False)           # dotted handle, e.g. nav.dashboard

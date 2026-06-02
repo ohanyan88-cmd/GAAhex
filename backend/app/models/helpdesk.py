@@ -4,6 +4,7 @@ First-class BSS tables (not config-driven Records) — same tenant_id + owner_no
 and workflow.emit audit pattern as billing. Tickets track SLA via sla_due_at / sla_breached;
 the SLA sweep (routers/helpdesk.py:run_sla_breach_sweep) runs as a scheduled job.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -18,7 +19,7 @@ class HelpdeskQueue(Base):
     """A logical inbox/queue that tickets are routed into (e.g. 'Tier-1', 'Network NOC')."""
     __tablename__ = "helpdesk_queue"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
@@ -31,7 +32,7 @@ class HelpdeskTicket(Base):
     """A support ticket, optionally queued, assigned to an agent, and SLA-tracked."""
     __tablename__ = "helpdesk_ticket"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)

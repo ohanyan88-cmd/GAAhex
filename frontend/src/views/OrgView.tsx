@@ -1980,7 +1980,7 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
   return (
     <OrgEditContext.Provider value={edit}>
       <PageShell
-        type="configuration"
+        type="CONFIGURATION"
         breadcrumb={['Admin Panel', 'Organisation']}
         icon={<BuildingIcon size={18} />}
         title="Organisation"

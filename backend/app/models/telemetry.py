@@ -9,6 +9,7 @@ v1 telemetry is produced by ``SimulatedDiagnosticAdapter`` (deterministic synthe
 values). The model itself is adapter-agnostic — a v2 real-EMS adapter writes into the
 same shape.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -32,7 +33,7 @@ class OpticalPowerSample(Base):
               "source_type", "source_id", "sampled_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )
@@ -57,7 +58,7 @@ class OtdrTest(Base):
         Index("ix_otdr_status_requested", "status", "requested_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )

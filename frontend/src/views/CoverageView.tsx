@@ -51,7 +51,7 @@ export default function CoverageView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Service Qualification']}
       icon={<ShieldIcon size={20} />}
       title="Service Qualification"

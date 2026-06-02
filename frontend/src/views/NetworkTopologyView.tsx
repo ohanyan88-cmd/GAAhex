@@ -51,7 +51,7 @@ export default function NetworkTopologyView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Network Topology']}
       icon={<ServerIcon size={20} />}
       title="Network Topology"

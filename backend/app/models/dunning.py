@@ -18,6 +18,7 @@ Doctrine:
   - Cure is the inverse path: paying off the account flips active cases to 'cured' and calls
     adapter.restore on any service the case suspended/throttled.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -38,7 +39,7 @@ class DunningPolicy(Base):
         UniqueConstraint("tenant_id", "name", name="uq_dunning_policy_tenant_name"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )
@@ -70,7 +71,7 @@ class DunningCase(Base):
         Index("ix_dunning_case_sweep", "status", "next_action_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )
@@ -105,7 +106,7 @@ class ServiceActionLog(Base):
     """One row per adapter side-effect. Doubles as audit trail + restore-targeting source."""
     __tablename__ = "service_action_log"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

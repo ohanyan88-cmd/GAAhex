@@ -511,7 +511,7 @@ export default function RevenueAssuranceView({
 
   return (
     <PageShell
-      type="analytics"
+      type="ANALYTICS"
       breadcrumb={['Billing & Revenue', 'Revenue Assurance']}
       icon={<ShieldIcon size={18} />}
       title="Revenue Assurance"

@@ -1,3 +1,4 @@
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -18,7 +19,7 @@ class PendingApproval(Base):
     `event.record_id` is unconstrained)."""
     __tablename__ = "pending_approval"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     entity_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
     record_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
@@ -65,7 +66,7 @@ class Approval(Base):
         Index("ix_approval_target", "target_entity_key", "target_record_id"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     # SPEC §4.5 action types — see kernel.MANDATORY_APPROVAL_ACTIONS for the canonical set.
     action_type: Mapped[str] = mapped_column(String(60), nullable=False)

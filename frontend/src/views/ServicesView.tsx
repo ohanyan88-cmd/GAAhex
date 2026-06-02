@@ -164,7 +164,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Tech & NOC', page.title]}
       icon={<ServerIcon size={18} />}
       title={page.title}

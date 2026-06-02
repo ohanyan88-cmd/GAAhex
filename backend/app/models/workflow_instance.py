@@ -19,6 +19,7 @@ Append-only audit (SPEC §0.4):
 Tenant-scoping: standard NULLIF-guarded RLS policy applied by the Step 4 migration
 (`7a4b1e9c2f08`), matching every other post-RLS-flip operational table.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -47,7 +48,7 @@ class WorkflowInstance(Base):
         Index("ix_workflow_instance_key", "tenant_id", "workflow_key"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     # FK by-key to workflow_def (not by id) so the instance survives a def re-seed and stays
     # readable when the def row is later swapped. Matches how `kpi_def.bound_stage_key` works.

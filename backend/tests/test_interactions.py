@@ -53,18 +53,23 @@ async def _customer(client, admin, name):
 
 
 async def test_create_and_list_interaction(client, admin):
-    """POST /api/interactions creates a record; GET /api/interactions lists it."""
+    """POST /api/interactions creates a record; GET /api/interactions lists it.
+
+    Uses canonical CommunicationChannel/CommunicationDirection values per standard 14
+    (UPPER_SNAKE). The generic records API doesn't enforce vocabulary, so this test
+    documents the canonical contract going forward.
+    """
     cust = await _customer(client, admin, "IntGenCust1")
     r = await client.post("/api/interactions", headers=admin, json={
-        "channel": "call",
-        "direction": "inbound",
+        "channel": "CALLS",
+        "direction": "INBOUND",
         "body": "Called about billing.",
         "customer": cust,
         "occurred_at": "2026-01-01T10:00:00+00:00",
     })
     assert r.status_code == 201, r.text
     created = r.json()
-    assert created["channel"] == "call"
+    assert created["channel"] == "CALLS"
     assert created["body"] == "Called about billing."
     assert created["customer"] == cust
 
@@ -79,11 +84,11 @@ async def test_filter_by_customer(client, admin):
     cust_b = await _customer(client, admin, "IntGenCustB")
 
     r_a = await client.post("/api/interactions", headers=admin, json={
-        "channel": "email", "direction": "outbound", "body": "Note for A", "customer": cust_a,
+        "channel": "EMAIL", "direction": "OUTBOUND", "body": "Note for A", "customer": cust_a,
     })
     assert r_a.status_code == 201
     r_b = await client.post("/api/interactions", headers=admin, json={
-        "channel": "chat", "direction": "inbound", "body": "Note for B", "customer": cust_b,
+        "channel": "INTERNAL_CHAT", "direction": "INBOUND", "body": "Note for B", "customer": cust_b,
     })
     assert r_b.status_code == 201
 
@@ -99,7 +104,7 @@ async def test_filter_by_customer(client, admin):
 async def test_body_required(client, admin):
     """Creating an interaction without the required `body` field returns 422."""
     r = await client.post("/api/interactions", headers=admin, json={
-        "channel": "call", "direction": "inbound",
+        "channel": "CALLS", "direction": "INBOUND",
     })
     assert r.status_code == 422, r.text
 
@@ -107,7 +112,7 @@ async def test_body_required(client, admin):
 async def test_get_and_patch_interaction(client, admin):
     """GET and PATCH a single interaction record."""
     r = await client.post("/api/interactions", headers=admin, json={
-        "channel": "note", "direction": "internal", "body": "initial note",
+        "channel": "INTERNAL_CHAT", "direction": "INTERNAL", "body": "initial note",
     })
     assert r.status_code == 201
     rid = r.json()["id"]
@@ -124,7 +129,7 @@ async def test_get_and_patch_interaction(client, admin):
 async def test_delete_interaction(client, admin):
     """DELETE removes the record; subsequent GET returns 404."""
     r = await client.post("/api/interactions", headers=admin, json={
-        "channel": "sms", "direction": "outbound", "body": "to delete",
+        "channel": "SMS", "direction": "OUTBOUND", "body": "to delete",
     })
     assert r.status_code == 201
     rid = r.json()["id"]

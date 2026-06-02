@@ -30,6 +30,7 @@ Result vocabulary
 Result is INTENT — even an ``errored`` row counts as "seen" for the next delivery so we
 don't fight ourselves into retry loops. Operators triage ``errored`` rows offline.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -51,7 +52,7 @@ class StripeWebhookEvent(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
+        UUID(as_uuid=True), primary_key=True, default=uuid7,
     )
     # Nullable — events fired from the Stripe dashboard may not carry our metadata.tenant_id.
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(

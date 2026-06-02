@@ -26,7 +26,7 @@ export default function ActivityFeedView({
 }) {
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Workspace', 'Activity Feed']}
       icon={<ActivityIcon size={18} />}
       title="Activity Feed"

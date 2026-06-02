@@ -9,12 +9,14 @@ import json
 import uuid
 from typing import Any
 
+from app.utils.ids import uuid7
+
 from .email import Attachment, EmailSendResult
 from .exceptions import EmailGatewayCommandError
 
 
 def _short_uuid() -> str:
-    return uuid.uuid4().hex[:8]
+    return uuid7().hex[:8]
 
 
 class MockEmailGateway:

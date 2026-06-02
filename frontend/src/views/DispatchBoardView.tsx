@@ -56,7 +56,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Support Dispatch Board']}
       icon={<TruckIcon size={20} />}
       title="Support Dispatch Board"

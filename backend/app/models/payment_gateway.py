@@ -9,6 +9,7 @@ MONEY: amount is BigInteger in luma (AMD minor units, 1 ֏ = 100 luma) — same 
 PROVIDERS: "dev" (always works, deterministic), "idram", "telcell", "arca" (Lane E scaffolds).
 STATUS: PENDING -> PAID|FAILED|EXPIRED|CANCELLED
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -23,7 +24,7 @@ class PaymentOrder(Base):
     """An online payment attempt tied to one Invoice. Created on initiation; settled on confirmation."""
     __tablename__ = "payment_order"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
 
     # Tenant + org scope (same pattern as all billing models)
     tenant_id: Mapped[uuid.UUID] = mapped_column(

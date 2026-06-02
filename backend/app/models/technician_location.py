@@ -6,6 +6,7 @@ ping). Coordinates are Numeric(9,6) — six decimal places ≈ 11cm of precision
 enough for field-tech tracking. heading/speed are optional so a low-resolution
 client (e.g. browser geolocation) can ping without sensor data.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -29,7 +30,7 @@ class TechnicianLocationPing(Base):
               "technician_user_id", "recorded_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False,
     )

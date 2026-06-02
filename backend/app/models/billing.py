@@ -12,6 +12,7 @@ SPEC §0.3 FINANCIAL IMMUTABILITY (kernel invariant, alembic revision b70ef3b98e
   UPDATE remains open for status transitions. The triggers fire for ANY role, including the
   superuser/owner, so the immutability holds at the database layer below the application.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -26,7 +27,7 @@ class Subscription(Base):
     """A customer's recurring plan. `customer_id` points at the CRM customer Record."""
     __tablename__ = "subscription"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
@@ -46,7 +47,7 @@ class Invoice(Base):
     """A bill for a period. `total` is derived from its lines (kept in sync on write)."""
     __tablename__ = "invoice"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     owner_node_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("org_node.id"), nullable=True)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id"), nullable=True, index=True)
@@ -74,7 +75,7 @@ class InvoiceLine(Base):
     """One line on an invoice. `line_total` = quantity * unit_amount (luma)."""
     __tablename__ = "invoice_line"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     invoice_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("invoice.id"), nullable=False, index=True)
     kind: Mapped[str] = mapped_column(String(20), nullable=False, default="charge", server_default="charge")  # charge|discount|tax
@@ -93,7 +94,7 @@ class Payment(Base):
     """A payment recorded against an invoice (luma)."""
     __tablename__ = "payment"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
     # Phase B.1: nullable to permit DEPOSIT payments — Stage 8 collects a deposit BEFORE any
     # invoice exists for the order. Regular invoice payments still set this. Code paths that

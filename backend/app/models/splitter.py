@@ -13,6 +13,7 @@ splitter itself is a polymorphic Record row (``entity_key='optical_splitter'``) 
 splitters configurable like every other inventory asset, while strand-level state lives here
 because the integrity constraints require a first-class table.
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -43,7 +44,7 @@ class SplitterStrandAllocation(Base):
         Index("ix_splitter_strand_status", "splitter_record_id", "status"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True,
     )

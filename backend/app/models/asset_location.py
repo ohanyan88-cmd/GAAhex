@@ -7,6 +7,7 @@ location_type values: 'warehouse' | 'truck' | 'install_site' | 'hub' | 'unknown'
 location_id is an opaque reference to the location's record (nullable — some locations
 may not have a formal record yet).
 """
+from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
@@ -27,7 +28,7 @@ class AssetLocationHistory(Base):
         Index("ix_asset_location_history_asset_time", "asset_record_id", "moved_at"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True
     )

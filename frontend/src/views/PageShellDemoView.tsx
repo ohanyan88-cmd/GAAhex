@@ -53,7 +53,7 @@ function emptyBody(label: string) {
 function WorkspaceDemo() {
   return (
     <PageShell
-      type="workspace"
+      type="WORKSPACE"
       breadcrumb={['Home']}
       icon={<HomeIcon size={18} />}
       title="Workspace"
@@ -97,7 +97,7 @@ function RegistryDemo() {
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['CRM', 'Records']}
       icon={<UsersIcon size={18} />}
       title="Registry"
@@ -127,7 +127,7 @@ function PipelineDemo() {
   const [view, setView] = useState<'board' | 'table'>('board')
   return (
     <PageShell
-      type="pipeline"
+      type="PIPELINE"
       breadcrumb={['CRM', 'Pipeline']}
       icon={<LayersIcon size={18} />}
       title="Pipeline"
@@ -150,7 +150,7 @@ function PipelineDemo() {
 function OperationsDemo() {
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['NOC', 'Dispatch']}
       icon={<MapIcon size={18} />}
       title="Operations"
@@ -182,7 +182,7 @@ function OperationsDemo() {
 function AnalyticsDemo() {
   return (
     <PageShell
-      type="analytics"
+      type="ANALYTICS"
       breadcrumb={['Reports']}
       icon={<ChartIcon size={18} />}
       title="Analytics"
@@ -218,7 +218,7 @@ function AnalyticsDemo() {
 function CommunicationDemo() {
   return (
     <PageShell
-      type="communication"
+      type="COMMUNICATION"
       breadcrumb={['Inbox']}
       icon={<MessageIcon size={18} />}
       title="Communication"
@@ -244,7 +244,7 @@ function CommunicationDemo() {
 function ConfigurationDemo() {
   return (
     <PageShell
-      type="configuration"
+      type="CONFIGURATION"
       breadcrumb={['Settings', 'General']}
       icon={<GearIcon size={18} />}
       title="Configuration"
@@ -271,13 +271,13 @@ function ConfigurationDemo() {
 function PlaceholderDemo() {
   return (
     <PageShell
-      type="placeholder"
+      type="PLACEHOLDER"
       breadcrumb={['Roadmap']}
       icon={<CalendarIcon size={18} />}
       title="Placeholder"
       subtitle="A page that hasn't shipped yet"
       // Intentionally pass kpis + actions — PageShell hides them under
-      // 'placeholder' to prove the zone-visibility rules.
+      // 'PLACEHOLDER' to prove the zone-visibility rules.
       kpis={ZERO_KPIS}
       primaryAction={{ label: 'Hidden', onClick: () => {} }}
     />
@@ -287,29 +287,29 @@ function PlaceholderDemo() {
 /* ─── top-level demo with tab strip ───────────────────────────────────── */
 
 const TYPES: PageType[] = [
-  'workspace',
-  'registry',
-  'pipeline',
-  'operations',
-  'analytics',
-  'communication',
-  'configuration',
-  'placeholder',
+  'WORKSPACE',
+  'REGISTRY',
+  'PIPELINE',
+  'OPERATIONS',
+  'ANALYTICS',
+  'COMMUNICATION',
+  'CONFIGURATION',
+  'PLACEHOLDER',
 ]
 
 const DEMOS: Record<PageType, () => JSX.Element> = {
-  workspace: WorkspaceDemo,
-  registry: RegistryDemo,
-  pipeline: PipelineDemo,
-  operations: OperationsDemo,
-  analytics: AnalyticsDemo,
-  communication: CommunicationDemo,
-  configuration: ConfigurationDemo,
-  placeholder: PlaceholderDemo,
+  WORKSPACE: WorkspaceDemo,
+  REGISTRY: RegistryDemo,
+  PIPELINE: PipelineDemo,
+  OPERATIONS: OperationsDemo,
+  ANALYTICS: AnalyticsDemo,
+  COMMUNICATION: CommunicationDemo,
+  CONFIGURATION: ConfigurationDemo,
+  PLACEHOLDER: PlaceholderDemo,
 }
 
 export default function PageShellDemoView() {
-  const [active, setActive] = useState<PageType>('registry')
+  const [active, setActive] = useState<PageType>('REGISTRY')
   const Demo = DEMOS[active]
   return (
     <div className="ps-demo-root">

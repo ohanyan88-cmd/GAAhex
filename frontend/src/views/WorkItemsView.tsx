@@ -218,7 +218,7 @@ export default function WorkItemsView({
   if (unavailable) {
     return (
       <PageShell
-        type="operations"
+        type="OPERATIONS"
         breadcrumb={['Tech & NOC', 'Work Items']}
         icon={<RowsIcon size={18} />}
         title="Work Items"
@@ -235,7 +235,7 @@ export default function WorkItemsView({
 
   return (
     <PageShell
-      type="operations"
+      type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Work Items']}
       icon={<RowsIcon size={18} />}
       title="Work Items"

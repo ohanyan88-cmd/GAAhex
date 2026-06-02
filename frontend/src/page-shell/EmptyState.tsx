@@ -2,7 +2,7 @@
 //
 // Used in two places:
 //  - Standalone, from any page that needs to render an empty state.
-//  - Implicitly, by PageShell when `type='placeholder'` and no children are
+//  - Implicitly, by PageShell when `type='PLACEHOLDER'` and no children are
 //    passed (the shell renders a default "Coming soon" EmptyState).
 //
 // This is a NEW primitive — it does NOT replace the existing

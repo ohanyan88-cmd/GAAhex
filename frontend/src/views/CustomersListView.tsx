@@ -24,7 +24,7 @@ export interface CustomersListViewProps {
 export default function CustomersListView(props: CustomersListViewProps) {
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['CRM', 'Customers']}
       icon={<UsersIcon size={18} />}
       title="Customers"

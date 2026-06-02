@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { timeAgo } from '../lib/time'
 import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
-import { COMMUNICATION_CHANNELS, type CommunicationChannel } from '../lib/lifecycle'
+import {
+  COMMUNICATION_CHANNELS,
+  COMMUNICATION_CHANNEL_LABELS,
+  type CommunicationChannel,
+} from '../lib/lifecycle'
 import { PageShell } from '../page-shell'
 import {
   MessageIcon,
@@ -191,7 +195,7 @@ export default function MessagesView({
 
   return (
     <PageShell
-      type="communication"
+      type="COMMUNICATION"
       breadcrumb={['Workspace', 'Communications']}
       icon={<MessageIcon size={20} />}
       title="Communications"
@@ -212,7 +216,7 @@ export default function MessagesView({
             value: channel,
             options: [
               { label: 'All', value: 'All' },
-              ...COMMUNICATION_CHANNELS.map((c) => ({ label: c, value: c })),
+              ...COMMUNICATION_CHANNELS.map((c) => ({ label: COMMUNICATION_CHANNEL_LABELS[c], value: c })),
             ],
             onChange: (v) => setChannel(v as typeof channel),
           },

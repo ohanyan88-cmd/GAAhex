@@ -156,7 +156,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
 
   return (
     <PageShell
-      type="registry"
+      type="REGISTRY"
       breadcrumb={['Billing & Revenue', cfg.title]}
       icon={<CreditCardIcon size={18} />}
       title={cfg.title}
