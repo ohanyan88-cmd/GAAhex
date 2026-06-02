@@ -109,7 +109,7 @@ async def _get_active_case_for_account(account_id: str) -> DunningCase | None:
         return (await s.execute(
             select(DunningCase).where(
                 DunningCase.account_id == uuid.UUID(account_id),
-                DunningCase.status == "active",
+                DunningCase.status == "ACTIVE",
             )
         )).scalar_one_or_none()
 
@@ -133,7 +133,7 @@ async def test_run_dunning_opens_case_for_overdue_invoice(client, admin):
 
     case = await _get_active_case_for_account(acc["id"])
     assert case is not None, "case must be opened for the overdue account"
-    assert case.status == "active"
+    assert case.status == "ACTIVE"
     assert case.current_step_index == -1
 
 
@@ -151,7 +151,7 @@ async def test_run_dunning_does_not_duplicate_cases(client, admin):
         rows = (await s.execute(
             select(DunningCase).where(DunningCase.account_id == uuid.UUID(acc["id"]))
         )).scalars().all()
-    actives = [c for c in rows if c.status == "active"]
+    actives = [c for c in rows if c.status == "ACTIVE"]
     assert len(actives) == 1, f"expected 1 active case, got {len(actives)}"
 
 
@@ -194,7 +194,7 @@ async def test_walking_full_sequence_closes_case(client, admin):
         final = (await s.execute(
             select(DunningCase).where(DunningCase.id == case.id)
         )).scalar_one()
-    assert final.status == "closed"
+    assert final.status == "CLOSED"
     assert final.closed_reason == "completed_sequence"
 
 
@@ -269,7 +269,7 @@ async def test_payment_allocation_cures_active_cases(client, admin):
     # Case should be cured + Service ACTIVE (adapter.restore)
     async with SessionLocal() as s:
         c = (await s.execute(select(DunningCase).where(DunningCase.id == case.id))).scalar_one()
-    assert c.status == "cured", f"expected cured, got {c.status}"
+    assert c.status == "CURED", f"expected CURED, got {c.status}"
     assert await _service_status(svc_id) == "ACTIVE"
 
 

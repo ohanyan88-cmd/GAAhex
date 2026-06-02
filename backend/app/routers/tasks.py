@@ -45,7 +45,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import workflow
@@ -55,6 +55,7 @@ from ..models import Task, TaskDependency, Watcher
 from ..models.helpdesk import HelpdeskQueue
 from ..models.orgnode import OrgNode
 from ..models.user import User
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -141,15 +142,6 @@ async def _get(s: AsyncSession, tenant_id, task_id: uuid.UUID) -> Task:
     if t is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return t
-
-
-async def _next_ref(s: AsyncSession, tenant_id) -> str:
-    """TSK-000001 counter. Races under high concurrency; uq_task_reference_number
-    is the authoritative fence (duplicate → 409 at the DB layer)."""
-    n = (await s.execute(
-        select(func.count()).select_from(Task).where(Task.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"TSK-{n + 1:06d}"
 
 
 def _validate_enum(val: str | None, name: str, valid: set) -> str:
@@ -303,7 +295,7 @@ async def create_task(
             raise HTTPException(status_code=422, detail="parentEntityId must be a UUID")
         parent_entity_type = parent_entity_type.lower()
 
-    ref = await _next_ref(s, user.tenant_id)
+    ref = await next_reference_number(s, tenant_id=user.tenant_id, prefix="TSK", width=6)
     # Rule 7 pre-check (DB UNIQUE is the authoritative fence).
     dupe = (await s.execute(
         select(Task).where(Task.tenant_id == user.tenant_id, Task.reference_number == ref)

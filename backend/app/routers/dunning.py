@@ -312,7 +312,7 @@ async def delete_dunning_policy(
     referenced = (await s.execute(
         select(func.count()).select_from(DunningCase).where(
             DunningCase.policy_id == policy.id,
-            DunningCase.status == "active",
+            DunningCase.status == "ACTIVE",
         )
     )).scalar_one()
     if int(referenced or 0) > 0:

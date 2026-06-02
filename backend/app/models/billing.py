@@ -41,6 +41,12 @@ class Subscription(Base):
     next_invoice_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_invoiced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # E20: idempotency marker for the billing-cycle run — last as_of this sub was billed for
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Deletion / Archive / Restore Standard (file 12 — D14). Separate from lifecycle `status`.
+    # 5-value enum: ACTIVE | ARCHIVED | SOFT_DELETED | PENDING_PURGE | PURGED. Default ACTIVE.
+    deletion_state: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE", server_default="'ACTIVE'")
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Invoice(Base):
@@ -69,6 +75,14 @@ class Invoice(Base):
     # mutating path on /api/invoices in routers/billing.py.
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     locked_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Deletion / Archive / Restore Standard (file 12 — D14). SPEC §0.3 forbids DELETE on
+    # invoice (trigger-enforced); deletion_state=ACTIVE is the only legal value at the DB
+    # layer for now, but archived_at/restored_at remain useful for the lifecycle view.
+    # 5-value enum: ACTIVE | ARCHIVED | SOFT_DELETED | PENDING_PURGE | PURGED. Default ACTIVE.
+    deletion_state: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE", server_default="'ACTIVE'")
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class InvoiceLine(Base):
@@ -115,3 +129,11 @@ class Payment(Base):
     # invoice → customer/account). Backfill via invoice deferred to Wave 2.
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="RESTRICT"), nullable=True, index=True)
     account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=True, index=True)
+    # Deletion / Archive / Restore Standard (file 12 — D14). SPEC §0.3 forbids DELETE on
+    # payment (trigger-enforced); deletion_state=ACTIVE is the only legal value at the DB
+    # layer for now, but archived_at/restored_at remain useful for the lifecycle view.
+    # 5-value enum: ACTIVE | ARCHIVED | SOFT_DELETED | PENDING_PURGE | PURGED. Default ACTIVE.
+    deletion_state: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE", server_default="'ACTIVE'")
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

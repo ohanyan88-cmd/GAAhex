@@ -51,6 +51,7 @@ from ..services.payments import (
     PaymentGatewayValidationError,
     get_payment_gateway,
 )
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
@@ -252,10 +253,10 @@ async def _invoice_lines(s, invoice_id) -> list[InvoiceLine]:
 
 
 async def _next_invoice_number(s, tenant_id) -> str:
-    n = (await s.execute(
-        select(func.count()).select_from(Invoice).where(Invoice.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"INV-{n + 1:05d}"
+    """Per-tenant invoice number (INV-NNNNN). Backed by the atomic per-tenant per-prefix
+    Postgres SEQUENCE in ``app.utils.refnum.next_reference_number`` — replaces the legacy
+    SELECT COUNT(*)+1 (race-prone) with ``nextval()`` (MVCC-exempt, no collisions)."""
+    return await next_reference_number(s, tenant_id=tenant_id, prefix="INV", width=5)
 
 
 # ==========================================================================================

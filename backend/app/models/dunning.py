@@ -7,7 +7,7 @@ JSONB for free-form payloads, audit-friendly status fields):
   Action ∈ {'notice','throttle','walled_garden','terminate'}. Exactly one is_default per tenant.
 * ``dunning_case`` — runtime state machine per (account, triggering_invoice). Tracks
   ``current_step_index`` (-1 = not started) + ``next_action_at`` (when the sweep picks it up).
-  Statuses: 'active' | 'cured' | 'escalated' | 'closed'.
+  Statuses: 'ACTIVE' | 'CURED' | 'ESCALATED' | 'CLOSED'  (B1 enum standard — UPPER_SNAKE).
 * ``service_action_log`` — every adapter side-effect (notice/throttle/walled_garden/terminate/
   restore) logs ONE row. v1 adapter is ``LoggingAdapter`` — no real RADIUS/BNG calls; it flips
   Service.status and writes the log row.
@@ -53,6 +53,9 @@ class DunningPolicy(Base):
     )
     # ordered ascending by day_offset; each step: {day_offset:int, action:str, params:dict}
     # action ∈ {'notice','throttle','walled_garden','terminate'}
+    # FOLLOW-UP (B1 deferred): action verbs inside this JSONB are still lowercase. Normalizing
+    # JSON values in-place is risky (would need a JSONB-element UPDATE per step) — flagged for
+    # a dedicated future pass to avoid breaking the dunning runner.
     steps_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     # nullable means "applies to all tariffs"
     applies_to_tariff_plan_ids: Mapped[list | None] = mapped_column(JSONB, nullable=True)
@@ -92,8 +95,8 @@ class DunningCase(Base):
     # when the scheduler should pick this up next
     next_action_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="active", server_default="active",
-    )  # 'active' | 'cured' | 'escalated' | 'closed'
+        String(20), nullable=False, default="ACTIVE", server_default="ACTIVE",
+    )  # 'ACTIVE' | 'CURED' | 'ESCALATED' | 'CLOSED'  (B1 enum standard — UPPER_SNAKE)
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(),
     )

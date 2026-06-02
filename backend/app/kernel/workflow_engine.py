@@ -135,7 +135,7 @@ async def trigger_workflow(
         tenant_id=tenant_id,
         workflow_key=workflow_key,
         triggered_by_record_id=triggered_by_record_id,
-        status="running",
+        status="RUNNING",
         current_action_index=0,
         context=dict(ctx),  # snapshot the trigger context onto the row
     )
@@ -197,7 +197,7 @@ async def trigger_workflow(
 
             # Terminal failure paths.
             if failure_action == "escalate":
-                instance.status = "escalated"
+                instance.status = "ESCALATED"
                 instance.sla_breached_at = datetime.now(timezone.utc) if sla_seconds else None
                 await emit(s, tenant_id, "workflow.escalated", "workflow_instance",
                            instance.id, actor_user_id, {"reason": reason})
@@ -205,13 +205,13 @@ async def trigger_workflow(
 
             # retry | rollback | (unknown) all collapse to status='failed'. retry: caller-driven;
             # rollback: caller signals txn rollback after seeing the exception.
-            instance.status = "failed"
+            instance.status = "FAILED"
             await emit(s, tenant_id, "workflow.failed", "workflow_instance",
                        instance.id, actor_user_id, {"reason": reason})
             raise WorkflowExecutionError(reason, instance_id=instance.id) from exc
 
     # ---- happy path: all actions ran
-    instance.status = "completed"
+    instance.status = "COMPLETED"
     instance.current_action_index = len(actions)
     instance.completed_at = datetime.now(timezone.utc)
     await emit(s, tenant_id, "workflow.completed", "workflow_instance",

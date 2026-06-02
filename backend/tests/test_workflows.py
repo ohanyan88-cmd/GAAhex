@@ -93,7 +93,7 @@ async def test_manual_trigger_creates_instance(client, admin):
     # short-circuit safely; the final status is either 'completed' (all actions ran) or
     # 'escalated' (a notification def_key was missing and failure_action='escalate'). Both
     # are valid SPEC outcomes; we assert the instance is FORWARD of 'running'.
-    assert instance["status"] in ("completed", "escalated"), instance
+    assert instance["status"] in ("COMPLETED", "ESCALATED"), instance
     # Round-trip the instance via GET to verify the read API stays in sync.
     iid = instance["id"]
     got = (await client.get(f"/api/workflow-instances/{iid}", headers=admin)).json()

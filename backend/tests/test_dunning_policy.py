@@ -168,7 +168,7 @@ async def test_delete_blocked_when_active_cases_reference_policy(client, admin):
             triggering_invoice_id=uuid.UUID(inv["id"]),
             policy_id=uuid.UUID(p["id"]),
             current_step_index=-1,
-            status="active",
+            status="ACTIVE",
             opened_at=datetime.now(timezone.utc),
         )
         s.add(case)

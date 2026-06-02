@@ -4,11 +4,11 @@ A `WorkflowInstance` is one running execution of a `WorkflowDef` (W1-W5 from SPE
 The `_def` row is the immutable template (trigger, conditions, actions, owner, SLA, …);
 the `_instance` row is the mutable state machine that records what actually happened.
 
-State machine (forward-only — mirrors the §4.5 Approval shape):
-    running  (default)
-      -> completed   (all actions ran, status='completed')
-      -> failed      (an action raised; failure_reason populated; failure_action consulted)
-      -> escalated   (SLA breached or failure_action='escalate'; sla_breached_at populated)
+State machine (forward-only — mirrors the §4.5 Approval shape) — values UPPER_SNAKE per B1:
+    RUNNING  (default)
+      -> COMPLETED   (all actions ran, status='COMPLETED')
+      -> FAILED      (an action raised; failure_reason populated; failure_action consulted)
+      -> ESCALATED   (SLA breached or failure_action='escalate'; sla_breached_at populated)
 
 Append-only audit (SPEC §0.4):
     Every transition emits an `Event` via `workflow.emit` so the audit log carries
@@ -33,10 +33,10 @@ from .base import Base
 class WorkflowInstance(Base):
     """Runtime instance of a workflow_def. Append-only state machine.
 
-    Status transitions:
-        running -> completed
-        running -> failed (failure_reason populated)
-        running -> escalated (sla_breached_at populated OR failure_action='escalate')
+    Status transitions (values UPPER_SNAKE per B1 enum standard):
+        RUNNING -> COMPLETED
+        RUNNING -> FAILED (failure_reason populated)
+        RUNNING -> ESCALATED (sla_breached_at populated OR failure_action='escalate')
 
     `current_action_index` points at the NEXT action to execute (0 when the workflow
     has just been triggered, len(actions) when complete). `context` accumulates
@@ -56,8 +56,10 @@ class WorkflowInstance(Base):
     # What record (if any) triggered this workflow — a lead created, a ticket opened, etc.
     triggered_by_record_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     triggered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    # running | completed | failed | escalated
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="running")
+    # RUNNING | COMPLETED | FAILED | ESCALATED  (B1 enum standard — UPPER_SNAKE)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="RUNNING", server_default="RUNNING",
+    )
     # Index into actions_spec — points at the NEXT action to run.
     current_action_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # Accumulating state — each action appends its result keyed by index.

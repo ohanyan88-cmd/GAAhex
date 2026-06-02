@@ -100,3 +100,11 @@ class Relationship(Base):
     # updated_at is set explicitly at the router (onupdate= is unsafe with asyncpg).
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("app_user.id"), nullable=True)
+    # Deletion / Archive / Restore Standard (file 12 — D14). Separate from lifecycle `status`
+    # (Relationship `status` is ACTIVE/INACTIVE/ARCHIVED — that's a link-lifecycle axis;
+    # deletion_state is the orthogonal data-lifecycle axis. Both may say ACTIVE simultaneously.)
+    # 5-value enum: ACTIVE | ARCHIVED | SOFT_DELETED | PENDING_PURGE | PURGED. Default ACTIVE.
+    deletion_state: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE", server_default="'ACTIVE'")
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -11,7 +11,7 @@ NOTE on namespacing: fixed paths under /api ("/api/orders") → register BEFORE 
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from decimal import Decimal, InvalidOperation
@@ -31,6 +31,7 @@ from ..kernel import (
 from .. import workflow, notify_hooks
 from ..services.payment_gateway_adapter import get_payment_gateway
 from ..services.stage8_gate import compute_stage8_status, apply_stage8_result
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 from .records import _node_path, _node_paths              # reuse the exact records scope primitives
 from .billing import _money, _now, _add_cycle, _customer_or_422, _deny   # reuse billing helpers (DRY)
@@ -100,13 +101,6 @@ async def _items(s, order_id) -> list[OrderItem]:
     return list((await s.execute(
         select(OrderItem).where(OrderItem.order_id == order_id)
     )).scalars().all())
-
-
-async def _next_order_number(s, tenant_id) -> str:
-    n = (await s.execute(
-        select(func.count()).select_from(Order).where(Order.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"ORD-{n + 1:05d}"
 
 
 async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:
@@ -232,7 +226,7 @@ async def create_order(payload: dict, user: User = Depends(current_user), s: Asy
     customer_id = payload.get("customer_id")
     await _customer_or_422(s, user.tenant_id, customer_id)
 
-    number = await _next_order_number(s, user.tenant_id)
+    number = await next_reference_number(s, tenant_id=user.tenant_id, prefix="ORD", width=5)
     order = Order(tenant_id=user.tenant_id, owner_node_id=user.primary_node_id,
                   customer_id=customer_id, number=number, status="DRAFT", total=0)
     s.add(order)

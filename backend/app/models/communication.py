@@ -124,3 +124,11 @@ class Communication(Base):
     # Trace keys (file 06 / M1) — surface on the substrate Event for end-to-end correlation.
     correlation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     event_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # Deletion / Archive / Restore Standard (file 12 — D14). Separate from lifecycle `status`
+    # (which already carries ARCHIVED as a TERMINAL message-lifecycle state; deletion_state
+    # is the orthogonal data-lifecycle axis — both may say ACTIVE simultaneously).
+    # 5-value enum: ACTIVE | ARCHIVED | SOFT_DELETED | PENDING_PURGE | PURGED. Default ACTIVE.
+    deletion_state: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE", server_default="'ACTIVE'")
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

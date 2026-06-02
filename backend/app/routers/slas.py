@@ -49,7 +49,7 @@ from typing import Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import workflow
@@ -57,6 +57,7 @@ from ..access import can, load_grants
 from ..db import get_session
 from ..models import SlaRecord, SlaEvent
 from ..models.user import User
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api/slas", tags=["slas"])
@@ -122,13 +123,6 @@ async def _get(s: AsyncSession, tenant_id, sla_id: uuid.UUID) -> SlaRecord:
     if row is None:
         raise HTTPException(status_code=404, detail="SLA not found")
     return row
-
-
-async def _next_ref(s: AsyncSession, tenant_id) -> str:
-    n = (await s.execute(
-        select(func.count()).select_from(SlaRecord).where(SlaRecord.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"SLA-{n + 1:06d}"
 
 
 def _append_event(
@@ -250,7 +244,7 @@ async def create_sla(
     if due_at <= started_at:
         raise HTTPException(status_code=422, detail="dueAt must be after startedAt")
 
-    ref = await _next_ref(s, user.tenant_id)
+    ref = await next_reference_number(s, tenant_id=user.tenant_id, prefix="SLA", width=6)
     priority = payload.get("priority")
     if priority:
         priority = priority.upper()

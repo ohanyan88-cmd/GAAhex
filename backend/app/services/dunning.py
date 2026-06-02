@@ -155,7 +155,7 @@ async def open_case(
         select(DunningCase).where(
             DunningCase.tenant_id == tenant_id,
             DunningCase.account_id == account_id,
-            DunningCase.status == "active",
+            DunningCase.status == "ACTIVE",
         ).order_by(DunningCase.opened_at)
     )).scalar_one_or_none()
     if existing is not None:
@@ -182,7 +182,7 @@ async def open_case(
         current_step_index=-1,
         step_entered_at=None,
         next_action_at=now,  # ready for immediate advance on next sweep
-        status="active",
+        status="ACTIVE",
         opened_at=now,
     )
     session.add(case)
@@ -229,7 +229,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
     After the LAST step → status='closed', closed_reason='completed_sequence'.
     No-op when the case is already cured/closed.
     """
-    if case.status != "active":
+    if case.status != "ACTIVE":
         return case
 
     policy = (await session.execute(
@@ -237,7 +237,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
     )).scalar_one_or_none()
     if policy is None or not policy.steps_json:
         # Defensive: no policy / no steps → close the case.
-        case.status = "closed"
+        case.status = "CLOSED"
         case.closed_at = _utcnow()
         case.closed_reason = "no_policy_or_steps"
         case.next_action_at = None
@@ -248,7 +248,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
     next_index = case.current_step_index + 1
     if next_index >= len(steps):
         # Already past the last step — close.
-        case.status = "closed"
+        case.status = "CLOSED"
         case.closed_at = _utcnow()
         case.closed_reason = "completed_sequence"
         case.next_action_at = None
@@ -332,7 +332,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
             error_message=f"unknown action: {action!r}",
         )
         session.add(row)
-        case.status = "closed"
+        case.status = "CLOSED"
         case.closed_at = now
         case.closed_reason = f"unknown_action:{action}"
         case.next_action_at = None
@@ -348,7 +348,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
         case.next_action_at = now + timedelta(days=max(delta_days, 0))
     else:
         # Just executed the last step → close the case.
-        case.status = "closed"
+        case.status = "CLOSED"
         case.closed_at = now
         case.closed_reason = "completed_sequence"
         case.next_action_at = None
@@ -365,7 +365,7 @@ async def cure_case(
 
     Idempotent: a non-active case passes through unchanged.
     """
-    if case.status != "active":
+    if case.status != "ACTIVE":
         return case
 
     policy = (await session.execute(
@@ -394,7 +394,7 @@ async def cure_case(
             )
 
     now = _utcnow()
-    case.status = "cured"
+    case.status = "CURED"
     case.cured_at = now
     case.next_action_at = None
     case.closed_reason = reason
@@ -415,7 +415,7 @@ async def run_dunning_sweep(
     """
     now = now or _utcnow()
     q = select(DunningCase).where(
-        DunningCase.status == "active",
+        DunningCase.status == "ACTIVE",
         DunningCase.next_action_at.is_not(None),
         DunningCase.next_action_at <= now,
     )
@@ -458,7 +458,7 @@ async def check_and_cure_for_payment(
     cases = list((await session.execute(
         select(DunningCase).where(
             DunningCase.account_id == account_id,
-            DunningCase.status == "active",
+            DunningCase.status == "ACTIVE",
         )
     )).scalars().all())
     cured = 0
