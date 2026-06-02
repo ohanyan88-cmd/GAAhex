@@ -4,7 +4,6 @@ import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { ErrorBanner, PermissionDenied, NotFound } from '../components/States'
-import ActivityTimeline from '../components/ActivityTimeline'
 import InteractionsView from './InteractionsView'
 import { PageShell, type KPISpec, type StatusSummary, type StatusSummaryVariant } from '../page-shell'
 import {
@@ -659,15 +658,6 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>· {t('common.embedded', 'embedded view')}</span>
             </div>
             <InteractionsView token={token} customerId={customerId} embedded />
-
-            {/* Activity — reuse the shared record timeline (degrades on its own) */}
-            <div className="section-head">
-              <ClockIcon size={16} className="section-icon" />
-              {t('nav.activity', 'Activity timeline')}
-            </div>
-            <div className="widget">
-              <ActivityTimeline token={token} record={customerId} />
-            </div>
           </>
         )}
 
