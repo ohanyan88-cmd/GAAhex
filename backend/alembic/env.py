@@ -1,6 +1,12 @@
 import asyncio
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
+
+# Load backend/.env into os.environ BEFORE app.* imports — mirrors main.py so the
+# alembic CLI sees the same secrets (GAAHEX_FIELD_KEY, etc.) that uvicorn does.
+load_dotenv()
+
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
