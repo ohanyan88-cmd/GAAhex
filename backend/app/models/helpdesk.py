@@ -8,7 +8,7 @@ from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Text, func
+from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Text, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,7 +16,14 @@ from .base import Base
 
 
 class HelpdeskQueue(Base):
-    """A logical inbox/queue that tickets are routed into (e.g. 'Tier-1', 'Network NOC')."""
+    """A logical inbox/queue that tickets are routed into (e.g. 'Tier-1', 'Network NOC').
+
+    Queue Ownership Standard (file 02 B5; enums in file 14): each queue carries an
+    `assignment_strategy` (how tickets are auto-routed to agents), a `visibility`
+    (who can see it), an accountable `owning_department` (file 02 B5 — single dept,
+    used by E15 auto-watch when a Task Owner is a QUEUE), and an `is_active` flag
+    that gates whether new tickets may be opened against it.
+    """
     __tablename__ = "helpdesk_queue"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
@@ -25,6 +32,19 @@ class HelpdeskQueue(Base):
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     default_sla_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Queue Ownership Standard (file 02 B5 + file 14 enums) — additive, backward-compatible.
+    # Enum values enforced at the router layer (varchar + app-side validation, same approach
+    # as helpdesk_ticket.status / priority).
+    assignment_strategy: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, server_default=text("'MANUAL'"),
+    )
+    visibility: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, server_default=text("'DEPARTMENT'"),
+    )
+    owning_department: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

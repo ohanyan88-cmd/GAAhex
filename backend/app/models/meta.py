@@ -122,6 +122,8 @@ class WorkflowDef(Base):
     __tablename__ = "workflow_def"
     __table_args__ = (
         UniqueConstraint("tenant_id", "key", name="uq_workflow_def_key"),
+        # File 12 standard 61 — WFL-000001 reference number scoped per-tenant.
+        UniqueConstraint("tenant_id", "reference_number", name="uq_workflow_def_reference_number"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
@@ -152,5 +154,30 @@ class WorkflowDef(Base):
     notification_def_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # SPEC §5.1 failure handling: 'retry'|'escalate'|'audit_only'|'rollback'.
     failure_action: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+    # ---- Workflow Engine Standard (file 12 std 61) — GateType + lifecycle + versioning
+    # NULLable for backward compat: pre-existing rows pick up the server_default ('ACTIVE'),
+    # the new jsonb stays NULL, and version backfills to 1 via server_default. Migration
+    # `c443f037e6ac_workflow_engine_gate_type` adds the matching DDL.
+
+    # file 14 WorkflowStatus enum (4 values, UPPER_SNAKE per B1):
+    #   DRAFT | ACTIVE | DEPRECATED | RETIRED
+    # Enforced at the application/router layer — same shape every other lifecycle column
+    # on this platform uses (varchar + app-layer validation, not a native DB enum type).
+    workflow_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, default="ACTIVE", server_default="ACTIVE",
+    )
+    # file 14 GateType enum — array of values this definition's stages reference, e.g.
+    # ["COMMERCIAL_GATE", "TECHNICAL_GATE"]. Lets dashboards see at a glance which gates
+    # a workflow has. Possible values (7):
+    #   COMMERCIAL_GATE | TECHNICAL_GATE | SERVICE_GATE | OPERATIONAL_GATE |
+    #   APPROVAL_GATE | COMPLIANCE_GATE | MANUAL_REVIEW_GATE
+    # The enum itself doesn't get a dedicated column — it's referenced by VALUE here and
+    # in stage config blobs inside `actions_spec` / `config`.
+    gate_types_used: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # WFL-000001 prefix (file 00 S5 registered). UNIQUE(tenant_id, reference_number).
+    reference_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Versioned definitions. Backfills to 1 for existing rows via server_default.
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

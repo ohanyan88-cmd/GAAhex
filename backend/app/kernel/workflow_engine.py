@@ -142,16 +142,84 @@ async def trigger_workflow(
     s.add(instance)
     await s.flush()
 
+    # ---- File 12 std 61: one correlation_id per workflow run; causation_id forms a chain
+    # across every Event emitted in this run. The first event in the chain has no parent
+    # so we seed causation_id from instance.id (the event "is caused by" the instance row
+    # that booted it). Each subsequent emit threads its predecessor's id forward — see
+    # _emit_chained below.
+    correlation_id = uuid.uuid4()
+    causation_id: uuid.UUID | None = None
+
     # ---- audit: workflow.triggered (append-only via app.workflow.emit)
     from ..workflow import emit  # local import: avoid kernel↔app cycle
-    await emit(
-        s,
-        tenant_id,
+    from ..models import Event   # for post-emit lookup of the just-inserted row id
+
+    async def _emit_chained(
+        type_: str,
+        data: dict,
+        *,
+        event_name: str,
+        category: str,
+    ) -> None:
+        """Emit one Event with the run's correlation_id + a causation_id chained off the
+        previous emit. Mutates the closed-over `causation_id` so subsequent emits link to
+        the row this call just wrote.
+
+        Implementation: `app.workflow.emit` adds an Event row to the session via `s.add(...)`
+        without flushing or returning the row. We snapshot the set of "new" Event objects
+        on the session before the emit, then diff after the emit to find the just-added row
+        — that gives us its real id without a query, so the chain we record in the DB is the
+        real causation chain (not a parallel pre-allocated one that never made it to disk).
+
+        Returns nothing — workflow audit Events are fire-and-forget; downstream consumers
+        read them via the projection queries described in file 06.
+        """
+        nonlocal causation_id
+        # Snapshot Event rows currently pending on the session so we can identify the new one.
+        before = {id(obj) for obj in s.new if isinstance(obj, Event)}
+        await emit(
+            s,
+            tenant_id,
+            type_,
+            "workflow_instance",
+            instance.id,
+            actor_user_id,
+            data,
+            event_name=event_name,
+            category=category,
+            correlation_id=correlation_id,
+            causation_id=causation_id if causation_id is not None else instance.id,
+        )
+        # Find the Event the emit() call just added — match by `type` so an automation-rule
+        # side-effect (which would emit a different type) can't confuse the chain. The
+        # primary emit always sets `Event.type == type_` exactly.
+        added = [obj for obj in s.new
+                 if isinstance(obj, Event)
+                 and id(obj) not in before
+                 and obj.type == type_]
+        if added:
+            new_ev = added[0]
+            # `Event.id` defaults to `uuid7` (Python-side callable, resolved at flush).
+            # Force-assign now so we can thread the real id forward as the next event's
+            # causation_id — otherwise we'd record a chain of pre-allocated ghost ids.
+            if new_ev.id is None:
+                from app.utils.ids import uuid7 as _uuid7
+                new_ev.id = _uuid7()
+            causation_id = new_ev.id
+
+    await _emit_chained(
         "workflow.triggered",
-        "workflow_instance",
-        instance.id,
-        actor_user_id,
         {"workflow_key": workflow_key, "context_keys": list(ctx.keys())},
+        event_name="WorkflowInstance.Triggered",
+        category="AUTOMATION",
+    )
+    # Status moved 0 -> RUNNING when the instance row was inserted; emit the StatusChanged
+    # marker so audit/timeline projections see the lifecycle entry.
+    await _emit_chained(
+        "workflow.status_changed",
+        {"from": None, "to": "RUNNING", "workflow_key": workflow_key},
+        event_name="WorkflowInstance.StatusChanged",
+        category="STATUS",
     )
 
     # ---- action loop
@@ -167,28 +235,22 @@ async def trigger_workflow(
             if isinstance(result, dict):
                 ctx[f"_action_{idx}"] = result
                 instance.context = dict(ctx)  # rebind so JSONB-dirty detection fires
-            await emit(
-                s,
-                tenant_id,
+            await _emit_chained(
                 "workflow.action_executed",
-                "workflow_instance",
-                instance.id,
-                actor_user_id,
                 {"action_index": idx, "action_type": action.get("type"), "result": _safe_summary(result)},
+                event_name="WorkflowInstance.ActionRan",
+                category="AUTOMATION",
             )
         except Exception as exc:
             # Per-action failure handling, per SPEC §5.1.
             reason = f"action[{idx}] type={action.get('type')!r}: {exc}"
             instance.failure_reason = reason
-            await emit(
-                s,
-                tenant_id,
+            await _emit_chained(
                 "workflow.action_failed",
-                "workflow_instance",
-                instance.id,
-                actor_user_id,
                 {"action_index": idx, "action_type": action.get("type"), "error": str(exc),
                  "failure_action": failure_action},
+                event_name="WorkflowInstance.ActionFailed",
+                category="AUTOMATION",
             )
 
             if failure_action == "audit_only":
@@ -199,23 +261,53 @@ async def trigger_workflow(
             if failure_action == "escalate":
                 instance.status = "ESCALATED"
                 instance.sla_breached_at = datetime.now(timezone.utc) if sla_seconds else None
-                await emit(s, tenant_id, "workflow.escalated", "workflow_instance",
-                           instance.id, actor_user_id, {"reason": reason})
+                await _emit_chained(
+                    "workflow.status_changed",
+                    {"from": "RUNNING", "to": "ESCALATED", "reason": reason},
+                    event_name="WorkflowInstance.StatusChanged",
+                    category="STATUS",
+                )
+                await _emit_chained(
+                    "workflow.escalated",
+                    {"reason": reason},
+                    event_name="WorkflowInstance.Escalated",
+                    category="ESCALATION",
+                )
                 raise WorkflowExecutionError(reason, instance_id=instance.id) from exc
 
             # retry | rollback | (unknown) all collapse to status='failed'. retry: caller-driven;
             # rollback: caller signals txn rollback after seeing the exception.
             instance.status = "FAILED"
-            await emit(s, tenant_id, "workflow.failed", "workflow_instance",
-                       instance.id, actor_user_id, {"reason": reason})
+            await _emit_chained(
+                "workflow.status_changed",
+                {"from": "RUNNING", "to": "FAILED", "reason": reason},
+                event_name="WorkflowInstance.StatusChanged",
+                category="STATUS",
+            )
+            await _emit_chained(
+                "workflow.failed",
+                {"reason": reason},
+                event_name="WorkflowInstance.Failed",
+                category="AUTOMATION",
+            )
             raise WorkflowExecutionError(reason, instance_id=instance.id) from exc
 
     # ---- happy path: all actions ran
     instance.status = "COMPLETED"
     instance.current_action_index = len(actions)
     instance.completed_at = datetime.now(timezone.utc)
-    await emit(s, tenant_id, "workflow.completed", "workflow_instance",
-               instance.id, actor_user_id, {"actions_run": len(actions)})
+    await _emit_chained(
+        "workflow.status_changed",
+        {"from": "RUNNING", "to": "COMPLETED", "actions_run": len(actions)},
+        event_name="WorkflowInstance.StatusChanged",
+        category="STATUS",
+    )
+    await _emit_chained(
+        "workflow.completed",
+        {"actions_run": len(actions)},
+        event_name="WorkflowInstance.Completed",
+        category="LIFECYCLE",
+    )
     return instance
 
 

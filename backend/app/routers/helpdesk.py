@@ -34,6 +34,17 @@ router = APIRouter(prefix="/api/helpdesk", tags=["helpdesk"])
 # Valid status set
 _STATUSES = {"OPEN", "IN_PROGRESS", "PENDING", "RESOLVED", "CLOSED"}
 
+# Queue Ownership Standard (file 02 B5; enums in file 14).
+# QueueAssignmentStrategy — 6 values.
+_QUEUE_STRATEGIES = {
+    "MANUAL", "ROUND_ROBIN", "LEAST_LOADED",
+    "SKILL_BASED", "PRIORITY_BASED", "CONFIGURABLE",
+}
+# QueueVisibility — 4 values.
+_QUEUE_VISIBILITIES = {
+    "QUEUE_MEMBERS", "DEPARTMENT", "MANAGEMENT", "EVERYONE_WITH_PERMISSION",
+}
+
 # SLA TTR — default minutes by priority when the ticket's queue has no default_sla_minutes.
 # Used by list_tickets to surface a computed `sla_ttr_remaining_mins` field per ticket.
 DEFAULT_SLA_MINS = {"LOW": 1440, "NORMAL": 480, "HIGH": 240, "URGENT": 60}
@@ -79,6 +90,13 @@ def _queue(q: HelpdeskQueue) -> dict:
         "name": q.name,
         "description": q.description,
         "default_sla_minutes": q.default_sla_minutes,
+        # Queue Ownership Standard (file 02 B5; enums in file 14). Older rows pre-migration
+        # have NULL for the enum fields → fall back to documented defaults so API consumers
+        # see a consistent shape.
+        "assignment_strategy": q.assignment_strategy or "MANUAL",
+        "visibility": q.visibility or "DEPARTMENT",
+        "owning_department": q.owning_department,
+        "is_active": q.is_active,
         "created_at": _iso(q.created_at),
     }
 
@@ -202,17 +220,49 @@ async def create_queue(
         except (TypeError, ValueError):
             raise HTTPException(422, "default_sla_minutes must be a positive integer")
 
+    # Queue Ownership Standard (file 02 B5; enums in file 14).
+    strategy = payload.get("assignment_strategy")
+    if strategy is not None:
+        strategy = str(strategy).upper()
+        if strategy not in _QUEUE_STRATEGIES:
+            raise HTTPException(
+                422, f"assignment_strategy must be one of {sorted(_QUEUE_STRATEGIES)}",
+            )
+    visibility = payload.get("visibility")
+    if visibility is not None:
+        visibility = str(visibility).upper()
+        if visibility not in _QUEUE_VISIBILITIES:
+            raise HTTPException(
+                422, f"visibility must be one of {sorted(_QUEUE_VISIBILITIES)}",
+            )
+    owning_department = payload.get("owning_department")
+    if owning_department is not None:
+        owning_department = str(owning_department).strip() or None
+
     q = HelpdeskQueue(
         tenant_id=user.tenant_id,
         owner_node_id=user.primary_node_id,
         name=name,
         description=payload.get("description"),
         default_sla_minutes=sla,
+        assignment_strategy=strategy,        # NULL → DB default 'MANUAL'
+        visibility=visibility,               # NULL → DB default 'DEPARTMENT'
+        owning_department=owning_department,
+        is_active=True,                      # new queues accept tickets immediately
     )
     s.add(q)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "helpdesk_queue", q.id, user.id,
-                        {"name": name})
+    await workflow.emit(
+        s, user.tenant_id, "queue_created", "helpdesk_queue", q.id, user.id,
+        {
+            "name": name,
+            "assignment_strategy": strategy or "MANUAL",
+            "visibility": visibility or "DEPARTMENT",
+            "owning_department": owning_department,
+        },
+        event_name="Queue.Created", category="LIFECYCLE",
+        department=owning_department,
+    )
     await s.commit()
     await s.refresh(q)
     return _queue(q)
@@ -259,8 +309,127 @@ async def update_queue(
                 raise HTTPException(422, "default_sla_minutes must be a positive integer or null")
         q.default_sla_minutes = sla
         changed["default_sla_minutes"] = sla
+    # Queue Ownership Standard (file 02 B5; enums in file 14).
+    if "assignment_strategy" in payload:
+        strat = payload["assignment_strategy"]
+        if strat is not None:
+            strat = str(strat).upper()
+            if strat not in _QUEUE_STRATEGIES:
+                raise HTTPException(
+                    422, f"assignment_strategy must be one of {sorted(_QUEUE_STRATEGIES)}",
+                )
+        q.assignment_strategy = strat
+        changed["assignment_strategy"] = strat
+    if "visibility" in payload:
+        vis = payload["visibility"]
+        if vis is not None:
+            vis = str(vis).upper()
+            if vis not in _QUEUE_VISIBILITIES:
+                raise HTTPException(
+                    422, f"visibility must be one of {sorted(_QUEUE_VISIBILITIES)}",
+                )
+        q.visibility = vis
+        changed["visibility"] = vis
+    if "owning_department" in payload:
+        dept = payload["owning_department"]
+        if dept is not None:
+            dept = str(dept).strip() or None
+        q.owning_department = dept
+        changed["owning_department"] = dept
+    if "is_active" in payload:
+        ia = payload["is_active"]
+        if not isinstance(ia, bool):
+            raise HTTPException(422, "is_active must be a boolean")
+        q.is_active = ia
+        changed["is_active"] = ia
 
-    await workflow.emit(s, user.tenant_id, "update", "helpdesk_queue", q.id, user.id, {"changed": changed})
+    await workflow.emit(
+        s, user.tenant_id, "queue_updated", "helpdesk_queue", q.id, user.id,
+        {"changed": changed},
+        event_name="Queue.Updated", category="LIFECYCLE",
+        department=q.owning_department,
+    )
+    await s.commit()
+    await s.refresh(q)
+    return _queue(q)
+
+
+@router.get("/queues/{queue_id}")
+async def get_queue(
+    queue_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    grants = await load_grants(s, user)
+    if not can(grants, "helpdesk_queue", "view"):
+        _deny("helpdesk_queue.view")
+    q = await _get_queue(s, user, queue_id)
+    paths = await _node_paths(s, user.tenant_id)
+    if not can(grants, "helpdesk_queue", "view",
+               paths.get(str(q.owner_node_id)) if q.owner_node_id else None):
+        _deny("helpdesk_queue.view")
+    return _queue(q)
+
+
+@router.post("/queues/{queue_id}/activate")
+async def activate_queue(
+    queue_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Set is_active=True. Idempotent — re-activating an active queue is a no-op."""
+    grants = await load_grants(s, user)
+    if not can(grants, "helpdesk_queue", "manage"):
+        _deny("helpdesk_queue.manage")
+    q = await _get_queue(s, user, queue_id)
+    await _owner_gate(s, table_name="helpdesk_queue", writer_module="Tickets")
+    try:
+        await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
+                         region_id=getattr(q, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    was_active = q.is_active
+    q.is_active = True
+    # Emit the lifecycle event unconditionally for an audit trail; consumers can
+    # de-dupe on `was_active` if they need to distinguish a true transition from a no-op.
+    await workflow.emit(
+        s, user.tenant_id, "queue_activated", "helpdesk_queue", q.id, user.id,
+        {"was_active": was_active},
+        event_name="Queue.Activated", category="LIFECYCLE",
+        department=q.owning_department,
+    )
+    await s.commit()
+    await s.refresh(q)
+    return _queue(q)
+
+
+@router.post("/queues/{queue_id}/deactivate")
+async def deactivate_queue(
+    queue_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Set is_active=False. Idempotent — re-deactivating an inactive queue is a no-op."""
+    grants = await load_grants(s, user)
+    if not can(grants, "helpdesk_queue", "manage"):
+        _deny("helpdesk_queue.manage")
+    q = await _get_queue(s, user, queue_id)
+    await _owner_gate(s, table_name="helpdesk_queue", writer_module="Tickets")
+    try:
+        await assert_can(s, user, action="manage", entity_key="helpdesk_queue",
+                         region_id=getattr(q, "region_id", None), owner_user_id=None)
+    except AccessDenied as e:
+        raise HTTPException(403, detail=str(e))
+
+    was_active = q.is_active
+    q.is_active = False
+    await workflow.emit(
+        s, user.tenant_id, "queue_deactivated", "helpdesk_queue", q.id, user.id,
+        {"was_active": was_active},
+        event_name="Queue.Deactivated", category="LIFECYCLE",
+        department=q.owning_department,
+    )
     await s.commit()
     await s.refresh(q)
     return _queue(q)
