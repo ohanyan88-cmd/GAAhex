@@ -20,6 +20,7 @@ from .comm import Thread, Message
 from .comment import Comment, CommentMention
 from .watcher import Watcher
 from .task import Task, TaskDependency
+from .sla import SlaRecord, SlaEvent
 from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product

@@ -102,6 +102,11 @@ def _permission_specs(tenant_id) -> list[dict]:
     ):
         specs.append({"tenant_id": tenant_id, "key": f"task.{verb}", "label": vl, "group": "task"})
 
+    # SLA Standard (file 12) — 1 key from the locked Permission Registry (file 15).
+    # Single cross-cutting permission for full SLA management (create / read / pause / resume /
+    # mark complete / cancel). Watching never affects SLA (file 12 principle).
+    specs.append({"tenant_id": tenant_id, "key": "sla.manage", "label": "Manage SLAs", "group": "sla"})
+
     return specs
 
 
