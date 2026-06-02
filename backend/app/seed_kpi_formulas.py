@@ -270,6 +270,8 @@ async def seed_kpi_formulas_if_missing() -> dict[str, int]:
         scanned), `kpis` (count of KPI keys in the catalog). 0 updated on a re-run.
     """
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         if not tenants:
             _log.info("seed_kpi_formulas: no tenants — nothing to seed")

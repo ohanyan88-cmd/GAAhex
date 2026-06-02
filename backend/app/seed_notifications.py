@@ -58,6 +58,8 @@ async def build_notification_defs(s, tenant_id) -> None:
 async def seed_notifications_if_empty() -> None:
     """Seed the demo CRM's NotificationDefs once. No-op if any already exist for the demo tenant."""
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenant = (await s.execute(select(Tenant))).scalars().first()
         if not tenant:
             return

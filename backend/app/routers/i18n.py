@@ -140,6 +140,9 @@ async def seed_i18n_if_empty() -> None:
     translation already exists."""
     # OWNER session: global (tenant_id NULL) rows must bypass RLS WITH CHECK (which keys on tenant).
     async with OwnerSessionLocal() as s:
+        # Global-translation seeding intentionally writes tenant_id=NULL rows — bypass the
+        # tenant-filter audit listener (this is the documented OwnerSession path).
+        await s.connection(execution_options={"audit_tenant_filter": False})
         if (await s.execute(
             select(func.count()).select_from(Translation).where(Translation.tenant_id.is_(None))
         )).scalar_one():

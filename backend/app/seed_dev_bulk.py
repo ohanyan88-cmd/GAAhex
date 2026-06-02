@@ -202,6 +202,9 @@ async def seed_dev_bulk_if_empty() -> dict | None:
         return None
 
     async with SessionLocal() as s:
+        # Owner-session dev-seed is intentionally cross-tenant — bypass the tenant-filter audit
+        # listener so the many hand-rolled BSS-table inserts here don't trip dev warnings.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         # ---- idempotency ----
         if await _has_dev_bulk_rows(s):
             _log.info("dev-bulk seeder skipped: dev_bulk rows already present")

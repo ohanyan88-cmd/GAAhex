@@ -21,6 +21,8 @@ async def migrate_interactions() -> int:
     """Copy each interaction row to record (entity_key='interaction'). Returns count of rows inserted."""
     inserted = 0
     async with SessionLocal() as s:
+        # Owner-session migration is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         # Need the EntityDef for each tenant to set entity_key — just use the string key directly.
         tenants = (await s.execute(select(Tenant))).scalars().all()
         for tenant in tenants:

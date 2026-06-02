@@ -110,6 +110,8 @@ async def seed_ownership_matrix_if_empty() -> int:
     """
     updated_total = 0
     async with SessionLocal() as s:
+        # Owner-session backfill is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         # Load every existing EntityDef once — single SELECT covers all tenants and all keys.
         rows = (await s.execute(select(EntityDef.id, EntityDef.tenant_id, EntityDef.key,
                                        EntityDef.owner_module))).all()

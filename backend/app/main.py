@@ -310,6 +310,8 @@ async def org_tree():
     entity namespace so the generic record router doesn't shadow it."""
     # public + no tenant context → owner session (bypasses RLS) so it isn't default-denied.
     async with OwnerSessionLocal() as s:
+        # Public org-tree endpoint is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         nodes = (await s.execute(select(OrgNode).order_by(OrgNode.path))).scalars().all()
         return {

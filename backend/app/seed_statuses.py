@@ -405,6 +405,8 @@ async def seed_status_standardization_if_empty() -> dict[str, int]:
     sets_skipped_any_tenant: list[str] = []
 
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         if not tenants:
             _log.info("seed_statuses: no tenants — nothing to seed")

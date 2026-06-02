@@ -102,6 +102,8 @@ async def current_customer(
 
     # Use the owner session for the CustomerUser lookup (pre-RLS-GUC, same pattern as staff auth).
     async with OwnerSessionLocal() as o:
+        # Pre-auth owner session: CustomerUser-by-id is the cluster-unique lookup.
+        await o.connection(execution_options={"audit_tenant_filter": False})
         cu = (await o.execute(
             select(CustomerUser).where(CustomerUser.id == cu_id)
         )).scalar_one_or_none()

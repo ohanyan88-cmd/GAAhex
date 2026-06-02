@@ -171,6 +171,8 @@ async def seed_role_boundaries_if_empty() -> dict[str, int]:
     """
     inserted_by_role: dict[str, int] = {}
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         # All RoleDefs across all tenants, indexed by (tenant_id, key).
         roles = (await s.execute(
             select(RoleDef.id, RoleDef.tenant_id, RoleDef.key)

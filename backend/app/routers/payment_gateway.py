@@ -252,6 +252,9 @@ async def payment_callback(provider: str, request: Request):
     cb_status = res.get("status", "FAILED")
 
     async with OwnerSessionLocal() as s:
+        # Pre-tenant inbound webhook: provider_ref is the cluster-unique key used to resolve the
+        # order (and from it, the tenant). The tenant GUC is bound below after lookup.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         # Find the order by provider_ref (dev: injected into verify_callback; real: from body)
         # For DevGateway, provider_ref is empty in the verify response — look up by the order
         # embedded in the request path or fall back to a body parse.  For real providers, the

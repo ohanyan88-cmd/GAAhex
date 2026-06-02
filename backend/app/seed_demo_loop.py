@@ -57,6 +57,8 @@ async def seed_demo_loop_if_empty() -> dict | None:
     Returns a dict of the created ids (or None if it no-op'd).
     """
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         # --- idempotency guard: a single existing subscription means the loop already ran ---
         if (await s.execute(select(func.count()).select_from(Subscription))).scalar_one():
             return None

@@ -48,6 +48,8 @@ async def grant_request_perms_to_existing_roles() -> None:
     from .models import RoleDef
 
     async with SessionLocal() as s:
+        # Owner-session migration is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
 
         for tenant in tenants:

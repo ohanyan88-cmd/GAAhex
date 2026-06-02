@@ -177,6 +177,9 @@ async def seed_if_empty() -> None:
     its id (and warm the THE_TENANT_ID cache) without creating another.
     """
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit
+        # listener so legitimate seed queries don't trip dev-mode warnings.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         existing = (await s.execute(select(Tenant).order_by(Tenant.created_at))).scalars().first()
         if existing is not None:
             # Idempotent: pre-warm the cache so the rest of the app shares the same id.
@@ -340,6 +343,8 @@ async def build_crm_entities(s, t) -> None:
 async def seed_meta_if_empty() -> None:
     """Seed the CRM module (Lead, Customer, Contact, Deal) + Ticket — all AS CONFIG (demo tenant)."""
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         if (await s.execute(select(func.count()).select_from(EntityDef))).scalar_one():
             return
         tenant = (await s.execute(select(Tenant))).scalars().first()
@@ -483,6 +488,8 @@ async def build_access_config(s, tenant_id) -> dict:
 async def seed_access_if_empty() -> None:
     """Permissions + roles + assignments AS CONFIG, plus a 2nd user (Agent) to prove scoping."""
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         if (await s.execute(select(func.count()).select_from(RoleDef))).scalar_one():
             return
         tenant = (await s.execute(select(Tenant))).scalars().first()
@@ -595,6 +602,8 @@ async def seed_spec_roles_if_missing() -> int:
     Returns the count of RoleDef rows inserted this run (across all tenants)."""
     inserted = 0
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         for t in tenants:
             existing_keys = {
@@ -631,6 +640,8 @@ async def backfill_demo_user_departments() -> int:
     }
     updated = 0
     async with SessionLocal() as s:
+        # Owner-session backfill is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         for email, dept in DEMO_DEPT_BY_EMAIL.items():
             user = (await s.execute(
                 select(User).where(User.email == email)
@@ -651,6 +662,8 @@ async def seed_portal_if_empty() -> None:
     Tenant is resolved dynamically at login (no hardcoded UUID here).
     """
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         if (await s.execute(select(func.count()).select_from(CustomerUser))).scalar_one():
             return
         tenant = (await s.execute(select(Tenant))).scalars().first()

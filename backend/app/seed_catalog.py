@@ -976,6 +976,8 @@ async def seed_catalog_if_missing() -> int:
     """Create every catalog entity for every tenant that doesn't already have it. Idempotent."""
     created = 0
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         for t in tenants:
             for spec in ENTITY_CATALOG:
@@ -992,6 +994,8 @@ async def seed_entity_if_missing(entity_key: str) -> int:
         raise ValueError(f"No catalog spec found for entity key '{entity_key}'")
     created = 0
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         for t in tenants:
             if await _create_entity(s, t.id, spec):

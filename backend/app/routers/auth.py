@@ -82,7 +82,10 @@ async def _issue_refresh_token(s: AsyncSession, user: User) -> str:
 @router.post("/login", response_model=TokenOut)
 async def login(body: LoginIn, s: AsyncSession = Depends(get_owner_session)):
     # owner session: the email→user lookup is pre-auth (no tenant yet), so it must bypass RLS.
-    user = (await s.execute(select(User).where(User.email == body.email))).scalar_one_or_none()
+    user = (await s.execute(
+        select(User).where(User.email == body.email)
+        .execution_options(audit_tenant_filter=False)
+    )).scalar_one_or_none()
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     # Multi-tenant: bake the user's tenant_id into the JWT. `current_user` re-validates this claim
@@ -103,13 +106,18 @@ async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_owner_session))
     """Exchange a valid refresh token for a new access token. Rotates the refresh token:
     the presented one is revoked and a fresh one issued (replay protection). Any invalid,
     expired, or revoked token → 401."""
+    # Pre-auth lookups via owner session — token hash + user-by-id are cluster-unique by design.
     rt = (await s.execute(
         select(RefreshToken).where(RefreshToken.token_hash == _hash_token(body.refresh_token))
+        .execution_options(audit_tenant_filter=False)
     )).scalar_one_or_none()
     now = datetime.now(timezone.utc)
     if not rt or rt.revoked_at is not None or rt.expires_at <= now:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
-    user = (await s.execute(select(User).where(User.id == rt.user_id))).scalar_one_or_none()
+    user = (await s.execute(
+        select(User).where(User.id == rt.user_id)
+        .execution_options(audit_tenant_filter=False)
+    )).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
@@ -126,8 +134,10 @@ async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_owner_session))
 @router.post("/logout")
 async def logout(body: RefreshIn, s: AsyncSession = Depends(get_owner_session)):
     """Revoke a refresh token. Idempotent: an unknown or already-revoked token still returns ok."""
+    # Pre-auth lookup via owner session — refresh-token hash is cluster-unique.
     rt = (await s.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(body.refresh_token))
+        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(body.refresh_token))  # noqa: tenant-filter — owner session, token hash is cluster-unique
+        .execution_options(audit_tenant_filter=False)
     )).scalar_one_or_none()
     if rt and rt.revoked_at is None:
         rt.revoked_at = datetime.now(timezone.utc)
@@ -139,13 +149,15 @@ async def _user_from_api_key(raw_key: str) -> User | None:
     """Resolve an X-API-Key to the User it acts as. Looks up the hash via the OWNER session (the
     request is pre-tenant), rejects missing/revoked keys, and stamps last_used_at. Default-deny."""
     async with OwnerSessionLocal() as o:
+        # Pre-auth owner session: API-key hash and user-by-id are cluster-unique lookups.
+        await o.connection(execution_options={"audit_tenant_filter": False})
         ak = (await o.execute(
-            select(ApiKey).where(ApiKey.key_hash == _hash_token(raw_key))
+            select(ApiKey).where(ApiKey.key_hash == _hash_token(raw_key))  # noqa: tenant-filter — owner session, key hash is cluster-unique
         )).scalar_one_or_none()
         if not ak or ak.revoked_at is not None:
             return None
         ak.last_used_at = datetime.now(timezone.utc)
-        user = (await o.execute(select(User).where(User.id == ak.acts_as_user_id))).scalar_one_or_none()
+        user = (await o.execute(select(User).where(User.id == ak.acts_as_user_id))).scalar_one_or_none()  # noqa: tenant-filter — owner session, user-by-id is cluster-unique
         await o.commit()
     return user
 
@@ -186,6 +198,8 @@ async def current_user(
     # Look the user up via the OWNER session: the app session `s` is RLS-subject and has no tenant
     # GUC set yet (chicken-and-egg), so a gaahex_app read of app_user here would default-deny.
     async with OwnerSessionLocal() as o:
+        # Pre-auth owner session: user-by-id is the cluster-unique lookup that resolves the tenant.
+        await o.connection(execution_options={"audit_tenant_filter": False})
         user = (await o.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")

@@ -232,6 +232,8 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 from ..models.apikey import ApiKey
                 key_hash = hashlib.sha256(api_key.encode()).hexdigest()
                 async with OwnerSessionLocal() as o:
+                    # Pre-auth owner session: API-key hash is cluster-unique.
+                    await o.connection(execution_options={"audit_tenant_filter": False})
                     row = (await o.execute(
                         select(ApiKey).where(ApiKey.key_hash == key_hash)
                     )).scalar_one_or_none()

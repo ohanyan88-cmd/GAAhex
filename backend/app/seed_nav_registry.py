@@ -167,6 +167,8 @@ async def seed_nav_registry_if_empty() -> dict:
     modules_inserted = 0
 
     async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the tenant-filter audit.
+        await s.connection(execution_options={"audit_tenant_filter": False})
         tenants = (await s.execute(select(Tenant))).scalars().all()
         if not tenants:
             _log.info("seed_nav_registry: no tenants — nothing to seed")
