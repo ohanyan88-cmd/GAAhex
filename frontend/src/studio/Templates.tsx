@@ -1,0 +1,52 @@
+// GAAhex Studio — Templates pane.
+// Extracted from StudioRichPanes.tsx. Behavior unchanged.
+
+import React from 'react'
+import {
+  BarChart3,
+  CreditCard,
+  FileText,
+  IdCard,
+  Kanban,
+  LayoutDashboard,
+  Plus,
+  Rocket,
+  Rows3,
+  Store,
+} from 'lucide-react'
+import { Sec } from './_shared'
+
+// Template gallery — static until /api/templates is built.
+const TEMPLATE_GALLERY: [React.ReactNode, string, string][] = [
+  [<LayoutDashboard size={26} />, 'Operations Dashboard', 'KPI tiles + charts + activity'],
+  [<Rows3 size={26} />, 'Data List', 'Searchable table + filters'],
+  [<FileText size={26} />, 'Record Form', 'Two-column form + actions'],
+  [<IdCard size={26} />, 'Customer 360', 'Profile + related records'],
+  [<CreditCard size={26} />, 'Checkout', 'Cart + payment + summary'],
+  [<Rocket size={26} />, 'Landing Page', 'Hero + features + CTA'],
+  [<Kanban size={26} />, 'Work Board', 'Kanban columns by status'],
+  [<BarChart3 size={26} />, 'Analytics Report', 'Charts + pivot + export'],
+]
+
+export function Templates() {
+  return (
+    <div>
+      <Sec icon={<Store size={15} />} title="Templates" hint="ready-made pages & reusable saved sections" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 14 }}>
+        {TEMPLATE_GALLERY.map(([ic, name, desc]) => (
+          <div key={name as string} className="tpl-card">
+            <div className="tpl-thumb">{ic}</div>
+            <div style={{ padding: '12px 14px' }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
+              <div className="hint" style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+              {/* Instantiate wires to POST /api/templates/{id}/instantiate when that endpoint is built */}
+              <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: 10 }} type="button" disabled>
+                <Plus size={13} />Use template
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
