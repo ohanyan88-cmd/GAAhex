@@ -1,0 +1,71 @@
+// OverviewTab — canonical Object Detail tab #1 (file 10).
+// Summary card with key customer fields. Reads data from props — does NOT re-fetch
+// the customer profile (the parent CustomerView already owns the /360 payload and
+// passes the relevant slice down so this tab paints instantly on activation).
+
+import type { ReactNode } from 'react'
+
+type Profile = {
+  id: string
+  status?: string | null
+  name?: string
+  title?: string
+  [k: string]: any
+}
+
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
+}
+
+// Render a single labeled cell in the summary grid. Hide-if-missing: returns null
+// when the value is empty so the grid doesn't carry dead em-dashes for absent fields.
+function Field({ label, value }: { label: string; value: ReactNode }) {
+  if (value === null || value === undefined || value === '' || value === '—') return null
+  return (
+    <div>
+      <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13 }}>{value}</div>
+    </div>
+  )
+}
+
+export default function OverviewTab({ customerId, profile }: { customerId: string; profile?: Profile | null }) {
+  // Fall back to a minimal display when the parent hasn't passed the profile slice yet
+  // (skeleton / not-loaded path). We never re-fetch here — overview piggybacks on /360.
+  if (!profile) {
+    return (
+      <div className="card" style={{ padding: 14 }} aria-busy="true">
+        <div className="kpi-tile-skeleton" style={{ height: 14, width: '40%', marginBottom: 10 }} />
+        <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 8 }} />
+        <div className="kpi-tile-skeleton" style={{ height: 12, width: '60%' }} />
+      </div>
+    )
+  }
+  const name = profile.name ?? profile.title ?? customerId.slice(0, 8)
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
+        <div className="muted mono" style={{ fontSize: 11, marginTop: 2 }}>{profile.id}</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+        <Field label="Status" value={profile.status ?? '—'} />
+        <Field label="Type" value={profile.type ?? profile.customer_type ?? null} />
+        <Field label="Segment" value={profile.segment ?? null} />
+        <Field label="Email" value={profile.email
+          ? <a href={`mailto:${profile.email}`} style={{ color: 'var(--gx-link)' }}>{profile.email}</a>
+          : null} />
+        <Field label="Phone" value={profile.phone
+          ? <a href={`tel:${profile.phone}`} style={{ color: 'var(--gx-link)' }}>{profile.phone}</a>
+          : null} />
+        <Field label="Created" value={profile.created_at ? <span className="mono">{fmtDate(profile.created_at)}</span> : null} />
+        <Field label="Updated" value={profile.updated_at ? <span className="mono">{fmtDate(profile.updated_at)}</span> : null} />
+        <Field label="Owner" value={profile.owner_node_id ? <span className="mono">{String(profile.owner_node_id).slice(0, 8)}</span> : null} />
+      </div>
+    </div>
+  )
+}

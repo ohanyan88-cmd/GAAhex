@@ -72,6 +72,12 @@ from .asset_location import AssetLocationHistory
 from .radius_session import RadiusSession
 from .broadcast import MassBroadcast
 from .stripe_webhook_event import StripeWebhookEvent
+from .communication import Communication
+from .configuration import Configuration, ConfigurationHistory
+from .escalation import Escalation
+from .relationship import Relationship
+from .import_export import ImportJob, ExportJob
+from .idempotency_request import IdempotencyRequest
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -127,4 +133,10 @@ __all__ = [
     "RadiusSession",
     "MassBroadcast",
     "StripeWebhookEvent",
+    "Communication",
+    "Configuration", "ConfigurationHistory",
+    "Escalation",
+    "Relationship",
+    "ImportJob", "ExportJob",
+    "IdempotencyRequest",
 ]

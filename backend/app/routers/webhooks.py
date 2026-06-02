@@ -13,8 +13,9 @@ import ipaddress
 import json
 import socket
 import urllib.parse
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -173,6 +174,9 @@ def _def_out(w: WebhookDef) -> dict:
     return {
         "id": str(w.id), "name": w.name, "url": w.url, "events": w.events,
         "active": w.active, "has_secret": bool(w.secret),
+        # Webhook Standard (file 70) extension — surface the new fields.
+        "subscription_status": w.subscription_status,
+        "reference_number": w.reference_number,
         "created_at": w.created_at.isoformat() if w.created_at else None,
     }
 
@@ -182,6 +186,13 @@ def _delivery_out(d: WebhookDelivery) -> dict:
         "id": str(d.id), "webhook_id": str(d.webhook_id), "event_type": d.event_type,
         "status": d.status, "attempts": d.attempts, "status_code": d.status_code,
         "error": d.error, "payload": d.payload,
+        # Webhook Standard (file 70) extension — surface the new fields.
+        "delivery_status": d.delivery_status,
+        "event_name": d.event_name,
+        "correlation_id": str(d.correlation_id) if d.correlation_id else None,
+        "causation_id": str(d.causation_id) if d.causation_id else None,
+        "idempotency_key": d.idempotency_key,
+        "attempt_number": d.attempt_number,
         "created_at": d.created_at.isoformat() if d.created_at else None,
     }
 
@@ -295,15 +306,58 @@ async def delete_webhook(webhook_id: str, user: User = Depends(current_user), s:
     await s.commit()
 
 
+_VALID_DELIVERY_STATUSES = {"PENDING", "SENT", "DELIVERED", "FAILED", "RETRYING", "DEAD_LETTERED"}
+
+
+def _parse_iso(name: str, raw: str | None) -> datetime | None:
+    """Parse an ISO-8601 query-string datetime (Z suffix allowed). 422 on garbage."""
+    if not raw:
+        return None
+    try:
+        # Accept the trailing 'Z' that JS/clients emit.
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        raise HTTPException(422, f"{name} must be ISO-8601 datetime")
+
+
 @router.get("/{webhook_id}/deliveries")
-async def list_deliveries(webhook_id: str, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """The delivery log for a webhook, newest first."""
+async def list_deliveries(
+    webhook_id: str,
+    status: str | None = Query(default=None, description="Filter by Webhook Standard DeliveryStatus enum value"),
+    from_: str | None = Query(default=None, alias="from", description="ISO-8601 start datetime (inclusive)"),
+    to: str | None = Query(default=None, description="ISO-8601 end datetime (inclusive)"),
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """The delivery log for a webhook, newest first.
+
+    Webhook Standard (file 70) — filter by `delivery_status` (the new 6-value enum) and a
+    `[from, to]` date range. Permission gate is the existing `config.manage` until a
+    dedicated `webhook.view` permission lands in the registry (file 15).
+    """
     await _require_config_manage(s, user)
     await _load(s, user.tenant_id, webhook_id)          # 404 if not this tenant's webhook
+
+    stmt = select(WebhookDelivery).where(
+        WebhookDelivery.tenant_id == user.tenant_id,
+        WebhookDelivery.webhook_id == webhook_id,
+    )
+
+    if status is not None:
+        norm = status.upper().strip()
+        if norm not in _VALID_DELIVERY_STATUSES:
+            raise HTTPException(422, f"status must be one of {sorted(_VALID_DELIVERY_STATUSES)}")
+        stmt = stmt.where(WebhookDelivery.delivery_status == norm)
+
+    dt_from = _parse_iso("from", from_)
+    dt_to = _parse_iso("to", to)
+    if dt_from is not None:
+        stmt = stmt.where(WebhookDelivery.created_at >= dt_from)
+    if dt_to is not None:
+        stmt = stmt.where(WebhookDelivery.created_at <= dt_to)
+
     rows = (await s.execute(
-        select(WebhookDelivery).where(
-            WebhookDelivery.tenant_id == user.tenant_id, WebhookDelivery.webhook_id == webhook_id
-        ).order_by(WebhookDelivery.created_at.desc()).limit(DELIVERY_LOG_CAP)
+        stmt.order_by(WebhookDelivery.created_at.desc()).limit(DELIVERY_LOG_CAP)
     )).scalars().all()
     return [_delivery_out(d) for d in rows]
 

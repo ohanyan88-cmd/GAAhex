@@ -11,11 +11,26 @@ import {
   ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
   ClockIcon, CreditCardIcon, GearIcon,
   ServerIcon, FolderIcon, WarningIcon,
+  InfoIcon, CheckIcon, MessageIcon, PaperclipIcon,
+  ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
 import { StatusPill, KPITile } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+// Canonical Object Detail tabs (file 10 §Object Detail). These nine render BEFORE the
+// CustomerView's own related-record tabs (accounts/contacts/sites/contracts/slas). Each
+// component self-fetches its slice from a documented endpoint and renders its own empty
+// state — see frontend/src/views/customer-tabs/.
+import OverviewTab from './customer-tabs/OverviewTab'
+import TimelineTab from './customer-tabs/TimelineTab'
+import TasksTab from './customer-tabs/TasksTab'
+import CommentsTab from './customer-tabs/CommentsTab'
+import AttachmentsTab from './customer-tabs/AttachmentsTab'
+import ApprovalsTab from './customer-tabs/ApprovalsTab'
+import RelatedTab from './customer-tabs/RelatedTab'
+import CommunicationsTab from './customer-tabs/CommunicationsTab'
+import AuditTab from './customer-tabs/AuditTab'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
 // to see ONE customer's whole life: header money summary, services, subscriptions, invoices (with
@@ -70,10 +85,25 @@ type ConsolidatedBalance = {
   subtree_size: number
 }
 
-// Customer 360 inline tabs — five related-record slices the operator can drill through
-// without leaving the customer page. Tabs are lazy-loaded on first activation and cached.
-type TabKey = 'accounts' | 'contacts' | 'sites' | 'contracts' | 'slas'
-const TAB_ORDER: TabKey[] = ['accounts', 'contacts', 'sites', 'contracts', 'slas']
+// Customer 360 inline tabs.
+// File 10 (Object Detail Standard) mandates a canonical 9-tab set on every detail page
+// BEFORE any object-specific tabs. The canonical nine come first, then the five
+// CustomerView-specific related-record tabs round out the list.
+// Tabs are lazy-loaded on first activation and cached.
+type CanonicalTabKey =
+  | 'overview' | 'timeline' | 'tasks' | 'comments' | 'attachments'
+  | 'approvals' | 'related' | 'communications' | 'audit'
+type CustomTabKey = 'accounts' | 'contacts' | 'sites' | 'contracts' | 'slas'
+type TabKey = CanonicalTabKey | CustomTabKey
+const CANONICAL_TAB_ORDER: CanonicalTabKey[] = [
+  'overview', 'timeline', 'tasks', 'comments', 'attachments',
+  'approvals', 'related', 'communications', 'audit',
+]
+const CUSTOM_TAB_ORDER: CustomTabKey[] = ['accounts', 'contacts', 'sites', 'contracts', 'slas']
+const TAB_ORDER: TabKey[] = [...CANONICAL_TAB_ORDER, ...CUSTOM_TAB_ORDER]
+// Canonical tabs self-fetch from their own components — the parent doesn't pre-load
+// their data, so we only register the custom-tab keys in the legacy loader.
+const CUSTOM_TAB_SET = new Set<TabKey>(CUSTOM_TAB_ORDER)
 
 // Contact / Site / Contract are entity records: backend response is a plain list of
 // { id, status, owner_node_id, data: {...} } where ref-fields land in `data`.
@@ -175,11 +205,19 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   // tabData[tab] === undefined → not loaded yet; null → unavailable (403/404/error); array → real data.
   // tabFatal[tab] carries a non-empty string when the endpoint is denied / missing so we
   // render the right muted state without losing the count badge for tabs that did load.
-  const [tab, setTab] = useState<TabKey>('accounts')
+  // Default tab is the first canonical tab — "Overview" per file 10.
+  const [tab, setTab] = useState<TabKey>('overview')
+  // Canonical tabs self-fetch (no count badge); we still keep an entry for each so the
+  // Record<TabKey,...> shape is complete. They stay `undefined` forever and the
+  // CustomerTabButton renders no count badge when rows is null/undefined.
   const [tabData, setTabData] = useState<Record<TabKey, any[] | null | undefined>>({
+    overview: undefined, timeline: undefined, tasks: undefined, comments: undefined, attachments: undefined,
+    approvals: undefined, related: undefined, communications: undefined, audit: undefined,
     accounts: undefined, contacts: undefined, sites: undefined, contracts: undefined, slas: undefined,
   })
   const [tabFatal, setTabFatal] = useState<Record<TabKey, '' | 'denied' | 'notfound' | 'error'>>({
+    overview: '', timeline: '', tasks: '', comments: '', attachments: '',
+    approvals: '', related: '', communications: '', audit: '',
     accounts: '', contacts: '', sites: '', contracts: '', slas: '',
   })
 
@@ -220,6 +258,8 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   // Each tab maps to a best-effort endpoint; we keep the failure modes uniform so the
   // tab body can render the right muted state (denied / not-found / empty / data).
   async function loadTab(key: TabKey) {
+    // Canonical Object Detail tabs self-fetch from their own components — skip them here.
+    if (!CUSTOM_TAB_SET.has(key)) return
     if (tabData[key] !== undefined) return  // already loaded (or explicitly null)
     // Mark in-flight (still undefined → keep skeleton; switch to a sentinel via a no-op set)
     // We use a closure-local optimistic guard rather than another state — concurrent
@@ -300,10 +340,19 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   // Tabs: reset the cache when the customer changes, then eager-load the default tab so the
   // operator sees data on first paint (the other four still wait for their first click).
   useEffect(() => {
-    setTab('accounts')
-    setTabData({ accounts: undefined, contacts: undefined, sites: undefined, contracts: undefined, slas: undefined })
-    setTabFatal({ accounts: '', contacts: '', sites: '', contracts: '', slas: '' })
-    loadTab('accounts')
+    setTab('overview')
+    setTabData({
+      overview: undefined, timeline: undefined, tasks: undefined, comments: undefined, attachments: undefined,
+      approvals: undefined, related: undefined, communications: undefined, audit: undefined,
+      accounts: undefined, contacts: undefined, sites: undefined, contracts: undefined, slas: undefined,
+    })
+    setTabFatal({
+      overview: '', timeline: '', tasks: '', comments: '', attachments: '',
+      approvals: '', related: '', communications: '', audit: '',
+      accounts: '', contacts: '', sites: '', contracts: '', slas: '',
+    })
+    // No eager-load: the default canonical tab (Overview) renders from the in-memory
+    // /360 profile already being fetched in parallel. Custom tabs lazy-load on click.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, customerId])
   // Whenever the active tab changes, ensure its data is loaded. No-op if cached.
@@ -488,6 +537,9 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                 rows={tabData[tab]}
                 fatal={tabFatal[tab]}
                 t={t}
+                token={token}
+                customerId={customerId}
+                profile={p ?? null}
               />
             </div>
 
@@ -849,6 +901,17 @@ function FinancialSummaryCard({
 
 function tabLabel(k: TabKey, t: (k: string, fb?: string) => string): string {
   switch (k) {
+    // Canonical Object Detail tabs (file 10) — labels match the standard exactly.
+    case 'overview':       return t('cust.tab.overview', 'Overview')
+    case 'timeline':       return t('cust.tab.timeline', 'Timeline')
+    case 'tasks':          return t('cust.tab.tasks', 'Tasks')
+    case 'comments':       return t('cust.tab.comments', 'Comments')
+    case 'attachments':    return t('cust.tab.attachments', 'Attachments')
+    case 'approvals':      return t('cust.tab.approvals', 'Approvals')
+    case 'related':        return t('cust.tab.related', 'Related')
+    case 'communications': return t('cust.tab.communications', 'Communications')
+    case 'audit':          return t('cust.tab.audit', 'Audit')
+    // Customer-specific tabs (preserved, render after the canonical nine).
     case 'accounts':  return t('cust.tab.accounts', 'Accounts')
     case 'contacts':  return t('cust.tab.contacts', 'Contacts')
     case 'sites':     return t('cust.tab.sites', 'Sites')
@@ -859,6 +922,15 @@ function tabLabel(k: TabKey, t: (k: string, fb?: string) => string): string {
 
 function tabIcon(k: TabKey): React.ReactNode {
   switch (k) {
+    case 'overview':       return <InfoIcon size={13} />
+    case 'timeline':       return <ClockIcon size={13} />
+    case 'tasks':          return <CheckIcon size={13} />
+    case 'comments':       return <MessageIcon size={13} />
+    case 'attachments':    return <PaperclipIcon size={13} />
+    case 'approvals':      return <ShieldIcon size={13} />
+    case 'related':        return <LayersIcon size={13} />
+    case 'communications': return <MailIcon size={13} />
+    case 'audit':          return <ActivityIcon size={13} />
     case 'accounts':  return <CreditCardIcon size={13} />
     case 'contacts':  return <PhoneIcon size={13} />
     case 'sites':     return <ServerIcon size={13} />
@@ -923,12 +995,31 @@ function CustomerTabButton({ active, label, count, icon, onClick }: {
 }
 
 // Switchboard for the active tab's body. Loading → skeleton; fatal → muted state; data → table.
-function CustomerTabBody({ tab, rows, fatal, t }: {
+// Canonical Object Detail tabs (file 10) self-fetch from dedicated components in
+// ./customer-tabs/ — they bypass the rows/fatal pipeline entirely and own their own
+// loading/empty/error states.
+function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
   tab: TabKey
   rows: any[] | null | undefined
   fatal: '' | 'denied' | 'notfound' | 'error'
   t: (k: string, fb?: string) => string
+  token: string
+  customerId: string
+  profile: Profile | null
 }) {
+  // ── Canonical Object Detail tabs (file 10) ────────────────────────────────────
+  // These nine come BEFORE the customer-specific tabs and each self-fetches.
+  if (tab === 'overview')       return <OverviewTab customerId={customerId} profile={profile} />
+  if (tab === 'timeline')       return <TimelineTab token={token} customerId={customerId} />
+  if (tab === 'tasks')          return <TasksTab token={token} customerId={customerId} />
+  if (tab === 'comments')       return <CommentsTab token={token} customerId={customerId} />
+  if (tab === 'attachments')    return <AttachmentsTab token={token} customerId={customerId} />
+  if (tab === 'approvals')      return <ApprovalsTab token={token} customerId={customerId} />
+  if (tab === 'related')        return <RelatedTab token={token} customerId={customerId} />
+  if (tab === 'communications') return <CommunicationsTab token={token} customerId={customerId} />
+  if (tab === 'audit')          return <AuditTab token={token} customerId={customerId} />
+
+  // ── Customer-specific tabs (legacy path with shared rows/fatal pipeline) ──────
   // Loading skeleton — 4 shimmering rows so the tab visually communicates "data incoming".
   if (rows === undefined) {
     return (

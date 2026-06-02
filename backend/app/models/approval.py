@@ -75,8 +75,29 @@ class Approval(Base):
     requested_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("app_user.id"), nullable=False)
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")  # PENDING|APPROVED|REJECTED|EXECUTED
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")  # PENDING|APPROVED|REJECTED|EXECUTED|CANCELLED
     decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("app_user.id"), nullable=True)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     decision_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # ── File 02 — Approval Ownership Standard extension ──────────────────────
+    # ApprovalDecision (5-value enum, file 14): APPROVE | REJECT | REQUEST_CHANGES | DELEGATE
+    # | CANCEL_REQUEST. Distinct from `status` (the lifecycle state). `decision` records
+    # the SHAPE of the latest action by an approver; status records WHERE the row sits
+    # in the lifecycle. All nullable — back-compat for rows created before this column.
+    decision: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    # When decision = DELEGATE, the user the request was forwarded to. The request stays
+    # PENDING (status unchanged); delegated_to_user_id names the next eligible approver.
+    delegated_to_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("app_user.id"), nullable=True
+    )
+    # When decision = REQUEST_CHANGES, the approver's note describing what the requester
+    # must change before re-submitting. Request stays PENDING.
+    change_request_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # File 02 §Digital Signature — opaque blob captured at decision/sign time. Method names
+    # the auth mechanism (TOTP | DIGITAL_CERT | INLINE_PASSWORD | …); value is the verified
+    # signature payload (token, cert thumbprint, hashed password proof). NULL = unsigned.
+    signature_method: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    signature_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

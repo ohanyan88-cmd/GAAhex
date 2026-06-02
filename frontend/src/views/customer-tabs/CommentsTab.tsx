@@ -1,0 +1,69 @@
+// CommentsTab — canonical Object Detail tab #4 (file 10).
+// GET /api/customer/{id}/comments
+
+import { useEffect, useState } from 'react'
+import { bget } from '../../lib/billing'
+import { EmptyState } from '../../page-shell'
+
+type CommentRow = {
+  id: string
+  author?: string | null
+  author_name?: string | null
+  body?: string | null
+  text?: string | null
+  created_at?: string | null
+  [k: string]: any
+}
+
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '' : d.toLocaleString()
+}
+
+export default function CommentsTab({ token, customerId }: { token: string; customerId: string }) {
+  const [rows, setRows] = useState<CommentRow[] | null | undefined>(undefined)
+
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<CommentRow[]>(token, `/api/customer/${encodeURIComponent(customerId)}/comments`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, customerId])
+
+  if (rows === undefined) {
+    return (
+      <div className="card" style={{ padding: 14 }} aria-busy="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="kpi-tile-skeleton" style={{ height: 14, width: '100%', marginBottom: 10 }} />
+        ))}
+      </div>
+    )
+  }
+  if (rows === null) return <p className="muted">Could not load comments.</p>
+  if (rows.length === 0) return <EmptyState title="No comments yet" message="Comments on this customer will appear here." />
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {rows.map((r) => (
+          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border, #e2e8f0)' }}>
+            <div style={{ fontSize: 13 }}>
+              <strong>{r.author_name ?? r.author ?? 'Unknown'}</strong>
+              <span className="muted mono" style={{ marginLeft: 8, fontSize: 11 }}>{fmtDateTime(r.created_at)}</span>
+            </div>
+            <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>
+              {r.body ?? r.text ?? ''}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

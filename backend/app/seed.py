@@ -130,6 +130,28 @@ def _permission_specs(tenant_id) -> list[dict]:
     ):
         specs.append({"tenant_id": tenant_id, "key": f"notification.{verb}", "label": vl, "group": "notification"})
 
+    # Wave A — Communication Standard (file 12) — 2 keys.
+    for verb, vl in (("view", "View communications"), ("send", "Send communications")):
+        specs.append({"tenant_id": tenant_id, "key": f"communication.{verb}", "label": vl, "group": "communication"})
+
+    # Wave A — Configuration Standard (file 08) — Super Admin scope.
+    specs.append({"tenant_id": tenant_id, "key": "configuration.manage",
+                  "label": "Manage system configuration (Super Admin scope)", "group": "configuration"})
+
+    # Wave A — Escalation Standard (file 02) — single cross-cutting key.
+    specs.append({"tenant_id": tenant_id, "key": "escalation.manage",
+                  "label": "Manage escalations", "group": "escalation"})
+
+    # Wave A — Relationship / Entity Link Standard (file 12) — 2 keys.
+    specs.append({"tenant_id": tenant_id, "key": "relationship.create",
+                  "label": "Create relationships between entities", "group": "relationship"})
+    specs.append({"tenant_id": tenant_id, "key": "relationship.delete",
+                  "label": "Archive relationships", "group": "relationship"})
+
+    # Wave A — Import / Export Standard (file 08) — 2 keys.
+    specs.append({"tenant_id": tenant_id, "key": "import.run", "label": "Run import jobs", "group": "import_export"})
+    specs.append({"tenant_id": tenant_id, "key": "export.run", "label": "Run export jobs", "group": "import_export"})
+
     return specs
 
 
