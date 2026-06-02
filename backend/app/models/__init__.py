@@ -19,6 +19,7 @@ from .refresh_token import RefreshToken
 from .comm import Thread, Message
 from .comment import Comment, CommentMention
 from .watcher import Watcher
+from .task import Task, TaskDependency
 from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product

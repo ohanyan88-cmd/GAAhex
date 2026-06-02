@@ -84,6 +84,24 @@ def _permission_specs(tenant_id) -> list[dict]:
     ):
         specs.append({"tenant_id": tenant_id, "key": f"watch.{verb}", "label": vl, "group": "watch"})
 
+    # Task Standard (file 05) — 10 keys from the locked Permission Registry (file 15).
+    # Cross-cutting; admin/Studio handles per-tenant role grants.
+    # task.comment / task.attach are sub-permissions that gate the Comment + Attachment
+    # sub-resources on a task (separate from the top-level comment.* and attachment.* keys).
+    for verb, vl in (
+        ("view",     "View tasks"),
+        ("create",   "Create tasks"),
+        ("edit",     "Edit task fields"),
+        ("assign",   "Assign / reassign task owner and assignee"),
+        ("complete", "Complete a task (requires resolution)"),
+        ("cancel",   "Cancel a task (requires reason + resolution)"),
+        ("reopen",   "Reopen a completed or cancelled task"),
+        ("delete",   "Delete a task (soft)"),
+        ("comment",  "Add comments to a task"),
+        ("attach",   "Upload attachments to a task"),
+    ):
+        specs.append({"tenant_id": tenant_id, "key": f"task.{verb}", "label": vl, "group": "task"})
+
     return specs
 
 
