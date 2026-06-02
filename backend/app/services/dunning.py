@@ -32,14 +32,17 @@ from .account_balance import recompute_account_balance
 from .network_adapter import get_network_adapter
 
 
-ALLOWED_ACTIONS = {"notice", "throttle", "walled_garden", "terminate"}
+# B1 enum standard — action verbs are UPPER_SNAKE (NOTICE / THROTTLE /
+# WALLED_GARDEN / TERMINATE). Legacy lowercase values were folded to UPPER
+# by the dedicated alembic migration ``7b1e0d3b41fd_dunning_action_verbs_upper_snake``.
+ALLOWED_ACTIONS = {"NOTICE", "THROTTLE", "WALLED_GARDEN", "TERMINATE"}
 
 DEFAULT_POLICY_STEPS = [
-    {"day_offset": 3, "action": "notice", "params": {"template": "dunning_notice_1"}},
-    {"day_offset": 7, "action": "notice", "params": {"template": "dunning_notice_2"}},
-    {"day_offset": 14, "action": "throttle", "params": {"kbps": 256}},
-    {"day_offset": 21, "action": "walled_garden", "params": {"redirect_url": "https://payment.example.com"}},
-    {"day_offset": 45, "action": "terminate", "params": {}},
+    {"day_offset": 3, "action": "NOTICE", "params": {"template": "dunning_notice_1"}},
+    {"day_offset": 7, "action": "NOTICE", "params": {"template": "dunning_notice_2"}},
+    {"day_offset": 14, "action": "THROTTLE", "params": {"kbps": 256}},
+    {"day_offset": 21, "action": "WALLED_GARDEN", "params": {"redirect_url": "https://payment.example.com"}},
+    {"day_offset": 45, "action": "TERMINATE", "params": {}},
 ]
 
 
@@ -57,6 +60,9 @@ def validate_steps_json(steps: Any) -> list[dict]:
     Rules:
       - must be a list
       - each step is {day_offset:int (>=0), action:str (in ALLOWED_ACTIONS), params:dict}
+      - action values are normalised to UPPER_SNAKE (B1 enum standard). Legacy lowercase
+        inputs ('notice'|'throttle'|'walled_garden'|'terminate') are accepted and folded
+        UP; anything else 422s as before.
       - day_offsets must be strictly non-decreasing (ascending — ties allowed at boundaries
         but the sequence should normally be strictly ascending; we enforce >= which is the
         looser invariant the runner relies on for next_action_at math).
@@ -81,9 +87,12 @@ def validate_steps_json(steps: Any) -> list[dict]:
                 f"step {i} day_offset {day_offset} is less than previous {prev_offset} — steps must be ascending"
             )
         action = step.get("action")
+        # Back-compat: legacy lowercase action verbs are normalised UP per B1.
+        if isinstance(action, str):
+            action = action.upper()
         if action not in ALLOWED_ACTIONS:
             raise ValueError(
-                f"step {i} action '{action}' must be one of {sorted(ALLOWED_ACTIONS)}"
+                f"step {i} action '{step.get('action')}' must be one of {sorted(ALLOWED_ACTIONS)}"
             )
         params = step.get("params") or {}
         if not isinstance(params, dict):
@@ -265,13 +274,13 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
         session, tenant_id=case.tenant_id, account_id=case.account_id,
     )
 
-    if action == "notice":
+    if action == "NOTICE":
         template = params.get("template") or "dunning_notice"
         await adapter.send_notice(
             session, tenant_id=case.tenant_id, account_id=case.account_id,
             template=str(template), dunning_case_id=case.id,
         )
-    elif action == "throttle":
+    elif action == "THROTTLE":
         kbps = int(params.get("kbps") or 256)
         for svc in services:
             await adapter.throttle(
@@ -284,13 +293,13 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
             # Use the logging helper indirectly via a notice-style log row.
             row = ServiceActionLog(
                 tenant_id=case.tenant_id, service_id=None, dunning_case_id=case.id,
-                action="throttle", adapter="logging",
+                action="THROTTLE", adapter="logging",
                 request_payload={"kbps": kbps, "reason": "no_services_for_account"},
                 response_payload={"applied": False},
                 status="success", requested_at=now, completed_at=now,
             )
             session.add(row)
-    elif action == "walled_garden":
+    elif action == "WALLED_GARDEN":
         redirect_url = str(params.get("redirect_url") or "https://payment.example.com")
         for svc in services:
             await adapter.walled_garden(
@@ -300,13 +309,13 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
         if not services:
             row = ServiceActionLog(
                 tenant_id=case.tenant_id, service_id=None, dunning_case_id=case.id,
-                action="walled_garden", adapter="logging",
+                action="WALLED_GARDEN", adapter="logging",
                 request_payload={"redirect_url": redirect_url, "reason": "no_services_for_account"},
                 response_payload={"applied": False},
                 status="success", requested_at=now, completed_at=now,
             )
             session.add(row)
-    elif action == "terminate":
+    elif action == "TERMINATE":
         for svc in services:
             await adapter.terminate(
                 session, tenant_id=case.tenant_id, service_id=svc.id,
@@ -315,7 +324,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
         if not services:
             row = ServiceActionLog(
                 tenant_id=case.tenant_id, service_id=None, dunning_case_id=case.id,
-                action="terminate", adapter="logging",
+                action="TERMINATE", adapter="logging",
                 request_payload={"reason": "no_services_for_account"},
                 response_payload={"applied": False},
                 status="success", requested_at=now, completed_at=now,
@@ -379,7 +388,7 @@ async def cure_case(
         # we have to undo. If we never advanced (index = -1) there's nothing to restore.
         if 0 <= case.current_step_index < len(steps):
             current_action = steps[case.current_step_index].get("action")
-            if current_action in ("throttle", "walled_garden", "terminate"):
+            if current_action in ("THROTTLE", "WALLED_GARDEN", "TERMINATE"):
                 needs_restore = True
 
     if needs_restore:

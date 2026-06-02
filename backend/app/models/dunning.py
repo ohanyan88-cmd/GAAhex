@@ -4,13 +4,15 @@ Three first-class physical tables, mirroring the billing/A.3 style (UUID PK, ten
 JSONB for free-form payloads, audit-friendly status fields):
 
 * ``dunning_policy`` — config: ordered list of ``steps_json`` (day_offset + action + params).
-  Action ∈ {'notice','throttle','walled_garden','terminate'}. Exactly one is_default per tenant.
+  Action ∈ {'NOTICE','THROTTLE','WALLED_GARDEN','TERMINATE'} (B1 enum standard — UPPER_SNAKE,
+  normalised by migration ``7b1e0d3b41fd_dunning_action_verbs_upper_snake``).
+  Exactly one is_default per tenant.
 * ``dunning_case`` — runtime state machine per (account, triggering_invoice). Tracks
   ``current_step_index`` (-1 = not started) + ``next_action_at`` (when the sweep picks it up).
   Statuses: 'ACTIVE' | 'CURED' | 'ESCALATED' | 'CLOSED'  (B1 enum standard — UPPER_SNAKE).
-* ``service_action_log`` — every adapter side-effect (notice/throttle/walled_garden/terminate/
-  restore) logs ONE row. v1 adapter is ``LoggingAdapter`` — no real RADIUS/BNG calls; it flips
-  Service.status and writes the log row.
+* ``service_action_log`` — every adapter side-effect (NOTICE/THROTTLE/WALLED_GARDEN/TERMINATE/
+  RESTORE — UPPER_SNAKE per B1) logs ONE row. v1 adapter is ``LoggingAdapter`` — no real
+  RADIUS/BNG calls; it flips Service.status and writes the log row.
 
 Doctrine:
   - Policy sequence is config (steps_json), never hardcoded. The runner reads steps_json on each
@@ -52,10 +54,9 @@ class DunningPolicy(Base):
         Boolean, nullable=False, default=True, server_default="true",
     )
     # ordered ascending by day_offset; each step: {day_offset:int, action:str, params:dict}
-    # action ∈ {'notice','throttle','walled_garden','terminate'}
-    # FOLLOW-UP (B1 deferred): action verbs inside this JSONB are still lowercase. Normalizing
-    # JSON values in-place is risky (would need a JSONB-element UPDATE per step) — flagged for
-    # a dedicated future pass to avoid breaking the dunning runner.
+    # action ∈ {'NOTICE','THROTTLE','WALLED_GARDEN','TERMINATE'} — UPPER_SNAKE per B1, normalised
+    # by migration ``7b1e0d3b41fd_dunning_action_verbs_upper_snake`` (legacy lowercase rows folded
+    # via jsonb_agg + jsonb_set in-place).
     steps_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     # nullable means "applies to all tariffs"
     applies_to_tariff_plan_ids: Mapped[list | None] = mapped_column(JSONB, nullable=True)
@@ -121,7 +122,7 @@ class ServiceActionLog(Base):
         UUID(as_uuid=True), ForeignKey("dunning_case.id"), nullable=True, index=True,
     )
     action: Mapped[str] = mapped_column(String(40), nullable=False)
-    # 'notice' | 'throttle' | 'walled_garden' | 'terminate' | 'restore'
+    # 'NOTICE' | 'THROTTLE' | 'WALLED_GARDEN' | 'TERMINATE' | 'RESTORE'  (B1 UPPER_SNAKE)
     adapter: Mapped[str] = mapped_column(String(40), nullable=False)
     # 'logging' (v1), later 'huawei_olt', 'freeradius', etc.
     request_payload: Mapped[dict] = mapped_column(

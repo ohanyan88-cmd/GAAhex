@@ -396,7 +396,7 @@ async def close_dunning_case(
     reason = ""
     if payload is not None:
         reason = str(payload.get("closed_reason") or "").strip()[:80]
-    case.status = "closed"
+    case.status = "CLOSED"
     case.closed_at = _now()
     case.next_action_at = None
     case.closed_reason = reason or "manual_close"

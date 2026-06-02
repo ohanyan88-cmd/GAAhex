@@ -53,6 +53,35 @@ async def _gate(s: AsyncSession, user: User):
     return grants
 
 
+# ---- aggregate-leakage protection (file 17 §8) -----------------------------------------------
+# Aggregate COUNT/SUM/AVG endpoints leak existence information if they count rows the caller
+# cannot view. Field-level masking & row-level view rules apply to UI, API, EXPORT, REPORTS,
+# SEARCH and AI views — counts must respect the same view permissions as detail queries.
+
+async def _assert_view_permission(s: AsyncSession, user: User, entity_key: str) -> None:
+    """Raise 403 if the caller lacks `{entity_key}.view` for this aggregation.
+
+    Used by aggregate endpoints to prevent existence-leakage via COUNT/SUM responses.
+    Loads grants (cheap; cached at session-state in practice) and applies the standard
+    `can()` rule — same gate the detail endpoints use.
+    """
+    grants = await load_grants(s, user)
+    if not can(grants, entity_key, "view"):
+        raise HTTPException(status_code=403, detail=f"Not allowed to view {entity_key}")
+
+
+def _alive(model):
+    """SQL condition list excluding soft-deleted / purged rows (file 12 — D14).
+
+    Returns an empty list when the model has no `deletion_state` column so the caller can
+    splat it into a WHERE clause unconditionally.
+    """
+    col = getattr(model, "deletion_state", None)
+    if col is None:
+        return []
+    return [col.notin_(("SOFT_DELETED", "PURGED"))]
+
+
 def _now():
     return datetime.now(timezone.utc)
 
@@ -78,6 +107,11 @@ def _overdue_cond(now):
 @router.get("/overview")
 async def overview(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await _gate(s, user)
+    # Overview aggregates across invoices, payments, and lead/customer records — gate on each
+    # entity's `.view` so a caller with `analytics.view` but no invoice/payment access can't
+    # learn billing totals via the overview KPI block (file 17 §8 — no aggregate leakage).
+    await _assert_view_permission(s, user, "invoice")
+    await _assert_view_permission(s, user, "payment")
     reach = await _org_reach(s, user, grants)
     t = user.tenant_id
     now = _now()
@@ -85,33 +119,37 @@ async def overview(user: User = Depends(current_user), s: AsyncSession = Depends
     pmstart = _prev_month_start(mstart)
     d30, d60 = now - timedelta(days=30), now - timedelta(days=60)
 
-    # MRR + active subscription count
+    # MRR + active subscription count (Subscription carries deletion_state — exclude soft-deleted)
     mrr, active = (await s.execute(
         select(func.coalesce(func.sum(Subscription.amount), 0), func.count())
-        .where(Subscription.tenant_id == t, Subscription.status == "ACTIVE", *_node_cond(Subscription, reach))
+        .where(Subscription.tenant_id == t, Subscription.status == "ACTIVE",
+               *_alive(Subscription), *_node_cond(Subscription, reach))
     )).one()
 
     # AR outstanding (ISSUED + OVERDUE invoice totals)
     ar_outstanding = (await s.execute(
         select(func.coalesce(func.sum(Invoice.total), 0))
-        .where(Invoice.tenant_id == t, Invoice.status.in_(["ISSUED", "OVERDUE"]), *_node_cond(Invoice, reach))
+        .where(Invoice.tenant_id == t, Invoice.status.in_(["ISSUED", "OVERDUE"]),
+               *_alive(Invoice), *_node_cond(Invoice, reach))
     )).scalar_one()
 
     # Overdue total + count
     overdue_total, overdue_count = (await s.execute(
         select(func.coalesce(func.sum(Invoice.total), 0), func.count())
-        .where(Invoice.tenant_id == t, _overdue_cond(now), *_node_cond(Invoice, reach))
+        .where(Invoice.tenant_id == t, _overdue_cond(now),
+               *_alive(Invoice), *_node_cond(Invoice, reach))
     )).one()
 
     # Collected this month / prev month (Payment scoped via its Invoice's owner node)
     def _collected(since, until=None):
         q = select(func.coalesce(func.sum(Payment.amount), 0)).select_from(Payment).where(
-            Payment.tenant_id == t, Payment.paid_at >= since)
+            Payment.tenant_id == t, Payment.paid_at >= since, *_alive(Payment))
         if until is not None:
             q = q.where(Payment.paid_at < until)
         if reach is not None:
             q = q.join(Invoice, Invoice.id == Payment.invoice_id).where(
-                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)))
+                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)),
+                *_alive(Invoice))
         return q
 
     collected_this_month = (await s.execute(_collected(mstart))).scalar_one()
@@ -122,11 +160,13 @@ async def overview(user: User = Depends(current_user), s: AsyncSession = Depends
         select(EntityDef.id).where(EntityDef.tenant_id == t, EntityDef.key == "lead")
     )).first()
     lead_key = "lead" if lead_exists else "customer"
+    # The lead/customer count block aggregates Record(lead|customer); gate on the picked entity.
+    await _assert_view_permission(s, user, lead_key)
 
     def _new_records(since, until=None):
         q = select(func.count()).select_from(Record).where(
             Record.tenant_id == t, Record.entity_key == lead_key, Record.created_at >= since,
-            *_node_cond(Record, reach))
+            *_alive(Record), *_node_cond(Record, reach))
         if until is not None:
             q = q.where(Record.created_at < until)
         return q
@@ -155,6 +195,9 @@ async def overview(user: User = Depends(current_user), s: AsyncSession = Depends
 @router.get("/revenue-trend")
 async def revenue_trend(months: int = 6, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await _gate(s, user)
+    # Aggregates Payment + Invoice — gate on both entity-view perms (no aggregate leakage).
+    await _assert_view_permission(s, user, "invoice")
+    await _assert_view_permission(s, user, "payment")
     reach = await _org_reach(s, user, grants)
     t = user.tenant_id
     months = max(1, min(int(months), 24))
@@ -172,15 +215,17 @@ async def revenue_trend(months: int = 6, user: User = Depends(current_user), s: 
 
     pm = func.to_char(func.date_trunc("month", Payment.paid_at), "YYYY-MM")
     pq = select(pm.label("m"), func.coalesce(func.sum(Payment.amount), 0)).select_from(Payment).where(
-        Payment.tenant_id == t, Payment.paid_at >= earliest)
+        Payment.tenant_id == t, Payment.paid_at >= earliest, *_alive(Payment))
     if reach is not None:
         pq = pq.join(Invoice, Invoice.id == Payment.invoice_id).where(
-            or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)))
+            or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)),
+            *_alive(Invoice))
     collected = {row[0]: int(row[1]) for row in (await s.execute(pq.group_by(pm))).all()}
 
     im = func.to_char(func.date_trunc("month", Invoice.created_at), "YYYY-MM")
     iq = select(im.label("m"), func.coalesce(func.sum(Invoice.total), 0)).where(
-        Invoice.tenant_id == t, Invoice.created_at >= earliest, *_node_cond(Invoice, reach)).group_by(im)
+        Invoice.tenant_id == t, Invoice.created_at >= earliest,
+        *_alive(Invoice), *_node_cond(Invoice, reach)).group_by(im)
     invoiced = {row[0]: int(row[1]) for row in (await s.execute(iq)).all()}
 
     return [{"month": lab, "collected": collected.get(lab, 0), "invoiced": invoiced.get(lab, 0)} for lab in labels]
@@ -193,6 +238,8 @@ async def revenue_trend(months: int = 6, user: User = Depends(current_user), s: 
 @router.get("/subscription-mix")
 async def subscription_mix(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await _gate(s, user)
+    # Subscription has no clear entity_key in the spec's gate list — leave on analytics.view +
+    # tenant_id filter (existing auth check). Still excludes soft-deleted subs via _alive.
     reach = await _org_reach(s, user, grants)
     t = user.tenant_id
     rows = (await s.execute(
@@ -200,7 +247,8 @@ async def subscription_mix(user: User = Depends(current_user), s: AsyncSession =
                func.coalesce(func.sum(Subscription.amount), 0))
         .select_from(Subscription)
         .outerjoin(Product, Product.id == Subscription.product_id)
-        .where(Subscription.tenant_id == t, Subscription.status == "ACTIVE", *_node_cond(Subscription, reach))
+        .where(Subscription.tenant_id == t, Subscription.status == "ACTIVE",
+               *_alive(Subscription), *_node_cond(Subscription, reach))
         .group_by(Subscription.product_id, Product.name)
     )).all()
     return [
@@ -217,6 +265,7 @@ async def subscription_mix(user: User = Depends(current_user), s: AsyncSession =
 @router.get("/ar-aging")
 async def ar_aging(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     grants = await _gate(s, user)
+    await _assert_view_permission(s, user, "invoice")
     reach = await _org_reach(s, user, grants)
     t = user.tenant_id
     now = _now()
@@ -233,7 +282,8 @@ async def ar_aging(user: User = Depends(current_user), s: AsyncSession = Depends
 
     row = (await s.execute(
         select(current, d1_30, d31_60, d61_90, d90_plus)
-        .where(Invoice.tenant_id == t, Invoice.status.in_(["ISSUED", "OVERDUE"]), *_node_cond(Invoice, reach))
+        .where(Invoice.tenant_id == t, Invoice.status.in_(["ISSUED", "OVERDUE"]),
+               *_alive(Invoice), *_node_cond(Invoice, reach))
     )).one()
     return {"current": int(row[0]), "d1_30": int(row[1]), "d31_60": int(row[2]),
             "d61_90": int(row[3]), "d90_plus": int(row[4])}
@@ -276,6 +326,13 @@ async def comparisons(user: User = Depends(current_user), s: AsyncSession = Depe
              churned_subs, active_subs, tickets_opened, workitems_completed.
     """
     grants = await _gate(s, user)
+    # Composite endpoint — gate on every entity whose count/sum appears in the response,
+    # matching file 17 §8 (no aggregate leakage on REPORTS).
+    await _assert_view_permission(s, user, "invoice")
+    await _assert_view_permission(s, user, "payment")
+    await _assert_view_permission(s, user, "customer")
+    await _assert_view_permission(s, user, "lead")
+    await _assert_view_permission(s, user, "workitem")
     reach = await _org_reach(s, user, grants)
     t = user.tenant_id
     now = _now()
@@ -292,25 +349,29 @@ async def comparisons(user: User = Depends(current_user), s: AsyncSession = Depe
 
     async def _sum_payments(since, until):
         q = select(func.coalesce(func.sum(Payment.amount), 0)).select_from(Payment).where(
-            Payment.tenant_id == t, Payment.paid_at >= since, Payment.paid_at < until)
+            Payment.tenant_id == t, Payment.paid_at >= since, Payment.paid_at < until,
+            *_alive(Payment))
         if reach is not None:
             q = q.join(Invoice, Invoice.id == Payment.invoice_id).where(
-                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)))
+                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)),
+                *_alive(Invoice))
         return int((await s.execute(q)).scalar_one())
 
     async def _count_payments(since, until):
         q = select(func.count()).select_from(Payment).where(
-            Payment.tenant_id == t, Payment.paid_at >= since, Payment.paid_at < until)
+            Payment.tenant_id == t, Payment.paid_at >= since, Payment.paid_at < until,
+            *_alive(Payment))
         if reach is not None:
             q = q.join(Invoice, Invoice.id == Payment.invoice_id).where(
-                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)))
+                or_(Invoice.owner_node_id.in_(reach), Invoice.owner_node_id.is_(None)),
+                *_alive(Invoice))
         return int((await s.execute(q)).scalar_one())
 
     async def _sum_invoiced(since, until):
         return int((await s.execute(
             select(func.coalesce(func.sum(Invoice.total), 0))
             .where(Invoice.tenant_id == t, Invoice.created_at >= since, Invoice.created_at < until,
-                   *_node_cond(Invoice, reach))
+                   *_alive(Invoice), *_node_cond(Invoice, reach))
         )).scalar_one())
 
     async def _count_new(entity_key, since, until):
@@ -318,10 +379,11 @@ async def comparisons(user: User = Depends(current_user), s: AsyncSession = Depe
             select(func.count()).select_from(Record).where(
                 Record.tenant_id == t, Record.entity_key == entity_key,
                 Record.created_at >= since, Record.created_at < until,
-                *_node_cond(Record, reach))
+                *_alive(Record), *_node_cond(Record, reach))
         )).scalar_one())
 
     async def _count_churn(since, until):
+        # Event has no deletion_state (immutable audit-style log); no _alive filter needed.
         return int((await s.execute(
             select(func.count()).select_from(Event).where(
                 Event.tenant_id == t, Event.entity_key == "subscription",
@@ -334,13 +396,15 @@ async def comparisons(user: User = Depends(current_user), s: AsyncSession = Depe
         return int((await s.execute(
             select(func.count()).select_from(HelpdeskTicket).where(
                 HelpdeskTicket.tenant_id == t,
-                HelpdeskTicket.created_at >= since, HelpdeskTicket.created_at < until)
+                HelpdeskTicket.created_at >= since, HelpdeskTicket.created_at < until,
+                *_alive(HelpdeskTicket))
         )).scalar_one())
 
     async def _count_workitems(since, until, status=None):
         q = select(func.count()).select_from(WorkItem).where(
             WorkItem.tenant_id == t,
-            WorkItem.created_at >= since, WorkItem.created_at < until)
+            WorkItem.created_at >= since, WorkItem.created_at < until,
+            *_alive(WorkItem))
         if status:
             q = q.where(WorkItem.status == status)
         return int((await s.execute(q)).scalar_one())
@@ -378,6 +442,9 @@ async def comparisons(user: User = Depends(current_user), s: AsyncSession = Depe
 async def weekly_trend(weeks: int = 12, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Last `weeks` weeks of paid revenue + churn events + new customers, ISO-week buckets."""
     await _gate(s, user)
+    # Aggregates Payment + Record(customer) + churn Event — gate on payment + customer view perms.
+    await _assert_view_permission(s, user, "payment")
+    await _assert_view_permission(s, user, "customer")
     t = user.tenant_id
     weeks = max(1, min(int(weeks), 52))
     now = _now()
@@ -386,13 +453,14 @@ async def weekly_trend(weeks: int = 12, user: User = Depends(current_user), s: A
     pw = func.to_char(func.date_trunc("week", Payment.paid_at), "IYYY-IW")
     payments = {row[0]: int(row[1]) for row in (await s.execute(
         select(pw.label("w"), func.coalesce(func.sum(Payment.amount), 0))
-        .where(Payment.tenant_id == t, Payment.paid_at >= start).group_by(pw)
+        .where(Payment.tenant_id == t, Payment.paid_at >= start, *_alive(Payment)).group_by(pw)
     )).all()}
 
     cw = func.to_char(func.date_trunc("week", Record.created_at), "IYYY-IW")
     customers = {row[0]: int(row[1]) for row in (await s.execute(
         select(cw.label("w"), func.count())
-        .where(Record.tenant_id == t, Record.entity_key == "customer", Record.created_at >= start)
+        .where(Record.tenant_id == t, Record.entity_key == "customer", Record.created_at >= start,
+               *_alive(Record))
         .group_by(cw)
     )).all()}
 
@@ -427,6 +495,8 @@ async def weekly_trend(weeks: int = 12, user: User = Depends(current_user), s: A
 async def daily_heatmap(days: int = 90, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Daily payment count + amount, last `days` days. Drives a calendar-style heatmap."""
     await _gate(s, user)
+    # Pure Payment aggregate — gate on payment.view.
+    await _assert_view_permission(s, user, "payment")
     t = user.tenant_id
     days = max(1, min(int(days), 365))
     now = _now()
@@ -435,7 +505,7 @@ async def daily_heatmap(days: int = 90, user: User = Depends(current_user), s: A
     pd = func.to_char(func.date_trunc("day", Payment.paid_at), "YYYY-MM-DD")
     rows = (await s.execute(
         select(pd.label("d"), func.count(), func.coalesce(func.sum(Payment.amount), 0))
-        .where(Payment.tenant_id == t, Payment.paid_at >= start)
+        .where(Payment.tenant_id == t, Payment.paid_at >= start, *_alive(Payment))
         .group_by(pd)
     )).all()
     by_day = {row[0]: (int(row[1]), int(row[2])) for row in rows}
@@ -457,26 +527,30 @@ async def daily_heatmap(days: int = 90, user: User = Depends(current_user), s: A
 async def status_breakdown(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """One snapshot of status counts across workitems, helpdesk tickets, invoices, subscriptions."""
     await _gate(s, user)
+    # Composite — gate per entity present in the response. Subscription/HelpdeskTicket aren't
+    # in the spec's gate list but workitem + invoice are; surface gate-fail before any COUNT.
+    await _assert_view_permission(s, user, "workitem")
+    await _assert_view_permission(s, user, "invoice")
     t = user.tenant_id
 
     workitems = {row[0]: int(row[1]) for row in (await s.execute(
         select(WorkItem.status, func.count())
-        .where(WorkItem.tenant_id == t).group_by(WorkItem.status)
+        .where(WorkItem.tenant_id == t, *_alive(WorkItem)).group_by(WorkItem.status)
     )).all()}
 
     tickets = {row[0]: int(row[1]) for row in (await s.execute(
         select(HelpdeskTicket.status, func.count())
-        .where(HelpdeskTicket.tenant_id == t).group_by(HelpdeskTicket.status)
+        .where(HelpdeskTicket.tenant_id == t, *_alive(HelpdeskTicket)).group_by(HelpdeskTicket.status)
     )).all()}
 
     invoices = {row[0]: int(row[1]) for row in (await s.execute(
         select(Invoice.status, func.count())
-        .where(Invoice.tenant_id == t).group_by(Invoice.status)
+        .where(Invoice.tenant_id == t, *_alive(Invoice)).group_by(Invoice.status)
     )).all()}
 
     subs = {row[0]: int(row[1]) for row in (await s.execute(
         select(Subscription.status, func.count())
-        .where(Subscription.tenant_id == t).group_by(Subscription.status)
+        .where(Subscription.tenant_id == t, *_alive(Subscription)).group_by(Subscription.status)
     )).all()}
 
     return {
@@ -495,6 +569,7 @@ async def status_breakdown(user: User = Depends(current_user), s: AsyncSession =
 async def task_aging(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Open workitems (status != DONE/CANCELLED) bucketed by created_at age."""
     await _gate(s, user)
+    await _assert_view_permission(s, user, "workitem")
     t = user.tenant_id
     now = _now()
     d7  = now - timedelta(days=7)
@@ -512,7 +587,7 @@ async def task_aging(user: User = Depends(current_user), s: AsyncSession = Depen
             bucket(and_(open_cond, WorkItem.created_at < d7,  WorkItem.created_at >= d15)).label("d8_15"),
             bucket(and_(open_cond, WorkItem.created_at < d15, WorkItem.created_at >= d30)).label("d16_30"),
             bucket(and_(open_cond, WorkItem.created_at < d30)).label("d30_plus"),
-        ).where(WorkItem.tenant_id == t)
+        ).where(WorkItem.tenant_id == t, *_alive(WorkItem))
     )).one()
     return {
         "d0_7":     int(row[0]),
@@ -530,6 +605,7 @@ async def task_aging(user: User = Depends(current_user), s: AsyncSession = Depen
 async def ticket_aging(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Open helpdesk tickets (status NOT in resolved set) bucketed by created_at age."""
     await _gate(s, user)
+    # HelpdeskTicket isn't in the spec's explicit gate list — leave on analytics.view + tenant.
     t = user.tenant_id
     now = _now()
     d7  = now - timedelta(days=7)
@@ -547,7 +623,7 @@ async def ticket_aging(user: User = Depends(current_user), s: AsyncSession = Dep
             bucket(and_(open_cond, HelpdeskTicket.created_at < d7,  HelpdeskTicket.created_at >= d15)).label("d8_15"),
             bucket(and_(open_cond, HelpdeskTicket.created_at < d15, HelpdeskTicket.created_at >= d30)).label("d16_30"),
             bucket(and_(open_cond, HelpdeskTicket.created_at < d30)).label("d30_plus"),
-        ).where(HelpdeskTicket.tenant_id == t)
+        ).where(HelpdeskTicket.tenant_id == t, *_alive(HelpdeskTicket))
     )).one()
     return {
         "d0_7":     int(row[0]),
@@ -569,10 +645,12 @@ async def risk_heatmap(user: User = Depends(current_user), s: AsyncSession = Dep
 
     # Pull risk records' data field. Group in Python because the JSONB groupby
     # would need two extracted columns which is cleaner as a post-pass over a small set.
+    # Risk entity isn't in spec's gate list — leave on analytics.view; exclude soft-deleted.
     rows = (await s.execute(
         select(Record).where(
             Record.tenant_id == t, Record.entity_key == "risk",
             or_(Record.status.is_(None), Record.status.notin_(["CLOSED", "ACCEPTED"])),
+            *_alive(Record),
         )
     )).scalars().all()
 
@@ -599,12 +677,15 @@ async def leads_by_source(user: User = Depends(current_user), s: AsyncSession = 
     parameter-binding quirk where the same JSON key is bound twice via the SQLAlchemy expression
     layer."""
     await _gate(s, user)
+    await _assert_view_permission(s, user, "lead")
     from sqlalchemy import text
+    # Record has deletion_state — exclude soft-deleted/purged lead rows from the count.
     rows = (await s.execute(
         text("""
             SELECT COALESCE(data->>'source','unknown') AS src, COUNT(*) AS cnt
             FROM record
             WHERE tenant_id = :tid AND entity_key = 'lead'
+              AND deletion_state NOT IN ('SOFT_DELETED','PURGED')
             GROUP BY COALESCE(data->>'source','unknown')
         """),
         {"tid": str(user.tenant_id)}
@@ -624,6 +705,7 @@ async def sales_by_user(user: User = Depends(current_user), s: AsyncSession = De
     frontend hides the widget per real-data doctrine.
     """
     await _gate(s, user)
+    await _assert_view_permission(s, user, "customer")
     from sqlalchemy import text
     rows = (await s.execute(
         text("""
@@ -633,6 +715,7 @@ async def sales_by_user(user: User = Depends(current_user), s: AsyncSession = De
               AND entity_key = 'customer'
               AND data->>'assigned_to' IS NOT NULL
               AND data->>'assigned_to' <> ''
+              AND deletion_state NOT IN ('SOFT_DELETED','PURGED')
             GROUP BY data->>'assigned_to'
         """),
         {"tid": str(user.tenant_id)}
@@ -652,6 +735,9 @@ async def rag_health(user: User = Depends(current_user), s: AsyncSession = Depen
       - GREEN: everything else that's open
     """
     await _gate(s, user)
+    # Composite — workitem + invoice are gated entities per spec (helpdesk left on analytics.view).
+    await _assert_view_permission(s, user, "workitem")
+    await _assert_view_permission(s, user, "invoice")
     t = user.tenant_id
     now = _now()
     d3  = now - timedelta(days=3)
@@ -660,19 +746,21 @@ async def rag_health(user: User = Depends(current_user), s: AsyncSession = Depen
     # RED
     red_wi = (await s.execute(
         select(func.count()).select_from(WorkItem).where(
-            WorkItem.tenant_id == t, WorkItem.status == "BLOCKED")
+            WorkItem.tenant_id == t, WorkItem.status == "BLOCKED",
+            *_alive(WorkItem))
     )).scalar_one()
     red_tk = (await s.execute(
         select(func.count()).select_from(HelpdeskTicket).where(
             HelpdeskTicket.tenant_id == t,
             HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
-            HelpdeskTicket.created_at < d7)
+            HelpdeskTicket.created_at < d7, *_alive(HelpdeskTicket))
     )).scalar_one()
     red_inv = (await s.execute(
         select(func.count()).select_from(Invoice).where(
             Invoice.tenant_id == t,
             or_(Invoice.status == "OVERDUE",
-                and_(Invoice.status == "ISSUED", Invoice.due_at < now)))
+                and_(Invoice.status == "ISSUED", Invoice.due_at < now)),
+            *_alive(Invoice))
     )).scalar_one()
 
     # AMBER
@@ -682,25 +770,27 @@ async def rag_health(user: User = Depends(current_user), s: AsyncSession = Depen
             WorkItem.status == "TODO",
             WorkItem.due_at != None,
             WorkItem.due_at < (now + timedelta(days=3)),  # noqa: E711
+            *_alive(WorkItem),
         )
     )).scalar_one()
     amber_tk = (await s.execute(
         select(func.count()).select_from(HelpdeskTicket).where(
             HelpdeskTicket.tenant_id == t,
             HelpdeskTicket.status == "IN_PROGRESS",
-            HelpdeskTicket.created_at < d3)
+            HelpdeskTicket.created_at < d3, *_alive(HelpdeskTicket))
     )).scalar_one()
 
     # GREEN — open items not in red/amber
     green_wi = (await s.execute(
         select(func.count()).select_from(WorkItem).where(
             WorkItem.tenant_id == t,
-            WorkItem.status.in_(["TODO", "IN_PROGRESS"]))
+            WorkItem.status.in_(["TODO", "IN_PROGRESS"]), *_alive(WorkItem))
     )).scalar_one()
     green_tk = (await s.execute(
         select(func.count()).select_from(HelpdeskTicket).where(
             HelpdeskTicket.tenant_id == t,
-            HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]))
+            HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
+            *_alive(HelpdeskTicket))
     )).scalar_one()
 
     red   = int(red_wi) + int(red_tk) + int(red_inv)
@@ -723,10 +813,12 @@ async def gantt(user: User = Depends(current_user), s: AsyncSession = Depends(ge
     Returns name, owner, status, start_date, due_date, progress.
     """
     await _gate(s, user)
+    # Project entity isn't in spec's gate list — leave on analytics.view; exclude soft-deleted.
     rows = (await s.execute(
         select(Record).where(
             Record.tenant_id == user.tenant_id,
             Record.entity_key == "project",
+            *_alive(Record),
         )
     )).scalars().all()
 
@@ -771,11 +863,16 @@ async def pareto(entity_key: str, group_field: str = "category", limit: int = 10
     if not entity_key.replace("_", "").isalnum() or not group_field.replace("_", "").isalnum():
         raise HTTPException(422, "entity_key and group_field must be alphanumeric/underscore only")
 
+    # Generic Pareto over any Record entity — gate on the specific entity's `.view` so a caller
+    # can't probe arbitrary entity volumes via Pareto without the entity-view perm.
+    await _assert_view_permission(s, user, entity_key)
+
     rows = (await s.execute(
         sql_text(f"""
             SELECT COALESCE(data->>'{group_field}','unknown') AS cat, COUNT(*) AS cnt
             FROM record
             WHERE tenant_id = :tid AND entity_key = :ek
+              AND deletion_state NOT IN ('SOFT_DELETED','PURGED')
             GROUP BY COALESCE(data->>'{group_field}','unknown')
             ORDER BY cnt DESC
             LIMIT :lim
@@ -807,12 +904,18 @@ async def sankey_leads(user: User = Depends(current_user), s: AsyncSession = Dep
     Counts are absolute record counts. The frontend renders this as a Sankey or funnel.
     """
     await _gate(s, user)
+    # Funnel touches lead + customer (spec-gated) and opportunity + deal (not in spec list, but
+    # also Records) — gate on lead.view + customer.view; opportunity/deal counts ride the same
+    # rail so the response is internally consistent (no partial-leak).
+    await _assert_view_permission(s, user, "lead")
+    await _assert_view_permission(s, user, "customer")
     t = user.tenant_id
 
     async def _count(entity_key: str) -> int:
         return int((await s.execute(
             select(func.count()).select_from(Record).where(
-                Record.tenant_id == t, Record.entity_key == entity_key)
+                Record.tenant_id == t, Record.entity_key == entity_key,
+                *_alive(Record))
         )).scalar_one())
 
     leads     = await _count("lead")
@@ -847,12 +950,16 @@ async def geo_points(user: User = Depends(current_user), s: AsyncSession = Depen
     Real data only — entries without lat/lon are silently omitted.
     """
     await _gate(s, user)
+    # geo includes customer points — gate on customer.view since restricted users could otherwise
+    # infer customer addresses (a personal-data leak the same as a list view).
+    await _assert_view_permission(s, user, "customer")
     t = user.tenant_id
 
     rows = (await s.execute(
         select(Record).where(
             Record.tenant_id == t,
             Record.entity_key.in_(["site", "tower", "customer", "coverage_check"]),
+            *_alive(Record),
         )
     )).scalars().all()
 
@@ -893,6 +1000,7 @@ async def net_subscriber_growth(weeks: int = 12, user: User = Depends(current_us
     Real, agg-only — reads Subscription.started_at for the new side and Event for the churn side.
     """
     await _gate(s, user)
+    # Subscription isn't in spec's gate list — leave on analytics.view + tenant_id; alive-only.
     t = user.tenant_id
     weeks = max(1, min(int(weeks), 52))
     now = _now()
@@ -901,7 +1009,8 @@ async def net_subscriber_growth(weeks: int = 12, user: User = Depends(current_us
     sw = func.to_char(func.date_trunc("week", Subscription.started_at), "IYYY-IW")
     started = {row[0]: int(row[1]) for row in (await s.execute(
         select(sw.label("w"), func.count())
-        .where(Subscription.tenant_id == t, Subscription.started_at >= start)
+        .where(Subscription.tenant_id == t, Subscription.started_at >= start,
+               *_alive(Subscription))
         .group_by(sw)
     )).all()}
 
@@ -946,6 +1055,9 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
     Breach = past SLA. At risk = within 25% of SLA budget remaining.
     """
     await _gate(s, user)
+    # Composite — gate on workitem.view + invoice.view per spec. Helpdesk left on analytics.view.
+    await _assert_view_permission(s, user, "workitem")
+    await _assert_view_permission(s, user, "invoice")
     t = user.tenant_id
     now = _now()
 
@@ -958,6 +1070,7 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
             HelpdeskTicket.tenant_id == t,
             HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
             HelpdeskTicket.created_at < eight_h_ago,
+            *_alive(HelpdeskTicket),
         )
     )).scalar_one())
     helpdesk_at_risk = int((await s.execute(
@@ -966,6 +1079,7 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
             HelpdeskTicket.status.notin_(["RESOLVED","CLOSED","CANCELLED"]),
             HelpdeskTicket.created_at >= eight_h_ago,
             HelpdeskTicket.created_at < six_h_ago,
+            *_alive(HelpdeskTicket),
         )
     )).scalar_one())
 
@@ -975,6 +1089,7 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
             WorkItem.tenant_id == t,
             WorkItem.status.notin_(["DONE","CANCELLED"]),
             WorkItem.due_at < now,
+            *_alive(WorkItem),
         )
     )).scalar_one())
     tech_at_risk = int((await s.execute(
@@ -983,6 +1098,7 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
             WorkItem.status.notin_(["DONE","CANCELLED"]),
             WorkItem.due_at >= now,
             WorkItem.due_at < (now + timedelta(hours=12)),
+            *_alive(WorkItem),
         )
     )).scalar_one())
 
@@ -992,6 +1108,7 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
             Invoice.tenant_id == t,
             Invoice.status == "ISSUED",
             Invoice.due_at < now,
+            *_alive(Invoice),
         )
     )).scalar_one())
     billing_at_risk = int((await s.execute(
@@ -1000,6 +1117,7 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
             Invoice.status == "ISSUED",
             Invoice.due_at >= now,
             Invoice.due_at < (now + timedelta(days=3)),
+            *_alive(Invoice),
         )
     )).scalar_one())
 

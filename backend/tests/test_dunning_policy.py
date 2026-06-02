@@ -23,8 +23,8 @@ from app.services import dunning as dunning_service
 # ---------- helpers ----------
 
 _SAMPLE_STEPS = [
-    {"day_offset": 1, "action": "notice", "params": {"template": "t1"}},
-    {"day_offset": 7, "action": "throttle", "params": {"kbps": 512}},
+    {"day_offset": 1, "action": "NOTICE", "params": {"template": "t1"}},
+    {"day_offset": 7, "action": "THROTTLE", "params": {"kbps": 512}},
 ]
 
 
@@ -261,8 +261,8 @@ async def test_patch_updates_steps_active_is_default(client, admin):
     })).json()
 
     new_steps = [
-        {"day_offset": 2, "action": "notice", "params": {}},
-        {"day_offset": 30, "action": "terminate", "params": {}},
+        {"day_offset": 2, "action": "NOTICE", "params": {}},
+        {"day_offset": 30, "action": "TERMINATE", "params": {}},
     ]
     r = await client.patch(f"/api/dunning/policies/{p['id']}", headers=admin, json={
         "steps_json": new_steps,
@@ -273,10 +273,10 @@ async def test_patch_updates_steps_active_is_default(client, admin):
     body = r.json()
     assert body["description"] == "updated"
     assert len(body["steps_json"]) == 2
-    assert body["steps_json"][1]["action"] == "terminate"
+    assert body["steps_json"][1]["action"] == "TERMINATE"
 
     # Bad steps in PATCH still rejected.
     r = await client.patch(f"/api/dunning/policies/{p['id']}", headers=admin, json={
-        "steps_json": [{"day_offset": -1, "action": "notice", "params": {}}],
+        "steps_json": [{"day_offset": -1, "action": "NOTICE", "params": {}}],
     })
     assert r.status_code == 422
