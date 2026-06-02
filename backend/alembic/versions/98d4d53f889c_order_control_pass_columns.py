@@ -4,7 +4,7 @@ Revision ID: 98d4d53f889c
 Revises: b70ef3b98e27
 Create Date: 2026-05-31 00:00:00.000000
 
-Step 4 of the Cross-Module Architecture SPEC kernel build. Additive + reversible.
+Additive + reversible.
 
 Adds the Revenue Control verdict trio to the `"order"` table so the Stage 8 kernel function
 (`app.kernel.control_gate.assert_can_advance_to_scheduling`) has a place to read from when deciding

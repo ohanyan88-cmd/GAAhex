@@ -6,7 +6,7 @@
 
 ---
 
-## 1. SPEC §5 source (verbatim, lines 222-253 of `GAAhex_Cross_Module_Architecture_SPEC.md`)
+## 1. SPEC §5 source
 
 ### 5.1 Universal Workflow Contract
 > Every workflow has: Trigger · Conditions · Actions · **Single Owner** · SLA · Status · Approval (if needed) · Notification · Audit log · Failure handling.

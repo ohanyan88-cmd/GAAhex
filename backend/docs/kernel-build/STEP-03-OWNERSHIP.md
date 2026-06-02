@@ -1,8 +1,5 @@
 # Step 3 — Ownership Matrix backfill + master-data inline-copy guard
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §2 (Ownership Model), §2.2
-(Ownership Matrix), §0.1 (Single owner invariant), §0.5 (References, not copies invariant).
-
 Step 3 converts the SPEC §2.2 Ownership Matrix from a doc-only table into **real
 `entity_def.owner_module` values** seeded at boot, and wires the SPEC §0.5 inline-master-copy
 guard into the Record write path. Once `owner_module` is populated, the kernel facade

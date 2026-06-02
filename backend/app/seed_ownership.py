@@ -1,7 +1,6 @@
 """Step 3 ownership-matrix seeder — backfills `entity_def.owner_module` from SPEC §2.2.
 
-SPEC reference: `GAAhex_Cross_Module_Architecture_SPEC.md` §2 Ownership Model, especially the §2.2
-Ownership Matrix. Every record kind has exactly one owner module (invariant #1, SPEC §0.1). The
+Every record kind has exactly one owner module (invariant #1, SPEC §0.1). The
 kernel facade `app.kernel.assert_writer_owns_record` enforces it at the application layer by
 looking up `entity_def.owner_module`; until that column is populated, the facade is a no-op. This
 module is the populator.
@@ -41,8 +40,8 @@ _log = logging.getLogger("gaahex.seed_ownership")
 
 # SPEC §2.2 record → owner_module string.
 #
-# Source of truth = SPEC §2.2 Ownership Matrix (lines 116-154 of
-# `GAAhex_Cross_Module_Architecture_SPEC.md`). The owner_module strings are taken VERBATIM from the
+# Source of truth = SPEC §2.2 Ownership Matrix (lines 116-154 of the cross-module
+# architecture spec). The owner_module strings are taken VERBATIM from the
 # matrix's "Owner Module" column (parenthetical qualifiers like "(Billing & Revenue)" and
 # "(Employees)" are preserved). Any reskinning of module names goes through this file.
 #

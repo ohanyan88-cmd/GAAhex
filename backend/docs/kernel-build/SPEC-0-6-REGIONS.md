@@ -1,10 +1,5 @@
 # SPEC §0.6 — Canonical Region/Branch Table
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
-- §0 Invariant #6 — "Region/Branch is a partition key on every operational record.
-  Cross-region read requires explicit grant."
-- §6 Data Relationships — regions tie into customer / service / asset / network topology.
-
 This step creates the canonical `region` table that the SPEC §0.6 partition key needs to
 point at. Step 2 (`b70ef3b98e27`) added a `region_id UUID NULL` column to seven operational
 tables (`record`, `invoice`, `payment`, `order`, `service`, `helpdesk_ticket`, `workitem`),

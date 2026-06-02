@@ -4,8 +4,7 @@ Revision ID: d4f8a1c6b3e5
 Revises: 98d4d53f889c
 Create Date: 2026-05-31 00:00:00.000000
 
-Step 5 of the Cross-Module Architecture SPEC kernel build (SPEC §7 Status Standardization).
-Additive + reversible.
+Status Standardization. Additive + reversible.
 
 SPEC §7 fixes a small terminal vocabulary per entity kind — `Closed`, `Archived`, `Cancelled`,
 `Terminated`, etc. The seeder in `app/seed_statuses.py` needs a column to mark those terminal

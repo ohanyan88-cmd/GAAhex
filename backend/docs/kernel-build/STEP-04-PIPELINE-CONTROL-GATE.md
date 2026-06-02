@@ -1,12 +1,5 @@
 # Step 4 — Canonical Pipeline (§3) + Stage 8 Control Gate
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
-- §3 Canonical Pipeline (LOCKED) — the 14-stage table
-- §3 control rule — "Stage 8 is the single mandatory gate between Sales and Fulfillment…
-  No order advances to Scheduling without Control Pass = TRUE"
-- §9 KPI catalog — one KPI per stage
-- §10.4 Kernel enforcement — "`advance_to_scheduling` is impossible while `control_pass != TRUE`"
-
 Step 4 takes the LOCKED pipeline vocabulary from doc-only text into **real `stage_def` + `kpi_def`
 rows seeded at boot**, and lands the kernel function that enforces the **single mandatory gate**
 between Sales and Fulfillment. Stage 8 (`order_validation`, owner = Revenue Control) is the only

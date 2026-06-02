@@ -1,8 +1,5 @@
 # Step 7 — Router Sweep Results
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §0.1 single-owner, §0.2 default-deny,
-§4 Permissions model (Role × Department × Region × Ownership).
-
 Step 7 propagates the 4-layer kernel `assert_can` into every write-path router endpoint that ships
 in the M0 surface. The legacy `can(grants, ...)` role checks are preserved unchanged; the kernel
 call layers Role × Department × Region × Ownership AND-evaluation **on top**, mapping

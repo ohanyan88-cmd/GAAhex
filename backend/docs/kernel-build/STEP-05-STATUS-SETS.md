@@ -1,8 +1,5 @@
 # Step 5 — SPEC §7 Status Standardization
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §7 (lines 281-293) — the locked
-status vocabularies for the 9 record kinds the SPEC names.
-
 Step 5 takes the LOCKED `Draft · New · Open · …` text vocabularies from doc-only language into
 **real `status_def` rows seeded at boot**, with `is_initial` set on the first status of each set
 and `is_terminal` set on the lifecycle-ending statuses per the SPEC reading documented below.

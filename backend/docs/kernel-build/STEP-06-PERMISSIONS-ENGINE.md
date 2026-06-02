@@ -1,13 +1,5 @@
 # Step 6 — Default-Deny Permissions Engine (Role × Department × Region × Ownership)
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
-- §0 Invariant #2 — "Default deny. No access unless explicitly granted by Role × Department × Region × Ownership."
-- §4.1 Layers
-- §4.2 Action Types
-- §4.3 Role Boundaries (cannot lists are enforced, not advisory)
-- §4.4 Field-Level access (deferred — see "What's deferred")
-- §4.5 Mandatory Approvals (deferred — see "What's deferred")
-
 Step 6 turns the SPEC §0.2 default-deny invariant from a single-layer role check into the LOCKED
 four-layer AND evaluator the SPEC describes, AND seeds the SPEC §4.3 role hard-denial table so
 "Admin cannot delete the audit log", "Sales cannot touch audit", "Revenue Control cannot create

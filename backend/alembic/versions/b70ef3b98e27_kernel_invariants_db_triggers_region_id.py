@@ -4,8 +4,8 @@ Revision ID: b70ef3b98e27
 Revises: c5e9a3b1d7f4
 Create Date: 2026-05-31 00:00:00.000000
 
-Step 2 of the Cross-Module Architecture SPEC kernel build. Enforces the DB-level half of the
-7 Global Invariants (SPEC §0). The application-level half lives in `backend/app/kernel/invariants.py`.
+Enforces the DB-level half of the 7 Global Invariants. The application-level half lives in
+`backend/app/kernel/invariants.py`.
 
 Additive + reversible. Lives below the Kernel Line — runtime always sees these constraints.
 

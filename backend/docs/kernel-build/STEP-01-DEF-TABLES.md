@@ -1,10 +1,5 @@
 # Step 1 — Kernel `_def` Meta-Tables
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §10.1 (Build Notes) — "All records,
-stages, statuses, permissions, and KPIs are rows in `_def` meta-tables (e.g. `record_def`,
-`stage_def`, `status_def`, `kpi_def`, `permission_def`). No enum is hardcoded in application
-code."
-
 Step 1 lays the **schema foundation** for the kernel: `stage_def`, `kpi_def`, and the
 `owner_module` column on `entity_def`. Seeds (the 14 canonical pipeline rows per SPEC §3, the
 KPI catalog per §9, the §2.2 ownership backfill) come in later steps. Kernel invariant

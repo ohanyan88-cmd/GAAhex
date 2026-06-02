@@ -1,7 +1,5 @@
 # GAAhex SPEC Kernel Build — Complete (Steps 1-6)
 
-**SPEC source of truth:** `GAAhex_Cross_Module_Architecture_SPEC.md` (locked).
-
 The six-step kernel build turned SPEC §0's seven Global Invariants and SPEC §3 / §4 / §7 / §10's
 LOCKED vocabularies from doc-only text into REAL code paths — DB triggers, additive migrations,
 idempotent seeders, kernel facade functions, and one proof-of-life router wire-up. This file is

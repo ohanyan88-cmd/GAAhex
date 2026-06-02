@@ -1,7 +1,5 @@
 # Step 2 — Kernel Invariants (DB triggers + Python facade)
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §0 (Global Invariants).
-
 Step 2 enforces the 7 Global Invariants at the kernel level — the DB-level halves via Postgres
 triggers and partition-key columns, the runtime/application halves via a new `backend/app/kernel`
 package. No seeds, no wiring into routers — that happens in Steps 3-6. The kernel SURFACE is in

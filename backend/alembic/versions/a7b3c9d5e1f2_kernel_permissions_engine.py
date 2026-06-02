@@ -4,8 +4,7 @@ Revision ID: a7b3c9d5e1f2
 Revises: d4f8a1c6b3e5
 Create Date: 2026-05-31 00:00:00.000000
 
-Step 6 of the Cross-Module Architecture SPEC kernel build (SPEC §4 Permissions Model,
-SPEC §0 Invariant #2 default-deny). Additive + reversible.
+Permissions Model + default-deny invariant. Additive + reversible.
 
 This migration adds the schema that the SPEC §4.1 four-layer AND evaluator (Role × Department ×
 Region × Ownership) needs to read:

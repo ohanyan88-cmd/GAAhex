@@ -1,15 +1,9 @@
 # Step 2 PREPARE — SPEC §6 Relationship Map
 
-**SPEC reference:** `C:\Users\Admin\Desktop\GAAhex_Cross_Module_Architecture_SPEC.md`
-- §6 Data Relationships (reference-only links)
-- §6.1 Asset vs Resource boundary
-- §0.5 References, not copies (Invariant #5)
-- §0.6 Region/Branch partition (Invariant #6 — touches the relationship surface)
-
 **⛔ This document is the MAP ONLY. No model edits, no migrations. Gev's explicit approval is
 required before the activate step (FK + CHECK constraint migration) is generated.**
 
-This is the audit of what SPEC §6 says GAAhex's data relationships should look like, vs. what's
+This is the audit of what GAAhex's data relationships should look like, vs. what's
 actually wired in `backend/app/models/` today, with the gaps, risks, and a proposed sequencing for
 the additive migration that will close them.
 

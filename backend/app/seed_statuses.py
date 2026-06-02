@@ -1,8 +1,7 @@
 """Step 5 — SPEC §7 Status Standardization seeder.
 
-Seeds the LOCKED status vocabularies from SPEC §7 (lines 281-293 of
-`GAAhex_Cross_Module_Architecture_SPEC.md`) into the existing `status_def` table. Idempotent —
-re-runs are safe and cheap.
+Seeds the LOCKED status vocabularies from SPEC §7 into the existing `status_def` table.
+Idempotent — re-runs are safe and cheap.
 
 SPEC §7 verbatim (the 9 sets we seed):
 

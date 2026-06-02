@@ -1,8 +1,5 @@
 # Step 7 — Router Sweep Plan
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §0.1 single-owner, §0.2 default-deny,
-§2.2 ownership matrix, §4 Permissions model (Role × Department × Region × Ownership).
-
 **Pattern (already established in `routers/orders.py::advance_order`):**
 
 ```python

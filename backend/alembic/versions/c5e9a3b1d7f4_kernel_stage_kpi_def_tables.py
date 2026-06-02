@@ -4,7 +4,7 @@ Revision ID: c5e9a3b1d7f4
 Revises: a3d7e9f1b2c4
 Create Date: 2026-05-31 00:00:00.000000
 
-Step 1 of the Cross-Module Architecture SPEC kernel build (SPEC §10.1). Additive + reversible:
+Additive + reversible:
 
   - CREATE TABLE stage_def — canonical pipeline stages (SPEC §3, 14 rows). Tenant-scoped.
   - CREATE TABLE kpi_def   — KPI catalog (SPEC §3 / §5.4 / §9). One-owner-one-formula invariant.

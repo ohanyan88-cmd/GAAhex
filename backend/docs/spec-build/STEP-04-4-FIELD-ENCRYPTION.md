@@ -9,7 +9,7 @@ decisions called out in §7.
 
 ---
 
-## 0. SPEC §4.4 source (verbatim, lines 214-215 of `GAAhex_Cross_Module_Architecture_SPEC.md`)
+## 0. SPEC §4.4 source
 
 > **### 4.4 Field-Level (separate grant + encryption at rest)**
 > ID/passport, tax number, payment method, bank details, salary, legal docs, contract values,

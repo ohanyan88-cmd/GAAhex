@@ -1,9 +1,8 @@
-"""Kernel `_def` meta-tables introduced by the Cross-Module Architecture SPEC §10.1.
+"""Kernel `_def` meta-tables for the metadata-driven pipeline.
 
-These tables make the canonical pipeline (SPEC §3) and KPI catalog (SPEC §9) metadata-driven
-instead of hardcoded enums. Records, stages, statuses, KPIs, permissions all live in `_def`
-rows. Seeding (14 stage rows, the KPI catalog, owner_module backfill on entity_def) lands in
-later kernel-build steps.
+These tables make the canonical pipeline and KPI catalog metadata-driven instead of hardcoded
+enums. Records, stages, statuses, KPIs, permissions all live in `_def` rows. Seeding (14 stage
+rows, the KPI catalog, owner_module backfill on entity_def) lands in later kernel-build steps.
 
 Tenant-scoped + carries the standard NULLIF-guarded tenant_isolation RLS policy applied in the
 companion migration; matches every other post-enable-RLS _def table.

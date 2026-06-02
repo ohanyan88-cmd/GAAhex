@@ -6,7 +6,7 @@
 
 ---
 
-## 1. SPEC §7 source (verbatim, lines 281-293 of `GAAhex_Cross_Module_Architecture_SPEC.md`)
+## 1. Status vocabulary
 
 ```
 Lead:     New · Working · Qualified · Disqualified · Converted

@@ -1,8 +1,7 @@
 """Step 6 — SPEC §4.3 role hard-denials seeder.
 
-Seeds the LOCKED role.cannot lists from SPEC §4.3 (lines 199-212 of
-`GAAhex_Cross_Module_Architecture_SPEC.md`) into the `role_def_deny` table introduced in Step 6's
-alembic migration (`a7b3c9d5e1f2`). Idempotent — re-runs insert zero new rows.
+Seeds the LOCKED role.cannot lists from SPEC §4.3 into the `role_def_deny` table introduced
+in Step 6's alembic migration (`a7b3c9d5e1f2`). Idempotent — re-runs insert zero new rows.
 
 ------------------------------------------------------------------------------------------------
 SPEC §4.3 verbatim — Role Boundaries (cannot lists are enforced, not advisory)

@@ -1,10 +1,5 @@
 # SPEC §4.5 — Mandatory Approvals (scaffolding)
 
-**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
-- §4.5 Mandatory Approvals — the 12 high-stakes business actions that MUST go through an approval
-  workflow before execution.
-- §0.4 Audit Append-Only — every approval state change emits an Event.
-
 This step lays the SPEC §4.5 scaffolding: the `Approval` model + `approval` table, the kernel
 state-machine helpers, the HTTP router at `/api/mandatory-approvals`, and the smoke test. It does
 NOT wire the gate into the 12 action paths — that adoption sweep is deferred (see "What's
