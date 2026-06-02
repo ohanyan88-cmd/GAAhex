@@ -90,6 +90,144 @@ jobs:
         continue-on-error: true
         run: pip-audit -r requirements.txt --strict
 
+  # M1-A audit item #7 — dual-role RLS enforcement gate.
+  #
+  # The existing `backend` job above runs the suite as the `gaahex` role, which
+  # OWNS the tables and therefore BYPASSES RLS — so a test that quietly relies
+  # on cross-tenant visibility will pass there but break in production (where
+  # the app connects as the dedicated NOSUPERUSER `gaahex_app` role).
+  #
+  # This job re-runs the highest-value subset of the suite with the app engine
+  # bound to `gaahex_app` instead, catching exactly that class of bug.
+  #
+  # Why a SUBSET, not the full suite (yet):
+  #   1. conftest.py drops + recreates `gaahex_test` at session start via
+  #      `asyncpg.connect(admin_url)` on the `postgres` DB. `gaahex_app` is
+  #      NOSUPERUSER; we grant it CREATEDB below so DROP/CREATE works, but
+  #      that's the easy part.
+  #   2. conftest then builds the schema with `Base.metadata.create_all`,
+  #      which makes the connecting role the TABLE OWNER. PostgreSQL table
+  #      owners bypass RLS unless `FORCE ROW LEVEL SECURITY` is set, and
+  #      migration 3a9203795d07 deliberately does NOT force it. So a full
+  #      `create_all` run under `gaahex_app` would still bypass RLS for the
+  #      bulk of tests — the dual-role contract would be cosmetic.
+  #   3. The RLS-specific tests already self-bootstrap their own gaahex_app
+  #      engine (test_rls.py opens a 2nd engine to the NOSUPERUSER role), and
+  #      the deploy-contract test exercises the production guard directly.
+  #      Running THIS subset as `gaahex_app` proves: (a) the suite installs
+  #      cleanly under a NOSUPERUSER login, (b) GRANTs on the public schema
+  #      are sufficient for normal app traffic, (c) no test secretly needs
+  #      superuser. Full-suite dual-role is a follow-up gated on conftest
+  #      growing an alembic-managed path (so policies install via migration
+  #      and tables are owned by `gaahex`).
+  #
+  # `continue-on-error: true` on landing: this job is catching real bugs and
+  # is allowed to surface them without blocking PRs while the team triages.
+  # REMOVE `continue-on-error` once this run is consistently green.
+  backend-rls:
+    name: Backend (RLS subset under gaahex_app role)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: gaahex
+          POSTGRES_PASSWORD: gaahex
+          POSTGRES_DB: gaahex_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gaahex -d gaahex_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # App engine talks to Postgres as the NOSUPERUSER NOBYPASSRLS app role.
+      # This is the enforcement role; in production it's how the FastAPI
+      # process connects. RLS policies fire against this role.
+      DATABASE_URL: postgresql+asyncpg://gaahex_app:gaahex_app@localhost:5432/gaahex_test
+      # OWNER stays on the owner role — the deploy contract permits and
+      # expects this asymmetry. Migrations / DDL run via owner; runtime via app.
+      OWNER_DATABASE_URL: postgresql+asyncpg://gaahex:gaahex@localhost:5432/gaahex_test
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt', 'backend/requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      # Provision the gaahex_app role on the postgres service container before
+      # the suite runs. Mirrors what migration 3a9203795d07 does for the role
+      # itself (CREATE ROLE + GRANTs). CREATEDB is added here only — NOT in
+      # the migration — because the test conftest needs to DROP/CREATE the
+      # test DB as `gaahex_app` (production doesn't need this and shouldn't
+      # have it). NOSUPERUSER NOBYPASSRLS stays: that's what makes RLS bite.
+      - name: Provision gaahex_app role (mirrors migration 3a9203795d07)
+        env:
+          PGPASSWORD: gaahex
+        run: |
+          psql -h localhost -U gaahex -d gaahex_test <<'SQL'
+          DO $$ BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'gaahex_app') THEN
+                  CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS CREATEDB;
+              ELSE
+                  ALTER ROLE gaahex_app WITH CREATEDB;
+              END IF;
+          END $$;
+          GRANT USAGE ON SCHEMA public TO gaahex_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gaahex_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gaahex_app;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO gaahex_app;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public
+            GRANT USAGE, SELECT ON SEQUENCES TO gaahex_app;
+          SQL
+
+      # RLS-only subset — see header comment for the why. The four files
+      # below collectively prove: NOSUPERUSER login works, GRANTs cover the
+      # app's normal queries, the second-engine RLS isolation properties
+      # hold, and the production deploy contract guard fires correctly.
+      - name: Tests (pytest — RLS subset, runs as gaahex_app)
+        working-directory: backend
+        run: |
+          pytest -v --tb=short \
+            tests/test_rls.py \
+            tests/test_rls_parametric.py \
+            tests/test_rls_wave4_spot.py \
+            tests/test_deploy_contract.py
+
   frontend:
     name: Frontend (tsc + npm audit)
     runs-on: ubuntu-latest
