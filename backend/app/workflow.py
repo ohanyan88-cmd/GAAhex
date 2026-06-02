@@ -40,10 +40,40 @@ async def guard_context(s: AsyncSession, entity_id, record: Record) -> dict:
     return ctx
 
 
-async def emit(s: AsyncSession, tenant_id, type_: str, entity_key: str, record_id, actor_user_id, data: dict) -> None:
+async def emit(
+    s: AsyncSession,
+    tenant_id,
+    type_: str,
+    entity_key: str,
+    record_id,
+    actor_user_id,
+    data: dict,
+    *,
+    # Event System extension kwargs (D1, file 06). All optional — existing call sites
+    # work unchanged; new call sites can enrich events progressively.
+    event_name: str | None = None,            # "<Object>.<Action>" PascalCase (E13)
+    category: str | None = None,              # EventCategory UPPER_SNAKE (E14/E21)
+    actor_type: str = "USER",                 # ActorType (B3/D5); USER=authenticated internal
+    actor_id=None,                            # canonical actor UUID (non-FK; covers SYSTEM etc.)
+    department: str | None = None,            # accountable dept at event time (B5)
+    visibility: str = "INTERNAL",             # PUBLIC|INTERNAL|RESTRICTED|SYSTEM
+    correlation_id=None,                      # trace key (M1)
+    causation_id=None,                        # trace key (M1)
+    idempotency_key: str | None = None,       # integration/automation dedup fence
+) -> None:
     s.add(Event(
         tenant_id=tenant_id, type=type_, entity_key=entity_key,
         record_id=record_id, actor_user_id=actor_user_id, data=data,
+        event_name=event_name,
+        category=category,
+        schema_version=1,
+        actor_type=actor_type,
+        actor_id=actor_id if actor_id is not None else actor_user_id,
+        department=department,
+        visibility=visibility,
+        correlation_id=correlation_id,
+        causation_id=causation_id,
+        idempotency_key=idempotency_key,
     ))
     # Fan the event out to any subscribed outbound webhooks (fail-soft, lazy import to avoid a
     # router↔workflow import cycle; a no-op when no webhooks are configured for this tenant).
