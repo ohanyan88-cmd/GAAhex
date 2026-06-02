@@ -15,7 +15,7 @@ class Tenant(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="active")
+    status: Mapped[str] = mapped_column(String(50), default="ACTIVE")
     # ---- editable profile (onboarding wizard + app header); all additive & nullable ----
     currency: Mapped[str | None] = mapped_column(String(8), nullable=True, default="AMD")   # tenant default currency code
     locale: Mapped[str | None] = mapped_column(String(8), nullable=True, default="en")      # en | hy

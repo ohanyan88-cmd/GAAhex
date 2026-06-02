@@ -23,7 +23,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), default="active")
+    status: Mapped[str] = mapped_column(String(50), default="ACTIVE")
     # Profile avatar stored as a self-contained base64 `data:` URL (Text — a data URL for a ≤2MB image
     # is ~2.7MB, well past varchar limits). Nullable: no avatar by default. Chosen over a filesystem
     # uploads dir because this codebase serves no static files and runs in-process/containerized — a

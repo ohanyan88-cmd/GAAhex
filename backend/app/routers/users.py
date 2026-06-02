@@ -6,7 +6,7 @@ Read side is the assignee/agent picker that serves selectors across the app
 Write side (Module 1: Security):
     POST   /api/users           — create user (config.manage)
     PATCH  /api/users/{id}      — update user (config.manage; refuse self password reset via this route? no — allowed)
-    DELETE /api/users/{id}      — soft delete (status='inactive'); refuse self-delete; (config.manage)
+    DELETE /api/users/{id}      — soft delete (status='INACTIVE'); refuse self-delete; (config.manage)
 
 All writes emit an audit Event through workflow.emit, following the same
 pattern as helpdesk.py / org_nodes.py.
@@ -189,7 +189,7 @@ async def create_user(
         email=email,
         name=name,
         password_hash=hash_password(password),
-        status="active",
+        status="ACTIVE",
     )
     s.add(new_user)
     await s.flush()  # assign new_user.id for audit + response
@@ -276,8 +276,8 @@ async def delete_user(
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
-    """Soft-delete a user — sets status='inactive'. Refuses self-delete (422).
-    Audit-logged. Idempotent: an already-inactive user is a no-op (200, status unchanged).
+    """Soft-delete a user — sets status='INACTIVE'. Refuses self-delete (422).
+    Audit-logged. Idempotent: an already-INACTIVE user is a no-op (200, status unchanged).
     """
     await _require_config_manage(s, user)
     if user_id == user.id:
@@ -286,8 +286,8 @@ async def delete_user(
     target = await _get_user(s, user.tenant_id, user_id)
 
     was = target.status
-    if was != "inactive":
-        target.status = "inactive"
+    if was != "INACTIVE":
+        target.status = "INACTIVE"
         await workflow.emit(s, user.tenant_id, "delete", "app_user", target.id, user.id,
                             {"email": target.email, "previous_status": was})
     await s.commit()
