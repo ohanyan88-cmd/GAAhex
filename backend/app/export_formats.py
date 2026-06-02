@@ -19,7 +19,6 @@ from __future__ import annotations
 import io
 import struct
 import zipfile
-import zlib
 from datetime import date
 from typing import Sequence
 

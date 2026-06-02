@@ -7,7 +7,6 @@ SECURITY invariant: every query is filtered by customer_id == cu.customer_id.
 - Staff-only actions (assign, change queue, resolve) are not exposed here.
 """
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel

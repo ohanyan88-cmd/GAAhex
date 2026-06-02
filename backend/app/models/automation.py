@@ -1,6 +1,6 @@
 from app.utils.ids import uuid7
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import String, Boolean, Integer, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB

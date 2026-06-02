@@ -21,13 +21,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.billing import Subscription
 from ..models.cpe_binding import CpeBinding
-from ..models.order import Order, OrderItem
+from ..models.order import Order
 from ..models.respool import PoolAllocation, ResourcePool
 from ..models.service import Service
 from ..models.splitter import SplitterStrandAllocation

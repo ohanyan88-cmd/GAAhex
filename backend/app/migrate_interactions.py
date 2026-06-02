@@ -8,13 +8,12 @@ Run:  python -m app.migrate_interactions
 Also called from main.py lifespan (after seed_catalog_if_missing).
 """
 import asyncio
-import uuid
 
 from sqlalchemy import select, text
 
 from .db import OwnerSessionLocal as SessionLocal
 from .utils.ids import uuid7
-from .models import Tenant, EntityDef, Record
+from .models import Tenant, Record
 from .models.interaction import Interaction
 
 

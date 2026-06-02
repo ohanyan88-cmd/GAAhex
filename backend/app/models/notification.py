@@ -30,7 +30,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import String, Text, Boolean, ForeignKey, DateTime, func, Index, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base

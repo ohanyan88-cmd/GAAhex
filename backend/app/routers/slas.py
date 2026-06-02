@@ -44,7 +44,7 @@ object's timeline projects SLA events per B4):
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional
 import uuid
 

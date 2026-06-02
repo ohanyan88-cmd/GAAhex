@@ -6,7 +6,6 @@ In-memory email gateway for tests + dev. Stores every send under
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
 
 from app.utils.ids import uuid7

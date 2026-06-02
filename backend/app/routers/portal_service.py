@@ -5,8 +5,7 @@ SECURITY invariant: every query is filtered by customer_id == cu.customer_id.
 - Customers cannot self-provision: they can only request via WorkItem (staff picks it up).
 - Usage is read-only.
 """
-import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel

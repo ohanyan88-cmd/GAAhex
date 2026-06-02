@@ -20,7 +20,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func

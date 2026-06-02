@@ -6,7 +6,6 @@ In-memory SMS gateway for tests + dev. Stores every send under
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
 from urllib.parse import parse_qs
 

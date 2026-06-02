@@ -33,7 +33,7 @@ from ..kernel import (
     assert_approval_or_raise, ApprovalRequired,
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
-from ..services.product_versions import current_version_for, mint_new_version
+from ..services.product_versions import mint_new_version
 from ..services.account_balance import recompute_account_balance
 from ..services.invoice_lock import ensure_invoice_mutable
 from ..services.payment_allocation import (

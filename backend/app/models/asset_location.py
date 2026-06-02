@@ -11,7 +11,7 @@ from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, ForeignKey, DateTime, func, Index, Text
+from sqlalchemy import String, ForeignKey, DateTime, Index, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 

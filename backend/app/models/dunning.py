@@ -24,10 +24,7 @@ from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (
-    String, Text, Integer, Boolean, DateTime, ForeignKey, Index,
-    UniqueConstraint, CheckConstraint, func,
-)
+from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey, Index, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 

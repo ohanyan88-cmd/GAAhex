@@ -16,7 +16,6 @@ is the storage key, matching the spec: "never use filename as identity".
 from __future__ import annotations
 
 import hashlib
-import os
 import pathlib
 
 from .backend import StorageBackend, StoredObject, StorageError

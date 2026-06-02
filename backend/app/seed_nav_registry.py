@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasses RLS

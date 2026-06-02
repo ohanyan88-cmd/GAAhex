@@ -21,7 +21,6 @@ older initiate/check_status/verify_callback shape.
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
 
 from app.utils.ids import uuid7

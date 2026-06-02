@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import HTTPException
-from sqlalchemy import select, func, and_, desc, distinct
+from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.olt_tree import OltChassis, OltCard, OltPort, Onu

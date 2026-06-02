@@ -15,7 +15,7 @@ See docs/PRE-LAUNCH-CHECKLIST.md §1 for the vendor decision context.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import AsyncIterator, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 
 class StorageError(Exception):

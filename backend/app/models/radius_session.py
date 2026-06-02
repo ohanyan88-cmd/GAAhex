@@ -12,7 +12,7 @@ from app.utils.ids import uuid7
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, BigInteger, ForeignKey, DateTime, func, Index, text, UniqueConstraint
+from sqlalchemy import String, BigInteger, ForeignKey, DateTime, Index, text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 

@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlalchemy import select, func
 
@@ -42,7 +42,7 @@ from .models.party import Party, Account
 from .models.product import Product
 from .models.billing import Subscription, Invoice, InvoiceLine, Payment
 from .models.order import Order, OrderItem
-from .models.helpdesk import HelpdeskTicket, HelpdeskQueue
+from .models.helpdesk import HelpdeskTicket
 from .models.workitem import WorkItem
 from . import workflow
 from .routers.billing import _now, _add_cycle

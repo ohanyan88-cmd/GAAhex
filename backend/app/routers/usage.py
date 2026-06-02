@@ -7,7 +7,6 @@ billing's own logic. Money is integer luma. Tenant + org scoped; `usage.*` permi
 NOTE: fixed paths under /api ("/api/usage"), so register BEFORE records.router ("/api/{slug}").
 """
 import uuid
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select

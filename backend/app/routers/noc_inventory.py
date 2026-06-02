@@ -12,13 +12,12 @@ Registered in main.py BEFORE records.router (fixed paths).
 """
 from __future__ import annotations
 
-import ipaddress
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +28,6 @@ from ..models.ipam import IpAssignment
 from ..models.asset_location import AssetLocationHistory
 from ..models.radius_session import RadiusSession
 from ..models.broadcast import MassBroadcast
-from ..models.respool import PoolAllocation
 from ..access import can, load_grants
 from ..services import ipam as ipam_svc
 from .auth import current_user

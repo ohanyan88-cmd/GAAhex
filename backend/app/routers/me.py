@@ -13,7 +13,6 @@ the (RLS-scoped) row, survives restarts, needs no shared volume, and drops strai
 Fixed paths under /api ("/api/me"), so this router is registered BEFORE records.router ("/api/{slug}").
 """
 import base64
-import binascii
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile

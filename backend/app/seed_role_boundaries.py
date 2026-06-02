@@ -68,7 +68,6 @@ import logging
 import uuid
 
 from sqlalchemy import select, func
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.utils.ids import uuid7
 

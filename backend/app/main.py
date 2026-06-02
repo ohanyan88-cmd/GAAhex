@@ -15,7 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text, select
 
 from .config import settings, _assert_production_deploy_contract
-from .db import engine, SessionLocal, OwnerSessionLocal
+from .db import SessionLocal, OwnerSessionLocal
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
