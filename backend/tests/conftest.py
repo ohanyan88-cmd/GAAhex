@@ -12,6 +12,10 @@ os.environ.setdefault("OWNER_DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@lo
 # Tests that exercise StripeGateway construct it explicitly (bypassing the factory) and
 # patch the stripe SDK with unittest.mock — they never touch the real Stripe API.
 os.environ.setdefault("PAYMENT_GATEWAY_PROVIDER", "mock")
+# Attachment storage — point at a writable tmp dir so CI runners (no /app/uploads) don't fail.
+# LocalDiskBackend defaults to /app/uploads (the Docker container WORKDIR) which CI lacks.
+import tempfile as _tempfile
+os.environ.setdefault("STORAGE_LOCAL_PATH", os.path.join(_tempfile.gettempdir(), "portal-test-uploads"))
 
 import asyncpg
 import pytest
