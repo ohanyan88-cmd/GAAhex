@@ -17,6 +17,7 @@ from .saved_view import SavedViewDef
 from .approval import PendingApproval
 from .refresh_token import RefreshToken
 from .comm import Thread, Message
+from .comment import Comment, CommentMention
 from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product

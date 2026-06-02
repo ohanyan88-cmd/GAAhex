@@ -87,10 +87,14 @@ the Object Detail Standard (file 10).
 
 Comments are conversation, not audit. Each comment belongs to exactly one parent object
 (immutable parent).
-Types: `INTERNAL, EXTERNAL, PRIVATE, SYSTEM`.
+Types: `INTERNAL, EXTERNAL, PRIVATE, SYSTEM`. **SYSTEM comments are system-authored and
+internal-visibility — gated by `comment.view_internal` (no dedicated `view_system` permission);
+they are never shown to external/customer viewers.**
 Required (camelCase — D2): `id (UUIDv7), tenantId, parentObjectType, parentObjectId, commentType,
 authorId, createdAt, content`. Optional: `editedBy, editedAt, deletedBy, deletedAt`. User refs
-stored as IDs.
+stored as IDs. (`parentObjectType` stores the `entity_def.key` (lowercase) on the current event
+substrate, matching the Approval/event precedent; it retrofits to the canonical `ObjectType` enum
+when the Event System extension lands — same bucket as `eventName`.)
 Status enum: `ACTIVE, EDITED, DELETED`.
 Rich content allowed: text, links, mentions, lists, tables, code blocks. Disallowed: scripts,
 executables, embedded programs.
@@ -100,8 +104,18 @@ notifications. Replies max recommended depth 2. Edit window default 15 min (conf
 show label/editor/timestamp and create audit before/after. Soft delete only; deleted shows
 "Comment Deleted"; deletion audited.
 Permissions: `comment.create, comment.edit, comment.delete, comment.view_internal,
-comment.view_external, comment.view_private`. Optional resolution flag: `RESOLVED, UNRESOLVED`.
-Comments under investigation / legal hold / audit / compliance review cannot be edited or deleted.
+comment.view_external, comment.view_private, comment.moderate`. Optional resolution flag: `RESOLVED, UNRESOLVED`.
+**`comment.moderate`** lets a holder soft-delete and resolve/reopen **any** user's comment within
+scope (for moderators/supervisors); it does NOT permit editing another user's content, and it is
+NOT the field-security key (`configuration.manage` stays separate).
+Comments under investigation / legal hold / audit / compliance review cannot be **edited,
+deleted, resolved, or reopened** **by any role, including `comment.moderate` and
+`configuration.manage` holders** (hold beats every role; a held comment shouldn't have any
+field move mid-investigation; DB-trigger-enforced before any real hold / before prod).
+*Idempotency:* `comment.create` does not implement an `idempotencyKey` in v1 — consistent with the
+platform (no generic idempotency middleware yet). Tracked gap against API Standard (std 66):
+idempotency is implemented platform-wide as middleware, and comment.create adopts it then; not a
+per-endpoint one-off.
 
 ---
 

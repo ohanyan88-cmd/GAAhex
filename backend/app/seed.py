@@ -54,6 +54,23 @@ def _permission_specs(tenant_id) -> list[dict]:
     # NOT bundled into manager/sales_agent: super_admin's "*" already covers it.
     specs.append({"tenant_id": tenant_id, "key": "audit.view", "label": "View audit log", "group": "governance"})
 
+    # Comment Standard (file 04) — 6 keys from the locked Permission Registry (file 15).
+    # Cross-cutting, not bundled into any default role: admin/Studio handles per-tenant grants.
+    # view_internal also gates SYSTEM-typed comments (file 04: SYSTEM is internal-visibility).
+    for verb, vl in (
+        ("create",         "Create comment"),
+        ("edit",           "Edit comment"),
+        ("delete",         "Delete comment"),
+        ("view_internal",  "View internal comments (incl. SYSTEM)"),
+        ("view_external",  "View external comments"),
+        ("view_private",   "View private comments"),
+        # Operational moderation: soft-delete + resolve/reopen ANY user's comment within scope.
+        # Does NOT permit editing other-user content (deletes, doesn't ghost-edit). Does NOT bypass
+        # `hold` (hold beats every role incl. moderate and configuration.manage; file 04).
+        ("moderate",       "Moderate comments (soft-delete + resolve/reopen any user's comment)"),
+    ):
+        specs.append({"tenant_id": tenant_id, "key": f"comment.{verb}", "label": vl, "group": "comment"})
+
     return specs
 
 

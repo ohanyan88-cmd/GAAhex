@@ -12,7 +12,10 @@ watching grants no permission.
 
 ## Comment
 `comment.create, comment.edit, comment.delete, comment.view_internal, comment.view_external,
-comment.view_private`
+comment.view_private, comment.moderate`
+`comment.moderate` = soft-delete + resolve/reopen of **any** user's comment within scope; it does
+NOT permit editing another user's content, and it does NOT bypass `hold` (hold beats every role).
+Distinct from `configuration.manage`, which is not overloaded for moderation.
 
 ## Attachment
 `attachment.view, attachment.download, attachment.upload, attachment.delete,
