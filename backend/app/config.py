@@ -108,6 +108,25 @@ class Settings(BaseSettings):
     radius_nas_ip: str | None = None                # our NAS-IP-Address attribute
     radius_dictionary_path: str | None = None       # path to RADIUS dictionary files
 
+    # ─── Attachment storage backend ──────────────────────────────────────────
+    # Vendor-agnostic via StorageBackend Protocol in app/services/storage/.
+    # v1 default: local disk (zero infra, works in docker-compose on-prem).
+    # Before production multi-node: swap to 'minio' (self-hosted S3-compatible)
+    # or 's3' (AWS S3). See docs/PRE-LAUNCH-CHECKLIST.md §1 — Storage.
+    storage_backend: str = "local"          # 'local' | 'minio' | 's3'
+    storage_local_path: str = "/app/uploads"  # mount point inside the container
+    storage_minio_endpoint: str | None = None     # e.g. "minio:9000"
+    storage_minio_access_key: str | None = None
+    storage_minio_secret_key: str | None = None
+    storage_minio_bucket: str = "portal-attachments"
+    storage_minio_secure: bool = False            # True for HTTPS MinIO
+    storage_s3_bucket: str | None = None
+    storage_s3_region: str = "us-east-1"
+    storage_s3_access_key: str | None = None
+    storage_s3_secret_key: str | None = None
+    # Max upload size (bytes). Default 100 MB per file 04 Attachment Standard.
+    storage_max_file_bytes: int = 100 * 1024 * 1024
+
 
 settings = Settings()
 

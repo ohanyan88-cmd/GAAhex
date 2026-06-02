@@ -34,7 +34,7 @@ from .seed_regions import seed_demo_regions_if_empty
 from .seed_nav_registry import seed_nav_registry_if_empty
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments
 
 
 _log = logging.getLogger("gaaex")
@@ -177,6 +177,7 @@ app.include_router(comments.router)              # /api/comments + /api/{entityK
 app.include_router(watchers.router)              # /api/{entityKey}/{id}/watchers — file 05 Watcher Standard
 app.include_router(tasks.router)                 # /api/tasks — file 05 Task Standard
 app.include_router(slas.router)                  # /api/slas  — file 12 SLA Standard
+app.include_router(attachments.router)           # /api/attachments + /api/{entityKey}/{id}/attachments — file 04
 app.include_router(export.router)
 app.include_router(activity.router)
 app.include_router(audit_log.router)                # /api/audit-log (governance log; admin-scoped; before records)

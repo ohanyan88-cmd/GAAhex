@@ -21,6 +21,7 @@ from .comment import Comment, CommentMention
 from .watcher import Watcher
 from .task import Task, TaskDependency
 from .sla import SlaRecord, SlaEvent
+from .attachment import Attachment, AttachmentReference
 from .notification_pref import NotificationPref
 from .billing import Subscription, Invoice, InvoiceLine, Payment
 from .product import Product

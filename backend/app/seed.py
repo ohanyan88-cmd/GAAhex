@@ -107,6 +107,19 @@ def _permission_specs(tenant_id) -> list[dict]:
     # mark complete / cancel). Watching never affects SLA (file 12 principle).
     specs.append({"tenant_id": tenant_id, "key": "sla.manage", "label": "Manage SLAs", "group": "sla"})
 
+    # Attachment Standard (file 04) — 6 keys from the locked Permission Registry (file 15).
+    # Sensitive categories (IDENTITY_DOCUMENT, LEGAL_DOCUMENT, FINANCIAL_DOCUMENT, CONTRACT)
+    # require stricter grants; downloads of sensitive attachments are audited.
+    for verb, vl in (
+        ("view",         "View attachments"),
+        ("download",     "Download attachment files"),
+        ("upload",       "Upload attachments"),
+        ("delete",       "Delete attachments (soft)"),
+        ("reference",    "Reference an attachment from another object"),
+        ("view_deleted", "View deleted attachment metadata"),
+    ):
+        specs.append({"tenant_id": tenant_id, "key": f"attachment.{verb}", "label": vl, "group": "attachment"})
+
     return specs
 
 
