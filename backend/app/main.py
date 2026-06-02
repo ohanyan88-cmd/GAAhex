@@ -1,6 +1,13 @@
 import logging
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
+
+# Load .env into os.environ BEFORE any app modules import — field_crypto.py reads
+# GAAHEX_FIELD_KEY directly from os.environ at module-import time, so the env must
+# be populated before `from .config import settings` triggers app.* imports below.
+load_dotenv()
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
