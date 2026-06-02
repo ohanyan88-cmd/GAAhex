@@ -19,11 +19,14 @@ M1-C.1 will wire StripeGateway's async methods. Today the framework boots, the
 mock is fully working, and Stripe's webhook signature verification is live.
 """
 from .exceptions import (
+    PaymentGatewayCardError,
     PaymentGatewayCommandError,
     PaymentGatewayConfigError,
     PaymentGatewayConnectionError,
     PaymentGatewayError,
+    PaymentGatewayRateLimitError,
     PaymentGatewayTimeoutError,
+    PaymentGatewayValidationError,
     PaymentWebhookPayloadError,
     PaymentWebhookSignatureError,
 )
@@ -35,6 +38,7 @@ from .factory import (
 from .gateway import (
     ChargeResult,
     PaymentGateway,
+    PaymentIntentResult,
     RefundResult,
     VaultResult,
     VoidResult,
@@ -49,6 +53,7 @@ __all__ = [
     "ChargeResult",
     "RefundResult",
     "VoidResult",
+    "PaymentIntentResult",
     # Factory
     "get_payment_gateway",
     "register_payment_gateway",
@@ -64,4 +69,7 @@ __all__ = [
     "PaymentGatewayTimeoutError",
     "PaymentWebhookSignatureError",
     "PaymentWebhookPayloadError",
+    "PaymentGatewayCardError",
+    "PaymentGatewayRateLimitError",
+    "PaymentGatewayValidationError",
 ]

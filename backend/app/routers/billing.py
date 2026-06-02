@@ -41,6 +41,16 @@ from ..services.payment_allocation import (
     outstanding_for_invoice,
 )
 from ..models.payment_allocation import PaymentAllocation
+from ..models.payment_method import PaymentMethod
+from ..services.payments import (
+    PaymentGatewayCardError,
+    PaymentGatewayConfigError,
+    PaymentGatewayConnectionError,
+    PaymentGatewayError,
+    PaymentGatewayRateLimitError,
+    PaymentGatewayValidationError,
+    get_payment_gateway,
+)
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate     # reuse the exact records scope primitives + paging
 from .notifications import emit_notification
@@ -785,6 +795,150 @@ async def get_invoice_outstanding(
         "credited": _fmt(credited_d),
         "outstanding": _fmt(outstanding),
     }
+
+
+# ==========================================================================================
+# M1-C.1 — Pay an invoice with Stripe
+# ==========================================================================================
+
+
+@router.post("/invoices/{inv_id}/pay-with-stripe")
+async def pay_invoice_with_stripe(
+    inv_id: uuid.UUID,
+    payload: dict | None = None,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Initiate a Stripe payment for an Invoice.
+
+    Two modes, selected by whether ``payment_method_id`` is supplied:
+
+    * **charge** (``payment_method_id`` present) — vaulted-card off-session charge.
+      Returns ``{mode='charge', status, charge_id, requires_action, next_action}``.
+      On 3DS, the frontend uses ``next_action`` to surface the step-up to the user.
+    * **collect** (``payment_method_id`` absent) — frontend collects a new card.
+      Returns ``{mode='collect', client_secret, publishable_key}`` so Stripe Elements
+      can confirm the PaymentIntent with the freshly-collected card.
+
+    The actual "invoice → PAID" state change happens via the webhook
+    (``payment_intent.succeeded``), NOT this endpoint. This endpoint only kicks the
+    Stripe-side flow off; the truth source for "money landed" is Stripe → webhook.
+
+    Validation:
+      * Invoice must exist + belong to caller's tenant (404 otherwise via ``_get_invoice``)
+      * Invoice status must not be PAID or VOID (409)
+      * Outstanding balance must be > 0 (409)
+      * If ``payment_method_id`` supplied: must be a row in caller's tenant AND its
+        customer_id must match the invoice's customer_id (422)
+      * Card declined → 402 (``PaymentGatewayCardError``)
+      * Stripe rate-limited / unreachable → 503
+      * Stripe rejected the request → 422
+    """
+    inv = await _get_invoice(s, user, inv_id)
+    grants = await load_grants(s, user)
+    if not can(grants, "payment", "create", await _node_path(s, inv.owner_node_id)):
+        _deny("payment.create")
+
+    if inv.status in ("PAID", "VOID"):
+        raise HTTPException(409, f"Invoice is already {inv.status}")
+
+    outstanding = await outstanding_for_invoice(s, inv.id)
+    if outstanding <= 0:
+        raise HTTPException(409, "Invoice has no outstanding balance")
+
+    body = payload or {}
+    pm_id_raw = body.get("payment_method_id")
+
+    # Validate the optional payment_method_id BEFORE talking to Stripe — cheaper to fail
+    # at our boundary than to round-trip to the gateway with a known-bad reference.
+    pm_token: str | None = None
+    if pm_id_raw:
+        try:
+            pm_uuid = uuid.UUID(str(pm_id_raw))
+        except (TypeError, ValueError):
+            raise HTTPException(422, "payment_method_id must be a UUID")
+        pm = (await s.execute(
+            select(PaymentMethod).where(
+                PaymentMethod.id == pm_uuid,
+                PaymentMethod.tenant_id == user.tenant_id,
+            )
+        )).scalar_one_or_none()
+        if pm is None:
+            raise HTTPException(422, "payment_method_id not found in this tenant")
+        if inv.customer_id is not None and pm.customer_id != inv.customer_id:
+            raise HTTPException(422, "Payment method does not belong to this invoice's customer")
+        pm_token = pm.gateway_token
+
+    # Amount in the smallest currency unit. AMD is the project default (Invoice.total is
+    # already luma — AMD minor units — see models/billing.py). For Stripe's API, AMD/luma
+    # already IS the smallest unit so no conversion is needed.
+    amount_cents = int(outstanding)
+    if amount_cents <= 0:
+        raise HTTPException(409, "Invoice has no outstanding balance")
+
+    metadata = {
+        "tenant_id": str(user.tenant_id),
+        "invoice_id": str(inv.id),
+        "customer_ref": str(inv.customer_id) if inv.customer_id else "",
+        "invoice_number": inv.number or "",
+    }
+
+    gw = get_payment_gateway()
+    try:
+        if pm_token:
+            # Vaulted-card off-session charge. Stripe fires payment_intent.succeeded →
+            # webhook → Payment row + invoice PAID.
+            result = await gw.charge(
+                payment_method_token=pm_token,
+                amount_cents=amount_cents,
+                currency="AMD",
+                description=f"Invoice {inv.number}" if inv.number else None,
+                customer_ref=str(inv.customer_id) if inv.customer_id else None,
+                metadata=metadata,
+            )
+            return {
+                "mode": "charge",
+                "status": result.status,
+                "charge_id": result.charge_id,
+                "requires_action": result.status == "requires_action",
+                "next_action": (result.raw or {}).get("next_action"),
+            }
+        # Frontend will collect a new card — return a client_secret + publishable_key.
+        intent = await gw.create_payment_intent_for_collection(
+            amount_cents=amount_cents,
+            currency="AMD",
+            customer_ref=str(inv.customer_id) if inv.customer_id else None,
+            description=f"Invoice {inv.number}" if inv.number else None,
+            metadata=metadata,
+        )
+        # Surface the publishable key so the frontend can construct the Stripe Elements
+        # client without a separate /api/config round-trip. Falls back to empty string
+        # (frontend will surface "payment unavailable") when not configured.
+        from ..config import settings as _settings
+        pk = getattr(_settings, "stripe_publishable_key", None) or ""
+        return {
+            "mode": "collect",
+            "client_secret": intent.client_secret,
+            "intent_id": intent.intent_id,
+            "publishable_key": pk,
+            "amount_cents": amount_cents,
+            "currency": "AMD",
+        }
+    except PaymentGatewayCardError as e:
+        # 402 Payment Required — the customer's card was declined.
+        raise HTTPException(402, detail={"error": "card_declined", "code": e.code, "message": str(e)})
+    except PaymentGatewayConfigError:
+        # Gateway not configured (e.g. STRIPE_SECRET_KEY missing) — operator problem.
+        raise HTTPException(503, "Payment gateway not configured")
+    except PaymentGatewayRateLimitError:
+        raise HTTPException(503, "Payment gateway rate limit hit; retry shortly")
+    except PaymentGatewayConnectionError:
+        raise HTTPException(503, "Payment gateway unreachable")
+    except PaymentGatewayValidationError as e:
+        raise HTTPException(422, f"Payment gateway rejected the request: {e}")
+    except PaymentGatewayError as e:
+        # Catch-all for anything we didn't bucket explicitly.
+        raise HTTPException(503, f"Payment gateway error: {e}")
 
 
 @router.get("/invoices/{inv_id}/allocations")

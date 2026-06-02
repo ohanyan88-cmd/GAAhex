@@ -8,6 +8,10 @@ import asyncio
 # the configured URL points at a test database — which CI's workflow guarantees.
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test")
 os.environ.setdefault("OWNER_DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test")
+# M1-C.1: force the mock payment gateway in tests regardless of any stray .env file.
+# Tests that exercise StripeGateway construct it explicitly (bypassing the factory) and
+# patch the stripe SDK with unittest.mock — they never touch the real Stripe API.
+os.environ.setdefault("PAYMENT_GATEWAY_PROVIDER", "mock")
 
 import asyncpg
 import pytest

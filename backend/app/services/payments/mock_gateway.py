@@ -25,7 +25,7 @@ import uuid
 from typing import Any
 
 from .exceptions import PaymentGatewayCommandError
-from .gateway import ChargeResult, RefundResult, VaultResult, VoidResult
+from .gateway import ChargeResult, PaymentIntentResult, RefundResult, VaultResult, VoidResult
 
 
 def _short_uuid() -> str:
@@ -209,6 +209,55 @@ class MockPaymentGateway:
         return VoidResult(
             charge_id=charge_id,
             status="canceled",
+            raw={"mock": True},
+        )
+
+    # ----------------------------------------------------- payment intent (collect-new-card)
+
+    async def create_payment_intent_for_collection(
+        self,
+        *,
+        amount_cents: int,
+        currency: str = "AMD",
+        customer_ref: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
+        idempotency_key: str | None = None,
+    ) -> PaymentIntentResult:
+        """Mock: synthesize a ``pi_mock_*`` + matching ``client_secret``.
+
+        Records the intent under ``self.charges`` with status ``requires_payment_method`` so
+        a subsequent ``charge()`` against the same id would surface a known-record.
+        """
+        self._track(
+            "create_payment_intent_for_collection",
+            amount_cents=amount_cents,
+            currency=currency,
+            customer_ref=customer_ref,
+            description=description,
+            idempotency_key=idempotency_key,
+        )
+        if amount_cents <= 0:
+            raise PaymentGatewayCommandError(
+                f"Mock: amount_cents must be positive; got {amount_cents}"
+            )
+        pi = f"pi_mock_{_short_uuid()}"
+        secret = f"{pi}_secret_{_short_uuid()}"
+        self.charges[pi] = {
+            "payment_method_token": None,
+            "amount_cents": amount_cents,
+            "currency": currency,
+            "status": "requires_payment_method",
+            "description": description,
+            "customer_ref": customer_ref,
+            "metadata": dict(metadata) if metadata else {},
+        }
+        return PaymentIntentResult(
+            intent_id=pi,
+            client_secret=secret,
+            status="requires_payment_method",
+            amount_cents=amount_cents,
+            currency=currency,
             raw={"mock": True},
         )
 

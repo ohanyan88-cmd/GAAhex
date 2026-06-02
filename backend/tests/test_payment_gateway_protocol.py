@@ -51,7 +51,9 @@ def test_mock_satisfies_protocol():
 
 def test_mock_has_full_method_surface():
     gw = MockPaymentGateway()
-    for name in ("vault_card", "charge", "refund", "void", "verify_webhook", "reset"):
+    for name in ("vault_card", "charge", "refund", "void",
+                 "create_payment_intent_for_collection",
+                 "verify_webhook", "reset"):
         assert callable(getattr(gw, name)), f"MockPaymentGateway missing {name!r}"
 
 
@@ -145,6 +147,25 @@ async def test_mock_void_unknown_raises():
         await gw.void(charge_id="ch_nope")
 
 
+@pytest.mark.asyncio
+async def test_mock_create_payment_intent_for_collection_returns_client_secret():
+    """M1-C.1 — the collect-new-card path returns an intent_id + client_secret pair."""
+    gw = MockPaymentGateway()
+    res = await gw.create_payment_intent_for_collection(amount_cents=15000, currency="AMD")
+    assert res.intent_id.startswith("pi_mock_")
+    assert res.client_secret.startswith(res.intent_id)
+    assert res.status == "requires_payment_method"
+    assert res.amount_cents == 15000
+    assert res.currency == "AMD"
+
+
+@pytest.mark.asyncio
+async def test_mock_create_payment_intent_rejects_non_positive_amount():
+    gw = MockPaymentGateway()
+    with pytest.raises(PaymentGatewayCommandError):
+        await gw.create_payment_intent_for_collection(amount_cents=0)
+
+
 def test_mock_verify_webhook_marks_mock_and_parses_json():
     gw = MockPaymentGateway()
     payload = json.dumps({"id": "evt_1", "type": "payment_intent.succeeded"}).encode()
@@ -211,18 +232,17 @@ def test_stripe_bad_webhook_secret_raises_config_error():
 
 
 @pytest.mark.skipif(not _STRIPE_INSTALLED, reason="stripe SDK not installed")
-def test_stripe_async_methods_are_not_implemented_yet():
-    """The async surface is a NotImplementedError skeleton until M1-C.1."""
-    import asyncio
+def test_stripe_async_methods_satisfy_protocol_shape():
+    """M1-C.1: the async surface now talks to the real Stripe SDK (no more NotImplementedError).
+
+    We don't hit the network here — the dedicated ``test_stripe_gateway_real`` file mocks
+    the SDK and exercises each method's success/failure path. This is just a structural
+    Protocol check: the gateway exposes every async method with an awaitable signature.
+    """
     gw = StripeGateway(secret_key="sk_test_abc", webhook_secret="whsec_xyz")
-    for coro in (
-        gw.vault_card(card_token="x", customer_ref="y"),
-        gw.charge(payment_method_token="x", amount_cents=1),
-        gw.refund(charge_id="x"),
-        gw.void(charge_id="x"),
-    ):
-        with pytest.raises(NotImplementedError):
-            asyncio.get_event_loop().run_until_complete(coro)
+    assert isinstance(gw, PaymentGateway)
+    for name in ("vault_card", "charge", "refund", "void", "create_payment_intent_for_collection"):
+        assert callable(getattr(gw, name)), f"StripeGateway missing {name!r}"
 
 
 # ──────────────────────────────────────────────────────────────────────────
