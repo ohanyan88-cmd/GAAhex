@@ -241,6 +241,16 @@ app.include_router(payment_methods.router)            # /api/payment-methods/* (
 app.include_router(install_board.router)              # /api/install-board/* + /api/splitters/{id}/strands + /api/cpe-bindings/* (NOC Phase A; before records)
 app.include_router(noc_dashboard.router)              # /api/noc/* — OLT tree + ONU + optical telemetry + OTDR + tech GPS (NOC Phase B; before records)
 app.include_router(noc_inventory.router)              # /api/fiber-routes + /api/outage-paths + /api/ipam/* + /api/assets/{id}/move + /api/radius/* + /api/broadcasts (NOC Phase C; before records)
+# M1-C Phase 0 — vendor webhook receivers (named vendor_webhooks/ to avoid a
+# collision with the existing outbound webhooks.py module that powers
+# /api/webhooks tenant subscriptions). Each is a thin signature-verify + log + ack;
+# event-handler dispatch lands in M1-C.1 (Stripe), .2 (Twilio), .3 (SendGrid).
+from .routers.vendor_webhooks import stripe as stripe_webhooks  # noqa: E402
+from .routers.vendor_webhooks import sendgrid as sendgrid_webhooks  # noqa: E402
+from .routers.vendor_webhooks import twilio as twilio_webhooks  # noqa: E402
+app.include_router(stripe_webhooks.router)            # POST /api/webhooks/stripe
+app.include_router(sendgrid_webhooks.router)          # POST /api/webhooks/sendgrid
+app.include_router(twilio_webhooks.router)            # POST /api/webhooks/twilio
 app.include_router(records.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)

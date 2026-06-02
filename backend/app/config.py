@@ -72,6 +72,42 @@ class Settings(BaseSettings):
     easypay_secret_key: str | None = None
     payment_callback_base_url: str | None = None   # public base URL the provider POSTs callbacks to
 
+    # ─── M1-C: Payment gateway (Stripe / vault-card flow) ──────────────────
+    # Independent of the legacy ``payment_provider`` setting above (which drives
+    # the old DevGateway/idram/telcell/arca/easypay redirect flow). The M1-C
+    # gateway is the modern Stripe Elements + PaymentIntents flow.
+    payment_gateway_provider: str = "mock"          # 'mock' | 'logging' | 'stripe'
+    stripe_publishable_key: str | None = None       # pk_test_... / pk_live_... (frontend)
+    stripe_secret_key: str | None = None            # sk_test_... / sk_live_...
+    stripe_webhook_secret: str | None = None        # whsec_...
+    stripe_api_version: str = "2024-06-20"
+
+    # ─── M1-C: SMS gateway (Twilio) ────────────────────────────────────────
+    # ``sms_provider`` (above) is the legacy channels.py switch. M1-C introduces
+    # a separate ``sms_gateway_provider`` for the new gateway abstraction. Keep
+    # both during migration; remove ``sms_provider`` once channels.py is reskinned.
+    sms_gateway_provider: str = "mock"              # 'mock' | 'twilio'
+    twilio_from_number: str | None = None           # E.164, e.g. +14155551234
+    twilio_messaging_service_sid: str | None = None # MG... (alt. to from_number)
+    twilio_status_callback_url: str | None = None   # public URL Twilio POSTs status to
+    twilio_webhook_auth_token: str | None = None    # for verifying incoming signatures
+
+    # ─── M1-C: Email gateway (SendGrid) ────────────────────────────────────
+    email_gateway_provider: str = "mock"            # 'mock' | 'sendgrid'
+    sendgrid_api_key: str | None = None             # SG.<long>
+    sendgrid_from_email: str | None = None          # billing@yourisp.com
+    sendgrid_from_name: str | None = None           # "Your ISP Billing"
+    sendgrid_webhook_public_key: str | None = None  # ECDSA public key for event webhook
+
+    # ─── M1-C: RADIUS backend (FreeRADIUS) ─────────────────────────────────
+    radius_backend_provider: str = "mock"           # 'mock' | 'freeradius'
+    radius_host: str | None = None
+    radius_auth_port: int = 1812
+    radius_acct_port: int = 1813
+    radius_secret: str | None = None                # shared secret with RADIUS server
+    radius_nas_ip: str | None = None                # our NAS-IP-Address attribute
+    radius_dictionary_path: str | None = None       # path to RADIUS dictionary files
+
 
 settings = Settings()
 
