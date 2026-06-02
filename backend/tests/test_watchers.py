@@ -165,7 +165,7 @@ async def test_remove_soft_deletes_and_emits(client, alice):
     assert d.status_code == 200 and d.json()["status"] == "REMOVED"
     assert d.json()["removedAt"] is not None
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_removed"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_REMOVED"))).scalars().all()
         assert any(e.data.get("watchId") == wid for e in evs)
 
 
@@ -189,7 +189,7 @@ async def test_preferences_patch_updates_fields_and_emits_scope_event(client, al
     assert p.json()["scope"] == "OBJECT_AND_CHILDREN"
     assert p.json()["priority"] == "HIGH"
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_scope_changed"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_SCOPE_CHANGED"))).scalars().all()
         assert any(e.data.get("watchId") == wid for e in evs)
 
 
@@ -200,7 +200,7 @@ async def test_preferences_patch_frequency_only_emits_preference_changed(client,
                            json={"notificationFrequency": "DAILY_DIGEST"})
     assert p.status_code == 200 and p.json()["notificationFrequency"] == "DAILY_DIGEST"
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_preference_changed"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_PREFERENCE_CHANGED"))).scalars().all()
         assert any(e.data.get("watchId") == wid for e in evs)
 
 
@@ -248,7 +248,7 @@ async def test_manager_can_remove_other_user(client, alice, mgr):
     assert d.status_code == 200 and d.json()["status"] == "REMOVED"
     # byManager flag lives in the event payload, not the response body
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_removed"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_REMOVED"))).scalars().all()
         found = [e for e in evs if e.data.get("watchId") == wid]
         assert found and found[-1].data["byManager"] is True
 
@@ -340,7 +340,7 @@ async def test_add_emits_watch_added_event(client, alice):
     r, ek, pid = await _add(client, alice)
     wid = r.json()["id"]
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_added"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_ADDED"))).scalars().all()
         assert any(e.data.get("watchId") == wid for e in evs)
 
 
@@ -349,7 +349,7 @@ async def test_pause_emits_watch_paused_event(client, alice):
     wid = r.json()["id"]
     await client.post(f"/api/{ek}/{pid}/watchers/{wid}/pause", headers=alice)
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_paused"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_PAUSED"))).scalars().all()
         assert any(e.data.get("watchId") == wid for e in evs)
 
 
@@ -359,7 +359,7 @@ async def test_resume_emits_watch_resumed_event(client, alice):
     await client.post(f"/api/{ek}/{pid}/watchers/{wid}/pause", headers=alice)
     await client.post(f"/api/{ek}/{pid}/watchers/{wid}/resume", headers=alice)
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "watch_resumed"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "WATCH_RESUMED"))).scalars().all()
         assert any(e.data.get("watchId") == wid for e in evs)
 
 
@@ -369,12 +369,12 @@ async def test_no_event_on_noop_preferences_patch(client, alice):
     wid = r.json()["id"]
     before_count = 0
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type.in_(["watch_scope_changed", "watch_preference_changed"])))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type.in_(["WATCH_SCOPE_CHANGED", "WATCH_PREFERENCE_CHANGED"])))).scalars().all()
         before_count = sum(1 for e in evs if e.data.get("watchId") == wid)
     await client.patch(f"/api/{ek}/{pid}/watchers/{wid}/preferences", headers=alice,
                        json={"scope": "OBJECT_ONLY"})  # same as default
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type.in_(["watch_scope_changed", "watch_preference_changed"])))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type.in_(["WATCH_SCOPE_CHANGED", "WATCH_PREFERENCE_CHANGED"])))).scalars().all()
         after_count = sum(1 for e in evs if e.data.get("watchId") == wid)
     assert before_count == after_count
 

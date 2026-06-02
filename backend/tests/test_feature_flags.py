@@ -88,7 +88,7 @@ async def test_feature_flag_audit_event_on_patch(client, admin):
     r = await client.get(
         "/api/audit-log",
         headers=admin,
-        params={"event_type": "feature_flag.update", "limit": 50},
+        params={"event_type": "FEATURE_FLAG.UPDATE", "limit": 50},
     )
     assert r.status_code == 200, r.text
     events = r.json()["items"]

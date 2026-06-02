@@ -163,7 +163,7 @@ async def _provision_subscriptions(s, user: User, order: Order, items: list[Orde
         )
         s.add(sub)
         await s.flush()
-        await workflow.emit(s, user.tenant_id, "create", "subscription", sub.id, user.id,
+        await workflow.emit(s, user.tenant_id, "CREATE", "subscription", sub.id, user.id,
                             {"plan_name": prod.name, "amount": prod.default_amount, "from_order": str(order.id)})
         created.append(str(sub.id))
         # order → subscription → service: provision a Service fulfilling this subscription (lazy
@@ -232,7 +232,7 @@ async def create_order(payload: dict, user: User = Depends(current_user), s: Asy
     s.add(order)
     await s.flush()
     order.total = await _replace_items(s, user, order, payload.get("items") or [])
-    await workflow.emit(s, user.tenant_id, "create", "order", order.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "order", order.id, user.id,
                         {"number": number, "total": order.total})
     await s.commit()
     await s.refresh(order)
@@ -277,7 +277,7 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
     if "items" in payload:
         order.total = await _replace_items(s, user, order, payload["items"])
 
-    await workflow.emit(s, user.tenant_id, "update", "order", order.id, user.id, {"total": order.total})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "order", order.id, user.id, {"total": order.total})
     await s.commit()
     await s.refresh(order)
     return _order(order, await _items(s, order.id))
@@ -287,7 +287,7 @@ async def update_order(order_id: uuid.UUID, payload: dict, user: User = Depends(
 
 async def _set_status(s, user: User, order: Order, frm: str, to: str):
     order.status = to
-    await workflow.emit(s, user.tenant_id, "transition", "order", order.id, user.id, {"from": frm, "to": to})
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "order", order.id, user.id, {"from": frm, "to": to})
 
 
 @router.post("/orders/{order_id}/submit")

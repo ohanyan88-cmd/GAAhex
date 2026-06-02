@@ -194,7 +194,7 @@ async def test_upload_emits_event(client, alice):
     r, ek, pid = await _upload(client, alice)
     aid = r.json()["id"]
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "attachment_uploaded"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "ATTACHMENT_UPLOADED"))).scalars().all()
         assert any(e.data.get("attachmentId") == aid for e in evs)
 
 
@@ -204,7 +204,7 @@ async def test_sensitive_download_emits_audited_event(client, alice):
     aid = r.json()["id"]
     await client.get(f"/api/attachments/{aid}/download", headers=alice)
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "attachment_downloaded"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "ATTACHMENT_DOWNLOADED"))).scalars().all()
         found = [e for e in evs if e.data.get("attachmentId") == aid]
         assert found and found[-1].data["sensitive"] is True
 

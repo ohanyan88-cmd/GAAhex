@@ -42,6 +42,6 @@ async def test_event_registry_combines_generic_and_entity_transitions(client, ad
     for ent in body["entities"]:
         assert {"entity_key", "label", "transitions"} <= set(ent.keys())
         for t in ent["transitions"]:
-            assert t["event_type"] == "transition"
+            assert t["event_type"] == "TRANSITION"
             assert t["to"]   # every transition must land on a real status
             assert t["key"]

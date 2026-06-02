@@ -181,7 +181,7 @@ async def create_node(
     await s.flush()  # assign node.id for the audit Event / response (no post-commit refresh)
 
     out = _node_out(node)
-    await workflow.emit(s, user.tenant_id, "create", "org_node", node.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "org_node", node.id, user.id,
                         {"type": type_, "name": name, "path": new_path})
     await s.commit()
     # Post-commit s.refresh() 500s under the RLS app role; return the values we hold.
@@ -265,7 +265,7 @@ async def update_node(
                     d.path = Ltree(new_path + "." + dp[len(prefix):])
 
     out = _node_out(node)
-    await workflow.emit(s, user.tenant_id, "update", "org_node", node.id, user.id,
+    await workflow.emit(s, user.tenant_id, "UPDATE", "org_node", node.id, user.id,
                         {"name": node.name, "old_path": old_path, "path": out["path"], "moved": move})
     await s.commit()
     # Post-commit s.refresh() 500s under the RLS app role; return the values we hold.
@@ -300,6 +300,6 @@ async def delete_node(
     nid = node.id
     path = str(node.path)
     await s.delete(node)
-    await workflow.emit(s, user.tenant_id, "delete", "org_node", nid, user.id, {"path": path})
+    await workflow.emit(s, user.tenant_id, "DELETE", "org_node", nid, user.id, {"path": path})
     await s.commit()
     return {"ok": True, "id": str(nid)}

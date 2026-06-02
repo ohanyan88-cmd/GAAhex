@@ -119,7 +119,7 @@ async def record_usage(payload: dict, user: User = Depends(current_user), s: Asy
     )
     s.add(u)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "usage", u.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "usage", u.id, user.id,
                         {"metric": metric, "quantity": quantity, "amount": amount,
                          "subscription_id": str(sub_id) if sub_id else None})
     await s.commit()

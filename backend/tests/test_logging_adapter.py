@@ -69,7 +69,7 @@ async def test_throttle_flips_suspended_and_logs():
     async with SessionLocal() as s:
         result = await adapter.throttle(s, tenant_id=tid, service_id=svc_id, kbps=128)
         await s.commit()
-    assert result["status"] == "success"
+    assert result["status"] == "SUCCESS"
 
     assert await _service_status(svc_id) == "SUSPENDED"
     logs = await _logs_for_service(svc_id)
@@ -169,8 +169,8 @@ async def test_get_network_adapter_returns_logging_adapter():
 # ===================== adapter status is 'success' on all v1 paths =====================
 
 async def test_all_adapter_methods_report_success_status():
-    """Every LoggingAdapter method returns ``status='success'`` and writes a row with the same
-    status (v1 never fails — real-vendor adapters will set 'failed' on RADIUS/BNG errors)."""
+    """Every LoggingAdapter method returns ``status='SUCCESS'`` and writes a row with the same
+    status (v1 never fails — real-vendor adapters will set 'FAILED' on RADIUS/BNG errors)."""
     svc_id, tid = await _make_service("success")
     adapter = LoggingAdapter()
     async with SessionLocal() as s:
@@ -183,12 +183,12 @@ async def test_all_adapter_methods_report_success_status():
                                         template="dunning_notice_1")
         await s.commit()
     for result in (r1, r2, r3, r4, r5):
-        assert result["status"] == "success"
+        assert result["status"] == "SUCCESS"
         assert result["error"] is None
 
-    # All persisted rows for THIS service show status='success'.
+    # All persisted rows for THIS service show status='SUCCESS'.
     logs = await _logs_for_service(svc_id)
     assert len(logs) >= 4  # throttle/walled_garden/terminate/restore (notice targets account, not svc)
     for row in logs:
-        assert row.status == "success"
+        assert row.status == "SUCCESS"
         assert row.adapter == "logging"

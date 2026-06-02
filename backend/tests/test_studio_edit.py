@@ -68,7 +68,7 @@ async def test_retire_entity_soft_deletes(client, admin):
 
     # records + events still readable
     assert (await client.get(f"/api/ed-retire/{rec['id']}", headers=admin)).status_code == 200
-    assert [e["type"] for e in (await client.get(f"/api/ed-retire/{rec['id']}/history", headers=admin)).json()] == ["create"]
+    assert [e["type"] for e in (await client.get(f"/api/ed-retire/{rec['id']}/history", headers=admin)).json()] == ["CREATE"]
     # but no new records
     assert (await client.post("/api/ed-retire", headers=admin, json={"name": "nope"})).status_code == 409
 

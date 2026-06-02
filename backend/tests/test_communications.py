@@ -271,7 +271,7 @@ async def test_get_denied_without_view(client, alice, nada):
 async def test_create_emits_communication_created_event(client, alice):
     c = (await client.post("/api/communications", headers=alice, json=_payload())).json()
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "communication_created"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "COMMUNICATION_CREATED"))).scalars().all()
         assert any(e.data.get("communicationId") == c["id"] for e in evs)
 
 

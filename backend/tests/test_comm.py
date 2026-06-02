@@ -48,7 +48,7 @@ async def test_comment_emits_history_event(client, admin):
     lid = lead["id"]
     await client.post(f"/api/records/leads/{lid}/comments", headers=admin, json={"body": "noted"})
     types = [e["type"] for e in (await client.get(f"/api/leads/{lid}/history", headers=admin)).json()]
-    assert "comment" in types
+    assert "COMMENT" in types
 
 
 # ---- scope ----

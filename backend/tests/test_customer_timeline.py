@@ -51,61 +51,61 @@ def _ev(t: str, ek: str, data: dict | None = None) -> Event:
 
 
 def test_classify_lead_created():
-    assert classify_event(_ev("create", "lead")) == ("lead", "Lead created")
+    assert classify_event(_ev("CREATE", "lead")) == ("lead", "Lead created")
 
 
 def test_classify_contract_signed():
-    assert classify_event(_ev("transition", "contract", {"from": "DRAFT", "to": "SIGNED"})) == (
+    assert classify_event(_ev("TRANSITION", "contract", {"from": "DRAFT", "to": "SIGNED"})) == (
         "contract", "Contract signed",
     )
 
 
 def test_classify_service_installed():
-    assert classify_event(_ev("create", "service")) == ("service", "Service installed")
+    assert classify_event(_ev("CREATE", "service")) == ("service", "Service installed")
 
 
 def test_classify_service_activated_from_pending():
-    assert classify_event(_ev("transition", "service", {"from": "PENDING", "to": "ACTIVE"})) == (
+    assert classify_event(_ev("TRANSITION", "service", {"from": "PENDING", "to": "ACTIVE"})) == (
         "service", "Service activated",
     )
 
 
 def test_classify_service_suspended():
-    assert classify_event(_ev("transition", "service", {"from": "ACTIVE", "to": "SUSPENDED"})) == (
+    assert classify_event(_ev("TRANSITION", "service", {"from": "ACTIVE", "to": "SUSPENDED"})) == (
         "service", "Service suspended",
     )
 
 
 def test_classify_service_restored():
     # Restored must beat plain "activated" — old must be SUSPENDED.
-    assert classify_event(_ev("transition", "service", {"from": "SUSPENDED", "to": "ACTIVE"})) == (
+    assert classify_event(_ev("TRANSITION", "service", {"from": "SUSPENDED", "to": "ACTIVE"})) == (
         "service", "Service restored",
     )
 
 
 def test_classify_invoice_issued():
-    assert classify_event(_ev("transition", "invoice", {"from": "DRAFT", "to": "ISSUED"})) == (
+    assert classify_event(_ev("TRANSITION", "invoice", {"from": "DRAFT", "to": "ISSUED"})) == (
         "invoice", "Invoice issued",
     )
 
 
 def test_classify_invoice_draft_not_timeline_eligible():
     # SPEC §8 says "Invoice issued" — a fresh DRAFT invoice is not on the timeline.
-    assert classify_event(_ev("create", "invoice")) is None
+    assert classify_event(_ev("CREATE", "invoice")) is None
 
 
 def test_classify_payment_received():
-    assert classify_event(_ev("payment", "invoice", {"amount": 100})) == (
+    assert classify_event(_ev("PAYMENT", "invoice", {"amount": 100})) == (
         "payment", "Payment received",
     )
 
 
 def test_classify_ticket_opened():
-    assert classify_event(_ev("create", "helpdesk_ticket")) == ("ticket", "Ticket opened")
+    assert classify_event(_ev("CREATE", "helpdesk_ticket")) == ("ticket", "Ticket opened")
 
 
 def test_classify_ticket_closed():
-    assert classify_event(_ev("transition", "helpdesk_ticket", {"from": "OPEN", "to": "CLOSED"})) == (
+    assert classify_event(_ev("TRANSITION", "helpdesk_ticket", {"from": "OPEN", "to": "CLOSED"})) == (
         "ticket", "Ticket closed",
     )
 
@@ -113,36 +113,36 @@ def test_classify_ticket_closed():
 def test_classify_ticket_resolved_is_closed():
     # SPEC §8 says "Ticket closed"; the helpdesk lifecycle uses both RESOLVED and CLOSED
     # as terminal-ish states. Both project as "Ticket closed".
-    assert classify_event(_ev("transition", "helpdesk_ticket", {"from": "OPEN", "to": "RESOLVED"})) == (
+    assert classify_event(_ev("TRANSITION", "helpdesk_ticket", {"from": "OPEN", "to": "RESOLVED"})) == (
         "ticket", "Ticket closed",
     )
 
 
 def test_classify_work_order_completed():
-    assert classify_event(_ev("transition", "work_order", {"from": "OPEN", "to": "COMPLETED"})) == (
+    assert classify_event(_ev("TRANSITION", "work_order", {"from": "OPEN", "to": "COMPLETED"})) == (
         "work_order", "Work order completed",
     )
 
 
 def test_classify_communication_sent():
-    assert classify_event(_ev("create", "communication")) == ("communication", "Communication sent")
+    assert classify_event(_ev("CREATE", "communication")) == ("communication", "Communication sent")
     # the existing build emits on "interaction" — treated as the same SPEC §8 category
-    assert classify_event(_ev("create", "interaction")) == ("communication", "Communication sent")
+    assert classify_event(_ev("CREATE", "interaction")) == ("communication", "Communication sent")
 
 
 def test_classify_document_uploaded():
-    assert classify_event(_ev("create", "document")) == ("document", "Document uploaded")
+    assert classify_event(_ev("CREATE", "document")) == ("document", "Document uploaded")
 
 
 def test_classify_drops_non_timeline_events():
     # Things in the audit log that are NOT on SPEC §8 must classify as None.
-    assert classify_event(_ev("assign", "helpdesk_ticket")) is None
-    assert classify_event(_ev("update", "helpdesk_ticket", {"changed": {"subject": "x"}})) is None
-    assert classify_event(_ev("sla_breach", "helpdesk_ticket")) is None
-    assert classify_event(_ev("action_failed", "lead", {"action": "notify"})) is None
-    assert classify_event(_ev("create", "subscription", {"plan_name": "P"})) is None
-    assert classify_event(_ev("create", "order")) is None
-    assert classify_event(_ev("transition", "product", {"to": "retired"})) is None
+    assert classify_event(_ev("ASSIGN", "helpdesk_ticket")) is None
+    assert classify_event(_ev("UPDATE", "helpdesk_ticket", {"changed": {"subject": "x"}})) is None
+    assert classify_event(_ev("SLA_BREACH", "helpdesk_ticket")) is None
+    assert classify_event(_ev("ACTION_FAILED", "lead", {"action": "notify"})) is None
+    assert classify_event(_ev("CREATE", "subscription", {"plan_name": "P"})) is None
+    assert classify_event(_ev("CREATE", "order")) is None
+    assert classify_event(_ev("TRANSITION", "product", {"to": "retired"})) is None
 
 
 def test_spec_8_timeline_kinds_covers_all_categories():

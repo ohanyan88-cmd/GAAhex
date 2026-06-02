@@ -134,7 +134,7 @@ async def provision_service_for_subscription(s, *, tenant_id, subscription: Subs
     )
     s.add(svc)
     await s.flush()
-    await workflow.emit(s, tenant_id, "create", "service", svc.id, actor_user_id,
+    await workflow.emit(s, tenant_id, "CREATE", "service", svc.id, actor_user_id,
                         {"name": svc.name, "from_subscription": str(subscription.id)})
     return svc
 
@@ -196,7 +196,7 @@ async def create_service(payload: dict, user: User = Depends(current_user), s: A
     )
     s.add(svc)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "service", svc.id, user.id, {"name": name, "type": svc.type})
+    await workflow.emit(s, user.tenant_id, "CREATE", "service", svc.id, user.id, {"name": name, "type": svc.type})
     await s.commit()
     await s.refresh(svc)
     return _service(svc, await _resources(s, svc.id))
@@ -234,7 +234,7 @@ async def update_service(service_id: uuid.UUID, payload: dict, user: User = Depe
         svc.name = v
     if "type" in payload:
         svc.type = (payload["type"] or "service")
-    await workflow.emit(s, user.tenant_id, "update", "service", svc.id, user.id, {"name": svc.name, "type": svc.type})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "service", svc.id, user.id, {"name": svc.name, "type": svc.type})
     await s.commit()
     await s.refresh(svc)
     return _service(svc, await _resources(s, svc.id))
@@ -261,7 +261,7 @@ async def _service_status_change(s, user, service_id, new_status: str, allowed_f
     svc.status = new_status
     if set_activated and svc.activated_at is None:
         svc.activated_at = _now()
-    await workflow.emit(s, user.tenant_id, "transition", "service", svc.id, user.id, {"from": frm, "to": new_status})
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "service", svc.id, user.id, {"from": frm, "to": new_status})
     await s.commit()
     await s.refresh(svc)
     return _service(svc, await _resources(s, svc.id))

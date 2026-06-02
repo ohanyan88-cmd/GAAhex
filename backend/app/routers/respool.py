@@ -161,7 +161,7 @@ async def create_pool(payload: dict, user: User = Depends(current_user), s: Asyn
                         name=name, kind=kind, spec=spec)
     s.add(pool)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "resource_pool", pool.id, user.id, {"name": name, "kind": kind})
+    await workflow.emit(s, user.tenant_id, "CREATE", "resource_pool", pool.id, user.id, {"name": name, "kind": kind})
     await s.commit()
     await s.refresh(pool)
     return _pool(pool, 0)
@@ -200,7 +200,7 @@ async def update_pool(pool_id: uuid.UUID, payload: dict, user: User = Depends(cu
         if not isinstance(payload["spec"], dict):
             raise HTTPException(422, "spec must be an object")
         pool.spec = payload["spec"]
-    await workflow.emit(s, user.tenant_id, "update", "resource_pool", pool.id, user.id, {"name": pool.name})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "resource_pool", pool.id, user.id, {"name": pool.name})
     await s.commit()
     await s.refresh(pool)
     return _pool(pool, await _allocated_count(s, pool.id))
@@ -225,7 +225,7 @@ async def delete_pool(pool_id: uuid.UUID, user: User = Depends(current_user), s:
     )).scalar_one()
     if any_alloc:
         raise HTTPException(409, f"Cannot delete pool: it has {any_alloc} allocation(s). Release history is kept.")
-    await workflow.emit(s, user.tenant_id, "delete", "resource_pool", pool.id, user.id, {"name": pool.name})
+    await workflow.emit(s, user.tenant_id, "DELETE", "resource_pool", pool.id, user.id, {"name": pool.name})
     await s.delete(pool)
     await s.commit()
 

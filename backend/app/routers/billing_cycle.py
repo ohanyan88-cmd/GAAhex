@@ -79,7 +79,7 @@ async def _bill_one(s: AsyncSession, user: User, sub: Subscription, as_of: datet
                       quantity=1, unit_amount=sub.amount, line_total=sub.amount))
     sub.next_invoice_at = period_end          # advance the manual schedule, as generate_invoice does
     sub.last_invoiced_at = as_of              # idempotency marker for the cycle run
-    await workflow.emit(s, user.tenant_id, "create", "invoice", inv.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "invoice", inv.id, user.id,
                         {"number": number, "total": sub.amount, "from_subscription": str(sub.id),
                          "status": "ISSUED", "via": "run-cycle"})
     return inv

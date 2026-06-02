@@ -120,7 +120,7 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
         # Don't log the full base64 in the audit Event — record only that the logo changed.
         changed["logo_url"] = "<set>" if t.logo_url else None
 
-    await workflow.emit(s, user.tenant_id, "update", "tenant", t.id, user.id, {"changed": changed})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "tenant", t.id, user.id, {"changed": changed})
     await s.commit()
     await s.refresh(t)
     return _serialize(t)
@@ -190,7 +190,7 @@ async def update_theme(payload: dict, user: User = Depends(current_user), s: Asy
     # Persist the full dict (or None when every field was cleared) so JSONB stays compact.
     t.theme = next_theme or None
 
-    await workflow.emit(s, user.tenant_id, "update", "tenant", t.id, user.id, {"theme": changed})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "tenant", t.id, user.id, {"theme": changed})
     await s.commit()
     await s.refresh(t)
     return _serialize_theme(t)

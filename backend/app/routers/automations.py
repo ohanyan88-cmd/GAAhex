@@ -24,7 +24,7 @@ from .auth import current_user
 
 router = APIRouter(prefix="/api/automations", tags=["automations"])
 
-ALLOWED_EVENT_TYPES = {"create", "update", "transition", "delete"}
+ALLOWED_EVENT_TYPES = {"CREATE", "UPDATE", "TRANSITION", "DELETE"}  # R7-D: UPPER_SNAKE (B1)
 ALLOWED_ACTION_TYPES = {"notify", "set_field", "webhook", "emit_event"}
 
 
@@ -101,7 +101,7 @@ async def create_automation(payload: dict, user: User = Depends(current_user), s
 
     key = (payload.get("key") or "").strip()
     name = (payload.get("name") or "").strip()
-    event_type = (payload.get("event_type") or "").strip()
+    event_type = (payload.get("event_type") or "").strip().upper()  # R7-D: normalise before validation
     entity_key = (payload.get("entity_key") or "").strip()
 
     if not key or not name:
@@ -146,7 +146,7 @@ async def update_automation(rule_id: uuid.UUID, payload: dict, user: User = Depe
             raise HTTPException(422, "name cannot be empty")
         rule.name = v
     if "event_type" in payload:
-        et = (payload["event_type"] or "").strip()
+        et = (payload["event_type"] or "").strip().upper()  # R7-D: normalise before validation
         if et not in ALLOWED_EVENT_TYPES:
             raise HTTPException(422, f"event_type must be one of {sorted(ALLOWED_EVENT_TYPES)}")
         rule.event_type = et

@@ -132,8 +132,8 @@ class ServiceActionLog(Base):
         JSONB, nullable=False, default=dict, server_default="{}",
     )
     status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="queued", server_default="queued",
-    )  # 'queued' | 'success' | 'failed'
+        String(20), nullable=False, default="QUEUED", server_default="QUEUED",
+    )  # 'QUEUED' | 'SUCCESS' | 'FAILED'  (B1 UPPER_SNAKE)
     requested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(),
     )

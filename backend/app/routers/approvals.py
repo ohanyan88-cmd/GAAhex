@@ -129,7 +129,7 @@ async def approve(approval_id: uuid.UUID, payload: dict | None = None,
         # the transition no longer exists in config — apply the bare status move, skip actions
         frm = rec.status
         rec.status = pa.to_status
-        await workflow.emit(s, user.tenant_id, "transition", pa.entity_key, rec.id, user.id,
+        await workflow.emit(s, user.tenant_id, "TRANSITION", pa.entity_key, rec.id, user.id,
                             {"from": frm, "to": pa.to_status})
 
     pa.status = "APPROVED"
@@ -138,7 +138,7 @@ async def approve(approval_id: uuid.UUID, payload: dict | None = None,
     if payload and payload.get("note"):
         pa.note = payload["note"]
 
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=pa.entity_key,
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="TRANSITION", entity_key=pa.entity_key,
                             record=rec, actor_user_id=user.id, extra={"from": pa.from_status, "to": pa.to_status})
     await _notify_requester(s, user.tenant_id, pa, rec, "approved")
 

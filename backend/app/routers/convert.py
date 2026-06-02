@@ -116,7 +116,7 @@ async def convert_lead(lead_id: uuid.UUID, user: User = Depends(current_user), s
 
     # Audit: a `create` Event for the new customer (so its 360 activity shows the origin) + the
     # `convert` Event on the lead, consistent with how records.py emits via workflow.emit.
-    await workflow.emit(s, user.tenant_id, "create", cust_ent.key, customer.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", cust_ent.key, customer.id, user.id,
                         {"data": cust_data, "status": customer.status, "converted_from_lead": str(lead.id)})
     await workflow.emit(s, user.tenant_id, "convert", lead_ent.key, lead.id, user.id,
                         {"customer_id": str(customer.id), "lead_id": str(lead.id)})

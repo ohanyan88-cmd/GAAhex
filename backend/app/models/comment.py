@@ -10,12 +10,15 @@ substrate with lowercase free-string `type_` values (`comment_added`, `comment_e
 `comment_deleted`, `comment_resolved`, `comment_reopened`). The Event System extension
 (canonical `eventName=COMMENT_ADDED` etc.) retrofits these later; not pre-built here.
 
-Hold field semantics (router-enforced v1):
+Hold field semantics (router-enforced v1 + DB-trigger v2):
   `hold=true` means the comment is under investigation / legal hold / audit / compliance
   review and refuses edit + delete from the router. The DB-trigger hardening of this
   invariant (the same compliance class as audit append-only, alembic `b70ef3b98e27`) is
-  a HARD precondition before the first real legal hold is ever placed AND before any
-  production deploy — tracked as a follow-up, not optional.
+  now in place via migration `3a86ae0ed044_comment_hold_db_trigger.py`:
+    - BEFORE UPDATE trigger `trg_comment_block_update_when_held` — refuses any UPDATE
+      on a held comment except a pure hold-release (hold TRUE→FALSE, no other change).
+    - BEFORE DELETE trigger `trg_comment_block_delete_when_held` — refuses DELETE
+      unconditionally when hold=TRUE. Both raise ERRCODE=restrict_violation.
 """
 from app.utils.ids import uuid7
 import uuid
@@ -82,8 +85,8 @@ class Comment(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Legal/investigation/audit/compliance hold (file 04). Router v1 refuses edit + delete
-    # when true; DB-trigger hardening is a hard precondition before first real legal hold
-    # AND before any production deploy.
+    # when true; DB-trigger hardening now in place via migration 3a86ae0ed044 (triggers
+    # trg_comment_block_update_when_held + trg_comment_block_delete_when_held).
     hold: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

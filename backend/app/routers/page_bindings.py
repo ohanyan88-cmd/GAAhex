@@ -140,7 +140,7 @@ async def create_binding(
     # Audit event
     s.add(Event(
         tenant_id=user.tenant_id,
-        type="page_binding.create",
+        type="PAGE_BINDING.CREATE",
         entity_key="page_binding",
         actor_user_id=user.id,
         data={
@@ -178,7 +178,7 @@ async def delete_binding(
     # Audit event before deletion (so we still have attribute values)
     s.add(Event(
         tenant_id=user.tenant_id,
-        type="page_binding.delete",
+        type="PAGE_BINDING.DELETE",
         entity_key="page_binding",
         actor_user_id=user.id,
         data={

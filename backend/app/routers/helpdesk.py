@@ -453,7 +453,7 @@ async def delete_queue(
                          region_id=getattr(q, "region_id", None), owner_user_id=None)
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
-    await workflow.emit(s, user.tenant_id, "delete", "helpdesk_queue", q.id, user.id, {"name": q.name})
+    await workflow.emit(s, user.tenant_id, "DELETE", "helpdesk_queue", q.id, user.id, {"name": q.name})
     await s.delete(q)
     await s.commit()
 
@@ -584,7 +584,7 @@ async def create_ticket(
     )
     s.add(t)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "helpdesk_ticket", t.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "helpdesk_ticket", t.id, user.id,
                         {"subject": subject, "priority": priority,
                          "queue_id": str(queue_id) if queue_id else None,
                          "sla_due_at": _iso(sla_due_at)})
@@ -659,7 +659,7 @@ async def update_ticket(
         t.queue_id = qid
         changed["queue_id"] = str(qid) if qid else None
 
-    await workflow.emit(s, user.tenant_id, "update", "helpdesk_ticket", t.id, user.id, {"changed": changed})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "helpdesk_ticket", t.id, user.id, {"changed": changed})
     await s.commit()
     await s.refresh(t)
     return _ticket(t)
@@ -709,13 +709,13 @@ async def assign_ticket(
     if t.status == "OPEN":
         t.status = "IN_PROGRESS"
 
-    await workflow.emit(s, user.tenant_id, "assign", "helpdesk_ticket", t.id, user.id,
+    await workflow.emit(s, user.tenant_id, "HELPDESK_ASSIGN", "helpdesk_ticket", t.id, user.id,
                         {"agent_id": str(agent_id), "status": t.status})
     await s.flush()
 
     # best-effort notification to the assignee
     try:
-        await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="helpdesk_assign",
+        await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="HELPDESK_ASSIGN",
                                 entity_key="helpdesk_ticket", record=t, actor_user_id=user.id,
                                 extra={"ticket_id": str(t.id), "agent_id": str(agent_id)})
     except Exception:
@@ -755,7 +755,7 @@ async def resolve_ticket(
     old_status = t.status
     t.status = "RESOLVED"
     t.resolved_at = _now()
-    await workflow.emit(s, user.tenant_id, "transition", "helpdesk_ticket", t.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "helpdesk_ticket", t.id, user.id,
                         {"from": old_status, "to": "RESOLVED"})
     await s.commit()
     await s.refresh(t)
@@ -789,7 +789,7 @@ async def reopen_ticket(
     old_status = t.status
     t.status = "OPEN"
     t.resolved_at = None
-    await workflow.emit(s, user.tenant_id, "transition", "helpdesk_ticket", t.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "helpdesk_ticket", t.id, user.id,
                         {"from": old_status, "to": "OPEN"})
     await s.commit()
     await s.refresh(t)
@@ -822,7 +822,7 @@ async def close_ticket(
 
     old_status = t.status
     t.status = "CLOSED"
-    await workflow.emit(s, user.tenant_id, "transition", "helpdesk_ticket", t.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "helpdesk_ticket", t.id, user.id,
                         {"from": old_status, "to": "CLOSED"})
     await s.commit()
     await s.refresh(t)
@@ -850,7 +850,7 @@ async def delete_ticket(
                          owner_user_id=t.assigned_agent_id)
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
-    await workflow.emit(s, user.tenant_id, "delete", "helpdesk_ticket", t.id, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", "helpdesk_ticket", t.id, user.id,
                         {"subject": t.subject, "status": t.status})
     await s.delete(t)
     await s.commit()
@@ -884,7 +884,7 @@ async def run_sla_breach_sweep(user: User, s: AsyncSession) -> dict:
         newly_breached = []
         for t in candidates:
             t.sla_breached = True
-            await workflow.emit(s, user.tenant_id, "sla_breach", "helpdesk_ticket", t.id, user.id,
+            await workflow.emit(s, user.tenant_id, "SLA_BREACH", "helpdesk_ticket", t.id, user.id,
                                 {"subject": t.subject, "sla_due_at": _iso(t.sla_due_at),
                                  "status": t.status})
             newly_breached.append(t)
@@ -902,7 +902,7 @@ async def run_sla_breach_sweep(user: User, s: AsyncSession) -> dict:
     try:
         for t in newly_breached:
             if t.assigned_agent_id is not None:
-                await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="sla_breach",
+                await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="SLA_BREACH",
                                         entity_key="helpdesk_ticket", record=t, actor_user_id=user.id,
                                         extra={"ticket_id": str(t.id), "sla_due_at": _iso(t.sla_due_at)})
         if newly_breached:

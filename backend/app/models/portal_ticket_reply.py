@@ -28,5 +28,5 @@ class PortalTicketReply(Base):
         UUID(as_uuid=True), ForeignKey("customer_user.id"), nullable=False, index=True
     )
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    direction: Mapped[str] = mapped_column(String(20), nullable=False, default="inbound")
+    direction: Mapped[str] = mapped_column(String(20), nullable=False, default="INBOUND")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

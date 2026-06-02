@@ -108,7 +108,7 @@ async def test_page_binding_audit_events(client, admin):
     r = await client.get(
         "/api/audit-log",
         headers=admin,
-        params={"event_type": "page_binding.create", "limit": 50},
+        params={"event_type": "PAGE_BINDING.CREATE", "limit": 50},
     )
     assert r.status_code == 200, r.text
     events = r.json()["items"]
@@ -124,7 +124,7 @@ async def test_page_binding_audit_events(client, admin):
     r = await client.get(
         "/api/audit-log",
         headers=admin,
-        params={"event_type": "page_binding.delete", "limit": 50},
+        params={"event_type": "PAGE_BINDING.DELETE", "limit": 50},
     )
     assert r.status_code == 200, r.text
     events = r.json()["items"]

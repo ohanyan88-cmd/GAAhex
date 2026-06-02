@@ -390,7 +390,7 @@ async def test_create_emits_event(client, alice):
     c = (await _create(client, alice)).json()
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "configuration_created")
+            select(Event).where(Event.type == "CONFIGURATION_CREATED")
         )).scalars().all()
         assert any(e.data.get("configurationId") == c["id"] for e in evs)
 
@@ -401,7 +401,7 @@ async def test_status_change_emits_event(client, alice):
                        json={"status": "ACTIVE"})
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "configuration_status_changed")
+            select(Event).where(Event.type == "CONFIGURATION_STATUS_CHANGED")
         )).scalars().all()
         match = [e for e in evs if e.data.get("configurationId") == c["id"]]
         assert match and match[-1].data["fromStatus"] == "PENDING_REVIEW"
@@ -414,6 +414,6 @@ async def test_value_update_emits_event(client, alice):
                        json={"configurationValue": {"new": True}})
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "configuration_updated")
+            select(Event).where(Event.type == "CONFIGURATION_UPDATED")
         )).scalars().all()
         assert any(e.data.get("configurationId") == c["id"] for e in evs)

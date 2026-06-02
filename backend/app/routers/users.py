@@ -195,7 +195,7 @@ async def create_user(
     await s.flush()  # assign new_user.id for audit + response
 
     out = await _user_full(s, new_user)
-    await workflow.emit(s, user.tenant_id, "create", "app_user", new_user.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "app_user", new_user.id, user.id,
                         {"name": name, "email": email})
     await s.commit()
     return out
@@ -264,7 +264,7 @@ async def update_user(
 
     out = await _user_full(s, target)
     if changed:
-        await workflow.emit(s, user.tenant_id, "update", "app_user", target.id, user.id,
+        await workflow.emit(s, user.tenant_id, "UPDATE", "app_user", target.id, user.id,
                             {"changed": list(changed.keys())})
     await s.commit()
     return out
@@ -288,7 +288,7 @@ async def delete_user(
     was = target.status
     if was != "INACTIVE":
         target.status = "INACTIVE"
-        await workflow.emit(s, user.tenant_id, "delete", "app_user", target.id, user.id,
+        await workflow.emit(s, user.tenant_id, "DELETE", "app_user", target.id, user.id,
                             {"email": target.email, "previous_status": was})
     await s.commit()
     return {"ok": True, "id": str(target.id), "status": target.status}

@@ -112,7 +112,7 @@ async def test_create_decide_execute_progression_and_audit(client, admin):
 
     # ---- 4. Audit (SPEC §0.4): every state change recorded ----
     audit = await _audit_types(approval_id)
-    assert audit == ["create approval", "update approval", "execute approval"]
+    assert audit == ["CREATE APPROVAL", "UPDATE APPROVAL", "EXECUTE APPROVAL"]
 
     # DB row matches HTTP surface
     row = await _approval(approval_id)
@@ -146,7 +146,7 @@ async def test_decide_rejected_blocks_execute(client, admin):
     assert ex.status_code == 409
 
     audit = await _audit_types(approval_id)
-    assert audit == ["create approval", "update approval"]
+    assert audit == ["CREATE APPROVAL", "UPDATE APPROVAL"]
 
 
 # ===================== validation =====================

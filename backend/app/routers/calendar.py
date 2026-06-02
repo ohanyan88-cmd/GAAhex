@@ -112,7 +112,7 @@ async def create_calendar(
     )
     s.add(c)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "calendar", c.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "calendar", c.id, user.id,
                         {"name": name, "is_shared": is_shared})
     await s.commit()
     await s.refresh(c)
@@ -190,7 +190,7 @@ async def create_event(
     )
     s.add(e)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "calendar_event", e.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "calendar_event", e.id, user.id,
                         {"title": title, "start_at": _iso(start_at),
                          "calendar_id": str(calendar_id) if calendar_id else None})
     await s.commit()
@@ -268,7 +268,7 @@ async def update_event(
         e.calendar_id = payload["calendar_id"]
         changed["calendar_id"] = str(e.calendar_id) if e.calendar_id else None
 
-    await workflow.emit(s, user.tenant_id, "update", "calendar_event", e.id, user.id,
+    await workflow.emit(s, user.tenant_id, "UPDATE", "calendar_event", e.id, user.id,
                         {"changed": changed})
     await s.commit()
     await s.refresh(e)
@@ -289,7 +289,7 @@ async def delete_event(
                          region_id=None, owner_user_id=e.created_by_id)
     except AccessDenied as ex:
         raise HTTPException(403, detail=str(ex))
-    await workflow.emit(s, user.tenant_id, "delete", "calendar_event", e.id, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", "calendar_event", e.id, user.id,
                         {"title": e.title, "calendar_id": str(e.calendar_id) if e.calendar_id else None})
     await s.delete(e)
     await s.commit()

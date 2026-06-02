@@ -136,7 +136,7 @@ async def reply_ticket(
         ticket_id=ticket.id,
         customer_user_id=cu.id,
         body=body.body,
-        direction="inbound",
+        direction="INBOUND",
     )
     s.add(reply)
     await s.commit()

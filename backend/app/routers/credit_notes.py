@@ -234,7 +234,7 @@ async def create_credit_note(
     s.add(cn)
     await s.flush()
 
-    await workflow.emit(s, user.tenant_id, "create", "credit_note", cn.id, user.id, {
+    await workflow.emit(s, user.tenant_id, "CREATE", "credit_note", cn.id, user.id, {
         "number": number, "amount": str(amount), "status": "DRAFT",
     })
     await s.commit()
@@ -268,7 +268,7 @@ async def issue_credit_note_v2(
 
     cn.status = "ISSUED"
     cn.issued_at = _now()
-    await workflow.emit(s, user.tenant_id, "transition", "credit_note", cn.id, user.id, {
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "credit_note", cn.id, user.id, {
         "from": "DRAFT", "to": "ISSUED",
     })
     await s.commit()
@@ -319,7 +319,7 @@ async def apply_credit_note_v2(
     cn.applied_at = _now()
     cn.applied_to_invoice_id = inv_id
 
-    await workflow.emit(s, user.tenant_id, "transition", "credit_note", cn.id, user.id, {
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "credit_note", cn.id, user.id, {
         "from": "ISSUED", "to": "APPLIED",
         "invoice_id": str(inv_id), "amount": str(cn.amount),
     })

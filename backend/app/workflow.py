@@ -61,6 +61,11 @@ async def emit(
     causation_id=None,                        # trace key (M1)
     idempotency_key: str | None = None,       # integration/automation dedup fence
 ) -> None:
+    # R7-D: normalise type_ to UPPER_SNAKE once at the entry point so every
+    # downstream consumer (Event row, webhook dispatch, run_automations matcher)
+    # sees a consistent case regardless of what the call site passed.  This
+    # mirrors the .upper() fold R7-B added to notify_hooks.fire().
+    type_ = (type_ or "").upper()
     s.add(Event(
         tenant_id=tenant_id, type=type_, entity_key=entity_key,
         record_id=record_id, actor_user_id=actor_user_id, data=data,
@@ -206,7 +211,7 @@ async def run_actions(s: AsyncSession, *, tenant_id, entity_key, record: Record,
         except Exception as e:                  # fail-soft: log + keep going, never break the transition
             try:
                 async with s.begin_nested():
-                    await emit(s, tenant_id, "action_failed", entity_key, record.id, actor_user_id,
+                    await emit(s, tenant_id, "ACTION_FAILED", entity_key, record.id, actor_user_id,
                                {"action": atype, "error": str(e)})
             except Exception:
                 pass
@@ -219,7 +224,7 @@ async def complete_transition(s: AsyncSession, *, tenant_id, entity_key, record:
     Used by the approval-approve path; the normal /transition handler can call run_actions directly."""
     frm = record.status
     record.status = transition.get("to")
-    await emit(s, tenant_id, "transition", entity_key, record.id, actor_user_id, {"from": frm, "to": record.status})
+    await emit(s, tenant_id, "TRANSITION", entity_key, record.id, actor_user_id, {"from": frm, "to": record.status})
     await run_actions(s, tenant_id=tenant_id, entity_key=entity_key, record=record,
                       transition=transition, actor_user_id=actor_user_id)
 
@@ -295,7 +300,7 @@ async def request_approval(s: AsyncSession, *, tenant_id, entity_key, record: Re
     )
     s.add(pa)
     await s.flush()
-    await emit(s, tenant_id, "approval_requested", entity_key, record.id, actor_user_id,
+    await emit(s, tenant_id, "APPROVAL_REQUESTED", entity_key, record.id, actor_user_id,
                {"from": record.status, "to": transition.get("to"), "approval_id": str(pa.id)})
     try:
         from .routers.notifications import emit_notification
@@ -341,6 +346,12 @@ async def run_automations(
     Each rule body runs inside its own savepoint. Any exception is swallowed — a rule failure
     must never poison the caller's transaction.
     """
+    # R7-D belt-and-suspenders: normalise before the DB comparison even though emit()
+    # already folds to UPPER_SNAKE.  Callers that invoke run_automations() directly
+    # (e.g. tests, future integrations) are covered without relying on emit() being
+    # the entry point.
+    event_type = (event_type or "").upper()
+
     from .models.automation import AutomationRule
     from . import gxl as _gxl
 

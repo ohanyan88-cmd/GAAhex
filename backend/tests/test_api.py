@@ -107,7 +107,7 @@ async def test_audit_history(client, admin):
     await client.patch(f"/api/leads/{lead['id']}", headers=admin, json={"phone": "+37412"})
     await client.post(f"/api/leads/{lead['id']}/transition", headers=admin, json={"to": "CONTACTED"})
     types = [e["type"] for e in (await client.get(f"/api/leads/{lead['id']}/history", headers=admin)).json()]
-    assert types == ["create", "update", "transition"]
+    assert types == ["CREATE", "UPDATE", "TRANSITION"]
 
 
 # ---- SuperAdmin Studio (config-write) ----

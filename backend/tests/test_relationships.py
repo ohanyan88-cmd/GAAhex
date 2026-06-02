@@ -326,7 +326,7 @@ async def test_event_emitted_on_create(client, alice):
     rid = r.json()["id"]
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "relationship_created")
+            select(Event).where(Event.type == "RELATIONSHIP_CREATED")
         )).scalars().all()
         assert any(e.data.get("relationshipId") == rid for e in evs)
 
@@ -337,7 +337,7 @@ async def test_event_emitted_on_update(client, alice):
     await client.patch(f"/api/relationships/{rid}", headers=alice, json={"description": "x"})
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "relationship_updated")
+            select(Event).where(Event.type == "RELATIONSHIP_UPDATED")
         )).scalars().all()
         assert any(e.data.get("relationshipId") == rid for e in evs)
 
@@ -348,6 +348,6 @@ async def test_event_emitted_on_archive(client, alice):
     await client.delete(f"/api/relationships/{rid}", headers=alice)
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "relationship_archived")
+            select(Event).where(Event.type == "RELATIONSHIP_ARCHIVED")
         )).scalars().all()
         assert any(e.data.get("relationshipId") == rid for e in evs)

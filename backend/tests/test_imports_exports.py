@@ -272,7 +272,7 @@ async def test_import_create_emits_event(client, alice):
     iid = c.json()["id"]
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "import_created")
+            select(Event).where(Event.type == "IMPORT_CREATED")
         )).scalars().all()
         assert any(e.data.get("importJobId") == iid for e in evs)
 
@@ -283,7 +283,7 @@ async def test_import_status_change_emits_event(client, alice):
     await client.post(f"/api/imports/{iid}/validate", headers=alice)
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "import_status_changed")
+            select(Event).where(Event.type == "IMPORT_STATUS_CHANGED")
         )).scalars().all()
         found = [e for e in evs if e.data.get("importJobId") == iid]
         assert found, "expected status-change events from validate"
@@ -406,7 +406,7 @@ async def test_export_create_emits_event(client, alice):
     eid = c.json()["id"]
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "export_created")
+            select(Event).where(Event.type == "EXPORT_CREATED")
         )).scalars().all()
         assert any(e.data.get("exportJobId") == eid for e in evs)
 
@@ -417,7 +417,7 @@ async def test_export_cancel_emits_event(client, alice):
     await client.post(f"/api/exports/{eid}/cancel", headers=alice)
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "export_status_changed")
+            select(Event).where(Event.type == "EXPORT_STATUS_CHANGED")
         )).scalars().all()
         found = [e for e in evs if e.data.get("exportJobId") == eid]
         assert found and found[-1].data["next"] == "CANCELLED"

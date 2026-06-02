@@ -147,7 +147,7 @@ async def create_assignment(
     await s.flush()
 
     out = _assignment_out(a, role, node)
-    await workflow.emit(s, user.tenant_id, "create", "assignment", a.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "assignment", a.id, user.id,
                         {"user_id": str(target_user_id), "role_key": role.key,
                          "node_path": str(node.path)})
     await s.commit()
@@ -179,7 +179,7 @@ async def delete_assignment(
     node_path = str(node.path)
 
     await s.delete(a)
-    await workflow.emit(s, user.tenant_id, "delete", "assignment", aid, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", "assignment", aid, user.id,
                         {"user_id": str(target_user_id), "role_key": role_key,
                          "node_path": node_path})
     await s.commit()

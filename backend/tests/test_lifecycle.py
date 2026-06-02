@@ -202,7 +202,7 @@ async def test_archive_active_transitions_to_archived(client, alice):
     assert body["archivedAt"] is not None
 
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "object_archived"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "OBJECT_ARCHIVED"))).scalars().all()
         match = [e for e in evs if e.record_id == tid]
         assert match, "expected an object_archived event pinned to the task"
         ev = match[-1]
@@ -219,13 +219,13 @@ async def test_archive_archived_is_idempotent(client, alice):
     await client.post(f"/api/lifecycle/task/{tid}/archive", headers=alice)
     # Count object_archived events before the second call.
     async with OwnerSessionLocal() as s:
-        before = (await s.execute(select(Event).where(Event.type == "object_archived"))).scalars().all()
+        before = (await s.execute(select(Event).where(Event.type == "OBJECT_ARCHIVED"))).scalars().all()
         before_n = sum(1 for e in before if e.record_id == tid)
     r2 = await client.post(f"/api/lifecycle/task/{tid}/archive", headers=alice)
     assert r2.status_code == 200
     assert r2.json()["deletionState"] == "ARCHIVED"
     async with OwnerSessionLocal() as s:
-        after = (await s.execute(select(Event).where(Event.type == "object_archived"))).scalars().all()
+        after = (await s.execute(select(Event).where(Event.type == "OBJECT_ARCHIVED"))).scalars().all()
         after_n = sum(1 for e in after if e.record_id == tid)
     # Idempotent: second archive must NOT re-emit an event.
     assert before_n == after_n
@@ -256,7 +256,7 @@ async def test_soft_delete_active_transitions_to_soft_deleted(client, alice):
     assert body["deletedAt"] is not None
 
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "object_soft_deleted"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "OBJECT_SOFT_DELETED"))).scalars().all()
         assert any(e.record_id == tid for e in evs)
 
 

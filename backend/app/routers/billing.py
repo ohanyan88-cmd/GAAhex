@@ -333,7 +333,7 @@ async def create_subscription(payload: dict, user: User = Depends(current_user),
     )
     s.add(sub)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "subscription", sub.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "subscription", sub.id, user.id,
                         {"plan_name": plan_name, "amount": amount, "cycle": cycle,
                          "product_id": str(product_id) if product_id else None})
     await s.commit()
@@ -427,7 +427,7 @@ async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Dep
         sub.next_invoice_at = _parse_dt(payload["next_invoice_at"], "next_invoice_at")
         changed["next_invoice_at"] = _iso(sub.next_invoice_at)
 
-    await workflow.emit(s, user.tenant_id, "update", "subscription", sub.id, user.id, {"changed": changed})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "subscription", sub.id, user.id, {"changed": changed})
     if approved_approval is not None:
         await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
     await s.commit()
@@ -452,7 +452,7 @@ async def _sub_status_change(s, user, sub_id, new_status: str, allowed_from: set
         raise HTTPException(409, f"Cannot move subscription from {sub.status} to {new_status}")
     frm = sub.status
     sub.status = new_status
-    await workflow.emit(s, user.tenant_id, "transition", "subscription", sub.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "subscription", sub.id, user.id,
                         {"from": frm, "to": new_status})
     await s.commit()
     await s.refresh(sub)
@@ -508,7 +508,7 @@ async def generate_invoice(sub_id: uuid.UUID, user: User = Depends(current_user)
                        quantity=1, unit_amount=sub.amount, line_total=sub.amount)
     s.add(line)
     sub.next_invoice_at = period_end                      # advance the schedule
-    await workflow.emit(s, user.tenant_id, "create", "invoice", inv.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "invoice", inv.id, user.id,
                         {"number": number, "total": sub.amount, "from_subscription": str(sub.id)})
     await s.commit()
     await s.refresh(inv)
@@ -670,7 +670,7 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
         s.add(InvoiceLine(tenant_id=user.tenant_id, invoice_id=inv.id, kind=kind, description=desc,
                           quantity=qty, unit_amount=unit, line_total=line_total))
     inv.total = _invoice_total(computed)             # Σ(charge) − Σ(discount) + Σ(tax), clamped ≥ 0
-    await workflow.emit(s, user.tenant_id, "create", "invoice", inv.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "invoice", inv.id, user.id,
                         {"number": number, "total": inv.total})
     if approved_approval is not None:
         await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
@@ -723,7 +723,7 @@ async def issue_invoice(inv_id: uuid.UUID, payload: dict | None = None, user: Us
     if inv.posted_at is None:
         inv.posted_at = now
         inv.locked_by = user.id
-    await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "invoice", inv.id, user.id,
                         {"from": "DRAFT", "to": "ISSUED", "due_at": _iso(due)})
     # Phase A.2 — recompute the associated account's balance now that this invoice is billed.
     # Skip silently when account_id is null (additive Stage-1 — many rows still link via customer_id only).
@@ -1395,7 +1395,7 @@ async def issue_credit_note(
     s.add(cn)
     await s.flush()
 
-    await workflow.emit(s, user.tenant_id, "create", "credit_note", cn.id, user.id, {
+    await workflow.emit(s, user.tenant_id, "CREATE", "credit_note", cn.id, user.id, {
         "invoice_id": str(inv.id),
         "invoice_number": inv.number,
         "amount": credit_amount,
@@ -1507,7 +1507,7 @@ async def void_invoice(inv_id: uuid.UUID, user: User = Depends(current_user),
     )
     old_status = inv.status
     inv.status = "VOID"
-    await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "invoice", inv.id, user.id,
                         {"from": old_status, "to": "VOID"})
     if approved is not None:
         await mark_approval_executed(s, approval_id=approved.id, actor_user_id=user.id)
@@ -1586,7 +1586,7 @@ async def create_product(payload: dict, user: User = Depends(current_user), s: A
     )
     s.add(prod)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "product", prod.id, user.id, {"key": key, "name": name})
+    await workflow.emit(s, user.tenant_id, "CREATE", "product", prod.id, user.id, {"key": key, "name": name})
     await s.commit()
     await s.refresh(prod)
     return _product(prod)
@@ -1632,7 +1632,7 @@ async def update_product(product_id: uuid.UUID, payload: dict, user: User = Depe
     if "active" in payload:
         prod.active = bool(payload["active"])
 
-    await workflow.emit(s, user.tenant_id, "update", "product", prod.id, user.id, {"key": prod.key})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "product", prod.id, user.id, {"key": prod.key})
     await s.commit()
     await s.refresh(prod)
     return _product(prod)
@@ -1654,7 +1654,7 @@ async def retire_product(product_id: uuid.UUID, user: User = Depends(current_use
         raise HTTPException(403, detail=str(e))
     prod = await _get_product(s, user, product_id)
     prod.active = False
-    await workflow.emit(s, user.tenant_id, "transition", "product", prod.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "product", prod.id, user.id,
                         {"to": "retired", "active": False})
     await s.commit()
     await s.refresh(prod)
@@ -1774,7 +1774,7 @@ async def run_dunning(user: User = Depends(current_user), s: AsyncSession = Depe
         for inv in issued:
             if inv.due_at is not None and inv.due_at < now:
                 inv.status = "OVERDUE"
-                await workflow.emit(s, user.tenant_id, "transition", "invoice", inv.id, user.id,
+                await workflow.emit(s, user.tenant_id, "TRANSITION", "invoice", inv.id, user.id,
                                     {"from": "ISSUED", "to": "OVERDUE"})
                 newly.append(inv)
                 # Phase B.2 hook — open a dunning case when the invoice is tied to an account.

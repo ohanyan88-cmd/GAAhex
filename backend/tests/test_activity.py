@@ -32,12 +32,12 @@ async def test_record_timeline_chronological_with_summaries(client, admin):
     await client.post(f"/api/records/leads/{lid}/comments", headers=admin, json={"body": "hi"})
 
     items = await _feed(client, admin, f"?entity=leads&record={lid}")
-    assert [it["type"] for it in items] == ["create", "update", "transition", "comment"]
+    assert [it["type"] for it in items] == ["CREATE", "UPDATE", "TRANSITION", "COMMENT"]
     summaries = {it["type"]: it["summary"] for it in items}
-    assert summaries["create"] == "created this lead"
-    assert summaries["update"] == "updated email"
-    assert summaries["transition"] == "moved NEW → CONTACTED"
-    assert summaries["comment"] == "commented"
+    assert summaries["CREATE"] == "created this lead"
+    assert summaries["UPDATE"] == "updated email"
+    assert summaries["TRANSITION"] == "moved NEW → CONTACTED"
+    assert summaries["COMMENT"] == "commented"
     assert all(it["actor_name"] == "Demo Admin" for it in items)
     ats = [it["at"] for it in items]
     assert ats == sorted(ats)                                   # chronological

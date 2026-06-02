@@ -25,10 +25,10 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 # Friendly metadata for the 4 generic event types the automation executor recognises.
 # Keys MUST stay in lockstep with automations.ALLOWED_EVENT_TYPES — the test below asserts that.
 _TYPE_META: dict[str, dict[str, str]] = {
-    "create":     {"label": "Record created",   "description": "Fires when a new record is created for an entity"},
-    "update":     {"label": "Record updated",   "description": "Fires when an existing record's fields are changed"},
-    "transition": {"label": "Status changed",   "description": "Fires when a record moves along a workflow transition"},
-    "delete":     {"label": "Record deleted",   "description": "Fires when a record is removed"},
+    "CREATE":     {"label": "Record created",   "description": "Fires when a new record is created for an entity"},
+    "UPDATE":     {"label": "Record updated",   "description": "Fires when an existing record's fields are changed"},
+    "TRANSITION": {"label": "Status changed",   "description": "Fires when a record moves along a workflow transition"},
+    "DELETE":     {"label": "Record deleted",   "description": "Fires when a record is removed"},
 }
 
 
@@ -88,7 +88,7 @@ async def event_registry(
                 continue
             rows.append({
                 "key":        f"{e.key}.{frm or '*'}->{to}",
-                "event_type": "transition",
+                "event_type": "TRANSITION",
                 "from":       frm,
                 "to":         to,
                 "label":      f"{e.label}: {frm or 'Any'} → {to}",

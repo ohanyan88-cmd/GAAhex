@@ -37,9 +37,9 @@ async def _do_delete(s, user, ent, grants, paths, rec) -> dict | None:
                          region_id=getattr(rec, "region_id", None), owner_user_id=None)
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
-    await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", ent.key, rec.id, user.id,
                         {"data": dict(rec.data or {}), "status": rec.status})
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="delete", entity_key=ent.key,
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="DELETE", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"status": rec.status})
     await s.delete(rec)
     return None
@@ -70,7 +70,7 @@ async def _do_transition(s, user, ent, grants, paths, rec, to, transitions) -> d
 
     await workflow.complete_transition(s, tenant_id=user.tenant_id, entity_key=ent.key,
                                        record=rec, transition=tr, actor_user_id=user.id)
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=ent.key,
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="TRANSITION", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
     return None
 

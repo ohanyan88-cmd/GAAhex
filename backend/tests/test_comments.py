@@ -264,7 +264,7 @@ async def test_self_edit_sets_status_edited_and_emits_event(client, alice):
     # event substrate emit
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "comment_edited")
+            select(Event).where(Event.type == "COMMENT_EDITED")
         )).scalars().all()
         assert any(e.data.get("commentId") == cid and e.data["before"]["content"] == "orig"
                    and e.data["after"]["content"] == "updated" for e in evs)
@@ -279,7 +279,7 @@ async def test_self_delete_sets_status_deleted_and_emits_bymoderator_false(clien
     assert d.json()["content"] == "Comment Deleted"
     async with OwnerSessionLocal() as s:
         ev = (await s.execute(
-            select(Event).where(Event.type == "comment_deleted")
+            select(Event).where(Event.type == "COMMENT_DELETED")
         )).scalars().all()
         found = [e for e in ev if e.data.get("commentId") == cid]
         assert found, "comment_deleted event missing"
@@ -341,7 +341,7 @@ async def test_moderate_can_delete_other_user_byModerator_true(client, alice, ch
     assert d.status_code == 200 and d.json()["status"] == "DELETED"
     async with OwnerSessionLocal() as s:
         ev = (await s.execute(
-            select(Event).where(Event.type == "comment_deleted")
+            select(Event).where(Event.type == "COMMENT_DELETED")
         )).scalars().all()
         found = [e for e in ev if e.data.get("commentId") == cid]
         assert found and found[-1].data["byModerator"] is True
@@ -504,7 +504,7 @@ async def test_mentions_stored_with_valid_principal_types(client, alice):
         assert types == ["DEPARTMENT", "EMPLOYEE"]
         # mention_added event per mention
         evs = (await s.execute(
-            select(Event).where(Event.type == "mention_added")
+            select(Event).where(Event.type == "MENTION_ADDED")
         )).scalars().all()
         assert sum(1 for e in evs if e.data.get("commentId") == str(cid)) == 2
 

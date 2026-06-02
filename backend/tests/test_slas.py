@@ -214,7 +214,7 @@ async def test_breach_emits_event(client, alice):
     assert g.status_code == 200 and g.json()["status"] == "BREACHED"
     assert g.json()["breachedAt"] is not None
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "sla_breached"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "SLA_BREACHED"))).scalars().all()
         assert any(str(e.record_id) == oid for e in evs)
 
 

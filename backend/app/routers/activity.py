@@ -33,27 +33,27 @@ def _summary(ev: Event) -> str:
     d = ev.data or {}
     t = ev.type
     ek = ev.entity_key or "record"
-    if t == "create":
+    if t == "CREATE":
         return f"created this {ek}"
-    if t == "update":
+    if t == "UPDATE":
         changed = d.get("changed")
         if isinstance(changed, dict) and changed:
             return f"updated {', '.join(changed.keys())}"
         return "updated this record"
-    if t == "transition":
+    if t == "TRANSITION":
         frm, to = d.get("from"), d.get("to")
         return f"moved {frm} → {to}" if to else "changed status"
-    if t == "delete":
+    if t == "DELETE":
         return f"deleted this {ek}"
-    if t == "comment":
+    if t == "COMMENT":
         return "commented"
-    if t == "approval_requested":
+    if t == "APPROVAL_REQUESTED":
         return f"requested approval to move to {d.get('to')}" if d.get("to") else "requested approval"
-    if t == "approval_approved":
+    if t == "APPROVAL_APPROVED":
         return f"approved moving to {d.get('to')}" if d.get("to") else "approved the change"
-    if t == "approval_rejected":
+    if t == "APPROVAL_REJECTED":
         return f"rejected moving to {d.get('to')}" if d.get("to") else "rejected the change"
-    if t == "action_failed":
+    if t == "ACTION_FAILED":
         return f"automated action '{d.get('action')}' failed"
     return t.replace("_", " ")
 

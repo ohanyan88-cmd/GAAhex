@@ -300,8 +300,8 @@ async def create_record(slug: str, payload: dict, user: User = Depends(current_u
     )
     s.add(rec)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", ent.key, rec.id, user.id, {"data": data, "status": status})
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="create", entity_key=ent.key,
+    await workflow.emit(s, user.tenant_id, "CREATE", ent.key, rec.id, user.id, {"data": data, "status": status})
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="CREATE", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"status": status})
     await s.commit()
     rec = await _get(s, user.tenant_id, ent.key, rec.id)  # re-fetch: post-commit s.refresh fails (see transition)
@@ -353,9 +353,9 @@ async def update_record(slug: str, rec_id: uuid.UUID, payload: dict, user: User 
     merged = dict(before)
     merged.update(data)
     rec.data = merged
-    await workflow.emit(s, user.tenant_id, "update", ent.key, rec.id, user.id,
+    await workflow.emit(s, user.tenant_id, "UPDATE", ent.key, rec.id, user.id,
                         {"changed": data, "before": {k: before.get(k) for k in data}})
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="update", entity_key=ent.key,
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="UPDATE", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"changed": data})
     await s.commit()
     rec = await _get(s, user.tenant_id, ent.key, rec.id)  # re-fetch: post-commit s.refresh fails (see transition)
@@ -423,9 +423,9 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
             target_record_id=rec.id,
         )
 
-    await workflow.emit(s, user.tenant_id, "delete", ent.key, rec.id, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", ent.key, rec.id, user.id,
                         {"data": dict(rec.data or {}), "status": rec.status})
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="delete", entity_key=ent.key,
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="DELETE", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"status": rec.status})
     await s.delete(rec)
     if approved_approval is not None:
@@ -533,7 +533,7 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, force: bool = 
     # then fire event notifications.
     await workflow.complete_transition(s, tenant_id=user.tenant_id, entity_key=ent.key,
                                        record=rec, transition=tr, actor_user_id=user.id)
-    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="transition", entity_key=ent.key,
+    await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="TRANSITION", entity_key=ent.key,
                             record=rec, actor_user_id=user.id, extra={"from": frm, "to": to})
     # SPEC §4.5 — consume the workflow_override approval (forward-only state machine).
     if approved_override is not None:

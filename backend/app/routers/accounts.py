@@ -193,7 +193,7 @@ async def create_party(payload: dict, user: User = Depends(current_user), s: Asy
     )
     s.add(party)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "party", party.id, user.id, {"name": name, "type": ptype})
+    await workflow.emit(s, user.tenant_id, "CREATE", "party", party.id, user.id, {"name": name, "type": ptype})
     await s.commit()
     await s.refresh(party)
     return _party(party)
@@ -269,7 +269,7 @@ async def create_account(payload: dict, user: User = Depends(current_user), s: A
     await s.flush()
     # Phase A.2 — maintain hierarchy_path on create. Root: id::text. Child: parent.path + "." + id.
     await rebuild_hierarchy_path(s, account.id)
-    await workflow.emit(s, user.tenant_id, "create", "account", account.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "account", account.id, user.id,
                         {"holder_party_id": str(holder_party_id), "type": atype})
     await s.commit()
     await s.refresh(account)
@@ -325,7 +325,7 @@ async def update_account(account_id: uuid.UUID, payload: dict,
         # available_credit depends on credit_limit; recompute to keep the cache consistent.
         await recompute_account_balance(s, account.id)
 
-    await workflow.emit(s, user.tenant_id, "update", "account", account.id, user.id,
+    await workflow.emit(s, user.tenant_id, "UPDATE", "account", account.id, user.id,
                         {k: payload[k] for k in payload if k in
                          ("parent_account_id", "credit_limit", "credit_terms", "status")})
     await s.commit()

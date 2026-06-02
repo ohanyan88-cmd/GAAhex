@@ -222,7 +222,7 @@ async def test_complete_emits_event(client, alice):
     t = await _mk(client, alice)
     await client.post(f"/api/tasks/{t['id']}/complete", headers=alice, json={"resolution": "DONE"})
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "task_completed"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "TASK_COMPLETED"))).scalars().all()
         assert any(e.data.get("resolution") == "DONE" and str(e.record_id) == t["id"] for e in evs)
 
 

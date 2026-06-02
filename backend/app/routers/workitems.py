@@ -264,7 +264,7 @@ async def create_workitem(
     )
     s.add(w)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "workitem", w.id, user.id,
                         {"title": title, "kind": kind, "priority": priority})
     await s.commit()
     await s.refresh(w)
@@ -340,7 +340,7 @@ async def update_workitem(
         w.location = payload["location"]
         changed["location"] = w.location
 
-    await workflow.emit(s, user.tenant_id, "update", "workitem", w.id, user.id, {"changed": changed})
+    await workflow.emit(s, user.tenant_id, "UPDATE", "workitem", w.id, user.id, {"changed": changed})
     await s.commit()
     await s.refresh(w)
     return _workitem(w)
@@ -370,13 +370,13 @@ async def assign_workitem(
         raise HTTPException(422, "user_id is required")
 
     w.assigned_user_id = user_id
-    await workflow.emit(s, user.tenant_id, "assign", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "WORKITEM_ASSIGN", "workitem", w.id, user.id,
                         {"assigned_user_id": str(user_id)})
     await s.flush()
 
     # best-effort notification to the assignee
     try:
-        await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="workitem_assign",
+        await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="WORKITEM_ASSIGN",
                                 entity_key="workitem", record=w, actor_user_id=user.id,
                                 extra={"workitem_id": str(w.id), "user_id": str(user_id)})
     except Exception:
@@ -411,7 +411,7 @@ async def start_workitem(
 
     old_status = w.status
     w.status = "IN_PROGRESS"
-    await workflow.emit(s, user.tenant_id, "transition", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "workitem", w.id, user.id,
                         {"from": old_status, "to": "IN_PROGRESS"})
     await s.commit()
     await s.refresh(w)
@@ -439,7 +439,7 @@ async def complete_workitem(
     old_status = w.status
     w.status = "DONE"
     w.completed_at = _now()
-    await workflow.emit(s, user.tenant_id, "transition", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "workitem", w.id, user.id,
                         {"from": old_status, "to": "DONE", "completed_at": _iso(w.completed_at)})
     await s.commit()
     await s.refresh(w)
@@ -466,7 +466,7 @@ async def block_workitem(
 
     old_status = w.status
     w.status = "BLOCKED"
-    await workflow.emit(s, user.tenant_id, "transition", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "workitem", w.id, user.id,
                         {"from": old_status, "to": "BLOCKED"})
     await s.commit()
     await s.refresh(w)
@@ -493,7 +493,7 @@ async def cancel_workitem(
 
     old_status = w.status
     w.status = "CANCELLED"
-    await workflow.emit(s, user.tenant_id, "transition", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "workitem", w.id, user.id,
                         {"from": old_status, "to": "CANCELLED"})
     await s.commit()
     await s.refresh(w)
@@ -519,7 +519,7 @@ async def reopen_workitem(
     old_status = w.status
     w.status = "TODO"
     w.completed_at = None
-    await workflow.emit(s, user.tenant_id, "transition", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "TRANSITION", "workitem", w.id, user.id,
                         {"from": old_status, "to": "TODO"})
     await s.commit()
     await s.refresh(w)
@@ -543,7 +543,7 @@ async def delete_workitem(
                paths.get(str(w.owner_node_id)) if w.owner_node_id else None):
         _deny("workitem.delete")
     await _kernel_gate(s, user, w, "delete")
-    await workflow.emit(s, user.tenant_id, "delete", "workitem", w.id, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", "workitem", w.id, user.id,
                         {"title": w.title, "status": w.status})
     await s.delete(w)
     await s.commit()

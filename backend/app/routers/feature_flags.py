@@ -155,7 +155,7 @@ async def patch_flag(
     # Audit event
     s.add(Event(
         tenant_id=user.tenant_id,
-        type="feature_flag.update",
+        type="FEATURE_FLAG.UPDATE",
         entity_key="feature_flag",
         actor_user_id=user.id,
         data={

@@ -46,8 +46,8 @@ async def test_full_lifecycle_and_history(client, admin):
 
     history = (await client.get(f"/api/leads/{lid}/history", headers=admin)).json()
     # one create + three transitions, in order
-    assert [e["type"] for e in history] == ["create", "transition", "transition", "transition"]
-    transitions = [e for e in history if e["type"] == "transition"]
+    assert [e["type"] for e in history] == ["CREATE", "TRANSITION", "TRANSITION", "TRANSITION"]
+    transitions = [e for e in history if e["type"] == "TRANSITION"]
     assert [(e["data"]["from"], e["data"]["to"]) for e in transitions] == [
         ("NEW", "CONTACTED"), ("CONTACTED", "QUALIFIED"), ("QUALIFIED", "CONVERTED"),
     ]
@@ -70,7 +70,7 @@ async def test_guard_pass_and_fail_same_edge(client, admin):
 
     # the failed attempt emitted NO transition event; only the successful one did
     history = (await client.get(f"/api/leads/{lid}/history", headers=admin)).json()
-    transition_events = [e for e in history if e["type"] == "transition"]
+    transition_events = [e for e in history if e["type"] == "TRANSITION"]
     assert len(transition_events) == 1
     assert (transition_events[0]["data"]["from"], transition_events[0]["data"]["to"]) == ("NEW", "CONTACTED")
 
@@ -80,9 +80,9 @@ async def test_guard_pass_and_fail_same_edge(client, admin):
 async def test_transition_emits_single_event(client, admin):
     lead = (await client.post("/api/leads", headers=admin, json={"name": "Single", "phone": "+37411"})).json()
     lid = lead["id"]
-    before = sum(1 for t, _, _ in await _events_for(lid) if t == "transition")
+    before = sum(1 for t, _, _ in await _events_for(lid) if t == "TRANSITION")
     assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "CONTACTED"})).status_code == 200
-    after = sum(1 for t, _, _ in await _events_for(lid) if t == "transition")
+    after = sum(1 for t, _, _ in await _events_for(lid) if t == "TRANSITION")
     assert after - before == 1
 
 
@@ -97,7 +97,7 @@ async def test_crud_event_types_and_actor(client, admin):
 
     # record is gone, so read events directly from the audit table
     events = await _events_for(lid)
-    assert [t for t, _, _ in events] == ["create", "update", "delete"]
+    assert [t for t, _, _ in events] == ["CREATE", "UPDATE", "DELETE"]
     assert all(actor == admin_id for _, _, actor in events)
 
 
@@ -111,6 +111,6 @@ async def test_history_chronological_ordering(client, admin):
     await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "CONTACTED"})
 
     history = (await client.get(f"/api/leads/{lid}/history", headers=admin)).json()
-    assert [e["type"] for e in history] == ["create", "update", "update", "transition"]
+    assert [e["type"] for e in history] == ["CREATE", "UPDATE", "UPDATE", "TRANSITION"]
     ats = [e["at"] for e in history]
     assert ats == sorted(ats)   # non-decreasing timestamps

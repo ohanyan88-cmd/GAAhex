@@ -93,7 +93,7 @@ async def test_lifecycle_and_provisioning(client, admin):
 
     # audit trail: create + three transitions (submit, advance, advance)
     types = await _order_events(oid)
-    assert types[0] == "create" and types.count("transition") == 3
+    assert types[0] == "CREATE" and types.count("TRANSITION") == 3
 
 
 # ===================== illegal transitions =====================

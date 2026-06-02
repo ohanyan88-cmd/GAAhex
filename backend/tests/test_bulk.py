@@ -40,7 +40,7 @@ async def test_bulk_delete_subset(client, admin):
     # deleted ones are gone (+ a delete Event each); the rest remain
     for d in target:
         assert (await client.get(f"/api/leads/{d}", headers=admin)).status_code == 404
-        assert len(await _events_for(d, "delete")) == 1
+        assert len(await _events_for(d, "DELETE")) == 1
     for keep in ids[2:]:
         assert (await client.get(f"/api/leads/{keep}", headers=admin)).status_code == 200
 

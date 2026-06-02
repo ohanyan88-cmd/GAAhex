@@ -160,9 +160,11 @@ async def dispatch_event(s: AsyncSession, *, tenant_id, event_type: str, payload
         hooks = (await s.execute(
             select(WebhookDef).where(WebhookDef.tenant_id == tenant_id, WebhookDef.active.is_(True))
         )).scalars().all()
+        et_upper = (event_type or "").upper()
         for hook in hooks:
             subscribed = hook.events or []
-            if event_type in subscribed or "*" in subscribed:
+            subscribed_upper = {s.upper() for s in subscribed if isinstance(s, str)}
+            if et_upper in subscribed_upper or "*" in subscribed:
                 await _deliver(s, hook, event_type, payload)
     except Exception:
         return

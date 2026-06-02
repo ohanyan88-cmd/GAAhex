@@ -136,12 +136,12 @@ async def add_comment(slug: str, rec_id: uuid.UUID, payload: dict, user: User = 
     preview = str(body)[:140]
     # audit: a comment is a first-class event on the record's history
     s.add(Event(
-        tenant_id=user.tenant_id, type="comment", entity_key=ent.key, record_id=rec.id,
+        tenant_id=user.tenant_id, type="COMMENT", entity_key=ent.key, record_id=rec.id,
         actor_user_id=user.id, data={"thread_id": str(th.id), "message_id": str(msg.id), "preview": preview},
     ))
     # notify the record's other participants (fail-soft; no-op unless a "{entity}.comment" def is configured)
     await notify_hooks.fire(
-        s, tenant_id=user.tenant_id, event_type="comment", entity_key=ent.key, record=rec,
+        s, tenant_id=user.tenant_id, event_type="COMMENT", entity_key=ent.key, record=rec,
         actor_user_id=user.id, extra={"thread_id": str(th.id), "preview": preview},
     )
     await s.commit()

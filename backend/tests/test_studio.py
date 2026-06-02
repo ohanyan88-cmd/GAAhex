@@ -73,7 +73,7 @@ async def test_new_entity_full_lifecycle_no_restart(client, admin):
 
     # audit trail captured both mutations
     history = (await client.get(f"/api/shipments/{rec['id']}/history", headers=admin)).json()
-    assert [e["type"] for e in history] == ["create", "transition"]
+    assert [e["type"] for e in history] == ["CREATE", "TRANSITION"]
 
     # validation from config still applies (bad select value rejected)
     bad = await client.post("/api/shipments", headers=admin, json={"number": "X", "kind": "Telepathy"})

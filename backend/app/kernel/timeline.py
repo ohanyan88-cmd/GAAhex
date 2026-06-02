@@ -87,20 +87,20 @@ def classify_event(row: Event) -> tuple[str, str] | None:
     payload = row.data or {}
 
     # --- Lead created --------------------------------------------------------
-    if et == "create" and ek == "lead":
+    if et == "CREATE" and ek == "lead":
         return ("lead", "Lead created")
 
     # --- Contract signed -----------------------------------------------------
-    # Contract status transitions are emitted as type="transition" with
+    # Contract status transitions are emitted as type="TRANSITION" with
     # {"from": ..., "to": "SIGNED"} (mirrors the invoice/subscription pattern).
-    if et == "transition" and ek == "contract" and payload.get("to") == _STATUS_CONTRACT_SIGNED:
+    if et == "TRANSITION" and ek == "contract" and payload.get("to") == _STATUS_CONTRACT_SIGNED:
         return ("contract", "Contract signed")
 
     # --- Service lifecycle (4 SPEC items, all on entity_key="service") ------
     if ek == "service":
-        if et == "create":
+        if et == "CREATE":
             return ("service", "Service installed")
-        if et == "transition":
+        if et == "TRANSITION":
             new = payload.get("to")
             old = payload.get("from")
             # Restored: SUSPENDED → ACTIVE (must check BEFORE plain "activated")
@@ -116,32 +116,32 @@ def classify_event(row: Event) -> tuple[str, str] | None:
 
     # --- Invoice issued ------------------------------------------------------
     # Two emit patterns produce an "issued" invoice (see billing.py):
-    #   1. POST /invoices/{id}/issue → type="transition" {"from":"DRAFT","to":"ISSUED"}
-    #   2. billing-cycle batch run   → type="create" on the invoice (already ISSUED)
+    #   1. POST /invoices/{id}/issue → type="TRANSITION" {"from":"DRAFT","to":"ISSUED"}
+    #   2. billing-cycle batch run   → type="CREATE" on the invoice (already ISSUED)
     # We treat (1) as the canonical event so that DRAFT invoices don't land on the
     # customer timeline until they are actually issued. SPEC §8 says "Invoice issued".
-    if et == "transition" and ek == "invoice" and payload.get("to") == "ISSUED":
+    if et == "TRANSITION" and ek == "invoice" and payload.get("to") == "ISSUED":
         return ("invoice", "Invoice issued")
 
     # --- Payment received ----------------------------------------------------
-    # Payments are emitted with type="payment" against entity_key="invoice" — see
+    # Payments are emitted with type="PAYMENT" against entity_key="invoice" — see
     # billing.py line 557. Data carries {payment_id, amount, method, paid_sum, invoice_status}.
-    if et == "payment" and ek == "invoice":
+    if et == "PAYMENT" and ek == "invoice":
         return ("payment", "Payment received")
 
     # --- Ticket opened / closed ---------------------------------------------
     # SPEC §8 says "Ticket"; the codebase emits under entity_key="helpdesk_ticket"
     # (helpdesk.py). The classifier treats both keys as the same SPEC category.
     if ek in ("helpdesk_ticket", "ticket"):
-        if et == "create":
+        if et == "CREATE":
             return ("ticket", "Ticket opened")
-        if et == "transition" and payload.get("to") in _STATUS_TICKET_CLOSED:
+        if et == "TRANSITION" and payload.get("to") in _STATUS_TICKET_CLOSED:
             return ("ticket", "Ticket closed")
 
     # --- Work order completed -----------------------------------------------
     # SPEC §8 lists "Work order completed" only — create/assign rows are not on the timeline.
     if ek in ("work_order", "workorder"):
-        if et == "transition" and payload.get("to") in _STATUS_WORK_ORDER_DONE:
+        if et == "TRANSITION" and payload.get("to") in _STATUS_WORK_ORDER_DONE:
             return ("work_order", "Work order completed")
 
     # --- Communication sent --------------------------------------------------
@@ -149,11 +149,11 @@ def classify_event(row: Event) -> tuple[str, str] | None:
     # current build — "interaction" (CRM channel log). We treat both as the SPEC §8
     # "Communication sent" item so the existing interaction events project today and
     # the eventual "communication" entity projects when it lands.
-    if et == "create" and ek in ("communication", "interaction"):
+    if et == "CREATE" and ek in ("communication", "interaction"):
         return ("communication", "Communication sent")
 
     # --- Document uploaded --------------------------------------------------
-    if et == "create" and ek == "document":
+    if et == "CREATE" and ek == "document":
         return ("document", "Document uploaded")
 
     return None

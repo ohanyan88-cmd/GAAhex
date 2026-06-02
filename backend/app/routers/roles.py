@@ -112,7 +112,7 @@ async def create_role(payload: dict, user: User = Depends(current_user), s: Asyn
     )
     s.add(role)
     await s.flush()
-    await workflow.emit(s, user.tenant_id, "create", "role_def", role.id, user.id,
+    await workflow.emit(s, user.tenant_id, "CREATE", "role_def", role.id, user.id,
                         {"key": key, "label": label, "permissions": list(permissions)})
     await s.commit()
     return _role_out(role)
@@ -189,7 +189,7 @@ async def update_role(role_id: uuid.UUID, payload: dict, user: User = Depends(cu
         changed["permissions"] = list(permissions)
 
     if changed:
-        await workflow.emit(s, user.tenant_id, "update", "role_def", role.id, user.id,
+        await workflow.emit(s, user.tenant_id, "UPDATE", "role_def", role.id, user.id,
                             {"key": role.key, "changed": list(changed.keys())})
     if approved_approval is not None:
         await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)
@@ -207,6 +207,6 @@ async def delete_role(role_id: uuid.UUID, user: User = Depends(current_user), s:
     rid = role.id
     rkey = role.key
     await s.delete(role)
-    await workflow.emit(s, user.tenant_id, "delete", "role_def", rid, user.id,
+    await workflow.emit(s, user.tenant_id, "DELETE", "role_def", rid, user.id,
                         {"key": rkey})
     await s.commit()

@@ -81,8 +81,8 @@ async def test_actions_set_field_and_emit_event(client, admin):
     assert moved["flag"] == "SET"                                  # set_field applied
 
     types = await _history_types(client, admin, "act-set", rec["id"])
-    assert "transition" in types and "custom_thing" in types       # custom Event recorded
-    assert "action_failed" not in types
+    assert "TRANSITION" in types and "CUSTOM_THING" in types       # custom Event recorded
+    assert "ACTION_FAILED" not in types
 
 
 async def test_broken_action_is_failsoft(client, admin):
@@ -97,7 +97,7 @@ async def test_broken_action_is_failsoft(client, admin):
     assert moved.json()["status"] == "DONE" and moved.json()["flag"] == "OK"
 
     types = await _history_types(client, admin, "act-bad", rec["id"])
-    assert "transition" in types and "action_failed" in types      # the bad action was logged, not fatal
+    assert "TRANSITION" in types and "ACTION_FAILED" in types      # the bad action was logged, not fatal
 
 
 # ===================== approval step =====================
@@ -131,7 +131,7 @@ async def test_approval_parks_lists_to_approver_and_approves(client, admin, agen
     assert done.status_code == 200 and done.json()["status"] == "APPROVED"
     assert (await client.get(f"/api/appr-main/{rec['id']}", headers=admin)).json()["status"] == "DONE"
     types = await _history_types(client, admin, "appr-main", rec["id"])
-    assert types == ["create", "approval_requested", "transition"]
+    assert types == ["CREATE", "APPROVAL_REQUESTED", "TRANSITION"]
 
 
 async def test_approval_reject_leaves_record(client, admin, agent):
@@ -149,7 +149,7 @@ async def test_approval_reject_leaves_record(client, admin, agent):
     # record untouched
     assert (await client.get(f"/api/appr-rej/{rec['id']}", headers=admin)).json()["status"] == "OPEN"
     types = await _history_types(client, admin, "appr-rej", rec["id"])
-    assert types == ["create", "approval_requested", "approval_rejected"]
+    assert types == ["CREATE", "APPROVAL_REQUESTED", "APPROVAL_REJECTED"]
     assert (await _pa(approval_id)).status == "REJECTED"
 
 

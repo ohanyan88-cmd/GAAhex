@@ -278,7 +278,7 @@ async def test_cancel_sets_job_status_and_emits_event(client, alice):
     assert r.json()["jobStatus"] == "CANCELLED"
 
     async with OwnerSessionLocal() as s:
-        evs = (await s.execute(select(Event).where(Event.type == "job_cancelled"))).scalars().all()
+        evs = (await s.execute(select(Event).where(Event.type == "JOB_CANCELLED"))).scalars().all()
         assert any(e.data.get("jobId") == str(jid) for e in evs)
 
 

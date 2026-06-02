@@ -89,7 +89,7 @@ async def test_real_transition_event_records_delivery(client, admin):
         assert (await client.post(f"/api/leads/{lead['id']}/transition", headers=admin,
                                   json={"to": "CONTACTED"})).status_code == 200
         deliveries = (await client.get(f"/api/webhooks/{wid}/deliveries", headers=admin)).json()
-        assert any(x["event_type"] == "transition" for x in deliveries)     # recorded (FAILED is fine)
+        assert any(x["event_type"] == "TRANSITION" for x in deliveries)     # recorded (FAILED is fine)
     finally:
         await _deactivate(client, admin, wid)
 

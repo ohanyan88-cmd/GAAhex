@@ -375,11 +375,11 @@ async def test_events_emitted_on_every_transition(client, alice):
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
             select(Event).where(Event.type.in_([
-                "escalation_created", "escalation_activated", "escalation_resolved",
+                "ESCALATION_CREATED", "ESCALATION_ACTIVATED", "ESCALATION_RESOLVED",
             ]))
         )).scalars().all()
         by_type = {e.type for e in evs if e.data.get("escalationId") == aid}
-        assert {"escalation_created", "escalation_activated", "escalation_resolved"} <= by_type
+        assert {"ESCALATION_CREATED", "ESCALATION_ACTIVATED", "ESCALATION_RESOLVED"} <= by_type
 
 
 async def test_cancel_emits_event(client, alice):
@@ -388,6 +388,6 @@ async def test_cancel_emits_event(client, alice):
     await client.post(f"/api/escalations/{aid}/cancel", headers=alice)
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
-            select(Event).where(Event.type == "escalation_cancelled")
+            select(Event).where(Event.type == "ESCALATION_CANCELLED")
         )).scalars().all()
         assert any(e.data.get("escalationId") == aid for e in evs)

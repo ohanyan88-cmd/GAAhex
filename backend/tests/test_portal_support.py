@@ -99,7 +99,7 @@ async def test_reply_own_ticket(client: AsyncClient, support_setup):
                            json={"body": "Still waiting for a response."},
                            headers={"Authorization": f"Bearer {d['tok_a']}"})
     assert r2.status_code == 201, r2.text
-    assert r2.json()["direction"] == "inbound"
+    assert r2.json()["direction"] == "INBOUND"
 
     # Reply appears in detail
     detail = await client.get(f"/portal/me/tickets/{tid}",

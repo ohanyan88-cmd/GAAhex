@@ -30,7 +30,7 @@ from ..models.service import Service
 
 
 class ActionResult(TypedDict):
-    status: str           # 'success' | 'failed'
+    status: str           # 'SUCCESS' | 'FAILED'
     response: dict
     error: str | None
 
@@ -101,7 +101,7 @@ async def _log_action(
         response_payload=response_payload,
         status=status,
         requested_at=now,
-        completed_at=now if status in ("success", "failed") else None,
+        completed_at=now if status in ("SUCCESS", "FAILED") else None,
         error_message=error_message,
     )
     session.add(row)
@@ -119,11 +119,11 @@ class LoggingAdapter:
         request = {"service_id": str(service_id), "kbps": int(kbps)}
         found = await _flip_service_status(session, service_id, "SUSPENDED")
         response = {"applied": found, "service_id": str(service_id), "new_status": "SUSPENDED"}
-        result: ActionResult = {"status": "success", "response": response, "error": None}
+        result: ActionResult = {"status": "SUCCESS", "response": response, "error": None}
         await _log_action(
             session, tenant_id=tenant_id, service_id=service_id,
             dunning_case_id=dunning_case_id, action="throttle",
-            request_payload=request, response_payload=response, status="success",
+            request_payload=request, response_payload=response, status="SUCCESS",
         )
         return result
 
@@ -136,11 +136,11 @@ class LoggingAdapter:
         found = await _flip_service_status(session, service_id, "SUSPENDED")
         response = {"applied": found, "service_id": str(service_id), "new_status": "SUSPENDED",
                     "redirect_url": str(redirect_url)}
-        result: ActionResult = {"status": "success", "response": response, "error": None}
+        result: ActionResult = {"status": "SUCCESS", "response": response, "error": None}
         await _log_action(
             session, tenant_id=tenant_id, service_id=service_id,
             dunning_case_id=dunning_case_id, action="walled_garden",
-            request_payload=request, response_payload=response, status="success",
+            request_payload=request, response_payload=response, status="SUCCESS",
         )
         return result
 
@@ -151,11 +151,11 @@ class LoggingAdapter:
         request = {"service_id": str(service_id)}
         found = await _flip_service_status(session, service_id, "TERMINATED")
         response = {"applied": found, "service_id": str(service_id), "new_status": "TERMINATED"}
-        result: ActionResult = {"status": "success", "response": response, "error": None}
+        result: ActionResult = {"status": "SUCCESS", "response": response, "error": None}
         await _log_action(
             session, tenant_id=tenant_id, service_id=service_id,
             dunning_case_id=dunning_case_id, action="terminate",
-            request_payload=request, response_payload=response, status="success",
+            request_payload=request, response_payload=response, status="SUCCESS",
         )
         return result
 
@@ -166,11 +166,11 @@ class LoggingAdapter:
         request = {"service_id": str(service_id)}
         found = await _flip_service_status(session, service_id, "ACTIVE")
         response = {"applied": found, "service_id": str(service_id), "new_status": "ACTIVE"}
-        result: ActionResult = {"status": "success", "response": response, "error": None}
+        result: ActionResult = {"status": "SUCCESS", "response": response, "error": None}
         await _log_action(
             session, tenant_id=tenant_id, service_id=service_id,
             dunning_case_id=dunning_case_id, action="restore",
-            request_payload=request, response_payload=response, status="success",
+            request_payload=request, response_payload=response, status="SUCCESS",
         )
         return result
 
@@ -181,11 +181,11 @@ class LoggingAdapter:
         request = {"account_id": str(account_id), "template": str(template)}
         # Log-only — no Service mutation (notices target the account, not a single service).
         response = {"queued": True, "account_id": str(account_id), "template": str(template)}
-        result: ActionResult = {"status": "success", "response": response, "error": None}
+        result: ActionResult = {"status": "SUCCESS", "response": response, "error": None}
         await _log_action(
             session, tenant_id=tenant_id, service_id=None,
             dunning_case_id=dunning_case_id, action="notice",
-            request_payload=request, response_payload=response, status="success",
+            request_payload=request, response_payload=response, status="SUCCESS",
         )
         return result
 

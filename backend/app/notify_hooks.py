@@ -20,25 +20,31 @@ from .routers.notifications import emit_notification
 
 
 # ---- (entity_key, event_type) → def_key mapping -------------------------------------------------
-# create      → "{entity_key}.created"
-# transition  → "{entity_key}.{new_status_lower}"   (new status from extra["to"], else record.status)
-# update      → "{entity_key}.updated"
-# delete      → "{entity_key}.deleted"
-# anything else → "{entity_key}.{event_type}"
+# event_type is normalised to UPPER_SNAKE at fire() entry (belt-and-suspenders).
+# All call sites should pass UPPER_SNAKE to stay in sync with AutomationRule.event_type (B1 standard).
+# CREATE      → "{entity_key}.created"
+# TRANSITION  → "{entity_key}.{new_status_lower}"   (new status from extra["to"], else record.status)
+# UPDATE      → "{entity_key}.updated"
+# DELETE      → "{entity_key}.deleted"
+# anything else → "{entity_key}.{event_type_lowercased}"
 # A NotificationDef only fires if a row with the derived key exists, is enabled, and (if set) its
 # GXL condition passes — so the mapping can be broad while the seed set stays intentional.
 
 def derive_def_key(entity_key: str, event_type: str, record: Record, extra: dict | None) -> str:
-    if event_type == "create":
+    # event_type is normalised to UPPER_SNAKE at fire() entry; comparisons here use UPPER_SNAKE.
+    et = event_type.upper()
+    if et == "CREATE":
         return f"{entity_key}.created"
-    if event_type == "transition":
+    if et == "TRANSITION":
         status = (extra or {}).get("to") or record.status
         return f"{entity_key}.{str(status).lower()}"
-    if event_type == "update":
+    if et == "UPDATE":
         return f"{entity_key}.updated"
-    if event_type == "delete":
+    if et == "DELETE":
         return f"{entity_key}.deleted"
-    return f"{entity_key}.{event_type}"
+    # Free-form event types (e.g. "helpdesk_assign", "sla_breach", "comment", "workitem_assign"):
+    # lower-case the normalised form so def keys stay readable ("entity.helpdesk_assign").
+    return f"{entity_key}.{et.lower()}"
 
 
 # ---- recipient resolution -----------------------------------------------------------------------
@@ -129,6 +135,7 @@ async def fire(s: AsyncSession, *, tenant_id, event_type: str, entity_key: str, 
     """
     try:
         async with s.begin_nested():   # savepoint: a notification failure must not abort the caller's txn
+            event_type = event_type.upper()   # normalise: call sites must use UPPER_SNAKE; belt-and-suspenders fold
             def_key = derive_def_key(entity_key, event_type, record, extra)
             context = _build_context(record, extra)
             recipients = await resolve_recipients(s, tenant_id=tenant_id, record=record)

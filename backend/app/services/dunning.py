@@ -296,7 +296,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
                 action="THROTTLE", adapter="logging",
                 request_payload={"kbps": kbps, "reason": "no_services_for_account"},
                 response_payload={"applied": False},
-                status="success", requested_at=now, completed_at=now,
+                status="SUCCESS", requested_at=now, completed_at=now,
             )
             session.add(row)
     elif action == "WALLED_GARDEN":
@@ -312,7 +312,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
                 action="WALLED_GARDEN", adapter="logging",
                 request_payload={"redirect_url": redirect_url, "reason": "no_services_for_account"},
                 response_payload={"applied": False},
-                status="success", requested_at=now, completed_at=now,
+                status="SUCCESS", requested_at=now, completed_at=now,
             )
             session.add(row)
     elif action == "TERMINATE":
@@ -327,7 +327,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
                 action="TERMINATE", adapter="logging",
                 request_payload={"reason": "no_services_for_account"},
                 response_payload={"applied": False},
-                status="success", requested_at=now, completed_at=now,
+                status="SUCCESS", requested_at=now, completed_at=now,
             )
             session.add(row)
     else:
@@ -337,7 +337,7 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
             action=str(action), adapter="logging",
             request_payload={"step_index": next_index, "params": params},
             response_payload={},
-            status="failed", requested_at=now, completed_at=now,
+            status="FAILED", requested_at=now, completed_at=now,
             error_message=f"unknown action: {action!r}",
         )
         session.add(row)

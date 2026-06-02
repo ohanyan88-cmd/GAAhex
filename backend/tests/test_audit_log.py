@@ -48,7 +48,7 @@ async def test_happy_path_returns_items_total_and_header(client, admin):
         "actor_user_id", "actor_name", "data", "created_at",
     }
     # The create event came from the admin user — actor_name resolved via the User join.
-    assert sample["type"] == "create"
+    assert sample["type"] == "CREATE"
     assert sample["entity_key"] == "lead"
     assert sample["actor_name"] == "Demo Admin"
     assert sample["actor_user_id"] is not None
@@ -87,11 +87,11 @@ async def test_event_type_filter_supports_csv(client, admin):
     await client.patch(f"/api/leads/{lid}", headers=admin, json={"email": "t@x.io"})
     await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "CONTACTED"})
 
-    creates = (await _get(client, admin, "?event_type=create&limit=500")).json()
-    assert all(it["type"] == "create" for it in creates["items"])
+    creates = (await _get(client, admin, "?event_type=CREATE&limit=500")).json()
+    assert all(it["type"] == "CREATE" for it in creates["items"])
 
-    multi = (await _get(client, admin, "?event_type=create,update&limit=500")).json()
-    assert all(it["type"] in {"create", "update"} for it in multi["items"])
+    multi = (await _get(client, admin, "?event_type=CREATE,UPDATE&limit=500")).json()
+    assert all(it["type"] in {"CREATE", "UPDATE"} for it in multi["items"])
     assert multi["total"] >= creates["total"]    # csv union is at least as large as a single type
 
 

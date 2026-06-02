@@ -323,7 +323,7 @@ async def test_create_emits_queue_created_event(client, alice):
     async with OwnerSessionLocal() as s:
         ev = (await s.execute(
             select(Event).where(
-                Event.type == "queue_created",
+                Event.type == "QUEUE_CREATED",
                 Event.entity_key == "helpdesk_queue",
                 Event.record_id == uuid.UUID(qid),
             )
@@ -342,7 +342,7 @@ async def test_update_emits_queue_updated_event(client, alice):
     async with OwnerSessionLocal() as s:
         evs = (await s.execute(
             select(Event).where(
-                Event.type == "queue_updated",
+                Event.type == "QUEUE_UPDATED",
                 Event.entity_key == "helpdesk_queue",
                 Event.record_id == uuid.UUID(qid),
             )
