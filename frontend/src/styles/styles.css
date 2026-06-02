@@ -26,7 +26,7 @@
 @import "./_auth.css";            /* .center + .card + .logo-* + .wiz-* */
 @import "./_studio-legacy.css";   /* legacy div.studio + .studio-nav/.studio-pane + .gx-toggle */
 @import "./_section-heading.css"; /* .section-head + .section-divider + .swatch */
-@import "./_utilities.css";       /* .row/.col/.gap-*/.spacer + density */
+@import "./_utilities.css";       /* .row / .col / .gap-* / .spacer + density */
 @import "./_keyframes.css";       /* @keyframes + reduced-motion + small-screen responsive */
 @import "./_addendum.css";        /* .skel + .pill-info + .kan-* + .ask-* + .lang-* */
 @import "./_org-view.css";        /* Org tree/cards/hierarchy/map/sunburst/treemap/network/heatmap/timeline/RACI */
