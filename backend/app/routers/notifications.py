@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..kernel import assert_can, AccessDenied
 from ..models import User
-from ..models.notification import NotificationDef, Notification
+from ..models.notification import NotificationDef, Notification, NotificationDelivery
 from ..models.notification_pref import NotificationPref
 from ..models.outbound import OutboundMessage
 from ..access import load_grants, can
@@ -235,6 +235,27 @@ def _serialize(n: Notification) -> dict:
         "snoozed_until": n.snoozed_until.isoformat() if n.snoozed_until else None,
         "digest_pending": n.digest_pending,
         "created_at": n.created_at.isoformat() if n.created_at else None,
+        # Notification Standard extension fields (file 05 / D16) — None for legacy rows.
+        "eventId": str(n.event_id) if n.event_id else None,
+        "source": n.source,
+        "severity": n.severity,
+        "recipientType": n.recipient_type,
+        "stdCategory": n.std_category,
+        "status": n.status,
+        "acknowledgedAt": n.acknowledged_at.isoformat() if n.acknowledged_at else None,
+        "dismissedAt": n.dismissed_at.isoformat() if n.dismissed_at else None,
+        "expiresAt": n.expires_at.isoformat() if n.expires_at else None,
+    }
+
+
+def _serialize_delivery(d: NotificationDelivery) -> dict:
+    return {
+        "id": str(d.id),
+        "notificationId": str(d.notification_id),
+        "channel": d.channel,
+        "status": d.status,
+        "attemptedAt": d.attempted_at.isoformat(),
+        "resultDetail": d.result_detail,
     }
 
 
@@ -486,6 +507,95 @@ async def mark_all_read(user: User = Depends(current_user), s: AsyncSession = De
     )
     await s.commit()
     return {"updated": result.rowcount}
+
+
+# ---- Notification Standard extension endpoints (file 05) ----
+# All scoped to the caller's own rows (user_id == user.id).
+# Permission keys: notification.acknowledge, notification.dismiss, notification.view.
+
+@router.post("/{note_id}/acknowledge")
+async def acknowledge(
+    note_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Acknowledge — the recipient has seen and acted on the notification.
+    Sets status=ACKNOWLEDGED + acknowledged_at. Idempotent. Requires notification.acknowledge."""
+    grants = await load_grants(s, user)
+    if not can(grants, "notification", "acknowledge"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    note = (await s.execute(
+        select(Notification).where(
+            Notification.id == note_id,
+            Notification.tenant_id == user.tenant_id,
+            Notification.user_id == user.id,
+        )
+    )).scalar_one_or_none()
+    if not note:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    if note.acknowledged_at is None:
+        note.acknowledged_at = datetime.now(timezone.utc)
+        note.status = "ACKNOWLEDGED"
+    await s.commit()
+    await s.refresh(note)
+    return _serialize(note)
+
+
+@router.post("/{note_id}/dismiss")
+async def dismiss(
+    note_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Dismiss — the recipient explicitly closes/removes the notification from active view.
+    Sets status=DISMISSED + dismissed_at. Idempotent. Requires notification.dismiss."""
+    grants = await load_grants(s, user)
+    if not can(grants, "notification", "dismiss"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    note = (await s.execute(
+        select(Notification).where(
+            Notification.id == note_id,
+            Notification.tenant_id == user.tenant_id,
+            Notification.user_id == user.id,
+        )
+    )).scalar_one_or_none()
+    if not note:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    if note.dismissed_at is None:
+        note.dismissed_at = datetime.now(timezone.utc)
+        note.status = "DISMISSED"
+    await s.commit()
+    await s.refresh(note)
+    return _serialize(note)
+
+
+@router.get("/{note_id}/deliveries")
+async def list_deliveries(
+    note_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Delivery attempt log for one notification. Requires notification.view.
+    Returns ordered-by-attempted_at list of NotificationDelivery rows."""
+    grants = await load_grants(s, user)
+    if not can(grants, "notification", "view"):
+        raise HTTPException(status_code=403, detail="Access denied")
+    # Verify ownership — the notification belongs to this user in this tenant.
+    note = (await s.execute(
+        select(Notification).where(
+            Notification.id == note_id,
+            Notification.tenant_id == user.tenant_id,
+            Notification.user_id == user.id,
+        )
+    )).scalar_one_or_none()
+    if not note:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    rows = (await s.execute(
+        select(NotificationDelivery).where(
+            NotificationDelivery.notification_id == note_id,
+        ).order_by(NotificationDelivery.attempted_at)
+    )).scalars().all()
+    return [_serialize_delivery(d) for d in rows]
 
 
 # ---- outbound delivery log (admin) — on the /api router ----

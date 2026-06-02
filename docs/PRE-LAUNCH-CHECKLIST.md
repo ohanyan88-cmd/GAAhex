@@ -79,12 +79,13 @@ Status:
 
 ## SECTION 4 — Network / OLT / RADIUS
 
-### 4a. OLT (Huawei / ZTE)
+### 4a. OLT (Huawei / ZTE / VSOL)
 | # | Item | State | Action |
 |---|---|---|---|
 | 23 | OLT device credentials | Mock drivers built | 📋 Ask customer for full OLT inventory CSV: model, IP, username, password |
-| 24 | Protocol per OLT | Drivers support CLI/SNMP/NETCONF | 📋 Ask: which protocol does each OLT expose? (Huawei MA5800 = CLI, ZTE C300 = NETCONF usually) |
+| 24 | Protocol per OLT | Drivers support CLI/SNMP/NETCONF | 📋 Ask: which protocol does each OLT expose? (Huawei MA5800 = CLI/SSH, ZTE C300 = NETCONF, VSOL = typically CLI/Telnet or SNMP) |
 | 25 | Real device testing | Not done | Test `HuaweiDriver` + `ZteDriver` against one real OLT before go-live |
+| 25a | **VSOL OLT driver** 🇦🇲 | **Not built** | **VSOL (深圳市维网光通科技) is a Chinese GPON/EPON vendor popular in Armenia (low cost, widely deployed by small/mid ISPs). Current driver pool: Huawei + ZTE only. Action: 📋 Ask customer if they have VSOL equipment. If yes, build `VsolDriver` implementing the `OltDriver` Protocol in `app/services/olt/drivers/vsol.py`. VSOL OLTs typically expose CLI over Telnet (port 23) or SSH; some models also support SNMP v2c. Commands differ from Huawei/ZTE — need VSOL device access to map the exact CLI syntax for `get_status`, `provision_onu`, `delete_onu`, `get_optical_power`, `set_vlan`, `apply_line_profile`. Register in `app/services/olt/factory.py` vendor registry.** |
 
 ### 4b. FreeRADIUS
 | # | Item | State | Action |
@@ -199,7 +200,7 @@ Status:
 
 Questions to ask the ISP partner before deployment:
 
-1. **OLT inventory**: Full list of OLT models, IPs, credentials, and protocol (CLI/SNMP/NETCONF) per device.
+1. **OLT inventory**: Full list of OLT models, IPs, credentials, and protocol (CLI/SNMP/NETCONF) per device. **Specifically ask: do you have any VSOL OLTs?** (popular low-cost GPON vendor in Armenia — driver not yet built, needs 1-2 sessions if confirmed).
 2. **FreeRADIUS schema**: Do they have custom user attributes? What is their subscriber table structure?
 3. **Payment preference**: Stripe (international), Idram, ARca, Telcell, EasyPay, or cash-only for v1?
 4. **SMS preference**: Twilio OK, or local Armenian carrier API needed?
