@@ -47,3 +47,32 @@ Swagger: http://127.0.0.1:8099/docs
 - **Everything written down** — decisions go into the blueprint docs, not just memory.
 - **Kernel Line:** engines are fixed; what's expressed on top is configuration.
 - Keep the code clean and the kernel small.
+
+---
+
+# 📐 Standards (LOCKED — consult before implementing)
+
+`docs/standards/` holds **70 LOCKED platform standards** (the single source of truth for every
+data model, enum, permission key, UI primitive, page type, and lifecycle behavior on this platform).
+**Every agent — backend or frontend — must consult the relevant standard before implementing a
+change.** If your code would diverge from a standard, FLAG IT in your return summary so the
+orchestrator can decide: align, document an exception, or revise the standard.
+
+## Where to look first
+- **`docs/standards/00-standards-index.md`** — canonical index of all 70 standards (TOC + status + dependencies)
+- **`docs/standards/14-enum-registry.md`** — every enum name, owner department, and `UPPER_SNAKE_CASE` values
+- **`docs/standards/15-permission-registry.md`** — `Object.Action` permission keys (immutable once released)
+- **`docs/standards/13-consistency-patch-notes.md`** — recent normalization decisions (B1–B5, S1–S5, D1–D16)
+
+## What overrides what
+- A LOCKED standard overrides personal style choices
+- 7 standards carry status `SOURCE NOT PROVIDED` (Global Status, Automation, Integration, Security & Permission, Data Validation, Search & Filter, Navigation base) — implementations against these are provisional until their text lands
+- The Strategic Product Direction (file 01) is the parent of all other standards — re-read it if any deeper standard seems to conflict
+
+## Quick conformance checks before shipping code
+- All status / type / category values are `UPPER_SNAKE_CASE` (B1)
+- All business-visible IDs are UUIDs with the matching reference-number prefix from file 00 (S5/D8)
+- Every tenant-scoped entity carries `tenantId` (D1)
+- Every page consumes `PageShell` + the 6 standard zones (file 10)
+- Every detail page exposes the common tab set (Overview, Timeline, Tasks, Comments, Attachments, Approvals, Related, Communications, Audit — file 10 §Object Detail) before any object-specific tabs
+- Every permission grant follows `Object.Action` (file 15) — keys are immutable

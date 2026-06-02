@@ -1,0 +1,115 @@
+# 00 — Canonical Standards Index
+
+LOCKED. Standard **name** is immutable identity. **Number** is display order only and
+is never used as a business value, key, or reference. No duplicate numbers exist.
+
+Legend — Status: `LOCKED` = full text present and patched. `LOCKED / SOURCE NOT PROVIDED`
+= referenced as locked by other standards but source text not supplied to this patch.
+
+| # | Standard | Status | Source file | Key dependencies |
+|---|----------|--------|-------------|------------------|
+| 1 | Strategic Product Direction | LOCKED | 01 | (parent of all) |
+| 2 | Global Status | LOCKED / SOURCE NOT PROVIDED | 07 | Enum |
+| 3 | Department Ownership | LOCKED | 02 | Assignment |
+| 4 | Assignment | LOCKED | 02 | Department Ownership, Queue |
+| 5 | Queue Ownership | LOCKED | 02 | Assignment, Escalation |
+| 6 | Escalation | LOCKED | 02 | Queue, Notification |
+| 7 | Approval Ownership | LOCKED | 02 | Audit, Event System |
+| 8 | ID | LOCKED | 03 | (foundational) |
+| 9 | Reference Number | LOCKED | 03 | ID |
+| 10 | Naming | LOCKED | 03 | Enum |
+| 11 | Enum | LOCKED | 03 | Naming, Localization |
+| 12 | Audit | LOCKED | 04 | Event System, ActorType |
+| 13 | Activity Timeline | LOCKED | 04 | Event System, Audit |
+| 14 | Comment | LOCKED | 04 | Audit, Timeline, Attachment |
+| 15 | Attachment | LOCKED | 04 | Audit, Timeline, Security |
+| 16 | Task | LOCKED | 05 | Assignment, Audit, Timeline, Watcher, Notification |
+| 17 | Watcher / Subscriber | LOCKED | 05 | Notification, Audit |
+| 18 | Notification | LOCKED | 05 | Watcher, Event System |
+| 19 | Event System | LOCKED | 06 | ID, Audit, Timeline, ActorType |
+| 20 | Automation | LOCKED / SOURCE NOT PROVIDED | 06 | Event System |
+| 21 | Integration | LOCKED / SOURCE NOT PROVIDED | 06 | Event System, Multi-Tenant |
+| 22 | Security & Permission | LOCKED / SOURCE NOT PROVIDED | 07 | Multi-Tenant, RBAC |
+| 23 | Data Validation | LOCKED / SOURCE NOT PROVIDED | 07 | Enum, API, Import/Export |
+| 24 | Search & Filter | LOCKED / SOURCE NOT PROVIDED | 07 | Security, Multi-Tenant |
+| 25 | Reporting & Analytics | LOCKED | 08 | Security, Event System, Multi-Tenant |
+| 26 | Import / Export | LOCKED | 08 | Data Validation, Security, Attachment |
+| 27 | Multi-Tenant | LOCKED | 08 | Security (applies everywhere) |
+| 28 | Localization | LOCKED | 08 | Enum, Naming |
+| 29 | Configuration | LOCKED | 08 | Security, Audit, Feature Flag |
+| 30 | Feature Flag | LOCKED | 08 | Configuration, Security, Multi-Tenant |
+| 31 | Navigation (locked tree authoritative) | LOCKED / SOURCE NOT PROVIDED (tree provided) | 10 | Security, Feature Flag |
+| 32 | PageShell | LOCKED | 10 | Universal Page |
+| 33 | Universal Page | LOCKED | 10 | PageShell, Page Type |
+| 34 | Page Type | LOCKED | 10 | Universal Page, Tabs |
+| 35 | Object Detail | LOCKED | 10 | Tabs, Timeline |
+| 36 | Button | LOCKED | 09 | Security, Color |
+| 37 | Badge | LOCKED | 09 | Enum, Color |
+| 38 | Chip | LOCKED | 09 | Enum, Security |
+| 39 | Form | LOCKED | 09 | Data Validation, Security |
+| 40 | Table | LOCKED | 09 | Search/Filter, Security, Import/Export, Badge |
+| 41 | Modal | LOCKED | 09 | Button, Object Editing |
+| 42 | Toast / Alert | LOCKED | 09 | Audit, Event System |
+| 43 | Empty State | LOCKED | 09 | Feature Flag, Security |
+| 44 | Card | LOCKED | 09 | Reporting, Color |
+| 45 | Tabs | LOCKED | 09 | Object Detail, Security |
+| 46 | Icon | LOCKED | 09 | Color |
+| 47 | Color | LOCKED | 09 | (tokens) |
+| 48 | Spacing | LOCKED | 09 | PageShell |
+| 49 | Typography | LOCKED | 09 | Localization |
+| 50 | Device Strategy | LOCKED | 10 | PageShell, Drawer, Table |
+| 51 | Interface Density | LOCKED | 10 | Layout Grid, Table, Spacing |
+| 52 | Object Editing | LOCKED | 10 | Drawer, Modal, Form |
+| 53 | Layout Grid | LOCKED | 10 | Device, Density, Spacing |
+| 54 | Left Navigation | LOCKED | 10 | Navigation (tree), Security, Feature Flag |
+| 55 | Header / Top Bar | LOCKED | 10 | Button, Action Menu, Badge |
+| 56 | Drawer | LOCKED | 10 | Object Editing, Form, Audit |
+| 57 | Action Menu | LOCKED | 10 | Button, Security, Audit |
+| 58 | Pagination | LOCKED | 10 | Table, Search/Filter, Security |
+| 59 | Loading / Skeleton | LOCKED | 10 | Button, Table, Drawer |
+| 60 | Customer Lifecycle & Pipeline Page Behavior | LOCKED | 11 | Page Type, Tabs, Workflow Engine |
+| 61 | Workflow Engine | LOCKED | 12 | Event System, Approval, SLA |
+| 62 | Relationship / Entity Link | LOCKED | 12 | ID, Reference Number, Enum |
+| 63 | Deletion / Archive / Restore | LOCKED | 12 | Audit, Retention, Relationship |
+| 64 | SLA | LOCKED | 12 | Workflow, Escalation, Watcher |
+| 65 | Customer Communication | LOCKED | 12 | Notification, Relationship |
+| 66 | API | LOCKED | 12 | Security, RBAC, Webhook |
+| 67 | RBAC / Permission Model | LOCKED | 12 | Security, Multi-Tenant, Watcher |
+| 68 | Background Job | LOCKED | 12 | Event System, Integration |
+| 69 | Data Retention | LOCKED | 12 | Audit, Deletion, Attachment |
+| 70 | Webhook | LOCKED | 12 | Event System, API, Background Job |
+
+## Collision resolutions (S1)
+
+- Former `17 / 17` collision (Event System vs Notification) resolved: Notification = 18,
+  Event System = 19. Both name-keyed; numbers are ordering only.
+- Former `22 vs 28` count mismatch resolved: a single contiguous sequence (1–70) with no
+  gaps and no duplicates. Seven entries are `SOURCE NOT PROVIDED` placeholders, counted
+  in sequence so cross-references stay stable.
+
+## Canonical cross-cutting enums (defined once in file 03)
+
+**ObjectType / EntityType (D3)** — 40-value superset used by Audit, Timeline, Watcher,
+Relationship, Attachment owner, Communication, Export. Audit's former 13-value subset is replaced.
+
+**ActorType (B3 / D5 — performer axis):** `USER, SYSTEM, AUTOMATION, INTEGRATION, API, CUSTOMER`.
+
+**PrincipalType (D5 / D12 — referenced-principal axis):** `EMPLOYEE, ROLE, DEPARTMENT, TEAM,
+QUEUE`. Per-context subsets in file 03. `USER` (ActorType) ≠ `EMPLOYEE` (PrincipalType).
+
+## Registries
+- File 14 — `14-enum-registry.md`: every enum with owner department + values (Enum Standard r6/r8).
+- File 15 — `15-permission-registry.md`: all `Object.Action` permission keys (RBAC Standard).
+
+## Reference prefix registry (S5 + D8 — complete)
+```
+CUS=Customer  LED=Lead  EMP=Employee  ROL=Role  DEP=Department  TEM=Team  QUE=Queue
+TKT=Ticket  TSK=Task  INV=Invoice  PAY=Payment  CNT=Contract  ORD=Order  APP=Approval
+PRJ=Project  AST=Asset  SVC=Service  SUB=Subscription  NDV=Network Device  SIT=Site
+LOC=Location  VEN=Vendor  PUR=Purchase Order  KBA=Knowledge Article  CHG=Change Request
+INC=Incident  PRB=Problem  RLE=Release  CMP=Campaign  COM=Communication  REL=Relationship
+EVT=Event  IMP=Import  EXP=Export  WFL=Workflow  SLA=SLA  WHK=Webhook  CFG=Configuration
+FFL=Feature Flag  JOB=Background Job
+```
+No duplicate prefixes (`REL`=Relationship, `RLE`=Release are distinct). Internal-only technical
+records (e.g. webhook delivery attempts, trace keys) may be UUID-only when not business-visible.
