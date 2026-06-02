@@ -50,7 +50,7 @@ from .seed_regions import seed_demo_regions_if_empty
 from .seed_nav_registry import seed_nav_registry_if_empty
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle
 
 
 _log = logging.getLogger("gaahex")
@@ -208,7 +208,11 @@ app.include_router(export.router)
 app.include_router(activity.router)
 app.include_router(audit_log.router)                # /api/audit-log (governance log; admin-scoped; before records)
 app.include_router(ops.router)
-app.include_router(billing.router)
+app.include_router(billing_subscription.router)     # /api/subscriptions/* (split from billing god-router)
+app.include_router(billing_invoice.router)          # /api/invoices/* + /api/invoices/run-dunning (split from billing god-router)
+app.include_router(billing_payment.router)          # /api/payments/* + /api/invoices/{id}/payments (split from billing god-router)
+app.include_router(billing_credit_note.router)      # /api/credit-notes (POST; reads served by generic record router)
+app.include_router(billing_product.router)          # /api/products/* + /api/products/{id}/versions (split from billing god-router)
 app.include_router(bulk.router)
 app.include_router(report_builder.router)
 app.include_router(orders.router)

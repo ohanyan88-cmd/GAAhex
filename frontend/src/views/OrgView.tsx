@@ -1,17 +1,15 @@
 // -----------------------------------------------------------------------------
 // OrgView — the Org page (view.type === 'org'). Renders the org hierarchy in one
-// of FIVE switchable layouts (Hierarchy | Cards | Outline | List | Grouped). The
+// of THIRTEEN switchable layouts: Hierarchy | Cards | Outline | List | Grouped |
+// Spans | Map | Sunburst | Treemap | Network | Heatmap | Timeline | RACI. The
 // chosen layout is a pure presentation preference, persisted to localStorage
-// ('gaahex-org-view') and applied on load (default 'hierarchy').
-//
-// PHASE 1 (this file): view layouts + switcher ONLY. No node custom-fields,
-// node-type/look config, or structure editing yet (later phases). The List view's
-// columns work strictly from the current node fields (richer columns — role /
-// headcount / manager — arrive in a later phase).
+// ('gaahex-org-view') and applied on load (default 'hierarchy'). The legacy
+// 'tree' value is migrated to 'outline' on load.
 //
 // The hierarchy is derived from the flat node list: parent_id when present
 // (the API returns it), otherwise falling back to the dot-path. All layouts
-// render from a single nested `OrgTreeNode[]` tree so they stay consistent.
+// render from a single nested `OrgTreeNode[]` tree so they stay consistent,
+// and they read custom-field defs + values through a shared CFApi context.
 // -----------------------------------------------------------------------------
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
