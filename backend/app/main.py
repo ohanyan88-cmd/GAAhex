@@ -15,12 +15,21 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text, select
 
 from .config import settings, _assert_production_deploy_contract
-from .db import SessionLocal, OwnerSessionLocal
+from .db import SessionLocal, OwnerSessionLocal, engine, owner_engine
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
     PermissionDef, RoleDef, Assignment, RoleDeny, Event, FeatureFlag,
 )
+# M1-A audit item #4 — tenant-filter safety net (defense layer 2 after RLS).
+# Attached AFTER `.models` import so `Base.metadata` is fully populated when the
+# listener discovers the tenant-scoped table set. Gated by env GAAHEX_TENANT_AUDIT
+# (on by default in dev; off in tests + prod). No-op + zero overhead when disabled.
+# Both engines are audited; legitimate exceptions (auth lookups, GUC binding, seed
+# scripts) opt out per-statement via `execution_options(audit_tenant_filter=False)`.
+from .tenant_query_audit import setup_tenant_query_audit  # noqa: E402
+setup_tenant_query_audit(engine)
+setup_tenant_query_audit(owner_engine)
 from .seed import (
     seed_if_empty, seed_meta_if_empty, seed_access_if_empty,
     seed_portal_if_empty, seed_spec_roles_if_missing,
