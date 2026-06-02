@@ -1,4 +1,4 @@
-// GAAex Studio — Security → Users pane.
+// GAAhex Studio — Security → Users pane.
 //
 // Real RBAC management: list users in the tenant, create new users, edit
 // fields, soft-delete, and bind/unbind role assignments (role + org node).

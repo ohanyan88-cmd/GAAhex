@@ -1,6 +1,6 @@
 // CollectionsView — Phase B.2 Dunning UI. Two tabs: Active Cases + Policies.
 //
-// Wires the Portal to the GAAex Dunning backend:
+// Wires the Portal to the GAAhex Dunning backend:
 //   GET    /api/dunning/policies?active=&page=
 //   POST   /api/dunning/policies                                (admin)
 //   GET    /api/dunning/policies/{id}

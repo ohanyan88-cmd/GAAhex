@@ -11,7 +11,7 @@ The session DB persists across files, so every entity here uses a UNIQUE key/slu
 from sqlalchemy import select
 
 # app modules are import-safe here: conftest set DATABASE_URL to the test DB before any app import,
-# so SessionLocal is bound to gaaex_test.
+# so SessionLocal is bound to gaahex_test.
 from app.db import SessionLocal
 from app.models import PermissionDef
 

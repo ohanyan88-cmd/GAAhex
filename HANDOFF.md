@@ -1,11 +1,10 @@
-# SESSION HANDOFF — Portal, 2026-06-01 (audit P0/P1 cleared + 5 new advanced charts)
+# SESSION HANDOFF — GAAhex, 2026-06-01 (audit P0/P1 cleared + 5 new advanced charts)
 
 > Owner = Gev (calls me Ընգեր).
-> Repo: `ohanyan88-cmd/Portal` — THE ACTIVE PRODUCT. NEVER touch Desktop\GAAex.
+> Repo: `ohanyan88-cmd/GAAhex` — THE ACTIVE PRODUCT.
 > Read this → `git pull` → `git status` → continue from "What's next".
 
 ## Hard rules (every session)
-- **Portal-only** — NEVER touch `C:\Users\Admin\Desktop\GAAex`
 - **Orchestrator pushes** — agents commit locally; only main session runs `git push`
 - **No fake / mock / hardcoded data** — every chart fetches from a real backend endpoint
 - DELETE old code, don't layer
@@ -114,14 +113,14 @@ GET /api/analytics/net-subscriber-growth?weeks=N
 ## Stack-up commands
 
 ```powershell
-docker start gaaex-db gaaex-redis
-cd C:\Users\Admin\Desktop\Portal\backend
+docker start gaahex-db gaahex-redis
+cd C:\Users\Admin\Desktop\GAAhex\backend
 .venv\Scripts\python.exe -m uvicorn app.main:app --port 8099
 ```
 
 Frontend (new shell):
 ```powershell
-cd C:\Users\Admin\Desktop\Portal\frontend
+cd C:\Users\Admin\Desktop\GAAhex\frontend
 npm run dev      # → http://localhost:5173
 # login: admin@demo.isp / admin123
 # On first login you'll see must_change_password=true — change via Settings → Security
@@ -129,7 +128,7 @@ npm run dev      # → http://localhost:5173
 
 Tests:
 ```powershell
-cd C:\Users\Admin\Desktop\Portal\backend
+cd C:\Users\Admin\Desktop\GAAhex\backend
 .venv\Scripts\python.exe -m pytest -q
 ```
 

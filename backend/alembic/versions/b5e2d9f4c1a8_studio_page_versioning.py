@@ -40,8 +40,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE studio_page ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON studio_page
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
     # ---- studio_page_version ----
@@ -82,8 +82,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE studio_page_version ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON studio_page_version
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

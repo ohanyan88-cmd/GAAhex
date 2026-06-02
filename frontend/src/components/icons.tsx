@@ -1,4 +1,4 @@
-// Icon set for GAAex. RULE: the product UI uses NO emoji — every icon is an inline SVG here.
+// Icon set for GAAhex. RULE: the product UI uses NO emoji — every icon is an inline SVG here.
 // (Emoji are only allowed in human communication: chat, mail, etc. — never in the app.)
 //
 // IMPLEMENTATION (Design-system reskin, PROMPT 10): each export is a tiny wrapper around the

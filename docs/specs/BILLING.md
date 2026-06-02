@@ -1,6 +1,6 @@
 # Billing — Handoff (A29/B29/C29)
 
-This document covers GAAex's complete billing flow from subscription to payment: how subscriptions
+This document covers GAAhex's complete billing flow from subscription to payment: how subscriptions
 generate invoices, how invoices transition through states, how payments are recorded, and how the
 frontend presents billing data to users.
 
@@ -8,7 +8,7 @@ frontend presents billing data to users.
 
 ## 1. Overview & Money Model
 
-All amounts in GAAex are stored as **integer luma** — the minor unit of the Armenian Dram (֏).
+All amounts in GAAhex are stored as **integer luma** — the minor unit of the Armenian Dram (֏).
 One dram = 100 luma, so 1 ֏ is represented as `100` in the database.
 
 **Why integers?** Floating-point arithmetic causes drift across cumulative calculations. Storing

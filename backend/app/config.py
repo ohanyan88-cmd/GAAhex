@@ -12,10 +12,10 @@ class Settings(BaseSettings):
     # unaffected; production deploys MUST set ENVIRONMENT=production so the deploy-contract
     # guard in `_assert_production_deploy_contract()` fires (see docs/M1A-DEPLOY-CONTRACT.md).
     environment: str = "development"
-    database_url: str = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex"
+    database_url: str = "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex"
     # Privileged (RLS-bypassing) role for the few pre-auth / no-tenant paths: seeding, the
     # login + current_user user lookup, and /org-tree. Falls back to database_url when unset (e.g.
-    # tests, or before the RLS enforcement flip). In prod: database_url=gaaex_app, this=gaaex.
+    # tests, or before the RLS enforcement flip). In prod: database_url=gaahex_app, this=gaahex.
     owner_database_url: str | None = None
     redis_url: str = "redis://localhost:6380/0"
     jwt_secret: str = "dev-only-change-me"
@@ -141,7 +141,7 @@ def _assert_production_deploy_contract() -> None:
 
     In dev/test, owner falls back to the app URL — convenient but RLS-decorative.
     This is intentional and matches the existing test pattern (test_rls.py uses
-    its own gaaex_app engine to validate RLS in isolation).
+    its own gaahex_app engine to validate RLS in isolation).
 
     See docs/M1A-DEPLOY-CONTRACT.md for the deploy contract details.
     """
@@ -155,7 +155,7 @@ def _assert_production_deploy_contract() -> None:
         raise RuntimeError(
             "M1-A production deploy contract violation: DATABASE_URL and "
             "OWNER_DATABASE_URL are equal. In production these MUST be "
-            "different Postgres roles (gaaex_app for the app, gaaex for the "
+            "different Postgres roles (gaahex_app for the app, gaahex for the "
             "owner) so that Row-Level Security policies engage. See "
             "docs/M1A-DEPLOY-CONTRACT.md."
         )
@@ -191,10 +191,10 @@ def _assert_production_deploy_contract() -> None:
 # Adding new references from request-handling code is a regression. Use `user.tenant_id` instead.
 #
 # Resolution order (when these helpers ARE called):
-#   1. env GAAEX_TENANT_ID (explicit override, useful in prod / staging)
+#   1. env GAAHEX_TENANT_ID (explicit override, useful in prod / staging)
 #   2. the oldest Tenant row in the database (resolved on first call, then cached)
 _THE_TENANT_ID: uuid.UUID | None = (
-    uuid.UUID(os.environ["GAAEX_TENANT_ID"]) if os.environ.get("GAAEX_TENANT_ID") else None
+    uuid.UUID(os.environ["GAAHEX_TENANT_ID"]) if os.environ.get("GAAHEX_TENANT_ID") else None
 )
 
 
@@ -209,7 +209,7 @@ async def the_tenant_id_async() -> uuid.UUID:
     """Async resolver — pulls the cached value or reads it from the DB exactly once.
 
     Resolution order:
-      1. GAAEX_TENANT_ID env var (set at import time)
+      1. GAAHEX_TENANT_ID env var (set at import time)
       2. cached value (set by the seed or a previous call)
       3. the oldest Tenant row in the database (single-tenant invariant — there should only be one
          in prod; tests insert isolation-probe rows after the cache is warmed so they don't shift it)

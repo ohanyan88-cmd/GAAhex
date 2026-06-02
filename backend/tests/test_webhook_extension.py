@@ -45,7 +45,7 @@ def _allow_private_webhooks():
 
 
 # A local port nothing listens on → connection refused fast (no 3s timeout stall).
-DEAD_URL = "http://127.0.0.1:9/gaaex-hook"
+DEAD_URL = "http://127.0.0.1:9/gaahex-hook"
 
 
 _PROFILES = {

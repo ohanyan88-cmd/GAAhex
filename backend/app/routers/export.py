@@ -175,7 +175,7 @@ async def export_records(
     # ------------------------------------------------------------------
     t = await _tenant(s, user.tenant_id)
     currency: str = t.currency or "AMD"
-    logo_text: str = t.logo_text or t.name or "GAAex"
+    logo_text: str = t.logo_text or t.name or "GAAhex"
 
     # Build flat rows (all string cells, same as CSV but without streaming)
     data_rows = []

@@ -164,7 +164,7 @@ def test_key_rotation_simulation_returns_none_not_raises(monkeypatch):
 
     # Generate a fresh, different key and rebuild the module's Fernet
     new_key = Fernet.generate_key().decode()
-    monkeypatch.setenv("GAAEX_FIELD_KEY", new_key)
+    monkeypatch.setenv("GAAHEX_FIELD_KEY", new_key)
     field_crypto._reload_fernet()
     try:
         # The old ciphertext can no longer be decrypted — but no exception either
@@ -174,15 +174,15 @@ def test_key_rotation_simulation_returns_none_not_raises(monkeypatch):
         assert decrypt_str(fresh) == "post-rotation-plaintext"
     finally:
         # Restore the original (dev) key so the rest of the suite stays consistent
-        monkeypatch.delenv("GAAEX_FIELD_KEY", raising=False)
+        monkeypatch.delenv("GAAHEX_FIELD_KEY", raising=False)
         field_crypto._reload_fernet()
 
 
 def test_dev_key_fallback_is_deterministic(monkeypatch):
-    """Two processes started without GAAEX_FIELD_KEY must land on the same dev key,
+    """Two processes started without GAAHEX_FIELD_KEY must land on the same dev key,
     so dev databases can be opened from any checkout of the repo. The warning log
     is the price of admission."""
-    monkeypatch.delenv("GAAEX_FIELD_KEY", raising=False)
+    monkeypatch.delenv("GAAHEX_FIELD_KEY", raising=False)
     field_crypto._reload_fernet()
     try:
         cipher = encrypt_str("dev-mode-secret")

@@ -31,7 +31,7 @@ import logging
 import os
 import urllib.parse
 
-logger = logging.getLogger("gaaex.payment.idram")
+logger = logging.getLogger("gaahex.payment.idram")
 
 _PAYMENT_URL = os.environ.get("IDRAM_PAYMENT_URL", "https://banking.idram.am/Payment/GetPayment")
 

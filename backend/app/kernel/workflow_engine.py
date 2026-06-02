@@ -56,7 +56,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import WorkflowDef, WorkflowInstance
 from .control_gate import assert_can_advance_to_scheduling, ControlGateNotPassed
 
-_log = logging.getLogger("gaaex.kernel.workflow_engine")
+_log = logging.getLogger("gaahex.kernel.workflow_engine")
 
 
 class WorkflowExecutionError(Exception):

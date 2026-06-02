@@ -1,6 +1,6 @@
 # Step INV1 — First-class table owner gating (SPEC §0.1)
 
-This step closes the §0.1 "Single owner" invariant for **first-class typed tables** — the GAAex
+This step closes the §0.1 "Single owner" invariant for **first-class typed tables** — the GAAhex
 tables that do NOT carry an `entity_def` row (because they're typed SQL models, not config-driven
 Records) and therefore can't reuse `assert_writer_owns_record`. The kernel facade was already in
 place; we add a parallel facade for first-class tables, encode the SPEC §2.2 ownership matrix in

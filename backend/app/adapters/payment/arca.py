@@ -37,7 +37,7 @@ import logging
 import os
 import urllib.parse
 
-logger = logging.getLogger("gaaex.payment.arca")
+logger = logging.getLogger("gaahex.payment.arca")
 
 _REGISTER_URL = os.environ.get("ARCA_REGISTER_URL",  "https://ipay.arca.am/payment/rest/register.do")
 _STATUS_URL   = os.environ.get("ARCA_STATUS_URL",    "https://ipay.arca.am/payment/rest/getOrderStatus.do")

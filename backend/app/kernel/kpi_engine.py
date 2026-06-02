@@ -55,7 +55,7 @@ from ..models.kernel_defs import KpiDef, StageDef
 from ..models.workitem import WorkItem
 
 
-_log = logging.getLogger("gaaex.kpi_engine")
+_log = logging.getLogger("gaahex.kpi_engine")
 
 
 # 60s cross-request memo on the row. Dashboards polling at 5s intervals get fresh

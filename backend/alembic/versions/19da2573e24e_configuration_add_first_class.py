@@ -101,8 +101,8 @@ def upgrade() -> None:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
         op.execute(f"""
             CREATE POLICY tenant_isolation ON {table}
-              USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-              WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+              USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+              WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
         """)
 
 

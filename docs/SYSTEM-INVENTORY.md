@@ -1,4 +1,4 @@
-# GAAex System Inventory — Beyond Components (~110 non-UI concerns)
+# GAAhex System Inventory — Beyond Components (~110 non-UI concerns)
 
 The system layers around the components (see `COMPONENT-INVENTORY.md`). Per the source: **components
 are ~25% of an enterprise design system** — this is the other ~75%. Status: ✅ have · 🟡 partial ·

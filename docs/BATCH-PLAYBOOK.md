@@ -1,6 +1,6 @@
-# GAAex Batch Playbook — the canonical way we build
+# GAAhex Batch Playbook — the canonical way we build
 
-**This is THE working method for GAAex feature batches. Gev endorsed it explicitly (2026-05-27):
+**This is THE working method for GAAhex feature batches. Gev endorsed it explicitly (2026-05-27):
 it saves usage very well and works very well — always use this method.** Proven across batches
 20–32 (CRM depth → Helpdesk → WorkItems).
 
@@ -13,7 +13,7 @@ shared-file wiring + migration + tests + git itself.
 
 ```
 coordinator (Opus)
-  ├─ writes A..E(+) task specs → Desktop\GAAex\TASKS\  (gitignored)
+  ├─ writes A..E(+) task specs → Desktop\GAAhex\TASKS\  (gitignored)
   ├─ dispatches lane agents (Agent tool, run_in_background:true), model-tiered
   ├─ integrates: shared-file wiring · contract checks · one migration · full pytest SOLO · tsc
   └─ commits + pushes
@@ -75,7 +75,7 @@ Every task spec MUST carry these as STRICT RULES:
 5. **`npx tsc --noEmit`** on the frontend.
 6. **Reconcile cross-lane drift** the tests/tsc surface (add a missing endpoint, fix a shape, or put a
    thin adapter at the frontend boundary).
-7. Commit (no `Co-Authored-By` trailer — pure-GAAex history) + push.
+7. Commit (no `Co-Authored-By` trailer — pure-GAAhex history) + push.
 
 **Expect ~2 cross-lane bugs per batch.** That's normal and the pass exists to catch them.
 
@@ -98,9 +98,9 @@ Every task spec MUST carry these as STRICT RULES:
 ## Authorizations
 
 `git push` and `alembic upgrade head` trip the safety classifier. Once Gev has clearly authorized
-pushes/migrations for the session, just do them (don't re-ask each batch). The GAAex DB is the LOCAL
+pushes/migrations for the session, just do them (don't re-ask each batch). The GAAhex DB is the LOCAL
 Docker Postgres on :5433 — not the cloud — so migrations are low-risk dev infra.
 
 ---
-Memory pointer: [[gaaex-headless-orchestration]] (+ [[gaaex-parallel-windows]] marks the old
+Memory pointer: [[gaahex-headless-orchestration]] (+ [[gaahex-parallel-windows]] marks the old
 "separate windows" model as superseded).

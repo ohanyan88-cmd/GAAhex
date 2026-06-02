@@ -1,6 +1,6 @@
 """SPEC §0.6 canonical region table — smoke test.
 
-Boots the app on the standard test DB (`gaaex_test` — `conftest.py` recreates it from
+Boots the app on the standard test DB (`gaahex_test` — `conftest.py` recreates it from
 `Base.metadata.create_all` per session) and exercises the read-only `/api/regions`
 router:
 

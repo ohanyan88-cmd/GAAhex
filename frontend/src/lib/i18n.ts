@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 // Tiny i18n layer. A module-singleton store (so t() works anywhere) + a useI18n() hook that
 // re-renders subscribers on language change. Strings load once per language from E16
 // `GET /api/i18n/{lang}`; if that 404s (older build) the dict stays empty and t() falls back to the
-// English text passed as the second arg. Choice persisted in localStorage('gaaex-lang'), like theme.
+// English text passed as the second arg. Choice persisted in localStorage('gaahex-lang'), like theme.
 import { BASE } from './config'
 
 export type Lang = 'en' | 'hy' | 'ru'
@@ -229,7 +229,7 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
   },
 }
 
-let lang: Lang = (localStorage.getItem('gaaex-lang') as Lang) || 'en'
+let lang: Lang = (localStorage.getItem('gaahex-lang') as Lang) || 'en'
 let dict: Record<string, string> = { ...BUNDLED[lang] }
 let token: string | null = null
 let listeners: Array<() => void> = []
@@ -265,7 +265,7 @@ export async function initI18n(tk: string | null) {
 
 export async function setLang(next: Lang) {
   lang = next
-  localStorage.setItem('gaaex-lang', next)
+  localStorage.setItem('gaahex-lang', next)
   await loadDict()
   notify()
 }

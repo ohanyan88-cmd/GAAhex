@@ -18,7 +18,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-logger = logging.getLogger("gaaex.adapters")
+logger = logging.getLogger("gaahex.adapters")
 
 
 class ChannelAdapter(ABC):

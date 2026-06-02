@@ -1,6 +1,6 @@
 # Helpdesk — Handoff (Batch 31: A31/B31/C31)
 
-This document covers GAAex's helpdesk system: how queues and tickets are managed, how SLA tracking
+This document covers GAAhex's helpdesk system: how queues and tickets are managed, how SLA tracking
 works, how the status state machine governs ticket lifecycle, and how the frontend renders queues,
 ticket lists, and detail views with assignment and resolution workflows.
 
@@ -244,7 +244,7 @@ The helpdesk module uses four permission strings:
 
 ### Default Grants (Provisional)
 
-Based on GAAex role architecture:
+Based on GAAhex role architecture:
 
 | Role | Permissions |
 |------|-----------|

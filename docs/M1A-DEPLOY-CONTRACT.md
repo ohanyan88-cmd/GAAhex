@@ -1,6 +1,6 @@
 # M1-A Deploy Contract — Production Multi-Tenancy Hardening (Wave 4)
 
-This document describes the **production deploy contract** that the GAAex backend
+This document describes the **production deploy contract** that the GAAhex backend
 enforces at boot time so that Postgres Row-Level Security (RLS) actually engages.
 Without this contract, every RLS policy in Wave 3 becomes decorative and tenant
 isolation is silently lost.
@@ -9,13 +9,13 @@ isolation is silently lost.
 
 ## Why the role split is mandatory
 
-GAAex relies on Postgres RLS to keep tenants isolated at the database layer.
+GAAhex relies on Postgres RLS to keep tenants isolated at the database layer.
 Postgres has a hard rule: **the table OWNER bypasses RLS, always.** No `FORCE
 ROW LEVEL SECURITY` setting changes that for the role that owns the table.
 
 This means an app connection that runs as the table owner is effectively
 unfiltered. RLS will return every row in the table regardless of the
-`gaaex.tenant_id` GUC that the request handler binds. Multi-tenancy collapses
+`gaahex.tenant_id` GUC that the request handler binds. Multi-tenancy collapses
 into the application-layer filters alone — exactly the regression we are
 trying to prevent.
 
@@ -31,8 +31,8 @@ the bypass.
 
 | Role | Purpose | Privileges |
 | --- | --- | --- |
-| `gaaex` | Owns the schema. Used by Alembic migrations and by the pre-auth / no-tenant code paths via `OWNER_DATABASE_URL`. | Owns every table. Bypasses RLS by Postgres design. |
-| `gaaex_app` | Used by the application for normal request handling via `DATABASE_URL`. | `NOSUPERUSER`, `NOBYPASSRLS`. Granted `SELECT / INSERT / UPDATE / DELETE` on the tenant-scoped tables. RLS applies. |
+| `gaahex` | Owns the schema. Used by Alembic migrations and by the pre-auth / no-tenant code paths via `OWNER_DATABASE_URL`. | Owns every table. Bypasses RLS by Postgres design. |
+| `gaahex_app` | Used by the application for normal request handling via `DATABASE_URL`. | `NOSUPERUSER`, `NOBYPASSRLS`. Granted `SELECT / INSERT / UPDATE / DELETE` on the tenant-scoped tables. RLS applies. |
 
 ---
 
@@ -40,14 +40,14 @@ the bypass.
 
 ```bash
 ENVIRONMENT=production
-DATABASE_URL=postgresql+asyncpg://gaaex_app:<app-password>@db-host:5432/gaaex
-OWNER_DATABASE_URL=postgresql+asyncpg://gaaex:<owner-password>@db-host:5432/gaaex
+DATABASE_URL=postgresql+asyncpg://gaahex_app:<app-password>@db-host:5432/gaahex
+OWNER_DATABASE_URL=postgresql+asyncpg://gaahex:<owner-password>@db-host:5432/gaahex
 ```
 
 In dev / test / CI we deliberately leave `ENVIRONMENT` unset (default
-`"development"`) and reuse a single role — typically `gaaex` — for both URLs.
+`"development"`) and reuse a single role — typically `gaahex` — for both URLs.
 That is convenient and matches the existing test pattern: `tests/test_rls.py`
-spins up its own `gaaex_app` engine when it needs to validate RLS in
+spins up its own `gaahex_app` engine when it needs to validate RLS in
 isolation.
 
 ---
@@ -59,18 +59,18 @@ role, connect as a superuser and run:
 
 ```sql
 -- Create the app role; NOSUPERUSER + NOBYPASSRLS is the whole point.
-CREATE ROLE gaaex_app LOGIN PASSWORD '<app-password>' NOSUPERUSER NOBYPASSRLS;
+CREATE ROLE gaahex_app LOGIN PASSWORD '<app-password>' NOSUPERUSER NOBYPASSRLS;
 
 -- Allow the app role to actually use the schema the owner created.
-GRANT USAGE ON SCHEMA public TO gaaex_app;
+GRANT USAGE ON SCHEMA public TO gaahex_app;
 
 -- DML rights on every existing table — the migration runner has equivalent
 -- ALTER DEFAULT PRIVILEGES so future tables inherit the same grants.
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gaaex_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gaaex_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gaahex_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gaahex_app;
 
 -- Allow the app role to set the per-request RLS GUC.
-GRANT SET ON PARAMETER gaaex.tenant_id TO gaaex_app;
+GRANT SET ON PARAMETER gaahex.tenant_id TO gaahex_app;
 ```
 
 The Wave 3 RLS migration already runs the equivalent of this block; the manual
@@ -97,24 +97,24 @@ Behavior:
 
 ```
 M1-A production deploy contract violation: DATABASE_URL and OWNER_DATABASE_URL
-are equal. In production these MUST be different Postgres roles (gaaex_app for
-the app, gaaex for the owner) so that Row-Level Security policies engage. See
+are equal. In production these MUST be different Postgres roles (gaahex_app for
+the app, gaahex for the owner) so that Row-Level Security policies engage. See
 docs/M1A-DEPLOY-CONTRACT.md.
 ```
 
 You shipped to prod with a single URL. RLS would not have engaged. Fix:
-set `OWNER_DATABASE_URL` explicitly to the `gaaex` URL and keep `DATABASE_URL`
-on `gaaex_app`.
+set `OWNER_DATABASE_URL` explicitly to the `gaahex` URL and keep `DATABASE_URL`
+on `gaahex_app`.
 
 ```
 M1-A production deploy contract violation: DATABASE_URL and OWNER_DATABASE_URL
-use the same role ('gaaex'). The app role must be different from the owner
+use the same role ('gaahex'). The app role must be different from the owner
 role. See docs/M1A-DEPLOY-CONTRACT.md.
 ```
 
 The two URLs differ (perhaps in database name or host) but they connect as the
 same Postgres role. RLS would still not engage because that role is the table
-owner. Fix: point `DATABASE_URL` at the `gaaex_app` role.
+owner. Fix: point `DATABASE_URL` at the `gaahex_app` role.
 
 ---
 
@@ -122,7 +122,7 @@ owner. Fix: point `DATABASE_URL` at the `gaaex_app` role.
 
 Running two Postgres roles locally is real friction for every contributor.
 The test suite already validates RLS where it matters (`tests/test_rls.py`
-creates a dedicated `gaaex_app` engine in-process), so the broader suite can
+creates a dedicated `gaahex_app` engine in-process), so the broader suite can
 run as the owner role without losing coverage.
 
 Production deploys do not get this convenience: the guard is loud and

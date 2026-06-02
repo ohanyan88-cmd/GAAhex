@@ -39,7 +39,7 @@ import logging
 import os
 import urllib.parse
 
-logger = logging.getLogger("gaaex.payment.telcell")
+logger = logging.getLogger("gaahex.payment.telcell")
 
 _PAYMENT_URL = os.environ.get("TELCELL_PAYMENT_URL", "https://telcell.am/api/payment")
 

@@ -1,11 +1,11 @@
-"""End-to-end tests for the GAAex engine: auth, config-driven CRUD, access, workflow, audit."""
+"""End-to-end tests for the GAAhex engine: auth, config-driven CRUD, access, workflow, audit."""
 
 
 # ---- health & auth ----
 
 async def test_health(client):
     r = await client.get("/health")
-    assert r.status_code == 200 and r.json()["service"] == "gaaex"
+    assert r.status_code == 200 and r.json()["service"] == "gaahex"
 
 
 async def test_login_bad_password(client):
@@ -133,7 +133,7 @@ async def test_studio_create_entity(client, admin, agent):
     assert (await client.post("/meta/entities", headers=admin, json=body)).status_code == 201
     assert "projects" in {e["route_slug"] for e in (await client.get("/meta/entities", headers=admin)).json()}
     # and it immediately works: create + workflow transition
-    proj = (await client.post("/api/projects", headers=admin, json={"name": "Build GAAex"})).json()
+    proj = (await client.post("/api/projects", headers=admin, json={"name": "Build GAAhex"})).json()
     assert proj["status"] == "PLANNED"
     moved = (await client.post(f"/api/projects/{proj['id']}/transition", headers=admin, json={"to": "DONE"})).json()
     assert moved["status"] == "DONE"

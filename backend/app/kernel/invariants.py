@@ -32,12 +32,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import EntityDef, User
 
 
-_log = logging.getLogger("gaaex.kernel.invariants")
+_log = logging.getLogger("gaahex.kernel.invariants")
 
 
 # ---------------------------------------------------------------------------- §0.5 master-data registry
 
-#: SPEC §2.4 / §6 — the master records of GAAex. These exist ONCE in the system and are referenced
+#: SPEC §2.4 / §6 — the master records of GAAhex. These exist ONCE in the system and are referenced
 #: by id from every linked record (Subscription, Invoice line, Work Order, etc.). A payload that
 #: inlines one of these by VALUE (a nested dict instead of an id reference) violates SPEC §0.5
 #: "References, not copies." The records router scans incoming write payloads against this set via

@@ -1,6 +1,6 @@
 """Step 3 ownership-matrix seeder — backfills `entity_def.owner_module` from SPEC §2.2.
 
-SPEC reference: `GAAex_Cross_Module_Architecture_SPEC.md` §2 Ownership Model, especially the §2.2
+SPEC reference: `GAAhex_Cross_Module_Architecture_SPEC.md` §2 Ownership Model, especially the §2.2
 Ownership Matrix. Every record kind has exactly one owner module (invariant #1, SPEC §0.1). The
 kernel facade `app.kernel.assert_writer_owns_record` enforces it at the application layer by
 looking up `entity_def.owner_module`; until that column is populated, the facade is a no-op. This
@@ -36,13 +36,13 @@ from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasse
 from .models import EntityDef
 
 
-_log = logging.getLogger("gaaex.seed_ownership")
+_log = logging.getLogger("gaahex.seed_ownership")
 
 
 # SPEC §2.2 record → owner_module string.
 #
 # Source of truth = SPEC §2.2 Ownership Matrix (lines 116-154 of
-# `GAAex_Cross_Module_Architecture_SPEC.md`). The owner_module strings are taken VERBATIM from the
+# `GAAhex_Cross_Module_Architecture_SPEC.md`). The owner_module strings are taken VERBATIM from the
 # matrix's "Owner Module" column (parenthetical qualifiers like "(Billing & Revenue)" and
 # "(Employees)" are preserved). Any reskinning of module names goes through this file.
 #
@@ -50,7 +50,7 @@ _log = logging.getLogger("gaaex.seed_ownership")
 #   (entity_def.key candidates, owner_module)
 #
 # The first key in the candidate tuple that resolves to a real EntityDef row wins. Multiple keys
-# are listed when the GAAex codebase has used different identifiers for the same SPEC record (e.g.
+# are listed when the GAAhex codebase has used different identifiers for the same SPEC record (e.g.
 # "ticket" in the baseline CRM seed vs. "helpdesk_ticket" in the helpdesk model).
 #
 # When NO candidate resolves for a given tenant, the SPEC record is reported as "first-class /

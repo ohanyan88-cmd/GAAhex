@@ -12,8 +12,8 @@ from app.config import settings
 from app.models import Base
 
 config = context.config
-# Migrations run as the OWNER (gaaex) — DDL + CREATE POLICY need ownership, which the app's
-# gaaex_app role lacks. Use owner_database_url when set (the RLS flip); else the app URL.
+# Migrations run as the OWNER (gaahex) — DDL + CREATE POLICY need ownership, which the app's
+# gaahex_app role lacks. Use owner_database_url when set (the RLS flip); else the app URL.
 config.set_main_option("sqlalchemy.url", settings.owner_database_url or settings.database_url)
 
 if config.config_file_name is not None:

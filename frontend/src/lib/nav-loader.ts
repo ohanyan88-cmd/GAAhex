@@ -1,5 +1,5 @@
 // SPEC §1 dynamic nav loader — fetches the canonical Left-Navigation tree from
-// GAAex (`GET /api/nav`) and transforms it into the existing `NavSectionDef` shape
+// GAAhex (`GET /api/nav`) and transforms it into the existing `NavSectionDef` shape
 // the sidebar already consumes. On any error (endpoint missing, network failure,
 // empty response) returns `null` so the caller can fall back to the static
 // `NAV_SECTIONS` config bundled with the frontend.
@@ -17,7 +17,7 @@ import {
 } from '../components/icons'
 import type { NavItemDef, NavSectionDef } from './nav-config'
 
-// Wire-shape returned by GAAex's GET /api/nav (see routers/nav_registry.py).
+// Wire-shape returned by GAAhex's GET /api/nav (see routers/nav_registry.py).
 type ApiNavModule = {
   key: string
   name: string
@@ -123,7 +123,7 @@ function transform(groups: ApiNavGroup[]): NavSectionDef[] {
 import { BASE } from './config'
 
 /**
- * Attempt to load the nav tree from GAAex `/api/nav`. Returns the transformed
+ * Attempt to load the nav tree from GAAhex `/api/nav`. Returns the transformed
  * `NavSectionDef[]` on success; returns `null` on any error so the caller can
  * fall back to the static `NAV_SECTIONS`. Never throws.
  */

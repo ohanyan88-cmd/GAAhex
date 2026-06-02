@@ -109,13 +109,13 @@ async def _business_context(s: AsyncSession, user: User) -> list[str]:
             f"- New leads in the last 30 days: {ov['new_leads_30d']} (prior 30 days: {ov['new_leads_prev_30d']})",
         ]
     except HTTPException:
-        pass  # no analytics permission → answer from general knowledge of GAAex only
+        pass  # no analytics permission → answer from general knowledge of GAAhex only
     return lines
 
 
 @router.post("/ask")
 async def ask_endpoint(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """Ask GAAex — a free-text question answered from the caller's live, scoped business context.
+    """Ask GAAhex — a free-text question answered from the caller's live, scoped business context.
     Templated readout with no provider; a real answer when a provider (e.g. Gemini) is configured."""
     await _require_ai(s, user)
     question = (payload.get("question") or "").strip()

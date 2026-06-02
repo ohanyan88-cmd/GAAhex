@@ -1,6 +1,6 @@
 # Step 3 — Ownership Matrix backfill + master-data inline-copy guard
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md` §2 (Ownership Model), §2.2
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §2 (Ownership Model), §2.2
 (Ownership Matrix), §0.1 (Single owner invariant), §0.5 (References, not copies invariant).
 
 Step 3 converts the SPEC §2.2 Ownership Matrix from a doc-only table into **real
@@ -37,7 +37,7 @@ Contract:
 
 The mapping table inside the seeder is the canonical SPEC §2.2 → `entity_def.key` translation.
 Each row is `(SPEC name, candidate entity_def.key tuple, owner_module string)`; the first
-candidate that resolves wins. Multiple candidates are listed where the GAAex codebase has used
+candidate that resolves wins. Multiple candidates are listed where the GAAhex codebase has used
 more than one identifier for the same SPEC record (e.g. SPEC's "Ticket" → `helpdesk_ticket` or
 the older `ticket`; SPEC's "Pipeline Item" → `deal` or `opportunity`).
 
@@ -224,14 +224,14 @@ with dict values pass through (those are JSON-typed config fields, not master-da
 
 ## D — Verification (fresh test DB)
 
-Live dev DB **NOT touched**. Verified end-to-end on `gaaex_step3_test` created on the dev
-Postgres (`localhost:5433`, user `gaaex/gaaex`), exercised, then dropped.
+Live dev DB **NOT touched**. Verified end-to-end on `gaahex_step3_test` created on the dev
+Postgres (`localhost:5433`, user `gaahex/gaahex`), exercised, then dropped.
 
 ### Test DB setup
 
 ```
-docker exec gaaex-db psql -U gaaex -d gaaex -c "CREATE DATABASE gaaex_step3_test;"
-DATABASE_URL=...gaaex_step3_test OWNER_DATABASE_URL=...gaaex_step3_test \
+docker exec gaahex-db psql -U gaahex -d gaahex -c "CREATE DATABASE gaahex_step3_test;"
+DATABASE_URL=...gaahex_step3_test OWNER_DATABASE_URL=...gaahex_step3_test \
   .venv/Scripts/python.exe -m alembic upgrade head
 ```
 
@@ -250,8 +250,8 @@ Run against a DB seeded with only the 5 baseline CRM entities (Customer, Contact
 Ticket) — i.e. after `seed_meta_if_empty` but before `seed_catalog_if_missing`:
 
 ```
-INFO  gaaex.seed_ownership seed_ownership: backfilled owner_module on 5 entity_def row(s)
-WARNING gaaex.seed_ownership seed_ownership: tenant <uuid> — 32 SPEC §2.2 record(s) have no
+INFO  gaahex.seed_ownership seed_ownership: backfilled owner_module on 5 entity_def row(s)
+WARNING gaahex.seed_ownership seed_ownership: tenant <uuid> — 32 SPEC §2.2 record(s) have no
 matching entity_def row (first-class tables / not yet defined): Contract, Coverage Check, Order,
 Task, Project, Invoice, Credit Note, Payment, Collection Case, Billing Account, Service, Work
 Order, Asset, Resource, Stock Item, Communication, Document, Knowledge Article, Campaign,
@@ -278,8 +278,8 @@ Result in DB:
 After also running `seed_catalog_if_missing`:
 
 ```
-INFO  gaaex.seed_ownership seed_ownership: backfilled owner_module on 17 entity_def row(s)
-WARNING gaaex.seed_ownership seed_ownership: tenant <uuid> — 15 SPEC §2.2 record(s) have no
+INFO  gaahex.seed_ownership seed_ownership: backfilled owner_module on 17 entity_def row(s)
+WARNING gaahex.seed_ownership seed_ownership: tenant <uuid> — 15 SPEC §2.2 record(s) have no
 matching entity_def row (first-class tables / not yet defined): Coverage Check, Task, Invoice,
 Payment, Collection Case, Billing Account, Service, Resource, Calendar Event, Announcement,
 Tariff Plan, Product, Report, AI Insight, Workflow Instance
@@ -363,7 +363,7 @@ No regressions from the records router changes.
 ### Test DB cleanup
 
 ```
-> docker exec gaaex-db psql -U gaaex -d gaaex -c "DROP DATABASE gaaex_step3_test;"
+> docker exec gaahex-db psql -U gaahex -d gaahex -c "DROP DATABASE gaahex_step3_test;"
 DROP DATABASE
 ```
 
@@ -414,8 +414,8 @@ by the access seed") that a future step or housekeeping commit can land.
 - **SPEC §2.2 is the source.** The mapping table inside `seed_ownership.py` transcribes the
   matrix verbatim (lines 116-154 of the SPEC), preserving owner-module strings including
   parenthetical qualifiers ("(Billing & Revenue)", "(Employees)").
-- **NO live DB application.** All verification ran on a fresh `gaaex_step3_test` DB which was
-  dropped after the run. Live dev DB at `localhost:5433/gaaex` is unchanged.
+- **NO live DB application.** All verification ran on a fresh `gaahex_step3_test` DB which was
+  dropped after the run. Live dev DB at `localhost:5433/gaahex` is unchanged.
 - **Reused seed module patterns.** Same `OwnerSessionLocal` import shape as `seed.py` /
   `seed_catalog.py`, same `__main__` standalone-runner convention, same async function naming
   (`*_if_empty`).

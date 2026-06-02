@@ -300,10 +300,10 @@ async def test_api_status_has_summary_keys(client, admin):
         assert key in body, f"/api/status missing key '{key}'; got keys: {list(body.keys())}"
 
 
-async def test_api_status_service_is_gaaex(client, admin):
-    """/api/status reports service == 'gaaex'."""
+async def test_api_status_service_is_gaahex(client, admin):
+    """/api/status reports service == 'gaahex'."""
     body = (await client.get("/api/status", headers=admin)).json()
-    assert body.get("service") == "gaaex", f"service mismatch: {body.get('service')!r}"
+    assert body.get("service") == "gaahex", f"service mismatch: {body.get('service')!r}"
 
 
 async def test_api_status_db_ok(client, admin):
@@ -342,8 +342,8 @@ async def test_api_status_time_is_iso(client, admin):
 # ===========================================================================
 
 async def test_root_health_still_200(client):
-    """/health (root, no auth) must still return 200 with service=='gaaex' — regression guard."""
+    """/health (root, no auth) must still return 200 with service=='gaahex' — regression guard."""
     r = await client.get("/health")
     assert r.status_code == 200, f"/health returned {r.status_code}: {r.text}"
     body = r.json()
-    assert body.get("service") == "gaaex", f"service mismatch: {body}"
+    assert body.get("service") == "gaahex", f"service mismatch: {body}"

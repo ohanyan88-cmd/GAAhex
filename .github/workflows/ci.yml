@@ -15,13 +15,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: gaaex
-          POSTGRES_PASSWORD: gaaex
-          POSTGRES_DB: gaaex_test
+          POSTGRES_USER: gaahex
+          POSTGRES_PASSWORD: gaahex
+          POSTGRES_DB: gaahex_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U gaaex -d gaaex_test"
+          --health-cmd "pg_isready -U gaahex -d gaahex_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -37,8 +37,8 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql+asyncpg://gaaex:gaaex@localhost:5432/gaaex_test
-      OWNER_DATABASE_URL: postgresql+asyncpg://gaaex:gaaex@localhost:5432/gaaex_test
+      DATABASE_URL: postgresql+asyncpg://gaahex:gaahex@localhost:5432/gaahex_test
+      OWNER_DATABASE_URL: postgresql+asyncpg://gaahex:gaahex@localhost:5432/gaahex_test
       REDIS_URL: redis://localhost:6379/0
 
     steps:

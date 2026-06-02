@@ -1,4 +1,4 @@
-// GAAex Studio — full platform tree (the SuperAdmin spec).
+// GAAhex Studio — full platform tree (the SuperAdmin spec).
 //
 // TypeScript port of STUDIO_TREE from design-system/ui_kits/portal/studio-tree.jsx (lines 11-48).
 // 15 top-level groups. 9 are part of the relational 9-layer architecture (P3 Overview);

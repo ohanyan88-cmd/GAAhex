@@ -1,4 +1,4 @@
-"""merge portal + gaaex spec heads
+"""merge portal + gaahex spec heads
 
 Revision ID: b9d1c2e3a4f5
 Revises: 19f9f4bd6599, 7a4b1e9c2f08, d3e4f5a6b7c8

@@ -1,6 +1,6 @@
 # Step 2 — Kernel Invariants (DB triggers + Python facade)
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md` §0 (Global Invariants).
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §0 (Global Invariants).
 
 Step 2 enforces the 7 Global Invariants at the kernel level — the DB-level halves via Postgres
 triggers and partition-key columns, the runtime/application halves via a new `backend/app/kernel`
@@ -65,7 +65,7 @@ A later step (after Step 3 backfill, before the NOT NULL tightening) adds the FK
 | `"order"` | sales/provisioning order (SQL-reserved name; quoted) |
 | `service` | service inventory |
 | `helpdesk_ticket` | support ticket |
-| `workitem` | GAAex's work-order table — SPEC §0.6 calls it "work_order" |
+| `workitem` | GAAhex's work-order table — SPEC §0.6 calls it "work_order" |
 
 Each column carries a Postgres comment citing SPEC §0.6.
 
@@ -134,8 +134,8 @@ from app.kernel import (
 
 ## C — Verification on a fresh test DB
 
-Same pattern as Step 1: create `gaaex_invariant_test` against the dev Postgres (`localhost:5433`,
-user `gaaex/gaaex`), point both `DATABASE_URL` and `OWNER_DATABASE_URL` at it, run `alembic
+Same pattern as Step 1: create `gaahex_invariant_test` against the dev Postgres (`localhost:5433`,
+user `gaahex/gaahex`), point both `DATABASE_URL` and `OWNER_DATABASE_URL` at it, run `alembic
 upgrade head`, verify, exercise the triggers, downgrade, drop.
 
 ### Migration applied
@@ -224,7 +224,7 @@ reversible.
 ### Test DB dropped
 
 ```
-docker exec gaaex-db psql -U gaaex -d gaaex -c "DROP DATABASE gaaex_invariant_test;"
+docker exec gaahex-db psql -U gaahex -d gaahex -c "DROP DATABASE gaahex_invariant_test;"
 DROP DATABASE
 ```
 
@@ -241,7 +241,7 @@ DROP DATABASE
 | `assert_no_inline_master_copies` wired into the Record write path | Step 3 (needs the master-key registry from the §2.2 ownership backfill) |
 | FastAPI exception handlers mapping `OwnerViolation` → 409, `AccessDenied` → 403, etc. | Step 6 (when the gates are wired into routers — handler without callers would be inert) |
 | Stage-8 Control Gate write lock (SPEC §3 control rule) | Step 4-5, when stage_def is seeded + the order workflow is metadata-driven |
-| Step 1's "live dev DB stuck at unknown revision `d3e4f5a6b7c8`" cleanup | Out of scope for the kernel build — needs a deliberate Portal/GAAex revision-graph reconciliation |
+| Step 1's "live dev DB stuck at unknown revision `d3e4f5a6b7c8`" cleanup | Out of scope for the kernel build — needs a deliberate revision-graph reconciliation |
 
 ---
 
@@ -249,8 +249,8 @@ DROP DATABASE
 
 - **Additive only.** No DROP, no ALTER of existing columns. All 7 region_id additions are
   `ADD COLUMN ... NULL`. All 4 triggers are `CREATE`. Downgrade cleanly reverses everything.
-- **Live dev DB untouched.** Verified end-to-end on a fresh `gaaex_invariant_test` DB which was
-  dropped after verification. Live dev DB at `localhost:5433/gaaex` is unchanged.
+- **Live dev DB untouched.** Verified end-to-end on a fresh `gaahex_invariant_test` DB which was
+  dropped after verification. Live dev DB at `localhost:5433/gaahex` is unchanged.
 - **Reusing migration style.** Same revision-header layout, same module docstring pattern, same
   `op.execute` for raw SQL as `enable_rls_tenant_isolation` (`3a9203795d07`) and the Step 1
   migration (`c5e9a3b1d7f4`).

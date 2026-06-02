@@ -1,6 +1,6 @@
 # Step 4 — Canonical Pipeline (§3) + Stage 8 Control Gate
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md`
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
 - §3 Canonical Pipeline (LOCKED) — the 14-stage table
 - §3 control rule — "Stage 8 is the single mandatory gate between Sales and Fulfillment…
   No order advances to Scheduling without Control Pass = TRUE"
@@ -88,7 +88,7 @@ if frm == "SUBMITTED" and nxt == "PROVISIONING":
 ```
 
 **Why SUBMITTED → PROVISIONING and not a literal "Scheduling" transition?** The current Orders
-lifecycle in GAAex is `DRAFT → SUBMITTED → PROVISIONING → COMPLETED`. There's no explicit
+lifecycle in GAAhex is `DRAFT → SUBMITTED → PROVISIONING → COMPLETED`. There's no explicit
 "Scheduling" state on the `order` table yet — that surfaces later when the Dispatch module lands.
 SUBMITTED → PROVISIONING is **the** Sales-to-Fulfillment crossing in today's code: it's the moment
 an order leaves Sales and enters work that touches Field Ops / Billing / Provisioning. That maps
@@ -122,17 +122,17 @@ column mutation on `order` itself, so the gate has to live in application code.
 
 ## D — Verification transcript
 
-Fresh `gaaex_step4_test` database, dropped after the test:
+Fresh `gaahex_step4_test` database, dropped after the test:
 
 ```
-$ docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE gaaex_step4_test;"
+$ docker exec -i gaahex-db psql -U gaahex -c "CREATE DATABASE gaahex_step4_test;"
 CREATE DATABASE
 
-$ DATABASE_URL=...gaaex_step4_test  alembic upgrade head
+$ DATABASE_URL=...gaahex_step4_test  alembic upgrade head
 INFO  [alembic.runtime.migration] Running upgrade b70ef3b98e27 -> 98d4d53f889c,
       kernel: order.control_pass trio for Stage 8 Control Gate (SPEC §3 / §10.4)
 
-$ docker exec -i gaaex-db psql -U gaaex -d gaaex_step4_test -c '\d "order"'
+$ docker exec -i gaahex-db psql -U gaahex -d gaahex_step4_test -c '\d "order"'
 …
  control_pass    | boolean                  |           |          | 
  control_pass_at | timestamp with time zone |           |          | 

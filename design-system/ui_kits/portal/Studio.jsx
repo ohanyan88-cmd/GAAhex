@@ -1,4 +1,4 @@
-/* GAAex Portal — Studio: visual builder + configuration center + publishing control.
+/* GAAhex Portal — Studio: visual builder + configuration center + publishing control.
    12 sections (Page Manager … Publish Settings). Panes live in studio-panes.jsx.
    EntityBuilder + AppearancePane defined below are reused by Data Binding / Design Settings. */
 
@@ -253,8 +253,8 @@ function AppearancePane() {
           <div>
             <div className="lbl" style={{ marginBottom:9, fontSize:10, letterSpacing:'.12em', textTransform:'uppercase', color:'var(--gx-text-3)' }}>Logo</div>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--gx-bg-subtle)', border:'1px dashed var(--gx-border-strong)', borderRadius:'var(--gx-radius-md)' }}>
-              <img src="../../assets/logo/GAAex-mark.svg" style={{ width:26, height:26 }} />
-              <span className="hint" style={{ fontSize:12 }}>GAAex-mark.svg</span>
+              <img src="../../assets/logo/GAAhex-mark.svg" style={{ width:26, height:26 }} />
+              <span className="hint" style={{ fontSize:12 }}>GAAhex-mark.svg</span>
               <button className="btn btn-ghost btn-sm" style={{ marginLeft:'auto' }}><Icon name="upload" size={13} />Replace</button>
             </div>
           </div>

@@ -59,7 +59,7 @@ async def status(user: User = Depends(current_user), s: AsyncSession = Depends(g
     except Exception:
         db_ok = False
     return {
-        "service": "gaaex",
+        "service": "gaahex",
         "ok": db_ok,
         "db": "ok" if db_ok else "down",
         "version": _app_version(),

@@ -5,14 +5,14 @@ transaction. Safe to re-run: rows already under the new key are skipped.
 
 Usage (from backend/):
     .venv/Scripts/python.exe -m scripts.rotate_field_key \\
-        --old-key "$GAAEX_FIELD_KEY_OLD" \\
-        --new-key "$GAAEX_FIELD_KEY_NEW"
+        --old-key "$GAAHEX_FIELD_KEY_OLD" \\
+        --new-key "$GAAHEX_FIELD_KEY_NEW"
 
 Dry-run (preview without writing):
     DRY_RUN=true .venv/Scripts/python.exe -m scripts.rotate_field_key \\
         --old-key "..." --new-key "..."
 
-After successful rotation: update GAAEX_FIELD_KEY in .env / secrets vault to the
+After successful rotation: update GAAHEX_FIELD_KEY in .env / secrets vault to the
 new key and restart the app.
 
 Columns rotated:
@@ -125,7 +125,7 @@ async def main(old_key: bytes, new_key: bytes) -> int:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Rotate GAAEX_FIELD_KEY Fernet keys")
+    parser = argparse.ArgumentParser(description="Rotate GAAHEX_FIELD_KEY Fernet keys")
     parser.add_argument("--old-key", required=True, help="The current (old) Fernet key")
     parser.add_argument("--new-key", required=True, help="The replacement Fernet key")
     args = parser.parse_args()

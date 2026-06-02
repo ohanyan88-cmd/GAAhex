@@ -47,7 +47,7 @@ from .. import channels
 from .auth import current_user
 from .billing import _record_job_run  # reuse the shared JobRun helper
 
-log = logging.getLogger("gaaex.digests")
+log = logging.getLogger("gaahex.digests")
 
 router = APIRouter(prefix="/api/notifications", tags=["digests"])
 
@@ -172,12 +172,12 @@ async def _resolve_address(s: AsyncSession, tenant_id, user_id, channel: str) ->
 def _compose_digest(notes: list[Notification]) -> tuple[str, str]:
     """Compose a digest subject + body from a list of pending notifications.
 
-    Subject: "Your GAAex digest: N notification(s)"
+    Subject: "Your GAAhex digest: N notification(s)"
     Body: a numbered list of the capped items (title + body snippet).
     """
     cap = notes[:_DIGEST_ITEM_CAP]
     total = len(notes)
-    subject = f"Your GAAex digest: {total} notification{'s' if total != 1 else ''}"
+    subject = f"Your GAAhex digest: {total} notification{'s' if total != 1 else ''}"
     lines = [f"You have {total} pending notification{'s' if total != 1 else ''}:\n"]
     for i, n in enumerate(cap, 1):
         snippet = n.body[:120] + ("…" if len(n.body) > 120 else "")

@@ -3,13 +3,13 @@ import { bget, bpost } from '../lib/billing'
 import { PermissionDenied } from '../components/States'
 import { SparkleIcon, SendHorizontalIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
-// Ask GAAex (AI Copilot — §6 Analytics & AI). Real wiring:
+// Ask GAAhex (AI Copilot — §6 Analytics & AI). Real wiring:
 //   GET  /api/ai/status  → which brain is live; 403 ⇒ PermissionDenied (rule 6)
 //   POST /api/ai/chat    → answer | proposal (rule 5: real source, no mock)
 //   POST /api/ai/act     → execute a CONFIRMED action via the records engine (rule 4)
 // Doctrine: only --gx-* tokens; missing source ⇒ render nothing; no inert buttons.
 
-// Ask GAAex — a talk-to-your-ISP assistant. Sends a question to /api/ai/ask, which answers grounded
+// Ask GAAhex — a talk-to-your-ISP assistant. Sends a question to /api/ai/ask, which answers grounded
 // in the caller's live, scoped business context. Works with no provider (deterministic readout) and
 // becomes a real conversation the moment a provider (e.g. Gemini free tier) is set in backend/.env.
 // Our stack only: BRAND tokens, SVG icons, i18n, no charting/markdown libs.
@@ -64,7 +64,7 @@ export default function AskGaaexView({ token }: { token: string }) {
         setMsgs((m) => [...m, { role: 'assistant', text: r.answer }])
       }
     } catch (e: any) {
-      setMsgs((m) => [...m, { role: 'assistant', text: e?.message || t('ask.error', 'Something went wrong asking GAAex.') }])
+      setMsgs((m) => [...m, { role: 'assistant', text: e?.message || t('ask.error', 'Something went wrong asking GAAhex.') }])
     } finally {
       setBusy(false)
     }
@@ -103,7 +103,7 @@ export default function AskGaaexView({ token }: { token: string }) {
         <div className="vh-ic"><SparkleIcon size={20} /></div>
         <div>
           <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
-            {t('ask.title', 'Ask GAAex')}
+            {t('ask.title', 'Ask GAAhex')}
           </h1>
           <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
             {status?.live ? `${t('ask.brain', 'AI')} · ${status.provider}` : brain}
@@ -181,8 +181,8 @@ export default function AskGaaexView({ token }: { token: string }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               disabled={busy}
-              placeholder={t('ask.placeholder', 'Ask GAAex anything about your business…')}
-              aria-label={t('ask.title', 'Ask GAAex')}
+              placeholder={t('ask.placeholder', 'Ask GAAhex anything about your business…')}
+              aria-label={t('ask.title', 'Ask GAAhex')}
               autoFocus
               style={{ flex: 1 }}
             />

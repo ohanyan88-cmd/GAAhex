@@ -1,6 +1,6 @@
 # Motion System & Channel Adapters
 
-This document defines two subsystems landing in this batch: the **motion system** (B23 frontend), which brings tasteful, subtle transitions to GAAex without compromising accessibility or clarity, and the **channel-adapter layer** (E23 backend), which decouples outbound message delivery (email, SMS) from the core notification engine so ISPs can plug in real providers without touching kernel code.
+This document defines two subsystems landing in this batch: the **motion system** (B23 frontend), which brings tasteful, subtle transitions to GAAhex without compromising accessibility or clarity, and the **channel-adapter layer** (E23 backend), which decouples outbound message delivery (email, SMS) from the core notification engine so ISPs can plug in real providers without touching kernel code.
 
 ---
 
@@ -274,7 +274,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=noreply@example.com
 SMTP_PASSWORD=<password>
-SMTP_FROM=GAAex <noreply@example.com>
+SMTP_FROM=GAAhex <noreply@example.com>
 SMTP_STARTTLS=true
 ```
 
@@ -517,7 +517,7 @@ All documented; no code-to-doc gaps. The system is fully implemented as spec'd i
 
 ## Summary
 
-The **motion system** brings professional, accessible transitions to GAAex via reusable CSS tokens and strict adherence to `prefers-reduced-motion`. No motion exceeds 200ms; no cute effects; every transition respects user accessibility settings.
+The **motion system** brings professional, accessible transitions to GAAhex via reusable CSS tokens and strict adherence to `prefers-reduced-motion`. No motion exceeds 200ms; no cute effects; every transition respects user accessibility settings.
 
 The **channel-adapter layer** decouples notification delivery (email, SMS, webhooks) from the core kernel. Dev adapters log-only; real adapters (SMTP, Twilio) activate only when environment-configured. New providers slot in via a simple `register()` call; existing code path is non-breaking. Every send is logged in `OutboundMessage` so ISPs audit all outbound delivery.
 

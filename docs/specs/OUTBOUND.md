@@ -1,6 +1,6 @@
 # Outbound Messaging — Handoff (A28/B28)
 
-This document covers GAAex's external-delivery subsystem: the delivery log (pre-existing) and the
+This document covers GAAhex's external-delivery subsystem: the delivery log (pre-existing) and the
 manual compose-and-send endpoint (A28) with its frontend API function (B28). No compose modal has
 landed in `OutboundView.tsx` yet; the B28 contribution is limited to `composeOutbound` in `api.ts`.
 
@@ -9,7 +9,7 @@ landed in `OutboundView.tsx` yet; the B28 contribution is limited to `composeOut
 ## 1. Overview
 
 Every external-channel send (email, SMS, webhook, console) records one `OutboundMessage` row — an
-observable, queryable record of what GAAex tried to send and whether it succeeded. In-app
+observable, queryable record of what GAAhex tried to send and whether it succeeded. In-app
 notifications are NOT logged here; the inbox `Notification` row is itself the delivery artifact.
 
 The subsystem has two distinct entry paths:
@@ -426,7 +426,7 @@ curl -H "Authorization: Bearer <token>" "http://127.0.0.1:8099/api/outbound?chan
 curl -X POST http://127.0.0.1:8099/api/outbound/compose \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"channel":"email","to":"test@example.com","subject":"Test","body":"Hello from GAAex"}'
+  -d '{"channel":"email","to":"test@example.com","subject":"Test","body":"Hello from GAAhex"}'
 
 # Expected: 201 with the OutboundMessage row (status=LOG in dev — no SMTP configured)
 

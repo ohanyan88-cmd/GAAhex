@@ -66,7 +66,7 @@ from .routers.helpdesk import run_sla_breach_sweep
 from .routers.payment_gateway import run_payment_reconcile
 from .routers.notifications import run_expired_sweep, run_retry_sweep
 
-log = logging.getLogger("gaaex.scheduler")
+log = logging.getLogger("gaahex.scheduler")
 
 # Sane default cadence: hourly. Overridable via settings.scheduler_interval_seconds when present.
 _DEFAULT_INTERVAL_SECONDS = 3600
@@ -212,7 +212,7 @@ async def start_scheduler(app) -> None:
     existing = getattr(app.state, _STATE_TASK, None)
     if existing is not None and not existing.done():
         return
-    task = asyncio.create_task(_loop(), name="gaaex-scheduler")
+    task = asyncio.create_task(_loop(), name="gaahex-scheduler")
     setattr(app.state, _STATE_TASK, task)
 
 

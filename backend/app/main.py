@@ -37,7 +37,7 @@ from .scheduler import start_scheduler, stop_scheduler
 from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle
 
 
-_log = logging.getLogger("gaaex")
+_log = logging.getLogger("gaahex")
 
 
 @asynccontextmanager
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
     await seed_role_boundaries_if_empty()   # SPEC §4.3 — role hard-denials (Step 6; idempotent)
     await seed_nav_registry_if_empty()      # SPEC §1 — 9 groups + 71 modules (Step 7; idempotent)
     # Dev-only bulk seeder — populates previously-sparse pages with 10 realistic Armenian-ISP
-    # customers + the full cross-referenced tree. Gated by env-var `GAAEX_DEV_SEED`; production
+    # customers + the full cross-referenced tree. Gated by env-var `GAAHEX_DEV_SEED`; production
     # leaves it unset → seeder never runs → DB stays empty-until-real. Idempotent.
     if _dev_seed_enabled():
         await seed_dev_bulk_if_empty()
@@ -137,7 +137,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-app = FastAPI(title="GAAex API", version="0.0.1-m0", lifespan=lifespan)
+app = FastAPI(title="GAAhex API", version="0.0.1-m0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     # S3: origins driven by settings.cors_origins (default "*" keeps dev/tests working).
@@ -274,7 +274,7 @@ app.include_router(dashboards.router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "gaaex", "milestone": "M0"}
+    return {"status": "ok", "service": "gaahex", "milestone": "M0"}
 
 
 @app.get("/health/db")

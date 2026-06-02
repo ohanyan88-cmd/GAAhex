@@ -1,6 +1,6 @@
 # Payment Gateway — Handoff (Batch 33: A33/B33/C33/D33)
 
-This document covers GAAex's online payment collection system: how the payment gateway adapter pattern
+This document covers GAAhex's online payment collection system: how the payment gateway adapter pattern
 activates real providers (Idram, Telcell, ARCA) only when merchant credentials are configured, how
 payment orders flow from initiation through settlement, how the system reconciles pending payments,
 and how the frontend guides users through online payment flows.

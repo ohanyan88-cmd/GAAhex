@@ -1,5 +1,5 @@
 /* ============================================================================
-   GAAex Portal — UI kit styles. Pairs with ../../colors_and_type.css
+   GAAhex Portal — UI kit styles. Pairs with ../../colors_and_type.css
    ============================================================================ */
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
@@ -154,7 +154,7 @@ code.codez { font-family:var(--gx-font-mono); font-size:11.5px; background:var(-
 /* login */
 .login-wrap { height:100%; display:grid; grid-template-columns:1fr 1fr; }
 .login-brand { background:radial-gradient(120% 120% at 20% 0%, #16294a 0%, #0A1322 55%, #070d18 100%); display:flex; flex-direction:column; justify-content:space-between; padding:48px; position:relative; overflow:hidden; }
-.login-brand::after { content:""; position:absolute; inset:0; background:url("../../assets/logo/GAAex-mark.svg") no-repeat 130% 60%; background-size:62%; opacity:.05; }
+.login-brand::after { content:""; position:absolute; inset:0; background:url("../../assets/logo/GAAhex-mark.svg") no-repeat 130% 60%; background-size:62%; opacity:.05; }
 .login-card { display:flex; align-items:center; justify-content:center; padding:40px; background:var(--gx-bg); }
 .login-form { width:100%; max-width:360px; }
 

@@ -6,7 +6,7 @@ Create Date: 2026-05-27 23:00:00.000000
 
 Additive + reversible. One new table for customer portal authentication.
 Tenant-scoped with the NULLIF-guarded tenant_isolation RLS policy identical to all
-post-enable-RLS tables. gaaex_app grants inherit via ALTER DEFAULT PRIVILEGES set in
+post-enable-RLS tables. gaahex_app grants inherit via ALTER DEFAULT PRIVILEGES set in
 the enable-RLS migration.
 
 NOT run against the live DB by the worker — coordinator applies: alembic upgrade head.
@@ -46,8 +46,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE customer_user ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON customer_user
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

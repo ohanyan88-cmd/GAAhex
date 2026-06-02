@@ -6,7 +6,7 @@ invoices, payments, tickets, work-items, sites, devices, orders, employees).
 PRODUCTION SAFETY — read this BEFORE touching this module.
 ================================================================================================
 
-This module is GATED at the lifespan entry point by the env-var `GAAEX_DEV_SEED`. When that
+This module is GATED at the lifespan entry point by the env-var `GAAHEX_DEV_SEED`. When that
 env-var is unset/empty (the default — and the only state any real deployment is configured in),
 `_dev_seed_enabled()` returns False and `main.py` never calls `seed_dev_bulk_if_empty()`. The
 seeder code is loaded but inert. **Production therefore stays empty-until-real** by construction:
@@ -47,7 +47,7 @@ from .models.workitem import WorkItem
 from . import workflow
 from .routers.billing import _now, _add_cycle
 
-_log = logging.getLogger("gaaex.seed_dev_bulk")
+_log = logging.getLogger("gaahex.seed_dev_bulk")
 
 # Marker stored on every Record-table row this seeder inserts (the same idempotency-tag pattern
 # `seed_default_records.py` uses with "starter"). First-class BSS-table rows (Subscription,
@@ -62,12 +62,12 @@ SEED_MARKER = "dev_bulk"
 # =================================================================================================
 
 def _dev_seed_enabled() -> bool:
-    """Return True iff the env-var `GAAEX_DEV_SEED` is set to a truthy value.
+    """Return True iff the env-var `GAAHEX_DEV_SEED` is set to a truthy value.
 
     This is the production safety contract. Default (env-var unset) → False → seeder never runs.
     Truthy values: "1", "true", "yes", "on" (case-insensitive). Anything else → False.
     """
-    v = os.environ.get("GAAEX_DEV_SEED", "").lower()
+    v = os.environ.get("GAAHEX_DEV_SEED", "").lower()
     return v in ("1", "true", "yes", "on")
 
 
@@ -137,14 +137,14 @@ DEVICE_TYPES = [
 
 # Employees (operations / technicians / sales — same Armenian-name pool).
 EMPLOYEES = [
-    ("Արման Գալստյան",   "arman.galstyan@gaaex.am",   "Field Tech"),
-    ("Աննա Ավետիսյան",   "anna.avetisyan@gaaex.am",   "Helpdesk Lead"),
-    ("Սերգեյ Մինասյան",  "sergey.minasyan@gaaex.am",  "Network Engineer"),
-    ("Կարինե Բադալյան",  "karine.badalyan@gaaex.am",  "Sales Manager"),
-    ("Ռոբերտ Սահակյան",  "robert.sahakyan@gaaex.am",  "Field Tech"),
-    ("Մարինե Գևորգյան",  "marine.gevorgyan@gaaex.am", "Billing Specialist"),
-    ("Արսեն Հովհաննիսյան","arsen.hovhannisyan@gaaex.am","NOC Operator"),
-    ("Նունե Թումասյան",  "nune.tumasyan@gaaex.am",    "Customer Care"),
+    ("Արման Գալստյան",   "arman.galstyan@gaahex.am",   "Field Tech"),
+    ("Աննա Ավետիսյան",   "anna.avetisyan@gaahex.am",   "Helpdesk Lead"),
+    ("Սերգեյ Մինասյան",  "sergey.minasyan@gaahex.am",  "Network Engineer"),
+    ("Կարինե Բադալյան",  "karine.badalyan@gaahex.am",  "Sales Manager"),
+    ("Ռոբերտ Սահակյան",  "robert.sahakyan@gaahex.am",  "Field Tech"),
+    ("Մարինե Գևորգյան",  "marine.gevorgyan@gaahex.am", "Billing Specialist"),
+    ("Արսեն Հովհաննիսյան","arsen.hovhannisyan@gaahex.am","NOC Operator"),
+    ("Նունե Թումասյան",  "nune.tumasyan@gaahex.am",    "Customer Care"),
 ]
 
 # Helpdesk ticket templates (subject pool — we vary the customer / priority / status).
@@ -198,7 +198,7 @@ async def seed_dev_bulk_if_empty() -> dict | None:
     if not _dev_seed_enabled():
         # Defense in depth — main.py also gates the call, but if anyone imports + calls this
         # directly without setting the env-var, refuse.
-        _log.info("dev-bulk seeder skipped: GAAEX_DEV_SEED not set")
+        _log.info("dev-bulk seeder skipped: GAAHEX_DEV_SEED not set")
         return None
 
     async with SessionLocal() as s:

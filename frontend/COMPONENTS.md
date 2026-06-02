@@ -1,10 +1,10 @@
-# GAAex Component Library — Buttons · Inputs · Search
+# GAAhex Component Library — Buttons · Inputs · Search
 
-The canonical spec for GAAex's core form components. **4 types each · 3 sizes each (sm/md/lg) ·
+The canonical spec for GAAhex's core form components. **4 types each · 3 sizes each (sm/md/lg) ·
 dark + light.** Builds on the design tokens + rules in `../docs/BRAND.md`. The live CSS implementation is
 in `src/styles.css` (section "Component library"); this file is the design source of truth.
 
-## GAAex integration notes (read first)
+## GAAhex integration notes (read first)
 - **Dual theme via one mechanism.** Dark is the default (`:root`); light is the
   `[data-theme="light"]` override (toggled in the header). The per-theme values below are applied
   exactly that way in `styles.css` — dark rules are default, light rules are scoped under

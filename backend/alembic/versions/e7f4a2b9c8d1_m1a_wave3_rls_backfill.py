@@ -2,14 +2,14 @@
 
 Twenty-seven tenant-scoped tables landed AFTER the original enable-RLS migration
 (``3a9203795d07``) and never got the ``tenant_isolation`` policy. Without the policy,
-the ``gaaex_app`` NOSUPERUSER role would either get full visibility (if RLS not enabled)
+the ``gaahex_app`` NOSUPERUSER role would either get full visibility (if RLS not enabled)
 or get blocked outright. Either way: not isolated. This wave fixes that by replicating the
 exact pattern from ``3a9203795d07`` (same NULLIF-guarded predicate, same USING + WITH CHECK,
 no FORCE) over every missing table.
 
 Grants are NOT re-issued here — ``3a9203795d07`` already ran
 ``ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES
-TO gaaex_app``, so every table created since then was auto-granted to ``gaaex_app`` at
+TO gaahex_app``, so every table created since then was auto-granted to ``gaahex_app`` at
 creation time. (Same reasoning as ``642fa959d432``, which did the same for
 ``notification_pref``.)
 
@@ -80,8 +80,8 @@ def upgrade() -> None:
         # read/update/delete; WITH CHECK blocks cross-tenant inserts.
         op.execute(f"""
             CREATE POLICY tenant_isolation ON {table}
-              USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-              WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+              USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+              WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
         """)
 
 

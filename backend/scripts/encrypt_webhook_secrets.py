@@ -7,7 +7,7 @@ verify "is anything still plaintext?").
 
 Why this lives outside alembic
 ------------------------------
-Fernet is a Python library; the encryption key (``GAAEX_FIELD_KEY``) lives in the app's
+Fernet is a Python library; the encryption key (``GAAHEX_FIELD_KEY``) lives in the app's
 process env, not the database. A SQL-only migration cannot encrypt with Fernet, and
 shipping the key into a Postgres function would defeat the purpose. The split is:
 
@@ -21,7 +21,7 @@ How to run
 .. code-block:: bash
 
     cd backend
-    # Activate venv, ensure GAAEX_FIELD_KEY is exported (the same key the running app uses)
+    # Activate venv, ensure GAAHEX_FIELD_KEY is exported (the same key the running app uses)
     .venv/Scripts/python.exe -m scripts.encrypt_webhook_secrets
 
     # Dry-run (default false — flip to true to preview without writing):

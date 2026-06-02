@@ -1,5 +1,5 @@
 const BASE = import.meta.env.VITE_API_BASE ?? ''
-const TOKEN_KEY = 'gaaex-portal-token'
+const TOKEN_KEY = 'gaahex-portal-token'
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)

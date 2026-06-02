@@ -1,4 +1,4 @@
-/* GAAex Portal UI kit — Icon · full 18-module navigation · domain data pools.
+/* GAAhex Portal UI kit — Icon · full 18-module navigation · domain data pools.
    Navigation is faithful to frontend/src/lib/nav-config.ts (18 sections, ~190 items).
    `kind` drives the config-driven renderer: dash · work · list · board · map · cal · settings · home. */
 

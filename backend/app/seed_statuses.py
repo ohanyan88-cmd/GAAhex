@@ -1,7 +1,7 @@
 """Step 5 — SPEC §7 Status Standardization seeder.
 
 Seeds the LOCKED status vocabularies from SPEC §7 (lines 281-293 of
-`GAAex_Cross_Module_Architecture_SPEC.md`) into the existing `status_def` table. Idempotent —
+`GAAhex_Cross_Module_Architecture_SPEC.md`) into the existing `status_def` table. Idempotent —
 re-runs are safe and cheap.
 
 SPEC §7 verbatim (the 9 sets we seed):
@@ -36,10 +36,10 @@ SPEC set → entity_def.key mapping
     Order       → 'order'                            (config-driven catalog entity; the first-class
                                                       `"order"` table is seeded by app.routers.orders
                                                       via a separate path)
-    Ticket      → 'ticket' AND 'helpdesk_ticket'     (codebase has both — GAAex CRM-baseline ticket
+    Ticket      → 'ticket' AND 'helpdesk_ticket'     (codebase has both — GAAhex CRM-baseline ticket
                                                       vs. helpdesk-module ticket; both get the same
                                                       SPEC §7 vocabulary)
-    Work Order  → 'work_order' AND 'workitem'        (workitem is GAAex's first-class work-order
+    Work Order  → 'work_order' AND 'workitem'        (workitem is GAAhex's first-class work-order
                                                       table; work_order is the catalog entity)
     Invoice     → 'invoice'                          (config-driven entity if defined; first-class
                                                       `invoice` table is separate)
@@ -153,7 +153,7 @@ from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasse
 from .models import EntityDef, StatusDef, Tenant
 
 
-_log = logging.getLogger("gaaex.seed_statuses")
+_log = logging.getLogger("gaahex.seed_statuses")
 
 
 # Sentinel entity_def for the General status set. SPEC §7's General vocabulary isn't bound to a
@@ -175,7 +175,7 @@ _GENERAL_DEF = {
 # (no catalog entity_def). Without these shells the status vocabulary has nothing to attach to.
 #
 # `lead`:
-#     SPEC §3 places Lead at the start of the customer-lifecycle pipeline, but the GAAex codebase
+#     SPEC §3 places Lead at the start of the customer-lifecycle pipeline, but the GAAhex codebase
 #     (as of Step 1) carries lead state on the `opportunity` / pipeline-stage tables and has no
 #     catalog `lead` EntityDef. We create a `lead` sentinel so SPEC §7's 5-status vocabulary
 #     (New, Working, Qualified, Disqualified, Converted) can be seeded. When a real Lead entity

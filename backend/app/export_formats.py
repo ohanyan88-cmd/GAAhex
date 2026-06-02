@@ -1,4 +1,4 @@
-"""Export format renderers for GAAex record exports.
+"""Export format renderers for GAAhex record exports.
 
 Stdlib-only — no third-party PDF or XLSX libraries required:
 
@@ -255,7 +255,7 @@ def build_pdf(
             y_brand = _PAGE_H - _MARGIN - _HEADER_H + 18
 
             # logo_text — left, larger
-            display_logo = logo_text or "GAAex"
+            display_logo = logo_text or "GAAhex"
             ops.append("BT")
             ops.append("/F2 14 Tf")
             ops.append(f"0.2 0.4 0.8 rg")  # cobalt-ish

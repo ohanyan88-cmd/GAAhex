@@ -1,11 +1,11 @@
-"""GAAex kernel — fixed engines that interpret config.
+"""GAAhex kernel — fixed engines that interpret config.
 
 The kernel is the small set of MODULES that NEVER change with feature work: workflow movement,
 auth/authz, database, audit/log, security. Everything else above the Kernel Line is configuration
 the kernel reads at runtime.
 
 This package owns the cross-cutting invariants from SPEC §0 — the 7 Global Invariants that hold
-true everywhere in GAAex. DB-level halves of those invariants live in alembic migrations (see
+true everywhere in GAAhex. DB-level halves of those invariants live in alembic migrations (see
 `b70ef3b98e27_kernel_invariants_db_triggers_region_id.py`); the runtime/application halves live in
 `invariants.py` here.
 

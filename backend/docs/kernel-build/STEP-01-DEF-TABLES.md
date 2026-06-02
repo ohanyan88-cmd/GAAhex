@@ -1,6 +1,6 @@
 # Step 1 — Kernel `_def` Meta-Tables
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md` §10.1 (Build Notes) — "All records,
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §10.1 (Build Notes) — "All records,
 stages, statuses, permissions, and KPIs are rows in `_def` meta-tables (e.g. `record_def`,
 `stage_def`, `status_def`, `kpi_def`, `permission_def`). No enum is hardcoded in application
 code."
@@ -82,7 +82,7 @@ NOT NULL.
 ### RLS
 
 Both new tables enable the standard NULLIF-guarded `tenant_isolation` policy used by every
-other post-`3a9203795d07` table — `tenant_id` must match the `gaaex.tenant_id` GUC for both
+other post-`3a9203795d07` table — `tenant_id` must match the `gaahex.tenant_id` GUC for both
 USING and WITH CHECK. Default-deny is preserved (SPEC §0 rule 2).
 
 ### Migration revision
@@ -99,10 +99,10 @@ The migration was **not** applied to the live dev DB (see "Why we skipped dev DB
 Instead it was verified end-to-end against a temporary DB.
 
 ```bash
-docker exec gaaex-db psql -U gaaex -d gaaex -c "CREATE DATABASE gaaex_kernel_test;"
+docker exec gaahex-db psql -U gaahex -d gaahex -c "CREATE DATABASE gaahex_kernel_test;"
 
-DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_kernel_test" \
-OWNER_DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_kernel_test" \
+DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_kernel_test" \
+OWNER_DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_kernel_test" \
 ./.venv/Scripts/python.exe -m alembic upgrade head
 ```
 
@@ -122,7 +122,7 @@ returns `version_num` to `a3d7e9f1b2c4`. Reversible.
 Test DB then dropped:
 
 ```bash
-docker exec gaaex-db psql -U gaaex -d gaaex -c "DROP DATABASE gaaex_kernel_test;"
+docker exec gaahex-db psql -U gaahex -d gaahex -c "DROP DATABASE gaahex_kernel_test;"
 ```
 
 ### Note on env-var override
@@ -130,7 +130,7 @@ docker exec gaaex-db psql -U gaaex -d gaaex -c "DROP DATABASE gaaex_kernel_test;
 The first `upgrade head` attempt set only `DATABASE_URL` on the command line, but `.env`
 exports `OWNER_DATABASE_URL` (which `alembic/env.py` reads first via
 `settings.owner_database_url or settings.database_url`). That sent alembic at the live dev DB,
-which sits at `d3e4f5a6b7c8` (unknown to GAAex's revision graph) and failed with `Can't
+which sits at `d3e4f5a6b7c8` (unknown to GAAhex's revision graph) and failed with `Can't
 locate revision identified by 'd3e4f5a6b7c8'`. Setting **both** env vars on the CLI redirected
 both the migration target and the owner connection to the test DB and succeeded. Worth noting
 for future kernel-build steps that touch the schema.
@@ -139,13 +139,13 @@ for future kernel-build steps that touch the schema.
 
 ## Why we skipped applying to the live dev DB
 
-The live dev database (`localhost:5433/gaaex`) currently has alembic head
-**`d3e4f5a6b7c8`** — a Portal-sandbox migration applied during the earlier Portal/GAAex
-shared-DB phase. GAAex's revision graph doesn't contain `d3e4f5a6b7c8`, so running
+The live dev database (`localhost:5433/gaahex`) currently has alembic head
+**`d3e4f5a6b7c8`** — a sandbox migration applied during the earlier shared-DB phase.
+GAAhex's revision graph doesn't contain `d3e4f5a6b7c8`, so running
 `alembic upgrade head` against the live DB would fail with the exact error captured above.
 
-Resolving that needs a deliberate cleanup (either stamp the live DB to a known-good GAAex
-revision and re-run the missing Portal-sourced migration into GAAex's history, or rebuild the
+Resolving that needs a deliberate cleanup (either stamp the live DB to a known-good GAAhex
+revision and re-run the missing Portal-sourced migration into GAAhex's history, or rebuild the
 dev DB from scratch). That cleanup is **out of scope for Step 1**. Verifying the migration
 against a freshly-created temp DB proves the SQL/ORM are correct without touching the dev DB.
 

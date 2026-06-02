@@ -1,7 +1,7 @@
 /* =========================================================================
-   GAAex Design System — Full token + component CSS
+   GAAhex Design System — Full token + component CSS
    Dark-first · Cobalt + Gold · Configuration-driven · Zero emoji
-   Fonts: self-hosted woff2 declared in gaaex-tokens.css (@font-face blocks).
+   Fonts: self-hosted woff2 declared in gaahex-tokens.css (@font-face blocks).
    ========================================================================= */
 
 :root {
@@ -1026,7 +1026,7 @@ div.studio {
 .kan-avatar { width: 28px; height: 28px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-hover); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
 
 /* Recovered real-app classes the DESIGN system doesn't define — LeadPipeline scores,
-   Ask-GAAex chat bubbles + proposals, the language switcher, and the table scroll wrapper. */
+   Ask-GAAhex chat bubbles + proposals, the language switcher, and the table scroll wrapper. */
 .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .score-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
 .score-hot { background: var(--danger-soft); color: var(--danger); }
@@ -2272,7 +2272,7 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
 }
 .login-brand::after {
   content: ""; position: absolute; inset: 0;
-  background: url("/logo/GAAex-mark.svg") no-repeat 130% 60%;
+  background: url("/logo/GAAhex-mark.svg") no-repeat 130% 60%;
   background-size: 62%; opacity: .05;
 }
 .login-card {

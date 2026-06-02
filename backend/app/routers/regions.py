@@ -4,7 +4,7 @@ Read-only list + get for the tenant's regions. WRITE paths (create/update/archiv
 hierarchy editing are deferred to a later step — see `docs/kernel-build/SPEC-0-6-REGIONS.md`
 for the full deferred list.
 
-Tenant-scoping: the `region` table's RLS policy filters by the request's `gaaex.tenant_id`
+Tenant-scoping: the `region` table's RLS policy filters by the request's `gaahex.tenant_id`
 GUC (set by the auth dependency), so a plain `SELECT * FROM region` on the request session
 returns only the caller's rows. No manual `tenant_id ==` filter needed (the policy is the
 source of truth — adding a manual filter would mask an RLS misconfiguration).

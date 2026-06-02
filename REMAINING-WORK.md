@@ -35,7 +35,7 @@ tests check for its output. Fix: call it in the `db` session fixture in `conftes
 1. `OPS-BACKUP.md` — step-by-step: pg_dump, restore test, verify, Docker volume backup, Redis
    persistence, file attachments (if any), frequency recommendation.
 2. `.env.production.example` — every required env var with description + safe placeholder:
-   DATABASE_URL, OWNER_DATABASE_URL, REDIS_URL, SECRET_KEY (≥32 bytes), GAAEX_FIELD_KEY
+   DATABASE_URL, OWNER_DATABASE_URL, REDIS_URL, SECRET_KEY (≥32 bytes), GAAHEX_FIELD_KEY
    (Fernet base64), JWT_SECRET (≥32 bytes), SMTP/SMS gateway vars, ARCA/iDram/TelCell/EasyPay
    credential slots (blank — filled at install time).
 **Files:** `OPS-BACKUP.md` (repo root), `.env.production.example` (repo root)
@@ -81,7 +81,7 @@ Activation means:
 - Add migration to rename/convert those columns
 - Wire the helpers into the routers that read/write them
 - Document key-rotation in `OPS-BACKUP.md` (R-03 already has a slot for this)
-**Constraint:** `GAAEX_FIELD_KEY` must be set to a real 32-byte Fernet key in prod (`.env.production.example` from R-03 has the slot).
+**Constraint:** `GAAHEX_FIELD_KEY` must be set to a real 32-byte Fernet key in prod (`.env.production.example` from R-03 has the slot).
 **Files:** `backend/app/kernel/crypto.py` (new), relevant models + routers, new alembic migration
 **Done when:** `test_field_crypto.py` fully green; no plaintext secrets in DB for those fields.
 **Effort:** ~3 hours

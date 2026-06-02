@@ -36,7 +36,7 @@ async def _deactivate(client, admin, wid):
     await client.patch(f"/api/webhooks/{wid}", headers=admin, json={"active": False})
 
 # A local port nothing listens on → connection refused fast (no 3s timeout stall).
-DEAD_URL = "http://127.0.0.1:9/gaaex-hook"
+DEAD_URL = "http://127.0.0.1:9/gaahex-hook"
 
 
 # ===================== CRUD + secret hiding =====================

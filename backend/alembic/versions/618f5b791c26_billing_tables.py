@@ -92,13 +92,13 @@ def upgrade() -> None:
     # ### end Alembic commands ###
 
     # RLS: these tables are created after the enable-RLS migration, so apply the same NULLIF-guarded
-    # tenant_isolation policy here (gaaex_app grants come from the ALTER DEFAULT PRIVILEGES set earlier).
+    # tenant_isolation policy here (gaahex_app grants come from the ALTER DEFAULT PRIVILEGES set earlier).
     for table in ("subscription", "invoice", "invoice_line", "payment"):
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;")
         op.execute(f"""
             CREATE POLICY tenant_isolation ON {table}
-              USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-              WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+              USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+              WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
         """)
 
 

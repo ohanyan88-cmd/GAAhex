@@ -284,7 +284,7 @@ JSON array of objects, one per record. Same field shape as the list endpoint (mi
 OOXML workbook with one sheet. Headers in bold first row. Built via `build_xlsx(header, data_rows)` in `export_formats.py` (no external library; stdlib only).
 
 **Branding from tenant settings:**
-- `logo_text` or `name` (falls back to "GAAex") in the header
+- `logo_text` or `name` (falls back to "GAAhex") in the header
 - `currency` (defaults to "AMD") for money formatting
 
 **Money format:** Integer luma values (e.g., `1500000` for ֏15,000) are displayed using `format_money(luma, currency)` which divides by 100 and groups thousands.

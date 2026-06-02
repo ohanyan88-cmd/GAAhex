@@ -1,4 +1,4 @@
-# Final Locked Standards — GAAex Platform
+# Final Locked Standards — GAAhex Platform
 
 Status: LOCKED (normalized, consistency-patched)
 Patch date: 2026-06-02

@@ -5,7 +5,7 @@ payment service operated by EasyPay LLC.
 
 ACTIVATION STATUS
 -----------------
-This adapter is a new addition to the GAAex payment stack.
+This adapter is a new addition to the GAAhex payment stack.
 Three slots remain before this goes live:
 
   [SLOT 1] Get the API docs from EasyPay:
@@ -41,7 +41,7 @@ import logging
 import os
 import urllib.parse
 
-logger = logging.getLogger("gaaex.payment.easypay")
+logger = logging.getLogger("gaahex.payment.easypay")
 
 _PAYMENT_URL = os.environ.get("EASYPAY_PAYMENT_URL", "https://easypay.am/api/payment")
 

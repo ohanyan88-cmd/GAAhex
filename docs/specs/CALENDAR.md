@@ -1,6 +1,6 @@
 # Calendar — Handoff (Batch 30)
 
-This document covers GAAex's calendar system: how calendars are created and shared, how events
+This document covers GAAhex's calendar system: how calendars are created and shared, how events
 are managed, and how the frontend renders a month and week view.
 
 ---
@@ -527,4 +527,4 @@ Calendar events are not currently linked to WorkItems or Records — they stand 
 could tie events to work schedules and record lifecycles.
 
 RLS is enabled on both tables (`user_calendar` and `calendar_event`); all queries are automatically
-scoped to the current tenant via the `gaaex.tenant_id` session setting.
+scoped to the current tenant via the `gaahex.tenant_id` session setting.

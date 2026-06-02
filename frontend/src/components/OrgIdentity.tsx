@@ -13,7 +13,7 @@ import { Upload } from 'lucide-react'
 
 import { BASE } from '../lib/config'
 
-// "Yerevan Net" → "YN", "Tenant" → "T", "" → "GX". Matches the kit's ini() but keeps the GAAex
+// "Yerevan Net" → "YN", "Tenant" → "T", "" → "GX". Matches the kit's ini() but keeps the GAAhex
 // fallback the rest of the app uses for empty user names.
 function initialsOf(name: string | null | undefined, fallback = 'GX'): string {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean)

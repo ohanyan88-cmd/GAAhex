@@ -20,7 +20,7 @@ from typing import Awaitable, Callable
 
 from .config import settings
 
-logger = logging.getLogger("gaaex.ai")
+logger = logging.getLogger("gaahex.ai")
 
 # A provider impl: async (prompt, system) -> text. It RAISES on failure; the gateway catches and
 # falls back to the deterministic stub, so callers always get text.
@@ -186,13 +186,13 @@ async def summarize_record(fields: dict) -> str:
 
 
 # ============================================================================================
-# Capability 3 — Ask GAAex (the assistant: answers a question grounded in live business context)
+# Capability 3 — Ask GAAhex (the assistant: answers a question grounded in live business context)
 # ============================================================================================
 
 ASSISTANT_SYSTEM = (
-    "You are the GAAex assistant for an ISP back-office. Answer the user's question concisely and "
+    "You are the GAAhex assistant for an ISP back-office. Answer the user's question concisely and "
     "plainly, using ONLY the business context provided below. Money is Armenian Dram (֏). If the "
-    "context doesn't contain the answer, say so honestly and suggest where in GAAex to look. Do not "
+    "context doesn't contain the answer, say so honestly and suggest where in GAAhex to look. Do not "
     "invent numbers."
 )
 
@@ -252,7 +252,7 @@ async def plan_chat(question: str, context_lines: list[str]) -> dict:
         return {"kind": "answer", "text": await ask_assistant(question, context_lines)}
     ctx = "\n".join(context_lines) if context_lines else "- (no context available)"
     prompt = f"{ACTION_SPEC}\n\nBusiness context:\n{ctx}\n\nUser: {question}"
-    raw = await complete(prompt, system="You are the GAAex assistant. Follow the response format exactly.")
+    raw = await complete(prompt, system="You are the GAAhex assistant. Follow the response format exactly.")
     parsed = _extract_json(raw)
     if parsed and parsed.get("kind") == "proposal" and isinstance(parsed.get("args"), dict):
         return {"kind": "proposal", "action": str(parsed.get("action") or ""),

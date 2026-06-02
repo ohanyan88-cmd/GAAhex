@@ -1,4 +1,4 @@
-"""Import Armenian ISP test data from GAAex_full_test_data.md into the database.
+"""Import Armenian ISP test data from GAAhex_full_test_data.md into the database.
 
 Parses the markdown tables and inserts every section as Record rows
 (entity_key + data JSONB). The `status` column is stored on record.status;
@@ -24,7 +24,7 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-DEFAULT_MD = Path(r"C:\Users\Admin\Desktop\GAAex_full_test_data.md")
+DEFAULT_MD = Path(r"C:\Users\Admin\Desktop\GAAhex_full_test_data.md")
 
 # entity_keys that are first-class tables — skip (can't go into record table)
 _SKIP_ENTITIES = {"ticket"}

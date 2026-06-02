@@ -2,7 +2,7 @@
    PageShell — design-system framework styles
    ----------------------------------------------------------------------------
    ALL rules are scoped to .ps-* classnames so this CSS never collides with the
-   existing view styles. Tokens come from gaaex-tokens.css — no new colors, no
+   existing view styles. Tokens come from gaahex-tokens.css — no new colors, no
    new fonts. Built for the existing dark theme; light-theme overrides come
    for free via the same --gx-* tokens.
    ============================================================================ */

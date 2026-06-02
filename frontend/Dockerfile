@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # ---------------------------------------------------------------------------
-# GAAex frontend — production image (multi-stage)
+# GAAhex frontend — production image (multi-stage)
 # Stage 1: node:20-alpine builds the Vite bundle
 # Stage 2: nginx:1.27-alpine serves /dist with SPA history fallback
 # ---------------------------------------------------------------------------

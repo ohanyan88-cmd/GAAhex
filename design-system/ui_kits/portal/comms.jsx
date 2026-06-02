@@ -1,4 +1,4 @@
-/* GAAex Portal — Communications: Messenger (chat) + Email client.
+/* GAAhex Portal — Communications: Messenger (chat) + Email client.
    Messages → Messenger · Outbound → Email */
 
 // ───────────────────────── MESSENGER ─────────────────────────
@@ -187,10 +187,10 @@ const EMAILS = [
   { id:'e2', who:'Hayk Grigoryan', addr:'hayk.g@mail.am', subj:'Installation confirmation — today 14:00', snip:'Confirming the technician visit window for today.', t:'08:51', unread:true, star:false, attach:true, tag:'Field Ops',
     body:'Hello,\n\nConfirming the technician visit window for today, 14:00–16:00. The address is correct.\n\nThanks!' },
   { id:'e3', who:'Acme Corp — Procurement', addr:'proc@acme.am', subj:'Enterprise contract renewal Q3', snip:'Please find attached the renewal terms for review.', t:'Yesterday', unread:false, star:true, attach:true, tag:'Enterprise',
-    body:'Dear GAAex team,\n\nPlease find attached the renewal terms for Q3. We would like to add 12 new sites.\n\nRegards,\nProcurement' },
+    body:'Dear GAAhex team,\n\nPlease find attached the renewal terms for Q3. We would like to add 12 new sites.\n\nRegards,\nProcurement' },
   { id:'e4', who:'Anna Hakobyan', addr:'anna.h@mail.am', subj:'Upgrade to Fiber 1G', snip:'Yes please proceed with the upgrade today.', t:'Yesterday', unread:false, star:false, attach:false, tag:'Sales',
     body:'Yes please proceed with the upgrade today. What is the new monthly price?' },
-  { id:'e5', who:'Outage Notifications', addr:'noc@gaaex.am', subj:'Planned maintenance — Yerevan POP-3', snip:'Scheduled 02:00–04:00. Estimated 8,400 customers affected.', t:'Mon', unread:false, star:false, attach:false, tag:'NOC',
+  { id:'e5', who:'Outage Notifications', addr:'noc@gaahex.am', subj:'Planned maintenance — Yerevan POP-3', snip:'Scheduled 02:00–04:00. Estimated 8,400 customers affected.', t:'Mon', unread:false, star:false, attach:false, tag:'NOC',
     body:'Planned maintenance for Yerevan POP-3 is scheduled 02:00–04:00 tonight. Estimated 8,400 customers affected. Notifications queued.' },
 ];
 
@@ -272,7 +272,7 @@ function Compose({ onClose }) {
         <div style={{ display:'flex', alignItems:'center', padding:'13px 16px', borderBottom:'1px solid var(--gx-border-subtle)', background:'var(--gx-surface-2)' }}><span style={{ fontWeight:600, fontSize:13.5 }}>New message</span><span className="spacer" /><button className="tb-icon" onClick={onClose}><Icon name="x" size={16} /></button></div>
         <div style={{ padding:16, display:'flex', flexDirection:'column', gap:10 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid var(--gx-border-subtle)', paddingBottom:8 }}><span className="hint" style={{ width:48, fontSize:12 }}>To</span><input className="inp" style={{ border:'none', background:'none', padding:0 }} placeholder="customer@mail.am" /></div>
-          <div style={{ display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid var(--gx-border-subtle)', paddingBottom:8 }}><span className="hint" style={{ width:48, fontSize:12 }}>Subject</span><input className="inp" style={{ border:'none', background:'none', padding:0 }} placeholder="Subject" defaultValue="Your GAAex service" /></div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid var(--gx-border-subtle)', paddingBottom:8 }}><span className="hint" style={{ width:48, fontSize:12 }}>Subject</span><input className="inp" style={{ border:'none', background:'none', padding:0 }} placeholder="Subject" defaultValue="Your GAAhex service" /></div>
           <textarea className="inp" rows={7} style={{ resize:'vertical', height:'auto', padding:'10px 11px', lineHeight:1.6 }} placeholder="Write your message…" defaultValue={"Hi,\n\n"} />
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderTop:'1px solid var(--gx-border-subtle)' }}>

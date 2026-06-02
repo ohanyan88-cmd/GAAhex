@@ -1,7 +1,7 @@
 """Outbound delivery log (notification channel adapters, doc 24).
 
 Every external-channel send (email/sms/webhook/console…) records one OutboundMessage — the
-observable, queryable record of what GAAex tried to send and whether it worked. In-app
+observable, queryable record of what GAAhex tried to send and whether it worked. In-app
 notifications are NOT logged here: the inbox `Notification` row is itself the delivery."""
 from app.utils.ids import uuid7
 import uuid

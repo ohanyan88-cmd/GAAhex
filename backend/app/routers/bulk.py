@@ -100,7 +100,7 @@ async def bulk(slug: str, payload: dict, user: User = Depends(current_user), s: 
     # Process each id in its OWN session/transaction — true partial-failure isolation, and it avoids
     # corrupting one shared async session with interleaved per-id commit/rollback. `grants`, `paths`,
     # `transitions`, `ent` are plain in-memory data loaded above, reusable across sessions. Each per-id
-    # session gets the tenant GUC set so RLS holds under the gaaex_app flip.
+    # session gets the tenant GUC set so RLS holds under the gaahex_app flip.
     results = []
     succeeded = 0
     for raw_id in ids:

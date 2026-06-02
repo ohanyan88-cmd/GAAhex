@@ -1,4 +1,4 @@
-"""Edge-case tests for the GAAex engine: scope leaks, validation, workflow, not-found, access verbs.
+"""Edge-case tests for the GAAhex engine: scope leaks, validation, workflow, not-found, access verbs.
 
 Reuses the session-scoped fixtures from conftest.py (client, admin, agent).
 admin = super_admin @ tenant scope (primary node = group); agent = sales_agent @ node scope (team).

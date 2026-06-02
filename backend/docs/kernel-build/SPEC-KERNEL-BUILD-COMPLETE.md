@@ -1,6 +1,6 @@
-# GAAex SPEC Kernel Build — Complete (Steps 1-6)
+# GAAhex SPEC Kernel Build — Complete (Steps 1-6)
 
-**SPEC source of truth:** `GAAex_Cross_Module_Architecture_SPEC.md` (locked).
+**SPEC source of truth:** `GAAhex_Cross_Module_Architecture_SPEC.md` (locked).
 
 The six-step kernel build turned SPEC §0's seven Global Invariants and SPEC §3 / §4 / §7 / §10's
 LOCKED vocabularies from doc-only text into REAL code paths — DB triggers, additive migrations,
@@ -302,7 +302,7 @@ break the kernel surface — they all consume it.
 |---|---|---|
 | `is_initial` duplicate dedup in `seed_statuses.py` | `e8a309b` | Fresh-boot reaches HTTP 200 on `/docs`; no `MultipleResultsFound` in log. Verified DB state: `order=NEW` (catalog wins), `ticket=OPEN`, `work_order=OPEN` — each entity has exactly one `is_initial=TRUE` row; all SPEC §7 statuses still seeded with `is_initial=FALSE`. |
 
-### Verification (fresh `gaaex_batch2_test` DB)
+### Verification (fresh `gaahex_batch2_test` DB)
 
 - `alembic upgrade head` → clean through `b5e8f1c2d3a4` (SPEC §4.5 mandatory approvals).
 - `uvicorn app.main:app --port 8499` → boot completes; `GET /docs` returns HTTP 200.
@@ -388,7 +388,7 @@ through it.
 
 Nothing failing. One observation worth flagging for the next batch:
 
-- The kernel logs `WARNING gaaex.kernel.invariants: assert_can called without
+- The kernel logs `WARNING gaahex.kernel.invariants: assert_can called without
   region/department/owner context — kernel falling back to role-only check` on most write paths
   in the test run. That's the transitional fallback firing, which keeps tests green today but is
   *the* hole left to close before SPEC §4 is fully load-bearing. When the test fixtures start

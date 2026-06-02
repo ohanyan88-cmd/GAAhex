@@ -29,7 +29,7 @@ from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasse
 from .models import Tenant, WorkflowDef
 
 
-_log = logging.getLogger("gaaex.seed_workflows")
+_log = logging.getLogger("gaahex.seed_workflows")
 
 
 # =========================================================================== SPEC §5.4 W1..W5

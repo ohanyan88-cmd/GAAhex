@@ -6,7 +6,7 @@
 
 ---
 
-## 1. SPEC §7 source (verbatim, lines 281-293 of `GAAex_Cross_Module_Architecture_SPEC.md`)
+## 1. SPEC §7 source (verbatim, lines 281-293 of `GAAhex_Cross_Module_Architecture_SPEC.md`)
 
 ```
 Lead:     New · Working · Qualified · Disqualified · Converted
@@ -33,7 +33,7 @@ The Contract and Order sets were NOT changed structurally — they already had c
 
 | Sentinel  | Reason                                                                                                                                                                                                                                                                                                                                                                            |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lead`    | SPEC §3 places Lead at the start of the customer-lifecycle pipeline, but the GAAex codebase carries lead-like state on the `opportunity` / pipeline-stage tables. NOTE: `seed.py::build_crm_entities` does in fact create a CRM `lead` EntityDef — so the sentinel INSERT is a no-op on the M0 demo seed, but it's there for tenants provisioned WITHOUT the CRM baseline.        |
+| `lead`    | SPEC §3 places Lead at the start of the customer-lifecycle pipeline, but the GAAhex codebase carries lead-like state on the `opportunity` / pipeline-stage tables. NOTE: `seed.py::build_crm_entities` does in fact create a CRM `lead` EntityDef — so the sentinel INSERT is a no-op on the M0 demo seed, but it's there for tenants provisioned WITHOUT the CRM baseline.        |
 | `payment` | `payment` is a first-class kernel/billing table (payment ledger lines) — there is no catalog `entity_def` by that key. The sentinel anchors the SPEC §7 Payment vocabulary on a queryable row so audit, reporting, and `status_def`-driven UI lookups all resolve.                                                                                                                |
 
 Both sentinels are marked `status='system'` so the existing sidebar/catalog UI hides them. When a real catalog entity ships for either key, it should reuse the same `key` value — the sentinel row is then the entity row, and every `status_def.entity_def_id` reference already points at it (zero data migration).
@@ -134,10 +134,10 @@ Sentinel `entity_def` rows added: 0 for `lead` (CRM baseline already had it), 1 
 
 ---
 
-## 6. Verification transcript (temp DB `gaaex_step1_test`)
+## 6. Verification transcript (temp DB `gaahex_step1_test`)
 
 ```
-$ docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE gaaex_step1_test;"
+$ docker exec -i gaahex-db psql -U gaahex -c "CREATE DATABASE gaahex_step1_test;"
 CREATE DATABASE
 
 $ DATABASE_URL=... OWNER_DATABASE_URL=... .venv/Scripts/python.exe -m alembic upgrade head
@@ -147,7 +147,7 @@ $ uvicorn app.main:app --port 8699 > boot.log 2>&1 &
 ... boot completed; seed_statuses ran; only Invoice and Service WARN-skipped (expected — no entity_def for those keys yet)
 
 # Per-entity status count
-$ psql -d gaaex_step1_test -c "SELECT ed.key, count(sd.key) FROM entity_def ed
+$ psql -d gaahex_step1_test -c "SELECT ed.key, count(sd.key) FROM entity_def ed
                                 LEFT JOIN status_def sd ON sd.entity_def_id=ed.id
                                 WHERE ed.key IN ('lead','contract','order','payment')
                                 GROUP BY ed.key ORDER BY ed.key;"
@@ -160,7 +160,7 @@ $ psql -d gaaex_step1_test -c "SELECT ed.key, count(sd.key) FROM entity_def ed
 (4 rows)
 
 # is_initial uniqueness check — MUST be 0 rows
-$ psql -d gaaex_step1_test -c "SELECT ed.key, count(*) FROM status_def sd
+$ psql -d gaahex_step1_test -c "SELECT ed.key, count(*) FROM status_def sd
                                 JOIN entity_def ed ON ed.id=sd.entity_def_id
                                 WHERE sd.is_initial=true
                                 GROUP BY ed.key HAVING count(*) > 1;"
@@ -169,24 +169,24 @@ $ psql -d gaaex_step1_test -c "SELECT ed.key, count(*) FROM status_def sd
 (0 rows)
 
 # SPEC §7 vocabulary presence check
-$ psql -d gaaex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
+$ psql -d gaahex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
         ('NEW','WORKING','QUALIFIED','DISQUALIFIED','CONVERTED')) AS lead_spec_present
         FROM status_def sd JOIN entity_def ed ON ed.id=sd.entity_def_id WHERE ed.key='lead';"
 lead_spec_present = 5  -- all 5 §7 Lead statuses present
 
-$ psql -d gaaex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
+$ psql -d gaahex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
         ('DRAFT','SENT','SIGNED','ACTIVE','AMENDED','TERMINATED','EXPIRED'))
         AS contract_spec_present FROM status_def sd JOIN entity_def ed
         ON ed.id=sd.entity_def_id WHERE ed.key='contract';"
 contract_spec_present = 7  -- all 7 §7 Contract statuses present
 
-$ psql -d gaaex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
+$ psql -d gaahex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
         ('CREATED','IN_VALIDATION','VALIDATED','REJECTED','FULFILLED','CANCELLED'))
         AS order_spec_present FROM status_def sd JOIN entity_def ed
         ON ed.id=sd.entity_def_id WHERE ed.key='order';"
 order_spec_present = 6  -- all 6 §7 Order statuses present
 
-$ psql -d gaaex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
+$ psql -d gaahex_step1_test -c "SELECT count(*) FILTER (WHERE sd.key IN
         ('PENDING','SUCCESSFUL','FAILED','REFUNDED','PARTIALLY_REFUNDED','RECONCILED','CHARGEBACK'))
         AS payment_spec_present FROM status_def sd JOIN entity_def ed
         ON ed.id=sd.entity_def_id WHERE ed.key='payment';"
@@ -194,7 +194,7 @@ payment_spec_present = 7  -- all 7 §7 Payment statuses present
 
 # Cleanup
 $ kill <uvicorn-pid>
-$ docker exec -i gaaex-db psql -U gaaex -c "DROP DATABASE gaaex_step1_test;"
+$ docker exec -i gaahex-db psql -U gaahex -c "DROP DATABASE gaahex_step1_test;"
 DROP DATABASE
 ```
 

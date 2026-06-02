@@ -30,7 +30,7 @@ from .models import Tenant
 from .models.kernel_defs import StageDef, KpiDef
 
 
-_log = logging.getLogger("gaaex.seed_pipeline")
+_log = logging.getLogger("gaahex.seed_pipeline")
 
 
 # SPEC §3 Canonical Pipeline (LOCKED) — 14 rows, verbatim from the SPEC §3 table (lines 170-185).

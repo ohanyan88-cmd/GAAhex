@@ -28,7 +28,7 @@ from typing import Any
 
 from .base import ChannelAdapter, registry
 
-logger = logging.getLogger("gaaex.adapters.email")
+logger = logging.getLogger("gaahex.adapters.email")
 
 
 # ---------------------------------------------------------------------------

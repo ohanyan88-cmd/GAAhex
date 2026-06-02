@@ -1,6 +1,6 @@
 # Step 2 PREPARE — SPEC §6 Relationship Map
 
-**SPEC reference:** `C:\Users\Admin\Desktop\GAAex_Cross_Module_Architecture_SPEC.md`
+**SPEC reference:** `C:\Users\Admin\Desktop\GAAhex_Cross_Module_Architecture_SPEC.md`
 - §6 Data Relationships (reference-only links)
 - §6.1 Asset vs Resource boundary
 - §0.5 References, not copies (Invariant #5)
@@ -9,7 +9,7 @@
 **⛔ This document is the MAP ONLY. No model edits, no migrations. Gev's explicit approval is
 required before the activate step (FK + CHECK constraint migration) is generated.**
 
-This is the audit of what SPEC §6 says GAAex's data relationships should look like, vs. what's
+This is the audit of what SPEC §6 says GAAhex's data relationships should look like, vs. what's
 actually wired in `backend/app/models/` today, with the gaps, risks, and a proposed sequencing for
 the additive migration that will close them.
 
@@ -642,12 +642,12 @@ Wave 1 of the migration sequence (Section 5) is now live on the kernel.
 
 ### Verification transcript
 
-Verified on a fresh `portal_step2_test` database (Docker `gaaex-db`, port 5433):
+Verified on a fresh `portal_step2_test` database (Docker `gaahex-db`, port 5433):
 
 ```
-$ docker exec -i gaaex-db psql -U gaaex -c "DROP DATABASE IF EXISTS portal_step2_test;"
-$ docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE portal_step2_test;"
-$ $env:DATABASE_URL = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/portal_step2_test"
+$ docker exec -i gaahex-db psql -U gaahex -c "DROP DATABASE IF EXISTS portal_step2_test;"
+$ docker exec -i gaahex-db psql -U gaahex -c "CREATE DATABASE portal_step2_test;"
+$ $env:DATABASE_URL = "postgresql+asyncpg://gaahex:gaahex@localhost:5433/portal_step2_test"
 $ $env:OWNER_DATABASE_URL = $env:DATABASE_URL
 $ cd backend && .venv/Scripts/python.exe -m alembic upgrade head
 ... (chain of upgrade lines)
@@ -656,7 +656,7 @@ INFO  [alembic.runtime.migration] Running upgrade 6389266f4c19 -> 60a9edffdefe, 
 
 Constraint check:
 ```
-$ docker exec -i gaaex-db psql -U gaaex -d portal_step2_test -c "SELECT conname FROM pg_constraint WHERE conname LIKE 'fk_%' AND conname IN ('fk_payment_customer_id', ...) ORDER BY conname;"
+$ docker exec -i gaahex-db psql -U gaahex -d portal_step2_test -c "SELECT conname FROM pg_constraint WHERE conname LIKE 'fk_%' AND conname IN ('fk_payment_customer_id', ...) ORDER BY conname;"
                   conname                  
 -------------------------------------------
  fk_calendar_event_customer_record_id

@@ -9,9 +9,9 @@ line in `app/main.py` is intentionally commented out with a TODO until Gev repli
 'approved §1 nav'. Importing this module is safe (no side-effects).
 
 Tenant isolation:
-  - `current_user` binds `gaaex.tenant_id` GUC on the session.
+  - `current_user` binds `gaahex.tenant_id` GUC on the session.
   - Both `nav_group` and `nav_module` carry the `tenant_isolation` RLS policy
-    (`USING tenant_id = NULLIF(current_setting('gaaex.tenant_id'), '')::uuid`), so
+    (`USING tenant_id = NULLIF(current_setting('gaahex.tenant_id'), '')::uuid`), so
     the queries below are inherently scoped to the caller's tenant.
 """
 from fastapi import APIRouter, Depends

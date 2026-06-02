@@ -40,10 +40,10 @@ def test_production_with_same_role_raises(monkeypatch):
     the app runs as the table owner → RLS bypassed."""
     monkeypatch.setattr(settings, "environment", "production")
     monkeypatch.setattr(
-        settings, "database_url", "postgresql+asyncpg://gaaex:y@h:5432/a"
+        settings, "database_url", "postgresql+asyncpg://gaahex:y@h:5432/a"
     )
     monkeypatch.setattr(
-        settings, "owner_database_url", "postgresql+asyncpg://gaaex:y@h:5432/b"
+        settings, "owner_database_url", "postgresql+asyncpg://gaahex:y@h:5432/b"
     )
     with pytest.raises(RuntimeError, match="same role"):
         _assert_production_deploy_contract()
@@ -53,9 +53,9 @@ def test_production_with_separate_roles_passes(monkeypatch):
     """The correct prod shape: app role differs from owner role; guard is silent."""
     monkeypatch.setattr(settings, "environment", "production")
     monkeypatch.setattr(
-        settings, "database_url", "postgresql+asyncpg://gaaex_app:y@h:5432/a"
+        settings, "database_url", "postgresql+asyncpg://gaahex_app:y@h:5432/a"
     )
     monkeypatch.setattr(
-        settings, "owner_database_url", "postgresql+asyncpg://gaaex:y@h:5432/a"
+        settings, "owner_database_url", "postgresql+asyncpg://gaahex:y@h:5432/a"
     )
     _assert_production_deploy_contract()  # must not raise

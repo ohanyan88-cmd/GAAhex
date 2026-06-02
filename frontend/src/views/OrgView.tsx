@@ -2,7 +2,7 @@
 // OrgView — the Org page (view.type === 'org'). Renders the org hierarchy in one
 // of FIVE switchable layouts (Hierarchy | Cards | Outline | List | Grouped). The
 // chosen layout is a pure presentation preference, persisted to localStorage
-// ('gaaex-org-view') and applied on load (default 'hierarchy').
+// ('gaahex-org-view') and applied on load (default 'hierarchy').
 //
 // PHASE 1 (this file): view layouts + switcher ONLY. No node custom-fields,
 // node-type/look config, or structure editing yet (later phases). The List view's
@@ -54,7 +54,7 @@ export type OrgNode = {
 type OrgLayout =
   | 'hierarchy' | 'cards' | 'outline' | 'list' | 'grouped' | 'spans' | 'map' | 'sunburst' | 'treemap'
   | 'network' | 'heatmap' | 'timeline' | 'raci'
-const STORAGE_KEY = 'gaaex-org-view'
+const STORAGE_KEY = 'gaahex-org-view'
 
 function loadLayout(): OrgLayout {
   try {

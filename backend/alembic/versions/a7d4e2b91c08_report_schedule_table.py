@@ -48,13 +48,13 @@ def upgrade() -> None:
     op.create_index(op.f('ix_report_schedule_next_run_at'), 'report_schedule', ['next_run_at'], unique=False)
 
     # RLS: created after the enable-RLS migration, so apply the same NULLIF-guarded tenant_isolation
-    # policy as the billing / job_run tables (gaaex_app grants come from the ALTER DEFAULT PRIVILEGES
+    # policy as the billing / job_run tables (gaahex_app grants come from the ALTER DEFAULT PRIVILEGES
     # set earlier).
     op.execute("ALTER TABLE report_schedule ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON report_schedule
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

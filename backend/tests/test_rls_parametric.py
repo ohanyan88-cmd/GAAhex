@@ -6,11 +6,11 @@ from being added without an RLS policy. We discover every table in `Base.metadat
 that has a `tenant_id` column, then parametrize a single test over the list. For
 each table the test:
 
-  1. Enables RLS + creates the `tenant_isolation` policy + grants to `gaaex_app`
+  1. Enables RLS + creates the `tenant_isolation` policy + grants to `gaahex_app`
      (same predicate shape as `3a9203795d07` / `642fa959d432` / Wave 3 — see the
      `_enable_rls_and_grant` helper imported from `test_rls`).
   2. Seeds one row per tenant (A, B) under the OWNER engine (which bypasses RLS).
-  3. Under the `gaaex_app` engine, sets the GUC to A and asserts only A's row is
+  3. Under the `gaahex_app` engine, sets the GUC to A and asserts only A's row is
      visible; sets the GUC to B and asserts only B's row is visible; unsets the
      GUC and asserts the default-deny case yields zero rows.
   4. Tears down — drops the policy, disables RLS, deletes the seeded rows — so
@@ -48,7 +48,7 @@ import sqlalchemy as sa
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.db import engine          # gaaex (owner) — seeds + RLS toggles + cleanup
+from app.db import engine          # gaahex (owner) — seeds + RLS toggles + cleanup
 from app.models import Base
 from tests.test_rls import (   # reuse Wave 3 helpers — same predicate shape as the spot tests
     _disable_rls,
@@ -57,13 +57,13 @@ from tests.test_rls import (   # reuse Wave 3 helpers — same predicate shape a
 )
 
 
-GUC = "gaaex.tenant_id"
+GUC = "gaahex.tenant_id"
 
 
 def _app_role_url() -> str:
-    """Same shape as test_rls._app_role_url — derive the gaaex_app URL from DATABASE_URL."""
+    """Same shape as test_rls._app_role_url — derive the gaahex_app URL from DATABASE_URL."""
     p = urlparse(os.environ["DATABASE_URL"])
-    return urlunparse(p._replace(netloc=f"gaaex_app:gaaex_app@{p.hostname}:{p.port}"))
+    return urlunparse(p._replace(netloc=f"gaahex_app:gaahex_app@{p.hostname}:{p.port}"))
 
 
 APP_ROLE_URL = _app_role_url()
@@ -252,7 +252,7 @@ def _build_insert(table_name: str, row: dict) -> sa.TextClause:
 # ──────────────────────────────────────────────────────────────────────────────
 @pytest_asyncio.fixture(scope="module")
 async def shared_rls_setup(_setup_db):
-    """Ensures the gaaex_app role + grants on `tenant`, creates two test tenants,
+    """Ensures the gaahex_app role + grants on `tenant`, creates two test tenants,
     yields (app_engine, tenant_a, tenant_b). On teardown disposes the engine and
     deletes the test tenants."""
     tenant_a = uuid.uuid4()
@@ -260,13 +260,13 @@ async def shared_rls_setup(_setup_db):
     async with engine.begin() as c:
         await c.execute(text("""
             DO $$ BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaaex_app') THEN
-                    CREATE ROLE gaaex_app LOGIN PASSWORD 'gaaex_app' NOSUPERUSER NOBYPASSRLS;
+                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaahex_app') THEN
+                    CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS;
                 END IF;
             END $$;
         """))
-        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaaex_app;"))
-        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaaex_app;"))
+        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaahex_app;"))
+        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaahex_app;"))
         for t in (tenant_a, tenant_b):
             await c.execute(
                 text("INSERT INTO tenant (id, name, status) VALUES (:i, :n, 'active')"),

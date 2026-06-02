@@ -1,6 +1,6 @@
 # Data States, Pagination & Operational Health
 
-This is the canonical guide for how the GAAex frontend and backend handle data-state presentation,
+This is the canonical guide for how the GAAhex frontend and backend handle data-state presentation,
 pagination, and system health reporting. Everything below is grounded in actual code: `frontend/src/States.tsx`,
 `frontend/src/EntityView.tsx`, `backend/app/routers/records.py`, and `backend/app/routers/ops.py`.
 
@@ -156,7 +156,7 @@ for the app to render status pages or banners.
 **Auth:** none (public)
 **Response:**
 ```json
-{"status": "ok", "service": "gaaex", "milestone": "M0"}
+{"status": "ok", "service": "gaahex", "milestone": "M0"}
 ```
 **Purpose:** Infra probes (uptime checks, load balancers). Lightweight, always fast.
 **Use when:** you need a simple "is the service alive?" signal from a monitoring tool (Datadog, Pingdom, etc.).
@@ -179,7 +179,7 @@ for the app to render status pages or banners.
 **Response:**
 ```json
 {
-  "service": "gaaex",
+  "service": "gaahex",
   "ok": true,
   "db": "ok",
   "version": "0.0.1-m0",

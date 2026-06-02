@@ -112,7 +112,7 @@ async def test_payment_intent_succeeded_creates_payment_and_pays_invoice(client,
     # Verify the Payment row landed AND the invoice flipped to PAID.
     async with OwnerSessionLocal() as s:
         from sqlalchemy import text
-        await s.execute(text("SELECT set_config('gaaex.tenant_id', :v, false)"),
+        await s.execute(text("SELECT set_config('gaahex.tenant_id', :v, false)"),
                         {"v": str(tenant_id)})
         pay = (await s.execute(
             select(Payment).where(Payment.invoice_id == uuid.UUID(inv["id"]))
@@ -182,7 +182,7 @@ async def test_payment_intent_payment_failed_is_handled_without_mutation(client,
     # No Payment row written.
     async with OwnerSessionLocal() as s:
         from sqlalchemy import text
-        await s.execute(text("SELECT set_config('gaaex.tenant_id', :v, false)"),
+        await s.execute(text("SELECT set_config('gaahex.tenant_id', :v, false)"),
                         {"v": str(tenant_id)})
         pay = (await s.execute(
             select(Payment).where(Payment.invoice_id == uuid.UUID(inv["id"]))
@@ -241,7 +241,7 @@ async def test_charge_refunded_updates_payment_refunded_amount(client, admin):
     # Payment.refunded_amount should reflect Stripe's cumulative total.
     async with OwnerSessionLocal() as s:
         from sqlalchemy import text
-        await s.execute(text("SELECT set_config('gaaex.tenant_id', :v, false)"),
+        await s.execute(text("SELECT set_config('gaahex.tenant_id', :v, false)"),
                         {"v": str(tenant_id)})
         pay = (await s.execute(
             select(Payment).where(Payment.note == f"stripe:{intent_id}")
@@ -289,7 +289,7 @@ async def test_charge_refunded_same_total_is_idempotent(client, admin):
 
     async with OwnerSessionLocal() as s:
         from sqlalchemy import text
-        await s.execute(text("SELECT set_config('gaaex.tenant_id', :v, false)"),
+        await s.execute(text("SELECT set_config('gaahex.tenant_id', :v, false)"),
                         {"v": str(tenant_id)})
         pay = (await s.execute(
             select(Payment).where(Payment.note == f"stripe:{intent_id}")
@@ -324,7 +324,7 @@ async def test_payment_method_attached_inserts_new_row(client, admin):
 
     async with OwnerSessionLocal() as s:
         from sqlalchemy import text
-        await s.execute(text("SELECT set_config('gaaex.tenant_id', :v, false)"),
+        await s.execute(text("SELECT set_config('gaahex.tenant_id', :v, false)"),
                         {"v": str(tenant_id)})
         pm = (await s.execute(
             select(PaymentMethod).where(PaymentMethod.gateway_token == pm_token)
@@ -361,7 +361,7 @@ async def test_duplicate_event_id_returns_duplicate(client, admin):
     # Exactly ONE Payment row landed despite two POSTs.
     async with OwnerSessionLocal() as s:
         from sqlalchemy import text
-        await s.execute(text("SELECT set_config('gaaex.tenant_id', :v, false)"),
+        await s.execute(text("SELECT set_config('gaahex.tenant_id', :v, false)"),
                         {"v": str(tenant_id)})
         payments = (await s.execute(
             select(Payment).where(Payment.note == f"stripe:{intent_id}")

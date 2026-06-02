@@ -1,4 +1,4 @@
-# GAAex Component Inventory & Roadmap
+# GAAhex Component Inventory & Roadmap
 
 The full ISP/CRM design-system inventory (~80 components, 7 tiers). Priority-ordered. Builds on
 `BRAND.md` (tokens, themes, no-emoji/SVG rule) and `frontend/COMPONENTS.md` (buttons/inputs/search).

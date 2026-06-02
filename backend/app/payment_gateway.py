@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
 
-logger = logging.getLogger("gaaex.payment_gateway")
+logger = logging.getLogger("gaahex.payment_gateway")
 
 
 # ============================================================================================
@@ -103,7 +103,7 @@ class DevGateway(PaymentGateway):
 
     async def initiate(self, order, *, callback_url: str) -> dict:
         provider_ref = f"dev-{order.id}"
-        # callback_url is the base URL of the GAAex server; the frontend dev-confirm page lives there.
+        # callback_url is the base URL of the GAAhex server; the frontend dev-confirm page lives there.
         redirect_url = f"{callback_url.rstrip('/')}/pay/dev/{order.id}"
         return {"redirect_url": redirect_url, "provider_ref": provider_ref}
 

@@ -131,7 +131,7 @@ async def invoice_document(
     balance = max(0, inv.total - pt)
 
     tenant = (await s.execute(select(Tenant))).scalars().first()
-    tenant_name = tenant.name if tenant else "GAAex"
+    tenant_name = tenant.name if tenant else "GAAhex"
 
     record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()
     customer_data = record.data or {} if record else {}
@@ -266,7 +266,7 @@ async def payment_receipt(
         raise HTTPException(404, "Payment not found")
 
     tenant = (await s.execute(select(Tenant))).scalars().first()
-    tenant_name = tenant.name if tenant else "GAAex"
+    tenant_name = tenant.name if tenant else "GAAhex"
     record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()
     customer_name = (record.data or {}).get("name", "—") if record else "—"
 

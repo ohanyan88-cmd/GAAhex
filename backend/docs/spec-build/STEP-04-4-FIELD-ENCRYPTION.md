@@ -9,7 +9,7 @@ decisions called out in §7.
 
 ---
 
-## 0. SPEC §4.4 source (verbatim, lines 214-215 of `GAAex_Cross_Module_Architecture_SPEC.md`)
+## 0. SPEC §4.4 source (verbatim, lines 214-215 of `GAAhex_Cross_Module_Architecture_SPEC.md`)
 
 > **### 4.4 Field-Level (separate grant + encryption at rest)**
 > ID/passport, tax number, payment method, bank details, salary, legal docs, contract values,
@@ -26,7 +26,7 @@ Two distinct controls are required:
 
 ## 1. Sensitive field inventory
 
-GAAex stores entity rows two ways:
+GAAhex stores entity rows two ways:
 - **First-class BSS tables** (typed columns): `app_user`, `customer_user`, `api_key`,
   `refresh_token`, `webhook_def`, `payment_order`, `invoice`, `payment`, `order`,
   `subscription`, `interaction`, `event`, `service_resource`, `helpdesk_ticket`, …
@@ -50,7 +50,7 @@ Risk levels:
 |---|---|---|---|---|---|
 | 1 | **ID / passport** | Not yet modeled. No `passport`/`national_id`/`personal_id` columns in any model or `field_def` (grep clean across `app/models/*.py` and `seed_catalog.py`). The `customer` Record's `data` bag is the natural home when KYC fields land. | n/a | **HIGH** | Define on `field_def` as `sensitive=true` when added; encrypt at rest. |
 | 2 | **Tax number** | Not yet modeled. No `tax_id`/`tin`/`tax_number` columns or field defs anywhere. The `customer` / `party` Record will carry this when B2B KYC lands. | n/a | **HIGH** | Same: tag `sensitive=true` at field-def time. |
-| 3 | **Payment method** | `billing.Payment.method` (`models/billing.py:86`) — the **kind** of payment (`cash`/`card`/`transfer`), NOT a card number. `PaymentOrder.provider` (`models/payment_gateway.py:49`). **No PAN, no CVV, no card_token columns anywhere.** Card data is delegated to the gateway providers (idram/telcell/arca) — GAAex stores only the provider's reference. | plaintext (`String(20)`), low-sensitivity | **LOW** for `method` (categorical) · **MED** for `PaymentOrder.provider_ref` (provider's opaque ref, no PAN) | Keep `method` plain; treat `provider_ref` as MED (separate grant for view, no crypto). |
+| 3 | **Payment method** | `billing.Payment.method` (`models/billing.py:86`) — the **kind** of payment (`cash`/`card`/`transfer`), NOT a card number. `PaymentOrder.provider` (`models/payment_gateway.py:49`). **No PAN, no CVV, no card_token columns anywhere.** Card data is delegated to the gateway providers (idram/telcell/arca) — GAAhex stores only the provider's reference. | plaintext (`String(20)`), low-sensitivity | **LOW** for `method` (categorical) · **MED** for `PaymentOrder.provider_ref` (provider's opaque ref, no PAN) | Keep `method` plain; treat `provider_ref` as MED (separate grant for view, no crypto). |
 | 4 | **Bank details** | Not yet modeled. No `bank_account`/`iban`/`swift`/`bank_*` columns. When supplier/vendor banking lands (likely on `supplier` Record or a new `bank_account` Record), it will be `data`-bag JSONB. | n/a | **HIGH** | Encrypt at rest. **SPEC §4.4 explicitly names "bank details" in the must-encrypt clause.** |
 | 5 | **Salary / compensation** | Not yet a column. The `employee` Record (`seed_catalog.py:199`) has `name`, `email`, `title`, `department` — no `salary` field yet. `payroll_run` (`seed_catalog.py:211`) has a `total` (period aggregate) but no per-employee amount. The `request` self-service catalog has a "Finance · Salary advance" request_type label but no salary column. | n/a (record `data` when added) | **HIGH** | Encrypt at rest; separate grant for HR/Finance only. |
 | 6 | **Legal docs** | `document` Record (`seed_catalog.py:233`) has `name`/`kind`/`url`. **Document bytes are NOT stored in the DB** — only a URL reference. `document_template.body` (`seed_catalog.py:235`) is plain Textarea. `policy.body`, `compliance_rule.requirement`, `kb_article.body`, `legal_case.detail` — all plain text in `record.data`. | URL (plain) for `document`; plain text for the bodies | **MED** | Separate grant per entity; the *bytes* live outside the DB, so disk-encryption is the storage host's responsibility (S3 SSE / disk LUKS). |
@@ -131,12 +131,12 @@ from cryptography.fernet import Fernet, MultiFernet
 from sqlalchemy.types import TypeDecorator, String
 
 def _load_fernet() -> MultiFernet:
-    # GAAEX_FIELD_KEYS is a comma-separated list, NEWEST FIRST. MultiFernet encrypts with the
+    # GAAHEX_FIELD_KEYS is a comma-separated list, NEWEST FIRST. MultiFernet encrypts with the
     # first key and decrypts with any of them — supports zero-downtime key rotation.
-    raw = os.environ["GAAEX_FIELD_KEYS"]
+    raw = os.environ["GAAHEX_FIELD_KEYS"]
     keys = [Fernet(k.strip().encode()) for k in raw.split(",") if k.strip()]
     if not keys:
-        raise RuntimeError("GAAEX_FIELD_KEYS empty")
+        raise RuntimeError("GAAHEX_FIELD_KEYS empty")
     return MultiFernet(keys)
 
 _FERNET = _load_fernet()
@@ -195,9 +195,9 @@ sensitive=true`, re-writes that key with its ciphertext counterpart. One migrati
 
 | Environment | Where the key lives | Rotation procedure |
 |---|---|---|
-| dev / test | `.env` → `GAAEX_FIELD_KEYS=<single Fernet key>`. Fresh key per dev box; lost data on rotation is acceptable. | Generate via `Fernet.generate_key()`, paste into `.env`, restart. |
+| dev / test | `.env` → `GAAHEX_FIELD_KEYS=<single Fernet key>`. Fresh key per dev box; lost data on rotation is acceptable. | Generate via `Fernet.generate_key()`, paste into `.env`, restart. |
 | staging | Same shape, separate key from prod. Stored in the CI secret manager (GitHub Actions encrypted secret). | Same as dev. |
-| **production** | **Vault provider — Gev decision** (see §7). Options ranked: HashiCorp Vault (best, k8s-native, audit-rich) · AWS Secrets Manager (cheap if already on AWS) · Azure Key Vault (cheap if already on Azure). Key fetched at app boot, held in memory only; never written to disk; never logged. | `MultiFernet` supports multi-key rotation: prepend the NEW key to `GAAEX_FIELD_KEYS`, deploy, run a background "re-encrypt all" sweep that reads each ciphertext (decrypts with any key) and writes back (encrypts with the newest), then remove the OLD key from the list and deploy again. Zero downtime, atomic per row. |
+| **production** | **Vault provider — Gev decision** (see §7). Options ranked: HashiCorp Vault (best, k8s-native, audit-rich) · AWS Secrets Manager (cheap if already on AWS) · Azure Key Vault (cheap if already on Azure). Key fetched at app boot, held in memory only; never written to disk; never logged. | `MultiFernet` supports multi-key rotation: prepend the NEW key to `GAAHEX_FIELD_KEYS`, deploy, run a background "re-encrypt all" sweep that reads each ciphertext (decrypts with any key) and writes back (encrypts with the newest), then remove the OLD key from the list and deploy again. Zero downtime, atomic per row. |
 
 **Key escrow:** the prod key must be backed up to a separate secure location (vault snapshot
 or an offline HSM-protected copy) — losing the key means losing every encrypted column
@@ -276,7 +276,7 @@ These are **NOT** technical choices I should make alone — they affect ops, cos
       Gev hasn't picked yet.
 - [ ] **Key escrow procedure** — where the offline backup of the prod field-key lives, and
       who has access. Recovery model decision.
-- [ ] **Audit / compliance review** — does GAAex need GDPR DPO sign-off, PCI DSS scope
+- [ ] **Audit / compliance review** — does GAAhex need GDPR DPO sign-off, PCI DSS scope
       reduction (since card data is delegated to gateways, scope should be SAQ-A but legal
       review needed), Armenian data-protection-law compliance? Gev's call.
 - [ ] **Backup procedure** — Postgres backup MUST include key escrow alignment: a backup
@@ -308,7 +308,7 @@ Each becomes a task in the ACTIVATE round, once the gates above are decided.
 
 1. Add `field_def.sensitive: bool default false` (alembic).
 2. Add `app/security/field_crypto.py` with `EncryptedString` TypeDecorator + helpers.
-3. Add `GAAEX_FIELD_KEYS` to `app/config.py` settings.
+3. Add `GAAHEX_FIELD_KEYS` to `app/config.py` settings.
 4. Convert `webhook_def.secret` to `EncryptedString` (5-step migration per §3).
 5. Wire sensitive-field gating in `routers/records.py` read/write paths (JSONB `data`).
 6. Add `field:<entity>.<col>:read` permission keys to the role engine + seed defaults.
@@ -331,7 +331,7 @@ the level needed for the single column being encrypted now (`webhook_def.secret`
 | File | What |
 |---|---|
 | `backend/app/security/` | Converted from a single `security.py` module into a **package** (no API change — re-exports `hash_password`, `verify_password`, `create_access_token`, `decode_token` from `app/security/auth.py` so every existing `from app.security import …` keeps working). |
-| `backend/app/security/field_crypto.py` | New module: Fernet-based AEAD helpers — `encrypt_str`, `decrypt_str`, and `EncryptedString` SQLAlchemy `TypeDecorator`. Key from env `GAAEX_FIELD_KEY`; loud-warning deterministic dev fallback when unset. |
+| `backend/app/security/field_crypto.py` | New module: Fernet-based AEAD helpers — `encrypt_str`, `decrypt_str`, and `EncryptedString` SQLAlchemy `TypeDecorator`. Key from env `GAAHEX_FIELD_KEY`; loud-warning deterministic dev fallback when unset. |
 | `backend/app/security/__init__.py` | Re-exports auth helpers + the three field-crypto names. |
 | `backend/app/models/webhook.py` | `WebhookDef.secret` column type flipped from `String(255)` to `EncryptedString()`. All new writes encrypt; all reads decrypt; on-disk value is opaque ciphertext. |
 | `backend/alembic/versions/6389266f4c19_spec_4_4_widen_webhook_secret_for_.py` | Migration that widens `webhook_def.secret` from `varchar(255)` to `text` so Fernet tokens fit. Additive, reversible, no row mutation. |
@@ -355,7 +355,7 @@ Only **`webhook_def.secret`** is encrypted at rest right now. The reasoning:
 
 ### Deployment runbook
 
-1. **Set `GAAEX_FIELD_KEY` in the target environment** before deploying. Generate via
+1. **Set `GAAHEX_FIELD_KEY` in the target environment** before deploying. Generate via
    `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
    Without this env var, the app falls back to a deterministic DEV key and logs a loud
    warning — never acceptable for production.
@@ -382,7 +382,7 @@ Only **`webhook_def.secret`** is encrypted at rest right now. The reasoning:
 When a key needs to be rotated (compromise, scheduled rotation, etc.):
 
 1. Generate a new Fernet key.
-2. Update `GAAEX_FIELD_KEY` env var (in the vault / k8s secret / `.env`) to the **new** key.
+2. Update `GAAHEX_FIELD_KEY` env var (in the vault / k8s secret / `.env`) to the **new** key.
 3. Restart the app — every new write now uses the new key. Existing rows can no longer be
    decrypted; `decrypt_str` returns `None` for them (the helper is fail-soft, the API
    returns `secret_unreadable: true` or similar UI placeholder).
@@ -417,7 +417,7 @@ The seven gates in §7 remain open. In particular:
 ```
 cd C:/Users/Admin/Desktop/Portal/backend
 .venv/Scripts/python.exe -c "from app.security import EncryptedString, encrypt_str, decrypt_str; print('OK')"
-# → prints "GAAEX_FIELD_KEY not set — using deterministic DEV key…" (expected in dev) then "OK"
+# → prints "GAAHEX_FIELD_KEY not set — using deterministic DEV key…" (expected in dev) then "OK"
 
 .venv/Scripts/python.exe -m pytest tests/test_field_crypto.py -v
 # → 10 passed in ~3s

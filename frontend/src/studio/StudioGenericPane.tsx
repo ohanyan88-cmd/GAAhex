@@ -1,4 +1,4 @@
-// GAAex Studio — generic leaf pane router.
+// GAAhex Studio — generic leaf pane router.
 //
 // Resolution order for every Studio leaf:
 //   1. REAL_PANE_BY_LEAF_ID  → real, backend-wired CRUD panes (7 leaves, RLS).

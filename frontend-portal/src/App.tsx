@@ -3,9 +3,9 @@ import { getToken } from './lib/api'
 import LoginView from './views/LoginView'
 import PortalShell from './views/PortalShell'
 
-const THEME_KEY   = 'gaaex-portal-theme'
-const DENSITY_KEY = 'gaaex-portal-density'
-const PALETTE_KEY = 'gaaex-portal-palette'
+const THEME_KEY   = 'gaahex-portal-theme'
+const DENSITY_KEY = 'gaahex-portal-density'
+const PALETTE_KEY = 'gaahex-portal-palette'
 
 export type Theme   = 'dark' | 'light'
 export type Density = 'default' | 'compact'

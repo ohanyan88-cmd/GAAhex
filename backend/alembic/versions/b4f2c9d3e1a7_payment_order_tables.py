@@ -6,7 +6,7 @@ Create Date: 2026-05-27 22:00:00.000000
 
 Additive + reversible. Single new table for the PaymentOrder module. Tenant-scoped; carries the
 NULLIF-guarded tenant_isolation RLS policy identical to all post-enable-RLS tables.
-gaaex_app grants inherit via the ALTER DEFAULT PRIVILEGES set in the enable-RLS migration.
+gaahex_app grants inherit via the ALTER DEFAULT PRIVILEGES set in the enable-RLS migration.
 
 NOT run against the live DB by the worker — coordinator applies: alembic upgrade head.
 """
@@ -59,8 +59,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE payment_order ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON payment_order
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

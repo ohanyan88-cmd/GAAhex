@@ -4,10 +4,10 @@ import asyncio
 # Point the app at an isolated test database BEFORE importing any app module. Respect any URL the
 # environment already supplied (CI sets DATABASE_URL to its own postgres service on :5432); only
 # fall back to the local-dev default (:5433) when nothing was set. The session fixture explicitly
-# DROPs + CREATEs gaaex_test against this URL, so the dev DB (gaaex) is never touched as long as
+# DROPs + CREATEs gaahex_test against this URL, so the dev DB (gaahex) is never touched as long as
 # the configured URL points at a test database — which CI's workflow guarantees.
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test")
-os.environ.setdefault("OWNER_DATABASE_URL", "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_test")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_test")
+os.environ.setdefault("OWNER_DATABASE_URL", "postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_test")
 # M1-C.1: force the mock payment gateway in tests regardless of any stray .env file.
 # Tests that exercise StripeGateway construct it explicitly (bypassing the factory) and
 # patch the stripe SDK with unittest.mock — they never touch the real Stripe API.
@@ -40,8 +40,8 @@ async def _setup_db():
     p = urlparse(os.environ["DATABASE_URL"].replace("postgresql+asyncpg://", "postgresql://"))
     admin_url = urlunparse(p._replace(path="/postgres"))
     admin = await asyncpg.connect(admin_url)
-    await admin.execute("DROP DATABASE IF EXISTS gaaex_test WITH (FORCE)")
-    await admin.execute("CREATE DATABASE gaaex_test")
+    await admin.execute("DROP DATABASE IF EXISTS gaahex_test WITH (FORCE)")
+    await admin.execute("CREATE DATABASE gaahex_test")
     await admin.close()
 
     from sqlalchemy import text

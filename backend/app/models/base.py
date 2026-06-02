@@ -2,5 +2,5 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    """Declarative base for all GAAex ORM models."""
+    """Declarative base for all GAAhex ORM models."""
     pass

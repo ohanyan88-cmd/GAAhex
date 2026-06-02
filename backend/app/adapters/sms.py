@@ -30,7 +30,7 @@ from typing import Any
 
 from .base import ChannelAdapter, registry
 
-logger = logging.getLogger("gaaex.adapters.sms")
+logger = logging.getLogger("gaahex.adapters.sms")
 
 
 # ---------------------------------------------------------------------------

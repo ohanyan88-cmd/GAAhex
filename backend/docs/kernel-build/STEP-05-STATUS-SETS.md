@@ -1,6 +1,6 @@
 # Step 5 — SPEC §7 Status Standardization
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md` §7 (lines 281-293) — the locked
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md` §7 (lines 281-293) — the locked
 status vocabularies for the 9 record kinds the SPEC names.
 
 Step 5 takes the LOCKED `Draft · New · Open · …` text vocabularies from doc-only language into
@@ -62,7 +62,7 @@ SPEC §7 display labels are converted to `UPPER_SNAKE` keys via `_to_status_key(
 | Lead        | `lead`                                | First match                               | Skipped if missing — `lead` is a first-class concept, not always present as a catalog `entity_def`. |
 | Contract    | `contract`                            | First match                               | Catalog provides a partial set (`Draft`, `Active`, `Expired`, `Terminated`); seeder extends to 7. |
 | Order       | `order`                               | First match                               | Catalog provides `Created`, `Fulfilling`, `Completed`, `Rejected`; seeder extends to 6 SPEC ones.  |
-| Ticket      | `ticket`, `helpdesk_ticket`           | **All matches** — both get the same set   | GAAex CRM-baseline `ticket` and helpdesk-module `helpdesk_ticket` both carry SPEC §7 vocabulary.   |
+| Ticket      | `ticket`, `helpdesk_ticket`           | **All matches** — both get the same set   | GAAhex CRM-baseline `ticket` and helpdesk-module `helpdesk_ticket` both carry SPEC §7 vocabulary.   |
 | Work Order  | `work_order`, `workitem`              | **All matches** — both get the same set   | `workitem` is the first-class field-dispatch table; `work_order` is the catalog entity.            |
 | Invoice     | `invoice`                             | First match                               | Skipped if missing — `invoice` lives in its first-class `invoice` table.                           |
 | Payment     | `payment`                             | First match                               | Skipped if missing — same.                                                                         |
@@ -89,12 +89,12 @@ file itself is the source of truth.
 
 ## C — Verification (test DB transcript, 2026-05-31)
 
-Fresh ephemeral DB `gaaex_step5_test` on the existing `gaaex-db` container.
+Fresh ephemeral DB `gaahex_step5_test` on the existing `gaahex-db` container.
 
 ```
-docker exec gaaex-db psql -U gaaex -d postgres -c "CREATE DATABASE gaaex_step5_test;"
-$env:DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_step5_test"
-$env:OWNER_DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_step5_test"
+docker exec gaahex-db psql -U gaahex -d postgres -c "CREATE DATABASE gaahex_step5_test;"
+$env:DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_step5_test"
+$env:OWNER_DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_step5_test"
 cd backend
 .venv/Scripts/python.exe -m alembic upgrade head
 # … (all 39 migrations applied through d4f8a1c6b3e5 status_def.is_terminal) …
@@ -152,7 +152,7 @@ Row counts explained:
 ### Post-seed table (excerpt)
 
 ```
-docker exec gaaex-db psql -U gaaex -d gaaex_step5_test -c \
+docker exec gaahex-db psql -U gaahex -d gaahex_step5_test -c \
   "SELECT ed.key as entity, sd.key, sd.label, sd.\"order\", sd.is_initial, sd.is_terminal
    FROM status_def sd JOIN entity_def ed ON ed.id=sd.entity_def_id
    WHERE ed.key IN ('general','contract','order','work_order')

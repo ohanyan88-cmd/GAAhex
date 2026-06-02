@@ -46,8 +46,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE api_key ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON api_key
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
     # E13 perf indexes for the hot scans (list/feed/aggregation).

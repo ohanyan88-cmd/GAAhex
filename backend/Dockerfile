@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 # ---------------------------------------------------------------------------
-# GAAex backend — production image (multi-stage)
+# GAAhex backend — production image (multi-stage)
 # Base: python:3.12-slim
-# Runs as non-root user `gaaex` (uid 10001) on port 8099
+# Runs as non-root user `gaahex` (uid 10001) on port 8099
 # ---------------------------------------------------------------------------
 
 # ============================================================================
@@ -51,8 +51,8 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Non-root user (uid 10001) — runs the app
-RUN groupadd --system --gid 10001 gaaex \
- && useradd --system --uid 10001 --gid gaaex --home-dir /app --shell /usr/sbin/nologin gaaex
+RUN groupadd --system --gid 10001 gaahex \
+ && useradd --system --uid 10001 --gid gaahex --home-dir /app --shell /usr/sbin/nologin gaahex
 
 # Bring installed Python packages over from the builder stage
 COPY --from=builder /install /usr/local
@@ -60,11 +60,11 @@ COPY --from=builder /install /usr/local
 WORKDIR /app
 
 # Copy only what the app needs to run
-COPY --chown=gaaex:gaaex app/         /app/app/
-COPY --chown=gaaex:gaaex alembic/     /app/alembic/
-COPY --chown=gaaex:gaaex alembic.ini  /app/alembic.ini
+COPY --chown=gaahex:gaahex app/         /app/app/
+COPY --chown=gaahex:gaahex alembic/     /app/alembic/
+COPY --chown=gaahex:gaahex alembic.ini  /app/alembic.ini
 
-USER gaaex
+USER gaahex
 
 EXPOSE 8099
 

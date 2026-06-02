@@ -1,6 +1,6 @@
-# GAAex Portal — UI kit
+# GAAhex Portal — UI kit
 
-A high-fidelity, interactive recreation of the **GAAex operations console** in the new
+A high-fidelity, interactive recreation of the **GAAhex operations console** in the new
 *Cobalt & Gold* design language. This is the platform's single product surface — a multi-tenant,
 config-driven workspace for an entire ISP.
 

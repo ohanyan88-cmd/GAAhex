@@ -10,7 +10,7 @@ rows looked like placeholder mock data on real list pages and violated the doctr
 That seeder is gone. Today the demo data path is:
 
   - ``seed_demo_loop_if_empty()`` — one realistic customer + ticket for the daily loop.
-  - ``seed_dev_bulk_if_empty()`` (env-gated by ``GAAEX_DEV_SEED``) — 10 Armenian-ISP
+  - ``seed_dev_bulk_if_empty()`` (env-gated by ``GAAHEX_DEV_SEED``) — 10 Armenian-ISP
     customers with the full cross-referenced tree (parties / accounts / contacts /
     subscriptions / invoices / payments / tickets / work-items / sites / devices /
     employees / orders).
@@ -36,7 +36,7 @@ from sqlalchemy import select
 from .db import OwnerSessionLocal as SessionLocal
 from .models import Tenant
 
-_log = logging.getLogger("gaaex.seed_default_records")
+_log = logging.getLogger("gaahex.seed_default_records")
 
 
 async def grant_request_perms_to_existing_roles() -> None:

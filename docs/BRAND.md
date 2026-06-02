@@ -1,6 +1,6 @@
-# GAAex — Brand & Design Tokens
+# GAAhex — Brand & Design Tokens
 
-The single source of truth for GAAex's visual identity. GAAex is **dark-first** (a deep obsidian
+The single source of truth for GAAhex's visual identity. GAAhex is **dark-first** (a deep obsidian
 environment that makes the Cobalt + Gold identity pop) but **ships both themes** — dark is the
 default (`:root`), light is a `[data-theme="light"]` override, toggled in the header. The brand
 marks (Cobalt + Gold) and the functional signals carry across both themes; only the neutrals change.
@@ -151,11 +151,11 @@ the source hues above are fixed.
 ---
 
 ## 4. Iconography — NO emoji in the product UI (hard rule)
-**The GAAex product UI uses zero emoji. Every icon is an inline SVG.** This covers all UI chrome,
-controls, labels, system-generated notification content, seed data, and any string GAAex itself
+**The GAAhex product UI uses zero emoji. Every icon is an inline SVG.** This covers all UI chrome,
+controls, labels, system-generated notification content, seed data, and any string GAAhex itself
 authors.
 
-**The one exception — human-authored communication content.** Inside GAAex's communication features
+**The one exception — human-authored communication content.** Inside GAAhex's communication features
 (a Messenger / chat, Email composer, comments, or any other message a *user types and sends*), emoji
 are allowed in the **message body**, exactly as in any chat or email. The rule bans emoji as product
 chrome/iconography and in system-authored text — it does **not** police what users write to each

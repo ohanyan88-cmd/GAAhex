@@ -5,7 +5,7 @@ exactly as before (the body shape never changes — it stays a plain list). Pagi
 additive: callers opt in with `limit`/`offset`, and the total row count always travels in an
 `X-Total-Count` response header so a frontend can build a pager without touching the body.
 
-Two surfaces, because GAAex lists come in two shapes:
+Two surfaces, because GAAhex lists come in two shapes:
 
   - `Page` — parses + bounds `limit`/`offset` once (sane default, hard max cap). `limit=None`
     means "no params" ⇒ no upper bound (full list, prior behavior).

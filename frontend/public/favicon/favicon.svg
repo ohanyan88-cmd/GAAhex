@@ -1,4 +1,4 @@
-<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GAAex"><style>:root{--ga:#1C3B68;--tri:#C5A059}@media(prefers-color-scheme:dark){:root{--ga:#E8ECF3}}</style>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GAAhex"><style>:root{--ga:#1C3B68;--tri:#C5A059}@media(prefers-color-scheme:dark){:root{--ga:#E8ECF3}}</style>
  <g transform="translate(1.6 79.1) scale(2.21)" fill="none">
   <path d="M 108 67.6 A 40 40 0 1 0 108 92.4" stroke="var(--ga)" stroke-width="18"/>
   <path d="M 70 80 H 116" stroke="var(--ga)" stroke-width="18"/>

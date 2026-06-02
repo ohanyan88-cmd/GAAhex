@@ -1,6 +1,6 @@
 # SPEC §4.5 — Mandatory Approvals (scaffolding)
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md`
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
 - §4.5 Mandatory Approvals — the 12 high-stakes business actions that MUST go through an approval
   workflow before execution.
 - §0.4 Audit Append-Only — every approval state change emits an Event.
@@ -85,8 +85,8 @@ Creates the `approval` table with:
   ```sql
   ALTER TABLE approval ENABLE ROW LEVEL SECURITY;
   CREATE POLICY tenant_isolation ON approval
-    USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-    WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+    USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+    WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
   ```
 
 `downgrade()` drops the policy, the indexes, and the table.
@@ -287,16 +287,16 @@ canonical SPEC §4.5 next step but is out of scope for the scaffolding.
 ## G — Verification transcript
 
 ```pwsh
-PS> docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE gaaex_approval_test;"
+PS> docker exec -i gaahex-db psql -U gaahex -c "CREATE DATABASE gaahex_approval_test;"
 CREATE DATABASE
 
-PS> $env:DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_approval_test"
+PS> $env:DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_approval_test"
 PS> $env:OWNER_DATABASE_URL=$env:DATABASE_URL
 PS> cd backend
 PS> .venv\Scripts\python.exe -m alembic upgrade head
 INFO  [alembic.runtime.migration] Running upgrade a7b3c9d5e1f2 -> b5e8f1c2d3a4, SPEC §4.5 mandatory approvals — approval table
 
-PS> docker exec -i gaaex-db psql -U gaaex -d gaaex_approval_test -c "\d approval"
+PS> docker exec -i gaahex-db psql -U gaahex -d gaahex_approval_test -c "\d approval"
                                       Table "public.approval"
       Column       |           Type           | Collation | Nullable |           Default
 -------------------+--------------------------+-----------+----------+------------------------------
@@ -324,8 +324,8 @@ Foreign-key constraints:
     "approval_tenant_id_fkey" FOREIGN KEY (tenant_id) REFERENCES tenant(id)
 Policies:
     POLICY "tenant_isolation"
-      USING ((tenant_id = (NULLIF(current_setting('gaaex.tenant_id'::text, true), ''::text))::uuid))
-      WITH CHECK ((tenant_id = (NULLIF(current_setting('gaaex.tenant_id'::text, true), ''::text))::uuid))
+      USING ((tenant_id = (NULLIF(current_setting('gaahex.tenant_id'::text, true), ''::text))::uuid))
+      WITH CHECK ((tenant_id = (NULLIF(current_setting('gaahex.tenant_id'::text, true), ''::text))::uuid))
 
 PS> .venv\Scripts\python.exe -m pytest tests/test_mandatory_approvals.py -v
 tests/test_mandatory_approvals.py::test_create_decide_execute_progression_and_audit PASSED
@@ -343,7 +343,7 @@ tests/test_approvals.py::test_approval_reject_leaves_record PASSED
 tests/test_approvals.py::test_approval_guardrails PASSED
 ============================== 5 passed in 6.80s ==============================
 
-PS> docker exec -i gaaex-db psql -U gaaex -c "DROP DATABASE gaaex_approval_test;"
+PS> docker exec -i gaahex-db psql -U gaahex -c "DROP DATABASE gaahex_approval_test;"
 DROP DATABASE
 ```
 

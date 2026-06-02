@@ -1,9 +1,9 @@
 """SPEC §4.4 field-level encryption at rest.
 
 Application-level AEAD using Fernet (AES-128-CBC + HMAC-SHA256). The key comes from
-env var ``GAAEX_FIELD_KEY`` (a 32-byte url-safe base64 string — the shape
+env var ``GAAHEX_FIELD_KEY`` (a 32-byte url-safe base64 string — the shape
 ``Fernet.generate_key()`` produces). In dev, a deterministic test key is used if the
-env var is missing — production MUST set ``GAAEX_FIELD_KEY``.
+env var is missing — production MUST set ``GAAHEX_FIELD_KEY``.
 
 Encrypted values are stored as TEXT in PostgreSQL (Fernet output is ASCII, longer than
 the plaintext). Read-side automatically decrypts on column access; write-side encrypts
@@ -12,7 +12,7 @@ on bind. Legacy plaintext rows and rows encrypted with a now-retired key both re
 (e.g. "[unreadable secret — re-key required]" in the UI, or a backfill sweep that
 re-encrypts).
 
-Key rotation: change ``GAAEX_FIELD_KEY`` to the new key, then run a one-shot sweep
+Key rotation: change ``GAAHEX_FIELD_KEY`` to the new key, then run a one-shot sweep
 script (e.g. ``backend/scripts/encrypt_webhook_secrets.py``) that reads + writes every
 row so the ORM transparently re-encrypts under the new key. For zero-downtime rotation,
 upgrade to ``MultiFernet`` with a comma-separated env var — see
@@ -26,21 +26,21 @@ from typing import Any, Optional
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy.types import TypeDecorator, Text
 
-_logger = logging.getLogger("gaaex.field_crypto")
+_logger = logging.getLogger("gaahex.field_crypto")
 
 # Deterministic 32-byte raw key → 44-char url-safe base64 Fernet key. Used only when
-# ``GAAEX_FIELD_KEY`` is unset; logs a loud warning every time it's selected.
-_DEV_RAW = b"gaaex-dev-fernet-key-32bytes-len"  # exactly 32 bytes
+# ``GAAHEX_FIELD_KEY`` is unset; logs a loud warning every time it's selected.
+_DEV_RAW = b"gaahex-dev-fernet-key-32bytes-len"  # exactly 32 bytes
 _DEV_KEY = base64.urlsafe_b64encode(_DEV_RAW)
 
 
 def _get_key() -> bytes:
     """Return the active Fernet key. Env var first, deterministic dev key as fallback."""
-    k = os.environ.get("GAAEX_FIELD_KEY")
+    k = os.environ.get("GAAHEX_FIELD_KEY")
     if k:
         return k.encode() if isinstance(k, str) else k
     _logger.warning(
-        "GAAEX_FIELD_KEY not set — using deterministic DEV key. "
+        "GAAHEX_FIELD_KEY not set — using deterministic DEV key. "
         "NEVER deploy this to production (SPEC §4.4)."
     )
     return _DEV_KEY
@@ -52,7 +52,7 @@ _FERNET = Fernet(_get_key())
 
 
 def _reload_fernet() -> None:
-    """Re-read ``GAAEX_FIELD_KEY`` from env and rebuild the cached Fernet.
+    """Re-read ``GAAHEX_FIELD_KEY`` from env and rebuild the cached Fernet.
 
     Exposed so the test suite can simulate key rotation without process restart. Do not
     call from production code paths.

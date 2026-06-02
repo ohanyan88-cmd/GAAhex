@@ -26,7 +26,7 @@ SPEC §0.6 — Region/Branch is a partition key
   application-side (kernel.invariants.assert_can_read_region) and is wired into routers in Step 6.
 
   Tables widened: `record`, `invoice`, `payment`, `"order"`, `service`, `helpdesk_ticket`,
-  `workitem`. `workitem` is GAAex's work-order table (SPEC §0.6 names it "work_order" — same kind
+  `workitem`. `workitem` is GAAhex's work-order table (SPEC §0.6 names it "work_order" — same kind
   of record). Subscription/account/billing_account get region_id later if they prove needed; the
   list above is the operational surface the SPEC explicitly calls out plus the generic Record bag.
 

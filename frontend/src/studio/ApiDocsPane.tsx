@@ -1,7 +1,7 @@
 // ApiDocsPane — Studio leaf for Developer → API Docs.
 //
 // Renders the live FastAPI OpenAPI spec served at GET /openapi.json as a clean,
-// navigable, GAAex-styled spec viewer. NOT a Swagger UI clone — a focused read-
+// navigable, GAAhex-styled spec viewer. NOT a Swagger UI clone — a focused read-
 // only browser: title + version + base, a tag-grouped endpoint index, and per-
 // endpoint expand for the verb, path, summary, parameters, request body shape
 // and response shape. For GET endpoints with no required path/body parameters

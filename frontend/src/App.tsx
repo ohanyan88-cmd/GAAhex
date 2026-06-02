@@ -203,7 +203,7 @@ export default function App() {
   const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
   const { t, lang, setLang } = useI18n()
 
-  // SPEC §1 dynamic nav: attempt to load the nav tree from GAAex /api/nav after
+  // SPEC §1 dynamic nav: attempt to load the nav tree from GAAhex /api/nav after
   // login; fall back to the static NAV_SECTIONS if the endpoint isn't reachable
   // or returns nothing usable. The static config stays bundled so the UI is
   // never blank.
@@ -273,20 +273,20 @@ export default function App() {
 
   // theme + setTheme are consumed by the user-menu theme toggle (P5 UserMenu).
   const [theme, setTheme] = useState<'dark' | 'light'>(
-    () => (localStorage.getItem('gaaex-theme') === 'light' ? 'light' : 'dark'),
+    () => (localStorage.getItem('gaahex-theme') === 'light' ? 'light' : 'dark'),
   )
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('gaaex-theme', theme)
+    localStorage.setItem('gaahex-theme', theme)
   }, [theme])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-density', 'comfortable')
     document.documentElement.removeAttribute('data-palette')
     document.documentElement.removeAttribute('data-gx-palette')
-    localStorage.removeItem('gaaex-density')
-    localStorage.removeItem('gaaex-palette')
-    localStorage.removeItem('gaaex-gx-palette')
+    localStorage.removeItem('gaahex-density')
+    localStorage.removeItem('gaahex-palette')
+    localStorage.removeItem('gaahex-gx-palette')
   }, [])
 
   async function handleLogin(e: React.FormEvent) {
@@ -314,7 +314,7 @@ export default function App() {
     return (
       <div className="login-wrap">
         <div className="login-brand">
-          <img src="/logo/GAAex-logo-reversed.svg" alt="GAAex" style={{ height: 102, position: 'relative', zIndex: 1 }} />
+          <img src="/logo/GAAhex-logo-reversed.svg" alt="GAAhex" style={{ height: 102, position: 'relative', zIndex: 1 }} />
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div className="gx-eyebrow" style={{ marginBottom: 14 }}>THE OPERATING SYSTEM FOR ISPs</div>
             <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 40, fontWeight: 600, lineHeight: 1.08, letterSpacing: '-.03em', margin: 0, maxWidth: 420 }}>
@@ -453,8 +453,8 @@ export default function App() {
       <aside className="sb">
         <div className="sb-head">
           <img
-            src={collapsed ? '/logo/GAAex-mark.svg' : '/logo/GAAex-logo-reversed.svg'}
-            alt="GAAex"
+            src={collapsed ? '/logo/GAAhex-mark.svg' : '/logo/GAAhex-logo-reversed.svg'}
+            alt="GAAhex"
             className="wm"
           />
         </div>

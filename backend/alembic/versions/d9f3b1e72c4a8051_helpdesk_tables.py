@@ -6,7 +6,7 @@ Create Date: 2026-05-27 20:00:00.000000
 
 Additive + reversible. Two new tables for the helpdesk module. Tenant-scoped; carries the same
 NULLIF-guarded tenant_isolation RLS policy as all post-enable-RLS tables.
-gaaex_app grants inherit via the ALTER DEFAULT PRIVILEGES set in the enable-RLS migration.
+gaahex_app grants inherit via the ALTER DEFAULT PRIVILEGES set in the enable-RLS migration.
 
 NOT run against the live DB by the worker — coordinator applies: alembic upgrade head.
 """
@@ -45,8 +45,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE helpdesk_queue ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON helpdesk_queue
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
     # helpdesk_ticket table
@@ -81,8 +81,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE helpdesk_ticket ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON helpdesk_ticket
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

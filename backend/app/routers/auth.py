@@ -184,7 +184,7 @@ async def current_user(
     if payload.get("kind") == "customer":
         raise HTTPException(status_code=401, detail="Portal token not accepted on staff endpoints")
     # Look the user up via the OWNER session: the app session `s` is RLS-subject and has no tenant
-    # GUC set yet (chicken-and-egg), so a gaaex_app read of app_user here would default-deny.
+    # GUC set yet (chicken-and-egg), so a gaahex_app read of app_user here would default-deny.
     async with OwnerSessionLocal() as o:
         user = (await o.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:

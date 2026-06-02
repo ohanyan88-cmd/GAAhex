@@ -172,7 +172,7 @@ async def _refresh_permission_catalog(s, tenant_id) -> None:
 async def seed_if_empty() -> None:
     """Demo tenant + 2-level org tree + demo admin user.
 
-    Single-tenant mode: if GAAEX_TENANT_ID is set, the demo Tenant is created with that exact UUID
+    Single-tenant mode: if GAAHEX_TENANT_ID is set, the demo Tenant is created with that exact UUID
     so the env-pinned config matches the DB row. Idempotent: if any Tenant already exists, reuse
     its id (and warm the THE_TENANT_ID cache) without creating another.
     """
@@ -185,7 +185,7 @@ async def seed_if_empty() -> None:
             await _refresh_permission_catalog(s, existing.id)
             return
 
-        pinned_id_str = os.environ.get("GAAEX_TENANT_ID")
+        pinned_id_str = os.environ.get("GAAHEX_TENANT_ID")
         tenant_kwargs = {"name": "Demo ISP"}
         if pinned_id_str:
             tenant_kwargs["id"] = uuid.UUID(pinned_id_str)
@@ -213,7 +213,7 @@ async def seed_if_empty() -> None:
 
         # Baseline parties — needed by the Accounts page holder-picker. Without these,
         # creating an Account from the UI is blocked (zero options in the dropdown).
-        # dev_bulk also seeds parties, but that's opt-in via GAAEX_DEV_SEED; these 3
+        # dev_bulk also seeds parties, but that's opt-in via GAAHEX_DEV_SEED; these 3
         # are unconditional so the picker is never empty.
         from .models.party import Party
         for p_name, p_type in (

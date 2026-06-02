@@ -8,8 +8,8 @@ function Sidebar({ collapsed, activeId, onNav }) {
   return (
     <aside className="sb">
       <div className="sb-head">
-        <img src="../../assets/logo/GAAex-logo-reversed.svg" alt="GAAex" className="wm" />
-        <img src="../../assets/logo/GAAex-mark.svg" alt="GAAex" style={{ height: 26, display: collapsed ? 'block' : 'none' }} />
+        <img src="../../assets/logo/GAAhex-logo-reversed.svg" alt="GAAhex" className="wm" />
+        <img src="../../assets/logo/GAAhex-mark.svg" alt="GAAhex" style={{ height: 26, display: collapsed ? 'block' : 'none' }} />
       </div>
       <div className="sb-scroll">
         {NAV.map(sec => (

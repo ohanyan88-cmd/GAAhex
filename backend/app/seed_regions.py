@@ -26,7 +26,7 @@ from .db import OwnerSessionLocal as SessionLocal  # privileged: seeding bypasse
 from .models import Tenant, Region
 
 
-_log = logging.getLogger("gaaex.seed_regions")
+_log = logging.getLogger("gaahex.seed_regions")
 
 
 # The single starter row inserted per tenant on a fresh boot. Matches the demo Yerevan

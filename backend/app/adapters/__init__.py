@@ -1,4 +1,4 @@
-"""GAAex channel adapters package (doc 24 / E23).
+"""GAAhex channel adapters package (doc 24 / E23).
 
 Importing this package registers the email and SMS adapters in `adapters.registry`
 (dormant-safe: if no provider is configured, log-only adapters are used instead).

@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .config import settings
 from .models.outbound import OutboundMessage
 
-logger = logging.getLogger("gaaex.channels")
+logger = logging.getLogger("gaahex.channels")
 
 # Adapter contract: send (or raise). `to` is the channel-specific address (email/phone/url) or None.
 Adapter = Callable[[str | None, str | None, str], Awaitable[None]]

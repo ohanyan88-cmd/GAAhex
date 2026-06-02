@@ -17,7 +17,7 @@ Tenant scoping
 Each handler reads ``tenant_id`` from ``event.data.object.metadata``. If the metadata is
 absent (e.g. a dashboard-fired refund against an old PaymentIntent), the handler logs a
 warning and returns ``'ignored'`` — better than silently writing to the wrong tenant. The
-session's ``gaaex.tenant_id`` GUC is bound before any tenant-scoped query.
+session's ``gaahex.tenant_id`` GUC is bound before any tenant-scoped query.
 
 The caller (the webhook router) owns ``await session.commit()`` AND owns writing the
 ``StripeWebhookEvent`` audit row (so a single transaction covers the dispatch + audit).
@@ -84,7 +84,7 @@ async def _set_tenant_guc(session: AsyncSession, tenant_id: uuid.UUID | None) ->
         return
     await session.execute(
         text("SELECT set_config(:k, :v, false)"),
-        {"k": "gaaex.tenant_id", "v": str(tenant_id)},
+        {"k": "gaahex.tenant_id", "v": str(tenant_id)},
     )
 
 

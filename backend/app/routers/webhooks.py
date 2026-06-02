@@ -122,10 +122,10 @@ async def _deliver(s: AsyncSession, hook: WebhookDef, event_type: str, payload: 
         return delivery
 
     body = json.dumps({"event": event_type, "data": payload}, default=str).encode()
-    headers = {"Content-Type": "application/json", "User-Agent": "GAAex-Webhooks/1"}
+    headers = {"Content-Type": "application/json", "User-Agent": "GAAhex-Webhooks/1"}
     if hook.secret:
         sig = hmac.new(hook.secret.encode(), body, hashlib.sha256).hexdigest()
-        headers["X-GAAex-Signature"] = f"sha256={sig}"
+        headers["X-GAAhex-Signature"] = f"sha256={sig}"
 
     # SSRF guard — re-check at dispatch so URLs stored before this guard was added
     # (or mutated via direct DB writes) cannot bypass the protection.
@@ -370,7 +370,7 @@ async def test_webhook(webhook_id: str, payload: dict | None = None, user: User 
     await _require_config_manage(s, user)
     w = await _load(s, user.tenant_id, webhook_id)
     event_type = (payload or {}).get("event_type") or "test"
-    sample = (payload or {}).get("data") or {"message": "GAAex test event", "webhook_id": str(w.id)}
+    sample = (payload or {}).get("data") or {"message": "GAAhex test event", "webhook_id": str(w.id)}
     delivery = await _deliver(s, w, event_type, sample)
     await s.commit()
     await s.refresh(delivery)

@@ -42,12 +42,12 @@ def upgrade() -> None:
     op.create_index(op.f('ix_job_run_job_key'), 'job_run', ['job_key'], unique=False)
 
     # RLS: created after the enable-RLS migration, so apply the same NULLIF-guarded tenant_isolation
-    # policy as the billing tables (gaaex_app grants come from the ALTER DEFAULT PRIVILEGES set earlier).
+    # policy as the billing tables (gaahex_app grants come from the ALTER DEFAULT PRIVILEGES set earlier).
     op.execute("ALTER TABLE job_run ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON job_run
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

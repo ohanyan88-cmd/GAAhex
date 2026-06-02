@@ -1,18 +1,18 @@
-# GAAex Design System — "Cobalt & Gold"
+# GAAhex Design System — "Cobalt & Gold"
 
-> A premium, dense, config-first design language for **GAAex** — the platform that aims to be
+> A premium, dense, config-first design language for **GAAhex** — the platform that aims to be
 > *the only place of work for an entire ISP*. Every department, every role, one system.
 
-This design system is a **fresh visual language** proposed for GAAex. It deliberately replaces the
+This design system is a **fresh visual language** proposed for GAAhex. It deliberately replaces the
 prior "glass / generic-blue" tokens and centers the real brand identity — **cobalt navy + gold**,
 with the triangular pyramid mark — into a coherent, accessible, dark-first system that scales across
-GAAex's **18 modules and ~190 pages**.
+GAAhex's **18 modules and ~190 pages**.
 
 ---
 
-## 1 · What GAAex is
+## 1 · What GAAhex is
 
-GAAex is a **multi-tenant, configuration-driven operations platform** for Internet Service Providers.
+GAAhex is a **multi-tenant, configuration-driven operations platform** for Internet Service Providers.
 The thesis: the system *renders and behaves from configuration*, enforced by a small fixed kernel
 (WorkItem movement · auth/authz · database · audit · security) — **no hardcoded screens or business
 rules**. New entities, fields, workflows, dashboards and views are stood up from **Studio** with
@@ -33,7 +33,7 @@ palette / notifications / tenant + user), and a **view** — usually a dense dat
 KPI tiles + charts, a record detail, or a board.
 
 ### Studio is the heart
-Because GAAex is config-driven, **Studio** is where the platform is *built and designed*, not just
+Because GAAhex is config-driven, **Studio** is where the platform is *built and designed*, not just
 configured. Studio panes:
 - **Schema** → Entities · Fields · Statuses / Workflows (with GXL transition guards)
 - **UI** → Dashboards · Views · Reports (the *design* surface — layouts, columns, KPI cards)
@@ -49,14 +49,14 @@ as a built screen **and** as something assembled live inside Studio.
 - **GitHub:** `ohanyan88-cmd/Portal` (private) — the build. Explore further to design with higher
   fidelity: real views live in `frontend/src/views/`, primitives in `frontend/src/primitives/`,
   navigation in `frontend/src/lib/nav-config.ts`, Studio in `frontend/src/views/StudioView.tsx`.
-- Architecture blueprint referenced by the repo: `../GAAex-Vision/` (not provided here).
+- Architecture blueprint referenced by the repo: `../GAAhex-Vision/` (not provided here).
 - Brand marks: `frontend/public/logo/` (imported into `assets/logo/`).
 
 ---
 
 ## 2 · Content fundamentals (voice & copy)
 
-GAAex is an **operator's tool** — written for ISP staff who live in it all day. The product copy is
+GAAhex is an **operator's tool** — written for ISP staff who live in it all day. The product copy is
 **terse, precise, and lowercase-leaning in metadata, sentence-case in UI**.
 
 - **Tone:** confident, calm, operational. No marketing fluff inside the app. Labels are nouns
@@ -147,7 +147,7 @@ Maps and topology graphs use the data-viz palette on a dark canvas.
 ## 4 · Iconography
 
 - **Style:** Feather / Lucide-grade line icons — **24×24 grid, 2px stroke, round caps & joins,
-  `currentColor`, `fill:none`.** The GAAex codebase ships a hand-rolled set in this exact style
+  `currentColor`, `fill:none`.** The GAAhex codebase ships a hand-rolled set in this exact style
   (`frontend/src/components/icons.tsx`), so this system standardizes on **[Lucide](https://lucide.dev)**
   as the icon library — it is a pixel-compatible superset of the in-repo set. Loaded from CDN in the
   previews/UI kit (`lucide@latest`).
@@ -162,7 +162,7 @@ Maps and topology graphs use the data-viz palette on a dark canvas.
 - **Filled exceptions:** play/▶, and a few solid status dots. Everything else is outline.
 - **Emoji / unicode as icons:** **never.**
 - **Logo marks** live in `assets/logo/`: full lockup (`cobalt-gold`), reversed (for dark), mono
-  (cobalt / platinum), and the standalone pyramid **mark** (`GAAex-mark.svg`) for favicons/avatars.
+  (cobalt / platinum), and the standalone pyramid **mark** (`GAAhex-mark.svg`) for favicons/avatars.
 
 ---
 
@@ -173,10 +173,10 @@ README.md                  ← you are here (context · voice · visual foundati
 SKILL.md                   ← Agent-Skill front-matter so this folder is usable in Claude Code
 colors_and_type.css        ← MASTER token file (primitives → semantic → component, light + dark)
 assets/
-  logo/                    ← GAAex logos: full, reversed, mono, standalone mark, app icons
+  logo/                    ← GAAhex logos: full, reversed, mono, standalone mark, app icons
 preview/                   ← Design System tab cards (colors, type, spacing, components, ISP status…)
 ui_kits/
-  portal/                  ← the GAAex operations console UI kit (the only product surface)
+  portal/                  ← the GAAhex operations console UI kit (the only product surface)
     README.md              ← what's covered, how to compose screens
     index.html             ← interactive click-through: login → dashboard → work items → studio
     *.jsx                  ← Sidebar, TopBar, KPI tiles, DataTable, StatusPill, Studio, etc.

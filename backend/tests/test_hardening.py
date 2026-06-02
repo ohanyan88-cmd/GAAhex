@@ -110,7 +110,7 @@ SSRF_TEST_URLS = [
 PUBLIC_WEBHOOK_URLS = [
     "https://example.com/webhook",
     "https://api.example.com/events",
-    "https://hooks.example.org/gaaex",
+    "https://hooks.example.org/gaahex",
 ]
 
 

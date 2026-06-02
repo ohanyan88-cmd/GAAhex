@@ -1,4 +1,4 @@
-# Applying the GAAex Design System to your `ohanyan88-cmd/Portal` repo
+# Applying the GAAhex Design System to your `ohanyan88-cmd/Portal` repo
 
 This design system is **standalone** (tokens + CSS + reference UI kit). Your Portal app is
 **React + TypeScript + Vite** (`frontend/`). You don't replace your app — you **swap its visual
@@ -7,7 +7,7 @@ foundation** and lift components/patterns from the kit. Here's the practical pat
 ---
 
 ## TL;DR (the 15-minute version)
-1. Copy **`colors_and_type.css`** → `frontend/src/styles/gaaex-tokens.css`.
+1. Copy **`colors_and_type.css`** → `frontend/src/styles/gaahex-tokens.css`.
 2. Import it once at the top of `frontend/src/main.tsx` and set `data-theme="dark"` on `<html>`.
 3. Point your existing `frontend/src/styles/color-tokens.css` variables at the new `--gx-*` tokens
    (or delete it and find/replace old token names → new ones).
@@ -19,7 +19,7 @@ foundation** and lift components/patterns from the kit. Here's the practical pat
 ## Step 1 — Drop in the tokens
 Copy `colors_and_type.css` from this project into your repo:
 ```
-frontend/src/styles/gaaex-tokens.css
+frontend/src/styles/gaahex-tokens.css
 ```
 It defines every `--gx-*` variable (colors, type, spacing, radius, shadow, motion) for **both
 themes**, plus the `@import` for the three Google fonts.
@@ -28,7 +28,7 @@ themes**, plus the `@import` for the three Google fonts.
 In `frontend/src/main.tsx` (or wherever you import global CSS), add it **first** so its variables are
 available everywhere:
 ```ts
-import './styles/gaaex-tokens.css'
+import './styles/gaahex-tokens.css'
 import './styles/styles.css' // your existing global sheet, now free to use var(--gx-*)
 ```
 Set the default theme on the document (in `index.html` or a `useEffect`):
@@ -65,8 +65,8 @@ Your components keep their old class names; only the values change. Fastest, lea
 
 ## Step 4 — Brand assets
 Copy from this project's `assets/logo/` into `frontend/public/logo/` (overwrite):
-- `GAAex-logo-reversed.svg` (dark UIs), `GAAex-logo-cobalt-gold.svg` (light), `GAAex-mark.svg`
-  (favicon/avatars). Point `frontend/public/favicon/` at `GAAex-mark.svg`.
+- `GAAhex-logo-reversed.svg` (dark UIs), `GAAhex-logo-cobalt-gold.svg` (light), `GAAhex-mark.svg`
+  (favicon/avatars). Point `frontend/public/favicon/` at `GAAhex-mark.svg`.
 
 ## Step 5 — Re-skin components from the kit
 The kit in `ui_kits/portal/` is the **visual spec** for your real components. It's plain React+CSS,
@@ -100,7 +100,7 @@ tokens, so they theme automatically). Then apply the classes in your existing TS
 Use the **download** card I'll provide (or in the project menu, export the whole project as a zip).
 The pieces you need for the repo:
 ```
-colors_and_type.css        → frontend/src/styles/gaaex-tokens.css
+colors_and_type.css        → frontend/src/styles/gaahex-tokens.css
 assets/logo/*              → frontend/public/logo/
 ui_kits/portal/app.css     → copy the class blocks you use
 ui_kits/portal/*.jsx       → reference while re-skinning your TSX
@@ -111,7 +111,7 @@ README.md / SKILL.md       → keep as design docs
 This folder doubles as an **Agent Skill** (`SKILL.md` + `README.md`). Drop the whole design-system
 folder into your repo (e.g. `design-system/`) and, in Claude Code, point the agent at it:
 > "Read `design-system/README.md` and `SKILL.md`, then re-skin `frontend/src/views/BillingView.tsx`
-> using the GAAex tokens and the patterns in `design-system/ui_kits/portal/`."
+> using the GAAhex tokens and the patterns in `design-system/ui_kits/portal/`."
 The agent will have the full token reference, voice/visual rules, and component patterns to apply your
 brand consistently across all 18 modules.
 

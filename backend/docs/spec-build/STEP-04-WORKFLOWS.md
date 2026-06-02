@@ -6,7 +6,7 @@
 
 ---
 
-## 1. SPEC §5 source (verbatim, lines 222-253 of `GAAex_Cross_Module_Architecture_SPEC.md`)
+## 1. SPEC §5 source (verbatim, lines 222-253 of `GAAhex_Cross_Module_Architecture_SPEC.md`)
 
 ### 5.1 Universal Workflow Contract
 > Every workflow has: Trigger · Conditions · Actions · **Single Owner** · SLA · Status · Approval (if needed) · Notification · Audit log · Failure handling.
@@ -186,7 +186,7 @@ Every transition (`workflow.triggered` / `workflow.action_executed` / `workflow.
 | Async SLA monitor | sla_breached_at is set on-demand by the engine today, not by a background worker. Real-time SLA enforcement is a follow-up step. |
 | W4 / W5 module wiring | Incidents, Outages, Procurement, Inventory modules don't exist in M0. The defs are seeded with `audit_only` action shapes so they're SPEC-shaped today; swap the action `type` (no def re-seed) when the real modules land. |
 | GXL conditions DSL | `conditions_spec` evaluator supports `{all: [...]}` / `{any: [...]}` of `{key, equals}` clauses only. Full GXL guard expressions land with the conditions DSL in a later step. |
-| Live DB apply | file-only per Gev's gate. Verified on the temp test DB (gaaex_test) which the conftest spins fresh per session via `Base.metadata.create_all`. |
+| Live DB apply | file-only per Gev's gate. Verified on the temp test DB (gaahex_test) which the conftest spins fresh per session via `Base.metadata.create_all`. |
 | W1's full §3 pipeline mutation | `advance_stage` records intent via Event; actual record-status mutation belongs to the entity router (write-lock owner per §0.1). A future "stage_apply" action verb can wire the mutation when the SPEC has settled on a single record-of-truth for pipeline stage on the canonical `record` table. |
 
 ---

@@ -1,4 +1,4 @@
-/* GAAex Studio panes — the visual builder + config + publishing surfaces.
+/* GAAhex Studio panes — the visual builder + config + publishing surfaces.
    Loaded after Studio.jsx; registers window.StudioPanes consumed by Studio(). */
 
 const sec = (icon, title, hint, right) => (
@@ -152,10 +152,10 @@ function ContentEditor() {
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:14, maxWidth:560 }}>
-          <label className="field"><span>SEO title</span><input className="inp inp-sm" defaultValue="Operations Home · GAAex" /><span className="hint" style={{fontSize:11}}>58 / 60 characters</span></label>
-          <label className="field"><span>Meta description</span><textarea className="inp" rows={3} style={{height:'auto',padding:'10px 11px',lineHeight:1.6,resize:'vertical'}} defaultValue="Operations summary and quick actions for the GAAex platform." /></label>
+          <label className="field"><span>SEO title</span><input className="inp inp-sm" defaultValue="Operations Home · GAAhex" /><span className="hint" style={{fontSize:11}}>58 / 60 characters</span></label>
+          <label className="field"><span>Meta description</span><textarea className="inp" rows={3} style={{height:'auto',padding:'10px 11px',lineHeight:1.6,resize:'vertical'}} defaultValue="Operations summary and quick actions for the GAAhex platform." /></label>
           <label className="field"><span>URL slug</span><input className="inp inp-sm mono" defaultValue="/home" /></label>
-          <div className="seo-preview"><div style={{fontSize:13,color:'var(--azure-300)'}}>Operations Home · GAAex</div><div className="mono" style={{fontSize:11,color:'var(--gx-success-fg)'}}>gaaex.app › home</div><div style={{fontSize:12,color:'var(--gx-text-2)',marginTop:2}}>Operations summary and quick actions for the GAAex platform.</div></div>
+          <div className="seo-preview"><div style={{fontSize:13,color:'var(--azure-300)'}}>Operations Home · GAAhex</div><div className="mono" style={{fontSize:11,color:'var(--gx-success-fg)'}}>gaahex.app › home</div><div style={{fontSize:12,color:'var(--gx-text-2)',marginTop:2}}>Operations summary and quick actions for the GAAhex platform.</div></div>
         </div>
       )}
       <div style={{marginTop:18}}><button className="btn btn-primary btn-sm" onClick={()=>gxToast('Content saved')}><Icon name="check" size={13} />Save content</button></div>
@@ -282,7 +282,7 @@ function PreviewMode() {
         <div style={{ width:W, margin:'0 auto', transition:'width var(--gx-dur-base)', background:'var(--gx-surface)', border:'1px solid var(--gx-border)', borderRadius:'var(--gx-radius-lg)', overflow:'hidden', boxShadow:'var(--gx-shadow-md)' }}>
           <div style={{ height:38, borderBottom:'1px solid var(--gx-border-subtle)', display:'flex', alignItems:'center', gap:8, padding:'0 12px' }}>
             <span style={{display:'flex',gap:5}}><span style={{width:8,height:8,borderRadius:'50%',background:'var(--gx-danger)'}} /><span style={{width:8,height:8,borderRadius:'50%',background:'var(--gx-warning)'}} /><span style={{width:8,height:8,borderRadius:'50%',background:'var(--gx-success)'}} /></span>
-            <span className="mono" style={{fontSize:11,color:'var(--gx-text-3)'}}>gaaex.app/home</span>
+            <span className="mono" style={{fontSize:11,color:'var(--gx-text-3)'}}>gaahex.app/home</span>
             <span className="pill pill-gold" style={{marginLeft:'auto',height:18}}>as {role}</span>
           </div>
           <div style={{ padding:18 }}>
@@ -376,7 +376,7 @@ function PublishSettings() {
         <label className="field"><span>Status</span><div className="seg" style={{width:'100%'}}>{['Draft','In review','Published'].map(s=><button key={s} className={status===s?'on':''} onClick={()=>setStatus(s)} style={{flex:1}}>{s}</button>)}</div></label>
         <label className="field"><span>Access level</span><select className="inp inp-sm" value={access} onChange={e=>setAccess(e.target.value)}>{['Public','Authenticated','Role-restricted','Admin only'].map(a=><option key={a}>{a}</option>)}</select></label>
         <label className="field"><span>Language</span><select className="inp inp-sm" defaultValue="Հայերեն (hy-AM)">{['Հայերեն (hy-AM)','English (en)','Русский (ru)'].map(l=><option key={l}>{l}</option>)}</select></label>
-        <label className="field" style={{gridColumn:'1 / -1'}}><span>Page metadata (title / description)</span><input className="inp inp-sm" defaultValue="Operations Home · GAAex" style={{marginBottom:8}} /><textarea className="inp" rows={2} style={{height:'auto',padding:'10px 11px',lineHeight:1.6,resize:'vertical'}} defaultValue="Operations summary and quick actions." /></label>
+        <label className="field" style={{gridColumn:'1 / -1'}}><span>Page metadata (title / description)</span><input className="inp inp-sm" defaultValue="Operations Home · GAAhex" style={{marginBottom:8}} /><textarea className="inp" rows={2} style={{height:'auto',padding:'10px 11px',lineHeight:1.6,resize:'vertical'}} defaultValue="Operations summary and quick actions." /></label>
       </div>
       <div className="section-head"><Icon name="code" size={15} className="section-icon" />Custom code<span className="spacer" style={{flex:1}} /><button onClick={()=>setCode(c=>!c)} className={'gx-toggle'+(code?' on':'')}><span className="knob" /></button></div>
       {code && <textarea className="inp mono" rows={4} style={{height:'auto',padding:'10px 11px',lineHeight:1.6,resize:'vertical',fontSize:12}} placeholder="<!-- custom head/script injected on publish -->" defaultValue={'<script>/* analytics */</script>'} />}

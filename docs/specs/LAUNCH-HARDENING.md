@@ -4,20 +4,20 @@
 **Date:** 2026-05-27  
 **Status:** shipped & integrated
 
-This guide covers the security and operational hardening required before running GAAex in production or any multi-tenant environment. **Use this as a pre-launch checklist** before going live with real data.
+This guide covers the security and operational hardening required before running GAAhex in production or any multi-tenant environment. **Use this as a pre-launch checklist** before going live with real data.
 
 ---
 
 ## Overview: the five hardening levers
 
-GAAex Phase 1 enforces tenant isolation and auth security at five points. Each has a configuration lever and a startup guard. Check all five before launch.
+GAAhex Phase 1 enforces tenant isolation and auth security at five points. Each has a configuration lever and a startup guard. Check all five before launch.
 
 | # | Lever | Setting | Default | Prod value | Guard |
 |---|-------|---------|---------|-----------|-------|
 | **S1** | JWT secret strength | `REQUIRE_STRONG_SECRETS` | `false` | `true` | Boot fails if `JWT_SECRET < 32 bytes` or is the dev default |
 | **S3** | CORS allowed origins | `CORS_ORIGINS` | `*` | `https://app.example.com` | Locked by FastAPI CORS middleware before routes run |
 | **S4/S5** | Multi-tenant portal guard | `tenant_id` resolution | — | Explicit in login body | Portal login rejects implicit-fallback when `> 1 active tenant` |
-| **RLS** | Database role & policies | `DATABASE_URL` + `OWNER_DATABASE_URL` | both `gaaex` (superuser) | app=`gaaex_app`, owner=`gaaex` | Startup logs warning if app role is a superuser |
+| **RLS** | Database role & policies | `DATABASE_URL` + `OWNER_DATABASE_URL` | both `gaahex` (superuser) | app=`gaahex_app`, owner=`gaahex` | Startup logs warning if app role is a superuser |
 | **E38** | Webhook SSRF guard | `WEBHOOK_ALLOW_PRIVATE` | `false` | `false` (internet-facing) | `_is_safe_webhook_url()` blocks private/loopback/metadata before POST |
 | **Rate limit** | Abuse perimeter | `RATE_LIMIT_ENABLED` | `false` | `true` | In-process counter; single-worker only (Redis-backed deferred) |
 
@@ -52,13 +52,13 @@ GAAex Phase 1 enforces tenant isolation and auth security at five points. Each h
 
 ### ✅ RLS Enforcement: Database Role Binding (REQUIRED)
 
-**What:** The app connects as a restricted role (`gaaex_app`, NOSUPERUSER) instead of the superuser. RLS policies on every tenant-scoped table block cross-tenant reads by default.
+**What:** The app connects as a restricted role (`gaahex_app`, NOSUPERUSER) instead of the superuser. RLS policies on every tenant-scoped table block cross-tenant reads by default.
 
 **Current state:**
 - Migration `3a9203795d07_enable_rls_tenant_isolation.py` **already exists and is active** in the repo.
 - It creates:
-  - `gaaex_app` role (NOSUPERUSER, NOBYPASSRLS) — the app's connection identity.
-  - `gaaex` role (superuser) — used only for auth/seed, never in request paths.
+  - `gaahex_app` role (NOSUPERUSER, NOBYPASSRLS) — the app's connection identity.
+  - `gaahex` role (superuser) — used only for auth/seed, never in request paths.
   - `ENABLE ROW LEVEL SECURITY` + `CREATE POLICY` on all tenant-scoped tables (auth guards by tenant GUC).
   - `set_tenant_guc()` in `db.py` wires the per-request GUC binding.
 
@@ -69,8 +69,8 @@ GAAex Phase 1 enforces tenant isolation and auth security at five points. Each h
    ```
 2. Set in `.env`:
    ```
-   DATABASE_URL=postgresql+asyncpg://gaaex_app:gaaex_app@<host>:5432/gaaex
-   OWNER_DATABASE_URL=postgresql+asyncpg://gaaex:gaaex@<host>:5432/gaaex
+   DATABASE_URL=postgresql+asyncpg://gaahex_app:gaahex_app@<host>:5432/gaahex
+   OWNER_DATABASE_URL=postgresql+asyncpg://gaahex:gaahex@<host>:5432/gaahex
    ```
    - `DATABASE_URL` = app role (restricted, tenant-scoped queries).
    - `OWNER_DATABASE_URL` = superuser (login + refresh + seed only).
@@ -91,7 +91,7 @@ GAAex Phase 1 enforces tenant isolation and auth security at five points. Each h
 **Verify:**
 - RLS test passes: `pytest backend/tests/test_rls.py -v`
   - Creates two tenant contexts, confirms cross-tenant rows are invisible (0 rows returned).
-- App starts with `DATABASE_URL=gaaex_app` — no superuser warning.
+- App starts with `DATABASE_URL=gaahex_app` — no superuser warning.
 
 ---
 
@@ -238,7 +238,7 @@ GAAex Phase 1 enforces tenant isolation and auth security at five points. Each h
 
 ## Known deferred items (not blockers, but note them)
 
-These are hardening gaps flagged in `GAAex-Vision/6-platform-delivery/39-security-review.md` that remain open and should be tracked:
+These are hardening gaps flagged in `GAAhex-Vision/6-platform-delivery/39-security-review.md` that remain open and should be tracked:
 
 1. **Redis-backed rate limiting** (P0 perimeter improvement, not a blocker)
    - Current in-process implementation only works for single-worker.
@@ -250,7 +250,7 @@ These are hardening gaps flagged in `GAAex-Vision/6-platform-delivery/39-securit
 
 3. **Audit immutability** (P2)
    - `Event` rows can be mutated/deleted by anyone with DB write access.
-   - For compliance, make `event` append-only (revoke UPDATE/DELETE from `gaaex_app` role, or a trigger).
+   - For compliance, make `event` append-only (revoke UPDATE/DELETE from `gaahex_app` role, or a trigger).
 
 4. **API keys / machine principals** (P1 for integrations)
    - Not built; required for inbound API integrations.
@@ -268,7 +268,7 @@ Run this checklist before go-live:
 
 - [ ] **RLS enforcement**
   - [ ] Migrations run cleanly (`alembic upgrade head`).
-  - [ ] Set `DATABASE_URL=gaaex_app`, `OWNER_DATABASE_URL=gaaex` (or equivalent prod roles).
+  - [ ] Set `DATABASE_URL=gaahex_app`, `OWNER_DATABASE_URL=gaahex` (or equivalent prod roles).
   - [ ] Boot with `REQUIRE_STRONG_SECRETS=true` — no superuser warning in logs.
   - [ ] Run `pytest backend/tests/test_rls.py -v` — all tests pass.
   - [ ] Manually verify: query as tenant-A, confirm tenant-B rows are invisible.
@@ -311,10 +311,10 @@ REQUIRE_STRONG_SECRETS=true
 ```
 
 ### "SECURITY: the application database role is a superuser and can bypass RLS"
-**Cause:** `REQUIRE_STRONG_SECRETS=true` and `DATABASE_URL` connects as `gaaex` (superuser) instead of `gaaex_app`.  
+**Cause:** `REQUIRE_STRONG_SECRETS=true` and `DATABASE_URL` connects as `gaahex` (superuser) instead of `gaahex_app`.  
 **Fix:** Update `.env`:
 ```
-DATABASE_URL=postgresql+asyncpg://gaaex_app:gaaex_app@<host>/gaaex
+DATABASE_URL=postgresql+asyncpg://gaahex_app:gaahex_app@<host>/gaahex
 ```
 
 ### "tenant_id required" (portal login)
@@ -333,10 +333,10 @@ DATABASE_URL=postgresql+asyncpg://gaaex_app:gaaex_app@<host>/gaaex
 
 ## Connects to
 
-- `GAAex-Vision/2-kernel/16-hardening.md` — JWT fail-fast spec.
-- `GAAex-Vision/2-kernel/16a-rls-implementation.md` — RLS migration + role binding.
-- `GAAex-Vision/6-platform-delivery/39-security-review.md` — full security audit + P0/P1/P2 backlog.
-- `GAAex-Vision/6-platform-delivery/36-launch-checklist.md` — phase-1 blockers + go/no-go criteria.
+- `GAAhex-Vision/2-kernel/16-hardening.md` — JWT fail-fast spec.
+- `GAAhex-Vision/2-kernel/16a-rls-implementation.md` — RLS migration + role binding.
+- `GAAhex-Vision/6-platform-delivery/39-security-review.md` — full security audit + P0/P1/P2 backlog.
+- `GAAhex-Vision/6-platform-delivery/36-launch-checklist.md` — phase-1 blockers + go/no-go criteria.
 - `backend/app/config.py` — all settings and defaults.
 - `backend/app/main.py` — startup guards (S1, RLS role check).
 - `backend/app/routers/portal_auth.py` — S4/S5 multi-tenant guard.

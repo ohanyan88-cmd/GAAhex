@@ -1,26 +1,26 @@
 services:
   db:
     image: postgis/postgis:16-3.4
-    container_name: gaaex-db
+    container_name: gaahex-db
     environment:
-      POSTGRES_USER: gaaex
-      POSTGRES_PASSWORD: gaaex
-      POSTGRES_DB: gaaex
+      POSTGRES_USER: gaahex
+      POSTGRES_PASSWORD: gaahex
+      POSTGRES_DB: gaahex
     ports:
       - "5433:5432"          # 5433 host → avoids clashing with any local Postgres on 5432
     volumes:
-      - gaaex_pgdata:/var/lib/postgresql/data
+      - gaahex_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gaaex"]
+      test: ["CMD-SHELL", "pg_isready -U gaahex"]
       interval: 5s
       timeout: 3s
       retries: 12
 
   redis:
     image: redis:7
-    container_name: gaaex-redis
+    container_name: gaahex-redis
     ports:
       - "6380:6379"          # 6380 host → avoids clashing with any local Redis
 
 volumes:
-  gaaex_pgdata:
+  gaahex_pgdata:

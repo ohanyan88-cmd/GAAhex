@@ -1,4 +1,4 @@
-"""Event log — the canonical audit log table for GAAex.
+"""Event log — the canonical audit log table for GAAhex.
 
 SPEC §0.4 AUDIT APPEND-ONLY (kernel invariant, alembic revision b70ef3b98e27):
   The `event` table carries DB-level BEFORE UPDATE and BEFORE DELETE triggers

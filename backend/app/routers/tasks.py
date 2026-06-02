@@ -59,7 +59,7 @@ from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
-_log = logging.getLogger("gaaex.tasks")
+_log = logging.getLogger("gaahex.tasks")
 
 # ── enum sets (file 05) ───────────────────────────────────────────────────────
 

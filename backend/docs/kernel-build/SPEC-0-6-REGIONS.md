@@ -1,6 +1,6 @@
 # SPEC §0.6 — Canonical Region/Branch Table
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md`
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
 - §0 Invariant #6 — "Region/Branch is a partition key on every operational record.
   Cross-region read requires explicit grant."
 - §6 Data Relationships — regions tie into customer / service / asset / network topology.
@@ -72,8 +72,8 @@ used by every post-RLS-flip table — see `approval`, `portal_ticket_reply`, etc
 ```sql
 ALTER TABLE region ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON region
-  USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
 ```
 
 `uq_region_code` (`tenant_id, code`) makes the short code unique per tenant — tenant A's
@@ -155,7 +155,7 @@ SPEC seeder that wants to reference a default region finds one already present.
 | GET    | `/api/regions/{region_id}` | Detail; 404 if not in tenant        |
 
 Tenant scoping is RLS-driven — the router runs a plain `SELECT * FROM region` and the
-policy filters by `gaaex.tenant_id` (set by the auth dependency). No manual `tenant_id ==`
+policy filters by `gaahex.tenant_id` (set by the auth dependency). No manual `tenant_id ==`
 filter in the WHERE clause; the policy is the source of truth, and a manual filter would
 mask an RLS misconfiguration.
 
@@ -197,17 +197,17 @@ FastAPI lifespan (httpx's `ASGITransport` does not trigger startup events).
 ## F — Verification on a fresh test DB
 
 ```
-$ docker exec -i gaaex-db psql -U gaaex -c "CREATE DATABASE gaaex_region_test;"
+$ docker exec -i gaahex-db psql -U gaahex -c "CREATE DATABASE gaahex_region_test;"
 CREATE DATABASE
 
-$ $env:DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_region_test"
-$ $env:OWNER_DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_region_test"
+$ $env:DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_region_test"
+$ $env:OWNER_DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_region_test"
 $ cd backend && .venv\Scripts\python.exe -m alembic upgrade head
 ...
 INFO  [alembic.runtime.migration] Running upgrade b5e8f1c2d3a4 -> c6f3a92e7b81,
       SPEC §0.6 canonical region/branch table
 
-$ docker exec -i gaaex-db psql -U gaaex -d gaaex_region_test -c "\d region"
+$ docker exec -i gaahex-db psql -U gaahex -d gaahex_region_test -c "\d region"
                                     Table "public.region"
    Column    |           Type           | Collation | Nullable |           Default
 -------------+--------------------------+-----------+----------+-----------------------------
@@ -236,14 +236,14 @@ Referenced by:
     TABLE "region" CONSTRAINT "region_parent_id_fkey" FOREIGN KEY (parent_id) REFERENCES region(id)
 Policies:
     POLICY "tenant_isolation"
-      USING ((tenant_id = (NULLIF(current_setting('gaaex.tenant_id'::text, true), ''::text))::uuid))
-      WITH CHECK ((tenant_id = (NULLIF(current_setting('gaaex.tenant_id'::text, true), ''::text))::uuid))
+      USING ((tenant_id = (NULLIF(current_setting('gaahex.tenant_id'::text, true), ''::text))::uuid))
+      WITH CHECK ((tenant_id = (NULLIF(current_setting('gaahex.tenant_id'::text, true), ''::text))::uuid))
 
-$ docker exec -i gaaex-db psql -U gaaex -c "DROP DATABASE gaaex_region_test;"
+$ docker exec -i gaahex-db psql -U gaahex -c "DROP DATABASE gaahex_region_test;"
 DROP DATABASE
 ```
 
-Smoke test (against the standard `gaaex_test` DB):
+Smoke test (against the standard `gaahex_test` DB):
 
 ```
 $ .venv\Scripts\python.exe -m pytest tests/test_regions.py -v

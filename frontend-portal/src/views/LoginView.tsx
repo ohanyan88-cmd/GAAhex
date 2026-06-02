@@ -30,7 +30,7 @@ export default function LoginView({ onLogin }: Props) {
     <div className="center">
       <div className="card" style={{ width: 400 }}>
         {/* Logo */}
-        <div className="logo-lg">GAAex</div>
+        <div className="logo-lg">GAAhex</div>
         <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 13, marginTop: -4, marginBottom: 4 }}>
           Customer Portal
         </p>

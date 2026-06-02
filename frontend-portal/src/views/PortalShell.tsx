@@ -72,7 +72,7 @@ export default function PortalShell({ onLogout, theme, onToggleTheme }: Props) {
         <div className="sidebar-brand">
           <div className="sidebar-logo">G</div>
           <div className="sidebar-brand-name">
-            GAAex
+            GAAhex
             <small>Customer Portal</small>
           </div>
         </div>

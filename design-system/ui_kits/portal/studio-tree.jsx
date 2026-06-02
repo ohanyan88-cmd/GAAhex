@@ -1,4 +1,4 @@
-/* GAAex Studio — full platform tree (SuperAdmin only).
+/* GAAhex Studio — full platform tree (SuperAdmin only).
    9 groups → modules → leaves. Marquee leaves use rich builders (window.StudioPanes,
    AppearancePane, EntityBuilder); the rest render branded archetype panes — never empty stubs.
    Overrides window.Studio (loaded after Studio.jsx + studio-panes.jsx). */

@@ -1,9 +1,9 @@
-<svg viewBox="0 0 380 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GAAex">
+<svg viewBox="0 0 380 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GAAhex">
   <defs>
     <linearGradient id="cob" x1="0" y1="46" x2="0" y2="120" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#F4F6FA"></stop>
-      <stop offset="0.5" stop-color="#C7CEDC"></stop>
-      <stop offset="1" stop-color="#9AA3B2"></stop>
+      <stop offset="0" stop-color="#2A5187"></stop>
+      <stop offset="0.5" stop-color="#1C3B68"></stop>
+      <stop offset="1" stop-color="#142C4E"></stop>
     </linearGradient>
     <linearGradient id="gold" x1="0" y1="78" x2="0" y2="126" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#E2C589"></stop>

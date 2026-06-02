@@ -1,6 +1,6 @@
 # Step 6 — Default-Deny Permissions Engine (Role × Department × Region × Ownership)
 
-**SPEC reference:** `GAAex_Cross_Module_Architecture_SPEC.md`
+**SPEC reference:** `GAAhex_Cross_Module_Architecture_SPEC.md`
 - §0 Invariant #2 — "Default deny. No access unless explicitly granted by Role × Department × Region × Ownership."
 - §4.1 Layers
 - §4.2 Action Types
@@ -82,7 +82,7 @@ When `region_id`, `department`, and `owner_user_id` are all None (the legacy Ste
 the function executes layers #1 + #2 only and emits a WARNING log:
 
 ```
-WARNING gaaex.kernel.invariants:assert_can called without region/department/owner context
+WARNING gaahex.kernel.invariants:assert_can called without region/department/owner context
         — kernel falling back to role-only check for action=… entity=… user=…
 ```
 
@@ -143,13 +143,13 @@ picks them up automatically the moment they're seeded. In the M0 demo only `supe
 
 ## D — Verification transcript (test DB, 2026-05-31)
 
-Fresh ephemeral DB `gaaex_step6_test` on the existing `gaaex-db` container.
+Fresh ephemeral DB `gaahex_step6_test` on the existing `gaahex-db` container.
 
 ```
-docker exec gaaex-db psql -U gaaex -d postgres -c "DROP DATABASE IF EXISTS gaaex_step6_test WITH (FORCE);"
-docker exec gaaex-db psql -U gaaex -d postgres -c "CREATE DATABASE gaaex_step6_test;"
-$env:DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_step6_test"
-$env:OWNER_DATABASE_URL="postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex_step6_test"
+docker exec gaahex-db psql -U gaahex -d postgres -c "DROP DATABASE IF EXISTS gaahex_step6_test WITH (FORCE);"
+docker exec gaahex-db psql -U gaahex -d postgres -c "CREATE DATABASE gaahex_step6_test;"
+$env:DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_step6_test"
+$env:OWNER_DATABASE_URL="postgresql+asyncpg://gaahex:gaahex@localhost:5433/gaahex_step6_test"
 cd backend
 .venv/Scripts/python.exe -m alembic upgrade head
 # … 40 migrations applied through a7b3c9d5e1f2 …
@@ -181,7 +181,7 @@ Foreign-key constraints:
     role_def_deny_role_id_fkey FOREIGN KEY (role_id) REFERENCES role_def(id) ON DELETE CASCADE
     role_def_deny_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES tenant(id)
 Policies:
-    tenant_isolation USING ... NULLIF(current_setting('gaaex.tenant_id', true), '') ...
+    tenant_isolation USING ... NULLIF(current_setting('gaahex.tenant_id', true), '') ...
 ```
 
 ### Seeder output (first run vs second run)
@@ -231,7 +231,7 @@ Test 4: agent.create on lead (expected: pass)
 The WARNING log fires for the passing legacy-shape calls:
 
 ```
-WARNING gaaex.kernel.invariants: assert_can called without region/department/owner context
+WARNING gaahex.kernel.invariants: assert_can called without region/department/owner context
         — kernel falling back to role-only check for action='view' entity='customer' user=…
 ```
 

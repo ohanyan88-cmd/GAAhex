@@ -1,4 +1,4 @@
-// GAAex emoji pack — the curated set for COMMUNICATION features only (Messenger / chat, email,
+// GAAhex emoji pack — the curated set for COMMUNICATION features only (Messenger / chat, email,
 // comments — any message a user types and sends). Per BRAND.md §4, emoji are allowed in user-authored
 // message content; the product UI/iconography stays SVG (see icons.tsx). This is the emoji picker's
 // source set, grouped into the 9 standard categories. Each entry is "<emoji> <name>".

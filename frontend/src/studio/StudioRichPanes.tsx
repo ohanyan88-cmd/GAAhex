@@ -1,4 +1,4 @@
-// GAAex Studio — P5 rich panes.
+// GAAhex Studio — P5 rich panes.
 // Ported from kit studio-panes.jsx + Studio.jsx.
 // All panes start in EMPTY / MINIMAL state — no hardcoded mock content.
 // Icons: lucide-react only. State: internal useState only. No backend calls.
@@ -1273,7 +1273,7 @@ export function PreviewMode({ token }: { token?: string } = {}) {
                 <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
               ))}
             </span>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>gaaex.app</span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>gaahex.app</span>
             <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>as {role}</span>
           </div>
           {/* empty preview body */}

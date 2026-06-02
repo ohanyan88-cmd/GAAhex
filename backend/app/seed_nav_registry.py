@@ -37,7 +37,7 @@ from .models.tenant import Tenant
 from .models.nav_module import NavGroup, NavModule
 
 
-_log = logging.getLogger("gaaex.seed_nav_registry")
+_log = logging.getLogger("gaahex.seed_nav_registry")
 
 
 # SPEC §1 nav structure. Schema:

@@ -1,6 +1,6 @@
 # Notifications System: Preferences, Digests, Delivery
 
-This document describes the complete flow of notifications in GAAex: how they are defined and configured, how user preferences control delivery, how the in-app inbox works, and how external messages reach users via email, SMS, and other channels.
+This document describes the complete flow of notifications in GAAhex: how they are defined and configured, how user preferences control delivery, how the in-app inbox works, and how external messages reach users via email, SMS, and other channels.
 
 ---
 

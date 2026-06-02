@@ -37,9 +37,9 @@ Status legend:
 | # | Item | State | Action |
 |---|---|---|---|
 | 45 | 🔴 Comment hold DB trigger | Router-only soft guard | Write BEFORE UPDATE / BEFORE DELETE trigger (same class as `b70ef3b98e27`). Hard precondition before first legal hold AND prod deploy. `app/models/comment.py:86` |
-| 36 | 🔴 `GAAEX_FIELD_KEY` encryption key | Dev deterministic key | `python -c "import secrets,base64; print(base64.b64encode(secrets.token_bytes(32)).decode())"` → set in prod `.env` |
+| 36 | 🔴 `GAAHEX_FIELD_KEY` encryption key | Dev deterministic key | `python -c "import secrets,base64; print(base64.b64encode(secrets.token_bytes(32)).decode())"` → set in prod `.env` |
 | 37 | 🔴 `ENVIRONMENT=production` | Not set | Activates all production contract guards in `config.py` |
-| 38 | 🔴 `OWNER_DATABASE_URL` ≠ `DATABASE_URL` | Same in dev | `DATABASE_URL` → `gaaex_app` (RLS-limited); `OWNER_DATABASE_URL` → `gaaex` (DDL owner) |
+| 38 | 🔴 `OWNER_DATABASE_URL` ≠ `DATABASE_URL` | Same in dev | `DATABASE_URL` → `gaahex_app` (RLS-limited); `OWNER_DATABASE_URL` → `gaahex` (DDL owner) |
 | 39 | 🔴 JWT secret | `dev-only-change-me` | Set strong random `JWT_SECRET` (32+ chars) |
 | 40 | 🔴 `REQUIRE_STRONG_SECRETS=true` | Off by default | Activates the weak-secret boot guard |
 | 41 | 🔴 HTTPS / TLS | HTTP only | Add nginx/traefik to docker-compose with Let's Encrypt or customer cert |

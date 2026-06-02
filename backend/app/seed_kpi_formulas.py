@@ -29,7 +29,7 @@ from .models import Tenant
 from .models.kernel_defs import KpiDef
 
 
-_log = logging.getLogger("gaaex.seed_kpi_formulas")
+_log = logging.getLogger("gaahex.seed_kpi_formulas")
 
 
 # Mapping kpi_key → formula_spec JSON. Order is documentary; the seeder iterates

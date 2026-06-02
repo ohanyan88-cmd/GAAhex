@@ -1,6 +1,6 @@
 # Work Items — Handoff (Batch 32: A32/B32/C32/D32/E32)
 
-This document covers GAAex's work items system: how discrete units of work (tasks, installs, repairs, surveys) are created, assigned to team members, tracked through a well-defined lifecycle, and dispatched to the field. The module is tenant-scoped with the same RLS (row-level security) and audit patterns as helpdesk and calendar; all mutations emit workflow events for compliance and traceability.
+This document covers GAAhex's work items system: how discrete units of work (tasks, installs, repairs, surveys) are created, assigned to team members, tracked through a well-defined lifecycle, and dispatched to the field. The module is tenant-scoped with the same RLS (row-level security) and audit patterns as helpdesk and calendar; all mutations emit workflow events for compliance and traceability.
 
 ---
 
@@ -48,7 +48,7 @@ A discrete unit of work assigned to a user and tracked to completion.
 - `status` defaults to `"TODO"` on create.
 - `priority` defaults to `"NORMAL"` on create.
 - `created_at` is server-generated at insert time.
-- RLS policy: `tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid`.
+- RLS policy: `tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid`.
 
 ---
 
@@ -317,7 +317,7 @@ A work item progresses through a well-defined lifecycle. The state machine restr
 
 ## 5. Permissions Model
 
-Work items follow GAAex's standard permission pattern: granular per-action (view, create, edit, delete) and scoped to the org node (`owner_node_id`).
+Work items follow GAAhex's standard permission pattern: granular per-action (view, create, edit, delete) and scoped to the org node (`owner_node_id`).
 
 | Permission | Scope | Applies To | Typical Roles |
 |------------|-------|-----------|---------------|
@@ -511,8 +511,8 @@ Helper for the users endpoint.
 ```sql
 ALTER TABLE workitem ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON workitem
-  USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-  WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+  USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
 ```
 
 **Foreign Keys:**

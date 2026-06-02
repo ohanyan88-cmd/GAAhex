@@ -1,4 +1,4 @@
-/* GAAex Portal — Login + Command Palette */
+/* GAAhex Portal — Login + Command Palette */
 
 function Login({ onLogin }) {
   const [email, setEmail] = React.useState('admin@yerevan.isp');
@@ -6,7 +6,7 @@ function Login({ onLogin }) {
   return (
     <div className="login-wrap">
       <div className="login-brand">
-        <img src="../../assets/logo/GAAex-logo-reversed.svg" alt="GAAex" style={{ height: 34, position:'relative', zIndex:1 }} />
+        <img src="../../assets/logo/GAAhex-logo-reversed.svg" alt="GAAhex" style={{ height: 34, position:'relative', zIndex:1 }} />
         <div style={{ position:'relative', zIndex:1 }}>
           <div className="gx-eyebrow" style={{ marginBottom: 14 }}>THE OPERATING SYSTEM FOR ISPs</div>
           <h1 style={{ fontFamily:'var(--gx-font-display)', fontSize: 40, fontWeight: 600, lineHeight: 1.08, letterSpacing:'-.03em', margin:0, maxWidth: 420 }}>

@@ -44,8 +44,8 @@ Both tables get the standard NULLIF-guarded `tenant_isolation` policy (same shap
 `region`, `approval`, `portal_ticket_reply`, ...):
 
 ```sql
-USING      (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+USING      (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
 ```
 
 `nav_module.owner_module` is mirrored from `key` and carries an index

@@ -137,7 +137,7 @@ async def status(
             pass  # counts stay 0; db_ok already reflects true liveness
 
     payload: dict[str, Any] = {
-        "service": "gaaex",
+        "service": "gaahex",
         "ok": db_ok,
         "db": db_ok,
         "version": _app_version(),

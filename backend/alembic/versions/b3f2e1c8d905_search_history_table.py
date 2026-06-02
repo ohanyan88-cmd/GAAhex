@@ -8,7 +8,7 @@ Additive + reversible: one new table for per-user search history (recent queries
 Saved searches themselves reuse saved_view_def (entity_key='__search__'); this table only adds
 the lightweight ring-buffer of recent queries + the pinned flag. No changes to existing tables.
 Tenant-scoped; carries the same NULLIF-guarded tenant_isolation RLS policy as all post-enable-RLS
-tables. gaaex_app grants inherit via the ALTER DEFAULT PRIVILEGES set in the enable-RLS migration.
+tables. gaahex_app grants inherit via the ALTER DEFAULT PRIVILEGES set in the enable-RLS migration.
 
 NOT run against the live DB by the worker — coordinator applies: alembic upgrade head.
 """
@@ -48,8 +48,8 @@ def upgrade() -> None:
     op.execute("ALTER TABLE search_history ENABLE ROW LEVEL SECURITY;")
     op.execute("""
         CREATE POLICY tenant_isolation ON search_history
-          USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid)
-          WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);
+          USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid)
+          WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);
     """)
 
 

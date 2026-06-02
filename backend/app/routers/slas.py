@@ -61,7 +61,7 @@ from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api/slas", tags=["slas"])
-_log = logging.getLogger("gaaex.slas")
+_log = logging.getLogger("gaahex.slas")
 
 # ── enum sets (file 14) ───────────────────────────────────────────────────────
 VALID_STATUSES      = {"NOT_APPLICABLE", "ON_TRACK", "AT_RISK", "PAUSED", "BREACHED", "COMPLETED", "CANCELLED"}

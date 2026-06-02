@@ -159,7 +159,7 @@ export const DEFAULT_SELECTION = [
   'rag-health', 'task-aging', 'issue-aging', 'risk-heatmap', 'lead-source-donut', 'salesperson-rank',
 ]
 
-const LS_KEY = 'gaaex.dashboard.selected.v1'
+const LS_KEY = 'gaahex.dashboard.selected.v1'
 
 export function loadSelected(): Set<string> {
   try {

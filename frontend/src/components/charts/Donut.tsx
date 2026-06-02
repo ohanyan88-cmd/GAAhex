@@ -16,7 +16,7 @@ export interface DonutProps {
   centerCaption?: string
 }
 
-// Categorical viz palette — order matches gaaex-tokens.css --viz-1..8.
+// Categorical viz palette — order matches gaahex-tokens.css --viz-1..8.
 const VIZ_FALLBACK = [
   'var(--viz-1)',
   'var(--viz-2)',

@@ -132,7 +132,7 @@ medium batches stay green. The full-suite re-runs are inconsistent due to the ch
 test-isolation issue (session-scoped DB + pytest-asyncio interactions) that is not introduced
 by this sweep — same flake pattern (DB connection closed during setup, `app_user` table not
 yet seeded between sessions) is observed even when only running test files that don't touch
-any 7.2 router. Reproducing the exact baseline number requires a fresh `gaaex_test` drop and
+any 7.2 router. Reproducing the exact baseline number requires a fresh `gaahex_test` drop and
 a quiet machine; on this branch with parallel agents writing, the suite number floats.
 
 ## Notes / follow-ups

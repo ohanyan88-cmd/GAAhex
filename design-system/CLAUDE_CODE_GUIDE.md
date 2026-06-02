@@ -1,4 +1,4 @@
-# Using Claude Code to apply the GAAex Design System to `ohanyan88-cmd/Portal`
+# Using Claude Code to apply the GAAhex Design System to `ohanyan88-cmd/Portal`
 
 A start-to-finish workflow. You'll (A) get these design files into your repo, (B) open Claude Code,
 (C) run a sequence of copy-paste prompts that reskin the app module by module.
@@ -23,8 +23,8 @@ A start-to-finish workflow. You'll (A) get these design files into your repo, (B
    ```
 3. Commit it on a new branch so everything is reversible:
    ```bash
-   git checkout -b feat/gaaex-reskin
-   git add design-system && git commit -m "Add GAAex design system reference"
+   git checkout -b feat/gaahex-reskin
+   git add design-system && git commit -m "Add GAAhex design system reference"
    ```
 
 > Why a folder in the repo? Claude Code can only read files it can see. With `design-system/` in the
@@ -55,7 +55,7 @@ Do these **in order**, committing after each. Review the diff before moving on.
 
 ### 1 — Install the tokens globally
 > **Prompt 1**
-> Copy `design-system/colors_and_type.css` to `frontend/src/styles/gaaex-tokens.css`.
+> Copy `design-system/colors_and_type.css` to `frontend/src/styles/gaahex-tokens.css`.
 > Import it FIRST in `frontend/src/main.tsx`. Set `data-theme="dark"` on the `<html>` element in
 > `frontend/index.html`. Don't change anything else yet. Show me the diff.
 
@@ -63,7 +63,7 @@ Do these **in order**, committing after each. Review the diff before moving on.
 > **Prompt 2**
 > Read `frontend/src/styles/color-tokens.css` (my current GLASS palette). Create an alias bridge:
 > keep every existing variable name but re-point its value to the matching `--gx-*` token from
-> `gaaex-tokens.css` (e.g. my primary → `var(--gx-primary)`, my background → `var(--gx-bg)`,
+> `gaahex-tokens.css` (e.g. my primary → `var(--gx-primary)`, my background → `var(--gx-bg)`,
 > surfaces → `var(--gx-surface)`, borders → `var(--gx-border)`, text → `var(--gx-text-1/2/3)`,
 > success/warn/error and network online/offline/degraded accordingly). Where I have no equivalent,
 > leave it. Output the new `color-tokens.css`. The app should now look reskinned with zero component
@@ -72,7 +72,7 @@ Do these **in order**, committing after each. Review the diff before moving on.
 ### 3 — Swap brand assets
 > **Prompt 3**
 > Copy `design-system/assets/logo/*` into `frontend/public/logo/` (overwrite). Point the app's logo
-> usages at `GAAex-logo-reversed.svg` (dark UI) and the favicon at `GAAex-mark.svg`. Show diff.
+> usages at `GAAhex-logo-reversed.svg` (dark UI) and the favicon at `GAAhex-mark.svg`. Show diff.
 
 ### 4 — Adopt the component classes (per area)
 Reskin one surface at a time, using the kit as the visual spec. Repeat this prompt for each:
@@ -104,7 +104,7 @@ Good order to repeat Prompt 4 for:
 > **Prompt 6**
 > Self-host Space Grotesk, IBM Plex Sans, IBM Plex Mono: add the font files under
 > `frontend/public/fonts/`, add `@font-face` rules, and remove the Google Fonts `@import` from
-> `gaaex-tokens.css`. Confirm the families still resolve.
+> `gaahex-tokens.css`. Confirm the families still resolve.
 
 ### 7 — Verify both themes
 > **Prompt 7**
@@ -116,8 +116,8 @@ Good order to repeat Prompt 4 for:
 
 ## D · Wrap up
 ```bash
-git add -A && git commit -m "GAAex Cobalt & Gold reskin"
-git push -u origin feat/gaaex-reskin
+git add -A && git commit -m "GAAhex Cobalt & Gold reskin"
+git push -u origin feat/gaahex-reskin
 ```
 Open a PR, review screenshots, merge.
 

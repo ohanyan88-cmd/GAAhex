@@ -256,7 +256,7 @@ This is **the exact same pipeline as the list view** — enforced by reusing the
 Both XLSX and PDF respect tenant branding:
 
 **Source:** \Tenant\ model fields:
-- \logo_text\ — displayed in PDF header (left) and workbook title (XLSX); defaults to tenant name or "GAAex"
+- \logo_text\ — displayed in PDF header (left) and workbook title (XLSX); defaults to tenant name or "GAAhex"
 - \currency\ — used to format money values in export
 - \
 ame\ — fallback for logo_text if not set

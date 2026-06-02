@@ -1,4 +1,4 @@
-// GAAex Studio shell — the SuperAdmin builder + configuration center + publishing control.
+// GAAhex Studio shell — the SuperAdmin builder + configuration center + publishing control.
 // P1: header + frame + SuperAdmin gate + /studio URL sync. Left tree and right pane are filled
 // in P2 (tree nav) and P3 (overview landing).
 //

@@ -1,11 +1,11 @@
 """Proof that Postgres Row-Level Security isolates tenants (M13).
 
-The app + the rest of the suite run as the `gaaex` role, which OWNS the tables and therefore
+The app + the rest of the suite run as the `gaahex` role, which OWNS the tables and therefore
 *bypasses* RLS — so testing isolation through the app engine would prove nothing. This test enables
 RLS on `record` in the test DB and asserts the four isolation properties through a SECOND engine
-bound to the dedicated NOSUPERUSER `gaaex_app` role (the role the app flips to for enforcement).
+bound to the dedicated NOSUPERUSER `gaahex_app` role (the role the app flips to for enforcement).
 
-Plan + rationale: GAAex-Vision/2-kernel/16a-rls-implementation.md §3.
+Plan + rationale: GAAhex-Vision/2-kernel/16a-rls-implementation.md §3.
 """
 import os
 import uuid
@@ -14,25 +14,25 @@ from urllib.parse import urlparse, urlunparse
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.db import engine        # gaaex (owner) engine on gaaex_test — used here only for setup
+from app.db import engine        # gaahex (owner) engine on gaahex_test — used here only for setup
 from sqlalchemy.ext.asyncio import create_async_engine
 
 
 def _app_role_url() -> str:
-    """Derive the gaaex_app-role URL from the configured DATABASE_URL so we land on the same
+    """Derive the gaahex_app-role URL from the configured DATABASE_URL so we land on the same
     Postgres instance (5433 locally, CI's service port in CI) but as the NOSUPERUSER app role
     that RLS isolation must actually be tested against."""
     p = urlparse(os.environ["DATABASE_URL"])
-    return urlunparse(p._replace(netloc=f"gaaex_app:gaaex_app@{p.hostname}:{p.port}"))
+    return urlunparse(p._replace(netloc=f"gaahex_app:gaahex_app@{p.hostname}:{p.port}"))
 
 
 APP_ROLE_URL = _app_role_url()
-GUC = "gaaex.tenant_id"
+GUC = "gaahex.tenant_id"
 
 
 @pytest_asyncio.fixture(scope="module")
 async def rls(_setup_db):
-    """As the owner: ensure the gaaex_app role + grants, enable RLS on `record`, seed tenants A and B
+    """As the owner: ensure the gaahex_app role + grants, enable RLS on `record`, seed tenants A and B
     with one record each. Yields (app_engine, tenant_a, tenant_b, rec_a_id, rec_b_id). Cleans up RLS
     on teardown so the owner-role app tests are unaffected."""
     tenant_a = uuid.uuid4()
@@ -43,14 +43,14 @@ async def rls(_setup_db):
         # the role is cluster-wide (the migration may have made it on the dev DB); ensure + grant here
         await c.execute(text("""
             DO $$ BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaaex_app') THEN
-                    CREATE ROLE gaaex_app LOGIN PASSWORD 'gaaex_app' NOSUPERUSER NOBYPASSRLS;
+                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaahex_app') THEN
+                    CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS;
                 END IF;
             END $$;
         """))
-        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaaex_app;"))
-        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON record TO gaaex_app;"))
-        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaaex_app;"))
+        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaahex_app;"))
+        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON record TO gaahex_app;"))
+        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaahex_app;"))
         # two tenants (FK target) + one record each
         for t in (tenant_a, tenant_b):
             await c.execute(text("INSERT INTO tenant (id, name, status) VALUES (:i, :n, 'active')"),
@@ -59,13 +59,13 @@ async def rls(_setup_db):
             await c.execute(text(
                 "INSERT INTO record (id, tenant_id, entity_key, status, data) "
                 "VALUES (:i, :t, 'lead', 'NEW', '{}'::jsonb)"), {"i": rid, "t": tid})
-        # enable RLS on record (owner still bypasses; the gaaex_app engine below is subject to it)
+        # enable RLS on record (owner still bypasses; the gaahex_app engine below is subject to it)
         await c.execute(text("ALTER TABLE record ENABLE ROW LEVEL SECURITY;"))
         await c.execute(text("DROP POLICY IF EXISTS tenant_isolation ON record;"))
         await c.execute(text(
             "CREATE POLICY tenant_isolation ON record "
-            "USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid) "
-            "WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);"))
+            "USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid) "
+            "WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);"))
 
     app_engine = create_async_engine(APP_ROLE_URL)
     try:
@@ -85,7 +85,7 @@ async def _count_as(app_engine, tenant_guc):
         if tenant_guc is not None:
             await conn.execute(text("SELECT set_config(:k, :v, false)"), {"k": GUC, "v": str(tenant_guc)})
         else:
-            await conn.execute(text("SELECT set_config('gaaex.tenant_id', NULL, false)"))  # NULL ⇒ default-deny
+            await conn.execute(text("SELECT set_config('gaahex.tenant_id', NULL, false)"))  # NULL ⇒ default-deny
         rows = (await conn.execute(text("SELECT tenant_id FROM record"))).scalars().all()
         return [str(r) for r in rows]
 
@@ -136,25 +136,25 @@ async def test_rls_with_check_blocks_cross_tenant_insert(rls):
 #                     account/invoice/policy FK chain; same tenant_id RLS shape either way)
 #
 # The test conftest uses Base.metadata.create_all() rather than alembic upgrade, so the Wave 3
-# migration is NOT applied to gaaex_test — each spot fixture enables RLS + creates the policy +
-# grants to gaaex_app itself, mirroring the existing `rls` fixture above. (Pattern is identical
+# migration is NOT applied to gaahex_test — each spot fixture enables RLS + creates the policy +
+# grants to gaahex_app itself, mirroring the existing `rls` fixture above. (Pattern is identical
 # across all three — only the table name and the seed-row SQL differ.)
 # ──────────────────────────────────────────────────────────────────────────────
 
 
 async def _enable_rls_and_grant(c, table: str) -> None:
-    """Enable RLS + the tenant_isolation policy + gaaex_app grants on a table.
+    """Enable RLS + the tenant_isolation policy + gaahex_app grants on a table.
 
     Replicates the exact predicate shape used by 3a9203795d07 / 642fa959d432 / Wave 3:
     NULLIF-guarded so an unset or empty GUC yields NULL → default-deny.
     """
-    await c.execute(text(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {table} TO gaaex_app;"))
+    await c.execute(text(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {table} TO gaahex_app;"))
     await c.execute(text(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;"))
     await c.execute(text(f"DROP POLICY IF EXISTS tenant_isolation ON {table};"))
     await c.execute(text(
         f"CREATE POLICY tenant_isolation ON {table} "
-        f"USING (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid) "
-        f"WITH CHECK (tenant_id = NULLIF(current_setting('gaaex.tenant_id', true), '')::uuid);"))
+        f"USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid) "
+        f"WITH CHECK (tenant_id = NULLIF(current_setting('gaahex.tenant_id', true), '')::uuid);"))
 
 
 async def _disable_rls(c, table: str) -> None:
@@ -168,7 +168,7 @@ async def _select_tenant_ids_under_guc(app_engine, table: str, guc_value):
             await conn.execute(text("SELECT set_config(:k, :v, false)"),
                                {"k": GUC, "v": str(guc_value)})
         else:
-            await conn.execute(text("SELECT set_config('gaaex.tenant_id', NULL, false)"))
+            await conn.execute(text("SELECT set_config('gaahex.tenant_id', NULL, false)"))
         rows = (await conn.execute(text(f"SELECT tenant_id FROM {table}"))).scalars().all()
         return [str(r) for r in rows]
 
@@ -181,13 +181,13 @@ async def rls_tariff_plan(_setup_db):
         # ensure the role exists on this DB (idempotent — the main `rls` fixture also does this)
         await c.execute(text("""
             DO $$ BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaaex_app') THEN
-                    CREATE ROLE gaaex_app LOGIN PASSWORD 'gaaex_app' NOSUPERUSER NOBYPASSRLS;
+                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaahex_app') THEN
+                    CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS;
                 END IF;
             END $$;
         """))
-        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaaex_app;"))
-        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaaex_app;"))
+        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaahex_app;"))
+        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaahex_app;"))
         for t in (tenant_a, tenant_b):
             await c.execute(text("INSERT INTO tenant (id, name, status) VALUES (:i, :n, 'active')"),
                             {"i": t, "n": f"RLS-TP {t.hex[:6]}"})
@@ -232,13 +232,13 @@ async def rls_payment_method(_setup_db):
     async with engine.begin() as c:
         await c.execute(text("""
             DO $$ BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaaex_app') THEN
-                    CREATE ROLE gaaex_app LOGIN PASSWORD 'gaaex_app' NOSUPERUSER NOBYPASSRLS;
+                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaahex_app') THEN
+                    CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS;
                 END IF;
             END $$;
         """))
-        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaaex_app;"))
-        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaaex_app;"))
+        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaahex_app;"))
+        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaahex_app;"))
         for t in (tenant_a, tenant_b):
             await c.execute(text("INSERT INTO tenant (id, name, status) VALUES (:i, :n, 'active')"),
                             {"i": t, "n": f"RLS-PM {t.hex[:6]}"})
@@ -292,13 +292,13 @@ async def rls_dunning_policy(_setup_db):
     async with engine.begin() as c:
         await c.execute(text("""
             DO $$ BEGIN
-                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaaex_app') THEN
-                    CREATE ROLE gaaex_app LOGIN PASSWORD 'gaaex_app' NOSUPERUSER NOBYPASSRLS;
+                IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='gaahex_app') THEN
+                    CREATE ROLE gaahex_app LOGIN PASSWORD 'gaahex_app' NOSUPERUSER NOBYPASSRLS;
                 END IF;
             END $$;
         """))
-        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaaex_app;"))
-        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaaex_app;"))
+        await c.execute(text("GRANT USAGE ON SCHEMA public TO gaahex_app;"))
+        await c.execute(text("GRANT SELECT, INSERT, UPDATE, DELETE ON tenant TO gaahex_app;"))
         for t in (tenant_a, tenant_b):
             await c.execute(text("INSERT INTO tenant (id, name, status) VALUES (:i, :n, 'active')"),
                             {"i": t, "n": f"RLS-DP {t.hex[:6]}"})

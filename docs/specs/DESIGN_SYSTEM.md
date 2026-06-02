@@ -1,4 +1,4 @@
-# GAAex Design System — Complete Specification
+# GAAhex Design System — Complete Specification
 ### Transfer Document for Claude Design · Full UI Rebuild & Component Library Generation
 **Version**: Batch 28 · 2026-05-27 · Author: Ընգեր (coordinator window)
 
@@ -6,7 +6,7 @@
 
 ## CRITICAL CONTEXT — Read This First
 
-GAAex is the only place of work for an entire ISP. Every department, every role, one system.
+GAAhex is the only place of work for an entire ISP. Every department, every role, one system.
 Multi-tenant. Configuration-driven at its core: entities, fields, statuses, workflows, dashboards
 are all defined inside the product via a Studio UI — there is **zero hardcoding** in the product
 itself. The UI must express that configurability everywhere.
@@ -50,7 +50,7 @@ for long daily use by ISP operators. Never playful, never casual. Clean and prec
 ## 1. Brand Identity & Logo
 
 ### Identity Statement
-GAAex = "GAA" (the business initials) + "ex" suffix suggesting excellence/exchange.
+GAAhex = "GAA" (the business initials) + "ex" suffix suggesting excellence/exchange.
 Visual personality: structured, disciplined, modern without being trendy.
 The product must feel like a serious professional tool — not a SaaS demo.
 
@@ -138,7 +138,7 @@ stays dark in both modes so the light logo reads correctly.
 |-------|-----------|-------------|
 | `--focus-ring` | `rgba(197,160,89,0.55)` | `rgba(28,59,104,0.45)` |
 
-Dark mode: gold focus ring (the GAAex signature).
+Dark mode: gold focus ring (the GAAhex signature).
 Light mode: cobalt focus ring (gold washes out on bright canvas).
 Rule: `:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }`
 
@@ -440,7 +440,7 @@ Color: always inherits `currentColor` — icons theme automatically.
 | `MailIcon` | Envelope with V fold | Email outbound, compose, email fields |
 | `PrinterIcon` | Printer with paper tray | Print invoice, export to PDF |
 | `ChartIcon` | Bar chart (3 ascending bars) | Analytics, reports, dashboard widgets |
-| `SparkleIcon` | Two-star sparkle | AI / Ask GAAex feature |
+| `SparkleIcon` | Two-star sparkle | AI / Ask GAAhex feature |
 | `ArrowUpIcon` | Upward arrow | Sort ascending, positive trend |
 | `ArrowDownIcon` | Downward arrow | Sort descending, negative trend |
 | `UsersIcon` | Two person silhouettes | Team, users list, accounts |
@@ -764,7 +764,7 @@ SECTION LABEL: PLATFORM
   Parties          (UsersIcon)
 
 SECTION LABEL: AI
-  Ask GAAex        (SparkleIcon)
+  Ask GAAhex        (SparkleIcon)
 ```
 
 Active nav item: `.nav.on` = cobalt tint bg + 2px inset gold left bar.
@@ -793,9 +793,9 @@ Section labels: 11px uppercase, `--sidebar-label`, not interactive.
 ```
 ┌─────────────────────────────────┐
 │                                 │
-│      [GAAex logo, full width]   │
+│      [GAAhex logo, full width]   │
 │                                 │
-│      GAAex                      │  (h1, 24px)
+│      GAAhex                      │  (h1, 24px)
 │                                 │
 │  [Email/username input .inp-md] │
 │  [Password input .inp-md]       │
@@ -815,8 +815,8 @@ Logo: `.logo-lg { width: 100%; height: auto; margin: 6px 0 10px }` (full-width o
 **New Requirement — Login Page Customization**:
 - Tenant branding: admin can upload a background image for the login page (the `.center` area behind the card)
 - The card itself retains the design system styling
-- Tenant logo replaces the default GAAex logo on the card (via `tenant.logo_url`)
-- Tenant name shown below logo if different from "GAAex"
+- Tenant logo replaces the default GAAhex logo on the card (via `tenant.logo_url`)
+- Tenant name shown below logo if different from "GAAhex"
 - Option for the login page background: solid color (default `--bg`), gradient, or uploaded image
 
 ### Create Tenant Wizard (3-step)
@@ -1121,14 +1121,14 @@ Thread active: `.thread-item.on { --primary-soft bg }`
 - Dev: `LogEmailAdapter` / `LogSmsAdapter` — writes to stdout, status = "LOG"
 - Prod: SMTP (email) / real SMS gateway — status = "SENT"
 
-### 14.14 Ask GAAex (AI Assistant)
+### 14.14 Ask GAAhex (AI Assistant)
 
 **Route**: `/ask` or sidebar
 **Component**: `AskGaaexView.tsx`
 
 **Layout**:
 ```
-[SparkleIcon header + "Ask GAAex" title]
+[SparkleIcon header + "Ask GAAhex" title]
 [Conversation history: scrollable flex column]
   [.msg-bubble user queries (right-aligned)]
   [.msg-bubble AI responses (left, with SparkleIcon)]
@@ -1140,7 +1140,7 @@ Thread active: `.thread-item.on { --primary-soft bg }`
 Free tier / usage-lean. API key in `.env` as `GEMINI_API_KEY`.
 The model has access to the tenant's data context via backend tool calls.
 
-**AiAssistModal**: compact version of Ask GAAex that can be opened in-context from any view
+**AiAssistModal**: compact version of Ask GAAhex that can be opened in-context from any view
 (e.g., "Explain this invoice" button opens a small modal with pre-filled context).
 
 ### 14.15 Invoices
@@ -1360,9 +1360,9 @@ Backdrop (`.notif-backdrop`): fixed inset, z-index --z-dropdown — click to clo
 ### 15.6 AI Assist Modal
 
 **Component**: `AiAssistModal.tsx`
-Compact Ask GAAex modal, opened in-context (from record pages, dashboard).
+Compact Ask GAAhex modal, opened in-context (from record pages, dashboard).
 Pre-populates context: "You are viewing [Customer / Invoice / etc.] #123. What do you want to know?"
-Same conversation UI as full Ask GAAex page, constrained to `modal-md`.
+Same conversation UI as full Ask GAAhex page, constrained to `modal-md`.
 
 ### 15.7 Comments Modal
 
@@ -1483,7 +1483,7 @@ Shown when a user navigates to a route their role cannot access.
 ## 16. Configuration-Driven Architecture — Design Implications
 
 ### The Core Principle
-GAAex has **zero hardcoded business rules** in the UI or backend business logic.
+GAAhex has **zero hardcoded business rules** in the UI or backend business logic.
 Everything the product does at the data level — entity shapes, workflow stages, field definitions,
 dashboard layouts, report definitions — is controlled by configuration stored in the database
 and edited via Studio.
@@ -1537,7 +1537,7 @@ See Section 3.2 for full palette specifications.
 [Optional: "Custom" button → hex color input for brand color]
 ```
 
-**Persistence**: `localStorage("gaaex-palette")`, applied via `data-palette="forest"` etc. on `<html>`.
+**Persistence**: `localStorage("gaahex-palette")`, applied via `data-palette="forest"` etc. on `<html>`.
 
 ### 17.2 Custom Backgrounds Per Section
 
@@ -1579,7 +1579,7 @@ Custom uploads: stored as tenant assets, max 2MB, PNG/JPG/WebP accepted.
 - Shown on login page, sidebar header, email templates
 - Upload: PNG/SVG, recommended min 200×200px
 - Preview shown inline after upload
-- Replaces default GAAex logo for tenant-branded instances
+- Replaces default GAAhex logo for tenant-branded instances
 
 **Logo Color Configuration** (in Studio > Appearance):
 - Tenant admin can view the current logo and adjust brand colors
@@ -1618,7 +1618,7 @@ Active icon: `--accent-soft` bg + `--accent` border.
 ### 17.5 Beautiful Custom Calendar System
 
 The calendar is NOT a standard datepicker. It is a first-class view within the product —
-a full calendar application embedded in GAAex, with multiple views and SAML-like team sharing.
+a full calendar application embedded in GAAhex, with multiple views and SAML-like team sharing.
 
 **Calendar Views**:
 1. **Month view**: 7-column grid (Mon–Sun), each cell = a day with event chips
@@ -1978,7 +1978,7 @@ All authenticated routes require `Authorization: Bearer <token>` header.
 
 ## Appendix D — Universal Page Structure (All Pages Must Follow This)
 
-**Design requirement**: every page in GAAex must use the same structural template.
+**Design requirement**: every page in GAAhex must use the same structural template.
 Consistency is a core UX value — operators should know exactly where to look on every page.
 
 ### Standard Page Template
@@ -2117,7 +2117,7 @@ frontend/
     Composer.tsx          — message/comment input with emoji support
     EmojiPicker.tsx       — emoji grid (portaled to body)
     CommentsModal.tsx     — comments thread in a modal
-    AiAssistModal.tsx     — compact Ask GAAex in a modal
+    AiAssistModal.tsx     — compact Ask GAAhex in a modal
     Select.tsx            — custom select dropdown
     MultiSelect.tsx       — multi-select with chips
     RefPicker.tsx         — FK relation field picker
@@ -2206,6 +2206,6 @@ backend/
 
 ---
 
-*End of GAAex Design System Specification — Batch 28 — 2026-05-27*
+*End of GAAhex Design System Specification — Batch 28 — 2026-05-27*
 *Generated by Ընգեր (coordinator window) from full codebase audit (R1–R5 agents)*
 *Transfer target: Claude Design for full UI rebuild and component library generation*

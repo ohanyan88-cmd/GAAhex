@@ -216,7 +216,7 @@ function Skel({ rows = 3 }: { rows?: number }) {
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-const ROLE_OVERRIDE_KEY = 'gaaex.home.role.override.v1'
+const ROLE_OVERRIDE_KEY = 'gaahex.home.role.override.v1'
 
 export default function HomeView({ token, onNavigate }: {
   token: string

@@ -1,12 +1,12 @@
-# GAAex — Content & Voice Guide
+# GAAhex — Content & Voice Guide
 
-Every message in GAAex should sound like one calm, professional product serving Armenian ISPs. This guide
+Every message in GAAhex should sound like one calm, professional product serving Armenian ISPs. This guide
 documents the voice, error taxonomy, success patterns, empty states, and i18n conventions grounded in
 actual current messages across the frontend.
 
 ## Voice & Tone
 
-GAAex's voice is **clear, brief, human, and never cute**. We speak directly to operators and admins
+GAAhex's voice is **clear, brief, human, and never cute**. We speak directly to operators and admins
 who run telecom businesses — respect their time and clarity.
 
 **Five principles:**
@@ -246,7 +246,7 @@ Empty states tell the user *what is, why it's empty, and what to do next*. Three
 **Examples:**
 - Title: "Accounts aren't available yet"; Message: "The accounts layer will appear here once enabled."
 - Title: "Analytics aren't available yet"; Message: "KPIs and charts will appear here once enabled."
-- Title: "AI assist isn't available yet"; Message: "Ask GAAex will appear here once enabled."
+- Title: "AI assist isn't available yet"; Message: "Ask GAAhex will appear here once enabled."
 
 **Current in code:**
 ```
@@ -293,7 +293,7 @@ This keeps the namespace clear and makes future additions predictable.
 - `billing.*` — billing cycle, dunning
 - `ai.*` — AI assistant
 - `analytics.*` — dashboards / analytics
-- `ask.*` — Ask GAAex feature
+- `ask.*` — Ask GAAhex feature
 
 ### Key naming patterns
 
@@ -327,7 +327,7 @@ This keeps the namespace clear and makes future additions predictable.
   default is used.
 - **Bundled:** BUNDLED[lang] in i18n.ts holds local Armenian (hy) + a few common patterns.
 - **Server:** Backend `/api/i18n/{lang}` serves the full tenant-specific dict (overrides BUNDLED).
-- **Persistence:** Language choice is saved to localStorage as 'gaaex-lang'.
+- **Persistence:** Language choice is saved to localStorage as 'gaahex-lang'.
 
 ---
 

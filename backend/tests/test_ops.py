@@ -11,7 +11,7 @@ async def test_status_shape_and_db_ok(client, admin):
     r = await client.get("/api/status", headers=admin)
     assert r.status_code == 200
     body = r.json()
-    assert body["service"] == "gaaex"
+    assert body["service"] == "gaahex"
     assert body["ok"] is True and body["db"] == "ok"
     assert body["version"] and body["time"]
     m = body["maintenance"]
