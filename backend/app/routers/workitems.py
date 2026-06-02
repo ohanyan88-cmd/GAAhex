@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import User
+from ..models import User, Record
 from ..models.workitem import WorkItem
 from ..access import load_grants, can
 from .. import workflow, notify_hooks
@@ -90,6 +90,35 @@ async def _get_workitem(s: AsyncSession, user: User, workitem_id) -> WorkItem:
     if not w:
         raise HTTPException(404, "WorkItem not found")
     return w
+
+
+async def _customer_or_422(s: AsyncSession, tenant_id, customer_id) -> None:
+    """M1-A Wave 2 (IDOR fix). Mirror routers/billing._customer_or_422 — verify a
+    body-supplied customer_id points to a CRM customer Record in the caller's tenant."""
+    if customer_id is None:
+        return
+    rec = (await s.execute(
+        select(Record).where(
+            Record.id == customer_id,
+            Record.tenant_id == tenant_id,
+            Record.entity_key == "customer",
+        )
+    )).scalar_one_or_none()
+    if not rec:
+        raise HTTPException(422, "customer_id does not reference a known customer")
+
+
+async def _assigned_user_or_422(s: AsyncSession, tenant_id, assigned_user_id) -> None:
+    """M1-A Wave 2 (IDOR fix). A body-supplied assigned_user_id must point to a User
+    inside the caller's tenant — otherwise the WorkItem would be assigned to a stranger
+    in another tenant."""
+    if assigned_user_id is None:
+        return
+    u = (await s.execute(
+        select(User).where(User.id == assigned_user_id, User.tenant_id == tenant_id)
+    )).scalar_one_or_none()
+    if not u:
+        raise HTTPException(422, "assigned_user_id does not reference a known user")
 
 
 async def _kernel_gate(s: AsyncSession, user: User, w: WorkItem, action: str) -> None:
@@ -212,6 +241,12 @@ async def create_workitem(
     priority = (payload.get("priority") or "NORMAL").upper()
     if priority not in _PRIORITIES:
         raise HTTPException(422, f"priority must be one of {sorted(_PRIORITIES)}")
+
+    # M1-A Wave 2 (IDOR fix): both assigned_user_id and customer_id are body-supplied UUIDs;
+    # neither was tenant-verified before this fix. A caller could otherwise assign work to a
+    # user in another tenant or attach a stranger's customer record to a work item.
+    await _assigned_user_or_422(s, user.tenant_id, payload.get("assigned_user_id"))
+    await _customer_or_422(s, user.tenant_id, payload.get("customer_id"))
 
     w = WorkItem(
         tenant_id=user.tenant_id,

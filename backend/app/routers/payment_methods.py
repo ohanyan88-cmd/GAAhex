@@ -26,7 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..access import can, load_grants
 from ..db import get_session
-from ..models import User
+from ..models import User, Record
+from ..models.party import Account
 from ..models.payment_method import PaymentMethod
 from ..services.payment_gateway_adapter import get_payment_gateway
 from .auth import current_user
@@ -78,6 +79,31 @@ async def _get_pm(s: AsyncSession, user: User, pm_id: uuid.UUID) -> PaymentMetho
     if pm is None:
         raise HTTPException(404, "Payment method not found")
     return pm
+
+
+async def _customer_or_422(s: AsyncSession, tenant_id, customer_id: uuid.UUID) -> None:
+    """M1-A Wave 2 (IDOR fix). Verify a body-supplied customer_id refers to a CRM customer
+    Record in the caller's tenant. PCI-adjacent: a card vaulted against another tenant's
+    customer would be a cross-tenant data link."""
+    rec = (await s.execute(
+        select(Record).where(
+            Record.id == customer_id,
+            Record.tenant_id == tenant_id,
+            Record.entity_key == "customer",
+        )
+    )).scalar_one_or_none()
+    if not rec:
+        raise HTTPException(422, "customer_id does not reference a known customer")
+
+
+async def _account_or_422(s: AsyncSession, tenant_id, account_id: uuid.UUID) -> None:
+    """M1-A Wave 2 (IDOR fix). Verify a body-supplied account_id refers to a billing
+    Account in the caller's tenant. PCI-adjacent (see _customer_or_422)."""
+    acc = (await s.execute(
+        select(Account).where(Account.id == account_id, Account.tenant_id == tenant_id)
+    )).scalar_one_or_none()
+    if not acc:
+        raise HTTPException(422, "account_id does not reference a known account")
 
 
 def _serialize(pm: PaymentMethod) -> dict:
@@ -179,6 +205,12 @@ async def vault_payment_method(
             account_id = uuid.UUID(str(account_id_raw))
         except ValueError:
             raise HTTPException(422, "'account_id' is not a valid UUID")
+
+    # M1-A Wave 2 (IDOR fix): both customer_id and account_id were UUID-format-checked only.
+    # Verify they live in the caller's tenant BEFORE we vault a card against them.
+    await _customer_or_422(s, user.tenant_id, customer_id)
+    if account_id is not None:
+        await _account_or_422(s, user.tenant_id, account_id)
 
     card_number = _require_str(payload, "card_number")
     cvc = _require_str(payload, "cvc")

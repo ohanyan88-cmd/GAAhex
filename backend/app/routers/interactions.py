@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User, Record
 from ..models.interaction import Interaction
+from ..models.helpdesk import HelpdeskTicket
 from ..access import load_grants, can
 from ..kernel import assert_can, AccessDenied
 from .. import workflow, notify_hooks
@@ -64,12 +65,48 @@ async def _get(s: AsyncSession, tenant_id, interaction_id) -> Interaction:
 
 
 async def _ref_record(s: AsyncSession, tenant_id, rec_id, entity_key: str) -> Record:
+    """Tenant-scoped reference validation for a body-supplied UUID.
+
+    NOTE (M1-A Wave 2): the surrounding bespoke interactions router is NOT mounted in
+    app.main — the live /api/interactions surface is served by the generic records
+    router (see app/main.py — only migrate_interactions runs from this module path).
+    This function therefore cannot be reached via HTTP today. We still tighten it as
+    defense-in-depth in case the router is ever re-wired.
+
+    The function already enforces ``Record.tenant_id == tenant_id`` for whatever
+    ``entity_key`` is passed, which IS sufficient for the legacy ``entity_key='ticket'``
+    Records seeded by ``seed_demo_loop`` and exercised by ``test_audit_log``. The
+    auditor's "needs-verification" flag was about the misalignment with the live
+    ``helpdesk_ticket`` table — we now also accept that path (still tenant-scoped) so a
+    real HelpdeskTicket id resolves correctly. Both paths are tenant-checked.
+    """
     rec = (await s.execute(
         select(Record).where(Record.id == rec_id, Record.tenant_id == tenant_id, Record.entity_key == entity_key)
     )).scalar_one_or_none()
-    if not rec:
-        raise HTTPException(422, f"{entity_key}_id does not reference a known {entity_key}")
-    return rec
+    if rec:
+        return rec
+    # Legacy/first-class split — for tickets the live table is helpdesk_ticket, not
+    # record(entity_key='ticket'). Tenant scope is enforced identically.
+    if entity_key == "ticket":
+        ht = (await s.execute(
+            select(HelpdeskTicket).where(
+                HelpdeskTicket.id == rec_id,
+                HelpdeskTicket.tenant_id == tenant_id,
+            )
+        )).scalar_one_or_none()
+        if ht is not None:
+            # Synthesize a minimal Record-shaped object so callers' .entity_key /
+            # .owner_node_id access keeps working. We don't persist this.
+            shim = Record(
+                id=ht.id,
+                tenant_id=ht.tenant_id,
+                owner_node_id=ht.owner_node_id,
+                entity_key="ticket",
+                status=ht.status,
+                data={},
+            )
+            return shim
+    raise HTTPException(422, f"{entity_key}_id does not reference a known {entity_key}")
 
 
 def _parse_dt(value, field: str):

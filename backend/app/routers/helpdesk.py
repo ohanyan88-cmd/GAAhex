@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import User
+from ..models import User, Record
 from ..models.helpdesk import HelpdeskQueue, HelpdeskTicket
 from ..models.job import JobRun
 from ..access import load_grants, can
@@ -127,6 +127,23 @@ async def _get_ticket(s: AsyncSession, user: User, ticket_id) -> HelpdeskTicket:
     if not t:
         raise HTTPException(404, "Ticket not found")
     return t
+
+
+async def _customer_or_422(s: AsyncSession, tenant_id, customer_id) -> None:
+    """M1-A Wave 2 (IDOR fix). Validate that customer_id refers to a CRM customer Record
+    in the CALLER's tenant before it is written onto a new ticket. Mirrors the helper
+    of the same name in routers/billing.py."""
+    if customer_id is None:
+        return
+    rec = (await s.execute(
+        select(Record).where(
+            Record.id == customer_id,
+            Record.tenant_id == tenant_id,
+            Record.entity_key == "customer",
+        )
+    )).scalar_one_or_none()
+    if not rec:
+        raise HTTPException(422, "customer_id does not reference a known customer")
 
 
 # ---------------------------------------------------------------------------
@@ -381,6 +398,9 @@ async def create_ticket(
             raise HTTPException(422, "queue_id does not reference a known queue")
         if queue_obj.default_sla_minutes is not None:
             sla_due_at = _now() + timedelta(minutes=queue_obj.default_sla_minutes)
+
+    # M1-A Wave 2 (IDOR fix): customer_id is body-supplied — tenant-verify before write.
+    await _customer_or_422(s, user.tenant_id, payload.get("customer_id"))
 
     t = HelpdeskTicket(
         tenant_id=user.tenant_id,

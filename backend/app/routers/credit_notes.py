@@ -30,6 +30,7 @@ from ..db import get_session
 from ..models import User, Record
 from ..models.credit_note import CreditNote
 from ..models.billing import Invoice
+from ..models.party import Account
 from ..access import load_grants, can
 from .. import workflow
 from ..kernel import assert_can, AccessDenied
@@ -209,6 +210,13 @@ async def create_credit_note(
             aid = uuid.UUID(str(account_id))
         except (TypeError, ValueError):
             raise HTTPException(422, "account_id must be a UUID")
+        # M1-A Wave 2 (IDOR fix): account_id was UUID-format-checked only — verify the
+        # Account row lives in the caller's tenant before linking a credit note to it.
+        acc = (await s.execute(
+            select(Account).where(Account.id == aid, Account.tenant_id == user.tenant_id)
+        )).scalar_one_or_none()
+        if acc is None:
+            raise HTTPException(422, "account_id does not reference a known account")
     else:
         aid = None
 
