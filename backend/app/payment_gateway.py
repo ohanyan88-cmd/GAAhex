@@ -114,12 +114,19 @@ class DevGateway(PaymentGateway):
     def verify_callback(self, body: bytes, headers: dict) -> dict:
         # Dev mode: no HMAC to verify. Echo the posted provider_ref/status so the full callback
         # path (lookup → settle) is exercisable end-to-end; real gateways verify a signature here.
+        #
+        # Wave 1 multi-tenant note: the verified payload also surfaces the optional `tenant_id`
+        # from the body so the callback handler can cross-check that the order found by
+        # provider_ref actually belongs to the claimed tenant. Real providers (idram/telcell/arca)
+        # MUST include tenant_id (or a tenant-bound order_id) in the HMAC-signed payload before
+        # going live — see follow-up in M1-A audit (forward-looking; test ISP is single-tenant).
         import json
         try:
             data = json.loads(body or b"{}")
         except Exception:
             data = {}
         return {"provider_ref": str(data.get("provider_ref") or ""),
+                "tenant_id": data.get("tenant_id"),
                 "status": data.get("status", "PAID"), "ok": True}
 
 

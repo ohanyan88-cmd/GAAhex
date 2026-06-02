@@ -72,12 +72,24 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# ---- single-tenant mode (Option A) ----------------------------------------------------------------
-# The whole app runs against ONE tenant. THE_TENANT_ID is the single source of truth that every
-# request is bound to (RLS GUC, scheduler, portal login). Resolution order:
+# ---- legacy single-tenant helpers (DO NOT USE IN REQUEST PATHS) ----------------------------------
+# WAVE 1 multi-tenant hardening (M1-A audit): the staff request path and the scheduler no longer
+# read from THE_TENANT_ID. Every staff request now binds the RLS GUC to `user.tenant_id` (validated
+# against the JWT `tenant` claim — see `routers/auth.py::current_user`), and the scheduler iterates
+# over every Tenant row per sweep (see `scheduler.py`).
+#
+# These helpers REMAIN ONLY for:
+#   1. `seed.py` — bootstrap warm-up: when only one tenant exists at install time, pinning its id
+#      makes the seed deterministic. Seed is a one-shot install step, not a request path.
+#   2. `routers/portal_auth.py` — customer-facing email login has no per-request tenant hint, so
+#      single-tenant binding is still appropriate there. Deferred until portal multi-tenancy
+#      is a real product requirement (out of scope for Wave 1).
+#
+# Adding new references from request-handling code is a regression. Use `user.tenant_id` instead.
+#
+# Resolution order (when these helpers ARE called):
 #   1. env GAAEX_TENANT_ID (explicit override, useful in prod / staging)
-#   2. the one Tenant row in the database (resolved on first call, then cached)
-# JWT `tenant` claims are no longer read — they may exist on legacy tokens but are ignored.
+#   2. the oldest Tenant row in the database (resolved on first call, then cached)
 _THE_TENANT_ID: uuid.UUID | None = (
     uuid.UUID(os.environ["GAAEX_TENANT_ID"]) if os.environ.get("GAAEX_TENANT_ID") else None
 )

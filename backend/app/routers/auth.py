@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config import settings, the_tenant_id_async
+from ..config import settings
 from ..db import get_session, get_owner_session, set_tenant_guc, OwnerSessionLocal
 from ..models import User
 from ..models.refresh_token import RefreshToken
@@ -85,8 +85,10 @@ async def login(body: LoginIn, s: AsyncSession = Depends(get_owner_session)):
     user = (await s.execute(select(User).where(User.email == body.email))).scalar_one_or_none()
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    # Single-tenant mode: tenant binding comes from config.the_tenant_id_async(), not the JWT.
-    token = create_access_token(str(user.id), {"email": user.email})
+    # Multi-tenant: bake the user's tenant_id into the JWT. `current_user` re-validates this claim
+    # against the user's stored tenant_id on every request (defense against stolen-token tenant
+    # injection) and binds the RLS GUC to the user's tenant — never to a fixed singleton.
+    token = create_access_token(str(user.id), {"email": user.email, "tenant": str(user.tenant_id)})
     refresh = await _issue_refresh_token(s, user)
     # Forced first-login change for the seeded default admin only: if its password_changed_at is
     # still NULL it's still on the seed `admin123` password. The access token IS issued so the
@@ -113,7 +115,10 @@ async def refresh(body: RefreshIn, s: AsyncSession = Depends(get_owner_session))
 
     rt.revoked_at = now                                  # rotate: kill the used token
     new_refresh = await _issue_refresh_token(s, user)
-    token = create_access_token(str(user.id), {"email": user.email})
+    # Re-stamp the tenant claim from the user's CURRENT stored tenant_id. If somehow the user has
+    # been moved between tenants since the refresh token was issued, the new access token reflects
+    # the new tenant — the refresh-token row also keys on user.id so it stays valid.
+    token = create_access_token(str(user.id), {"email": user.email, "tenant": str(user.tenant_id)})
     await s.commit()
     return TokenOut(access_token=token, refresh_token=new_refresh)
 
@@ -152,14 +157,18 @@ async def current_user(
 ) -> User:
     """Authenticate via EITHER an X-API-Key header (machine principal) OR a Bearer JWT (human).
     Either way we resolve the User via the OWNER session (the request session has no tenant GUC yet)
-    and bind the request to the user's tenant for RLS. Default-deny on any bad credential."""
+    and bind the request to the USER'S stored tenant for RLS. Default-deny on any bad credential.
+
+    Multi-tenant (Wave 1): for JWT auth we also enforce that the token's `tenant` claim matches the
+    user's stored tenant_id — defense against a stolen/forged token that swaps the tenant claim to
+    cross into another tenant. API keys are tied to a specific user row at provisioning so the
+    tenant is taken directly from the user (no separate claim to validate)."""
     if x_api_key:
         user = await _user_from_api_key(x_api_key)
         if not user:
             raise HTTPException(status_code=401, detail="Invalid API key")
-        # Single-tenant mode: always bind to THE_TENANT_ID (the user's tenant_id column still
-        # carries the same value, but the source of truth is config.the_tenant_id_async()).
-        await set_tenant_guc(s, await the_tenant_id_async())
+        # Bind to the user's authenticated tenant — never to a fixed singleton.
+        await set_tenant_guc(s, user.tenant_id)
         return user
 
     if not token:
@@ -180,9 +189,21 @@ async def current_user(
         user = (await o.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    # Single-tenant mode: always bind to THE_TENANT_ID. Any legacy `tenant` claim on the JWT is
-    # ignored — defense-in-depth RLS still keys on this GUC.
-    await set_tenant_guc(s, await the_tenant_id_async())
+
+    # STRICT TENANT VALIDATION (Wave 1 — multi-tenant hardening):
+    #   1. The JWT MUST carry a `tenant` claim. Legacy tokens minted before this change lacked it;
+    #      they are now rejected and the client must re-login (tokens are short-lived anyway).
+    #   2. The claim MUST match the user's stored tenant_id. A mismatch means the token was either
+    #      forged (signature was somehow valid) or a user was moved between tenants since issuance.
+    #      Either way we refuse to bind RLS — re-login required.
+    jwt_tenant = payload.get("tenant")
+    if jwt_tenant is None:
+        raise HTTPException(status_code=401, detail="Token missing tenant claim")
+    if str(user.tenant_id) != str(jwt_tenant):
+        raise HTTPException(status_code=401, detail="Token tenant mismatch")
+
+    # Bind RLS GUC to the user's authenticated tenant — the old single-tenant trapdoor is gone.
+    await set_tenant_guc(s, user.tenant_id)
     return user
 
 

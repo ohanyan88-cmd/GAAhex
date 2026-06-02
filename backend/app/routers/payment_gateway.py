@@ -267,6 +267,15 @@ async def payment_callback(provider: str, request: Request):
             # caller knows it wasn't applied (real providers will retry or log).
             raise HTTPException(404, "No payment order found for provider_ref")
 
+        # Wave 1 multi-tenant cross-check: when the verified callback payload includes a tenant_id
+        # claim, it MUST match the order's tenant_id. Defense against a provider-ref collision or
+        # a forged callback that targets the wrong tenant. Real providers wire tenant into the
+        # HMAC-signed payload; if absent (dev mode for now) we skip — provider_ref still uniquely
+        # identifies the order via the DB lookup above.
+        claimed_tenant = res.get("tenant_id")
+        if claimed_tenant is not None and str(claimed_tenant) != str(order.tenant_id):
+            raise HTTPException(400, "Callback tenant mismatch")
+
         # Set the tenant GUC so RLS on any subsequent queries is satisfied
         await set_tenant_guc(s, order.tenant_id)
 

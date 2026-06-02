@@ -13,8 +13,10 @@ DESIGN
   is a complete no-op: it spawns no task, opens no connection, changes zero behavior. The flag is
   read defensively so `config.py` need not be edited (no collision with the coordinator).
 
-- **Single-tenant, OWNER session.** Single-tenant mode: every sweep targets THE_TENANT_ID. Runs on
-  `OwnerSessionLocal` (RLS-bypass) so the actor resolution works regardless of GUC state.
+- **Multi-tenant, OWNER session.** Each sweep enumerates every Tenant row and runs the job set
+  per tenant, fully isolated: each tenant's failure is caught and logged so it cannot block another
+  tenant's sweep. Runs on `OwnerSessionLocal` (RLS-bypass) so the actor resolution and the
+  tenant enumeration work regardless of GUC state.
 
 - **System actor.** Each handler needs a `User` (for the audit/JobRun actor + the permission gate).
   We use THE tenant's **first super_admin** — the earliest-created user holding an Assignment to
@@ -51,9 +53,9 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .config import settings, the_tenant_id_async
+from .config import settings
 from .db import OwnerSessionLocal
-from .models import User, RoleDef, Assignment
+from .models import User, RoleDef, Assignment, Tenant
 
 # Reuse the real handler logic — do NOT reimplement billing/report rules.
 from .routers.billing import run_dunning
@@ -151,9 +153,9 @@ async def _run_one_job(label: str, factory, actor: User) -> None:
                       label, getattr(actor, "tenant_id", None), getattr(actor, "id", None))
 
 
-async def _run_once() -> None:
-    """One full sweep: every job for THE tenant, fail-soft per job."""
-    tenant_id = await the_tenant_id_async()
+async def _run_for_tenant(tenant_id) -> None:
+    """Run every job for one tenant, fail-soft per job. Resolves the tenant's own system actor
+    so the audit/JobRun rows are stamped correctly and the per-job permission gates pass."""
     async with OwnerSessionLocal() as s:
         actor = await _system_actor(s, tenant_id)
     if actor is None:
@@ -161,6 +163,18 @@ async def _run_once() -> None:
         return
     for label, factory in _JOBS:
         await _run_one_job(label, factory, actor)
+
+
+async def _run_once() -> None:
+    """One full sweep: enumerate every tenant, run every job for each. Per-tenant failures are
+    contained — one tenant blowing up MUST NOT block the others."""
+    async with OwnerSessionLocal() as s:
+        tenant_ids = (await s.execute(select(Tenant.id).order_by(Tenant.created_at))).scalars().all()
+    for tid in tenant_ids:
+        try:
+            await _run_for_tenant(tid)
+        except Exception:  # noqa: BLE001 — fail-soft per tenant
+            log.exception("scheduler: sweep failed for tenant %s — continuing", tid)
 
 
 # --------------------------------------------------------------------------------------------------
