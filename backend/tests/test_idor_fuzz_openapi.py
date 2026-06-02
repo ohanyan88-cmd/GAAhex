@@ -69,13 +69,11 @@ BLOCKLIST_PREFIXES: tuple[str, ...] = (
 # the line of code that accepts the cross-tenant UUID so the follow-up wave can
 # find it instantly. Keyed (METHOD, path, field).
 KNOWN_OPEN_HOLES: dict[tuple[str, str, str], str] = {
-    ("POST", "/api/page-bindings", "page_id"): (
-        "M1-A follow-up: routers/page_bindings.py::create_binding drops "
-        "body.page_id straight onto PageBinding(page_id=body.page_id) without "
-        "verifying that the referenced studio_page lives in user.tenant_id. "
-        "Fix shape: add a `_studio_page_or_422` helper modelled on Wave 2's "
-        "`_customer_or_422` in routers/helpdesk.py and call it before the insert."
-    ),
+    # M1-A Wave 7 closed the only Wave-6-discovered hole
+    # (POST /api/page-bindings page_id) by adding `_studio_page_or_422` in
+    # routers/page_bindings.py. The parametric test below now runs (and passes)
+    # for that triple. Leave this dict in place — empty — so future fuzzer
+    # findings have a documented place to land.
 }
 
 

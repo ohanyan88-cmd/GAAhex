@@ -50,7 +50,17 @@ async def test_page_binding_create_list_delete(client, admin):
 
 async def test_page_binding_filter_by_page_id(client, admin):
     import uuid
-    page_id = str(uuid.uuid4())
+
+    # M1-A Wave 7 (IDOR fix): create_binding now tenant-verifies any body-supplied
+    # page_id via _studio_page_or_422. Seed a real StudioPage in the caller's
+    # tenant first so the binding insert is allowed through.
+    page_resp = await client.post(
+        "/api/studio/pages",
+        headers=admin,
+        json={"key": f"pb-filter-{uuid.uuid4().hex[:8]}", "label": "Filter-by-page test"},
+    )
+    assert page_resp.status_code == 201, page_resp.text
+    page_id = page_resp.json()["id"]
 
     # Create one with this page_id and one without
     r1 = await _create(client, admin, component_key="table-pg", entity_slug="invoices", page_id=page_id)

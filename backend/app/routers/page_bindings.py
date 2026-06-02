@@ -24,6 +24,7 @@ from ..db import get_session
 from ..kernel import assert_can, AccessDenied
 from ..models import User, Event
 from ..models.page_binding import PageBinding
+from ..models.studio_page import StudioPage
 from ..access import load_grants, can
 from .auth import current_user
 
@@ -42,6 +43,27 @@ def _out(b: PageBinding) -> dict:
         "created_at": b.created_at.isoformat() if b.created_at else None,
         "updated_at": b.updated_at.isoformat() if b.updated_at else None,
     }
+
+
+async def _studio_page_or_422(s: AsyncSession, tenant_id, page_id) -> StudioPage | None:
+    """M1-A Wave 7 (IDOR fix). Validate that page_id refers to a StudioPage in the
+    CALLER's tenant before it is written onto a new PageBinding row. Mirrors the
+    pattern of Wave 2's `_customer_or_422` in routers/helpdesk.py.
+
+    page_id is optional on BindingCreate; if None we no-op and return None
+    (bindings may be created before the page itself is committed — see model docstring).
+    """
+    if page_id is None:
+        return None
+    page = (await s.execute(
+        select(StudioPage).where(
+            StudioPage.id == page_id,
+            StudioPage.tenant_id == tenant_id,
+        )
+    )).scalar_one_or_none()
+    if not page:
+        raise HTTPException(422, "page_id does not reference a known page")
+    return page
 
 
 async def _require_config_manage(s: AsyncSession, user: User) -> None:
@@ -96,6 +118,9 @@ async def create_binding(
         raise HTTPException(422, "component_key is required")
     if not body.entity_slug.strip():
         raise HTTPException(422, "entity_slug is required")
+
+    # M1-A Wave 7 (IDOR fix): page_id is body-supplied — tenant-verify before write.
+    await _studio_page_or_422(s, user.tenant_id, body.page_id)
 
     now = datetime.now(timezone.utc)
     binding = PageBinding(
