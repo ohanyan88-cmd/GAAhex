@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text, select
 
-from .config import settings
+from .config import settings, _assert_production_deploy_contract
 from .db import engine, SessionLocal, OwnerSessionLocal
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
@@ -42,6 +42,12 @@ _log = logging.getLogger("gaaex")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # M1-A Wave 4 — production deploy contract: refuse to boot if RLS won't engage
+    # (DATABASE_URL and OWNER_DATABASE_URL must use distinct Postgres roles in prod).
+    # No-op when settings.environment != "production", so dev/test/CI are unaffected.
+    # See docs/M1A-DEPLOY-CONTRACT.md.
+    _assert_production_deploy_contract()
+
     # S1 — JWT secret fail-fast (default-OFF; prod sets REQUIRE_STRONG_SECRETS=true).
     # Guard fires ONLY when require_strong_secrets is explicitly enabled, so dev/test are unaffected.
     if settings.require_strong_secrets:

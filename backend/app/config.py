@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     """Runtime configuration, loaded from environment / .env."""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    # M1-A Wave 4 — deploy-time environment signal. Default "development" keeps dev/test/CI
+    # unaffected; production deploys MUST set ENVIRONMENT=production so the deploy-contract
+    # guard in `_assert_production_deploy_contract()` fires (see docs/M1A-DEPLOY-CONTRACT.md).
+    environment: str = "development"
     database_url: str = "postgresql+asyncpg://gaaex:gaaex@localhost:5433/gaaex"
     # Privileged (RLS-bypassing) role for the few pre-auth / no-tenant paths: seeding, the
     # login + current_user user lookup, and /org-tree. Falls back to database_url when unset (e.g.
@@ -70,6 +74,50 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+# ---- M1-A Wave 4 — production deploy contract ----------------------------------------------------
+def _assert_production_deploy_contract() -> None:
+    """Refuse to boot in production if RLS won't engage.
+
+    In production we require DATABASE_URL (the app role) and OWNER_DATABASE_URL
+    (the table-owner role) to be DIFFERENT, so the app connection runs as a
+    NOSUPERUSER role and Postgres RLS policies actually filter rows.
+
+    In dev/test, owner falls back to the app URL — convenient but RLS-decorative.
+    This is intentional and matches the existing test pattern (test_rls.py uses
+    its own gaaex_app engine to validate RLS in isolation).
+
+    See docs/M1A-DEPLOY-CONTRACT.md for the deploy contract details.
+    """
+    if settings.environment != "production":
+        return  # dev / test / staging — no requirement
+
+    db_url = settings.database_url
+    owner_url = settings.owner_database_url or settings.database_url
+
+    if db_url == owner_url:
+        raise RuntimeError(
+            "M1-A production deploy contract violation: DATABASE_URL and "
+            "OWNER_DATABASE_URL are equal. In production these MUST be "
+            "different Postgres roles (gaaex_app for the app, gaaex for the "
+            "owner) so that Row-Level Security policies engage. See "
+            "docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
+    # Verify the roles are different by parsing the URLs. We strip the asyncpg
+    # driver suffix so urlparse can read the userinfo portion of the netloc.
+    from urllib.parse import urlparse
+    app_role = urlparse(db_url.replace("postgresql+asyncpg://", "postgresql://")).username
+    owner_role = urlparse(owner_url.replace("postgresql+asyncpg://", "postgresql://")).username
+
+    if app_role == owner_role:
+        raise RuntimeError(
+            f"M1-A production deploy contract violation: DATABASE_URL and "
+            f"OWNER_DATABASE_URL use the same role ({app_role!r}). The app "
+            f"role must be different from the owner role. See "
+            f"docs/M1A-DEPLOY-CONTRACT.md."
+        )
 
 
 # ---- legacy single-tenant helpers (DO NOT USE IN REQUEST PATHS) ----------------------------------
