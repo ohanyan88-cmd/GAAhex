@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import { PageShell, type KPISpec } from '../page-shell'
-import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
@@ -438,26 +437,16 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
   const holderName = acct?.holder_party_name ?? (acct?.holder_party_id ? (parties.find((p) => p.id === acct.holder_party_id)?.name ?? acct.holder_party_id.slice(0, 8)) : '—')
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-        <div className="crumbs">
-          <span>Billing</span><span className="sep">/</span>
-          <a onClick={onBack} style={{ cursor: 'pointer' }}>Accounts</a>
-          <span className="sep">/</span>
-          <span style={{ color: 'var(--gx-text-1)' }}>{holderName}</span>
-        </div>
-
-        <ViewHead
-          icon={<BuildingIcon size={18} />}
-          title={holderName}
-          sub={acct?.id ? <span className="mono">{acct.id.slice(0, 8)}</span> : undefined}
-          actions={
-            <button className="btn btn-ghost btn-sm" onClick={onBack}>
-              <ChevronLeftIcon size={13} /> {t('nav.accounts', 'Accounts')}
-            </button>
-          }
-        />
-
+    <PageShell
+      type="WORKSPACE"
+      breadcrumb={['Billing', 'Accounts', holderName]}
+      icon={<BuildingIcon size={18} />}
+      title={holderName}
+      subtitle={acct?.id ? acct.id.slice(0, 8) : undefined}
+      secondaryActions={[
+        { label: t('nav.accounts', 'Accounts'), icon: <ChevronLeftIcon size={13} />, onClick: onBack },
+      ]}
+    >
         {error && <ErrorBanner message={error} onRetry={load} />}
         {!acct && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
@@ -527,7 +516,6 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
               )}
           </>
         )}
-      </div>
-    </div>
+    </PageShell>
   )
 }

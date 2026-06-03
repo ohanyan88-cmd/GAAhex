@@ -13,7 +13,6 @@ import {
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { PageShell, type KPISpec } from '../page-shell'
-import ViewHead from '../components/ViewHead'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -402,19 +401,16 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
   const cust = inv?.customer_id ? (names[inv.customer_id] ?? inv.customer_id.slice(0, 8)) : '—'
 
   return (
-    <div className="view">
-      <div className="view-inner section-page fade">
-      <ViewHead
-        icon={<ChevronLeftIcon size={16} />}
-        title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
-        sub={inv ? `Customer: ${cust}` : undefined}
-        actions={
-          <button className="btn btn-ghost btn-sm" onClick={onBack}>
-            <ChevronLeftIcon size={14} /> Invoices
-          </button>
-        }
-      />
-
+    <PageShell
+      type="WORKSPACE"
+      breadcrumb={['Billing & Revenue', 'Invoices', inv?.number ?? `Invoice ${id.slice(0, 8)}`]}
+      icon={<ReceiptIcon size={18} />}
+      title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
+      subtitle={inv ? `Customer: ${cust}` : undefined}
+      secondaryActions={[
+        { label: 'Invoices', icon: <ChevronLeftIcon size={14} />, onClick: onBack },
+      ]}
+    >
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!inv && !error && <p className="muted">Loading…</p>}
 
@@ -537,8 +533,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
           onDone={() => { setPayOpen(false); load() }}
         />
       )}
-      </div>
-    </div>
+    </PageShell>
   )
 }
 
