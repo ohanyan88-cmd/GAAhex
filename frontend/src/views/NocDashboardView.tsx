@@ -420,11 +420,18 @@ export default function NocDashboardView({
       }
       const list = Array.isArray(res.data)
         ? res.data
-        : (res.data && Array.isArray((res.data as { records?: OltRecord[] }).records))
-          ? (res.data as { records: OltRecord[] }).records
-          : []
+        : (res.data && Array.isArray((res.data as { items?: OltRecord[] }).items))
+          ? (res.data as { items: OltRecord[] }).items
+          : (res.data && Array.isArray((res.data as { records?: OltRecord[] }).records))
+            ? (res.data as { records: OltRecord[] }).records
+            : []
       setOlts(list)
       setOltsLoading(false)
+      // Auto-select the first OLT so per-PON charts populate immediately
+      // without the user having to hunt for the inventory click target.
+      if (list.length > 0 && !selectedOltId) {
+        loadTree(list[0].id)
+      }
     })()
 
     return () => { alive = false }
