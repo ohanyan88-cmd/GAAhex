@@ -199,6 +199,7 @@ type Port = {
   last_tx_dbm?: number | null
   last_polled_at?: string | null
   onus?: Onu[]
+  onu_count?: number | null
   [k: string]: unknown
 }
 
@@ -323,6 +324,18 @@ export default function NocDashboardView({
     by_vendor: { prefix: string; count: number }[]
     totals: { onus: number; ports_populated: number; top_vendor_share: number }
   } | null>(null)
+
+  // Lazy-loaded ONU lists per port_id. Tree response only includes onu_count;
+  // the actual list of ONUs gets fetched on first expand of a port.
+  const [onusByPort, setOnusByPort] = useState<Record<string, Onu[]>>({})
+
+  async function loadOnusForPort(portId: string) {
+    if (onusByPort[portId]) return
+    const res = await bget<{ items: Onu[] }>(token, `/api/noc/onus?port_id=${portId}&page_size=500`)
+    if (res.ok && res.data) {
+      setOnusByPort(prev => ({ ...prev, [portId]: res.data!.items ?? [] }))
+    }
+  }
 
   // ── Action results (sample readings + OTDR events keyed by target id) ──
   const [readings, setReadings] = useState<Record<string, OpticalReading>>({})
@@ -710,13 +723,14 @@ export default function NocDashboardView({
                     busy={busy}
                     readings={readings}
                     otdrs={otdrs}
+                    onusByPort={onusByPort}
                     expandedChassis={expandedChassis}
                     expandedCards={expandedCards}
                     expandedPorts={expandedPorts}
                     expandedOtdr={expandedOtdr}
                     onToggleChassis={(id) => toggle(setExpandedChassis, id)}
                     onToggleCard={(id) => toggle(setExpandedCards, id)}
-                    onTogglePort={(id) => toggle(setExpandedPorts, id)}
+                    onTogglePort={(id) => { toggle(setExpandedPorts, id); void loadOnusForPort(id) }}
                     onToggleOtdr={(key) => toggle(setExpandedOtdr, key)}
                     onSamplePort={(id) => sample('port', id)}
                     onSampleOnu={(id) => sample('onu', id)}
@@ -1055,6 +1069,7 @@ type TreeViewProps = {
   busy: Set<string>
   readings: Record<string, OpticalReading>
   otdrs: Record<string, OtdrResult>
+  onusByPort?: Record<string, Onu[]>
   expandedChassis: Set<string>
   expandedCards: Set<string>
   expandedPorts: Set<string>
@@ -1127,7 +1142,10 @@ function OltTreeView(p: TreeViewProps) {
                           {ports.length === 0 && <p className="muted" style={{ fontSize: 12 }}>No ports</p>}
                           {ports.map((port) => {
                             const pOpen = p.expandedPorts.has(port.id)
-                            const onus = port.onus ?? []
+                            // Tree response carries onu_count only; the full
+                            // serial list is fetched lazily into onusByPort
+                            // when the port is first expanded.
+                            const onus = (p.onusByPort?.[port.id] ?? port.onus ?? [])
                             const samplingKey = `sample:port:${port.id}`
                             const otdrKey = `otdr:port:${port.id}`
                             const reading = p.readings[`port:${port.id}`]
@@ -1151,7 +1169,9 @@ function OltTreeView(p: TreeViewProps) {
                                     <span className="muted" style={{ fontSize: 11 }}>polled {timeAgo(port.last_polled_at)}</span>
                                   )}
                                   <span style={{ flex: 1 }} />
-                                  <span className="muted" style={{ fontSize: 11 }}>{onus.length} ONU{onus.length === 1 ? '' : 's'}</span>
+                                  <span className="muted" style={{ fontSize: 11 }}>
+                                    {(port.onu_count ?? onus.length)} ONU{(port.onu_count ?? onus.length) === 1 ? '' : 's'}
+                                  </span>
                                   {p.canWrite && (
                                     <>
                                       <button

@@ -490,27 +490,32 @@ async def list_onus(
     serial: str | None = None,
     customer_id: uuid.UUID | None = None,
     service_id: uuid.UUID | None = None,
+    port_id: uuid.UUID | None = None,
     page: int = 1,
+    page_size: int | None = None,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ) -> dict:
     page = _norm_page(page)
-    q = select(Onu).where(Onu.tenant_id == user.tenant_id)
+    q = select(Onu).where(Onu.tenant_id == user.tenant_id, Onu.status != "removed")
     if serial:
         q = q.where(Onu.serial == serial)
     if customer_id:
         q = q.where(Onu.customer_id == customer_id)
     if service_id:
         q = q.where(Onu.service_id == service_id)
+    if port_id:
+        q = q.where(Onu.port_id == port_id)
     q = q.order_by(Onu.created_at.desc())
     total = (await s.execute(
         select(func.count()).select_from(q.subquery())
     )).scalar_one()
-    q = q.offset((page - 1) * _PAGE_SIZE).limit(_PAGE_SIZE)
+    effective_page_size = max(1, min(page_size or _PAGE_SIZE, 500))
+    q = q.offset((page - 1) * effective_page_size).limit(effective_page_size)
     rows = (await s.execute(q)).scalars().all()
     return {
         "page": page,
-        "page_size": _PAGE_SIZE,
+        "page_size": effective_page_size,
         "total": int(total or 0),
         "items": [_serialize_onu(r) for r in rows],
     }
