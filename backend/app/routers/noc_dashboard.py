@@ -15,6 +15,7 @@ Endpoints:
     GET    /api/noc/dashboard                                — health rollup + live techs
     GET    /api/noc/olts                                     — list olt Records
     GET    /api/noc/olts/{olt_record_id}/tree                — full chassis→card→port tree
+    POST   /api/noc/olts/{olt_record_id}/refresh             — live-pull topology + reconcile DB
     GET    /api/noc/onus?serial=&customer_id=&service_id=&page=
     GET    /api/noc/technicians?since_minutes=30
 
@@ -55,6 +56,15 @@ from ..models.record import Record
 from ..models.technician_location import TechnicianLocationPing
 from ..models.telemetry import OpticalPowerSample, OtdrTest
 from ..services import noc_dashboard as svc
+from ..services import noc_live_refresh as live_refresh_svc
+from ..services.olt import (
+    OltCommandError,
+    OltConnectionError,
+    OltCredentialsError,
+    OltError,
+    OltNotSupportedError,
+    OltTimeoutError,
+)
 from .auth import current_user
 
 router = APIRouter(prefix="/api/noc", tags=["noc"])
@@ -329,6 +339,49 @@ async def get_olt_tree(
             "onus_active": sum(onu_counts.values()),
         },
     }
+
+
+@router.post("/olts/{olt_record_id}/refresh", status_code=200)
+async def refresh_olt(
+    olt_record_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Pull live topology from the OLT, reconcile chassis/card/port/ONU rows, return counts.
+
+    Admin-only (config.manage). Today only vendor ``vsol_v1600`` supports this —
+    other vendors raise a 501. The reconcile is idempotent and preserves
+    customer/service bindings on existing ONU rows.
+    """
+    await _require_admin(s, user)
+    rec = (await s.execute(
+        select(Record).where(
+            Record.id == olt_record_id,
+            Record.tenant_id == user.tenant_id,
+            Record.entity_key == "olt",
+        )
+    )).scalar_one_or_none()
+    if rec is None:
+        raise HTTPException(404, "OLT not found")
+    try:
+        summary = await live_refresh_svc.refresh_olt_topology(s, rec)
+    except OltNotSupportedError as e:
+        await s.rollback()
+        raise HTTPException(501, f"live refresh not supported: {e}")
+    except OltCredentialsError as e:
+        await s.rollback()
+        raise HTTPException(401, f"OLT credentials rejected: {e}")
+    except (OltConnectionError, OltTimeoutError) as e:
+        await s.rollback()
+        raise HTTPException(502, f"OLT unreachable: {e}")
+    except OltCommandError as e:
+        await s.rollback()
+        raise HTTPException(502, f"OLT rejected command: {e}")
+    except OltError as e:
+        await s.rollback()
+        raise HTTPException(500, f"OLT driver error: {e}")
+    await s.commit()
+    return summary
 
 
 @router.get("/onus")

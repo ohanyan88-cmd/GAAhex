@@ -474,6 +474,41 @@ export default function NocDashboardView({
     setTechLoading(false)
   }
 
+  // Hit the live-refresh endpoint (POST /api/noc/olts/{id}/refresh) — the
+  // V1600 driver SSHes the OLT, pulls running-config, and upserts the tree.
+  // After the call we reload the rollup + tree so the dashboard reflects the
+  // freshly-pulled state. Silent — toast only on real errors so the 60-sec
+  // background tick doesn't spam.
+  async function refreshOltLive(oltId: string) {
+    const res = await fetch(`/api/noc/olts/${oltId}/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok && res.status !== 404 && res.status !== 501) {
+      const body = await res.text().catch(() => '')
+      console.warn('[noc] OLT refresh failed', res.status, body)
+      return false
+    }
+    return res.ok
+  }
+
+  // 60-second auto-refresh of the selected OLT. Each tick: POST /refresh
+  // (drives the V1600 driver to SSH the OLT, pull running-config, and upsert
+  // the DB), then reload the tree + rollup so the dashboard tiles show fresh
+  // numbers. No-op when no OLT is selected.
+  useEffect(() => {
+    if (!token || !selectedOltId) return
+    const id = window.setInterval(async () => {
+      const ok = await refreshOltLive(selectedOltId)
+      if (!ok) return
+      await loadTree(selectedOltId)
+      const res = await bget<DashboardResp>(token, '/api/noc/dashboard')
+      if (res.ok && res.data) setHealth(res.data.olt_health ?? null)
+    }, 60_000)
+    return () => window.clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, selectedOltId])
+
   function toggle(setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
     setter((prev) => {
       const next = new Set(prev)

@@ -8,6 +8,7 @@ will both expose ``HuaweiDriver`` AND register ``'huawei'`` in the factory regis
 """
 from .huawei import HuaweiDriver
 from .vsol import VsolDriver
+from .vsol_v1600 import VsolV1600Driver
 from .zte import ZteDriver
 
-__all__ = ["HuaweiDriver", "VsolDriver", "ZteDriver"]
+__all__ = ["HuaweiDriver", "VsolDriver", "VsolV1600Driver", "ZteDriver"]
