@@ -359,18 +359,23 @@ export default function NocDashboardView({
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
   // Click-outside dismiss for any open OTDR card. We tag every OTDR card
-  // wrapper with data-otdr-card, then a document-level click handler closes
-  // all expanded OTDR cards when the click target isn't inside one.
+  // wrapper with data-otdr-card; clicking anywhere outside an OTDR card
+  // wipes both the expanded-set AND the otdrs result map so the panels
+  // disappear entirely (not just collapse). Clicks on the OTDR scan
+  // trigger buttons themselves are excluded via data-otdr-trigger so they
+  // don't blow away a fresh result the same instant it lands.
   useEffect(() => {
-    if (expandedOtdr.size === 0) return
+    const hasResults = Object.keys(otdrs).length > 0
+    if (!hasResults && expandedOtdr.size === 0) return
     function handle(e: MouseEvent) {
       const target = e.target as HTMLElement | null
-      if (target && target.closest('[data-otdr-card]')) return
+      if (target && (target.closest('[data-otdr-card]') || target.closest('[data-otdr-trigger]'))) return
       setExpandedOtdr(new Set())
+      setOtdrs({})
     }
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
-  }, [expandedOtdr.size])
+  }, [expandedOtdr.size, otdrs])
 
   // ── Technicians refresh state ──
   const [techLoading, setTechLoading] = useState(false)
@@ -1540,6 +1545,7 @@ function OltTreeView(p: TreeViewProps) {
                                       <button
                                         type="button"
                                         className="btn btn-ghost btn-sm"
+                                        data-otdr-trigger
                                         disabled={p.busy.has(otdrKey)}
                                         onClick={() => p.onOtdrPort(port.id)}
                                         title="Run an OTDR scan from this port"
@@ -1650,6 +1656,7 @@ function OnuRow({ onu, canWrite, busy, reading, otdrRes, otdrOpen, onSample, onO
             <button
               type="button"
               className="btn btn-ghost btn-sm"
+              data-otdr-trigger
               disabled={busy.has(otdrKey)}
               onClick={onOtdr}
               title="Run an OTDR scan to this ONU"
