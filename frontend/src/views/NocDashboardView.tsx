@@ -586,57 +586,57 @@ export default function NocDashboardView({
                   border: '1px solid var(--gx-border)',
                 }}
               >
-                {mappable.length === 0 ? (
+                <MapContainer
+                  center={mapCenter}
+                  zoom={ARMENIA_DEFAULT_ZOOM}
+                  scrollWheelZoom={false}
+                  style={{ height: 420, width: '100%' }}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  {mappable.map((t) => (
+                    <Marker
+                      key={t.technician_user_id}
+                      position={[t.last_lat, t.last_lng]}
+                    >
+                      <Popup>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
+                          <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                            {short(t.technician_user_id, 12)}
+                          </strong>
+                          <span>
+                            Last seen:{' '}
+                            {t.last_recorded_at
+                              ? new Date(t.last_recorded_at).toLocaleString()
+                              : '—'}
+                          </span>
+                          <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                            {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
+                          </span>
+                          <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+                {mappable.length === 0 && (
                   <div
                     className="muted"
                     style={{
                       fontSize: 12,
-                      padding: 'var(--sp-3)',
+                      padding: 'var(--sp-2) var(--sp-3)',
                       background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
+                      borderTop: '1px solid var(--gx-border)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
                     }}
                   >
                     <MapPinIcon size={13} />
-                    <span>No technicians with GPS coordinates in the last 30 minutes.</span>
+                    <span>No technicians with GPS pings in the last 30 minutes — map shows region overview.</span>
                   </div>
-                ) : (
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={ARMENIA_DEFAULT_ZOOM}
-                    scrollWheelZoom={false}
-                    style={{ height: 420, width: '100%' }}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    {mappable.map((t) => (
-                      <Marker
-                        key={t.technician_user_id}
-                        position={[t.last_lat, t.last_lng]}
-                      >
-                        <Popup>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
-                            <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                              {short(t.technician_user_id, 12)}
-                            </strong>
-                            <span>
-                              Last seen:{' '}
-                              {t.last_recorded_at
-                                ? new Date(t.last_recorded_at).toLocaleString()
-                                : '—'}
-                            </span>
-                            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                              {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
-                            </span>
-                            <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))}
-                  </MapContainer>
                 )}
               </div>
             </ErrorBoundary>
