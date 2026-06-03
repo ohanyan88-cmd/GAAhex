@@ -18,7 +18,7 @@
 //   < -28       → critical (red)
 //   -28 … -26   → warning (amber)
 //   >= -26      → normal (green)
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
@@ -39,6 +39,22 @@ import { toast } from '../components/Toast'
 import { can, type Capabilities } from '../lib/capabilities'
 import { timeAgo } from '../lib/time'
 
+// ─── Marker clustering (optional dependency, defensive lazy load) ──────────
+// react-leaflet-cluster wraps leaflet.markercluster for react-leaflet v4.
+// We lazy-load it so this file still type-checks and renders if the package
+// isn't installed yet (it gets wired by the orchestrator after npm install).
+// When unavailable, we fall back to plain unclustered Markers — the NOC map
+// keeps working, technicians just don't bubble-up into cluster counts.
+type ClusterGroupProps = {
+  children?: ReactNode
+  iconCreateFunction?: (cluster: { getChildCount(): number }) => L.DivIcon
+  chunkedLoading?: boolean
+  spiderfyOnMaxZoom?: boolean
+  showCoverageOnHover?: boolean
+  maxClusterRadius?: number
+}
+let MarkerClusterGroup: React.ComponentType<ClusterGroupProps> | null = null
+
 // ─── Leaflet default marker icon fix ────────────────────────────────────────
 // React-Leaflet doesn't pick up the bundler-served marker assets by default.
 // Patch the prototype once at module load so all Markers render their icon.
@@ -52,6 +68,77 @@ L.Icon.Default.mergeOptions({
 // Yerevan center — sensible default for an Armenian ISP NOC view.
 const ARMENIA_DEFAULT_CENTER: [number, number] = [40.1772, 44.5035]
 const ARMENIA_DEFAULT_ZOOM = 11
+
+// ─── GAAhex branded technician marker (divIcon w/ inline SVG) ──────────────
+// We use an L.divIcon so the marker is vector-crisp at every zoom level and
+// brand-consistent (cobalt + gold from the GAAhex mark). A small drop shadow
+// lifts the marker over OSM tiles. Pin sits on its bottom-center anchor.
+const GAAHEX_MARKER_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40" aria-hidden="true">
+  <defs>
+    <linearGradient id="gxMkrCob" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A5187"/>
+      <stop offset="0.55" stop-color="#1C3B68"/>
+      <stop offset="1" stop-color="#142C4E"/>
+    </linearGradient>
+    <linearGradient id="gxMkrGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E2C589"/>
+      <stop offset="0.5" stop-color="#C5A059"/>
+      <stop offset="1" stop-color="#9C7C3C"/>
+    </linearGradient>
+    <filter id="gxMkrShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <g filter="url(#gxMkrShadow)">
+    <path d="M16 1 C8 1 2 7 2 15 C2 23 9 30 16 39 C23 30 30 23 30 15 C30 7 24 1 16 1 Z"
+          fill="url(#gxMkrCob)" stroke="#0E1F38" stroke-width="1"/>
+    <circle cx="16" cy="14" r="6.5" fill="#FFFFFF" opacity="0.92"/>
+    <path d="M12 12 L16 7 L20 12 Z" fill="url(#gxMkrGold)"/>
+    <path d="M12 16 L16 21 L20 16 Z" fill="url(#gxMkrCob)"/>
+  </g>
+</svg>`.trim()
+
+function makeGaahexMarkerIcon(): L.DivIcon {
+  return L.divIcon({
+    html: GAAHEX_MARKER_SVG,
+    className: 'gaahex-marker',
+    iconSize: [32, 40],
+    iconAnchor: [16, 38],
+    popupAnchor: [0, -34],
+  })
+}
+
+// ─── Cluster bubble icon factory (cobalt brand, size-scaled) ───────────────
+// Small  (<5)   → 36px
+// Medium (5–15) → 44px
+// Large  (15+)  → 56px
+// We re-use the GAAhex cobalt token so clusters read as "ours" at a glance.
+function makeClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
+  const count = cluster.getChildCount()
+  let size = 36
+  let tier = 'sm'
+  if (count >= 15) { size = 56; tier = 'lg' }
+  else if (count >= 5) { size = 44; tier = 'md' }
+  const html = `
+    <div class="gaahex-cluster gaahex-cluster--${tier}" style="
+      width:${size}px;height:${size}px;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, #2A5187 0%, #1C3B68 55%, #142C4E 100%);
+      color:#fff;font-weight:600;font-size:${size <= 38 ? 12 : size <= 46 ? 13 : 15}px;
+      border:2px solid rgba(226,197,137,0.85);
+      box-shadow:0 2px 6px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(255,255,255,0.08);
+      font-family: var(--gx-font-sans, system-ui, sans-serif);
+      letter-spacing:0.2px;
+    ">${count}</div>`
+  return L.divIcon({
+    html,
+    className: 'gaahex-cluster-icon',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
+}
 
 // ─── Types matching the NOC.B backend payloads ───────────────────────────────
 
@@ -237,6 +324,12 @@ export default function NocDashboardView({
   // ── Technicians refresh state ──
   const [techLoading, setTechLoading] = useState(false)
 
+  // ── Cluster module lazy-load state ──
+  // We attempt to dynamically import react-leaflet-cluster on mount; if it's
+  // not installed we silently fall back to non-clustered markers. The boolean
+  // here just forces a re-render once the import resolves.
+  const [clusterReady, setClusterReady] = useState<boolean>(MarkerClusterGroup != null)
+
   // Permission gates
   const canViewService = can(capabilities, 'service', 'view')
   const canWrite = canConfigure
@@ -264,6 +357,36 @@ export default function NocDashboardView({
     )
     return [sum.lat / mappable.length, sum.lng / mappable.length]
   }, [mappable])
+
+  // Lazy-load the marker cluster module once. If the package isn't installed
+  // (e.g. in a clean checkout pre-`npm install react-leaflet-cluster`), the
+  // dynamic import rejects and we keep MarkerClusterGroup = null → fallback
+  // to plain Markers. The cluster CSS is bundled with the package.
+  useEffect(() => {
+    if (MarkerClusterGroup != null) return
+    let alive = true
+    void (async () => {
+      try {
+        const mod = await import(/* @vite-ignore */ 'react-leaflet-cluster')
+        if (!alive) return
+        const Comp = (mod as { default?: unknown }).default
+          ?? (mod as { MarkerClusterGroup?: unknown }).MarkerClusterGroup
+          ?? null
+        if (Comp) {
+          MarkerClusterGroup = Comp as React.ComponentType<ClusterGroupProps>
+          setClusterReady(true)
+        }
+      } catch {
+        // Package not installed — gracefully degrade to unclustered markers.
+        if (alive) setClusterReady(false)
+      }
+    })()
+    return () => { alive = false }
+  }, [])
+
+  // Memoize the branded marker icon — it's a pure value, but L.divIcon
+  // allocates DOM-bound state, so we only build it once per mount.
+  const gaahexIcon = useMemo(() => makeGaahexMarkerIcon(), [])
 
   // Load dashboard rollup + OLT list
   useEffect(() => {
@@ -604,30 +727,54 @@ export default function NocDashboardView({
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   />
-                  {mappable.map((t) => (
-                    <Marker
-                      key={t.technician_user_id}
-                      position={[t.last_lat, t.last_lng]}
-                    >
-                      <Popup>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
-                          <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                            {short(t.technician_user_id, 12)}
-                          </strong>
-                          <span>
-                            Last seen:{' '}
-                            {t.last_recorded_at
-                              ? new Date(t.last_recorded_at).toLocaleString()
-                              : '—'}
-                          </span>
-                          <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                            {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
-                          </span>
-                          <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
+                  {(() => {
+                    // Build the marker children once — they're reused either
+                    // wrapped in <MarkerClusterGroup> (clustered) or as bare
+                    // siblings (fallback when the cluster pkg isn't loaded).
+                    const markers = mappable.map((t) => (
+                      <Marker
+                        key={t.technician_user_id}
+                        position={[t.last_lat, t.last_lng]}
+                        icon={gaahexIcon}
+                      >
+                        <Popup>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
+                            <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                              {short(t.technician_user_id, 12)}
+                            </strong>
+                            <span>
+                              Last seen:{' '}
+                              {t.last_recorded_at
+                                ? new Date(t.last_recorded_at).toLocaleString()
+                                : '—'}
+                            </span>
+                            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                              {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
+                            </span>
+                            <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    ))
+                    // clusterReady is referenced so React re-renders the map
+                    // body once the lazy import resolves.
+                    void clusterReady
+                    if (MarkerClusterGroup) {
+                      const Cluster = MarkerClusterGroup
+                      return (
+                        <Cluster
+                          chunkedLoading
+                          maxClusterRadius={60}
+                          spiderfyOnMaxZoom
+                          showCoverageOnHover={false}
+                          iconCreateFunction={makeClusterIcon}
+                        >
+                          {markers}
+                        </Cluster>
+                      )
+                    }
+                    return <>{markers}</>
+                  })()}
                 </MapContainer>
                 {mappable.length === 0 && (
                   <div
