@@ -358,6 +358,20 @@ export default function NocDashboardView({
   const [expandedOtdr, setExpandedOtdr] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState<Set<string>>(new Set())
 
+  // Click-outside dismiss for any open OTDR card. We tag every OTDR card
+  // wrapper with data-otdr-card, then a document-level click handler closes
+  // all expanded OTDR cards when the click target isn't inside one.
+  useEffect(() => {
+    if (expandedOtdr.size === 0) return
+    function handle(e: MouseEvent) {
+      const target = e.target as HTMLElement | null
+      if (target && target.closest('[data-otdr-card]')) return
+      setExpandedOtdr(new Set())
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [expandedOtdr.size])
+
   // ── Technicians refresh state ──
   const [techLoading, setTechLoading] = useState(false)
 
@@ -1664,6 +1678,7 @@ function OtdrCard({ open, onToggle, result }: { open: boolean; onToggle: () => v
   return (
     <div
       className="card"
+      data-otdr-card
       style={{
         padding: 'var(--sp-2)',
         marginTop: 4,
