@@ -341,6 +341,107 @@ async def get_olt_tree(
     }
 
 
+@router.get("/olts/{olt_record_id}/analytics")
+async def olt_analytics(
+    olt_record_id: uuid.UUID,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Aggregated ONU-distribution analytics for the dashboard charts.
+
+    Returns three breakdowns derived from the live ONU rows for this OLT:
+
+    * ``by_port``: ``[{port_no, count}]`` — how many ONUs sit on each PON port
+      (drives the per-PON pie / share-of-total view).
+    * ``by_vendor``: ``[{prefix, count}]`` — ONU serial prefix (first 4 chars,
+      usually the OUI / vendor marker e.g. ``GPON``, ``BDCM``, ``EPON``) sorted
+      most-to-least. Drives the vendor-breakdown chart.
+    * ``totals``: ``{onus, ports_populated, top_vendor_share}`` —
+      a couple of summary numbers we surface above the charts.
+    """
+    rec = (await s.execute(
+        select(Record).where(
+            Record.id == olt_record_id,
+            Record.tenant_id == user.tenant_id,
+            Record.entity_key == "olt",
+        )
+    )).scalar_one_or_none()
+    if rec is None:
+        raise HTTPException(404, "OLT not found")
+
+    # Resolve all port rows under this OLT.
+    chassis_ids = (await s.execute(
+        select(OltChassis.id).where(
+            OltChassis.tenant_id == user.tenant_id,
+            OltChassis.olt_record_id == olt_record_id,
+        )
+    )).scalars().all()
+    if not chassis_ids:
+        return {"by_port": [], "by_vendor": [], "totals": {"onus": 0, "ports_populated": 0, "top_vendor_share": 0}}
+    card_ids = (await s.execute(
+        select(OltCard.id).where(
+            OltCard.tenant_id == user.tenant_id,
+            OltCard.chassis_id.in_(chassis_ids),
+        )
+    )).scalars().all()
+    port_rows = (await s.execute(
+        select(OltPort.id, OltPort.port_no).where(
+            OltPort.tenant_id == user.tenant_id,
+            OltPort.card_id.in_(card_ids),
+        ).order_by(OltPort.port_no)
+    )).all() if card_ids else []
+    port_no_by_id = {pid: pn for pid, pn in port_rows}
+
+    port_ids = list(port_no_by_id.keys())
+    counts_by_port_id: dict[uuid.UUID, int] = {}
+    vendor_buckets: dict[str, int] = {}
+    if port_ids:
+        by_port_rows = (await s.execute(
+            select(Onu.port_id, func.count()).where(
+                Onu.tenant_id == user.tenant_id,
+                Onu.port_id.in_(port_ids),
+                Onu.status != "removed",
+            ).group_by(Onu.port_id)
+        )).all()
+        counts_by_port_id = {pid: int(c) for pid, c in by_port_rows}
+
+        # Serial-prefix bucketing (GPON*, BDCM*, EPON*, …). Cheap aggregation,
+        # no extra columns needed on the onu table.
+        serial_rows = (await s.execute(
+            select(Onu.serial).where(
+                Onu.tenant_id == user.tenant_id,
+                Onu.port_id.in_(port_ids),
+                Onu.status != "removed",
+            )
+        )).scalars().all()
+        for sn in serial_rows:
+            prefix = ((sn or "")[:4].upper()) or "UNKN"
+            vendor_buckets[prefix] = vendor_buckets.get(prefix, 0) + 1
+
+    by_port = [
+        {"port_no": pn, "count": counts_by_port_id.get(pid, 0)}
+        for pid, pn in port_rows
+    ]
+    by_vendor = sorted(
+        [{"prefix": k, "count": v} for k, v in vendor_buckets.items()],
+        key=lambda d: d["count"], reverse=True,
+    )
+
+    total_onus = sum(counts_by_port_id.values())
+    ports_populated = sum(1 for pid, _ in port_rows if counts_by_port_id.get(pid, 0) > 0)
+    top_vendor_share = (by_vendor[0]["count"] / total_onus * 100.0) if (by_vendor and total_onus > 0) else 0
+
+    return {
+        "by_port": by_port,
+        "by_vendor": by_vendor,
+        "totals": {
+            "onus": total_onus,
+            "ports_populated": ports_populated,
+            "top_vendor_share": round(top_vendor_share, 1),
+        },
+    }
+
+
 @router.post("/olts/{olt_record_id}/refresh", status_code=200)
 async def refresh_olt(
     olt_record_id: uuid.UUID,

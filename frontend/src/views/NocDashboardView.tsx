@@ -315,6 +315,14 @@ export default function NocDashboardView({
   const [expandedChassis, setExpandedChassis] = useState<Set<string>>(new Set())
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
   const [expandedPorts, setExpandedPorts] = useState<Set<string>>(new Set())
+  // Analytics aggregations for the dashboard charts. Real, derived from ONU
+  // rows: per-port counts + serial-prefix (OUI) buckets + a couple of summary
+  // totals. Reloaded on OLT select and on every 60-sec auto-refresh tick.
+  const [analytics, setAnalytics] = useState<{
+    by_port: { port_no: number; count: number }[]
+    by_vendor: { prefix: string; count: number }[]
+    totals: { onus: number; ports_populated: number; top_vendor_share: number }
+  } | null>(null)
 
   // ── Action results (sample readings + OTDR events keyed by target id) ──
   const [readings, setReadings] = useState<Record<string, OpticalReading>>({})
@@ -453,6 +461,17 @@ export default function NocDashboardView({
     // Auto-open chassis on first load for visibility
     const firstChassis = res.data.chassis?.[0]?.id
     if (firstChassis) setExpandedChassis(new Set([firstChassis]))
+    // Fetch analytics in parallel with tree (no need to block tree rendering).
+    void loadAnalytics(oltId)
+  }
+
+  async function loadAnalytics(oltId: string) {
+    const res = await bget<{
+      by_port: { port_no: number; count: number }[]
+      by_vendor: { prefix: string; count: number }[]
+      totals: { onus: number; ports_populated: number; top_vendor_share: number }
+    }>(token, `/api/noc/olts/${oltId}/analytics`)
+    if (res.ok && res.data) setAnalytics(res.data)
   }
 
   async function refreshTechs() {
@@ -502,6 +521,7 @@ export default function NocDashboardView({
       const ok = await refreshOltLive(selectedOltId)
       if (!ok) return
       await loadTree(selectedOltId)
+      await loadAnalytics(selectedOltId)
       const res = await bget<DashboardResp>(token, '/api/noc/dashboard')
       if (res.ok && res.data) setHealth(res.data.olt_health ?? null)
     }, 60_000)
@@ -886,35 +906,30 @@ export default function NocDashboardView({
         </Card>
       </div>
 
-      {/* ─── Network Analytics — donut breakdowns + per-PON bar chart ─── */}
+      {/* ─── Network Analytics — only real-data charts (vendor OUI + share-of-PON + per-PON bar) ─── */}
       <div style={{ marginTop: 'var(--sp-4)' }}>
         <Card pad="sm">
           <Stack gap="sm">
             <SectionHeading icon={<ZapIcon size={14} />} title="Network Analytics" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--sp-4)' }}>
-              {/* Port status donut */}
+              {/* ONU vendor OUI donut — derived from serial prefix (GPON/BDCM/EPON…) */}
               <Donut
                 size={160}
                 thickness={16}
-                centerLabel={String((health?.ports_up ?? 0) + (health?.ports_down ?? 0) + (health?.ports_fault ?? 0))}
-                centerCaption="ports"
-                data={[
-                  { label: 'Up', value: health?.ports_up ?? 0, color: 'var(--success, #22c55e)' },
-                  { label: 'Down', value: health?.ports_down ?? 0, color: 'var(--warning, #f59e0b)' },
-                  { label: 'Fault', value: health?.ports_fault ?? 0, color: 'var(--danger, #ef4444)' },
-                ]}
+                centerLabel={String(analytics?.totals.onus ?? 0)}
+                centerCaption={analytics && analytics.by_vendor.length > 0 ? `${analytics.by_vendor[0].prefix} ${analytics.totals.top_vendor_share}%` : 'vendors'}
+                data={(analytics?.by_vendor ?? []).slice(0, 6).map((v) => ({ label: v.prefix, value: v.count }))}
               />
-              {/* ONU status donut */}
+              {/* Per-PON share donut — share of total ONUs by port */}
               <Donut
                 size={160}
                 thickness={16}
-                centerLabel={String((health?.onus_active ?? 0) + (health?.onus_los ?? 0) + (health?.onus_offline ?? 0))}
-                centerCaption="ONUs"
-                data={[
-                  { label: 'Active', value: health?.onus_active ?? 0, color: 'var(--success, #22c55e)' },
-                  { label: 'LOS', value: health?.onus_los ?? 0, color: 'var(--warning, #f59e0b)' },
-                  { label: 'Offline', value: health?.onus_offline ?? 0, color: 'var(--danger, #ef4444)' },
-                ]}
+                centerLabel={String(analytics?.totals.ports_populated ?? 0)}
+                centerCaption="active PONs"
+                data={(analytics?.by_port ?? []).filter((p) => p.count > 0).map((p) => ({
+                  label: `0/${p.port_no}`,
+                  value: p.count,
+                }))}
               />
               {/* Per-PON load — inline horizontal bar chart */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
