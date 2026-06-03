@@ -122,6 +122,19 @@ _ONU_LINE_PROFILE_RE = re.compile(
     r"^\s*onu\s+(\d+)\s+profile\s+line\s+name\s+(\S+)\s*$",
     re.IGNORECASE,
 )
+# Top-level line-profile definition + its T-CONT/service VLAN lines.
+_LINE_PROFILE_RE = re.compile(
+    r"^\s*profile\s+line\s+id\s+(\d+)\s+name\s+(\S+)\s*$",
+    re.IGNORECASE,
+)
+_TCONT_DBA_RE = re.compile(
+    r"^\s*tcont\s+\d+\s+name\s+\S+\s+dba\s+(\S+)\s*$",
+    re.IGNORECASE,
+)
+_SERVICE_VLAN_RE = re.compile(
+    r"^\s*service\s+\S+\s+gemport\s+\d+\s+vlan\s+(\d+)\s*$",
+    re.IGNORECASE,
+)
 _OTHER_INTERFACE_RE = re.compile(r"^interface\s+\S+", re.IGNORECASE)
 _ONU_ADD_RE = re.compile(
     r"^\s*onu\s+add\s+(\d+)\s+profile\s+(\S+)\s+sn\s+(\S+)\s*$",
@@ -192,6 +205,18 @@ def parse_running_config(text: str) -> dict[str, Any]:
     # Per-line-profile ONU counts: how many ONUs each line profile is bound to,
     # weighted across PON ports. Reflects the actual subscription tier mix.
     line_profile_counts: dict[str, int] = {}
+    # Line-profile definitions captured at top level: name → {dba, vlan, id}.
+    # We then enrich on the rendering side ("line_2009 backed by dba_1, on
+    # VLAN 2009").
+    line_profile_defs: dict[str, dict[str, Any]] = {}
+    current_line_profile_name: str | None = None
+    # Per-ONU details: serial → {line_profile, port}. Lets the UI drill from
+    # a profile chip into the actual ONUs on that tier.
+    onu_details: dict[str, dict[str, Any]] = {}
+    # Last-seen onu_id within each gpon block, so per-onu lines (`onu N
+    # profile line name X`) can attach themselves to a serial we already
+    # parsed from the matching `onu add N profile … sn S` line.
+    onu_id_to_serial_in_port: dict[int, dict[int, str]] = {}
 
     for line in text.splitlines():
         m = _INTERFACE_GPON_RE.match(line)
@@ -255,6 +280,29 @@ def parse_running_config(text: str) -> dict[str, Any]:
                 if line.strip() == "exit":
                     current_dba_id = None
                     continue
+            # Top-level line-profile block.
+            lp_def_m = _LINE_PROFILE_RE.match(line)
+            if lp_def_m:
+                current_line_profile_name = lp_def_m.group(2)
+                line_profile_defs[current_line_profile_name] = {
+                    "id": int(lp_def_m.group(1)),
+                    "name": current_line_profile_name,
+                    "dba": None,
+                    "vlan": None,
+                }
+                continue
+            if current_line_profile_name is not None:
+                tcont_m = _TCONT_DBA_RE.match(line)
+                if tcont_m:
+                    line_profile_defs[current_line_profile_name]["dba"] = tcont_m.group(1)
+                    continue
+                svc_m = _SERVICE_VLAN_RE.match(line)
+                if svc_m:
+                    line_profile_defs[current_line_profile_name]["vlan"] = int(svc_m.group(1))
+                    continue
+                if line.strip() == "exit":
+                    current_line_profile_name = None
+                    continue
             continue
         if _SHUTDOWN_RE.match(line) and not _NO_SHUTDOWN_RE.match(line):
             current_port["status"] = "admin_down"
@@ -270,14 +318,30 @@ def parse_running_config(text: str) -> dict[str, Any]:
                 "profile": profile,
                 "status": "active",
             })
+            assert current_port_no is not None
+            onu_id_to_serial_in_port.setdefault(current_port_no, {})[onu_id] = serial
+            onu_details[serial] = {
+                "serial": serial,
+                "port_no": current_port_no,
+                "onu_id": onu_id,
+                "line_profile": None,
+            }
             continue
         # Per-ONU line-profile assignment lines live inside the same gpon block,
         # one per line after the matching `onu add`. Count them by profile name
-        # so we know subscription-tier distribution.
+        # so we know subscription-tier distribution, and back-fill the per-ONU
+        # detail map so the dashboard can drill from a tier into its serials.
         lp_m = _ONU_LINE_PROFILE_RE.match(line)
         if lp_m:
             prof_name = lp_m.group(2)
             line_profile_counts[prof_name] = line_profile_counts.get(prof_name, 0) + 1
+            onu_id_int = int(lp_m.group(1))
+            assert current_port_no is not None
+            sn = onu_id_to_serial_in_port.get(current_port_no, {}).get(onu_id_int)
+            if sn:
+                onu_details.setdefault(sn, {
+                    "serial": sn, "port_no": current_port_no, "onu_id": onu_id_int, "line_profile": None,
+                })["line_profile"] = prof_name
 
     return {
         "hostname": hostname_m.group(1) if hostname_m else None,
@@ -291,6 +355,10 @@ def parse_running_config(text: str) -> dict[str, Any]:
             {"name": name, "count": count}
             for name, count in sorted(line_profile_counts.items(), key=lambda kv: kv[1], reverse=True)
         ],
+        "line_profile_defs": [
+            line_profile_defs[k] for k in sorted(line_profile_defs.keys())
+        ],
+        "onu_details": list(onu_details.values()),
     }
 
 

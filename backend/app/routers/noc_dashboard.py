@@ -447,6 +447,8 @@ async def olt_analytics(
         "vlans": snapshot.get("vlans") or [],
         "dba_profiles": snapshot.get("dba_profiles") or [],
         "line_profile_counts": snapshot.get("line_profile_counts") or [],
+        "line_profile_defs": snapshot.get("line_profile_defs") or [],
+        "onu_details": snapshot.get("onu_details") or [],
     }
 
 

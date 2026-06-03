@@ -326,7 +326,19 @@ export default function NocDashboardView({
     vlans?: number[]
     dba_profiles?: { id: number; name: string; type: number | null; assured_kbps: number | null; maximum_kbps: number | null }[]
     line_profile_counts?: { name: string; count: number }[]
+    line_profile_defs?: { id: number; name: string; dba: string | null; vlan: number | null }[]
+    onu_details?: { serial: string; port_no: number; onu_id: number; line_profile: string | null }[]
   } | null>(null)
+  // Drill-down selection. Any clickable chip/row/serial sets this; the
+  // bottom detail panel renders context-aware content for the selection.
+  const [drilldown, setDrilldown] = useState<
+    | { kind: 'vlan'; key: number }
+    | { kind: 'dba'; key: string }
+    | { kind: 'line_profile'; key: string }
+    | { kind: 'vendor'; key: string }
+    | { kind: 'onu'; key: string }
+    | null
+  >(null)
 
   // Lazy-loaded ONU lists per port_id. Tree response only includes onu_count;
   // the actual list of ONUs gets fetched on first expand of a port.
@@ -730,6 +742,7 @@ export default function NocDashboardView({
                     readings={readings}
                     otdrs={otdrs}
                     onusByPort={onusByPort}
+                    onOpenOnuDetail={(serial) => setDrilldown({ kind: 'onu', key: serial })}
                     expandedChassis={expandedChassis}
                     expandedCards={expandedCards}
                     expandedPorts={expandedPorts}
@@ -932,14 +945,29 @@ export default function NocDashboardView({
           <Stack gap="sm">
             <SectionHeading icon={<ZapIcon size={14} />} title="Network Analytics" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--sp-4)', alignItems: 'start' }}>
-              {/* ONU vendor OUI donut — derived from serial prefix (GPON/BDCM/EPON…) */}
-              <Donut
-                size={160}
-                thickness={16}
-                centerLabel={String(analytics?.totals.onus ?? 0)}
-                centerCaption={analytics && analytics.by_vendor.length > 0 ? `${analytics.by_vendor[0].prefix} ${analytics.totals.top_vendor_share}%` : 'vendors'}
-                data={(analytics?.by_vendor ?? []).slice(0, 6).map((v) => ({ label: v.prefix, value: v.count }))}
-              />
+              {/* ONU vendor OUI donut + clickable chip strip */}
+              <Stack gap="xs">
+                <Donut
+                  size={160}
+                  thickness={16}
+                  centerLabel={String(analytics?.totals.onus ?? 0)}
+                  centerCaption={analytics && analytics.by_vendor.length > 0 ? `${analytics.by_vendor[0].prefix} ${analytics.totals.top_vendor_share}%` : 'vendors'}
+                  data={(analytics?.by_vendor ?? []).slice(0, 6).map((v) => ({ label: v.prefix, value: v.count }))}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {(analytics?.by_vendor ?? []).slice(0, 6).map((v) => {
+                    const isActive = drilldown?.kind === 'vendor' && drilldown.key === v.prefix
+                    return (
+                      <button key={v.prefix} type="button" onClick={() => setDrilldown(isActive ? null : { kind: 'vendor', key: v.prefix })}
+                        style={{ padding: '2px 6px', borderRadius: 999, fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', cursor: 'pointer',
+                          border: isActive ? '1px solid var(--primary)' : '1px solid var(--gx-border)',
+                          background: isActive ? 'var(--primary-soft, rgba(59,130,246,0.18))' : 'var(--gx-surface-2)', color: 'inherit' }}>
+                        {v.prefix} · {v.count}
+                      </button>
+                    )
+                  })}
+                </div>
+              </Stack>
               {/* Per-PON share donut — share of total ONUs by port */}
               <Donut
                 size={160}
@@ -980,7 +1008,7 @@ export default function NocDashboardView({
         </Card>
       </div>
 
-      {/* ─── Subscription Tier Distribution — line_profile counts (real) ─── */}
+      {/* ─── Subscription Tier Distribution — line_profile counts (real, clickable) ─── */}
       {analytics?.line_profile_counts && analytics.line_profile_counts.length > 0 && (
         <div style={{ marginTop: 'var(--sp-4)' }} className="gx-dash">
           <Card pad="sm">
@@ -1001,15 +1029,27 @@ export default function NocDashboardView({
                     return analytics.line_profile_counts!.map((lp) => {
                       const pct = total > 0 ? Math.round((lp.count / total) * 100) : 0
                       const barPct = (lp.count / max) * 100
+                      const isActive = drilldown?.kind === 'line_profile' && drilldown.key === lp.name
                       return (
-                        <div key={lp.name} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 12 }}>
+                        <button
+                          key={lp.name}
+                          type="button"
+                          onClick={() => setDrilldown(isActive ? null : { kind: 'line_profile', key: lp.name })}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 12,
+                            padding: '4px 6px', borderRadius: 6, cursor: 'pointer',
+                            background: isActive ? 'var(--gx-surface-2, rgba(255,255,255,0.06))' : 'transparent',
+                            border: isActive ? '1px solid var(--primary, #3b82f6)' : '1px solid transparent',
+                            textAlign: 'left', width: '100%', color: 'inherit',
+                          }}
+                        >
                           <div style={{ width: 96, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>{lp.name}</div>
                           <div style={{ flex: 1, height: 10, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', borderRadius: 5, overflow: 'hidden' }}>
                             <div style={{ width: `${barPct}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary, #3b82f6), var(--accent, #c5a059))' }} />
                           </div>
                           <div style={{ width: 56, textAlign: 'right', fontFamily: 'var(--gx-font-mono, monospace)' }}>{lp.count}</div>
                           <div style={{ width: 36, textAlign: 'right', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>{pct}%</div>
-                        </div>
+                        </button>
                       )
                     })
                   })()}
@@ -1031,19 +1071,28 @@ export default function NocDashboardView({
                 <div className="muted" style={{ fontSize: 12 }}>No VLANs in snapshot</div>
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {analytics!.vlans!.map((v) => (
-                    <span key={v} style={{
-                      padding: '4px 9px',
-                      borderRadius: 999,
-                      background: 'var(--gx-surface-2, rgba(255,255,255,0.04))',
-                      border: '1px solid var(--gx-border, rgba(255,255,255,0.08))',
-                      fontFamily: 'var(--gx-font-mono, monospace)',
-                      fontSize: 12,
-                      color: v >= 2009 && v <= 2016 ? 'var(--success, #22c55e)' : v === 10 || v === 501 ? 'var(--accent, #c5a059)' : 'var(--gx-text-2)',
-                    }}>
-                      {v}
-                    </span>
-                  ))}
+                  {analytics!.vlans!.map((v) => {
+                    const isActive = drilldown?.kind === 'vlan' && drilldown.key === v
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setDrilldown(isActive ? null : { kind: 'vlan', key: v })}
+                        style={{
+                          padding: '4px 9px',
+                          borderRadius: 999,
+                          background: isActive ? 'var(--primary-soft, rgba(59,130,246,0.18))' : 'var(--gx-surface-2, rgba(255,255,255,0.04))',
+                          border: isActive ? '1px solid var(--primary, #3b82f6)' : '1px solid var(--gx-border, rgba(255,255,255,0.08))',
+                          fontFamily: 'var(--gx-font-mono, monospace)',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          color: v >= 2009 && v <= 2016 ? 'var(--success, #22c55e)' : v === 10 || v === 501 ? 'var(--accent, #c5a059)' : 'var(--gx-text-2)',
+                        }}
+                      >
+                        {v}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </Stack>
@@ -1060,18 +1109,28 @@ export default function NocDashboardView({
                   {analytics!.dba_profiles!.map((p) => {
                     const fmt = (kbps: number | null) => kbps == null ? '—' : kbps >= 1000 ? `${(kbps / 1000).toFixed(kbps % 1000 === 0 ? 0 : 1)} Mbps` : `${kbps} kbps`
                     const typeLabel: Record<number, string> = { 1: 'fixed', 2: 'assured', 3: 'assured+max', 4: 'max-only', 5: 'best-effort' }
+                    const isActive = drilldown?.kind === 'dba' && drilldown.key === p.name
                     return (
-                      <div key={p.id} style={{
-                        padding: 'var(--sp-2) var(--sp-3)',
-                        borderRadius: 8,
-                        background: 'var(--gx-surface-2, rgba(255,255,255,0.04))',
-                        border: '1px solid var(--gx-border, rgba(255,255,255,0.08))',
-                        display: 'grid',
-                        gridTemplateColumns: 'auto 1fr auto auto',
-                        gap: 'var(--sp-2)',
-                        alignItems: 'center',
-                        fontSize: 12,
-                      }}>
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setDrilldown(isActive ? null : { kind: 'dba', key: p.name })}
+                        style={{
+                          padding: 'var(--sp-2) var(--sp-3)',
+                          borderRadius: 8,
+                          background: isActive ? 'var(--primary-soft, rgba(59,130,246,0.18))' : 'var(--gx-surface-2, rgba(255,255,255,0.04))',
+                          border: isActive ? '1px solid var(--primary, #3b82f6)' : '1px solid var(--gx-border, rgba(255,255,255,0.08))',
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1fr auto auto',
+                          gap: 'var(--sp-2)',
+                          alignItems: 'center',
+                          fontSize: 12,
+                          width: '100%',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          color: 'inherit',
+                        }}
+                      >
                         <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>#{p.id}</span>
                         <span style={{ fontWeight: 500 }}>{p.name}</span>
                         <span className="muted" style={{ fontSize: 11 }}>
@@ -1080,7 +1139,7 @@ export default function NocDashboardView({
                         <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
                           {p.assured_kbps ? `${fmt(p.assured_kbps)} → ` : ''}{fmt(p.maximum_kbps)}
                         </span>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -1089,6 +1148,170 @@ export default function NocDashboardView({
           </Card>
         </div>
       ) : null}
+
+      {/* ─── Drill-down detail panel — opens on chip/row/serial click ─── */}
+      {drilldown && analytics && (
+        <div style={{ marginTop: 'var(--sp-4)' }}>
+          <Card pad="sm" tone="emphasis">
+            <Stack gap="sm">
+              <Inline gap="sm" align="center" justify="between">
+                <SectionHeading
+                  icon={<ZapIcon size={14} />}
+                  title={
+                    drilldown.kind === 'vlan' ? `VLAN ${drilldown.key} — Detail`
+                    : drilldown.kind === 'dba' ? `DBA Profile · ${drilldown.key}`
+                    : drilldown.kind === 'line_profile' ? `Subscription Tier · ${drilldown.key}`
+                    : drilldown.kind === 'vendor' ? `Vendor OUI · ${drilldown.key}`
+                    : `ONU · ${drilldown.key}`
+                  }
+                />
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDrilldown(null)}>Close</button>
+              </Inline>
+              {(() => {
+                const details = analytics.onu_details ?? []
+                const defs = analytics.line_profile_defs ?? []
+                if (drilldown.kind === 'vlan') {
+                  const vlanId = drilldown.key
+                  const profilesUsing = defs.filter(d => d.vlan === vlanId)
+                  const profNames = new Set(profilesUsing.map(d => d.name))
+                  const onusOnVlan = details.filter(d => d.line_profile && profNames.has(d.line_profile))
+                  return (
+                    <Stack gap="xs">
+                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
+                        <b>{onusOnVlan.length}</b> ONUs riding this VLAN via <b>{profilesUsing.length}</b> line profile{profilesUsing.length === 1 ? '' : 's'}:{' '}
+                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{profilesUsing.map(p => p.name).join(', ') || 'none'}</span>
+                      </div>
+                      <details>
+                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--primary, #3b82f6)' }}>Show {onusOnVlan.length} ONU serials</summary>
+                        <div style={{ marginTop: 8, maxHeight: 260, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 4, fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11 }}>
+                          {onusOnVlan.slice(0, 300).map(o => (
+                            <button key={o.serial} type="button" onClick={() => setDrilldown({ kind: 'onu', key: o.serial })}
+                              style={{ padding: '3px 6px', borderRadius: 4, background: 'transparent', border: '1px solid var(--gx-border)', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
+                              {o.serial}
+                            </button>
+                          ))}
+                        </div>
+                        {onusOnVlan.length > 300 && <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>(showing first 300)</div>}
+                      </details>
+                    </Stack>
+                  )
+                }
+                if (drilldown.kind === 'dba') {
+                  const dbaName = drilldown.key
+                  const profilesUsing = defs.filter(d => d.dba === dbaName)
+                  const profNames = new Set(profilesUsing.map(d => d.name))
+                  const onusOnDba = details.filter(d => d.line_profile && profNames.has(d.line_profile))
+                  return (
+                    <Stack gap="xs">
+                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
+                        Backing <b>{profilesUsing.length}</b> line profile{profilesUsing.length === 1 ? '' : 's'}, serving <b>{onusOnDba.length}</b> ONUs:
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {profilesUsing.map(p => (
+                          <button key={p.name} type="button" onClick={() => setDrilldown({ kind: 'line_profile', key: p.name })}
+                            style={{ padding: '3px 8px', borderRadius: 999, border: '1px solid var(--gx-border)', background: 'var(--gx-surface-2)', fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11, cursor: 'pointer', color: 'inherit' }}>
+                            {p.name} · VLAN {p.vlan ?? '?'}
+                          </button>
+                        ))}
+                      </div>
+                    </Stack>
+                  )
+                }
+                if (drilldown.kind === 'line_profile') {
+                  const lpName = drilldown.key
+                  const def = defs.find(d => d.name === lpName)
+                  const onusOnTier = details.filter(d => d.line_profile === lpName)
+                  return (
+                    <Stack gap="xs">
+                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
+                        <b>{onusOnTier.length}</b> ONUs on tier{' '}
+                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{lpName}</span>
+                        {def?.vlan != null && (<> · VLAN <b>{def.vlan}</b></>)}
+                        {def?.dba && (<> · backed by <b>{def.dba}</b></>)}
+                      </div>
+                      <details open>
+                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--primary, #3b82f6)' }}>Show ONU serials</summary>
+                        <div style={{ marginTop: 8, maxHeight: 260, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 4, fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11 }}>
+                          {onusOnTier.slice(0, 300).map(o => (
+                            <button key={o.serial} type="button" onClick={() => setDrilldown({ kind: 'onu', key: o.serial })}
+                              style={{ padding: '3px 6px', borderRadius: 4, background: 'transparent', border: '1px solid var(--gx-border)', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
+                              <span style={{ color: 'var(--gx-text-3)' }}>0/{o.port_no}·{o.onu_id}</span>{' '}{o.serial}
+                            </button>
+                          ))}
+                        </div>
+                        {onusOnTier.length > 300 && <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>(showing first 300)</div>}
+                      </details>
+                    </Stack>
+                  )
+                }
+                if (drilldown.kind === 'vendor') {
+                  const prefix = drilldown.key
+                  const matching = details.filter(d => (d.serial || '').toUpperCase().startsWith(prefix))
+                  return (
+                    <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
+                      <b>{matching.length}</b> ONUs with serial prefix{' '}
+                      <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{prefix}</span>
+                      <div style={{ marginTop: 8, maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 4, fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11 }}>
+                        {matching.slice(0, 200).map(o => (
+                          <button key={o.serial} type="button" onClick={() => setDrilldown({ kind: 'onu', key: o.serial })}
+                            style={{ padding: '3px 6px', borderRadius: 4, background: 'transparent', border: '1px solid var(--gx-border)', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
+                            {o.serial}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                }
+                if (drilldown.kind === 'onu') {
+                  const sn = drilldown.key
+                  const onu = details.find(d => d.serial === sn)
+                  if (!onu) return <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>ONU {sn} not found in current snapshot.</div>
+                  const def = defs.find(d => d.name === onu.line_profile)
+                  return (
+                    <Stack gap="sm">
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--sp-3)' }}>
+                        {[
+                          { label: 'Serial', value: onu.serial },
+                          { label: 'PON Port', value: `0/${onu.port_no}` },
+                          { label: 'ONU ID', value: `#${onu.onu_id}` },
+                          { label: 'Line Profile', value: onu.line_profile ?? '—' },
+                          { label: 'VLAN', value: def?.vlan != null ? String(def.vlan) : '—' },
+                          { label: 'DBA', value: def?.dba ?? '—' },
+                          { label: 'Status', value: 'active' },
+                          { label: 'Optical', value: 'awaiting reading' },
+                        ].map(c => (
+                          <div key={c.label} style={{ padding: 'var(--sp-2)', borderRadius: 6, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', border: '1px solid var(--gx-border)' }}>
+                            <div style={{ fontSize: 10, color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.label}</div>
+                            <div style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 13, marginTop: 2 }}>{c.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <Inline gap="sm" align="center">
+                        <button type="button" className="btn btn-secondary btn-sm" disabled
+                          title="Per-ONU optical-info command syntax for V1600 not verified yet">
+                          Pull optical reading
+                        </button>
+                        <button type="button" className="btn btn-secondary btn-sm" disabled
+                          title="V1600 ONU reboot command not implemented yet">
+                          Reboot ONU
+                        </button>
+                        <button type="button" className="btn btn-secondary btn-sm" disabled
+                          title="ONU delete via CLI not wired yet">
+                          De-provision
+                        </button>
+                        <span className="muted" style={{ fontSize: 11 }}>
+                          Hardware actions land once V1600 per-ONU CLI commands are confirmed on the device.
+                        </span>
+                      </Inline>
+                    </Stack>
+                  )
+                }
+                return null
+              })()}
+            </Stack>
+          </Card>
+        </div>
+      )}
 
       {/* ─── Optical Signal Health — real ONU bucket counts + legend ─── */}
       <div style={{ marginTop: 'var(--sp-4)' }}>
@@ -1186,6 +1409,7 @@ type TreeViewProps = {
   readings: Record<string, OpticalReading>
   otdrs: Record<string, OtdrResult>
   onusByPort?: Record<string, Onu[]>
+  onOpenOnuDetail?: (serial: string) => void
   expandedChassis: Set<string>
   expandedCards: Set<string>
   expandedPorts: Set<string>
@@ -1340,6 +1564,7 @@ function OltTreeView(p: TreeViewProps) {
                                         onSample={() => p.onSampleOnu(onu.id)}
                                         onOtdr={() => p.onOtdrOnu(onu.id)}
                                         onToggleOtdr={() => p.onToggleOtdr(`onu:${onu.id}`)}
+                                        onOpenDetail={p.onOpenOnuDetail}
                                       />
                                     ))}
                                   </div>
@@ -1361,7 +1586,7 @@ function OltTreeView(p: TreeViewProps) {
   )
 }
 
-function OnuRow({ onu, canWrite, busy, reading, otdrRes, otdrOpen, onSample, onOtdr, onToggleOtdr }: {
+function OnuRow({ onu, canWrite, busy, reading, otdrRes, otdrOpen, onSample, onOtdr, onToggleOtdr, onOpenDetail }: {
   onu: Onu
   canWrite: boolean
   busy: Set<string>
@@ -1371,6 +1596,7 @@ function OnuRow({ onu, canWrite, busy, reading, otdrRes, otdrOpen, onSample, onO
   onSample: () => void
   onOtdr: () => void
   onToggleOtdr: () => void
+  onOpenDetail?: (serial: string) => void
 }) {
   const sampleKey = `sample:onu:${onu.id}`
   const otdrKey = `otdr:onu:${onu.id}`
@@ -1378,7 +1604,18 @@ function OnuRow({ onu, canWrite, busy, reading, otdrRes, otdrOpen, onSample, onO
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px' }}>
         <span style={{ width: 12 }} />
-        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12 }}>{short(onu.serial, 12)}</span>
+        <button
+          type="button"
+          onClick={() => onu.serial && onOpenDetail?.(onu.serial)}
+          title="Open ONU detail panel"
+          style={{
+            fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12,
+            background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+            color: 'var(--primary, #3b82f6)', textDecoration: 'underline dotted',
+          }}
+        >
+          {short(onu.serial, 12)}
+        </button>
         <span className="muted" style={{ fontSize: 11, fontFamily: 'var(--gx-font-mono, monospace)' }}>cust {short(onu.customer_id, 6)}</span>
         <StatusPill variant={statusPillVariant(onu.status)} label={onu.status ?? 'unknown'} size="sm" />
         {onu.distance_m != null && (

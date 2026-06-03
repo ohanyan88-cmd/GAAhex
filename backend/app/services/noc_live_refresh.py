@@ -123,6 +123,8 @@ async def _reconcile_topology(
         "vlans": topology.get("vlans") or [],
         "dba_profiles": topology.get("dba_profiles") or [],
         "line_profile_counts": topology.get("line_profile_counts") or [],
+        "line_profile_defs": topology.get("line_profile_defs") or [],
+        "onu_details": topology.get("onu_details") or [],
     }
     _flag(olt_record, "data")
 
