@@ -323,6 +323,9 @@ export default function NocDashboardView({
     by_port: { port_no: number; count: number }[]
     by_vendor: { prefix: string; count: number }[]
     totals: { onus: number; ports_populated: number; top_vendor_share: number }
+    vlans?: number[]
+    dba_profiles?: { id: number; name: string; type: number | null; assured_kbps: number | null; maximum_kbps: number | null }[]
+    line_profile_counts?: { name: string; count: number }[]
   } | null>(null)
 
   // Lazy-loaded ONU lists per port_id. Tree response only includes onu_count;
@@ -483,6 +486,9 @@ export default function NocDashboardView({
       by_port: { port_no: number; count: number }[]
       by_vendor: { prefix: string; count: number }[]
       totals: { onus: number; ports_populated: number; top_vendor_share: number }
+      vlans?: number[]
+      dba_profiles?: { id: number; name: string; type: number | null; assured_kbps: number | null; maximum_kbps: number | null }[]
+      line_profile_counts?: { name: string; count: number }[]
     }>(token, `/api/noc/olts/${oltId}/analytics`)
     if (res.ok && res.data) setAnalytics(res.data)
   }
@@ -973,6 +979,116 @@ export default function NocDashboardView({
           </Stack>
         </Card>
       </div>
+
+      {/* ─── Subscription Tier Distribution — line_profile counts (real) ─── */}
+      {analytics?.line_profile_counts && analytics.line_profile_counts.length > 0 && (
+        <div style={{ marginTop: 'var(--sp-4)' }} className="gx-dash">
+          <Card pad="sm">
+            <Stack gap="sm">
+              <SectionHeading icon={<ZapIcon size={14} />} title="Subscription Tier Distribution" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 220px) 1fr', gap: 'var(--sp-4)', alignItems: 'start' }}>
+                <Donut
+                  size={180}
+                  thickness={18}
+                  centerLabel={String(analytics.line_profile_counts.reduce((s, x) => s + x.count, 0))}
+                  centerCaption="ONUs"
+                  data={analytics.line_profile_counts.slice(0, 8).map((lp) => ({ label: lp.name, value: lp.count }))}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                  {(() => {
+                    const total = analytics.line_profile_counts!.reduce((s, x) => s + x.count, 0)
+                    const max = Math.max(1, ...analytics.line_profile_counts!.map(x => x.count))
+                    return analytics.line_profile_counts!.map((lp) => {
+                      const pct = total > 0 ? Math.round((lp.count / total) * 100) : 0
+                      const barPct = (lp.count / max) * 100
+                      return (
+                        <div key={lp.name} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 12 }}>
+                          <div style={{ width: 96, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>{lp.name}</div>
+                          <div style={{ flex: 1, height: 10, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', borderRadius: 5, overflow: 'hidden' }}>
+                            <div style={{ width: `${barPct}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary, #3b82f6), var(--accent, #c5a059))' }} />
+                          </div>
+                          <div style={{ width: 56, textAlign: 'right', fontFamily: 'var(--gx-font-mono, monospace)' }}>{lp.count}</div>
+                          <div style={{ width: 36, textAlign: 'right', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>{pct}%</div>
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              </div>
+            </Stack>
+          </Card>
+        </div>
+      )}
+
+      {/* ─── VLAN Inventory + DBA Bandwidth Pool ─── */}
+      {(analytics?.vlans?.length || analytics?.dba_profiles?.length) ? (
+        <div style={{ marginTop: 'var(--sp-4)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--sp-4)' }}>
+          {/* VLANs */}
+          <Card pad="sm">
+            <Stack gap="sm">
+              <SectionHeading icon={<ZapIcon size={14} />} title={`VLAN Inventory · ${analytics?.vlans?.length ?? 0}`} />
+              {(analytics?.vlans?.length ?? 0) === 0 ? (
+                <div className="muted" style={{ fontSize: 12 }}>No VLANs in snapshot</div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {analytics!.vlans!.map((v) => (
+                    <span key={v} style={{
+                      padding: '4px 9px',
+                      borderRadius: 999,
+                      background: 'var(--gx-surface-2, rgba(255,255,255,0.04))',
+                      border: '1px solid var(--gx-border, rgba(255,255,255,0.08))',
+                      fontFamily: 'var(--gx-font-mono, monospace)',
+                      fontSize: 12,
+                      color: v >= 2009 && v <= 2016 ? 'var(--success, #22c55e)' : v === 10 || v === 501 ? 'var(--accent, #c5a059)' : 'var(--gx-text-2)',
+                    }}>
+                      {v}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Stack>
+          </Card>
+
+          {/* DBA bandwidth profiles */}
+          <Card pad="sm">
+            <Stack gap="sm">
+              <SectionHeading icon={<ZapIcon size={14} />} title={`DBA Bandwidth Pool · ${analytics?.dba_profiles?.length ?? 0}`} />
+              {(analytics?.dba_profiles?.length ?? 0) === 0 ? (
+                <div className="muted" style={{ fontSize: 12 }}>No DBA profiles in snapshot</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                  {analytics!.dba_profiles!.map((p) => {
+                    const fmt = (kbps: number | null) => kbps == null ? '—' : kbps >= 1000 ? `${(kbps / 1000).toFixed(kbps % 1000 === 0 ? 0 : 1)} Mbps` : `${kbps} kbps`
+                    const typeLabel: Record<number, string> = { 1: 'fixed', 2: 'assured', 3: 'assured+max', 4: 'max-only', 5: 'best-effort' }
+                    return (
+                      <div key={p.id} style={{
+                        padding: 'var(--sp-2) var(--sp-3)',
+                        borderRadius: 8,
+                        background: 'var(--gx-surface-2, rgba(255,255,255,0.04))',
+                        border: '1px solid var(--gx-border, rgba(255,255,255,0.08))',
+                        display: 'grid',
+                        gridTemplateColumns: 'auto 1fr auto auto',
+                        gap: 'var(--sp-2)',
+                        alignItems: 'center',
+                        fontSize: 12,
+                      }}>
+                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>#{p.id}</span>
+                        <span style={{ fontWeight: 500 }}>{p.name}</span>
+                        <span className="muted" style={{ fontSize: 11 }}>
+                          type {p.type ?? '?'}{p.type != null && typeLabel[p.type] ? ` · ${typeLabel[p.type]}` : ''}
+                        </span>
+                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                          {p.assured_kbps ? `${fmt(p.assured_kbps)} → ` : ''}{fmt(p.maximum_kbps)}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </Stack>
+          </Card>
+        </div>
+      ) : null}
 
       {/* ─── Optical Signal Health — real ONU bucket counts + legend ─── */}
       <div style={{ marginTop: 'var(--sp-4)' }}>

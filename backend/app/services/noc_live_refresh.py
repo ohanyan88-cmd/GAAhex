@@ -110,6 +110,22 @@ async def _reconcile_topology(
     sw_version = topology.get("sw_version")
     pulled_ports = list(topology.get("ports") or [])
 
+    # Stash the lightweight aggregations on the OLT Record so the analytics
+    # endpoint can serve them without re-SSHing. These come from the same
+    # running-config pull — VLAN inventory, DBA profile catalogue, and
+    # per-line-profile ONU counts (subscription-tier distribution).
+    from sqlalchemy.orm.attributes import flag_modified as _flag
+    olt_record.data = dict(olt_record.data or {})
+    olt_record.data["snapshot"] = {
+        "hostname": hostname,
+        "model": model,
+        "sw_version": sw_version,
+        "vlans": topology.get("vlans") or [],
+        "dba_profiles": topology.get("dba_profiles") or [],
+        "line_profile_counts": topology.get("line_profile_counts") or [],
+    }
+    _flag(olt_record, "data")
+
     # ----- chassis (single, slot 1) -----
     chassis = (await session.execute(
         select(OltChassis).where(

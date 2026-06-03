@@ -431,6 +431,11 @@ async def olt_analytics(
     ports_populated = sum(1 for pid, _ in port_rows if counts_by_port_id.get(pid, 0) > 0)
     top_vendor_share = (by_vendor[0]["count"] / total_onus * 100.0) if (by_vendor and total_onus > 0) else 0
 
+    # Pull-through the running-config snapshot the live-refresh service stashes
+    # on the OLT Record (VLANs, DBA profiles, line-profile counts). Empty when
+    # no refresh has run yet.
+    snapshot = (rec.data or {}).get("snapshot") or {}
+
     return {
         "by_port": by_port,
         "by_vendor": by_vendor,
@@ -439,6 +444,9 @@ async def olt_analytics(
             "ports_populated": ports_populated,
             "top_vendor_share": round(top_vendor_share, 1),
         },
+        "vlans": snapshot.get("vlans") or [],
+        "dba_profiles": snapshot.get("dba_profiles") or [],
+        "line_profile_counts": snapshot.get("line_profile_counts") or [],
     }
 
 

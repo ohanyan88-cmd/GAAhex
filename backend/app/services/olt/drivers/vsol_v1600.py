@@ -105,6 +105,23 @@ _HARDWARE_VERSION_RE = re.compile(
 _INTERFACE_GPON_RE = re.compile(
     r"^interface\s+gpon\s+0/(\d+)\s*$", re.MULTILINE | re.IGNORECASE,
 )
+# VLAN definition lines: `vlan 10` or `vlan 2009 - 2016` (range form).
+_VLAN_SINGLE_RE = re.compile(r"^\s*vlan\s+(\d+)\s*$", re.IGNORECASE)
+_VLAN_RANGE_RE = re.compile(r"^\s*vlan\s+(\d+)\s*-\s*(\d+)\s*$", re.IGNORECASE)
+# DBA profiles: `profile dba id <id> name <name>` then `type N maximum N` or `type N assured N maximum N`.
+_DBA_PROFILE_RE = re.compile(
+    r"^\s*profile\s+dba\s+id\s+(\d+)\s+name\s+(\S+)\s*$",
+    re.IGNORECASE,
+)
+_DBA_BANDWIDTH_RE = re.compile(
+    r"^\s*type\s+(\d+)(?:\s+assured\s+(\d+))?\s+maximum\s+(\d+)\s*$",
+    re.IGNORECASE,
+)
+# ONU line-profile assignment lines: `onu N profile line name <profile>`.
+_ONU_LINE_PROFILE_RE = re.compile(
+    r"^\s*onu\s+(\d+)\s+profile\s+line\s+name\s+(\S+)\s*$",
+    re.IGNORECASE,
+)
 _OTHER_INTERFACE_RE = re.compile(r"^interface\s+\S+", re.IGNORECASE)
 _ONU_ADD_RE = re.compile(
     r"^\s*onu\s+add\s+(\d+)\s+profile\s+(\S+)\s+sn\s+(\S+)\s*$",
@@ -166,6 +183,16 @@ def parse_running_config(text: str) -> dict[str, Any]:
     current_port_no: int | None = None
     current_port: dict[str, Any] | None = None
 
+    # VLAN inventory: keyed by VLAN ID for dedup; range form `vlan 2009 - 2016`
+    # expands to every integer in [2009, 2016].
+    vlan_ids: set[int] = set()
+    # DBA profile catalogue: keyed by ID, value carries name + bandwidth ceilings.
+    dba_profiles: dict[int, dict[str, Any]] = {}
+    current_dba_id: int | None = None
+    # Per-line-profile ONU counts: how many ONUs each line profile is bound to,
+    # weighted across PON ports. Reflects the actual subscription tier mix.
+    line_profile_counts: dict[str, int] = {}
+
     for line in text.splitlines():
         m = _INTERFACE_GPON_RE.match(line)
         if m:
@@ -180,12 +207,54 @@ def parse_running_config(text: str) -> dict[str, Any]:
                 },
             )
             continue
-        # Any OTHER interface line ends our GPON section.
+        # Any OTHER interface line ends our GPON section. So does a top-level
+        # `exit` once we've consumed the body — V1600 marks interface block
+        # boundaries that way — and so does the start of a top-level `profile`
+        # block.
         if current_port is not None and _OTHER_INTERFACE_RE.match(line) and not _INTERFACE_GPON_RE.match(line):
             current_port_no = None
             current_port = None
             continue
+        if current_port is not None and (line.strip() == "exit" or line.lstrip().startswith("profile ")):
+            current_port_no = None
+            current_port = None
+            # Don't `continue` — fall through so a `profile dba …` line on this
+            # same iteration still gets a chance at the DBA matcher below.
         if current_port is None:
+            # Outside any gpon interface — scan for top-level definitions:
+            # VLAN inventory, DBA profile catalogue.
+            vlan_range_m = _VLAN_RANGE_RE.match(line)
+            if vlan_range_m:
+                lo, hi = int(vlan_range_m.group(1)), int(vlan_range_m.group(2))
+                for v in range(lo, hi + 1):
+                    vlan_ids.add(v)
+                continue
+            vlan_single_m = _VLAN_SINGLE_RE.match(line)
+            if vlan_single_m:
+                vlan_ids.add(int(vlan_single_m.group(1)))
+                continue
+            dba_m = _DBA_PROFILE_RE.match(line)
+            if dba_m:
+                current_dba_id = int(dba_m.group(1))
+                dba_profiles[current_dba_id] = {
+                    "id": current_dba_id,
+                    "name": dba_m.group(2),
+                    "type": None,
+                    "assured_kbps": None,
+                    "maximum_kbps": None,
+                }
+                continue
+            if current_dba_id is not None:
+                bw_m = _DBA_BANDWIDTH_RE.match(line)
+                if bw_m:
+                    dba_profiles[current_dba_id]["type"] = int(bw_m.group(1))
+                    dba_profiles[current_dba_id]["assured_kbps"] = int(bw_m.group(2)) if bw_m.group(2) else None
+                    dba_profiles[current_dba_id]["maximum_kbps"] = int(bw_m.group(3))
+                    current_dba_id = None
+                    continue
+                if line.strip() == "exit":
+                    current_dba_id = None
+                    continue
             continue
         if _SHUTDOWN_RE.match(line) and not _NO_SHUTDOWN_RE.match(line):
             current_port["status"] = "admin_down"
@@ -201,6 +270,14 @@ def parse_running_config(text: str) -> dict[str, Any]:
                 "profile": profile,
                 "status": "active",
             })
+            continue
+        # Per-ONU line-profile assignment lines live inside the same gpon block,
+        # one per line after the matching `onu add`. Count them by profile name
+        # so we know subscription-tier distribution.
+        lp_m = _ONU_LINE_PROFILE_RE.match(line)
+        if lp_m:
+            prof_name = lp_m.group(2)
+            line_profile_counts[prof_name] = line_profile_counts.get(prof_name, 0) + 1
 
     return {
         "hostname": hostname_m.group(1) if hostname_m else None,
@@ -208,6 +285,12 @@ def parse_running_config(text: str) -> dict[str, Any]:
         "sw_version": sw_m.group(1) if sw_m else None,
         "hw_version": hw_m.group(1) if hw_m else None,
         "ports": [ports_by_no[k] for k in sorted(ports_by_no.keys())],
+        "vlans": sorted(vlan_ids),
+        "dba_profiles": [dba_profiles[k] for k in sorted(dba_profiles.keys())],
+        "line_profile_counts": [
+            {"name": name, "count": count}
+            for name, count in sorted(line_profile_counts.items(), key=lambda kv: kv[1], reverse=True)
+        ],
     }
 
 
