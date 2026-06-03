@@ -921,11 +921,11 @@ export default function NocDashboardView({
       </div>
 
       {/* ─── Network Analytics — only real-data charts (vendor OUI + share-of-PON + per-PON bar) ─── */}
-      <div style={{ marginTop: 'var(--sp-4)' }}>
+      <div style={{ marginTop: 'var(--sp-4)' }} className="gx-dash">
         <Card pad="sm">
           <Stack gap="sm">
             <SectionHeading icon={<ZapIcon size={14} />} title="Network Analytics" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--sp-4)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--sp-4)', alignItems: 'start' }}>
               {/* ONU vendor OUI donut — derived from serial prefix (GPON/BDCM/EPON…) */}
               <Donut
                 size={160}
