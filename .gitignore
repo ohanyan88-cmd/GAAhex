@@ -40,3 +40,8 @@ write_rpt*.py
 
 # pre-cutover forensic pg_dumps — kept on disk for safety, not in history
 backend/dev-backup-*.sql
+
+# One-shot OLT seeders — contain live device credentials, never commit
+backend/seed_real_olt.py
+backend/seed_real_olt_live.py
+
