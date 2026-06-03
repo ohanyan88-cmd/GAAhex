@@ -1,0 +1,153 @@
+/* ============================================================================
+   GAAhex — Layout Primitives (Stack / Inline / Grid / Card / SectionHeading)
+
+   These rules are the ONLY place that maps the public {xs,sm,md,lg,xl} size
+   names to spacing tokens. Every value below is a `var(--...)` reference into
+   _tokens.css — no hardcoded lengths.
+
+   Class surface is intentionally tiny:
+     .stk / .stk--{xs|sm|md|lg|xl}
+     .inl / .inl--{xs|sm|md|lg|xl}      + data-align / data-justify
+     .gd  / .gd--cols-{1..6} / .gd--gap-{sm|md|lg} / .gd--auto (+ --gd-min var)
+     .card-primitive / .card-primitive--pad-{sm|md|lg}
+                     / .card-primitive--{default|emphasis|subtle}
+     .sh / .sh__left / .sh__icon / .sh__titles / .sh__title
+         / .sh__subtitle / .sh__action
+   ========================================================================= */
+
+/* ── Gap scale (shared by Stack + Inline) ────────────────────────────────── */
+:where(.stk, .inl) {
+  --stk-gap-xs: var(--sp-1);
+  --stk-gap-sm: var(--sp-2);
+  --stk-gap-md: var(--sp-4);
+  --stk-gap-lg: var(--sp-6);
+  --stk-gap-xl: var(--sp-7);
+}
+
+/* ── Stack ───────────────────────────────────────────────────────────────── */
+.stk {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stk--xs { gap: var(--stk-gap-xs); }
+.stk--sm { gap: var(--stk-gap-sm); }
+.stk--md { gap: var(--stk-gap-md); }
+.stk--lg { gap: var(--stk-gap-lg); }
+.stk--xl { gap: var(--stk-gap-xl); }
+
+/* ── Inline ──────────────────────────────────────────────────────────────── */
+.inl {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.inl--xs { gap: var(--stk-gap-xs); }
+.inl--sm { gap: var(--stk-gap-sm); }
+.inl--md { gap: var(--stk-gap-md); }
+.inl--lg { gap: var(--stk-gap-lg); }
+.inl--xl { gap: var(--stk-gap-xl); }
+
+.inl[data-align="start"]    { align-items: flex-start; }
+.inl[data-align="center"]   { align-items: center; }
+.inl[data-align="end"]      { align-items: flex-end; }
+.inl[data-align="baseline"] { align-items: baseline; }
+
+.inl[data-justify="start"]   { justify-content: flex-start; }
+.inl[data-justify="center"]  { justify-content: center; }
+.inl[data-justify="end"]     { justify-content: flex-end; }
+.inl[data-justify="between"] { justify-content: space-between; }
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+.gd {
+  --gd-gap-sm: var(--sp-3);
+  --gd-gap-md: var(--card-gap);
+  --gd-gap-lg: var(--sp-6);
+  display: grid;
+  min-width: 0;
+}
+.gd--gap-sm { gap: var(--gd-gap-sm); }
+.gd--gap-md { gap: var(--gd-gap-md); }
+.gd--gap-lg { gap: var(--gd-gap-lg); }
+
+.gd--cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.gd--cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gd--cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gd--cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.gd--cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.gd--cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+/* Responsive auto-fit mode overrides the fixed cols rule above. The minimum
+   column width comes from the --gd-min custom property the JSX sets. */
+.gd--auto {
+  grid-template-columns: repeat(auto-fit, minmax(var(--gd-min, var(--sp-10)), 1fr));
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.card-primitive {
+  --card-p-sm: var(--sp-3);
+  --card-p-md: var(--card-pad);
+  --card-p-lg: var(--sp-7);
+  background: var(--surface);
+  border: var(--bw-1) solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  min-width: 0;
+}
+.card-primitive--pad-sm { padding: var(--card-p-sm); }
+.card-primitive--pad-md { padding: var(--card-p-md); }
+.card-primitive--pad-lg { padding: var(--card-p-lg); }
+
+.card-primitive--default { /* surface + border defaults above */ }
+.card-primitive--emphasis {
+  background: var(--surface-2);
+  border-color: var(--primary-soft);
+  box-shadow: var(--shadow-card);
+}
+.card-primitive--subtle {
+  background: var(--surface-2);
+  border-color: var(--border-soft);
+  box-shadow: none;
+}
+
+/* ── SectionHeading ──────────────────────────────────────────────────────── */
+.sh {
+  width: 100%;
+}
+.sh__left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sh__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  flex: 0 0 auto;
+}
+.sh__titles {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+.sh__title {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+  line-height: var(--lh-tight);
+}
+.sh__subtitle {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
+  color: var(--text-2);
+  line-height: var(--lh-base);
+}
+.sh__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+}

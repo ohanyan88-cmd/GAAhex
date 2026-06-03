@@ -17,6 +17,10 @@ export { FilterBar } from './FilterBar'
 export { ContextPanel } from './ContextPanel'
 export { EmptyState } from './EmptyState'
 
+// Layout primitives — Stack / Inline / Grid / Card / SectionHeading.
+// Re-exported so pages can: `import { Stack, Card } from '@/page-shell'`.
+export * from './primitives'
+
 export type {
   PageType,
   PageShellProps,

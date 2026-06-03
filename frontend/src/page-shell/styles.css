@@ -323,15 +323,10 @@
   padding: var(--gx-space-5) var(--gx-space-8);
   overflow: auto;
 }
-/* Sibling spacing via the "owl" selector — adds breathing room between
-   consecutive children WITHOUT touching display, so views that rely on
-   their own grid/flex layout (CalendarView's month/week grid, etc.) are
-   not disturbed. */
-.ps-workspace[data-page-type="workspace"] > * + *,
-.ps-workspace[data-page-type="registry"] > * + *,
-.ps-workspace[data-page-type="configuration"] > * + * {
-  margin-top: var(--gx-space-5);
-}
+/* No global sibling-gap rule here — views opt into spacing explicitly by
+   composing primitives (<Stack>, <Card>, <Grid> from page-shell/primitives).
+   Earlier attempts at owl-selector or flex+gap defaults broke views that
+   maintain their own internal layout (Calendar's month/week grid). */
 .ps-workspace[data-page-type="placeholder"] {
   display: flex;
   align-items: center;
