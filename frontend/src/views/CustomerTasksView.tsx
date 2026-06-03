@@ -18,7 +18,7 @@ import { bget, loadCustomers } from '../lib/billing'
 import { listUsers, type User } from '../lib/users'
 import { EmptyState, SkeletonRows, PermissionDenied, ErrorBanner } from '../components/States'
 import { CheckIcon, InboxIcon, SearchIcon } from '../components/icons'
-import { PageShell, type FiltersSpec, type KPISpec } from '../page-shell'
+import { PageShell, Card, Stack, type FiltersSpec, type KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
 
 // ── Types (mirror Task router serialize shape; only fields we render) ─────────
@@ -227,7 +227,7 @@ export default function CustomerTasksView({ token }: { token: string }) {
         : 'Try clearing search or status filter.'}
     />
   ) : (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="sm" className="ct-table-card">
       <div className="grid-wrap">
         <table className="grid">
           <thead>
@@ -253,12 +253,12 @@ export default function CustomerTasksView({ token }: { token: string }) {
               return (
                 <tr key={t.id}>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <Stack gap="xs">
                       <span>{t.title || <span className="mono">{t.id.slice(0, 8)}</span>}</span>
                       {t.referenceNumber && (
                         <span className="muted mono" style={{ fontSize: 11 }}>{t.referenceNumber}</span>
                       )}
-                    </div>
+                    </Stack>
                   </td>
                   <td>{customerLabel}</td>
                   <td>
@@ -275,7 +275,7 @@ export default function CustomerTasksView({ token }: { token: string }) {
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 
   return (

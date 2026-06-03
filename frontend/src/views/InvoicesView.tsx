@@ -14,7 +14,7 @@ import {
   ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
-import { PageShell, type KPISpec } from '../page-shell'
+import { PageShell, Stack, Inline, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -520,84 +520,93 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
 
           <div role="tabpanel" aria-label={invoiceTabLabel(tab)}>
             {tab === 'overview' && (
-              <>
-                <div className="bill-meta">
-                  <div><span className="muted">Customer</span><div>{cust}</div></div>
-                  <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
-                  <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
-                  <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
-                  <div className="bill-actions">
-                    {canEditInvoice && status === 'DRAFT' && (
-                      <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
-                    )}
-                    {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                      <PayOnlineButton token={token} invoiceId={id} onDone={load} />
-                    )}
-                    {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                      <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
-                    )}
-                    {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
-                      <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
-                    )}
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={async () => {
-                        const e = await openDocument(token, `/api/invoices/${id}/document`)
-                        if (e) toast.error(e)
-                      }}
-                    >
-                      <PrinterIcon size={14} /> Print / Download
-                    </button>
+              <Stack gap="lg">
+                <Card pad="md">
+                  <SectionHeading
+                    icon={<InfoIcon size={14} />}
+                    title="Invoice summary"
+                    action={
+                      <Inline gap="sm" align="center">
+                        {canEditInvoice && status === 'DRAFT' && (
+                          <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
+                        )}
+                        {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
+                          <PayOnlineButton token={token} invoiceId={id} onDone={load} />
+                        )}
+                        {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
+                          <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
+                        )}
+                        {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
+                          <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
+                        )}
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={async () => {
+                            const e = await openDocument(token, `/api/invoices/${id}/document`)
+                            if (e) toast.error(e)
+                          }}
+                        >
+                          <PrinterIcon size={14} /> Print / Download
+                        </button>
+                      </Inline>
+                    }
+                  />
+                  <div className="bill-meta">
+                    <div><span className="muted">Customer</span><div>{cust}</div></div>
+                    <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
+                    <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
+                    <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
                   </div>
-                </div>
+                </Card>
 
-                <table className="grid bill-lines">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th className="num">Qty</th>
-                      <th className="num">Unit (֏)</th>
-                      <th className="num">Amount (֏)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lines.map((l, i) => {
-                      const negative = (l.line_total ?? 0) < 0
-                      return (
-                        <tr key={l.id ?? i}>
-                          <td>{l.description ?? '—'}</td>
-                          <td className="num">{l.quantity ?? 1}</td>
-                          <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
-                          <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
-                        </tr>
-                      )
-                    })}
-                    {lines.length === 0 && (
-                      <tr><td colSpan={4} className="muted">No line items.</td></tr>
+                <Card pad="md">
+                  <SectionHeading icon={<LayersIcon size={14} />} title="Line items" />
+                  <table className="grid bill-lines">
+                    <thead>
+                      <tr>
+                        <th>Description</th>
+                        <th className="num">Qty</th>
+                        <th className="num">Unit (֏)</th>
+                        <th className="num">Amount (֏)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map((l, i) => {
+                        const negative = (l.line_total ?? 0) < 0
+                        return (
+                          <tr key={l.id ?? i}>
+                            <td>{l.description ?? '—'}</td>
+                            <td className="num">{l.quantity ?? 1}</td>
+                            <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
+                            <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
+                          </tr>
+                        )
+                      })}
+                      {lines.length === 0 && (
+                        <tr><td colSpan={4} className="muted">No line items.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  <div className="bill-totals">
+                    <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
+                    {inv.balance !== undefined && (
+                      <>
+                        <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
+                        <div className="bill-total-row">
+                          <span>Balance due</span>
+                          <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
+                            {money(inv.balance)}
+                          </span>
+                        </div>
+                      </>
                     )}
-                  </tbody>
-                </table>
-
-                <div className="bill-totals">
-                  <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
-                  {inv.balance !== undefined && (
-                    <>
-                      <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
-                      <div className="bill-total-row">
-                        <span>Balance due</span>
-                        <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
-                          {money(inv.balance)}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
+                  </div>
+                </Card>
 
                 {payments.length > 0 && (
-                  <div style={{ marginTop: 24 }}>
-                    <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                      Payments recorded
-                    </div>
+                  <Card pad="md">
+                    <SectionHeading icon={<CreditCardIcon size={14} />} title="Payments recorded" />
                     <table className="grid">
                       <thead>
                         <tr>
@@ -618,7 +627,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                  </Card>
                 )}
 
                 <AllocationPanel
@@ -627,7 +636,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                   canAllocate={canAllocatePayment}
                   onChanged={load}
                 />
-              </>
+              </Stack>
             )}
             {tab === 'timeline'       && <InvoiceTimelineTab token={token} invoiceId={id} />}
             {tab === 'tasks'          && <InvoiceTasksTab token={token} invoiceId={id} />}
@@ -736,7 +745,7 @@ function InvoiceTasksTab({ token, invoiceId }: { token: string; invoiceId: strin
   if (rows === null) return <p className="muted">Could not load tasks.</p>
   if (rows.length === 0) return <EmptyState title="No tasks recorded yet" message="Tasks linked to this invoice will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -759,7 +768,7 @@ function InvoiceTasksTab({ token, invoiceId }: { token: string; invoiceId: strin
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -815,7 +824,7 @@ function InvoiceAttachmentsTab({ token, invoiceId }: { token: string; invoiceId:
   if (rows === null) return <p className="muted">Could not load attachments.</p>
   if (rows.length === 0) return <EmptyState title="No attachments recorded yet" message="Files uploaded against this invoice will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -839,7 +848,7 @@ function InvoiceAttachmentsTab({ token, invoiceId }: { token: string; invoiceId:
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -861,7 +870,7 @@ function InvoiceApprovalsTab({ token, invoiceId }: { token: string; invoiceId: s
   if (rows === null) return <p className="muted">Could not load approvals.</p>
   if (rows.length === 0) return <EmptyState title="No approvals recorded yet" message="Approval requests on this invoice will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -884,7 +893,7 @@ function InvoiceApprovalsTab({ token, invoiceId }: { token: string; invoiceId: s
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -911,7 +920,7 @@ function InvoiceCommunicationsTab({ token, invoiceId }: { token: string; invoice
   if (rows === null) return <p className="muted">Could not load communications.</p>
   if (rows.length === 0) return <EmptyState title="No communications recorded yet" message="Emails, calls, and messages will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -936,7 +945,7 @@ function InvoiceCommunicationsTab({ token, invoiceId }: { token: string; invoice
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -959,7 +968,7 @@ function InvoiceAuditTab({ token, invoiceId }: { token: string; invoiceId: strin
   if (rows === null) return <p className="muted">Could not load audit log.</p>
   if (rows.length === 0) return <EmptyState title="No audit entries recorded yet" message="Field-level changes to this invoice will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -984,7 +993,7 @@ function InvoiceAuditTab({ token, invoiceId }: { token: string; invoiceId: strin
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 

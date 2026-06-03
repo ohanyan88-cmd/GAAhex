@@ -24,7 +24,7 @@ import L from 'leaflet'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { PageShell } from '../page-shell'
+import { PageShell, Stack, Inline, Card, SectionHeading } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
@@ -447,19 +447,26 @@ export default function NocDashboardView({
   }
 
   // ─── Body ──────────────────────────────────────────────────────────────────
+  // Note on layout primitives:
+  //   - Outer wrapper keeps its padding inline because that padding is a page-level
+  //     gutter, not a primitive layout role.
+  //   - The two-column grid stays inline: the asymmetric 1.5fr / 1fr ratio has no
+  //     primitive analog (Grid cols={2} would force a symmetric split), and the
+  //     intentional asymmetry — tree left, technicians right — is part of the design.
+  //   - Every card section uses <Card pad="sm"> (sm = --sp-3 = 12px, matching the
+  //     prior inline padding) + <SectionHeading> for the title row.
   const body = (
     <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
       {error && <ErrorBanner message={error} />}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: 'var(--sp-4)', alignItems: 'start' }}>
         {/* ─── Left: OLT Tree ───────────────────────────────────────── */}
-        <section className="card" style={{ padding: 'var(--sp-3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
-            <ServerIcon size={16} />
-            <span className="section-label">OLT Inventory</span>
-            <span className="spacer" style={{ flex: 1 }} />
-            {oltsLoading && <span className="muted" style={{ fontSize: 12 }}>Loading…</span>}
-          </div>
+        <Card pad="sm">
+          <SectionHeading
+            icon={<ServerIcon size={16} />}
+            title="OLT Inventory"
+            action={oltsLoading ? <span className="muted" style={{ fontSize: 12 }}>Loading…</span> : undefined}
+          />
 
           {oltsError && <ErrorBanner message={oltsError} />}
 
@@ -535,23 +542,24 @@ export default function NocDashboardView({
               </ErrorBoundary>
             </div>
           )}
-        </section>
+        </Card>
 
         {/* ─── Right: Technicians Live ──────────────────────────────── */}
-        <section className="card" style={{ padding: 'var(--sp-3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' }}>
-            <ActivityIcon size={16} />
-            <span className="section-label">Technicians Live</span>
-            <span style={{ flex: 1 }} />
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={refreshTechs}
-              disabled={techLoading}
-              title="Refresh technician GPS"
-            >
-              <RefreshIcon size={13} /> Refresh
-            </button>
-          </div>
+        <Card pad="sm">
+          <SectionHeading
+            icon={<ActivityIcon size={16} />}
+            title="Technicians Live"
+            action={
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={refreshTechs}
+                disabled={techLoading}
+                title="Refresh technician GPS"
+              >
+                <RefreshIcon size={13} /> Refresh
+              </button>
+            }
+          />
 
           {/* ─── Live map (OpenStreetMap tiles, no API key) ─────────── */}
           {/* Leaflet is a third-party DOM-mutating lib — a single bad tile / */}
@@ -653,57 +661,59 @@ export default function NocDashboardView({
           )}
 
           {!loading && techs.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Stack gap="sm">
               {techs.map((t) => (
-                <div
-                  key={t.technician_user_id}
-                  className="card"
-                  style={{ padding: 'var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 4 }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{
-                      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                      background: 'var(--gx-success-fg, #22c55e)',
-                    }} />
-                    <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 13, fontWeight: 500 }}>
-                      {short(t.technician_user_id, 10)}
-                    </span>
-                    <span style={{ flex: 1 }} />
-                    <span className="muted" style={{ fontSize: 11 }}>{timeAgo(t.last_recorded_at)}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }} className="muted">
-                    <MapPinIcon size={11} />
-                    <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                      {t.last_lat != null && t.last_lng != null
-                        ? `${t.last_lat.toFixed(5)}, ${t.last_lng.toFixed(5)}`
-                        : 'no coordinates'}
-                    </span>
-                    <span style={{ flex: 1 }} />
-                    <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
-                  </div>
-                </div>
+                <Card key={t.technician_user_id} pad="sm">
+                  <Stack gap="xs">
+                    <Inline gap="xs" align="center" justify="between">
+                      <Inline gap="xs" align="center">
+                        <span style={{
+                          display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                          background: 'var(--gx-success-fg, #22c55e)',
+                        }} />
+                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 13, fontWeight: 500 }}>
+                          {short(t.technician_user_id, 10)}
+                        </span>
+                      </Inline>
+                      <span className="muted" style={{ fontSize: 11 }}>{timeAgo(t.last_recorded_at)}</span>
+                    </Inline>
+                    <Inline gap="sm" align="center" justify="between" className="muted">
+                      <Inline gap="xs" align="center" className="muted">
+                        <MapPinIcon size={11} />
+                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12 }}>
+                          {t.last_lat != null && t.last_lng != null
+                            ? `${t.last_lat.toFixed(5)}, ${t.last_lng.toFixed(5)}`
+                            : 'no coordinates'}
+                        </span>
+                      </Inline>
+                      <span style={{ fontSize: 12 }}>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
+                    </Inline>
+                  </Stack>
+                </Card>
               ))}
-            </div>
+            </Stack>
           )}
-        </section>
+        </Card>
       </div>
 
-      {/* ─── Legend ───────────────────────────────────────────────── */}
-      <section
-        className="card"
-        style={{ padding: 'var(--sp-3)', marginTop: 'var(--sp-4)' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' }}>
-          <ZapIcon size={14} />
-          <span className="section-label">Optical Signal Legend</span>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-3)', fontSize: 12 }}>
-          <LegendChip variant="active" label="Normal" detail="rx ≥ -26 dBm" />
-          <LegendChip variant="degraded" label="Warning" detail="-28 ≤ rx < -26 dBm" />
-          <LegendChip variant="critical" label="Critical" detail="rx < -28 dBm" />
-          <LegendChip variant="neutral" label="Unknown" detail="no recent reading" />
-        </div>
-      </section>
+      {/* ─── Legend ─────────────────────────────────────────────────
+          marginTop is preserved on a wrapping div: Card doesn't expose a
+          margin prop (intentionally — outer spacing is the parent's job),
+          and the surrounding "page body" div doesn't use a primitive that
+          would provide a row gap. */}
+      <div style={{ marginTop: 'var(--sp-4)' }}>
+        <Card pad="sm">
+          <Stack gap="sm">
+            <SectionHeading icon={<ZapIcon size={14} />} title="Optical Signal Legend" />
+            <Inline gap="sm" align="center">
+              <LegendChip variant="active" label="Normal" detail="rx ≥ -26 dBm" />
+              <LegendChip variant="degraded" label="Warning" detail="-28 ≤ rx < -26 dBm" />
+              <LegendChip variant="critical" label="Critical" detail="rx < -28 dBm" />
+              <LegendChip variant="neutral" label="Unknown" detail="no recent reading" />
+            </Inline>
+          </Stack>
+        </Card>
+      </div>
     </div>
   )
 

@@ -7,14 +7,14 @@ import {
   ChevronLeftIcon, BuildingIcon,
   SearchIcon, GearIcon,
   InfoIcon, ClockIcon, CheckIcon, MessageIcon, PaperclipIcon,
-  ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
+  ShieldIcon, LayersIcon, MailIcon, ActivityIcon, ReceiptIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight, RefreshCw,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
-import { PageShell, type KPISpec } from '../page-shell'
+import { PageShell, Stack, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
@@ -560,21 +560,24 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
 
             <div role="tabpanel" aria-label={accountTabLabel(tab, t)}>
               {tab === 'overview' && (
-                <>
-                  <div className="bill-meta">
-                    <div><span className="muted">{t('accounts.type', 'Type')}</span><div>{acct.type ?? '—'}</div></div>
-                    <div><span className="muted">{t('accounts.currency', 'Currency')}</span><div className="mono">{acct.currency ?? '—'}</div></div>
-                    <div><span className="muted">{t('accounts.cycle', 'Cycle')}</span><div>{acct.billing_cycle ?? '—'}</div></div>
-                    <div><span className="muted">{t('common.status', 'Status')}</span>
-                      <div>{acct.status ? <StatusPill variant={mapAccountStatus(acct.status)} label={acct.status} size="sm" /> : <span>—</span>}</div>
+                <Stack gap="lg">
+                  <Card pad="md">
+                    <SectionHeading icon={<InfoIcon size={14} />} title={t('accounts.summary', 'Summary')} />
+                    <div className="bill-meta">
+                      <div><span className="muted">{t('accounts.type', 'Type')}</span><div>{acct.type ?? '—'}</div></div>
+                      <div><span className="muted">{t('accounts.currency', 'Currency')}</span><div className="mono">{acct.currency ?? '—'}</div></div>
+                      <div><span className="muted">{t('accounts.cycle', 'Cycle')}</span><div>{acct.billing_cycle ?? '—'}</div></div>
+                      <div><span className="muted">{t('common.status', 'Status')}</span>
+                        <div>{acct.status ? <StatusPill variant={mapAccountStatus(acct.status)} label={acct.status} size="sm" /> : <span>—</span>}</div>
+                      </div>
                     </div>
-                  </div>
+                  </Card>
 
-                  <h3>{t('nav.subscriptions', 'Subscriptions')}</h3>
-                  {subs.length === 0
-                    ? <p className="muted">{t('accounts.noSubs', 'No subscriptions on this account yet.')}</p>
-                    : (
-                      <div className="card" style={{ overflow: 'hidden' }}>
+                  <Card pad="md">
+                    <SectionHeading icon={<LayersIcon size={14} />} title={t('nav.subscriptions', 'Subscriptions')} />
+                    {subs.length === 0
+                      ? <p className="muted">{t('accounts.noSubs', 'No subscriptions on this account yet.')}</p>
+                      : (
                         <div className="grid-wrap">
                           <table className="grid">
                             <thead><tr>
@@ -595,14 +598,14 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
                             </tbody>
                           </table>
                         </div>
-                      </div>
-                    )}
+                      )}
+                  </Card>
 
-                  <h3 style={{ marginTop: 18 }}>{t('nav.invoices', 'Invoices')}</h3>
-                  {invoices.length === 0
-                    ? <p className="muted">{t('accounts.noInvoices', 'No invoices on this account yet.')}</p>
-                    : (
-                      <div className="card" style={{ overflow: 'hidden' }}>
+                  <Card pad="md">
+                    <SectionHeading icon={<ReceiptIcon size={14} />} title={t('nav.invoices', 'Invoices')} />
+                    {invoices.length === 0
+                      ? <p className="muted">{t('accounts.noInvoices', 'No invoices on this account yet.')}</p>
+                      : (
                         <div className="grid-wrap">
                           <table className="grid">
                             <thead><tr>
@@ -621,9 +624,9 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
                             </tbody>
                           </table>
                         </div>
-                      </div>
-                    )}
-                </>
+                      )}
+                  </Card>
+                </Stack>
               )}
               {tab === 'timeline'       && <AccountTimelineTab token={token} accountId={id} />}
               {tab === 'tasks'          && <AccountTasksTab token={token} accountId={id} />}
@@ -723,7 +726,7 @@ function AccountTasksTab({ token, accountId }: { token: string; accountId: strin
   if (rows === null) return <p className="muted">Could not load tasks.</p>
   if (rows.length === 0) return <EmptyState title="No tasks recorded yet" message="Tasks linked to this account will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -746,7 +749,7 @@ function AccountTasksTab({ token, accountId }: { token: string; accountId: strin
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -802,7 +805,7 @@ function AccountAttachmentsTab({ token, accountId }: { token: string; accountId:
   if (rows === null) return <p className="muted">Could not load attachments.</p>
   if (rows.length === 0) return <EmptyState title="No attachments recorded yet" message="Files uploaded against this account will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -826,7 +829,7 @@ function AccountAttachmentsTab({ token, accountId }: { token: string; accountId:
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -848,7 +851,7 @@ function AccountApprovalsTab({ token, accountId }: { token: string; accountId: s
   if (rows === null) return <p className="muted">Could not load approvals.</p>
   if (rows.length === 0) return <EmptyState title="No approvals recorded yet" message="Approval requests on this account will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -871,7 +874,7 @@ function AccountApprovalsTab({ token, accountId }: { token: string; accountId: s
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -898,7 +901,7 @@ function AccountCommunicationsTab({ token, accountId }: { token: string; account
   if (rows === null) return <p className="muted">Could not load communications.</p>
   if (rows.length === 0) return <EmptyState title="No communications recorded yet" message="Emails, calls, and messages will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -923,7 +926,7 @@ function AccountCommunicationsTab({ token, accountId }: { token: string; account
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -946,7 +949,7 @@ function AccountAuditTab({ token, accountId }: { token: string; accountId: strin
   if (rows === null) return <p className="muted">Could not load audit log.</p>
   if (rows.length === 0) return <EmptyState title="No audit entries recorded yet" message="Field-level changes to this account will appear here." />
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <Card pad="md">
       <div className="grid-wrap">
         <table className="grid">
           <thead><tr>
@@ -971,6 +974,6 @@ function AccountAuditTab({ token, accountId }: { token: string; accountId: strin
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   )
 }
