@@ -68,12 +68,36 @@
   --lh-base: 1.5;
   --lh-relaxed: 1.65;
 
-  /* Spacing */
-  --gap: 12px;
-  --pad: 16px;
-  --row-pad-y: 10px;
-  --row-pad-x: 12px;
-  --control-pad-y: 8px;
+  /* Spacing scale — 4px base with generous breathing room.
+     Components use --sp-N tokens; legacy aliases (--gap, --pad, etc.) below. */
+  --sp-0: 0;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 48px;
+  --sp-10: 64px;
+
+  /* Spacing — legacy aliases (bumped for breathing room) */
+  --gap: var(--sp-4);          /* 16px — was 12px */
+  --pad: var(--sp-5);          /* 20px — was 16px */
+  --row-pad-y: var(--sp-3);    /* 12px — was 10px */
+  --row-pad-x: var(--sp-4);    /* 16px — was 12px */
+  --control-pad-y: var(--sp-3); /* 12px — was 8px */
+
+  /* Layout spacing — page + section + card breathing room */
+  --page-pad-x: var(--sp-6);    /* 24px — page horizontal gutter */
+  --page-pad-y: var(--sp-5);    /* 20px — page vertical gutter */
+  --section-gap: var(--sp-6);   /* 24px — between major sections */
+  --card-pad: var(--sp-5);      /* 20px — inside cards */
+  --card-gap: var(--sp-4);      /* 16px — between cards in a grid */
+  --kpi-gap: var(--sp-4);       /* 16px — between KPI tiles */
+  --form-gap: var(--sp-4);      /* 16px — between form rows */
+  --inline-gap: var(--sp-2);    /* 8px — between inline elements (icons, badges) */
 
   /* Radii */
   --radius-sm: 5px;
