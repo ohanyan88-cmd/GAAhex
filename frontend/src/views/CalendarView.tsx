@@ -393,7 +393,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     calView === 'month' ? `${MONTH_NAMES[month]} ${year}` : weekRangeLabel(weekStart)
 
   const body = (
-    <>
+    <div className="gx-comms" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
       <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
           {rangeLabel}
@@ -657,7 +657,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
       {/* suppress unused prefillDate lint — it drives the date passed to openNew */}
       {prefillDate === null && null}
-    </>
+    </div>
   )
 
   return (
