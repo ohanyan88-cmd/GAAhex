@@ -28,6 +28,8 @@ import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
+import ErrorBoundary from '../components/ErrorBoundary'
+import LoadingState from '../components/LoadingState'
 import {
   ServerIcon, ActivityIcon, RefreshIcon, ChevronRightIcon, ChevronDownIcon,
   MapPinIcon, ZapIcon, LayersIcon, PackageIcon,
@@ -498,14 +500,15 @@ export default function NocDashboardView({
                 })}
               </div>
 
-              {/* Tree panel */}
+              {/* Tree panel — wrapped so a bad chassis/card payload can't take down the page. */}
+              <ErrorBoundary onReset={() => selectedOltId && loadTree(selectedOltId)}>
               <div>
                 {!selectedOltId && (
                   <p className="muted" style={{ fontSize: 13, padding: 'var(--sp-3)' }}>
                     Select an OLT to view its chassis, cards, ports, and ONUs.
                   </p>
                 )}
-                {selectedOltId && treeLoading && <SkeletonRows rows={5} />}
+                {selectedOltId && treeLoading && <LoadingState kind="rows" rows={5} label="Loading OLT tree…" />}
                 {selectedOltId && treeError && <ErrorBanner message={treeError} />}
                 {selectedOltId && !treeLoading && !treeError && tree && (
                   <OltTreeView
@@ -529,6 +532,7 @@ export default function NocDashboardView({
                   />
                 )}
               </div>
+              </ErrorBoundary>
             </div>
           )}
         </section>
@@ -550,71 +554,95 @@ export default function NocDashboardView({
           </div>
 
           {/* ─── Live map (OpenStreetMap tiles, no API key) ─────────── */}
+          {/* Leaflet is a third-party DOM-mutating lib — a single bad tile / */}
+          {/* unmount race here would otherwise crater the whole NOC page.   */}
           {!loading && (
-            <div
-              style={{
-                marginBottom: 'var(--sp-3)',
-                borderRadius: 'var(--gx-radius-sm)',
-                overflow: 'hidden',
-                border: '1px solid var(--gx-border)',
-              }}
-            >
-              {mappable.length === 0 ? (
+            <ErrorBoundary
+              fallback={
                 <div
                   className="muted"
                   style={{
                     fontSize: 12,
                     padding: 'var(--sp-3)',
                     background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
+                    border: '1px solid var(--gx-border)',
+                    borderRadius: 'var(--gx-radius-sm)',
+                    marginBottom: 'var(--sp-3)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
                   }}
                 >
                   <MapPinIcon size={13} />
-                  <span>No technicians with GPS coordinates in the last 30 minutes.</span>
+                  <span>Live map unavailable — check the browser console for details.</span>
                 </div>
-              ) : (
-                <MapContainer
-                  center={mapCenter}
-                  zoom={ARMENIA_DEFAULT_ZOOM}
-                  scrollWheelZoom={false}
-                  style={{ height: 420, width: '100%' }}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  {mappable.map((t) => (
-                    <Marker
-                      key={t.technician_user_id}
-                      position={[t.last_lat, t.last_lng]}
-                    >
-                      <Popup>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
-                          <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                            {short(t.technician_user_id, 12)}
-                          </strong>
-                          <span>
-                            Last seen:{' '}
-                            {t.last_recorded_at
-                              ? new Date(t.last_recorded_at).toLocaleString()
-                              : '—'}
-                          </span>
-                          <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                            {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
-                          </span>
-                          <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              )}
-            </div>
+              }
+            >
+              <div
+                style={{
+                  marginBottom: 'var(--sp-3)',
+                  borderRadius: 'var(--gx-radius-sm)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--gx-border)',
+                }}
+              >
+                {mappable.length === 0 ? (
+                  <div
+                    className="muted"
+                    style={{
+                      fontSize: 12,
+                      padding: 'var(--sp-3)',
+                      background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <MapPinIcon size={13} />
+                    <span>No technicians with GPS coordinates in the last 30 minutes.</span>
+                  </div>
+                ) : (
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={ARMENIA_DEFAULT_ZOOM}
+                    scrollWheelZoom={false}
+                    style={{ height: 420, width: '100%' }}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    {mappable.map((t) => (
+                      <Marker
+                        key={t.technician_user_id}
+                        position={[t.last_lat, t.last_lng]}
+                      >
+                        <Popup>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
+                            <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                              {short(t.technician_user_id, 12)}
+                            </strong>
+                            <span>
+                              Last seen:{' '}
+                              {t.last_recorded_at
+                                ? new Date(t.last_recorded_at).toLocaleString()
+                                : '—'}
+                            </span>
+                            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                              {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
+                            </span>
+                            <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    ))}
+                  </MapContainer>
+                )}
+              </div>
+            </ErrorBoundary>
           )}
 
-          {loading && <SkeletonRows rows={4} />}
+          {loading && <LoadingState kind="rows" rows={4} label="Loading technicians…" />}
 
           {!loading && techs.length === 0 && (
             <EmptyState

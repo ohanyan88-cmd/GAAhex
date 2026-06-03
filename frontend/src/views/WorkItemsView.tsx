@@ -24,6 +24,8 @@ import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
+import ErrorBoundary from '../components/ErrorBoundary'
+import LoadingState from '../components/LoadingState'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 
@@ -263,7 +265,8 @@ export default function WorkItemsView({
         </div>
 
         {error && <ErrorBanner message={error} onRetry={loadData} />}
-        {items === null && !error && <p className="muted">Loading…</p>}
+        <ErrorBoundary onReset={loadData}>
+        {items === null && !error && <LoadingState kind="rows" label="Loading work items…" />}
         {items && items.length === 0 && !error && (
           <EmptyState
             icon={<InboxIcon size={40} />}
@@ -340,6 +343,7 @@ export default function WorkItemsView({
             </div>
           </div>
         )}
+        </ErrorBoundary>
 
         {/* Detail/edit modal */}
         {detailId && (

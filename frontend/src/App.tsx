@@ -33,6 +33,7 @@ import HelpdeskView from './views/HelpdeskView'
 import PaymentGatewayView from './views/PaymentGatewayView'
 import WorkItemsView from './views/WorkItemsView'
 import MyTasksView from './views/MyTasksView'
+import CustomerTasksView from './views/CustomerTasksView'
 import MyApprovalsView from './views/MyApprovalsView'
 import SavedViewsView from './views/SavedViewsView'
 import ActivityFeedView from './views/ActivityFeedView'
@@ -104,6 +105,7 @@ type View =
   | { type: 'helpdesk'; initialStatus?: string; initialOpenTicketId?: string }
   | { type: 'workitems' }
   | { type: 'mytasks' }
+  | { type: 'customer-tasks' }
   | { type: 'gateway' }
   | { type: 'orders' }
   | { type: 'revenue-assurance' }
@@ -701,6 +703,8 @@ export default function App() {
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'mytasks'
                 ? <MyTasksView token={token} canConfigure={!!user?.can_configure} />
+              : view.type === 'customer-tasks'
+                ? <CustomerTasksView token={token} />
               : view.type === 'calendar'
                 ? <CalendarView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'settings'

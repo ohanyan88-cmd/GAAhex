@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
 import { initiatePayment, confirmDevPayment, isDevFlow } from '../lib/paymentgw'
 import { money, toMinor } from '../lib/money'
@@ -10,6 +10,8 @@ import { humanizeStatus } from '../lib/humanize'
 import {
   ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
   CreditCardIcon, SearchIcon,
+  InfoIcon, ClockIcon, CheckIcon, MessageIcon, PaperclipIcon,
+  ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { PageShell, type KPISpec } from '../page-shell'
@@ -354,6 +356,80 @@ export default function InvoicesView({
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// InvoiceDetail — file 10 (Object Detail Standard) canonical 9-tab set.
+// Tab order: Overview · Timeline · Tasks · Comments · Attachments · Approvals
+// · Related · Communications · Audit. The Overview tab WRAPS the existing bill
+// detail + lines + totals + payments + AllocationPanel content unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+type InvoiceTabKey =
+  | 'overview' | 'timeline' | 'tasks' | 'comments' | 'attachments'
+  | 'approvals' | 'related' | 'communications' | 'audit'
+const INVOICE_TAB_ORDER: InvoiceTabKey[] = [
+  'overview', 'timeline', 'tasks', 'comments', 'attachments',
+  'approvals', 'related', 'communications', 'audit',
+]
+
+function invoiceTabLabel(k: InvoiceTabKey): string {
+  switch (k) {
+    case 'overview':       return 'Overview'
+    case 'timeline':       return 'Timeline'
+    case 'tasks':          return 'Tasks'
+    case 'comments':       return 'Comments'
+    case 'attachments':    return 'Attachments'
+    case 'approvals':      return 'Approvals'
+    case 'related':        return 'Related'
+    case 'communications': return 'Communications'
+    case 'audit':          return 'Audit'
+  }
+}
+
+function invoiceTabIcon(k: InvoiceTabKey): ReactNode {
+  switch (k) {
+    case 'overview':       return <InfoIcon size={13} />
+    case 'timeline':       return <ClockIcon size={13} />
+    case 'tasks':          return <CheckIcon size={13} />
+    case 'comments':       return <MessageIcon size={13} />
+    case 'attachments':    return <PaperclipIcon size={13} />
+    case 'approvals':      return <ShieldIcon size={13} />
+    case 'related':        return <LayersIcon size={13} />
+    case 'communications': return <MailIcon size={13} />
+    case 'audit':          return <ActivityIcon size={13} />
+  }
+}
+
+function InvoiceTabButton({ active, label, icon, onClick }: {
+  active: boolean
+  label: string
+  icon: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '10px 14px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
+        fontSize: 13,
+        fontWeight: active ? 600 : 500,
+        cursor: 'pointer',
+        marginBottom: -1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {icon}{label}
+    </button>
+  )
+}
+
 function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, canAllocatePayment, onBack }: {
   token: string
   id: string
@@ -367,6 +443,8 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
   const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
   const [payOpen, setPayOpen] = useState(false)
+  // Canonical Object Detail tab — defaults to Overview (file 10).
+  const [tab, setTab] = useState<InvoiceTabKey>('overview')
 
   async function load() {
     setError('')
@@ -416,112 +494,150 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
 
       {inv && (
         <>
-          <div className="bill-meta">
-            <div><span className="muted">Customer</span><div>{cust}</div></div>
-            <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
-            <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
-            <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
-            <div className="bill-actions">
-              {canEditInvoice && status === 'DRAFT' && (
-                <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
-              )}
-              {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                <PayOnlineButton token={token} invoiceId={id} onDone={load} />
-              )}
-              {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
-              )}
-              {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
-                <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
-              )}
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={async () => {
-                  const e = await openDocument(token, `/api/invoices/${id}/document`)
-                  if (e) toast.error(e)
-                }}
-              >
-                <PrinterIcon size={14} /> Print / Download
-              </button>
-            </div>
+          {/* Canonical Object Detail tabs (file 10) — render BEFORE any object-specific tabs.
+              The bill detail + lines + totals + payments + AllocationPanel live in Overview. */}
+          <div
+            role="tablist"
+            aria-label="Object Detail tabs"
+            style={{
+              display: 'flex',
+              gap: 4,
+              borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+              marginBottom: 16,
+              overflowX: 'auto',
+            }}
+          >
+            {INVOICE_TAB_ORDER.map((k) => (
+              <InvoiceTabButton
+                key={k}
+                active={tab === k}
+                label={invoiceTabLabel(k)}
+                icon={invoiceTabIcon(k)}
+                onClick={() => setTab(k)}
+              />
+            ))}
           </div>
 
-          <table className="grid bill-lines">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th className="num">Qty</th>
-                <th className="num">Unit (֏)</th>
-                <th className="num">Amount (֏)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((l, i) => {
-                const negative = (l.line_total ?? 0) < 0
-                return (
-                  <tr key={l.id ?? i}>
-                    <td>{l.description ?? '—'}</td>
-                    <td className="num">{l.quantity ?? 1}</td>
-                    <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
-                    <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
-                  </tr>
-                )
-              })}
-              {lines.length === 0 && (
-                <tr><td colSpan={4} className="muted">No line items.</td></tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="bill-totals">
-            <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
-            {inv.balance !== undefined && (
+          <div role="tabpanel" aria-label={invoiceTabLabel(tab)}>
+            {tab === 'overview' && (
               <>
-                <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
-                <div className="bill-total-row">
-                  <span>Balance due</span>
-                  <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
-                    {money(inv.balance)}
-                  </span>
+                <div className="bill-meta">
+                  <div><span className="muted">Customer</span><div>{cust}</div></div>
+                  <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
+                  <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
+                  <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
+                  <div className="bill-actions">
+                    {canEditInvoice && status === 'DRAFT' && (
+                      <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
+                    )}
+                    {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
+                      <PayOnlineButton token={token} invoiceId={id} onDone={load} />
+                    )}
+                    {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
+                      <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
+                    )}
+                    {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
+                      <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
+                    )}
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={async () => {
+                        const e = await openDocument(token, `/api/invoices/${id}/document`)
+                        if (e) toast.error(e)
+                      }}
+                    >
+                      <PrinterIcon size={14} /> Print / Download
+                    </button>
+                  </div>
                 </div>
+
+                <table className="grid bill-lines">
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th className="num">Qty</th>
+                      <th className="num">Unit (֏)</th>
+                      <th className="num">Amount (֏)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((l, i) => {
+                      const negative = (l.line_total ?? 0) < 0
+                      return (
+                        <tr key={l.id ?? i}>
+                          <td>{l.description ?? '—'}</td>
+                          <td className="num">{l.quantity ?? 1}</td>
+                          <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.unit_amount)}</td>
+                          <td className={`num${negative ? ' amt-neg' : ''}`}>{money(l.line_total)}</td>
+                        </tr>
+                      )
+                    })}
+                    {lines.length === 0 && (
+                      <tr><td colSpan={4} className="muted">No line items.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+
+                <div className="bill-totals">
+                  <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
+                  {inv.balance !== undefined && (
+                    <>
+                      <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
+                      <div className="bill-total-row">
+                        <span>Balance due</span>
+                        <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
+                          {money(inv.balance)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {payments.length > 0 && (
+                  <div style={{ marginTop: 24 }}>
+                    <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                      Payments recorded
+                    </div>
+                    <table className="grid">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Method</th>
+                          <th className="num">Amount (֏)</th>
+                          <th>Note</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payments.map(p => (
+                          <tr key={p.id}>
+                            <td className="mono">{fmtDate(p.paid_at)}</td>
+                            <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
+                            <td className="num">{money(p.amount)}</td>
+                            <td className="muted">{p.note ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <AllocationPanel
+                  token={token}
+                  invoiceId={id}
+                  canAllocate={canAllocatePayment}
+                  onChanged={load}
+                />
               </>
             )}
+            {tab === 'timeline'       && <InvoiceTimelineTab token={token} invoiceId={id} />}
+            {tab === 'tasks'          && <InvoiceTasksTab token={token} invoiceId={id} />}
+            {tab === 'comments'       && <InvoiceCommentsTab token={token} invoiceId={id} />}
+            {tab === 'attachments'    && <InvoiceAttachmentsTab token={token} invoiceId={id} />}
+            {tab === 'approvals'      && <InvoiceApprovalsTab token={token} invoiceId={id} />}
+            {tab === 'related'        && <InvoiceRelatedTab />}
+            {tab === 'communications' && <InvoiceCommunicationsTab token={token} invoiceId={id} />}
+            {tab === 'audit'          && <InvoiceAuditTab token={token} invoiceId={id} />}
           </div>
-
-          {payments.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-                Payments recorded
-              </div>
-              <table className="grid">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Method</th>
-                    <th className="num">Amount (֏)</th>
-                    <th>Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map(p => (
-                    <tr key={p.id}>
-                      <td className="mono">{fmtDate(p.paid_at)}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
-                      <td className="num">{money(p.amount)}</td>
-                      <td className="muted">{p.note ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <AllocationPanel
-            token={token}
-            invoiceId={id}
-            canAllocate={canAllocatePayment}
-            onChanged={load}
-          />
         </>
       )}
 
@@ -534,6 +650,341 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
         />
       )}
     </PageShell>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canonical Object Detail tab bodies (file 10) — invoice-scoped. Each fetches
+// on mount; 404 from a missing endpoint degrades to a friendly empty state.
+// Same shape as customer-tabs/ and AccountsView tabs.
+// ─────────────────────────────────────────────────────────────────────────────
+type InvActivityRow = { id: string; action?: string | null; actor?: string | null; message?: string | null; at?: string | null; created_at?: string | null }
+type InvTaskRow = { id: string; title?: string | null; status?: string | null; priority?: string | null; assignee?: string | null; due_at?: string | null }
+type InvCommentRow = { id: string; author?: string | null; author_name?: string | null; body?: string | null; text?: string | null; created_at?: string | null }
+type InvAttachmentRow = { id: string; filename?: string | null; name?: string | null; mime_type?: string | null; size?: number | null; uploaded_by?: string | null; uploaded_at?: string | null; created_at?: string | null; url?: string | null }
+type InvApprovalRow = { id: string; request_type?: string | null; status?: string | null; requested_by?: string | null; requested_at?: string | null; decided_at?: string | null }
+type InvCommunicationRow = { id: string; channel?: string | null; direction?: string | null; subject?: string | null; from_address?: string | null; to_address?: string | null; occurred_at?: string | null; created_at?: string | null }
+type InvAuditRow = { id: string; action?: string | null; actor?: string | null; actor_id?: string | null; field?: string | null; old_value?: string | null; new_value?: string | null; at?: string | null; created_at?: string | null }
+
+function fmtInvDT(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
+}
+
+function invTabSkeleton(): ReactNode {
+  return (
+    <div className="card" style={{ padding: 14 }} aria-busy="true">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 10 }} />
+      ))}
+    </div>
+  )
+}
+
+function InvoiceTimelineTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvActivityRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvActivityRow[]>(token, `/api/activity?entity_key=invoice&record_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        const sorted = [...r.data].sort((a, b) => (Date.parse(b.at ?? b.created_at ?? '') || 0) - (Date.parse(a.at ?? a.created_at ?? '') || 0))
+        setRows(sorted)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load the activity timeline.</p>
+  if (rows.length === 0) return <EmptyState title="No activity recorded yet" message="Changes to this invoice will appear here." />
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {rows.map((r) => (
+          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border, #e2e8f0)' }}>
+            <div style={{ fontSize: 13 }}>
+              <strong>{r.action ?? 'event'}</strong>
+              {r.actor && <span className="muted" style={{ marginLeft: 6 }}>· {r.actor}</span>}
+            </div>
+            {r.message && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{r.message}</div>}
+            <div className="muted mono" style={{ fontSize: 11, marginTop: 4 }}>{fmtInvDT(r.at ?? r.created_at)}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function InvoiceTasksTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvTaskRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvTaskRow[]>(token, `/api/tasks?parent_entity_type=invoice&parent_entity_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load tasks.</p>
+  if (rows.length === 0) return <EmptyState title="No tasks recorded yet" message="Tasks linked to this invoice will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">Title</th>
+            <th scope="col">Status</th>
+            <th scope="col">Priority</th>
+            <th scope="col">Assignee</th>
+            <th scope="col">Due</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.title ?? <span className="mono">{r.id.slice(0, 8)}</span>}</td>
+                <td>{r.status ?? '—'}</td>
+                <td>{r.priority ?? '—'}</td>
+                <td>{r.assignee ?? '—'}</td>
+                <td><span className="mono">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceCommentsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvCommentRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvCommentRow[]>(token, `/api/comments?owner_entity_type=invoice&owner_entity_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load comments.</p>
+  if (rows.length === 0) return <EmptyState title="No comments recorded yet" message="Comments on this invoice will appear here." />
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {rows.map((r) => (
+          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border, #e2e8f0)' }}>
+            <div style={{ fontSize: 13 }}>
+              <strong>{r.author_name ?? r.author ?? 'Unknown'}</strong>
+              <span className="muted mono" style={{ marginLeft: 8, fontSize: 11 }}>{fmtInvDT(r.created_at)}</span>
+            </div>
+            <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.body ?? r.text ?? ''}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function InvoiceAttachmentsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvAttachmentRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvAttachmentRow[]>(token, `/api/attachments?owner_entity_type=invoice&owner_entity_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load attachments.</p>
+  if (rows.length === 0) return <EmptyState title="No attachments recorded yet" message="Files uploaded against this invoice will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">File</th>
+            <th scope="col">Type</th>
+            <th scope="col">Uploaded by</th>
+            <th scope="col">Uploaded at</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const label = r.filename ?? r.name ?? r.id.slice(0, 8)
+              return (
+                <tr key={r.id}>
+                  <td>{r.url ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--gx-link)' }}>{label}</a> : <span>{label}</span>}</td>
+                  <td>{r.mime_type ?? '—'}</td>
+                  <td>{r.uploaded_by ?? '—'}</td>
+                  <td><span className="mono">{fmtInvDT(r.uploaded_at ?? r.created_at)}</span></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceApprovalsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvApprovalRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvApprovalRow[]>(token, `/api/approvals?subject_type=invoice&subject_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load approvals.</p>
+  if (rows.length === 0) return <EmptyState title="No approvals recorded yet" message="Approval requests on this invoice will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">Request</th>
+            <th scope="col">Status</th>
+            <th scope="col">Requested by</th>
+            <th scope="col">Requested at</th>
+            <th scope="col">Decided at</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.request_type ?? <span className="mono">{r.id.slice(0, 8)}</span>}</td>
+                <td>{r.status ?? '—'}</td>
+                <td>{r.requested_by ?? '—'}</td>
+                <td><span className="mono">{fmtInvDT(r.requested_at)}</span></td>
+                <td><span className="mono">{fmtInvDT(r.decided_at)}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Related tab — placeholder per spec (no Wave A graph endpoint deployed yet).
+function InvoiceRelatedTab() {
+  return <EmptyState title="No related records recorded yet" message="Linked records across modules will appear here." />
+}
+
+function InvoiceCommunicationsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvCommunicationRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvCommunicationRow[]>(token, `/api/communications?owner_entity_type=invoice&owner_entity_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load communications.</p>
+  if (rows.length === 0) return <EmptyState title="No communications recorded yet" message="Emails, calls, and messages will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">Channel</th>
+            <th scope="col">Direction</th>
+            <th scope="col">Subject</th>
+            <th scope="col">From</th>
+            <th scope="col">To</th>
+            <th scope="col">At</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.channel ?? '—'}</td>
+                <td>{r.direction ?? '—'}</td>
+                <td>{r.subject ?? <span className="muted">—</span>}</td>
+                <td>{r.from_address ?? '—'}</td>
+                <td>{r.to_address ?? '—'}</td>
+                <td><span className="mono">{fmtInvDT(r.occurred_at ?? r.created_at)}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function InvoiceAuditTab({ token, invoiceId }: { token: string; invoiceId: string }) {
+  const [rows, setRows] = useState<InvAuditRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<InvAuditRow[]>(token, `/api/events?entity_key=invoice&entity_id=${encodeURIComponent(invoiceId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        const sorted = [...r.data].sort((a, b) => (Date.parse(b.at ?? b.created_at ?? '') || 0) - (Date.parse(a.at ?? a.created_at ?? '') || 0))
+        setRows(sorted)
+      })
+    return () => { cancelled = true }
+  }, [token, invoiceId])
+  if (rows === undefined) return invTabSkeleton()
+  if (rows === null) return <p className="muted">Could not load audit log.</p>
+  if (rows.length === 0) return <EmptyState title="No audit entries recorded yet" message="Field-level changes to this invoice will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">When</th>
+            <th scope="col">Actor</th>
+            <th scope="col">Action</th>
+            <th scope="col">Field</th>
+            <th scope="col">From</th>
+            <th scope="col">To</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td><span className="mono">{fmtInvDT(r.at ?? r.created_at)}</span></td>
+                <td>{r.actor ?? r.actor_id ?? '—'}</td>
+                <td>{r.action ?? '—'}</td>
+                <td>{r.field ?? '—'}</td>
+                <td><span className="muted">{r.old_value ?? '—'}</span></td>
+                <td>{r.new_value ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 

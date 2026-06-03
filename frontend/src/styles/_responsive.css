@@ -1,0 +1,224 @@
+/* =========================================================================
+   _responsive.css — Centralized responsive layer (added 2026-06-03)
+   ------------------------------------------------------------------------
+   Why this file exists:
+     The 33 partials grew organically and now carry an inconsistent mix of
+     breakpoints (560 / 600 / 720 / 880 / 900 / 1100 / 1180). Rather than
+     scatter new @media rules through every partial and risk breaking
+     desktop, this single import lives LAST in the cascade so its rules
+     win on narrow viewports without touching any existing rule.
+
+   Standardized tiers (additive — back-compat with existing breakpoints):
+     - max-width:1024px  large tablet / small laptop polish
+     - max-width:768px   tablet — KPI grid -> 2-col, tables scroll, drawer/dialog full-bleed
+     - max-width:480px   mobile — KPI grid -> 1-col, tighten padding, cap typography
+
+   Rules below ONLY ADD declarations. No rule outside a @media block exists
+   in this file. Desktop styles are unchanged.
+
+   No JS hooks are added; we lean on classes the codebase already uses
+   (.app.navopen, .nav-scrim, .gx-scrim, .gx-drawer, .gx-dialog, .grid-wrap,
+   .kpi-strip, .gx-dash .kpis, .gx-dash .cols, .toolbar, .view-inner,
+   .section-page, .rec-form, .gx-comms, .tb, .sb, etc).
+   ========================================================================= */
+
+
+/* ====================================================================
+   TIER 1 — max-width: 1024px  (large tablet / small laptop)
+   ==================================================================== */
+@media (max-width: 1024px) {
+  /* Tighten content padding on the main scroller so the section feels
+     less air-walled when the viewport gets squeezed. */
+  .view-inner { padding: 18px 20px 32px; }
+
+  /* Section pages already cap at 1320px — soften the gutter on smaller
+     screens where the cap stops mattering. */
+  .view-inner.section-page { padding-left: 18px; padding-right: 18px; }
+
+  /* KPI strip on entity list pages: hold 3 columns so tiles stay readable. */
+  .kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* Dashboard KPI grid: 4 -> 3 so each card still has breathing room. */
+  .gx-dash .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* Two-column dashboard body keeps the 1.6:1 ratio but a tad tighter gap. */
+  .gx-dash .cols { gap: 14px; }
+
+  /* Org chip name truncates earlier so the topbar doesn't overflow. */
+  .org-name { max-width: 140px; }
+  .userchip-name { max-width: 120px; }
+}
+
+
+/* ====================================================================
+   TIER 2 — max-width: 768px  (tablet)
+   ==================================================================== */
+@media (max-width: 768px) {
+  /* ----- App shell: pure-CSS off-canvas drawer ------------------------
+     The codebase already has a 900px rule in _app-shell.css that turns
+     .sb into a fixed off-canvas drawer driven by .app.navopen. We do
+     NOT duplicate or override it here — the 900px rule already covers
+     768px (it's a strict superset). The 768 tier instead reduces nav
+     scrim z-index conflicts and tightens the topbar.                 */
+
+  /* Topbar gets tighter so the burger + search + user chip fit. */
+  .tb { padding: 0 12px; gap: 8px; }
+  .tb-icon { width: 32px; height: 32px; }
+
+  /* View padding — match phone-like content gutters. */
+  .view-inner { padding: 16px 14px 28px; }
+  .view-inner.section-page { padding-left: 14px; padding-right: 14px; }
+
+  /* KPI strip: 2 columns so two tiles always fit side-by-side. */
+  .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+  /* Dashboard KPI grid: 2 columns (the existing 900px rule already does
+     this; we restate it for the 768 tier so the cascade order is
+     explicit and overrides any future kit changes that bump the
+     900 rule). */
+  .gx-dash .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .gx-dash .kpi .kval { font-size: 24px; }
+  .gx-dash .cols { grid-template-columns: 1fr; }
+  .gx-dash .card-pad { padding: 14px; }
+
+  /* Data tables: ensure the wrapper scrolls horizontally so the 900px
+     min-width on table.grid (which is intentional, see _data-tables.css)
+     doesn't squash columns — it scrolls instead. */
+  .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .grid-wrap > table.grid { min-width: 760px; }
+
+  /* Toolbar wraps onto multiple rows; pin search to full width. */
+  .toolbar { gap: 8px; }
+  .toolbar .tb-search { width: 100%; }
+
+  /* View head actions stack under the heading on narrow widths. */
+  .view-head { flex-wrap: wrap; }
+  .view-head-actions { width: 100%; }
+
+  /* Drawer / scrim: dock the drawer to the full viewport so users can
+     work with a record without horizontal scroll.                    */
+  .gx-scrim { padding: 0; }
+  .gx-scrim.right { padding: 0; }
+  .gx-drawer { width: 100vw; max-width: 100vw; border-left: none; }
+  .gx-drawer .drawer-hero { padding: 14px 16px; }
+  .gx-drawer .drawer-body { padding: 14px 16px; }
+  .gx-drawer .kv-k { width: 100px; }
+
+  /* Modal dialog: bottom-sheet treatment — flush to the bottom, full
+     width, slight top corner rounding only. */
+  .gx-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    margin: 0;
+    border-radius: var(--gx-radius-lg) var(--gx-radius-lg) 0 0;
+    align-self: flex-end;
+  }
+
+  /* Forms: single column so labels + inputs don't fight for width. */
+  .rec-form { grid-template-columns: 1fr; }
+
+  /* Section-page cards collapse single-column. Targeted .card-grid
+     class is used in dashboards/section pages; if absent, this is a
+     no-op safely. */
+  .section-page .card-grid,
+  .section-page .grid-2,
+  .section-page .grid-3 { grid-template-columns: 1fr; }
+
+  /* Comms / messenger / calendar: collapse the rail into a stacked
+     header so the conversation pane is full-width.                   */
+  .gx-comms { grid-template-columns: 1fr; }
+
+  /* Cap heading sizes a notch so they don't dominate the viewport. */
+  h1, .h1 { font-size: 22px; line-height: 1.25; }
+  h2, .h2 { font-size: 18px; line-height: 1.3; }
+
+  /* Hide the userchip name+role meta (existing 900px rule already
+     does this — restated for explicitness on this tier).            */
+  .userchip-meta { display: none; }
+
+  /* Toast host already collapses at 560px; widen the trigger to 768
+     so tablets see edge-to-edge toasts too.                          */
+  .gx-toast-host { left: 12px; right: 12px; bottom: 12px; align-items: stretch; }
+  .gx-toast { max-width: none; }
+}
+
+
+/* ====================================================================
+   TIER 3 — max-width: 480px  (mobile)
+   ==================================================================== */
+@media (max-width: 480px) {
+  /* Tighten page gutters further. */
+  .view-inner { padding: 12px 10px 24px; }
+  .view-inner.section-page { padding-left: 10px; padding-right: 10px; }
+
+  /* KPI grids collapse to a single column. */
+  .kpi-strip { grid-template-columns: 1fr; gap: 8px; }
+  .gx-dash .kpis { grid-template-columns: 1fr; gap: 8px; }
+  .gx-dash .kpi { padding: 14px; }
+  .gx-dash .kpi .kval { font-size: 22px; margin: 6px 0 4px; }
+
+  /* Cap typography for true mobile widths. */
+  h1, .h1 { font-size: 20px; }
+  h2, .h2 { font-size: 16px; }
+
+  /* Crumbs — hide the parent crumbs on mobile, keep only the active leaf.
+     We rely on the existing .sep + ancestor pattern: dim the non-final
+     items rather than display:none (which would change DOM-driven layout
+     for screen readers). */
+  .crumbs { font-size: 11px; gap: 5px; flex-wrap: wrap; }
+
+  /* Topbar — hide all non-essential icon labels (search hint, etc.).
+     The existing 900px rule in _app-shell.css already hides .tb-search
+     span and primary button labels; we additionally tighten the gap. */
+  .tb { padding: 0 8px; gap: 6px; }
+  .tb-icon { width: 30px; height: 30px; }
+  .avatar { width: 28px; height: 28px; font-size: 11px; }
+
+  /* Org chip — shorter name truncation on phone widths. */
+  .org-name { max-width: 96px; font-size: 12px; }
+  .org { padding: 0 6px 0 4px; height: 34px; }
+
+  /* Hide nice-to-have decorations on entity tile (marquee rail still
+     shows the gold glow; we keep that, but trim the body padding). */
+  .kpi-strip .kpi { padding: 12px 14px; }
+
+  /* Data tables: tighten cell padding so more columns fit before scroll. */
+  table.grid th, table.grid td { padding: 8px 10px; font-size: 12px; }
+  .grid-wrap > table.grid { min-width: 640px; }
+
+  /* Drawer body padding tightens once more. */
+  .gx-drawer .drawer-head { padding: 10px 12px; }
+  .gx-drawer .drawer-hero { padding: 12px 14px; }
+  .gx-drawer .drawer-body { padding: 12px 14px; }
+  .gx-drawer .kv { gap: 10px; font-size: 12.5px; }
+  .gx-drawer .kv-k { width: 88px; }
+
+  /* Modal — soften corner radius a touch. */
+  .gx-dialog-head { padding: 12px 14px; }
+
+  /* Forms / buttons — taller hit targets for thumbs. */
+  .btn { min-height: 36px; }
+  .iconbtn { min-width: 36px; min-height: 36px; }
+
+  /* Activity feed avatar shrinks further on phone (kit-polish rule at
+     720px stops at 32px; we go to 30 for true narrow widths). */
+  .act-row { padding: 9px 10px; gap: 8px; }
+  .act-avatar { width: 30px; height: 30px; font-size: 10.5px; }
+  .act-day-head { padding: 10px 10px 5px; font-size: 10px; }
+
+  /* Tabs — let them wrap to a second row rather than horizontal scroll
+     on phone widths where overflow is hard to discover. */
+  .tabs { flex-wrap: wrap; }
+}
+
+
+/* ====================================================================
+   Print — bonus: hide chrome so reports/invoices print clean.
+   Conservative; only the well-known shell classes are affected.
+   ==================================================================== */
+@media print {
+  .sb, .tb, .gx-scrim, .gx-toast-host, .nav-scrim { display: none !important; }
+  .app, .app.collapsed { grid-template-columns: 1fr !important; }
+  .view { overflow: visible !important; }
+  .view-inner { padding: 0 !important; }
+}

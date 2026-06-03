@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { bget, bpost, type Subscription, type Invoice, type Party } from '../lib/billing'
 import { money } from '../lib/money'
 import { toast } from '../components/Toast'
@@ -6,6 +6,8 @@ import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ChevronLeftIcon, BuildingIcon,
   SearchIcon, GearIcon,
+  InfoIcon, ClockIcon, CheckIcon, MessageIcon, PaperclipIcon,
+  ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
@@ -419,10 +421,90 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AccountDetail — file 10 (Object Detail Standard) canonical 9-tab set.
+// Tab order is fixed: Overview · Timeline · Tasks · Comments · Attachments ·
+// Approvals · Related · Communications · Audit. Each tab lazy-loads its slice
+// on first activation; the Overview tab WRAPS the previously-shown bill-meta +
+// subscriptions + invoices content unchanged (no restructure).
+// ─────────────────────────────────────────────────────────────────────────────
+type AccountTabKey =
+  | 'overview' | 'timeline' | 'tasks' | 'comments' | 'attachments'
+  | 'approvals' | 'related' | 'communications' | 'audit'
+const ACCOUNT_TAB_ORDER: AccountTabKey[] = [
+  'overview', 'timeline', 'tasks', 'comments', 'attachments',
+  'approvals', 'related', 'communications', 'audit',
+]
+
+function accountTabLabel(k: AccountTabKey, t: (k: string, fb?: string) => string): string {
+  switch (k) {
+    case 'overview':       return t('acct.tab.overview', 'Overview')
+    case 'timeline':       return t('acct.tab.timeline', 'Timeline')
+    case 'tasks':          return t('acct.tab.tasks', 'Tasks')
+    case 'comments':       return t('acct.tab.comments', 'Comments')
+    case 'attachments':    return t('acct.tab.attachments', 'Attachments')
+    case 'approvals':      return t('acct.tab.approvals', 'Approvals')
+    case 'related':        return t('acct.tab.related', 'Related')
+    case 'communications': return t('acct.tab.communications', 'Communications')
+    case 'audit':          return t('acct.tab.audit', 'Audit')
+  }
+}
+
+function accountTabIcon(k: AccountTabKey): ReactNode {
+  switch (k) {
+    case 'overview':       return <InfoIcon size={13} />
+    case 'timeline':       return <ClockIcon size={13} />
+    case 'tasks':          return <CheckIcon size={13} />
+    case 'comments':       return <MessageIcon size={13} />
+    case 'attachments':    return <PaperclipIcon size={13} />
+    case 'approvals':      return <ShieldIcon size={13} />
+    case 'related':        return <LayersIcon size={13} />
+    case 'communications': return <MailIcon size={13} />
+    case 'audit':          return <ActivityIcon size={13} />
+  }
+}
+
+// Inline tab button mirrors the CustomerView pattern: bottom-border highlight on
+// active, no count badge (tab data is local to each tab body — parent doesn't
+// pre-load counts for the canonical nine).
+function AccountTabButton({ active, label, icon, onClick }: {
+  active: boolean
+  label: string
+  icon: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '10px 14px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
+        fontSize: 13,
+        fontWeight: active ? 600 : 500,
+        cursor: 'pointer',
+        marginBottom: -1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {icon}{label}
+    </button>
+  )
+}
+
 function AccountDetail({ token, id, parties, onBack }: { token: string; id: string; parties: Party[]; canRecompute: boolean; onBack: () => void }) {
   const { t } = useI18n()
   const [acct, setAcct] = useState<Account | null>(null)
   const [error, setError] = useState('')
+  // Canonical Object Detail tab — defaults to Overview (file 10).
+  const [tab, setTab] = useState<AccountTabKey>('overview')
 
   async function load() {
     setError('')
@@ -452,70 +534,443 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
 
         {acct && (
           <>
-            <div className="bill-meta">
-              <div><span className="muted">{t('accounts.type', 'Type')}</span><div>{acct.type ?? '—'}</div></div>
-              <div><span className="muted">{t('accounts.currency', 'Currency')}</span><div className="mono">{acct.currency ?? '—'}</div></div>
-              <div><span className="muted">{t('accounts.cycle', 'Cycle')}</span><div>{acct.billing_cycle ?? '—'}</div></div>
-              <div><span className="muted">{t('common.status', 'Status')}</span>
-                <div>{acct.status ? <StatusPill variant={mapAccountStatus(acct.status)} label={acct.status} size="sm" /> : <span>—</span>}</div>
-              </div>
+            {/* Canonical Object Detail tabs (file 10) — render BEFORE any object-specific tabs.
+                The bill-meta + subs + invoices content lives inside the Overview tab. */}
+            <div
+              role="tablist"
+              aria-label={t('acct.standardTabs', 'Object Detail tabs')}
+              style={{
+                display: 'flex',
+                gap: 4,
+                borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+                marginBottom: 16,
+                overflowX: 'auto',
+              }}
+            >
+              {ACCOUNT_TAB_ORDER.map((k) => (
+                <AccountTabButton
+                  key={k}
+                  active={tab === k}
+                  label={accountTabLabel(k, t)}
+                  icon={accountTabIcon(k)}
+                  onClick={() => setTab(k)}
+                />
+              ))}
             </div>
 
-            <h3>{t('nav.subscriptions', 'Subscriptions')}</h3>
-            {subs.length === 0
-              ? <p className="muted">{t('accounts.noSubs', 'No subscriptions on this account yet.')}</p>
-              : (
-                <div className="card" style={{ overflow: 'hidden' }}>
-                  <div className="grid-wrap">
-                    <table className="grid">
-                      <thead><tr>
-                        <th scope="col">{t('subs.plan', 'Plan')}</th>
-                        <th scope="col" className="num">{t('subs.amount', 'Amount')}</th>
-                        <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
-                        <th scope="col">{t('common.status', 'Status')}</th>
-                      </tr></thead>
-                      <tbody>
-                        {subs.map((sx) => (
-                          <tr key={sx.id}>
-                            <td>{sx.plan_name ?? '—'}</td>
-                            <td className="num"><span className="mono tnum">{money(sx.amount)}</span></td>
-                            <td>{sx.cycle ?? '—'}</td>
-                            <td>{sx.status ? <StatusPill variant={mapBillingStatus(sx.status)} label={sx.status} size="sm" /> : <span>—</span>}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            <div role="tabpanel" aria-label={accountTabLabel(tab, t)}>
+              {tab === 'overview' && (
+                <>
+                  <div className="bill-meta">
+                    <div><span className="muted">{t('accounts.type', 'Type')}</span><div>{acct.type ?? '—'}</div></div>
+                    <div><span className="muted">{t('accounts.currency', 'Currency')}</span><div className="mono">{acct.currency ?? '—'}</div></div>
+                    <div><span className="muted">{t('accounts.cycle', 'Cycle')}</span><div>{acct.billing_cycle ?? '—'}</div></div>
+                    <div><span className="muted">{t('common.status', 'Status')}</span>
+                      <div>{acct.status ? <StatusPill variant={mapAccountStatus(acct.status)} label={acct.status} size="sm" /> : <span>—</span>}</div>
+                    </div>
                   </div>
-                </div>
-              )}
 
-            <h3 style={{ marginTop: 18 }}>{t('nav.invoices', 'Invoices')}</h3>
-            {invoices.length === 0
-              ? <p className="muted">{t('accounts.noInvoices', 'No invoices on this account yet.')}</p>
-              : (
-                <div className="card" style={{ overflow: 'hidden' }}>
-                  <div className="grid-wrap">
-                    <table className="grid">
-                      <thead><tr>
-                        <th scope="col">{t('invoices.number', 'Invoice')}</th>
-                        <th scope="col">{t('common.status', 'Status')}</th>
-                        <th scope="col" className="num">{t('invoices.total', 'Total')}</th>
-                      </tr></thead>
-                      <tbody>
-                        {invoices.map((inv) => (
-                          <tr key={inv.id}>
-                            <td><span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span></td>
-                            <td>{inv.status ? <StatusPill variant={mapBillingStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</td>
-                            <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                  <h3>{t('nav.subscriptions', 'Subscriptions')}</h3>
+                  {subs.length === 0
+                    ? <p className="muted">{t('accounts.noSubs', 'No subscriptions on this account yet.')}</p>
+                    : (
+                      <div className="card" style={{ overflow: 'hidden' }}>
+                        <div className="grid-wrap">
+                          <table className="grid">
+                            <thead><tr>
+                              <th scope="col">{t('subs.plan', 'Plan')}</th>
+                              <th scope="col" className="num">{t('subs.amount', 'Amount')}</th>
+                              <th scope="col">{t('accounts.cycle', 'Cycle')}</th>
+                              <th scope="col">{t('common.status', 'Status')}</th>
+                            </tr></thead>
+                            <tbody>
+                              {subs.map((sx) => (
+                                <tr key={sx.id}>
+                                  <td>{sx.plan_name ?? '—'}</td>
+                                  <td className="num"><span className="mono tnum">{money(sx.amount)}</span></td>
+                                  <td>{sx.cycle ?? '—'}</td>
+                                  <td>{sx.status ? <StatusPill variant={mapBillingStatus(sx.status)} label={sx.status} size="sm" /> : <span>—</span>}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                  <h3 style={{ marginTop: 18 }}>{t('nav.invoices', 'Invoices')}</h3>
+                  {invoices.length === 0
+                    ? <p className="muted">{t('accounts.noInvoices', 'No invoices on this account yet.')}</p>
+                    : (
+                      <div className="card" style={{ overflow: 'hidden' }}>
+                        <div className="grid-wrap">
+                          <table className="grid">
+                            <thead><tr>
+                              <th scope="col">{t('invoices.number', 'Invoice')}</th>
+                              <th scope="col">{t('common.status', 'Status')}</th>
+                              <th scope="col" className="num">{t('invoices.total', 'Total')}</th>
+                            </tr></thead>
+                            <tbody>
+                              {invoices.map((inv) => (
+                                <tr key={inv.id}>
+                                  <td><span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span></td>
+                                  <td>{inv.status ? <StatusPill variant={mapBillingStatus(inv.status)} label={inv.status} size="sm" /> : <span>—</span>}</td>
+                                  <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                </>
               )}
+              {tab === 'timeline'       && <AccountTimelineTab token={token} accountId={id} />}
+              {tab === 'tasks'          && <AccountTasksTab token={token} accountId={id} />}
+              {tab === 'comments'       && <AccountCommentsTab token={token} accountId={id} />}
+              {tab === 'attachments'    && <AccountAttachmentsTab token={token} accountId={id} />}
+              {tab === 'approvals'      && <AccountApprovalsTab token={token} accountId={id} />}
+              {tab === 'related'        && <AccountRelatedTab />}
+              {tab === 'communications' && <AccountCommunicationsTab token={token} accountId={id} />}
+              {tab === 'audit'          && <AccountAuditTab token={token} accountId={id} />}
+            </div>
           </>
         )}
     </PageShell>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Canonical Object Detail tab bodies (file 10) — each fetches on mount.
+// Same shape as frontend/src/views/customer-tabs/ but scoped to account.
+// 404 from a missing endpoint degrades to a friendly empty state (rule 5).
+// ─────────────────────────────────────────────────────────────────────────────
+type ActivityRow = { id: string; action?: string | null; actor?: string | null; message?: string | null; at?: string | null; created_at?: string | null }
+type TaskRow = { id: string; title?: string | null; status?: string | null; priority?: string | null; assignee?: string | null; due_at?: string | null }
+type CommentRow = { id: string; author?: string | null; author_name?: string | null; body?: string | null; text?: string | null; created_at?: string | null }
+type AttachmentRow = { id: string; filename?: string | null; name?: string | null; mime_type?: string | null; size?: number | null; uploaded_by?: string | null; uploaded_at?: string | null; created_at?: string | null; url?: string | null }
+type ApprovalRow = { id: string; request_type?: string | null; status?: string | null; requested_by?: string | null; requested_at?: string | null; decided_at?: string | null }
+type CommunicationRow = { id: string; channel?: string | null; direction?: string | null; subject?: string | null; from_address?: string | null; to_address?: string | null; occurred_at?: string | null; created_at?: string | null }
+type AuditRow = { id: string; action?: string | null; actor?: string | null; actor_id?: string | null; field?: string | null; old_value?: string | null; new_value?: string | null; at?: string | null; created_at?: string | null }
+
+function fmtDT(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
+}
+
+function tabSkeleton(): ReactNode {
+  return (
+    <div className="card" style={{ padding: 14 }} aria-busy="true">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 10 }} />
+      ))}
+    </div>
+  )
+}
+
+function AccountTimelineTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<ActivityRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<ActivityRow[]>(token, `/api/activity?entity_key=account&record_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        const sorted = [...r.data].sort((a, b) => (Date.parse(b.at ?? b.created_at ?? '') || 0) - (Date.parse(a.at ?? a.created_at ?? '') || 0))
+        setRows(sorted)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load the activity timeline.</p>
+  if (rows.length === 0) return <EmptyState title="No activity recorded yet" message="Changes to this account will appear here." />
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {rows.map((r) => (
+          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border, #e2e8f0)' }}>
+            <div style={{ fontSize: 13 }}>
+              <strong>{r.action ?? 'event'}</strong>
+              {r.actor && <span className="muted" style={{ marginLeft: 6 }}>· {r.actor}</span>}
+            </div>
+            {r.message && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{r.message}</div>}
+            <div className="muted mono" style={{ fontSize: 11, marginTop: 4 }}>{fmtDT(r.at ?? r.created_at)}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function AccountTasksTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<TaskRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<TaskRow[]>(token, `/api/tasks?parent_entity_type=account&parent_entity_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load tasks.</p>
+  if (rows.length === 0) return <EmptyState title="No tasks recorded yet" message="Tasks linked to this account will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">Title</th>
+            <th scope="col">Status</th>
+            <th scope="col">Priority</th>
+            <th scope="col">Assignee</th>
+            <th scope="col">Due</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.title ?? <span className="mono">{r.id.slice(0, 8)}</span>}</td>
+                <td>{r.status ?? '—'}</td>
+                <td>{r.priority ?? '—'}</td>
+                <td>{r.assignee ?? '—'}</td>
+                <td><span className="mono">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function AccountCommentsTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<CommentRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<CommentRow[]>(token, `/api/comments?owner_entity_type=account&owner_entity_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load comments.</p>
+  if (rows.length === 0) return <EmptyState title="No comments recorded yet" message="Comments on this account will appear here." />
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {rows.map((r) => (
+          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border, #e2e8f0)' }}>
+            <div style={{ fontSize: 13 }}>
+              <strong>{r.author_name ?? r.author ?? 'Unknown'}</strong>
+              <span className="muted mono" style={{ marginLeft: 8, fontSize: 11 }}>{fmtDT(r.created_at)}</span>
+            </div>
+            <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.body ?? r.text ?? ''}</div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function AccountAttachmentsTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<AttachmentRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<AttachmentRow[]>(token, `/api/attachments?owner_entity_type=account&owner_entity_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load attachments.</p>
+  if (rows.length === 0) return <EmptyState title="No attachments recorded yet" message="Files uploaded against this account will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">File</th>
+            <th scope="col">Type</th>
+            <th scope="col">Uploaded by</th>
+            <th scope="col">Uploaded at</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => {
+              const label = r.filename ?? r.name ?? r.id.slice(0, 8)
+              return (
+                <tr key={r.id}>
+                  <td>{r.url ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--gx-link)' }}>{label}</a> : <span>{label}</span>}</td>
+                  <td>{r.mime_type ?? '—'}</td>
+                  <td>{r.uploaded_by ?? '—'}</td>
+                  <td><span className="mono">{fmtDT(r.uploaded_at ?? r.created_at)}</span></td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function AccountApprovalsTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<ApprovalRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<ApprovalRow[]>(token, `/api/approvals?subject_type=account&subject_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load approvals.</p>
+  if (rows.length === 0) return <EmptyState title="No approvals recorded yet" message="Approval requests on this account will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">Request</th>
+            <th scope="col">Status</th>
+            <th scope="col">Requested by</th>
+            <th scope="col">Requested at</th>
+            <th scope="col">Decided at</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.request_type ?? <span className="mono">{r.id.slice(0, 8)}</span>}</td>
+                <td>{r.status ?? '—'}</td>
+                <td>{r.requested_by ?? '—'}</td>
+                <td><span className="mono">{fmtDT(r.requested_at)}</span></td>
+                <td><span className="mono">{fmtDT(r.decided_at)}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Related tab — placeholder per spec (no Wave A graph endpoint deployed yet).
+function AccountRelatedTab() {
+  return <EmptyState title="No related records recorded yet" message="Linked records across modules will appear here." />
+}
+
+function AccountCommunicationsTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<CommunicationRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<CommunicationRow[]>(token, `/api/communications?owner_entity_type=account&owner_entity_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        setRows(r.data)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load communications.</p>
+  if (rows.length === 0) return <EmptyState title="No communications recorded yet" message="Emails, calls, and messages will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">Channel</th>
+            <th scope="col">Direction</th>
+            <th scope="col">Subject</th>
+            <th scope="col">From</th>
+            <th scope="col">To</th>
+            <th scope="col">At</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.channel ?? '—'}</td>
+                <td>{r.direction ?? '—'}</td>
+                <td>{r.subject ?? <span className="muted">—</span>}</td>
+                <td>{r.from_address ?? '—'}</td>
+                <td>{r.to_address ?? '—'}</td>
+                <td><span className="mono">{fmtDT(r.occurred_at ?? r.created_at)}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function AccountAuditTab({ token, accountId }: { token: string; accountId: string }) {
+  const [rows, setRows] = useState<AuditRow[] | null | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    setRows(undefined)
+    bget<AuditRow[]>(token, `/api/events?entity_key=account&entity_id=${encodeURIComponent(accountId)}`)
+      .then((r) => {
+        if (cancelled) return
+        if (r.status === 404) { setRows([]); return }
+        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
+        const sorted = [...r.data].sort((a, b) => (Date.parse(b.at ?? b.created_at ?? '') || 0) - (Date.parse(a.at ?? a.created_at ?? '') || 0))
+        setRows(sorted)
+      })
+    return () => { cancelled = true }
+  }, [token, accountId])
+  if (rows === undefined) return tabSkeleton()
+  if (rows === null) return <p className="muted">Could not load audit log.</p>
+  if (rows.length === 0) return <EmptyState title="No audit entries recorded yet" message="Field-level changes to this account will appear here." />
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div className="grid-wrap">
+        <table className="grid">
+          <thead><tr>
+            <th scope="col">When</th>
+            <th scope="col">Actor</th>
+            <th scope="col">Action</th>
+            <th scope="col">Field</th>
+            <th scope="col">From</th>
+            <th scope="col">To</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td><span className="mono">{fmtDT(r.at ?? r.created_at)}</span></td>
+                <td>{r.actor ?? r.actor_id ?? '—'}</td>
+                <td>{r.action ?? '—'}</td>
+                <td>{r.field ?? '—'}</td>
+                <td><span className="muted">{r.old_value ?? '—'}</span></td>
+                <td>{r.new_value ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }

@@ -17,6 +17,8 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill } from '../primitives'
+import ErrorBoundary from '../components/ErrorBoundary'
+import LoadingState from '../components/LoadingState'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
@@ -258,7 +260,8 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
         )}
 
         {error && <ErrorBanner message={error} onRetry={load} />}
-        {list === null && !error && <p className="muted">Loading…</p>}
+        <ErrorBoundary onReset={load}>
+        {list === null && !error && <LoadingState kind="rows" label="Loading subscriptions…" />}
         {unavailable && (
           <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Subscriptions will appear here once the billing service is enabled." />
         )}
@@ -387,6 +390,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
             </div>
           </div>
         )}
+        </ErrorBoundary>
     </PageShell>
   )
 }
