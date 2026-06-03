@@ -288,9 +288,6 @@
 .ps-workspace[data-page-type="registry"] {
   padding: var(--gx-space-5) var(--gx-space-8);
   overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gx-space-5);
 }
 .ps-workspace[data-page-type="pipeline"] {
   padding: var(--gx-space-5) var(--gx-space-8);
@@ -321,19 +318,19 @@
 .ps-workspace[data-page-type="configuration"] {
   padding: var(--gx-space-5) var(--gx-space-8);
   overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gx-space-5);
 }
 .ps-workspace[data-page-type="workspace"] {
   padding: var(--gx-space-5) var(--gx-space-8);
   overflow: auto;
-  /* Auto-stack children with NOC-dashboard-like spacing so every detail
-     page gets consistent breathing room between sections without per-view
-     inline styling. */
-  display: flex;
-  flex-direction: column;
-  gap: var(--gx-space-5);
+}
+/* Sibling spacing via the "owl" selector — adds breathing room between
+   consecutive children WITHOUT touching display, so views that rely on
+   their own grid/flex layout (CalendarView's month/week grid, etc.) are
+   not disturbed. */
+.ps-workspace[data-page-type="workspace"] > * + *,
+.ps-workspace[data-page-type="registry"] > * + *,
+.ps-workspace[data-page-type="configuration"] > * + * {
+  margin-top: var(--gx-space-5);
 }
 .ps-workspace[data-page-type="placeholder"] {
   display: flex;
