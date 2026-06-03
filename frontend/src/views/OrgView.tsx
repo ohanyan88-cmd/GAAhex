@@ -1972,9 +1972,6 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
     try { localStorage.setItem(STORAGE_KEY, next) } catch { /* ignore */ }
   }
 
-  const activeLabel = SWITCHER.find((s) => s.id === layout)?.label ?? ''
-  const nodeCount = nodes.length
-
   return (
     <OrgEditContext.Provider value={edit}>
       <PageShell

@@ -63,8 +63,8 @@ The product must feel like a serious professional tool — not a SaaS demo.
   during 8-hour ISP operator shifts.
 
 ### Logo Specifications
-- File: `frontend/public/icon-light.png` — white/light variant (used on dark sidebar)
-- File: `frontend/public/icon-dark.png` — dark variant (used on light backgrounds / login card)
+- File: `design-system/frontend/public/icon-light.png` — white/light variant (used on dark sidebar)
+- File: `design-system/frontend/public/icon-dark.png` — dark variant (used on light backgrounds / login card)
 - The sidebar always shows `icon-light.png` regardless of theme — sidebar is intentionally kept
   dark in both light and dark mode so the logo reads consistently.
 - Login card uses `icon-dark.png` (or `icon-light.png` depending on card background).

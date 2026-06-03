@@ -8,7 +8,7 @@ The `frontend` design-token pass must use **exactly** these values (as CSS custo
 not guess or introduce off-palette colors, and never hardcode a theme's hex in a component.
 
 The logo carries the identity: **"GA" in Deep Cobalt, "ex" in Matte Gold** (already baked into
-`public/full-dark.png` / `icon-light.png`, which sit on the dark background).
+`design-system/frontend/public/full-dark.png` / `icon-light.png`, which sit on the dark background).
 
 ---
 
