@@ -38,6 +38,7 @@ import { bget, bpost } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { can, type Capabilities } from '../lib/capabilities'
 import { timeAgo } from '../lib/time'
+import Donut from '../components/charts/Donut'
 
 // ─── Marker clustering (optional dependency, defensive lazy load) ──────────
 // react-leaflet-cluster wraps leaflet.markercluster for react-leaflet v4.
@@ -843,11 +844,66 @@ export default function NocDashboardView({
         </Card>
       </div>
 
-      {/* ─── Legend ─────────────────────────────────────────────────
-          marginTop is preserved on a wrapping div: Card doesn't expose a
-          margin prop (intentionally — outer spacing is the parent's job),
-          and the surrounding "page body" div doesn't use a primitive that
-          would provide a row gap. */}
+      {/* ─── Network Analytics — donut breakdowns + per-PON bar chart ─── */}
+      <div style={{ marginTop: 'var(--sp-4)' }}>
+        <Card pad="sm">
+          <Stack gap="sm">
+            <SectionHeading icon={<ZapIcon size={14} />} title="Network Analytics" />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--sp-4)' }}>
+              {/* Port status donut */}
+              <Donut
+                size={160}
+                thickness={16}
+                centerLabel={String((health?.ports_up ?? 0) + (health?.ports_down ?? 0) + (health?.ports_fault ?? 0))}
+                centerCaption="ports"
+                data={[
+                  { label: 'Up', value: health?.ports_up ?? 0, color: 'var(--success, #22c55e)' },
+                  { label: 'Down', value: health?.ports_down ?? 0, color: 'var(--warning, #f59e0b)' },
+                  { label: 'Fault', value: health?.ports_fault ?? 0, color: 'var(--danger, #ef4444)' },
+                ]}
+              />
+              {/* ONU status donut */}
+              <Donut
+                size={160}
+                thickness={16}
+                centerLabel={String((health?.onus_active ?? 0) + (health?.onus_los ?? 0) + (health?.onus_offline ?? 0))}
+                centerCaption="ONUs"
+                data={[
+                  { label: 'Active', value: health?.onus_active ?? 0, color: 'var(--success, #22c55e)' },
+                  { label: 'LOS', value: health?.onus_los ?? 0, color: 'var(--warning, #f59e0b)' },
+                  { label: 'Offline', value: health?.onus_offline ?? 0, color: 'var(--danger, #ef4444)' },
+                ]}
+              />
+              {/* Per-PON load — inline horizontal bar chart */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                <div style={{ fontSize: 12, color: 'var(--gx-text-3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  ONUs per PON port
+                </div>
+                {(() => {
+                  const ports = tree?.chassis?.flatMap(c => c.cards?.flatMap(cd => cd.ports ?? []) ?? []) ?? []
+                  const max = Math.max(1, ...ports.map(p => p.onu_count ?? 0))
+                  if (ports.length === 0) return <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>Select an OLT to load per-PON load.</div>
+                  return ports.map(p => {
+                    const v = p.onu_count ?? 0
+                    const pct = (v / max) * 100
+                    return (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 12 }}>
+                        <div style={{ width: 40, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>0/{p.port_no}</div>
+                        <div style={{ flex: 1, height: 12, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', borderRadius: 6, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: v === 0 ? 'var(--gx-border, rgba(255,255,255,0.12))' : 'linear-gradient(90deg, var(--primary, #3b82f6), var(--accent, #c5a059))' }} />
+                        </div>
+                        <div style={{ width: 36, textAlign: 'right', fontFamily: 'var(--gx-font-mono, monospace)', color: v > 0 ? 'var(--gx-text-1)' : 'var(--gx-text-3)' }}>{v}</div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+            </div>
+          </Stack>
+        </Card>
+      </div>
+
+      {/* ─── Legend ───────────────────────────────────────────────── */}
       <div style={{ marginTop: 'var(--sp-4)' }}>
         <Card pad="sm">
           <Stack gap="sm">
