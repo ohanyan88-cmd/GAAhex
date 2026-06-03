@@ -18,7 +18,12 @@
 //   < -28       → critical (red)
 //   -28 … -26   → warning (amber)
 //   >= -26      → normal (green)
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import L from 'leaflet'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
@@ -31,6 +36,20 @@ import { bget, bpost } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { can, type Capabilities } from '../lib/capabilities'
 import { timeAgo } from '../lib/time'
+
+// ─── Leaflet default marker icon fix ────────────────────────────────────────
+// React-Leaflet doesn't pick up the bundler-served marker assets by default.
+// Patch the prototype once at module load so all Markers render their icon.
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+})
+
+// Yerevan center — sensible default for an Armenian ISP NOC view.
+const ARMENIA_DEFAULT_CENTER: [number, number] = [40.1772, 44.5035]
+const ARMENIA_DEFAULT_ZOOM = 11
 
 // ─── Types matching the NOC.B backend payloads ───────────────────────────────
 
@@ -219,6 +238,30 @@ export default function NocDashboardView({
   // Permission gates
   const canViewService = can(capabilities, 'service', 'view')
   const canWrite = canConfigure
+
+  // ── Map: technicians with usable GPS coordinates ──
+  // Filter defensively — last_lat/last_lng are nullable on the backend model,
+  // and we also guard against NaN / out-of-range values just in case.
+  const mappable = useMemo(() => {
+    return techs.filter((t) =>
+      typeof t.last_lat === 'number' &&
+      typeof t.last_lng === 'number' &&
+      Number.isFinite(t.last_lat) &&
+      Number.isFinite(t.last_lng) &&
+      Math.abs(t.last_lat as number) <= 90 &&
+      Math.abs(t.last_lng as number) <= 180,
+    ) as Array<Technician & { last_lat: number; last_lng: number }>
+  }, [techs])
+
+  // Center the map on the technician centroid when we have pings, otherwise Yerevan.
+  const mapCenter = useMemo<[number, number]>(() => {
+    if (mappable.length === 0) return ARMENIA_DEFAULT_CENTER
+    const sum = mappable.reduce(
+      (acc, t) => ({ lat: acc.lat + t.last_lat, lng: acc.lng + t.last_lng }),
+      { lat: 0, lng: 0 },
+    )
+    return [sum.lat / mappable.length, sum.lng / mappable.length]
+  }, [mappable])
 
   // Load dashboard rollup + OLT list
   useEffect(() => {
@@ -506,23 +549,70 @@ export default function NocDashboardView({
             </button>
           </div>
 
-          <div
-            className="muted"
-            style={{
-              fontSize: 12,
-              padding: 'var(--sp-2)',
-              background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
-              border: '1px dashed var(--gx-border)',
-              borderRadius: 'var(--gx-radius-sm)',
-              marginBottom: 'var(--sp-3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <MapPinIcon size={13} />
-            <span>Map view coming soon — showing live coordinates as list for now.</span>
-          </div>
+          {/* ─── Live map (OpenStreetMap tiles, no API key) ─────────── */}
+          {!loading && (
+            <div
+              style={{
+                marginBottom: 'var(--sp-3)',
+                borderRadius: 'var(--gx-radius-sm)',
+                overflow: 'hidden',
+                border: '1px solid var(--gx-border)',
+              }}
+            >
+              {mappable.length === 0 ? (
+                <div
+                  className="muted"
+                  style={{
+                    fontSize: 12,
+                    padding: 'var(--sp-3)',
+                    background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <MapPinIcon size={13} />
+                  <span>No technicians with GPS coordinates in the last 30 minutes.</span>
+                </div>
+              ) : (
+                <MapContainer
+                  center={mapCenter}
+                  zoom={ARMENIA_DEFAULT_ZOOM}
+                  scrollWheelZoom={false}
+                  style={{ height: 420, width: '100%' }}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  {mappable.map((t) => (
+                    <Marker
+                      key={t.technician_user_id}
+                      position={[t.last_lat, t.last_lng]}
+                    >
+                      <Popup>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
+                          <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                            {short(t.technician_user_id, 12)}
+                          </strong>
+                          <span>
+                            Last seen:{' '}
+                            {t.last_recorded_at
+                              ? new Date(t.last_recorded_at).toLocaleString()
+                              : '—'}
+                          </span>
+                          <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
+                            {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
+                          </span>
+                          <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              )}
+            </div>
+          )}
 
           {loading && <SkeletonRows rows={4} />}
 
