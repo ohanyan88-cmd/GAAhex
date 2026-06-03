@@ -7,6 +7,7 @@ Importing the module is the trigger — e.g. ``import app.services.olt.drivers.h
 will both expose ``HuaweiDriver`` AND register ``'huawei'`` in the factory registry.
 """
 from .huawei import HuaweiDriver
+from .vsol import VsolDriver
 from .zte import ZteDriver
 
-__all__ = ["HuaweiDriver", "ZteDriver"]
+__all__ = ["HuaweiDriver", "VsolDriver", "ZteDriver"]
