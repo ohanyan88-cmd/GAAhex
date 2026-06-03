@@ -5,7 +5,7 @@ import {
   PlusIcon, CloseIcon, CheckIcon,
 } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
-import { PageShell, Stack, Inline, Card } from '../page-shell'
+import { PageShell } from '../page-shell'
 
 import { BASE } from '../lib/config'
 
@@ -394,31 +394,29 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
   const body = (
     <>
-      <Stack gap="md">
-        <Inline gap="sm" align="center" justify="between" className="cal-subbar">
-          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
-            {rangeLabel}
-            {loading ? ' · loading…' : ''}
-            {loadError ? ` · ${loadError}` : ''}
-          </div>
-          <Inline gap="sm" align="center">
-            <div className="cal-nav">
-              <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
-                <ChevronLeftIcon size={18} />
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={goToday}>Today</button>
-              <button className="tb-icon" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
-                <ChevronRightIcon size={18} />
-              </button>
-            </div>
-            <div className="seg hide-sm">
-              <button type="button" className={calView === 'month' ? 'on' : ''} onClick={() => setCalView('month')}>Month</button>
-              <button type="button" className={calView === 'week' ? 'on' : ''} onClick={() => setCalView('week')}>Week</button>
-            </div>
-          </Inline>
-        </Inline>
+      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
+          {rangeLabel}
+          {loading ? ' · loading…' : ''}
+          {loadError ? ` · ${loadError}` : ''}
+        </div>
+        <span className="spacer" style={{ flex: 1 }} />
+        <div className="cal-nav">
+          <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
+            <ChevronLeftIcon size={18} />
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={goToday}>Today</button>
+          <button className="tb-icon" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
+            <ChevronRightIcon size={18} />
+          </button>
+        </div>
+        <div className="seg hide-sm">
+          <button type="button" className={calView === 'month' ? 'on' : ''} onClick={() => setCalView('month')}>Month</button>
+          <button type="button" className={calView === 'week' ? 'on' : ''} onClick={() => setCalView('week')}>Week</button>
+        </div>
+      </div>
 
-        <div className="cal-layout">
+      <div className="cal-layout">
         <aside className="cal-rail hide-sm">
           <MiniCal />
 
@@ -541,7 +539,6 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           {calView === 'week' && <WeekView />}
         </div>
       </div>
-      </Stack>
 
       {/* ── Event create / edit modal ─────────────────────────────────────── */}
       <Modal
