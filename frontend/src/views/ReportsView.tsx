@@ -156,7 +156,7 @@ export default function ReportsView({
 
   // KPIs: total reportable count + entity type count (only when data has loaded)
   const kpis: KPISpec[] | undefined = !loading && summary.length > 0 ? [
-    { label: 'Total records',   value: fmtNum(totalReportable), premium: true },
+    { label: 'Total records',   value: fmtNum(totalReportable) },
     { label: 'Entity types',    value: summary.length },
   ] : undefined
 
@@ -180,16 +180,16 @@ export default function ReportsView({
 
         {!loading && !error && summary.length > 0 && (
           <>
-            {/* KPI strip — each entity is a clickable tile. The first tile gets the gold
-                marquee accent (kit convention: headline metric first). */}
+            {/* KPI strip — each entity is a clickable tile. Per the KPI Tile
+                Standard (D17) every tile uses the same visual treatment;
+                colored value text (warning/danger/muted) reflects state. */}
             <div className="kpis">
-              {summary.map((s, i) => (
+              {summary.map((s) => (
                 <EntityKpi
                   key={s.entity_key}
                   label={s.label_plural}
                   value={s.count}
                   active={selected === s.route_slug}
-                  marquee={i === 0}
                   onClick={() => openEntity(s.route_slug)}
                 />
               ))}
@@ -233,27 +233,27 @@ export default function ReportsView({
   )
 }
 
-// Clickable KPI tile. Pressed state uses `kpi--marquee` lookalike via aria-pressed
-// Adapter onto the shared <KPITile> primitive — gives every entity tile the same
-// hover lift / focus ring / premium accent as every other dashboard in the app.
+// Clickable KPI tile. Adapter onto the shared <KPITile> primitive — gives every
+// entity tile the same hover behavior / focus ring as every other dashboard in
+// the app, per the KPI Tile Standard (D17). The `active` outline indicates the
+// currently-pinned entity in the picker, not a "premium" highlight.
 // Doctrine rule 3: no historical series → no sparkline / no delta. We'll wire that
 // once a real time-series endpoint exists.
 function EntityKpi({
-  label, value, active, marquee, onClick,
+  label, value, active, onClick,
 }: {
   label: string
   value: number
   active: boolean
-  marquee: boolean
   onClick: () => void
 }) {
   return (
-    <div style={active ? { outline: '1px solid var(--gx-primary)', outlineOffset: -1, borderRadius: 'var(--gx-radius-lg)' } : undefined}>
+    // D18: KPI tile acting as an active filter selection = azure outline (interactive selected state)
+    <div style={active ? { outline: '1px solid var(--gx-interactive)', outlineOffset: -1, borderRadius: 'var(--gx-radius-lg)' } : undefined}>
       <KPITile
         label={label}
         value={fmtNum(value)}
         size="sm"
-        premium={marquee}
         onClick={onClick}
         ariaLabel={`${label} — ${fmtNum(value)}. Click to open the ${label} list.`}
       />

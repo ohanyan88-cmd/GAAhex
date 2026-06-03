@@ -112,5 +112,5 @@ UPPER_SNAKE rule and use the design-system's PascalCase token names.**
 
 ## Governance
 Enum values are immutable; lifecycle is `ACTIVE` or `DEPRECATED` (never `DELETED`). Adding values
-requires owner-department governance. Status enums depend on the Global Status Standard (file 07,
-SOURCE NOT PROVIDED) for any global status taxonomy — reconcile on receipt.
+requires owner-department governance. Status enums depend on the Global Status Standard
+(file 16) for any global status taxonomy.

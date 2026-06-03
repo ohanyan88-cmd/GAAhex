@@ -143,6 +143,152 @@ _ONU_ADD_RE = re.compile(
 _SHUTDOWN_RE = re.compile(r"^\s*shutdown\s*$", re.IGNORECASE)
 _NO_SHUTDOWN_RE = re.compile(r"^\s*no\s+shutdown\s*$", re.IGNORECASE)
 
+# V1600 'show onu *' commands return rows with ANSI cursor-position escapes
+# like ``\x1b[12C`` to align columns. We strip those before parsing — the ESC
+# byte may or may not be present in the captured stream depending on the PTY
+# layer, so we match both forms.
+_ANSI_CURSOR_RE = re.compile(r"\x1b?\[[0-9;]*[A-Za-z]")
+
+
+def _strip_ansi(text: str) -> str:
+    """Replace ANSI cursor-position escapes with a single space.
+
+    Also collapses bare carriage returns to spaces — V1600 ``show onu *``
+    rows separate columns with ``\\r\\x1b[NNC`` (cursor-to-column NN), so the
+    raw row has no ``\\n`` between fields. Treating ``\\r`` as a space keeps
+    the row on a single line for ``splitlines()``.
+    """
+    return _ANSI_CURSOR_RE.sub(" ", text).replace("\r", " ")
+
+
+def _parse_onu_state_row(text: str, *, target_onu_id: int) -> dict[str, Any] | None:
+    """Parse a single row from ``show onu state <id>`` output.
+
+    Expected (after ANSI strip)::
+
+        OnuIndex    Admin State    OMCC State    Phase State    Serial Number
+        ---------------------------------------------------------------
+        GPON0/1:2   enable         enable        working        GPON00b0aa98
+        pon: 1 total: 1 working: 1
+    """
+    cleaned = _strip_ansi(text)
+    for line in cleaned.splitlines():
+        line = line.strip()
+        if not line.startswith("GPON"):
+            continue
+        parts = re.split(r"\s+", line)
+        if len(parts) < 5:
+            continue
+        # Confirm we matched the right ONU id (first token like "GPON0/1:2").
+        m = re.match(r"^GPON\d+/\d+:(\d+)$", parts[0])
+        if not m or int(m.group(1)) != target_onu_id:
+            continue
+        return {
+            "onu_index": parts[0],
+            "admin_state": parts[1],
+            "omcc_state": parts[2],
+            "phase_state": parts[3],
+            "serial": parts[4],
+        }
+    return None
+
+
+def _parse_onu_info_row(text: str, *, target_onu_id: int) -> dict[str, Any] | None:
+    """Parse a single row from ``show onu info <id>`` output.
+
+    Expected (after ANSI strip)::
+
+        Onuindex   Model       Profile   Mode    AuthInfo
+        ---------------------------------------------------------------
+        GPON0/1:2  V342        default   sn      GPON00b0aa98
+    """
+    cleaned = _strip_ansi(text)
+    for line in cleaned.splitlines():
+        line = line.strip()
+        if not line.startswith("GPON"):
+            continue
+        parts = re.split(r"\s+", line)
+        if len(parts) < 5:
+            continue
+        m = re.match(r"^GPON\d+/\d+:(\d+)$", parts[0])
+        if not m or int(m.group(1)) != target_onu_id:
+            continue
+        return {
+            "onu_index": parts[0],
+            "model": parts[1],
+            "profile": parts[2],
+            "auth_mode": parts[3],
+            "auth_info": parts[4],
+        }
+    return None
+
+
+_DETAIL_HEADER_RE = re.compile(
+    r"^-+\s*onu\s+(\d+)\s+def?ail-info\s*-+\s*$", re.IGNORECASE,
+)
+_DETAIL_KV_RE = re.compile(
+    r"^\s*([A-Za-z][A-Za-z0-9 ]*?)\s*:\s*(.*?)\s*$",
+)
+
+
+def _parse_onu_state_all(text: str) -> dict[int, dict[str, str]]:
+    """Parse every row of a multi-row ``show onu state`` output.
+
+    Returns ``{onu_id: {admin_state, omcc_state, phase_state, serial}}``.
+    """
+    cleaned = _strip_ansi(text)
+    out: dict[int, dict[str, str]] = {}
+    for line in cleaned.splitlines():
+        line = line.strip()
+        if not line.startswith("GPON"):
+            continue
+        parts = re.split(r"\s+", line)
+        if len(parts) < 5:
+            continue
+        m = re.match(r"^GPON\d+/\d+:(\d+)$", parts[0])
+        if not m:
+            continue
+        out[int(m.group(1))] = {
+            "admin_state": parts[1],
+            "omcc_state": parts[2],
+            "phase_state": parts[3],
+            "serial": parts[4],
+        }
+    return out
+
+
+def _parse_onu_detail_block(
+    text: str, *, target_onu_id: int,
+) -> dict[str, str] | None:
+    """Parse the ``---------onu N defail-info---------`` block for one ONU.
+
+    The firmware mis-spells "detail" as "defail" — we accept both. Keys are
+    returned verbatim from the device so the operator can confirm what came
+    from the wire.
+    """
+    cleaned = _strip_ansi(text)
+    in_target = False
+    out: dict[str, str] = {}
+    for line in cleaned.splitlines():
+        hm = _DETAIL_HEADER_RE.match(line)
+        if hm:
+            if int(hm.group(1)) == target_onu_id:
+                in_target = True
+                out = {}
+                continue
+            if in_target:
+                break  # next ONU's block — stop
+            continue
+        if not in_target:
+            continue
+        kv = _DETAIL_KV_RE.match(line)
+        if kv:
+            key = kv.group(1).strip()
+            val = kv.group(2).strip()
+            if key:
+                out[key] = val
+    return out or None
+
 # Optical-info parser (PROVISIONAL — exact syntax not verified on hardware yet).
 _RX_POWER_RE = re.compile(
     r"R[Xx]\s*Power[^:\-\d]*:?\s*(-?\d+(?:\.\d+)?)",
@@ -518,10 +664,11 @@ class _V1600Session:
     def _build_prompt_regex(self, hostname: str) -> re.Pattern[str]:
         """Compile a prompt matcher from the device hostname.
 
-        Matches ``<hostname>#`` and sub-modes like ``<hostname>(config)#``.
+        Matches ``<hostname>#`` plus sub-modes like ``<hostname>(config)#`` and
+        ``<hostname>(config-pon-0/1)#`` (slash + digits inside the parens).
         """
         escaped = re.escape(hostname)
-        return re.compile(rf"\r?\n?{escaped}(?:\([\w\-]+\))?#\s*$")
+        return re.compile(rf"\r?\n?{escaped}(?:\([^)]*\))?[#>]\s*$")
 
     async def connect(self) -> None:
         if self._connected:
@@ -759,8 +906,115 @@ class VsolV1600Driver:
             sess_host = getattr(self._session, "hostname", None)
             if sess_host:
                 topo["hostname"] = sess_host
+
+        # Walk every PON and pull `show onu state` to enrich each ONU with
+        # admin / OMCC / phase state. Costs 8 extra commands on a fully-loaded
+        # V1600 — acceptable for the 60s auto-refresh.
+        try:
+            await self._session.execute("configure terminal")
+            try:
+                phase_totals = {"working": 0, "offline": 0, "dyinggasp": 0, "other": 0}
+                for port in topo.get("ports") or []:
+                    port_no = int(port["port_no"])
+                    await self._session.execute(
+                        f"interface gpon 0/{port_no}"
+                    )
+                    state_text = await self._session.execute("show onu state")
+                    states = _parse_onu_state_all(state_text)
+                    for onu in port.get("onus") or []:
+                        st = states.get(int(onu["onu_id"]))
+                        if st:
+                            onu["admin_state"] = st["admin_state"]
+                            onu["omcc_state"] = st["omcc_state"]
+                            onu["phase_state"] = st["phase_state"]
+                            phase = st["phase_state"]
+                            if phase in phase_totals:
+                                phase_totals[phase] += 1
+                            else:
+                                phase_totals["other"] += 1
+                    await self._session.execute("exit")
+                topo["phase_totals"] = phase_totals
+            finally:
+                try:
+                    await self._session.execute("exit")
+                except Exception:  # noqa: BLE001
+                    pass
+        except Exception as e:  # noqa: BLE001
+            # Phase enrichment is opportunistic — if it fails, fall back to
+            # running-config-only topology so the refresh still completes.
+            topo["phase_pull_error"] = str(e)
+
         self._last_topology = topo
         return topo
+
+    # ----------------------------------------------------------- per-ONU detail
+
+    async def get_onu_live_detail(self, serial: str) -> dict[str, Any]:
+        """Pull rich per-ONU info from the V1600's per-interface command set.
+
+        NOT part of :class:`OltDriver` — like :meth:`pull_topology`, this is an
+        extension point the NOC layer calls. Drops into ``interface gpon 0/N``
+        (which the device names ``config-pon-0/N``) and runs the three
+        commands V1600 firmware V1.4.7R actually responds to:
+
+        * ``show onu state <id>`` → admin/OMCC/phase state + serial
+        * ``show onu info <id>`` → model, profile, auth-mode/auth-info
+        * ``show onu detail-info <id>`` → vendor ID, version, equipment ID,
+          security mode, total GEM ports, sysuptime, OMCC version, etc.
+
+        Returns::
+
+            {"serial": str, "port_no": int, "onu_id": int,
+             "state": dict | None, "info": dict | None,
+             "detail": dict[str, str] | None,
+             "raw": {"state": str, "info": str, "detail": str}}
+        """
+        await self._ensure_connected()
+        assert self._session is not None
+        loc = await self._find_onu_location(serial)
+        if loc is None:
+            raise OltCommandError(
+                f"V1600: serial {serial!r} not found on this OLT"
+            )
+        port_no, onu_id = loc
+
+        # Drop into config-pon-0/N. Both transitions emit their own prompt so
+        # ``execute`` will return with the new prompt regex still matching.
+        await self._session.execute("configure terminal")
+        await self._session.execute(f"interface gpon 0/{port_no}")
+        try:
+            state_text = await self._session.execute(
+                f"show onu state {onu_id}"
+            )
+            info_text = await self._session.execute(
+                f"show onu info {onu_id}"
+            )
+            detail_text = await self._session.execute(
+                f"show onu detail-info {onu_id}"
+            )
+        finally:
+            # Always climb back out, even on parse / read failure.
+            try:
+                await self._session.execute("exit")
+                await self._session.execute("exit")
+            except Exception:  # noqa: BLE001
+                pass
+
+        return {
+            "serial": serial,
+            "port_no": port_no,
+            "onu_id": onu_id,
+            "state": _parse_onu_state_row(state_text, target_onu_id=onu_id),
+            "info": _parse_onu_info_row(info_text, target_onu_id=onu_id),
+            "detail": _parse_onu_detail_block(
+                detail_text, target_onu_id=onu_id,
+            ),
+            "raw": {
+                "state": state_text,
+                "info": info_text,
+                "detail": detail_text,
+            },
+        }
 
     # ------------------------------------------------------------------ status
 

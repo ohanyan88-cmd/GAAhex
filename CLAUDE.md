@@ -61,12 +61,12 @@ orchestrator can decide: align, document an exception, or revise the standard.
 ## Where to look first
 - **`docs/standards/00-standards-index.md`** — canonical index of all 70 standards (TOC + status + dependencies)
 - **`docs/standards/14-enum-registry.md`** — every enum name, owner department, and `UPPER_SNAKE_CASE` values
-- **`docs/standards/15-permission-registry.md`** — `Object.Action` permission keys (immutable once released)
-- **`docs/standards/13-consistency-patch-notes.md`** — recent normalization decisions (B1–B5, S1–S5, D1–D16)
+- **`docs/standards/15-permission-registry.md`** — `object.action` permission keys (immutable once released)
+- **`docs/standards/13-consistency-patch-notes.md`** — normalization patches (B1–B5, S1–S5, D1–D19). D17 = KPI Tile Standard (no premium highlight, colored value text + tooltip). D18 = Color Token Families (Cobalt = brand spine · Gold = signature · Azure = interactive · Slate = neutrals · Semantic = status — each family has one role only). D19 = Rule ↔ Implementation Parity (no standing rule/code contradiction; reconcile by amending whichever is wrong).
 
 ## What overrides what
 - A LOCKED standard overrides personal style choices
-- 7 standards carry status `SOURCE NOT PROVIDED` (Global Status, Automation, Integration, Security & Permission, Data Validation, Search & Filter, Navigation base) — implementations against these are provisional until their text lands
+- All 70 standards are LOCKED. The 7 formerly `SOURCE NOT PROVIDED` items (Global Status, Security & Permission, Automation, Integration, Data Validation, Search & Filter, Navigation base) were written code-accurate as files 16–22 in the Fifth patch (see file 13). No standard is provisional.
 - The Strategic Product Direction (file 01) is the parent of all other standards — re-read it if any deeper standard seems to conflict
 
 ## Quick conformance checks before shipping code
@@ -75,4 +75,4 @@ orchestrator can decide: align, document an exception, or revise the standard.
 - Every tenant-scoped entity carries `tenantId` (D1)
 - Every page consumes `PageShell` + the 6 standard zones (file 10)
 - Every detail page exposes the common tab set (Overview, Timeline, Tasks, Comments, Attachments, Approvals, Related, Communications, Audit — file 10 §Object Detail) before any object-specific tabs
-- Every permission grant follows `Object.Action` (file 15) — keys are immutable
+- Every permission grant follows `object.action` (file 15) — keys are immutable

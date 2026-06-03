@@ -450,7 +450,8 @@ function NiTab({ active, onClick, icon, label, sub }: {
         padding: '10px 16px',
         background: 'transparent',
         border: 'none',
-        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: active ? 600 : 500,

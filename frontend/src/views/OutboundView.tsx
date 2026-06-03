@@ -346,7 +346,8 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
                 <FIcon size={15} />
                 <span>{f.label}</span>
                 {count > 0 && (
-                  <span className="badge" style={{ marginLeft: 'auto', background: active ? 'var(--gx-primary)' : 'var(--gx-surface-2)', color: active ? 'var(--gx-on-primary)' : 'var(--gx-text-3)' }}>{count}</span>
+                  // D18: active folder count badge = azure (interactive selection)
+                  <span className="badge" style={{ marginLeft: 'auto', background: active ? 'var(--gx-interactive)' : 'var(--gx-surface-2)', color: active ? 'var(--gx-on-primary)' : 'var(--gx-text-3)' }}>{count}</span>
                 )}
               </button>
             )

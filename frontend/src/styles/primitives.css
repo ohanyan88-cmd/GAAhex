@@ -103,29 +103,23 @@ button.kpi-tile, a.kpi-tile {
   width:100%;
 }
 
-/* Clickable variant — hover lift, pointer cursor, focus-visible ring. */
+/* KPI Tile Standard (D17) — every tile renders with the same shadow + border
+   by default. Hover keeps the 1px border but tints it to GAAhex gold and adds
+   a soft outward glow. We intentionally skip the 1px ring that lives inside
+   `--gx-glow-gold` so the gold edge stays a single clean line (the ring +
+   border were stacking and reading as a thicker stroke). Both colorways
+   auto-switch via theme tokens (dark = #C5A059, light = #AC8847).
+   The tile itself never lifts or moves — only border + glow change. */
 .kpi-tile[data-clickable="true"] { cursor:pointer; }
-.kpi-tile[data-clickable="true"]:hover {
-  box-shadow:var(--gx-shadow-md);
-  transform:translateY(-1px);
-  border-color:var(--gx-border-strong);
+.kpi-tile:hover {
+  border-color:var(--gx-gold);
+  box-shadow:0 6px 24px var(--gx-gold-soft);
 }
 .kpi-tile[data-clickable="true"]:focus { outline:none; }
 .kpi-tile[data-clickable="true"]:focus-visible {
   outline:2px solid var(--gx-primary);
   outline-offset:2px;
 }
-/* Plain (non-clickable) variant: no hover lift, no cursor change. The base rule
-   already sets cursor:default — only re-affirm hover behavior here for clarity. */
-.kpi-tile:not([data-clickable="true"]):hover { transform:none; box-shadow:var(--gx-shadow-sm); border-color:var(--gx-border); }
-
-/* Premium tile — the one designated headline metric per dashboard. */
-.kpi-tile[data-premium="true"] { box-shadow:var(--gx-glow-gold); border-color:transparent; }
-.kpi-tile[data-premium="true"]::before {
-  content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px;
-  background:var(--gx-gold); border-radius:99px;
-}
-.kpi-tile-value.premium { color:var(--gx-gold); }
 
 /* Sub-element typography */
 .kpi-tile-label { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); font-family:var(--gx-font-mono); }
@@ -141,6 +135,57 @@ button.kpi-tile, a.kpi-tile {
 .kpi-tile.error { border-color:var(--gx-danger); }
 .kpi-tile.error .kpi-tile-value { color:var(--gx-danger); }
 .kpi-tile-skeleton { background:var(--gx-skeleton); border-radius:var(--gx-radius-md); animation:pulse 1.5s ease-in-out infinite; }
+
+/* KPI Tile Standard (D17) — hover-revealed info popover.
+   Every tile that defines `tooltip` shows a popover above the tile on hover or
+   keyboard focus. Pure CSS — no JS portal. Pointer-events: none so the popover
+   never steals clicks from the tile.
+
+   Motion: fade only — the popover does NOT slide or pop up. Per Gev's call
+   (2026-06-03): the tile feels less "jumpy" if the popover just appears in
+   place. Slight scale-up on reveal gives a subtle sense of arrival without
+   moving the layout. */
+.kpi-tile-tooltip {
+  position:absolute;
+  bottom:calc(100% + 6px);
+  left:50%;
+  transform:translateX(-50%) scale(.97);
+  transform-origin:bottom center;
+  min-width:200px; max-width:280px;
+  padding:8px 10px;
+  background:var(--gx-surface-2, rgba(20,20,28,0.96));
+  border:1px solid var(--gx-border-strong, rgba(255,255,255,0.12));
+  border-radius:var(--gx-radius-md);
+  box-shadow:var(--gx-shadow-md);
+  font-family:var(--gx-font-sans);
+  font-size:11px;
+  font-weight:normal;
+  letter-spacing:normal;
+  text-transform:none;
+  color:var(--gx-text-2);
+  line-height:1.45;
+  white-space:normal;
+  text-align:left;
+  z-index:50;
+  opacity:0;
+  pointer-events:none;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.kpi-tile-tooltip::after {
+  content:""; position:absolute; left:50%; top:100%;
+  transform:translateX(-50%);
+  border:5px solid transparent;
+  border-top-color:var(--gx-border-strong, rgba(255,255,255,0.12));
+}
+.kpi-tile:hover .kpi-tile-tooltip,
+.kpi-tile:focus-visible .kpi-tile-tooltip,
+.kpi-tile:focus-within .kpi-tile-tooltip {
+  opacity:1;
+  transform:translateX(-50%) scale(1);
+  transition-delay:.3s;  /* dwell — cursor pass-through doesn't flash */
+}
 
 /* extension: DataTableCell primitive */
 .dtc { padding:11px 14px; border-bottom:1px solid var(--gx-border-subtle); color:var(--gx-text-1); font-size:12.5px; text-align:left; }

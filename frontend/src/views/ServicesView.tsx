@@ -156,7 +156,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Total', value: all.length, subtitle: `${activeCount} active`, onClick: () => setStatus('') },
-    { label: 'Active', value: activeCount, subtitle: 'delivering', premium: true, onClick: () => setStatus('ACTIVE') },
+    { label: 'Active', value: activeCount, subtitle: 'delivering', onClick: () => setStatus('ACTIVE') },
     ...(pendingCount > 0 ? [{ label: 'Pending', value: pendingCount, subtitle: 'awaiting activation', onClick: () => setStatus('PENDING') }] : []),
     ...(suspendedCount > 0 ? [{ label: 'Suspended', value: suspendedCount, subtitle: 'action required', warning: true, onClick: () => setStatus('SUSPENDED') }] : []),
     ...(terminatedCount > 0 ? [{ label: 'Terminated', value: terminatedCount, subtitle: 'closed', danger: true, onClick: () => setStatus('TERMINATED') }] : []),
@@ -234,7 +234,8 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
                           {sortKey === c.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>

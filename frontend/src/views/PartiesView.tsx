@@ -130,7 +130,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
   const orgCount = all.filter(p => (p.type ?? '').toLowerCase() === 'organization').length
   const carrierCount = all.filter(p => (p.type ?? '').toLowerCase() === 'carrier').length
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Total', value: all.length, subtitle: 'parties on record', premium: true, onClick: () => setQuery('') },
+    { label: 'Total', value: all.length, subtitle: 'parties on record', onClick: () => setQuery('') },
     ...(indivCount > 0 ? [{ label: 'Individuals', value: indivCount, subtitle: 'people', onClick: () => setQuery('individual') }] : []),
     ...(orgCount > 0 ? [{ label: 'Organizations', value: orgCount, subtitle: 'companies', onClick: () => setQuery('organization') }] : []),
     ...(carrierCount > 0 ? [{ label: 'Carriers', value: carrierCount, subtitle: 'upstream', onClick: () => setQuery('carrier') }] : []),
@@ -208,7 +208,8 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                            : k === 'parent' ? t('parties.parent', 'Parent')
                            : t('common.status', 'Status')}
                           {sortKey === k
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>

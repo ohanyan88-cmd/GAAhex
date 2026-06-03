@@ -1,0 +1,452 @@
+/* NMS — Network Management System palette + neon accents.
+ *
+ * Locked 2026-06-03 by Gev for the production NMS rebuild. This is the ONLY
+ * page using the "native" shadcn-zinc baseline; the rest of GAAhex stays on
+ * cobalt+gold (D17). Tokens here are namespaced `--nms-*` so they never
+ * collide with the platform `--gx-*` tokens.
+ *
+ * Use neon accents ONLY for status pulses (active dot, warning flash, critical
+ * alarm). Never as decoration. Per D17, state is communicated by colored value
+ * text or a small badge — never by tile chrome.
+ */
+:root {
+  /* ── Routed entirely through GAAhex brand tokens (`--gx-*`) so the NMS
+       page is on-brand with the rest of the platform. Cobalt + Gold +
+       semantic status palette. Theme switching is automatic (the gx tokens
+       carry their own light/dark values). */
+
+  /* Surfaces — cobalt navy family */
+  --nms-bg:            var(--gx-bg);
+  --nms-surface:       var(--gx-surface);
+  --nms-surface-2:     var(--gx-surface-2);
+  --nms-surface-3:     var(--gx-border-strong);
+
+  /* Borders */
+  --nms-border:        var(--gx-border);
+  --nms-border-strong: var(--gx-border-strong);
+  --nms-border-soft:   rgba(244,246,249,0.06);
+
+  /* Text */
+  --nms-text:          var(--gx-text-1);
+  --nms-text-2:        var(--gx-text-2);
+  --nms-text-3:        var(--gx-text-3);
+  --nms-text-inv:      var(--gx-bg);
+
+  /* PALETTE PHILOSOPHY (Gev 2026-06-03, after the "too much blue" feedback):
+     Per D17, brand colors are SIGNATURE — sparing. Most data viz uses
+     neutral text shades; cobalt + gold appear only where they MEAN something.
+
+       · neutrals (text-2, text-3)  → 95% of bars, donut slices, default chrome
+       · cobalt (--gx-primary)      → ACTIVE selection, hover, focus, interactive
+       · gold   (--gx-gold)         → CRITICAL alerts, PEAK markers, FEATURED
+
+     Severity hierarchy on data: neutral → dimmer neutral → GOLD (the attention).
+     Cobalt does NOT appear in passive data — only when something is
+     interactive or actively selected. */
+  --nms-neon-green:    var(--gx-text-2);     /* neutral — healthy data, plain bars */
+  --nms-neon-amber:    var(--gx-text-3);     /* dimmer neutral — quiet warning */
+  --nms-neon-red:      var(--gx-gold);       /* gold — critical / attention */
+  --nms-neon-cyan:     var(--gx-interactive); /* azure — interactive (D18 routing, 2026-06-04) */
+  --nms-accent-gold:   var(--gx-gold);
+
+  /* Soft tints — neutrals get transparent backgrounds (no chromatic fill);
+     gold + cobalt keep their tinted fills as the "signature" markers. */
+  --nms-neon-green-soft: rgba(244,246,249,0.04);  /* near-transparent neutral */
+  --nms-neon-amber-soft: transparent;
+  --nms-neon-red-soft:   var(--gx-gold-soft);
+  --nms-neon-cyan-soft:  var(--gx-primary-soft);
+  --nms-accent-gold-soft: var(--gx-gold-soft);
+
+  /* Dimmed-neutral — used for the "middle" state in 3-way distributions
+     where neither end is critical. Same family as the bar default. */
+  --nms-cobalt-dim:    var(--gx-text-3);
+
+  /* Glow tokens — kept as no-ops; brand UI does not glow. */
+  --nms-glow-green:    none;
+  --nms-glow-amber:    none;
+  --nms-glow-red:      none;
+  --nms-glow-cyan:     none;
+
+  /* ── Radii ───────────────────────────────────────────────────────────── */
+  --nms-radius-sm:     6px;
+  --nms-radius-md:     10px;
+  --nms-radius-lg:     14px;
+
+  /* ── Spacing (matches GAAhex --sp-N scale for consistency) ─────────────── */
+  --nms-sp-1:          4px;
+  --nms-sp-2:          8px;
+  --nms-sp-3:          12px;
+  --nms-sp-4:          16px;
+  --nms-sp-5:          24px;
+  --nms-sp-6:          32px;
+
+  /* ── Shadows (subtle elevation, no glow) ─────────────────────────────── */
+  --nms-shadow-sm:     0 1px 2px rgba(0,0,0,0.6);
+  --nms-shadow-md:     0 4px 12px rgba(0,0,0,0.5);
+  --nms-shadow-lg:     0 12px 32px rgba(0,0,0,0.55);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --nms-dur-fast:      120ms;
+  --nms-dur-base:      180ms;
+  --nms-dur-slow:      280ms;
+  --nms-ease:          cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Page-level surface
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-page {
+  background: var(--nms-bg);
+  color: var(--nms-text);
+  min-height: 100vh;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Widget card — universal shell for every NMS widget.
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-card {
+  background: var(--nms-surface);
+  border: 1px solid var(--nms-border);
+  border-radius: var(--nms-radius-md);
+  box-shadow: var(--nms-shadow-sm);
+  padding: var(--nms-sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--nms-sp-3);
+  min-height: 0;
+  position: relative;
+  transition: border-color var(--nms-dur-base) var(--nms-ease);
+}
+
+.nms-card:hover {
+  border-color: var(--nms-border-strong);
+}
+
+.nms-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nms-sp-2);
+}
+
+.nms-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--nms-text-2);
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+}
+
+.nms-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nms-sp-3);
+  min-height: 0;
+}
+
+/* Representative-data tag — shown on widgets running in design-preview mode.
+   Removed the moment a widget is wired to real data. Per Gev: no widget ships
+   in production with sample data without this tag visible. */
+.nms-card-preview-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--nms-surface-2);
+  border: 1px solid var(--nms-border-strong);
+  color: var(--nms-text-3);
+  font-size: 9px;
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+/* "Pending data source" empty state body — same chrome as a live widget,
+   honest about what's missing. */
+.nms-card-pending {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--nms-sp-4);
+  border: 1px dashed var(--nms-border-strong);
+  border-radius: var(--nms-radius-sm);
+  text-align: center;
+  color: var(--nms-text-3);
+  font-size: 12px;
+  min-height: 100px;
+}
+
+.nms-card-pending-headline {
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--nms-text-2);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Status pills (the neon-accent system, used surgically)
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--nms-surface-2);
+  border: 1px solid var(--nms-border-strong);
+  color: var(--nms-text-2);
+}
+
+/* Status pill variants — most pills are neutral; cobalt + gold appear only
+   when the pill itself signals interactive (cyan) or critical (red/gold).
+     · green (healthy)     → neutral text + faint border, no fill
+     · amber (warning)     → neutral text + slightly stronger border
+     · red   (critical)    → gold text + gold tint + bold (the alarm look)
+     · cyan  (interactive) → cobalt text + cobalt tint + cobalt border
+     · gold  (peak)        → gold text + gold tint */
+.nms-pill-green { color: var(--gx-text-2); background: transparent; border-color: var(--gx-border); }
+.nms-pill-amber { color: var(--gx-text-3); background: transparent; border-color: var(--gx-border-strong); }
+.nms-pill-red   { color: var(--gx-gold);   background: var(--gx-gold-soft); border-color: transparent; font-weight: 700; }
+.nms-pill-cyan  { color: var(--gx-primary); background: var(--gx-primary-soft); border-color: transparent; }
+.nms-pill-gold  { color: var(--gx-gold);   background: var(--gx-gold-soft); border-color: transparent; }
+
+/* Solid status dot — neutrals for passive states, gold for critical. */
+.nms-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.nms-dot-green { background: var(--gx-text-2); }
+.nms-dot-amber { background: var(--gx-text-3); }
+.nms-dot-red   { background: var(--gx-gold); }
+.nms-dot-cyan  { background: var(--gx-primary); }
+.nms-dot-gold  { background: var(--gx-gold); }
+
+/* Quiet alarm cue — gentle opacity pulse. Critical alarms only. */
+@keyframes nms-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+.nms-dot-red.is-alarm,
+.nms-dot-amber.is-alarm { animation: nms-pulse 1.8s ease-in-out infinite; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Big value (KPI numbers, gauge centers, counters)
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-value {
+  font-family: var(--gx-font-display, ui-sans-serif, sans-serif);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--nms-text);
+  font-variant-numeric: tabular-nums;
+}
+.nms-value-sm   { font-size: 22px; }
+.nms-value-lg   { font-size: 44px; }
+.nms-value-mono { font-family: var(--gx-font-mono, ui-monospace, monospace); }
+/* Big value colorways — most stay neutral; gold only when critical. */
+.nms-value-green { color: var(--gx-text-1); font-weight: 600; }
+.nms-value-amber { color: var(--gx-text-2); font-weight: 600; }
+.nms-value-red   { color: var(--gx-gold);   font-weight: 700; }
+.nms-value-gold  { color: var(--gx-gold);   font-weight: 600; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Section bands (between Modules) — quiet horizontal label.
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-module-band {
+  display: flex;
+  align-items: center;
+  gap: var(--nms-sp-3);
+  margin-top: var(--nms-sp-5);
+  margin-bottom: var(--nms-sp-3);
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nms-text-3);
+}
+.nms-module-band::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--nms-border);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Per-module row layout (Gev's call 2026-06-03):
+ *   - Wide widgets always get their own row (100% width).
+ *   - Every other visible widget in a module shares ONE flex row, splitting
+ *     the available width EQUALLY. 1 visible → 100%, 2 → 50/50, 3 → 33×3,
+ *     4 → 25×4. No empty columns. No fixed span sizes.
+ *   - `align-items: stretch` keeps every card in a row at matching height.
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-module-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nms-sp-4);
+}
+.nms-row {
+  display: flex;
+  gap: var(--nms-sp-4);
+  align-items: stretch;
+}
+.nms-row > * {
+  flex: 1 1 0;
+  min-width: 0; /* prevent flex children from overflowing on narrow content */
+  display: flex;          /* makes the inner .nms-card stretch to full height */
+  flex-direction: column;
+}
+.nms-row > * > .nms-card {
+  flex: 1;
+}
+.nms-row-wide > * {
+  flex: 1 1 100%;
+}
+
+/* On narrow viewports, stack the row vertically. */
+@media (max-width: 900px) {
+  .nms-row { flex-direction: column; }
+  .nms-row > * { flex: 1 1 auto; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Widget manager (gear menu)
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-widget-manager {
+  position: relative;
+}
+.nms-widget-manager-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--nms-radius-sm);
+  background: var(--nms-surface);
+  border: 1px solid var(--nms-border-strong);
+  color: var(--nms-text-2);
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color var(--nms-dur-base), color var(--nms-dur-base);
+}
+.nms-widget-manager-btn:hover {
+  border-color: var(--nms-text);
+  color: var(--nms-text);
+}
+.nms-widget-manager-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 320px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--nms-surface);
+  border: 1px solid var(--nms-border-strong);
+  border-radius: var(--nms-radius-md);
+  box-shadow: var(--nms-shadow-lg);
+  padding: var(--nms-sp-3);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nms-sp-3);
+}
+.nms-widget-manager-group {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.nms-widget-manager-group-label {
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--nms-text-3);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--nms-border);
+}
+.nms-widget-manager-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--nms-radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--nms-text);
+}
+.nms-widget-manager-row:hover { background: var(--nms-surface-2); }
+.nms-widget-manager-row input[type="checkbox"] { accent-color: var(--nms-text); }
+.nms-widget-manager-row .nms-pill { margin-left: auto; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Slide-out drawer (Universal Context Panel — Module 6)
+ * ───────────────────────────────────────────────────────────────────────── */
+.nms-drawer-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--nms-dur-base) var(--nms-ease);
+}
+.nms-drawer-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.nms-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(520px, 90vw);
+  background: var(--nms-surface);
+  border-left: 1px solid var(--nms-border-strong);
+  box-shadow: var(--nms-shadow-lg);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform var(--nms-dur-slow) var(--nms-ease);
+  display: flex;
+  flex-direction: column;
+}
+.nms-drawer.is-open {
+  transform: translateX(0);
+}
+.nms-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--nms-sp-4);
+  border-bottom: 1px solid var(--nms-border);
+  flex-shrink: 0;
+}
+.nms-drawer-title {
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--nms-text);
+}
+.nms-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--nms-sp-4);
+}
+.nms-drawer-close {
+  background: none;
+  border: 1px solid var(--nms-border-strong);
+  color: var(--nms-text-2);
+  width: 28px; height: 28px;
+  border-radius: var(--nms-radius-sm);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: color var(--nms-dur-base), border-color var(--nms-dur-base);
+}
+.nms-drawer-close:hover {
+  color: var(--nms-text);
+  border-color: var(--nms-text);
+}

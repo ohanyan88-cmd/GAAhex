@@ -248,7 +248,7 @@ export default function InvoicesView({
   const overdueCount = countFor('OVERDUE')
 
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Total billed', value: `֏${(totalBilled / 100000).toFixed(1)}k`, subtitle: `${all.length} invoice${all.length !== 1 ? 's' : ''}`, premium: true, onClick: () => setStatus('') },
+    { label: 'Total billed', value: `֏${(totalBilled / 100000).toFixed(1)}k`, subtitle: `${all.length} invoice${all.length !== 1 ? 's' : ''}`, onClick: () => setStatus('') },
     { label: 'Outstanding', value: `֏${(outstanding / 100000).toFixed(1)}k`, subtitle: `${countFor('ISSUED')} issued · ${overdueCount} overdue`, warning: outstanding > 0, onClick: () => setStatus('ISSUED') },
     { label: 'Paid', value: paidCount, subtitle: `of ${all.length} invoices`, onClick: () => setStatus('PAID') },
     ...(overdueCount > 0 ? [{ label: 'Overdue', value: overdueCount, subtitle: 'action required', danger: true, onClick: () => setStatus('OVERDUE') }] : []),
@@ -416,7 +416,8 @@ function InvoiceTabButton({ active, label, icon, onClick }: {
         padding: '10px 14px',
         background: 'transparent',
         border: 'none',
-        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: active ? 600 : 500,

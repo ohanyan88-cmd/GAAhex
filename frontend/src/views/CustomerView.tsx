@@ -449,7 +449,6 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                   ? `${sum.invoice_count} ${t('cust.invoiceCount', 'invoice(s)')}`
                   : undefined}
                 size="sm"
-                premium
                 onClick={onOpenInvoices ? () => onOpenInvoices() : undefined}
                 ariaLabel={`Total billed. Click to see all invoices.`}
               />
@@ -950,7 +949,8 @@ function CustomerTabButton({ active, label, count, icon, onClick }: {
         padding: '10px 14px',
         background: 'transparent',
         border: 'none',
-        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: active ? 600 : 500,
@@ -973,7 +973,8 @@ function CustomerTabButton({ active, label, count, icon, onClick }: {
             borderRadius: 9,
             fontSize: 11,
             fontWeight: 600,
-            background: active ? 'var(--gx-primary, #2563eb)' : 'var(--gx-bg-2, #f1f5f9)',
+            // D18: active tab count badge = azure (sits inside an interactive tab control)
+            background: active ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-bg-2, #f1f5f9)',
             color: active ? '#fff' : 'var(--gx-text-3, #64748b)',
           }}
         >

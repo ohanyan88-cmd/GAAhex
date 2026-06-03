@@ -83,7 +83,7 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
   const methodsActive = [...new Set(pList.map(p => p.method).filter(Boolean))]
 
   const kpis: KPISpec[] = pList.length > 0 ? [
-    { label: 'Total collected', value: money(totalSettled), subtitle: `${pList.length} settlement${pList.length !== 1 ? 's' : ''}`, premium: true },
+    { label: 'Total collected', value: money(totalSettled), subtitle: `${pList.length} settlement${pList.length !== 1 ? 's' : ''}` },
     ...(methodsActive.length > 0 ? [{ label: 'Methods', value: methodsActive.map(humanizeStatus).join(' · '), subtitle: 'used' }] : []),
   ] : []
 
@@ -199,7 +199,8 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
                           {sortKey === c.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>

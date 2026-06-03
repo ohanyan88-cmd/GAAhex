@@ -16,6 +16,8 @@ export { ActionBar } from './ActionBar'
 export { FilterBar } from './FilterBar'
 export { ContextPanel } from './ContextPanel'
 export { EmptyState } from './EmptyState'
+export { SlideOutPanel } from './SlideOutPanel'
+export type { SlideOutPanelProps } from './SlideOutPanel'
 
 // Layout primitives — Stack / Inline / Grid / Card / SectionHeading.
 // Re-exported so pages can: `import { Stack, Card } from '@/page-shell'`.

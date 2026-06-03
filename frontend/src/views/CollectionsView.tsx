@@ -755,7 +755,8 @@ function PoliciesTab({
                   style={{
                     textAlign: 'left',
                     background: isSelected ? 'var(--gx-bg-2, #f1f5f9)' : 'var(--gx-surface, #ffffff)',
-                    border: '1px solid ' + (isSelected ? 'var(--gx-primary, #2563eb)' : 'var(--gx-border, #e2e8f0)'),
+                    // D18: active selection outline = azure (interactive)
+                    border: '1px solid ' + (isSelected ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-border, #e2e8f0)'),
                     borderRadius: 10,
                     padding: 14,
                     cursor: 'pointer',
@@ -924,7 +925,8 @@ function TabButton({ active, onClick, label, sub }: { active: boolean; onClick: 
         padding: '10px 16px',
         background: 'transparent',
         border: 'none',
-        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: active ? 600 : 500,

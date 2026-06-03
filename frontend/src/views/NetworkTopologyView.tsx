@@ -13,7 +13,8 @@ const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 type Site = { id: string; status: string | null; data: Record<string, unknown> }
 
 const KIND_COLORS: Record<string, string> = {
-  POP: 'var(--gx-primary)',
+  // D18: POP kind = slate (passive categorical identity, not brand spine)
+  POP: 'var(--gx-text-2)',
   datacenter: 'var(--gx-success, #22c55e)',
   tower: 'var(--gx-warning, #f59e0b)',
 }

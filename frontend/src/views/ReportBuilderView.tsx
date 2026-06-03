@@ -218,7 +218,8 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                       padding: '8px 10px',
                       borderRadius: 'var(--gx-radius-md)',
                       background: run?.id === r.id ? 'var(--gx-surface-2)' : 'transparent',
-                      border: '1px solid ' + (run?.id === r.id ? 'var(--gx-primary)' : 'var(--gx-border)'),
+                      // D18: active run-row outline = azure (interactive selection)
+                      border: '1px solid ' + (run?.id === r.id ? 'var(--gx-interactive)' : 'var(--gx-border)'),
                     }}
                   >
                     <button
@@ -299,7 +300,6 @@ function RunView({ run }: { run: RunResult }) {
             label={run.name}
             value={fmtNum(Number(result.value) || 0)}
             size="sm"
-            premium
           />
         </div>
       )}

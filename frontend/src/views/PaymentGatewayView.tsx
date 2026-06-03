@@ -148,7 +148,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
   }
 
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Volume', value: `֏${(totalAmt / 1000).toFixed(1)}k`, subtitle: `${all.length} order${all.length !== 1 ? 's' : ''}`, premium: true },
+    { label: 'Volume', value: `֏${(totalAmt / 1000).toFixed(1)}k`, subtitle: `${all.length} order${all.length !== 1 ? 's' : ''}` },
     { label: 'Paid', value: paidCount, subtitle: 'settled', onClick: () => setStatusFilter('PAID') },
     ...(pendingCount > 0 ? [{ label: 'Pending', value: pendingCount, subtitle: 'awaiting confirmation', warning: true, onClick: () => setStatusFilter('PENDING') }] : []),
     ...(failedCount > 0 ? [{ label: 'Failed/Expired', value: failedCount, subtitle: 'action required', danger: true, onClick: () => setStatusFilter('FAILED') }] : []),

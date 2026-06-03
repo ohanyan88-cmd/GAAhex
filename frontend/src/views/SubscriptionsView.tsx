@@ -200,7 +200,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Total subscriptions', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
-    { label: 'Active', value: activeCount, subtitle: 'recurring revenue', premium: true, onClick: () => setQuery('ACTIVE') },
+    { label: 'Active', value: activeCount, subtitle: 'recurring revenue', onClick: () => setQuery('ACTIVE') },
     ...(suspendedCount > 0 ? [{ label: 'Suspended', value: suspendedCount, subtitle: 'action required', warning: true, onClick: () => setQuery('SUSPENDED') }] : []),
     ...(cancelledCount > 0 ? [{ label: 'Cancelled', value: cancelledCount, subtitle: 'closed', muted: true, onClick: () => setQuery('CANCELLED') }] : []),
   ] : []
@@ -299,7 +299,8 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
                           {sortKey === c.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>

@@ -23,7 +23,7 @@ from ..models.record import Record
 from ..models.technician_location import TechnicianLocationPing
 from ..models.telemetry import OpticalPowerSample, OtdrTest
 from .diagnostic_adapter import (
-    DiagnosticAdapter, get_diagnostic_adapter, classify_rx,
+    DiagnosticAdapter, get_diagnostic_adapter,
 )
 
 

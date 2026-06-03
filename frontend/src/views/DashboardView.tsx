@@ -984,7 +984,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
 
   // KPIs from overview data — only rendered when data is available and user can view revenue
   const kpis: KPISpec[] | undefined = (isShown('kpi-strip') && ov && showRevenue) ? [
-    { label: 'MRR',                 value: money(ov.mrr),                  subtitle: `${ov.active_subscriptions} active subs`, premium: true },
+    { label: 'MRR',                 value: money(ov.mrr),                  subtitle: `${ov.active_subscriptions} active subs` },
     { label: 'AR Outstanding',      value: money(ov.ar_outstanding),        subtitle: `${ov.overdue_count} overdue`, warning: ov.overdue_count > 0 },
     { label: 'Collected This Month',value: money(ov.collected_this_month),  subtitle: `vs ${money(ov.collected_prev_month)} last month` },
     { label: 'New Leads (30d)',      value: ov.new_leads_30d,               subtitle: `vs ${ov.new_leads_prev_30d} prior 30d` },

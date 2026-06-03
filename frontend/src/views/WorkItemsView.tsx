@@ -214,7 +214,7 @@ export default function WorkItemsView({
     { label: 'TODO',        value: allItems.filter(i => i.status === 'TODO').length },
     { label: 'In Progress', value: inProgressCount, warning: inProgressCount > 0 },
     { label: 'Blocked',     value: blockedCount,     danger: blockedCount > 0 },
-    { label: 'Done',        value: doneCount,        premium: true },
+    { label: 'Done',        value: doneCount },
   ] : []
 
   if (unavailable) {

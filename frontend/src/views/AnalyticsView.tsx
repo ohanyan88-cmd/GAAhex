@@ -69,7 +69,7 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
 
   // KPIs derived from overview API data
   const kpis: KPISpec[] | undefined = (!loading && overview) ? [
-    { label: t('analytics.mrr', 'MRR'),                  value: money(pick(overview, 'mrr').value),                  premium: true },
+    { label: t('analytics.mrr', 'MRR'),                  value: money(pick(overview, 'mrr').value) },
     { label: t('analytics.activeSubs', 'Active subs'),    value: pick(overview, 'active_subscriptions').value },
     { label: t('analytics.arOutstanding', 'AR outstanding'), value: money(pick(overview, 'ar_outstanding').value) },
     { label: t('analytics.collected', 'Collected (mo)'), value: money(pick(overview, 'collected_this_month').value) },
@@ -143,13 +143,12 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
 // ───────────────────────── KPI tile (shared primitive) ─────────────────────────
 // Adapter: maps Analytics's {value, prev} fetch shape onto the shared <KPITile>.
 function Kpi({
-  label, m, money: isMoney, goodUp, marquee, t,
+  label, m, money: isMoney, goodUp, t,
 }: {
   label: string
   m: { value: number; prev?: number }
   money?: boolean
   goodUp?: boolean
-  marquee?: boolean
   t: (k: string, d?: string) => string
 }) {
   const hasDelta = m.prev != null
@@ -162,11 +161,9 @@ function Kpi({
   const sparkValues: number[] | undefined = hasDelta
     ? [(m.prev as number), m.value]
     : undefined
-  const sparkColor = marquee
-    ? 'var(--gx-gold)'
-    : !good && hasDelta
-      ? 'var(--gx-danger)'
-      : 'var(--gx-success)'
+  const sparkColor = !good && hasDelta
+    ? 'var(--gx-danger)'
+    : 'var(--gx-success)'
   const deltaLabel = (hasDelta && diff !== 0)
     ? (pct != null
         ? `${Math.abs(pct).toFixed(0)}% ${t('analytics.vsPrev', 'vs prev')}`
@@ -177,7 +174,6 @@ function Kpi({
       label={label}
       value={isMoney ? money(m.value) : fmtNum(m.value)}
       size="sm"
-      premium={marquee}
       delta={deltaLabel}
       deltaPositive={good}
       accessory={<Spark values={sparkValues} color={sparkColor} />}

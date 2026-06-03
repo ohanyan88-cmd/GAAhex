@@ -200,7 +200,7 @@ export default function InstallationBoardView({
         { label: 'Awaiting',  value: byCol.NONE.length,           subtitle: 'no resources yet' },
         { label: 'Allocated', value: byCol.RESOURCE_ALLOC.length, subtitle: 'strand + VLAN' },
         { label: 'CPE Bound', value: byCol.CPE_BOUND.length,      subtitle: 'hardware paired' },
-        { label: 'Activated', value: byCol.ACTIVATED.length,      subtitle: 'service live', premium: byCol.ACTIVATED.length > 0 },
+        { label: 'Activated', value: byCol.ACTIVATED.length,      subtitle: 'service live' },
       ]
 
   if (denied) {

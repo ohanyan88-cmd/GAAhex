@@ -69,7 +69,8 @@ function directionArrow(direction: string | null | undefined) {
   if (d === 'inbound') {
     // Arrow pointing down-left (inbound)
     return (
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: 'var(--gx-primary)' }}>
+      // D18: direction indicator = slate (passive metadata, not interactive)
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: 'var(--gx-text-2)' }}>
         <path d="M10 2L2 10M2 10h6M2 10V4" />
       </svg>
     )

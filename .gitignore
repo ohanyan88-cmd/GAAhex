@@ -10,9 +10,9 @@ dist/
 brand/
 TASKS/
 
+# Build / log artifacts
 *storybook.log
 storybook-static
-backend/boot-test.log
 backend/*.log
 **/dev.log
 
@@ -45,3 +45,13 @@ backend/dev-backup-*.sql
 backend/seed_real_olt.py
 backend/seed_real_olt_live.py
 
+# CLI-dialect probes — contain live OLT admin credentials, never commit
+backend/probe_onu_detail.py
+backend/probe_help.py
+backend/probe_help2.py
+backend/probe_help3.py
+backend/probe_driver_method.py
+backend/probe_endpoint_flow.py
+backend/probe_serial_diff.py
+backend/probe_phase_pull.py
+backend/probe_*.log

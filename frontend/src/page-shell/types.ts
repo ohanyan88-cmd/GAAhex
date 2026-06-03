@@ -48,8 +48,6 @@ export interface KPISpec {
   subtitle?: ReactNode
   /** Click handler — when present the tile becomes interactive. */
   onClick?: () => void
-  /** Premium accent — at most one per page (caller enforces). */
-  premium?: boolean
   /** Danger accent — value rendered in danger fg. */
   danger?: boolean
   /** Warning accent — value rendered in warning fg. */
@@ -58,6 +56,10 @@ export interface KPISpec {
   muted?: boolean
   /** Loading skeleton state. */
   loading?: boolean
+  /** Hover-revealed info popover — second half of the KPI Tile Standard (D17).
+   *  One-or-two sentences: what the metric counts, how it's computed, and (for
+   *  clickable tiles) what clicking does. Plain text or rich ReactNode. */
+  tooltip?: ReactNode
 }
 
 /* ─── Action bar ─────────────────────────────────────────────────────────── */

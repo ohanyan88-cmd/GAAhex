@@ -99,7 +99,8 @@ function TabButton(props: { active: boolean; onClick: () => void; icon: React.Re
         padding: '10px 16px',
         background: 'transparent',
         border: 'none',
-        borderBottom: props.active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: props.active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: props.active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: props.active ? 600 : 500,

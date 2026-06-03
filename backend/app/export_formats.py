@@ -5,7 +5,7 @@ Stdlib-only — no third-party PDF or XLSX libraries required:
   XLSX: a minimal OOXML workbook written as a ZIP with XML parts.
         Opens correctly in Excel and LibreOffice Calc.
 
-  PDF:  raw PDF 1.4 written byte-by-byte using only struct/io.
+  PDF:  raw PDF 1.4 written byte-by-byte using only io.
         Produces a clean tabular document with a branded header
         (logo_text + report title + generated date) and body rows.
         No images; fonts are the standard 14 PDF built-ins (Helvetica).
@@ -17,7 +17,6 @@ Money:  amounts stored as integer luma (minor units).
 from __future__ import annotations
 
 import io
-import struct
 import zipfile
 from datetime import date
 from typing import Sequence

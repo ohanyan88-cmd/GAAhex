@@ -143,7 +143,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Records', value: all.length, subtitle: `${ratedCount} rated · ${unratedCount} unrated`, onClick: () => setRated('') },
-    { label: 'Total amount', value: `֏${(totalAmt / 1000).toFixed(1)}k`, subtitle: 'billed via subscription rules', premium: true },
+    { label: 'Total amount', value: `֏${(totalAmt / 1000).toFixed(1)}k`, subtitle: 'billed via subscription rules' },
     ...(metrics.length > 0 ? [{ label: 'Metric types', value: metrics.length, subtitle: metrics.slice(0, 4).join(' · ') }] : []),
   ] : []
 
@@ -213,7 +213,8 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
                           {sortKey === c.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>

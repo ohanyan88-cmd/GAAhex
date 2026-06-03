@@ -28,11 +28,11 @@ export function KPIBar({ kpis }: KPIBarProps) {
           deltaPositive={k.deltaPositive}
           subtitle={k.subtitle}
           onClick={k.onClick}
-          premium={k.premium}
           danger={k.danger}
           warning={k.warning}
           muted={k.muted}
           loading={k.loading}
+          tooltip={k.tooltip}
           size="sm"
         />
       ))}

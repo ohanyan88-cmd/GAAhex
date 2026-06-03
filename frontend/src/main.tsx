@@ -10,6 +10,7 @@ import './styles/tailwind.css'
 import './styles/color-tokens.css'
 import './styles/styles.css'
 import './styles/studio.css'
+import './styles/nms-tokens.css'
 import './layout/master-layout.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

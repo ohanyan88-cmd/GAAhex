@@ -240,3 +240,309 @@ the pulled Portal source, not abstractly. Zero placeholders remain.
 Index updated: 7 rows moved from `LOCKED / SOURCE NOT PROVIDED` to `LOCKED` with file numbers
 16–22. The only remaining gap is the build of the new modules (Comment, Attachment, Watcher, full
 Task, SLA, Relationship, Configuration, full Notification, Data Retention) — each standard-first.
+
+---
+
+# Sixth patch — KPI Tile Standard (D17)
+
+Applied 2026-06-03. Owner: Gev. **One rule, platform-wide.**
+
+D17 replaces every prior guidance about KPI tile visuals. The earlier "premium" /
+"headline metric" / "gold side rail" concepts are decommissioned. The `premium` prop
+on `KPITile`, the `premium` field on `KPISpec`, and the `applyKpiPremium` helper that
+was briefly introduced earlier in this same patch are all REMOVED.
+
+## D17 — KPI Tile Standard
+
+### 1. Every tile renders identically — no "spotlight" highlight
+
+All KPI tiles use the same border, shadow, padding, and surface paint. There is no
+"premium / headline / marquee" variant. Setting `premium`, `marquee`, or any equivalent
+flag is no longer supported.
+
+Rationale: the operator's attention should be drawn by the **data**, not by the chrome.
+A 16-tile dashboard with one gold-rimmed tile teaches the eye to skip the other 15;
+that's the opposite of what a KPI strip is for.
+
+### 2. State is communicated by colored value text only
+
+The numeric value carries the state colorway:
+- `danger: true` → value rendered in danger fg (overdue, dying gasp, failed)
+- `warning: true` → value in warning fg (offline, suspended, degraded)
+- `muted: true` → value in muted color (cancelled, archived, n/a)
+- (no flag) → default text color
+
+Subtitles can additionally use inline `<span>` color to highlight specific words
+(e.g. "67 dying gasp" in red inside an otherwise muted subtitle). The tile chrome
+itself never changes color based on state.
+
+### 3. Hover reveals a small "story" popover — every tile
+
+Optional `tooltip?: ReactNode` field on `KPISpec`. When supplied, the tile shows a
+small popover above itself on hover OR keyboard focus (CSS-only, no JS portal,
+pointer-events none so the popover never steals clicks).
+
+Motion: **fade-in + subtle scale only** — the popover does NOT slide or pop. The tile
+itself does not lift or move on hover; only the border tints slightly toward the primary
+color. This was tuned (2026-06-03) to feel less "jumpy" than the prior implementation.
+
+Per platform convention each tooltip should:
+- Be **1–2 short sentences max** — what the metric counts + how it's computed.
+- For clickable tiles, also say **what clicking does** ("Filter customers to ACTIVE").
+- Reference real data sources where it's not obvious ("last `show onu state` sweep, 60 s").
+- Never repeat the tile label or value verbatim.
+
+A tile without `tooltip` renders the same — no popover. Tooltips are strongly recommended
+on OPERATIONS / COMMUNICATION / ANALYTICS pages.
+
+### Implementation
+
+- Tooltip prop: `KPISpec.tooltip` (types.ts) → passed through `KPIBar` → `KPITile`.
+- Tooltip CSS: `.kpi-tile-tooltip` in `styles/primitives.css` (fade + scale only).
+- Hover affordance: `.kpi-tile:hover` tints `border-color` to `--gx-border-strong`. No
+  transform, no shadow growth.
+- `premium`, `applyKpiPremium`, `kpiPremium.ts`: all REMOVED. The 18 views that previously
+  set `premium: true` have been updated to drop the flag — they render identically to
+  every other tile now.
+
+### Migration
+
+Complete. All 18 views were swept and `premium: true` removed in the same patch. No
+view-by-view retrofit pending.
+
+---
+
+# Seventh patch — Color Token Families + DO/DON'T (D17 reconciliation)
+
+Applied 2026-06-04. Owners: Gev, Ընգեր. **Five families, one role each.**
+
+This patch formalizes the GAAhex color palette as **five distinct families with
+non-overlapping roles**. Every primitive, every page, every chart must use a token
+from the family whose role matches the element's purpose. This is how we prevent
+the "too much cobalt" failure mode (NMS dashboard rebuild, 2026-06-03 evening),
+where a single brand color was overloaded across structural, interactive, and
+"healthy state" duties simultaneously.
+
+D17 is NOT replaced — it is reconciled. The hover-affordance rule below resolves the
+only point of overlap (D17's "gold border on hover" vs. the new "azure for hover/
+interactive" assignment).
+
+## D18 — Color Token Families
+
+| Family | Role | Tokens (Tier 1 semantic) |
+|---|---|---|
+| **Cobalt** | Brand spine — structural chrome only | `--gx-bg`, `--gx-surface`, `--gx-brand-primary` |
+| **Gold** | Brand signature — peak/featured moments only | `--gx-accent-gold`, `--gx-accent-gold-soft` |
+| **Azure** | Interactive — all clickable affordances | `--gx-interactive`, `--gx-interactive-hover`, `--gx-interactive-soft` |
+| **Slate** | Neutrals — 90% of data viz + text hierarchy + surfaces | `--gx-text-1/2/3`, `--gx-border`, `--gx-divider` |
+| **Semantic** | Status — success / warning / error on value text only | `--gx-success-fg`, `--gx-warning-fg`, `--gx-danger-fg` |
+
+Each family has its own raw scale (Tier 0): `cobalt-100..950`, `gold-100..900`,
+`azure-100..900`, `slate-100..950`, plus the three semantic accents. The Tier 1
+semantic tokens map roles → raw values; component code should NEVER reach for a
+raw scale token directly.
+
+## DO / DON'T per family (canonical guard-rail)
+
+Any future agent (Claude Design, frontend agents, designer handoff) MUST scan
+this table before writing color logic. Violations are auto-reject.
+
+### Cobalt — Brand spine
+
+- **DO** use on: sidebar background, top bar, structural headers, brand chrome
+  surfaces, the LOGO mark itself, "brand moment" full-bleed sections
+- **DON'T** use on: chart bars, donut slices, default data viz, "ok" states,
+  buttons, links, hover affordances, chips, status badges
+
+### Gold — Brand signature
+
+- **DO** use on: peak markers (chart "leader" callouts), critical alarms (rogue
+  ONU pulse, outage marker), featured tier highlight (1 per dashboard max),
+  the ONE-PER-PAGE "look here" moment, the brand wordmark's signature letter
+- **DON'T** use on: any "ok" state, default chrome, hover affordance (use azure),
+  decorative tinting, multiple uses per view, KPI tile spotlights (banned by D17)
+
+### Azure — Interactive
+
+- **DO** use on: button backgrounds + text, links, focus ring, active row /
+  active selection, hover affordances on interactive elements, drillable chips,
+  filter pills, the "this is clickable" cue across the platform
+- **DON'T** use on: passive data viz, headlines, decorative chrome, status
+  signaling, peak/featured highlight (use gold)
+
+### Slate — Neutrals (the workhorse)
+
+- **DO** use on: all default chart bars + donut slices + lollipop dots, text
+  hierarchy (primary / secondary / muted), card surfaces, dividers, table
+  borders, 90% of every data visualization
+- **DON'T** use on: status signaling (that's semantic's job), interactive cues
+  (that's azure's job), brand signature (that's gold's job)
+
+### Semantic — Status (value text only)
+
+- **DO** use on: KPI value text in danger/warning/success state (per D17),
+  badge text color, error toast text, validation message text, status pill
+  text color
+- **DON'T** use on: bar fills (charts use slate by default + gold for peaks),
+  card backgrounds, decorative tinting, status-pulse animations driven by
+  chrome color (per D17 — value text only)
+
+## D17 ↔ D18 reconciliation (the hover-affordance rule)
+
+D17 originally said: "Hover affordance: 1px border tints to gold, soft outward
+gold-tinted glow." That was correct for KPI TILES (containers) but conflicts
+with the new "Azure = interactive" assignment.
+
+**Resolved rule (locked):** hover affordance depends on the element category.
+
+| Element category | Hover affordance | Reason |
+|---|---|---|
+| **Interactive controls** (buttons, links, chips, drillable rows, ports/cells/legend entries) | Azure border tint + soft azure glow | Azure is the interactive family — hover on an interactive element signals "you're about to interact" |
+| **Container elements** (KPI tiles, cards, section frames, drawer panels) | Gold border tint + soft gold glow | Container hover is a "you're focused on this card" moment — that's the brand signature, not an interactive cue |
+| **Active selected state** (after click on a row, port, tier) | Azure border + azure-soft background | Once selected, it IS the active interactive thing |
+| **Critical / peak markers** (statically) | Gold | Brand signature, never replaced |
+
+D17 KPI tile hover rule is updated: **gold tint + soft glow on tile hover stays**
+(KPI tiles are containers, not interactive controls — clicking opens a tooltip,
+not a navigation). But **bar/chip/port/row hovers** in chart and data-row contexts
+switch to **azure tint** because those ARE interactive controls.
+
+No motion change. Tooltip popover still fade + tiny scale. Containers still don't
+lift on hover. Severity still communicated by value-text color. Premium / marquee /
+spotlight tiles still forbidden.
+
+## D17 unchanged components (explicit restatement so future agents can verify)
+
+- Every KPI tile renders with identical chrome (D17 §1)
+- State communicated by colored value text only (D17 §2)
+- Hover popover fades in (D17 §3), no slide, no element transform
+- The `premium` prop, `applyKpiPremium` helper, gold side-rail CSS — all REMOVED
+- Decorative motion = fade only (P2)
+- Spring/bouncy easing — REMOVED (P3)
+
+## Charts × palette (chart rule restated under D18)
+
+For "same-kind" data (PON ports, ONU tiers, vendor OUIs, ranked entries), bars
+and slices use **slate** as the default fill, with the **cobalt → gold gradient
+sweep** (`linear-gradient(90deg, --gx-brand-primary, --gx-accent-gold)`)
+**reserved only when the gradient itself encodes meaning** (e.g., the bar's
+length-direction maps to a progression). Most charts use solid slate fills.
+
+For "distinct identity" data (departments, tenants, environments, status enums),
+the `--viz-1..--viz-8` categorical palette is allowed — these are pre-locked,
+color-blind aware, and never used elsewhere.
+
+For "status composition" data (a port's ONLINE / DEGRADED / OFFLINE split in one
+stacked bar — Claude Design's carve-out, 2026-06-04), semantic green/amber/red
+fills are correct — that split IS the operator's signal.
+
+## Migration
+
+- `frontend/src/styles/color-tokens.css` — add the `--azure-*` raw scale (Tier 0)
+  + the `--gx-interactive*` semantic tokens (Tier 1). Existing `--gx-primary`
+  becomes the **brand-spine** token (stop using as "interactive"); a new
+  `--gx-interactive` is the azure replacement for interactive contexts.
+- `frontend/src/styles/primitives.css` `.kpi-tile:hover` — keep gold (container
+  rule). New `.is-interactive:hover` utility — azure tint, for buttons / chips /
+  drillable rows / chart entries.
+- View files using `--gx-primary` as the interactive color — sweep and replace
+  with `--gx-interactive` where the role is clickable affordance. Where the role
+  is structural brand spine, keep `--gx-primary`.
+
+This patch closes the "too much cobalt" failure mode permanently by forcing every
+color usage to declare its FAMILY → ROLE → ELEMENT chain.
+
+---
+
+# Eighth patch — D19 Rule ↔ Implementation Parity (META)
+
+Applied 2026-06-04. Owner: Gev. **No standing contradiction between rule and code.**
+
+A meta-principle that governs every other locked rule on the platform. Born from
+the D17 ↔ D18 reconciliation (the "hover affordance: gold vs azure" overlap),
+where an existing locked rule (D17 said "hover = gold") contradicted a newly-
+accepted implementation direction (D18 said "interactive hover = azure"). The
+resolution was correct — split by element category — but the more important
+lesson was the PROCESS:
+
+> When a final-accepted implementation decision diverges from an existing locked
+> rule, the RULE is updated in the same commit. We do not leave code and rule
+> contradicting each other.
+
+## The rule
+
+1. **No standing contradiction.** Any time a deliberate, final-accepted
+   implementation decision lands that diverges from an existing locked rule,
+   the standards doc is updated in the SAME patch to reflect the new state.
+   The repo's standards files are kept live — what they describe IS what the
+   code does, and what the code does IS what the standards describe.
+
+2. **"Final-accepted" means:** the decision was made deliberately (not by
+   error), proposed and confirmed (Gev's "go" or equivalent), and shipped to
+   the repo. Drive-by experiments, in-progress refactors, and unreviewed agent
+   work are NOT final-accepted and do not trigger rule updates.
+
+3. **Direction of update is from final implementation → standards.** This is
+   not "code overrides rules" in general — rules are still the source of
+   truth for what's locked. But once a new direction is locked by decision,
+   the rule is brought into sync IMMEDIATELY, not in a later cleanup pass.
+
+4. **Reconcile, don't replace, unless explicit.** When the new direction
+   conflicts with an older rule, default to RECONCILIATION (split by
+   category, scope, or condition — like D17/D18 split by element type).
+   Full replacement of a locked rule requires Gev's explicit say-so.
+
+5. **Mark superseded language clearly.** If a sentence in an older standard
+   no longer holds, replace it (don't strike-through). The standards are
+   forward-living text; archeology lives in git history.
+
+## Why this matters
+
+Rule-rot is the failure mode where rules say one thing and code does another.
+Once that drift starts, agents and humans both lose the ability to trust
+either source. The codebase IS the contract; the rules are how we describe
+the contract; the contract has to mean ONE thing.
+
+Examples of what this prevents:
+- An older standard saying "use cobalt for interactive" while D18 has moved
+  interactive to azure. Future agent reads the older standard, writes wrong
+  code. Now: that older sentence is updated the moment D18 lands.
+- A KPI prop named `premium` being marked "removed" in D17 while old views
+  still set `premium: true`. (Resolved: the view sweep happened in the SAME
+  patch as the rule lock — D17 §Migration.)
+- A token like `--gx-primary` being described as the "interactive color" in
+  one standards file while a different file says it's the "brand spine."
+  (Resolved: D18 explicitly assigns roles per family, no overlap.)
+
+## Process going forward
+
+When any agent (Կյաժ, Չոռնի, Կայծ, Լոջ, Կոճ, Վան Դամ, Claude Design, the
+orchestrator) lands a change that diverges from an existing locked rule:
+
+1. The orchestrator reviews and either accepts or rejects.
+2. If accepted: the agent's PR (or the orchestrator's commit) must include
+   the standards-doc update in the SAME commit.
+3. If rejected: the code reverts to match the existing rule.
+4. Never leave the repo in a state where code and rule contradict beyond
+   the orchestrator's working session.
+
+## Audit performed for this patch
+
+Triggered by Gev's observation that the new `--nms-neon-cyan` routing to
+`--gx-interactive` (azure) might contradict older language about "cobalt =
+interactive." Audit run:
+
+- D17 (Sixth patch) — already reconciled with D18 (Seventh patch); hover
+  affordance is now category-driven, no contradiction.
+- D18 (Seventh patch) — explicitly assigns each family ONE role; no overlap.
+- `frontend/src/styles/nms-tokens.css` — `--nms-neon-cyan` now routes to
+  `--gx-interactive` (azure), matching D18.
+- `frontend/src/views/NocDashboardView.tsx` — Bar primitive's interactive
+  variant moved to `--gx-interactive` (Կյաժ's sweep).
+- `frontend/src/primitives/KPITile.tsx` — KPI tile hover stays gold (correct
+  per D17 §3 + D18 hover-category rule for containers).
+- `frontend/src/page-shell/types.ts`, `KPIBar.tsx`, `index.ts` — D17 reference
+  matches current implementation.
+
+No remaining contradictions found. From this patch forward, D19 governs all
+future divergence resolution.

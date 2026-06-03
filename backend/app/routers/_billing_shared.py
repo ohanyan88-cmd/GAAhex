@@ -11,7 +11,6 @@ Underscore-prefixed filename marks it as a private sibling of the public router
 modules — do not register an APIRouter from here.
 """
 import calendar
-import uuid
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 

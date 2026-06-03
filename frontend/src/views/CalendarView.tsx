@@ -164,7 +164,8 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     if (ev.color) return ev.color
     const cal = cals.find(c => c.id === ev.calendar_id)
     if (cal) return cal.color
-    return 'var(--gx-primary-soft)'
+    // D18: calendar event chip fallback fill = azure-soft (chips are interactive/drillable)
+    return 'var(--gx-interactive-soft)'
   }
 
   function openNew(date?: string) {

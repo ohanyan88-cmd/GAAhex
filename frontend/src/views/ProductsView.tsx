@@ -112,7 +112,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Catalog size', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
-    { label: 'Active', value: activeCount, subtitle: 'offerable', premium: true, onClick: () => setQuery('active') },
+    { label: 'Active', value: activeCount, subtitle: 'offerable', onClick: () => setQuery('active') },
     ...(retiredCount > 0 ? [{ label: 'Retired', value: retiredCount, subtitle: 'read-only', muted: true, onClick: () => setQuery('retired') }] : []),
   ] : []
 
@@ -256,7 +256,8 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
                           {sortKey === c.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
@@ -331,12 +332,14 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
       aria-pressed={active}
       style={{
         padding: '5px 11px',
+        // D18: active filter chip = azure (interactive selection); 'primary' variant stays text-1 (high-emphasis label)
         background: active
-          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-primary, #2563eb)')
+          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-interactive, #2563eb)')
           : 'var(--gx-bg-2, #f1f5f9)',
         color: active ? '#ffffff' : 'var(--gx-text-2, #475569)',
+        // D18: active chip outline matches background — azure for the default variant
         border: '1px solid ' + (active
-          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-primary, #2563eb)')
+          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-interactive, #2563eb)')
           : 'var(--gx-border, #e2e8f0)'),
         borderRadius: 999,
         fontSize: 12,

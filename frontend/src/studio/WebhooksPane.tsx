@@ -823,7 +823,6 @@ export default function WebhooksPane({ token }: { token: string }) {
             value={signedCount}
             subtitle="HMAC-secured"
             size="sm"
-            premium
           />
           <KPITile
             label="Disabled"

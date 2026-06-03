@@ -235,7 +235,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Accounts', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
-    { label: 'Business', value: businessCount, subtitle: 'billable', premium: true, onClick: () => setQuery('business') },
+    { label: 'Business', value: businessCount, subtitle: 'billable', onClick: () => setQuery('business') },
     { label: 'Residential', value: residentialCount, subtitle: 'consumer', onClick: () => setQuery('residential') },
   ] : []
 
@@ -365,7 +365,8 @@ export default function AccountsView({ token, canConfigure = false, configVersio
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {c.label}
                           {sortKey === c.key
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>
@@ -485,7 +486,8 @@ function AccountTabButton({ active, label, icon, onClick }: {
         padding: '10px 14px',
         background: 'transparent',
         border: 'none',
-        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: active ? 600 : 500,

@@ -248,7 +248,7 @@ export default function TariffPlansView({
 
   const kpis: KPISpec[] = all.length > 0 ? [
     { label: 'Total', value: all.length, subtitle: `${activeCount} active`, onClick: () => setQuery('') },
-    { label: 'Active', value: activeCount, subtitle: 'offerable', premium: true },
+    { label: 'Active', value: activeCount, subtitle: 'offerable' },
     ...(retiredCount > 0 ? [{ label: 'Retired', value: retiredCount, subtitle: 'read-only', muted: true }] : []),
   ] : []
 
@@ -311,7 +311,8 @@ export default function TariffPlansView({
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
           {label}
           {isOn
-            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+            // D18: active sort indicator = azure (interactive cue)
+            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
         </span>
       </th>

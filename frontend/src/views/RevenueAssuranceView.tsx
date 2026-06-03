@@ -496,7 +496,6 @@ export default function RevenueAssuranceView({
     ...(showCollected ? [{
       label: 'Collected this month',
       value: money(ovOk!.collected_this_month!),
-      premium: true,
       delta: collectedDelta != null
         ? (collectedPct != null
             ? `${Math.abs(collectedPct).toFixed(0)}% vs prev`
@@ -558,7 +557,6 @@ export default function RevenueAssuranceView({
                 icon={Banknote}
                 value={money(ovOk!.collected_this_month!)}
                 size="sm"
-                premium
                 delta={collectedDelta != null
                   ? (collectedPct != null
                       ? `${Math.abs(collectedPct).toFixed(0)}% vs prev`
@@ -791,7 +789,8 @@ function RaTabButton({ active, onClick, icon, label, sub }: {
         padding: '10px 16px',
         background: 'transparent',
         border: 'none',
-        borderBottom: active ? '2px solid var(--gx-primary, #2563eb)' : '2px solid transparent',
+        // D18: active tab underline = azure (interactive selection)
+        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
         color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
         fontSize: 13,
         fontWeight: active ? 600 : 500,

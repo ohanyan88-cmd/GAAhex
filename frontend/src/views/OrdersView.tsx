@@ -195,7 +195,7 @@ export default function OrdersView({ token }: { token: string }) {
     { label: 'Drafts', value: draftCount, subtitle: 'not yet submitted', onClick: () => setStatusFilter('DRAFT') },
     { label: 'In flight', value: inFlightCount, subtitle: 'submitted or provisioning', warning: true, onClick: () => setStatusFilter('SUBMITTED') },
     { label: 'Awaiting Stage 8', value: awaitingStage8, subtitle: 'gate not passed', warning: awaitingStage8 > 0, onClick: () => setStatusFilter('SUBMITTED') },
-    { label: 'Completed', value: completedCount, subtitle: 'provisioned', premium: true, onClick: () => setStatusFilter('COMPLETED') },
+    { label: 'Completed', value: completedCount, subtitle: 'provisioned', onClick: () => setStatusFilter('COMPLETED') },
     { label: 'Completed value', value: money(completedValue), subtitle: 'sum of totals' },
   ] : []
 
@@ -355,7 +355,8 @@ export default function OrdersView({ token }: { token: string }) {
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {lbl}
                           {sortKey === k
-                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-primary)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-primary)' }} />)
+                            // D18: active sort indicator = azure (interactive cue)
+                            ? (sortDir === 1 ? <ArrowUp size={12} style={{ color: 'var(--gx-interactive)' }} /> : <ArrowDown size={12} style={{ color: 'var(--gx-interactive)' }} />)
                             : <ChevronsUpDown size={12} style={{ opacity: 0.35 }} />}
                         </span>
                       </th>

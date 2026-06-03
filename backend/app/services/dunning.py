@@ -28,7 +28,6 @@ from ..models.dunning import DunningPolicy, DunningCase, ServiceActionLog
 from ..models.party import Account
 from ..models.service import Service
 from ..models.billing import Subscription
-from .account_balance import recompute_account_balance
 from .network_adapter import get_network_adapter
 
 

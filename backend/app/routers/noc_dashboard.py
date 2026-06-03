@@ -64,6 +64,7 @@ from ..services.olt import (
     OltError,
     OltNotSupportedError,
     OltTimeoutError,
+    get_driver_for_olt,
 )
 from .auth import current_user
 
@@ -493,6 +494,62 @@ async def refresh_olt(
         raise HTTPException(500, f"OLT driver error: {e}")
     await s.commit()
     return summary
+
+
+@router.post(
+    "/olts/{olt_record_id}/onus/{serial}/live-detail",
+    status_code=200,
+)
+async def onu_live_detail(
+    olt_record_id: uuid.UUID,
+    serial: str,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+) -> dict:
+    """Open a live SSH session to the OLT and pull rich per-ONU detail.
+
+    Runs ``show onu state/info/detail-info <id>`` inside the V1600's
+    ``config-pon-0/N`` mode and returns the parsed payload plus the raw CLI
+    transcript so the operator can audit what came off the wire.
+
+    Admin-only (config.manage) — the same gate as live refresh. Vendor must
+    expose ``get_onu_live_detail`` (today only ``vsol_v1600``).
+    """
+    await _require_admin(s, user)
+    rec = (await s.execute(
+        select(Record).where(
+            Record.id == olt_record_id,
+            Record.tenant_id == user.tenant_id,
+            Record.entity_key == "olt",
+        )
+    )).scalar_one_or_none()
+    if rec is None:
+        raise HTTPException(404, "OLT not found")
+    driver = await get_driver_for_olt(rec)
+    try:
+        getter = getattr(driver, "get_onu_live_detail", None)
+        if getter is None:
+            raise HTTPException(
+                501,
+                f"vendor {(rec.data or {}).get('vendor')!r} does not expose "
+                f"get_onu_live_detail()",
+            )
+        try:
+            payload = await getter(serial)
+        except OltCommandError as e:
+            raise HTTPException(404, f"ONU not found on OLT: {e}")
+        except OltCredentialsError as e:
+            raise HTTPException(401, f"OLT credentials rejected: {e}")
+        except (OltConnectionError, OltTimeoutError) as e:
+            raise HTTPException(502, f"OLT unreachable: {e}")
+        except OltError as e:
+            raise HTTPException(500, f"OLT driver error: {e}")
+    finally:
+        try:
+            await driver.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return payload
 
 
 @router.get("/onus")

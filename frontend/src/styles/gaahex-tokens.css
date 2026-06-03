@@ -118,12 +118,23 @@
   --cobalt-900: #0F2138;
   --cobalt-950: #0A1626;
 
-  /* Azure — interactive primary (brightened, accessible cobalt) */
-  --azure-300: #7FB0FF;
-  --azure-400: #5293F2;
-  --azure-500: #3B7BE0;
-  --azure-600: #2C63BC;
-  --azure-700: #224E96;
+  /* Azure — D18 interactive family (LOCKED 2026-06-04).
+     Sky-blue hue family, color-blind-distinct from cobalt at every stop.
+     Tailwind sky-derived palette; --azure-500 = #0EA5E9 is the canonical anchor.
+     Used by --gx-interactive* (buttons/links/hover/focus/active).
+     NOTE: legacy --gx-primary*/--gx-link* now use inline cobalt-azure hexes
+           (not --azure-*) so the brand-spine cascade stays unaffected. */
+  --azure-50:  #F0F9FF;
+  --azure-100: #E0F2FE;
+  --azure-200: #BAE6FD;
+  --azure-300: #7DD3FC;
+  --azure-400: #38BDF8;
+  --azure-500: #0EA5E9;  /* D18 anchor — vivid sky, distinct from cobalt navy */
+  --azure-600: #0284C7;
+  --azure-700: #0369A1;
+  --azure-800: #075985;
+  --azure-900: #0C4A6E;
+  --azure-950: #082F49;
 
   /* Gold — premium accent (from the logo gradient) */
   --gold-50:  #FBF6EA;
@@ -298,8 +309,8 @@
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #5A6B82;
-  --gx-link: var(--azure-400);
-  --gx-link-hover: var(--azure-300);
+  --gx-link: #5293F2;       /* legacy cobalt-azure — decoupled from --azure-* (D18) */
+  --gx-link-hover: #7FB0FF;
 
   /* Borders */
   --gx-border:        rgba(130, 161, 204, 0.16);
@@ -312,12 +323,29 @@
   --gx-gold:   var(--gold-500);
   --gx-gold-soft: rgba(197, 160, 89, 0.16);
 
-  /* Interactive primary (Azure) */
-  --gx-primary:        var(--azure-500);
-  --gx-primary-hover:  var(--azure-400);
-  --gx-primary-active: var(--azure-600);
+  /* D18 — Color Token Families (LOCKED 2026-06-04).
+   * Cobalt    (--gx-primary*)       → brand spine: structural chrome only
+   * Gold      (--gx-accent-gold*)   → signature: peak/featured/CTA (sparingly)
+   * Azure     (--gx-interactive*)   → interactive: buttons, links, hover, focus, active
+   * Slate     (--gx-text-N, etc.)   → neutrals: 90% of data viz + text hierarchy
+   * Semantic  (--gx-{success,warning,danger}-fg) → status: VALUE TEXT only (per D17)
+   * Full canonical doc: docs/standards/13-consistency-patch-notes.md → "Seventh patch — D18"
+   */
+
+  /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
+  --gx-primary:        #3B7BE0;
+  --gx-primary-hover:  #5293F2;
+  --gx-primary-active: #2C63BC;
   --gx-primary-soft:   rgba(59, 123, 224, 0.16);
   --gx-on-primary:     #FFFFFF;
+
+  /* Azure — interactive family (D18, 2026-06-04). Distinct from --gx-primary
+     (brand-spine) so chrome and interaction don't overload one hue. */
+  --gx-interactive:        var(--azure-500);
+  --gx-interactive-hover:  var(--azure-400);
+  --gx-interactive-active: var(--azure-600);
+  --gx-interactive-soft:   rgba(14, 165, 233, 0.16);  /* azure-500 at 16% */
+  --gx-interactive-ring:   rgba(14, 165, 233, 0.45);  /* focus ring */
 
   /* Interaction overlays */
   --gx-hover:    rgba(174, 189, 208, 0.06);
@@ -330,7 +358,7 @@
   --gx-success: var(--green-400);  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
   --gx-warning: var(--amber-400);  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
   --gx-danger:  var(--red-400);    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
-  --gx-info:    var(--azure-400);  --gx-info-soft:    var(--gx-primary-soft); --gx-info-fg:#A9CBF7;
+  --gx-info:    #5293F2;           --gx-info-soft:    var(--gx-primary-soft); --gx-info-fg:#A9CBF7;
   --gx-neutral: var(--slate-400);  --gx-neutral-soft: rgba(148,163,184,0.16);
 
   /* ISP / Network status */
@@ -386,8 +414,8 @@
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #94A3B8;
-  --gx-link: var(--azure-600);
-  --gx-link-hover: var(--azure-700);
+  --gx-link: #2C63BC;       /* legacy cobalt-azure — decoupled from --azure-* (D18) */
+  --gx-link-hover: #224E96;
 
   --gx-border:        #DCE3EB;
   --gx-border-subtle: #EDF1F5;
@@ -398,11 +426,19 @@
   --gx-gold:   var(--gold-600);
   --gx-gold-soft: rgba(172, 136, 71, 0.14);
 
-  --gx-primary:        var(--azure-600);
-  --gx-primary-hover:  var(--azure-500);
-  --gx-primary-active: var(--azure-700);
+  /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
+  --gx-primary:        #2C63BC;
+  --gx-primary-hover:  #3B7BE0;
+  --gx-primary-active: #224E96;
   --gx-primary-soft:   rgba(59, 123, 224, 0.12);
   --gx-on-primary:     #FFFFFF;
+
+  /* Azure — interactive family (D18, 2026-06-04). Deepened for legibility on white. */
+  --gx-interactive:        var(--azure-600);
+  --gx-interactive-hover:  var(--azure-500);
+  --gx-interactive-active: var(--azure-700);
+  --gx-interactive-soft:   rgba(2, 132, 199, 0.14);   /* azure-600 at 14% */
+  --gx-interactive-ring:   rgba(2, 132, 199, 0.45);   /* focus ring */
 
   --gx-hover:    rgba(15, 33, 56, 0.04);
   --gx-pressed:  rgba(15, 33, 56, 0.08);
@@ -413,7 +449,7 @@
   --gx-success: var(--green-600);  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
   --gx-warning: var(--amber-600);  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
   --gx-danger:  var(--red-500);    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
-  --gx-info:    var(--azure-600);  --gx-info-soft:    rgba(59,123,224,0.12); --gx-info-fg:#234E96;
+  --gx-info:    #2C63BC;           --gx-info-soft:    rgba(59,123,224,0.12); --gx-info-fg:#234E96;
   --gx-neutral: var(--slate-500);  --gx-neutral-soft: rgba(100,116,139,0.12);
 
   --gx-online:       var(--green-600);

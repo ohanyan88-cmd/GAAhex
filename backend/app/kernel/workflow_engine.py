@@ -54,7 +54,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import WorkflowDef, WorkflowInstance
-from .control_gate import assert_can_advance_to_scheduling, ControlGateNotPassed
+from .control_gate import assert_can_advance_to_scheduling
 
 _log = logging.getLogger("gaahex.kernel.workflow_engine")
 

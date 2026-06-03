@@ -9,8 +9,10 @@
 //    tickets" → tickets filtered to OPEN). Caller wires `onClick`/`href`. If the
 //    metric has no real drill-through, omit both — the tile becomes a plain div.
 //  - Focus-visible: 2px azure ring on clickable tiles (keyboard accessible).
-//  - Premium accent: at most ONE tile per dashboard sets `premium`, which renders
-//    the value in gold. Caller's responsibility to enforce "one per page".
+//  - All tiles use the SAME visual treatment per the KPI Tile Standard (D17).
+//    There is no "premium / headline" highlight — colored value text
+//    (danger/warning/muted) carries state on its own. On hover, supply
+//    `tooltip` to show a small 1–2-sentence "story" popover above the tile.
 //  - Hide-if-missing is a CALLER concern: if the underlying fetch failed or there
 //    is no value yet, the caller should not render the tile at all. A real fetched
 //    0 still renders. The component shows a skeleton when `loading` is true.
@@ -41,12 +43,10 @@ interface KPITileProps {
   size?: Size
   loading?: boolean
   error?: string
-  /** When defined, the tile renders as a <button>, gets pointer cursor, hover lift, focus ring. */
+  /** When defined, the tile renders as a <button>, gets pointer cursor, focus ring. */
   onClick?: () => void
   /** Alternative to onClick for cross-page navigation. Renders as an <a>. Use ONE, not both. */
   href?: string
-  /** The designated headline tile — value text is rendered in gold. One per dashboard max. */
-  premium?: boolean
   /** Danger accent — value text in danger color (e.g. overdue). */
   danger?: boolean
   /** Warning accent — value text in warning color (e.g. suspended). */
@@ -55,6 +55,10 @@ interface KPITileProps {
   muted?: boolean
   /** Optional aria-label override (e.g. "Open tickets — 12. Click to filter to OPEN.") */
   ariaLabel?: string
+  /** Hover-revealed info popover — second half of the KPI Tile Standard (D17).
+   *  One-or-two-sentence "story" of what the metric means + (if clickable)
+   *  what clicking it does. Plain text or rich ReactNode. */
+  tooltip?: React.ReactNode
 }
 
 export function KPITile({
@@ -71,17 +75,16 @@ export function KPITile({
   error,
   onClick,
   href,
-  premium,
   danger,
   warning,
   muted,
   ariaLabel,
+  tooltip,
 }: KPITileProps) {
   const clickable = !!(onClick || href) && !loading && !error
   const tileCls = [
     'kpi-tile',
     error ? 'error' : '',
-    premium ? 'kpi-tile--premium' : '',
   ].filter(Boolean).join(' ')
   const valueCls = [
     'kpi-tile-value',
@@ -89,11 +92,15 @@ export function KPITile({
     danger ? 'danger' : '',
     warning ? 'warning' : '',
     muted ? 'muted' : '',
-    premium ? 'premium' : '',
   ].filter(Boolean).join(' ')
 
   const inner = (
     <>
+      {tooltip && (
+        <div className="kpi-tile-tooltip" role="tooltip">
+          {tooltip}
+        </div>
+      )}
       <div className="kpi-tile-label">
         {Icon && <Icon size={11} />}
         <span>{label}</span>
@@ -127,7 +134,6 @@ export function KPITile({
 
   const dataAttrs = {
     'data-clickable': clickable ? 'true' : undefined,
-    'data-premium': premium ? 'true' : undefined,
   }
 
   if (clickable && href) {

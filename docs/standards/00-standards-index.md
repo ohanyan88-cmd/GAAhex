@@ -100,7 +100,7 @@ QUEUE`. Per-context subsets in file 03. `USER` (ActorType) ≠ `EMPLOYEE` (Princ
 
 ## Registries
 - File 14 — `14-enum-registry.md`: every enum with owner department + values (Enum Standard r6/r8).
-- File 15 — `15-permission-registry.md`: all `Object.Action` permission keys (RBAC Standard).
+- File 15 — `15-permission-registry.md`: all `object.action` permission keys (lowercase, dot-separated; RBAC Standard, D2).
 
 ## Reference prefix registry (S5 + D8 — complete)
 ```

@@ -163,7 +163,6 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
       label: t('leads.converted', 'Converted'),
       value: converted,
       subtitle: 'won',
-      premium: true,
     },
     {
       label: t('leads.lost', 'Lost'),

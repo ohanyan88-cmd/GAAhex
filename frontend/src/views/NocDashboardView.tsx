@@ -1,1738 +1,1314 @@
-// NocDashboardView — Tech & NOC → Tech & NOC Dashboard.
+// NocDashboardView — Production NMS (Network Management System) dashboard.
 //
-// Real NOC monitoring control center wired to the Phase NOC.B endpoints
-// (already shipped on the backend):
+// Rebuilt 2026-06-03 per the production NMS spec Gev locked. Six modules,
+// 17 widgets, alarms-first ordering, fixed-slot grid with reflow on toggle,
+// universal slide-out drawer for context detail, gear menu for widget
+// visibility. Native shadcn-zinc palette + neon status accents (see
+// `styles/nms-tokens.css`). Cobalt+gold (D17) is NOT used here — this is
+// the only page on a different visual register.
 //
-//   GET  /api/noc/dashboard                          → OLT rollup + live techs
-//   GET  /api/noc/olts                               → list of OLT records
-//   GET  /api/noc/olts/{olt_record_id}/tree          → chassis → cards → ports → ONUs
-//   POST /api/noc/ports/{port_id}/optical-reading    → admin; sample a port
-//   POST /api/noc/onus/{onu_id}/optical-reading      → admin; sample an ONU
-//   POST /api/noc/otdr   body { target_type, target_id } → admin; OTDR scan
-//   GET  /api/noc/technicians?since_minutes=30       → live technician GPS
+// PHASE 1A — DESIGN PREVIEW MODE
+//   Every widget renders from SAMPLE_* constants below with a visible
+//   "▾ representative — design preview" tag. ZERO production data is
+//   shown without that tag. Phase 1B will swap live widgets to real data
+//   from the existing backend; pending widgets keep the empty-state
+//   "awaiting <pipeline>" treatment.
 //
-// Real data only — empty / 404 → friendly empty state, 403 → PermissionDenied,
-// action 409 → toast.error. Skeleton tiles + loading lines while in flight.
-//
-// Optical threshold rule (rx_dbm):
-//   < -28       → critical (red)
-//   -28 … -26   → warning (amber)
-//   >= -26      → normal (green)
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import L from 'leaflet'
-import markerIcon from 'leaflet/dist/images/marker-icon.png'
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
-import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { PageShell, Stack, Inline, Card, SectionHeading } from '../page-shell'
-import type { KPISpec } from '../page-shell'
-import { StatusPill } from '../primitives'
-import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
-import ErrorBoundary from '../components/ErrorBoundary'
-import LoadingState from '../components/LoadingState'
-import {
-  ServerIcon, ActivityIcon, RefreshIcon, ChevronRightIcon, ChevronDownIcon,
-  MapPinIcon, ZapIcon, LayersIcon, PackageIcon,
-} from '../components/icons'
-import { bget, bpost } from '../lib/billing'
-import { toast } from '../components/Toast'
+// Layout reflow: each widget declares a `slot` (kpi/small/medium/wide).
+// The CSS grid is `repeat(12, 1fr)` with auto-flow:row dense. When a
+// widget is hidden via the gear menu, the remaining ones repack tightly
+// — no empty holes.
+import { useMemo, useState } from 'react'
+import { PageShell, SlideOutPanel } from '../page-shell'
+import { PermissionDenied } from '../components/States'
 import { can, type Capabilities } from '../lib/capabilities'
-import { timeAgo } from '../lib/time'
-import Donut from '../components/charts/Donut'
 
-// ─── Marker clustering (optional dependency, defensive lazy load) ──────────
-// react-leaflet-cluster wraps leaflet.markercluster for react-leaflet v4.
-// We lazy-load it so this file still type-checks and renders if the package
-// isn't installed yet (it gets wired by the orchestrator after npm install).
-// When unavailable, we fall back to plain unclustered Markers — the NOC map
-// keeps working, technicians just don't bubble-up into cluster counts.
-type ClusterGroupProps = {
-  children?: ReactNode
-  iconCreateFunction?: (cluster: { getChildCount(): number }) => L.DivIcon
-  chunkedLoading?: boolean
-  spiderfyOnMaxZoom?: boolean
-  showCoverageOnHover?: boolean
-  maxClusterRadius?: number
-}
-let MarkerClusterGroup: React.ComponentType<ClusterGroupProps> | null = null
+// ═══════════════════════════════════════════════════════════════════════
+// 1. SAMPLE DATA — used by every widget during PHASE 1A design preview.
+//    Every widget's data source is named in `dataStatus` on the registry;
+//    when a widget is wired to real data, its sample import is removed.
+// ═══════════════════════════════════════════════════════════════════════
 
-// ─── Leaflet default marker icon fix ────────────────────────────────────────
-// React-Leaflet doesn't pick up the bundler-served marker assets by default.
-// Patch the prototype once at module load so all Markers render their icon.
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-})
+const SAMPLE_OLTS_ONLINE = { count: 12, delta_60s: +1 }
+const SAMPLE_UPLINK = { used_gbps: 72, capacity_gbps: 100 }
+const SAMPLE_SESSIONS = { active: 14832 }
+const SAMPLE_IP_POOL = { used: 8421, total: 16384 }
 
-// Yerevan center — sensible default for an Armenian ISP NOC view.
-const ARMENIA_DEFAULT_CENTER: [number, number] = [40.1772, 44.5035]
-const ARMENIA_DEFAULT_ZOOM = 11
-
-// ─── GAAhex branded technician marker (divIcon w/ inline SVG) ──────────────
-// We use an L.divIcon so the marker is vector-crisp at every zoom level and
-// brand-consistent (cobalt + gold from the GAAhex mark). A small drop shadow
-// lifts the marker over OSM tiles. Pin sits on its bottom-center anchor.
-const GAAHEX_MARKER_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" width="32" height="40" aria-hidden="true">
-  <defs>
-    <linearGradient id="gxMkrCob" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2A5187"/>
-      <stop offset="0.55" stop-color="#1C3B68"/>
-      <stop offset="1" stop-color="#142C4E"/>
-    </linearGradient>
-    <linearGradient id="gxMkrGold" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#E2C589"/>
-      <stop offset="0.5" stop-color="#C5A059"/>
-      <stop offset="1" stop-color="#9C7C3C"/>
-    </linearGradient>
-    <filter id="gxMkrShadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="#000" flood-opacity="0.45"/>
-    </filter>
-  </defs>
-  <g filter="url(#gxMkrShadow)">
-    <path d="M16 1 C8 1 2 7 2 15 C2 23 9 30 16 39 C23 30 30 23 30 15 C30 7 24 1 16 1 Z"
-          fill="url(#gxMkrCob)" stroke="#0E1F38" stroke-width="1"/>
-    <circle cx="16" cy="14" r="6.5" fill="#FFFFFF" opacity="0.92"/>
-    <path d="M12 12 L16 7 L20 12 Z" fill="url(#gxMkrGold)"/>
-    <path d="M12 16 L16 21 L20 16 Z" fill="url(#gxMkrCob)"/>
-  </g>
-</svg>`.trim()
-
-function makeGaahexMarkerIcon(): L.DivIcon {
-  return L.divIcon({
-    html: GAAHEX_MARKER_SVG,
-    className: 'gaahex-marker',
-    iconSize: [32, 40],
-    iconAnchor: [16, 38],
-    popupAnchor: [0, -34],
-  })
+const SAMPLE_PHASE_STATE = {
+  working: 571,
+  dying_gasp: 67,
+  offline: 25,
+  total: 663,
 }
 
-// ─── Cluster bubble icon factory (cobalt brand, size-scaled) ───────────────
-// Small  (<5)   → 36px
-// Medium (5–15) → 44px
-// Large  (15+)  → 56px
-// We re-use the GAAhex cobalt token so clusters read as "ours" at a glance.
-function makeClusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
-  const count = cluster.getChildCount()
-  let size = 36
-  let tier = 'sm'
-  if (count >= 15) { size = 56; tier = 'lg' }
-  else if (count >= 5) { size = 44; tier = 'md' }
-  const html = `
-    <div class="gaahex-cluster gaahex-cluster--${tier}" style="
-      width:${size}px;height:${size}px;
-      display:flex;align-items:center;justify-content:center;
-      border-radius:50%;
-      background: radial-gradient(circle at 30% 30%, #2A5187 0%, #1C3B68 55%, #142C4E 100%);
-      color:#fff;font-weight:600;font-size:${size <= 38 ? 12 : size <= 46 ? 13 : 15}px;
-      border:2px solid rgba(226,197,137,0.85);
-      box-shadow:0 2px 6px rgba(0,0,0,0.45), inset 0 0 0 2px rgba(255,255,255,0.08);
-      font-family: var(--gx-font-sans, system-ui, sans-serif);
-      letter-spacing:0.2px;
-    ">${count}</div>`
-  return L.divIcon({
-    html,
-    className: 'gaahex-cluster-icon',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  })
+const SAMPLE_OPTICAL_RX = [
+  { label: '> -15 dBm',     bucket: 'Perfect',    count: 423, variant: 'green'  as const },
+  { label: '-16 to -27 dBm', bucket: 'Acceptable', count: 198, variant: 'amber'  as const },
+  { label: '< -28 dBm',     bucket: 'Critical',   count: 42,  variant: 'red'    as const },
+]
+
+const SAMPLE_ROGUE = { count: 0 }
+
+const SAMPLE_PON_SATURATION = {
+  ports: [
+    { id: '0/1', count: 73,  max: 128 },
+    { id: '0/2', count: 37,  max: 128 },
+    { id: '0/3', count: 95,  max: 128 },
+    { id: '0/4', count: 103, max: 128 },
+    { id: '0/5', count: 65,  max: 128 },
+    { id: '0/6', count: 117, max: 128 },
+    { id: '0/7', count: 76,  max: 128 },
+    { id: '0/8', count: 97,  max: 128 },
+  ],
 }
 
-// ─── Types matching the NOC.B backend payloads ───────────────────────────────
+const SAMPLE_VENDOR_MIX = [
+  { vendor: 'Huawei', count: 318, prefix: 'HWTC' },
+  { vendor: 'ZTE',    count: 212, prefix: 'ZTEG' },
+  { vendor: 'Nokia',  count: 93,  prefix: 'ALCL' },
+  { vendor: 'Calix',  count: 40,  prefix: 'CXNK' },
+]
 
-type OltHealth = {
-  total_olts: number
-  chassis_active: number
-  chassis_failed: number
-  cards_active: number
-  cards_failed: number
-  ports_up: number
-  ports_down: number
-  ports_fault: number
-  onus_active: number
-  onus_los: number
-  onus_offline: number
-  ports_signaling_below_threshold: number
-  ports_signal_unknown: number
+const SAMPLE_DENSITY = [
+  { olt: 'ArmGponOLT2',  count: 663 },
+  { olt: 'YvnGponOLT-A', count: 511 },
+  { olt: 'YvnGponOLT-B', count: 487 },
+  { olt: 'GymriOLT-1',   count: 312 },
+  { olt: 'VanadzorOLT',  count: 198 },
+]
+
+const SAMPLE_TIER_MIX = [
+  { tier: '50 Mbps',  count: 84 },
+  { tier: '100 Mbps', count: 186 },
+  { tier: '300 Mbps', count: 132 },
+  { tier: '500 Mbps', count: 89 },
+  { tier: '1 Gbps',   count: 252 },
+]
+
+const SAMPLE_PROFILES = [
+  { name: 'LP_RES_1000_500', count: 252 },
+  { name: 'LP_RES_500_300',  count: 132 },
+  { name: 'LP_RES_300_100',  count: 186 },
+  { name: 'LP_RES_100_50',   count: 84 },
+  { name: 'LP_BIZ_1000_1000', count: 38 },
+  { name: 'DBA_GUARANTEED',  count: 27 },
+  { name: 'LP_LEGACY_50',    count: 11 },
+  { name: 'LP_TEST_PROFILE', count: 3 },
+]
+
+const SAMPLE_UNPROVISIONED = { count: 3 }
+
+const SAMPLE_SEGMENTS = [
+  { id: 'vlan-10',   label: 'VLAN 10',    kind: 'mgmt' },
+  { id: 'vlan-100',  label: 'VLAN 100',   kind: 'subscriber' },
+  { id: 'vlan-200',  label: 'VLAN 200',   kind: 'subscriber' },
+  { id: 'vlan-300',  label: 'VLAN 300',   kind: 'subscriber' },
+  { id: 'vlan-500',  label: 'VLAN 500',   kind: 'voice' },
+  { id: 'vlan-2009', label: 'VLAN 2009',  kind: 'transit' },
+  { id: 'vlan-2016', label: 'VLAN 2016',  kind: 'transit' },
+  { id: 'bng-arm',   label: 'BNG-ARM',    kind: 'bng' },
+]
+
+const SAMPLE_HIERARCHY = {
+  regions: [
+    {
+      id: 'r-arm', label: 'Armavir',
+      olts: [
+        { id: 'arm-1', label: 'ArmGponOLT2', ports: [
+          { id: 'arm-1-1', label: '0/1', onus: [
+            { id: 'gpon00134174', serial: 'GPON00134174', profile: 'LP_RES_1000_500', phase: 'working' },
+            { id: 'gpon00b0aa98', serial: 'GPON00b0aa98', profile: 'LP_RES_300_100',  phase: 'working' },
+            { id: 'gpon00b09b40', serial: 'GPON00b09b40', profile: 'LP_RES_500_300',  phase: 'dying_gasp' },
+          ] },
+          { id: 'arm-1-2', label: '0/2', onus: [] },
+          { id: 'arm-1-3', label: '0/3', onus: [] },
+          { id: 'arm-1-4', label: '0/4', onus: [] },
+        ] },
+      ],
+    },
+    {
+      id: 'r-yvn', label: 'Yerevan',
+      olts: [
+        { id: 'yvn-a', label: 'YvnGponOLT-A', ports: [
+          { id: 'yvn-a-1', label: '0/1', onus: [] },
+          { id: 'yvn-a-2', label: '0/2', onus: [] },
+        ] },
+        { id: 'yvn-b', label: 'YvnGponOLT-B', ports: [
+          { id: 'yvn-b-1', label: '0/1', onus: [] },
+        ] },
+      ],
+    },
+    { id: 'r-gym', label: 'Gyumri',   olts: [{ id: 'gym-1', label: 'GymriOLT-1', ports: [] }] },
+    { id: 'r-van', label: 'Vanadzor', olts: [{ id: 'van-1', label: 'VanadzorOLT', ports: [] }] },
+  ],
 }
 
-type Technician = {
-  technician_user_id: string
-  last_lat: number | null
-  last_lng: number | null
-  last_recorded_at: string | null
-  ping_count: number
+const SAMPLE_REGIONAL_HUBS = [
+  { id: 'arm', label: 'Armavir',   lat: 40.1572, lng: 43.8746, status: 'ok'      as const },
+  { id: 'yvn', label: 'Yerevan',   lat: 40.1772, lng: 44.5035, status: 'ok'      as const },
+  { id: 'gym', label: 'Gyumri',    lat: 40.7942, lng: 43.8453, status: 'warning' as const },
+  { id: 'van', label: 'Vanadzor',  lat: 40.8128, lng: 44.4886, status: 'ok'      as const },
+  { id: 'kap', label: 'Kapan',     lat: 39.2071, lng: 46.4053, status: 'outage'  as const },
+]
+
+const SAMPLE_TECHS = { available: 3, en_route: 2, on_site: 1 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// 2. WIDGET REGISTRY — declarative list. The grid renders by filtering
+//    this array against the visibility map.
+// ═══════════════════════════════════════════════════════════════════════
+
+type ModuleNum = 1 | 2 | 3 | 4 | 5 | 6
+type SlotSize = 'kpi' | 'small' | 'medium' | 'wide'
+type DataStatus = 'live' | 'partial' | 'pending'
+
+const MODULE_LABELS: Record<ModuleNum, string> = {
+  1: 'Module 1 · Global ISP Health',
+  2: 'Module 2 · ONU Phase & Optical Alarms',
+  3: 'Module 3 · Categorical Network Analytics',
+  4: 'Module 4 · Provisioning & Billing Tiers',
+  6: 'Module 6 · ISP Hierarchy Explorer',
+  5: 'Module 5 · Geographic & Field Operations',
 }
 
-type DashboardResp = { olt_health: OltHealth; technicians: Technician[] }
+// Display order on the page — alarms-first per Gev's lock.
+const MODULE_ORDER: ModuleNum[] = [1, 2, 3, 4, 6, 5]
 
-type OltRecord = {
+interface WidgetCtx {
+  openDrawer: (payload: DrawerPayload) => void
+}
+
+interface WidgetDef {
   id: string
-  data?: Record<string, unknown>
-  status?: string | null
-  name?: string
-  [k: string]: unknown
+  title: string
+  module: ModuleNum
+  slot: SlotSize
+  dataStatus: DataStatus
+  /** When `dataStatus === 'pending'`, the message shown inside the empty state. */
+  pendingMessage?: string
+  Component: React.FC<WidgetCtx>
 }
 
-type Onu = {
-  id: string
-  serial?: string | null
-  customer_id?: string | null
-  service_id?: string | null
-  status?: string | null
-  distance_m?: number | null
-  last_rx_dbm?: number | null
-  last_tx_dbm?: number | null
-  last_polled_at?: string | null
-  [k: string]: unknown
-}
+// Drawer payload — what gets passed to the slide-out when the user clicks
+// any chip / slice / row. Caller picks `kind`; drawer body renders by kind.
+type DrawerPayload =
+  | { kind: 'port';     id: string; label: string }
+  | { kind: 'vendor';   prefix: string; label: string }
+  | { kind: 'tier';     name: string }
+  | { kind: 'profile';  name: string }
+  | { kind: 'segment';  id: string; label: string }
+  | { kind: 'onu';      serial: string }
+  | { kind: 'olt';      id: string; label: string }
+  | { kind: 'region';   id: string; label: string }
+  | { kind: 'tech-group'; group: 'available' | 'en_route' | 'on_site' }
 
-type Port = {
-  id: string
-  port_no?: number | string | null
-  type?: string | null
-  status?: string | null
-  last_rx_dbm?: number | null
-  last_tx_dbm?: number | null
-  last_polled_at?: string | null
-  onus?: Onu[]
-  onu_count?: number | null
-  [k: string]: unknown
-}
+// ═══════════════════════════════════════════════════════════════════════
+// 3. SHARED PRIMITIVES — used inside widget bodies.
+// ═══════════════════════════════════════════════════════════════════════
 
-type Card = {
-  id: string
-  slot_no?: number | string | null
-  card_type?: string | null
-  status?: string | null
-  ports?: Port[]
-  [k: string]: unknown
-}
-
-type Chassis = {
-  id: string
-  name?: string | null
-  status?: string | null
-  cards?: Card[]
-  [k: string]: unknown
-}
-
-type OltTree = {
-  id: string
-  name?: string | null
-  chassis?: Chassis[]
-  [k: string]: unknown
-}
-
-type OpticalReading = {
-  rx_dbm?: number | null
-  tx_dbm?: number | null
-  recorded_at?: string | null
-  [k: string]: unknown
-}
-
-type OtdrEvent = {
-  distance_m?: number | null
-  event_type?: string | null
-  loss_db?: number | null
-  reflectance_db?: number | null
-  [k: string]: unknown
-}
-
-type OtdrResult = {
-  id?: string
-  target_type?: string
-  target_id?: string
-  result_json?: { events?: OtdrEvent[]; [k: string]: unknown }
-  recorded_at?: string | null
-  [k: string]: unknown
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function thresholdVariant(rx: number | null | undefined): 'active' | 'degraded' | 'critical' | 'neutral' {
-  if (rx == null || Number.isNaN(rx)) return 'neutral'
-  if (rx < -28) return 'critical'
-  if (rx < -26) return 'degraded'
-  return 'active'
-}
-
-function thresholdLabel(rx: number | null | undefined): string {
-  if (rx == null || Number.isNaN(rx)) return 'unknown'
-  if (rx < -28) return 'critical'
-  if (rx < -26) return 'warning'
-  return 'normal'
-}
-
-function statusPillVariant(status: string | null | undefined): 'active' | 'degraded' | 'critical' | 'neutral' {
-  if (!status) return 'neutral'
-  const s = status.toUpperCase()
-  if (s === 'UP' || s === 'ACTIVE' || s === 'ONLINE') return 'active'
-  if (s === 'FAULT' || s === 'DEGRADED' || s === 'LOS') return 'degraded'
-  if (s === 'DOWN' || s === 'FAILED' || s === 'OFFLINE') return 'critical'
-  return 'neutral'
-}
-
-function short(s: string | null | undefined, n = 8): string {
-  if (!s) return '—'
-  return s.length > n ? s.slice(0, n) : s
-}
-
-function oltDisplayName(o: OltRecord): string {
-  const d = (o.data ?? {}) as Record<string, unknown>
-  return (o.name as string) ?? (d.name as string) ?? (d.hostname as string) ?? short(o.id)
-}
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
-export default function NocDashboardView({
-  token,
-  capabilities,
-  canConfigure,
+function NMSCard({
+  title, status, children, action,
 }: {
+  title: string
+  status: DataStatus
+  children: React.ReactNode
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="nms-card">
+      <div className="nms-card-header">
+        <div className="nms-card-title">{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {action}
+          {status !== 'live' && (
+            <span className="nms-card-preview-tag" title="This widget shows sample data while we finalize the design.">
+              ▾ representative — design preview
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="nms-card-body">{children}</div>
+    </div>
+  )
+}
+
+function PendingState({ headline, body }: { headline: string; body: string }) {
+  return (
+    <div className="nms-card-pending">
+      <div className="nms-card-pending-headline">{headline}</div>
+      <div style={{ maxWidth: 320 }}>{body}</div>
+    </div>
+  )
+}
+
+function Bar({ pct, variant = 'cyan', height = 8 }: { pct: number; variant?: 'green'|'amber'|'red'|'cyan'|'gold'; height?: number }) {
+  // D18: slate neutrals by default; gold only when critical/peak; azure
+  // (--gx-interactive) when the bar fills a drillable row / interactive
+  // selection (variant: 'cyan'). Cobalt brand-spine is reserved for
+  // structural chrome only and never appears here.
+  const color =
+    variant === 'red' || variant === 'gold'
+      ? 'var(--gx-gold)'
+      : variant === 'amber'
+        ? 'var(--gx-text-3)'
+        : variant === 'cyan'
+          ? 'var(--gx-interactive)' // D18: drillable-row bar fill = azure (interactive)
+          : 'var(--gx-text-2)'
+  return (
+    <div style={{
+      height, width: '100%', borderRadius: 999,
+      background: 'var(--nms-surface-3)', overflow: 'hidden',
+    }}>
+      <div style={{
+        width: `${Math.max(0, Math.min(100, pct))}%`,
+        height: '100%',
+        background: color,
+      }} />
+    </div>
+  )
+}
+
+function ValueBlock({ label, value, sub, variant = 'default' }: {
+  label: string
+  value: React.ReactNode
+  sub?: React.ReactNode
+  variant?: 'default' | 'green' | 'amber' | 'red'
+}) {
+  const valueCls =
+    'nms-value ' + (
+      variant === 'green' ? 'nms-value-green' :
+      variant === 'amber' ? 'nms-value-amber' :
+      variant === 'red'   ? 'nms-value-red'   : ''
+    )
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--gx-font-mono, monospace)' }}>{label}</div>
+      <div className={valueCls}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: 'var(--nms-text-3)' }}>{sub}</div>}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 4. MODULE 1 — GLOBAL ISP HEALTH (KPI strip)
+// ═══════════════════════════════════════════════════════════════════════
+
+const WOltsOnline: React.FC<WidgetCtx> = () => {
+  const delta = SAMPLE_OLTS_ONLINE.delta_60s
+  return (
+    <NMSCard title="OLTs Online" status="partial">
+      <ValueBlock
+        label="ACTIVE CHASSIS"
+        value={SAMPLE_OLTS_ONLINE.count}
+        sub={
+          <span style={{ color: delta >= 0 ? 'var(--gx-text-2)' : 'var(--gx-gold)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} in last 60 s
+          </span>
+        }
+      />
+    </NMSCard>
+  )
+}
+
+const WUplinkCapacity: React.FC<WidgetCtx> = () => {
+  const pct = (SAMPLE_UPLINK.used_gbps / SAMPLE_UPLINK.capacity_gbps) * 100
+  const variant = pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'green'
+  return (
+    <NMSCard title="Total Uplink Capacity" status="pending">
+      <ValueBlock
+        label="CURRENT LOAD"
+        value={`${pct.toFixed(0)}%`}
+        sub={`${SAMPLE_UPLINK.used_gbps} / ${SAMPLE_UPLINK.capacity_gbps} Gbps`}
+        variant={variant}
+      />
+      <Bar pct={pct} variant={variant} />
+    </NMSCard>
+  )
+}
+
+const WActiveSessions: React.FC<WidgetCtx> = () => (
+  <NMSCard title="Active Customer Sessions" status="pending">
+    <ValueBlock
+      label="PPPoE / IPoE ONLINE"
+      value={SAMPLE_SESSIONS.active.toLocaleString()}
+      sub="Authenticated broadband subscribers"
+    />
+  </NMSCard>
+)
+
+const WIpPool: React.FC<WidgetCtx> = () => {
+  const pct = (SAMPLE_IP_POOL.used / SAMPLE_IP_POOL.total) * 100
+  const remaining = SAMPLE_IP_POOL.total - SAMPLE_IP_POOL.used
+  return (
+    <NMSCard title="IP Pool Exhaustion" status="pending">
+      <ValueBlock
+        label="USED / TOTAL"
+        value={
+          <span>
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_IP_POOL.used.toLocaleString()}</span>
+            <span style={{ color: 'var(--nms-text-3)' }}>/{SAMPLE_IP_POOL.total.toLocaleString()}</span>
+          </span>
+        }
+        sub={`${remaining.toLocaleString()} available addresses remaining`}
+        variant={pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'default'}
+      />
+      <Bar pct={pct} variant={pct >= 85 ? 'red' : 'green'} height={6} />
+    </NMSCard>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 5. MODULE 2 — ONU PHASE STATE & OPTICAL HEALTH
+// ═══════════════════════════════════════════════════════════════════════
+
+const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const s = SAMPLE_PHASE_STATE
+  type PhaseCell = { key: string; label: string; value: number; pillCls: string; dot: string; share: number; isTotal?: boolean }
+  const cells: PhaseCell[] = [
+    { key: 'working',    label: 'Working',         value: s.working,    pillCls: 'nms-pill-green', dot: 'nms-dot-green',           share: s.working / s.total },
+    { key: 'dying_gasp', label: 'Dying Gasp',      value: s.dying_gasp, pillCls: 'nms-pill-amber', dot: 'nms-dot-amber is-alarm',  share: s.dying_gasp / s.total },
+    { key: 'offline',    label: 'Offline / LOS',   value: s.offline,    pillCls: 'nms-pill-red',   dot: 'nms-dot-red is-alarm',    share: s.offline / s.total },
+    { key: 'total',      label: 'Total Ecosystem', value: s.total,      pillCls: '',               dot: '',                        share: 1, isTotal: true },
+  ]
+  return (
+    <NMSCard title="ONU Phase State Grid" status="live">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--nms-sp-3)' }}>
+        {cells.map(c => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => openDrawer({ kind: 'segment', id: `phase:${c.key}`, label: c.label })}
+            style={{
+              background: 'var(--nms-surface-2)',
+              border: '1px solid var(--nms-border)',
+              borderRadius: 'var(--nms-radius-sm)',
+              padding: 'var(--nms-sp-3)',
+              display: 'flex', flexDirection: 'column', gap: 6,
+              cursor: 'pointer',
+              color: 'inherit',
+              textAlign: 'left',
+            }}
+          >
+            <span className={'nms-pill ' + c.pillCls}>
+              {c.dot && <span className={'nms-dot ' + c.dot} />}
+              {c.label}
+            </span>
+            <div className="nms-value nms-value-mono" style={{ fontSize: 26 }}>{c.value}</div>
+            {c.isTotal ? (
+              // Neutral stacked bar: text-2 (working) → text-3 (dying_gasp) → gold (offline).
+              <div style={{ display: 'flex', height: 6, borderRadius: 999, overflow: 'hidden', background: 'var(--nms-surface-3)' }}>
+                <div style={{ flex: s.working,    background: 'var(--gx-text-2)' }} />
+                <div style={{ flex: s.dying_gasp, background: 'var(--gx-text-3)' }} />
+                <div style={{ flex: s.offline,    background: 'var(--gx-gold)' }} />
+              </div>
+            ) : (
+              <Bar pct={c.share * 100} variant={c.pillCls.includes('green') ? 'green' : c.pillCls.includes('amber') ? 'amber' : 'red'} height={5} />
+            )}
+            <div style={{ fontSize: 10, color: 'var(--nms-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+              {c.isTotal ? '100%' : `${(c.share * 100).toFixed(1)}%`}
+            </div>
+          </button>
+        ))}
+      </div>
+    </NMSCard>
+  )
+}
+
+const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const max = Math.max(...SAMPLE_OPTICAL_RX.map(b => b.count))
+  return (
+    <NMSCard title="Optical RX Power Distribution" status="pending">
+      <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-around', gap: 'var(--nms-sp-3)', height: 200, paddingTop: 16 }}>
+        {SAMPLE_OPTICAL_RX.map(b => {
+          const h = (b.count / max) * 160
+          // Neutral by default; gold only for the Critical bucket.
+          const color =
+            b.variant === 'green' ? 'var(--gx-text-2)' :
+            b.variant === 'amber' ? 'var(--gx-text-3)' :
+                                    'var(--gx-gold)'
+          return (
+            <button
+              key={b.label}
+              type="button"
+              onClick={() => openDrawer({ kind: 'segment', id: `rx:${b.variant}`, label: `Optical RX · ${b.bucket}` })}
+              style={{
+                flex: 1,
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
+              }}
+            >
+              <div style={{ fontSize: 14, fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, color }}>{b.count}</div>
+              <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 4 }} />
+              <div style={{ fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)', marginTop: 6, textAlign: 'center' }}>{b.label}</div>
+              <div style={{ fontSize: 10, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
+            </button>
+          )
+        })}
+      </div>
+    </NMSCard>
+  )
+}
+
+const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const isAlarm = SAMPLE_ROGUE.count > 0
+  return (
+    <NMSCard title="Rogue ONUs Detected" status="pending">
+      <button
+        type="button"
+        onClick={() => openDrawer({ kind: 'segment', id: 'rogue', label: 'Rogue ONU Alarm' })}
+        style={{
+          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          flex: 1, gap: 6,
+        }}
+      >
+        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
+        <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-red' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_ROGUE.count}</div>
+        <div style={{ fontSize: 11, color: 'var(--nms-text-3)', textAlign: 'center', maxWidth: 200 }}>
+          {isAlarm ? 'Blinded ports — uncontrolled light' : 'No rogue ONUs · all ports stable'}
+        </div>
+      </button>
+    </NMSCard>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 6. MODULE 3 — CATEGORICAL ANALYTICS
+// ═══════════════════════════════════════════════════════════════════════
+
+const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const sorted = [...SAMPLE_PON_SATURATION.ports].sort((a, b) => (b.count/b.max) - (a.count/a.max))
+  const peak = sorted[0]
+  const peakPct = (peak.count / peak.max) * 100
+  return (
+    <NMSCard title="PON Port Saturation" status="live">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-2)' }}>
+        {SAMPLE_PON_SATURATION.ports.map(p => {
+          const pct = (p.count / p.max) * 100
+          const variant = pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'green'
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => openDrawer({ kind: 'port', id: p.id, label: `Port ${p.id}` })}
+              style={{
+                display: 'grid', gridTemplateColumns: '52px 1fr 70px',
+                gap: 'var(--nms-sp-2)', alignItems: 'center',
+                background: 'transparent', border: 'none', padding: '4px 6px',
+                cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                borderRadius: 'var(--nms-radius-sm)',
+              }}
+            >
+              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11, color: 'var(--nms-text-2)' }}>{p.id}</span>
+              <Bar pct={pct} variant={variant} height={10} />
+              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11, textAlign: 'right', color: variant === 'red' ? 'var(--nms-neon-red)' : variant === 'amber' ? 'var(--nms-neon-amber)' : 'var(--nms-text)' }}>
+                {p.count}/{p.max}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--nms-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 4 }}>
+        Peak Port Capacity: <b style={{ color: 'var(--nms-accent-gold)' }}>ArmGponOLT2 / {peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
+      </div>
+    </NMSCard>
+  )
+}
+
+const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const total = SAMPLE_VENDOR_MIX.reduce((s, v) => s + v.count, 0)
+  // Simple donut via SVG strokeDasharray.
+  let acc = 0
+  const SIZE = 160, R = 64, STROKE = 22, C = 2 * Math.PI * R
+  // Neutral donut — dominant vendor gets brand gold (the signature), the
+  // rest are neutral shades that step down by brightness. Cobalt is reserved
+  // for active selection elsewhere, not used as a passive slice color.
+  const colors = [
+    'var(--gx-gold)',     // gold — dominant (signature for the leader)
+    'var(--gx-text-2)',   // neutral 1
+    'var(--gx-text-3)',   // neutral 2
+    'var(--nms-surface-3)', // neutral 3 (dimmest)
+  ]
+  return (
+    <NMSCard title="ONU Vendor Diversity Mix" status="live">
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--nms-sp-3)', alignItems: 'center' }}>
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--nms-surface-3)" strokeWidth={STROKE} />
+          {SAMPLE_VENDOR_MIX.map((v, i) => {
+            const frac = v.count / total
+            const dash = frac * C
+            const offset = acc * C
+            acc += frac
+            return (
+              <circle key={v.vendor}
+                cx={SIZE/2} cy={SIZE/2} r={R}
+                fill="none"
+                stroke={colors[i % colors.length]}
+                strokeWidth={STROKE}
+                strokeDasharray={`${dash} ${C - dash}`}
+                strokeDashoffset={-offset}
+                transform={`rotate(-90 ${SIZE/2} ${SIZE/2})`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => openDrawer({ kind: 'vendor', prefix: v.prefix, label: v.vendor })}
+              />
+            )
+          })}
+          <text x={SIZE/2} y={SIZE/2 - 6} textAnchor="middle" fontSize="22" fontWeight="600" fill="var(--nms-text)" fontFamily="var(--gx-font-display, sans-serif)">{total}</text>
+          <text x={SIZE/2} y={SIZE/2 + 14} textAnchor="middle" fontSize="10" fill="var(--nms-text-3)" letterSpacing="0.08em">ONUs</text>
+        </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {SAMPLE_VENDOR_MIX.map((v, i) => {
+            const pct = Math.round((v.count / total) * 100)
+            return (
+              <button key={v.vendor}
+                type="button"
+                onClick={() => openDrawer({ kind: 'vendor', prefix: v.prefix, label: v.vendor })}
+                style={{
+                  display: 'grid', gridTemplateColumns: '10px 1fr auto auto',
+                  gap: 8, alignItems: 'center',
+                  background: 'transparent', border: 'none', padding: '3px 6px',
+                  cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                  borderRadius: 'var(--nms-radius-sm)',
+                  fontSize: 12,
+                }}
+              >
+                <span style={{ width: 10, height: 10, borderRadius: 2, background: colors[i % colors.length] }} />
+                <span>{v.vendor}</span>
+                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-2)' }}>{v.count}</span>
+                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)' }}>{pct}%</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </NMSCard>
+  )
+}
+
+const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const max = Math.max(...SAMPLE_DENSITY.map(d => d.count))
+  return (
+    <NMSCard title="Subscriber Density per OLT" status="partial">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-2)' }}>
+        {SAMPLE_DENSITY.map(d => (
+          <button key={d.olt}
+            type="button"
+            onClick={() => openDrawer({ kind: 'olt', id: d.olt, label: d.olt })}
+            style={{
+              display: 'grid', gridTemplateColumns: '140px 1fr 50px',
+              gap: 'var(--nms-sp-2)', alignItems: 'center',
+              background: 'transparent', border: 'none', padding: '4px 6px',
+              cursor: 'pointer', color: 'inherit', textAlign: 'left',
+              borderRadius: 'var(--nms-radius-sm)',
+              fontSize: 12,
+            }}
+          >
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.olt}</span>
+            <Bar pct={(d.count / max) * 100} height={10} />
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, textAlign: 'right' }}>{d.count}</span>
+          </button>
+        ))}
+      </div>
+    </NMSCard>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 7. MODULE 4 — PROVISIONING & BILLING TIERS
+// ═══════════════════════════════════════════════════════════════════════
+
+const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const sorted = [...SAMPLE_TIER_MIX].sort((a, b) => b.count - a.count)
+  const peak = sorted[0]
+  const total = SAMPLE_TIER_MIX.reduce((s, t) => s + t.count, 0)
+  const peakPct = Math.round((peak.count / total) * 100)
+  const max = peak.count
+  const CHART_H = 160
+  return (
+    <NMSCard title="Subscription Speed Tier Mix" status="live">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${SAMPLE_TIER_MIX.length}, minmax(0, 1fr))`,
+        gap: 'var(--nms-sp-2)', alignItems: 'end',
+        height: CHART_H + 40, paddingTop: 24, position: 'relative',
+      }}>
+        {SAMPLE_TIER_MIX.map(t => {
+          const isLeader = t.tier === peak.tier
+          const stem = (t.count / max) * CHART_H
+          return (
+            <button key={t.tier}
+              type="button"
+              onClick={() => openDrawer({ kind: 'tier', name: t.tier })}
+              style={{
+                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
+                position: 'relative', height: CHART_H + 40,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
+                gap: 4,
+              }}
+            >
+              {isLeader && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: stem + 24,
+                  background: 'var(--nms-surface-2)',
+                  border: '1px solid var(--nms-border-strong)',
+                  borderRadius: 'var(--nms-radius-sm)',
+                  padding: '2px 8px',
+                  fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)',
+                  color: 'var(--nms-text)', whiteSpace: 'nowrap', fontWeight: 600,
+                }}>▼ Peak Plan · {peakPct}%</div>
+              )}
+              <div style={{
+                position: 'absolute', bottom: 24, width: 2, height: stem,
+                background: 'var(--nms-text-2)', opacity: 0.6, borderRadius: 1,
+              }} />
+              <div style={{
+                position: 'absolute', bottom: 24 + stem - 5, width: 10, height: 10, borderRadius: '50%',
+                background: 'var(--nms-text)',
+                border: '2px solid var(--nms-bg)',
+                outline: isLeader ? '1px solid var(--nms-text)' : 'none',
+                outlineOffset: 1,
+              }} />
+              <span style={{ fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', color: isLeader ? 'var(--nms-text)' : 'var(--nms-text-3)', fontWeight: isLeader ? 600 : 400 }}>{t.tier}</span>
+              <span style={{ fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)' }}>{t.count}</span>
+            </button>
+          )
+        })}
+      </div>
+    </NMSCard>
+  )
+}
+
+const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const max = Math.max(...SAMPLE_PROFILES.map(p => p.count))
+  return (
+    <NMSCard title="Service Profiles Breakdown" status="live">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {SAMPLE_PROFILES.map(p => (
+          <button key={p.name}
+            type="button"
+            onClick={() => openDrawer({ kind: 'profile', name: p.name })}
+            style={{
+              display: 'grid', gridTemplateColumns: '170px 1fr 40px',
+              gap: 'var(--nms-sp-2)', alignItems: 'center',
+              background: 'transparent', border: 'none', padding: '3px 6px',
+              cursor: 'pointer', color: 'inherit', textAlign: 'left',
+              borderRadius: 'var(--nms-radius-sm)', fontSize: 11,
+            }}
+          >
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</span>
+            <Bar pct={(p.count / max) * 100} height={8} />
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, textAlign: 'right' }}>{p.count}</span>
+          </button>
+        ))}
+      </div>
+    </NMSCard>
+  )
+}
+
+const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const n = SAMPLE_UNPROVISIONED.count
+  const isAlarm = n > 0
+  return (
+    <NMSCard title="Unprovisioned ONUs" status="pending">
+      <button
+        type="button"
+        onClick={() => openDrawer({ kind: 'segment', id: 'unprov', label: 'Unprovisioned ONUs' })}
+        style={{
+          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          flex: 1, gap: 6,
+        }}
+      >
+        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
+        <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-amber' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{n}</div>
+        <div style={{ fontSize: 11, color: 'var(--nms-text-3)', textAlign: 'center', maxWidth: 200 }}>
+          Pending activation from billing CRM
+        </div>
+      </button>
+    </NMSCard>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 8. MODULE 6 — HIERARCHY EXPLORER
+// ═══════════════════════════════════════════════════════════════════════
+
+const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const kindColor = (k: string) =>
+    k === 'mgmt'       ? 'nms-pill-cyan' :
+    k === 'subscriber' ? 'nms-pill-green' :
+    k === 'voice'      ? 'nms-pill-amber' :
+    k === 'transit'    ? 'nms-pill-cyan' :
+    k === 'bng'        ? 'nms-pill-red'  : ''
+  return (
+    <NMSCard title="Global Segmentation · VLAN / BNG" status="live">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {SAMPLE_SEGMENTS.map(s => (
+          <button key={s.id}
+            type="button"
+            onClick={() => openDrawer({ kind: 'segment', id: s.id, label: s.label })}
+            className={'nms-pill ' + kindColor(s.kind)}
+            style={{ cursor: 'pointer', fontSize: 11 }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--nms-text-3)', fontStyle: 'italic' }}>
+        Click a chip to filter every widget on the dashboard to that traffic segment.
+      </div>
+    </NMSCard>
+  )
+}
+
+const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  // Local selection state for the three columns. Undefined is acceptable when a
+  // region/olt/port doesn't exist (e.g., empty region) — guard at render.
+  const [regionId, setRegionId] = useState<string>(SAMPLE_HIERARCHY.regions[0].id)
+  const region = SAMPLE_HIERARCHY.regions.find(r => r.id === regionId)!
+  const [oltId, setOltId] = useState<string | undefined>(region.olts[0]?.id)
+  const olt = region.olts.find(o => o.id === oltId) ?? region.olts[0]
+  const [portId, setPortId] = useState<string | undefined>(olt?.ports[0]?.id)
+  const port = olt?.ports.find(p => p.id === portId) ?? olt?.ports[0]
+
+  // when region changes, reset olt + port
+  const onRegion = (id: string) => {
+    setRegionId(id)
+    const r = SAMPLE_HIERARCHY.regions.find(x => x.id === id)!
+    setOltId(r.olts[0]?.id)
+    setPortId(r.olts[0]?.ports[0]?.id)
+  }
+  const onOlt = (id: string) => {
+    setOltId(id)
+    const o = region.olts.find(x => x.id === id)
+    setPortId(o?.ports[0]?.id)
+  }
+
+  const phaseColor = (p: string) =>
+    p === 'working'   ? 'nms-pill-green' :
+    p === 'dying_gasp' ? 'nms-pill-amber' :
+                         'nms-pill-red'
+
+  return (
+    <NMSCard title="ISP Hierarchy Explorer" status="live">
+      <div style={{
+        display: 'grid', gridTemplateColumns: '180px 200px 1fr',
+        gap: 'var(--nms-sp-3)', minHeight: 320,
+      }}>
+        {/* Column 1 — Regions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
+          <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>Regions</div>
+          {SAMPLE_HIERARCHY.regions.map(r => (
+            <button key={r.id}
+              type="button"
+              onClick={() => onRegion(r.id)}
+              onDoubleClick={() => openDrawer({ kind: 'region', id: r.id, label: r.label })}
+              style={{
+                padding: '6px 10px', borderRadius: 'var(--nms-radius-sm)',
+                background: regionId === r.id ? 'var(--nms-surface-2)' : 'transparent',
+                border: regionId === r.id ? '1px solid var(--nms-border-strong)' : '1px solid transparent',
+                cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                fontSize: 12, fontFamily: 'var(--gx-font-mono, monospace)',
+              }}
+            >
+              {r.label} <span style={{ color: 'var(--nms-text-3)' }}>· {r.olts.length}</span>
+            </button>
+          ))}
+        </div>
+        {/* Column 2 — OLTs + Ports */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
+          <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>OLT · PON</div>
+          {region.olts.map(o => (
+            <div key={o.id}>
+              <button
+                type="button"
+                onClick={() => onOlt(o.id)}
+                onDoubleClick={() => openDrawer({ kind: 'olt', id: o.id, label: o.label })}
+                style={{
+                  width: '100%', padding: '4px 10px', borderRadius: 'var(--nms-radius-sm)',
+                  background: oltId === o.id ? 'var(--nms-surface-2)' : 'transparent',
+                  border: oltId === o.id ? '1px solid var(--nms-border-strong)' : '1px solid transparent',
+                  cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                  fontSize: 12, fontFamily: 'var(--gx-font-mono, monospace)',
+                }}
+              >
+                {o.label}
+              </button>
+              {oltId === o.id && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 12, marginTop: 2 }}>
+                  {o.ports.map(p => (
+                    <button key={p.id}
+                      type="button"
+                      onClick={() => setPortId(p.id)}
+                      style={{
+                        padding: '2px 6px', borderRadius: 'var(--nms-radius-sm)',
+                        background: portId === p.id ? 'var(--nms-surface-3)' : 'transparent',
+                        border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                        fontSize: 11, fontFamily: 'var(--gx-font-mono, monospace)',
+                        display: 'flex', justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>{p.label}</span>
+                      <span style={{ color: 'var(--nms-text-3)' }}>{p.onus.length}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Column 3 — ONU rows for selected port */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minHeight: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>
+              {port ? `Port ${port.label}` : '—'} · {port?.onus.length ?? 0} ONUs
+            </div>
+          </div>
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 2,
+            background: 'var(--nms-surface-2)', borderRadius: 'var(--nms-radius-sm)',
+            border: '1px solid var(--nms-border)', padding: 'var(--nms-sp-2)',
+            maxHeight: 280, overflowY: 'auto',
+          }}>
+            {!port || port.onus.length === 0 ? (
+              <div style={{ fontSize: 11, color: 'var(--nms-text-3)', textAlign: 'center', padding: 'var(--nms-sp-3)' }}>
+                No ONUs on this port (sample data).
+              </div>
+            ) : port.onus.map(o => (
+              <button key={o.id}
+                type="button"
+                onClick={() => openDrawer({ kind: 'onu', serial: o.serial })}
+                style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr 80px',
+                  gap: 'var(--nms-sp-2)', alignItems: 'center',
+                  background: 'transparent', border: 'none', padding: '4px 6px',
+                  cursor: 'pointer', color: 'inherit', textAlign: 'left',
+                  borderRadius: 'var(--nms-radius-sm)',
+                  fontSize: 11, fontFamily: 'var(--gx-font-mono, monospace)',
+                }}
+              >
+                <span>{o.serial}</span>
+                <span style={{ color: 'var(--nms-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
+                <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 9, justifySelf: 'end' }}>{o.phase}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </NMSCard>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 9. MODULE 5 — GEOGRAPHIC & FIELD OPERATIONS
+// ═══════════════════════════════════════════════════════════════════════
+
+const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  // Render the hubs as positioned dots on a simple "abstract Armenia" pane.
+  // No real basemap — keeps the design preview self-contained and clear.
+  // Coordinates are normalized to the local bounding box of SAMPLE_REGIONAL_HUBS.
+  const lats = SAMPLE_REGIONAL_HUBS.map(h => h.lat)
+  const lngs = SAMPLE_REGIONAL_HUBS.map(h => h.lng)
+  const minLat = Math.min(...lats) - 0.1, maxLat = Math.max(...lats) + 0.1
+  const minLng = Math.min(...lngs) - 0.2, maxLng = Math.max(...lngs) + 0.2
+  const W = 700, H = 320
+  const project = (lat: number, lng: number): [number, number] => {
+    const x = ((lng - minLng) / (maxLng - minLng)) * W
+    // invert y so north is up
+    const y = H - ((lat - minLat) / (maxLat - minLat)) * H
+    return [x, y]
+  }
+  // Map rule:
+  //   · Operational → neutral filled dot (text-2)
+  //   · Warning     → neutral outlined dot (text-3 stroke)
+  //   · Outage      → solid GOLD dot + animated gold pulse + bold label
+  return (
+    <NMSCard title="Regional Outage Field Map" status="partial">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, background: 'var(--nms-surface-2)', borderRadius: 'var(--nms-radius-sm)', border: '1px solid var(--nms-border)' }}>
+        {Array.from({ length: 10 }).map((_, i) => (
+          <line key={'h' + i} x1={0} y1={(i * H) / 10} x2={W} y2={(i * H) / 10} stroke="var(--nms-border)" strokeWidth={1} opacity={0.4} />
+        ))}
+        {Array.from({ length: 16 }).map((_, i) => (
+          <line key={'v' + i} x1={(i * W) / 16} y1={0} x2={(i * W) / 16} y2={H} stroke="var(--nms-border)" strokeWidth={1} opacity={0.4} />
+        ))}
+        {SAMPLE_REGIONAL_HUBS.map(h => {
+          const [x, y] = project(h.lat, h.lng)
+          const isOutage  = h.status === 'outage'
+          const isWarning = h.status === 'warning'
+          return (
+            <g key={h.id} style={{ cursor: 'pointer' }} onClick={() => openDrawer({ kind: 'region', id: h.id, label: h.label })}>
+              {isOutage && (
+                <circle cx={x} cy={y} r={14} fill="var(--gx-gold)" opacity={0.22}>
+                  <animate attributeName="r" values="14;22;14" dur="1.8s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.22;0;0.22" dur="1.8s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {isWarning ? (
+                <circle cx={x} cy={y} r={7} fill="none" stroke="var(--gx-text-3)" strokeWidth={2} />
+              ) : (
+                <circle cx={x} cy={y} r={7} fill={isOutage ? 'var(--gx-gold)' : 'var(--gx-text-2)'} />
+              )}
+              <text x={x + 12} y={y + 4} fontSize="11"
+                fill={isOutage ? 'var(--gx-gold)' : 'var(--nms-text-2)'}
+                fontFamily="var(--gx-font-mono, monospace)"
+                fontWeight={isOutage ? 700 : 400}>
+                {h.label}{isOutage && ' · OUTAGE'}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+      <div style={{ display: 'flex', gap: 'var(--nms-sp-4)', fontSize: 11, color: 'var(--nms-text-3)', justifyContent: 'center', marginTop: 4 }}>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 4 }} /> Operational</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 4 }} /> Warning</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 4 }} /> Outage</span>
+      </div>
+    </NMSCard>
+  )
+}
+
+const WTechnicianFleet: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const groups = [
+    { key: 'available' as const, label: 'Available', count: SAMPLE_TECHS.available, pill: 'nms-pill-green' },
+    { key: 'en_route'  as const, label: 'En Route',  count: SAMPLE_TECHS.en_route,  pill: 'nms-pill-amber' },
+    { key: 'on_site'   as const, label: 'On-Site',   count: SAMPLE_TECHS.on_site,   pill: 'nms-pill-cyan'  },
+  ]
+  return (
+    <NMSCard title="Technician Fleet Status" status="pending">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-2)', flex: 1, justifyContent: 'center' }}>
+        {groups.map(g => (
+          <button key={g.key}
+            type="button"
+            onClick={() => openDrawer({ kind: 'tech-group', group: g.key })}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 12px', borderRadius: 'var(--nms-radius-sm)',
+              background: 'var(--nms-surface-2)', border: '1px solid var(--nms-border)',
+              cursor: 'pointer', color: 'inherit',
+              fontSize: 12, fontFamily: 'var(--gx-font-mono, monospace)',
+            }}
+          >
+            <span className={'nms-pill ' + g.pill}>{g.label}</span>
+            <span style={{ fontSize: 16, fontWeight: 600 }}>{g.count}</span>
+          </button>
+        ))}
+      </div>
+    </NMSCard>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 10. REGISTRY
+// ═══════════════════════════════════════════════════════════════════════
+
+const WIDGETS: WidgetDef[] = [
+  // Module 1 — KPIs
+  { id: 'olts-online',     title: 'OLTs Online',              module: 1, slot: 'kpi',    dataStatus: 'partial', Component: WOltsOnline },
+  { id: 'uplink-capacity', title: 'Total Uplink Capacity',    module: 1, slot: 'kpi',    dataStatus: 'pending', Component: WUplinkCapacity },
+  { id: 'active-sessions', title: 'Active Customer Sessions', module: 1, slot: 'kpi',    dataStatus: 'pending', Component: WActiveSessions },
+  { id: 'ip-pool',         title: 'IP Pool Exhaustion',       module: 1, slot: 'kpi',    dataStatus: 'pending', Component: WIpPool },
+  // Module 2 — Alarms next
+  { id: 'phase-state',     title: 'ONU Phase State Grid',     module: 2, slot: 'wide',   dataStatus: 'live',    Component: WOnuPhaseState },
+  { id: 'optical-rx',      title: 'Optical RX Power',         module: 2, slot: 'medium', dataStatus: 'pending', Component: WOpticalRx },
+  { id: 'rogue-onu',       title: 'Rogue ONU Alarm',          module: 2, slot: 'small',  dataStatus: 'pending', Component: WRogueOnu },
+  // Module 3 — Categorical
+  { id: 'pon-saturation',  title: 'PON Port Saturation',      module: 3, slot: 'medium', dataStatus: 'live',    Component: WPonSaturation },
+  { id: 'vendor-mix',      title: 'ONU Vendor Diversity',     module: 3, slot: 'medium', dataStatus: 'live',    Component: WVendorMix },
+  { id: 'density',         title: 'Subscriber Density',       module: 3, slot: 'medium', dataStatus: 'partial', Component: WSubscriberDensity },
+  // Module 4 — Provisioning
+  { id: 'tier-mix',        title: 'Speed Tier Mix',           module: 4, slot: 'medium', dataStatus: 'live',    Component: WTierMix },
+  { id: 'profiles',        title: 'Service Profiles',         module: 4, slot: 'medium', dataStatus: 'live',    Component: WServiceProfiles },
+  { id: 'unprovisioned',   title: 'Unprovisioned ONUs',       module: 4, slot: 'small',  dataStatus: 'pending', Component: WUnprovisioned },
+  // Module 6 — Explorer
+  { id: 'segmentation',    title: 'Segmentation Strip',       module: 6, slot: 'wide',   dataStatus: 'live',    Component: WSegmentationStrip },
+  { id: 'hierarchy',       title: 'Hierarchy Explorer',       module: 6, slot: 'wide',   dataStatus: 'live',    Component: WHierarchyExplorer },
+  // Module 5 — Geo
+  { id: 'outage-map',      title: 'Regional Outage Map',      module: 5, slot: 'wide',   dataStatus: 'partial', Component: WRegionalOutageMap },
+  { id: 'tech-fleet',      title: 'Technician Fleet',         module: 5, slot: 'small',  dataStatus: 'pending', Component: WTechnicianFleet },
+]
+
+// ═══════════════════════════════════════════════════════════════════════
+// 11. MAIN VIEW
+// ═══════════════════════════════════════════════════════════════════════
+
+interface NocDashboardProps {
   token: string
   capabilities: Capabilities
   canConfigure: boolean
-}) {
-  // ── Dashboard rollup ──
-  const [health, setHealth] = useState<OltHealth | null>(null)
-  const [techs, setTechs] = useState<Technician[]>([])
-  const [loading, setLoading] = useState(true)
-  const [forbidden, setForbidden] = useState(false)
-  const [notFound, setNotFound] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+}
 
-  // ── OLT list + tree ──
-  const [olts, setOlts] = useState<OltRecord[]>([])
-  const [oltsLoading, setOltsLoading] = useState(true)
-  const [oltsError, setOltsError] = useState<string | null>(null)
-  const [selectedOltId, setSelectedOltId] = useState<string | null>(null)
-  const [tree, setTree] = useState<OltTree | null>(null)
-  const [treeLoading, setTreeLoading] = useState(false)
-  const [treeError, setTreeError] = useState<string | null>(null)
-  const [expandedChassis, setExpandedChassis] = useState<Set<string>>(new Set())
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
-  const [expandedPorts, setExpandedPorts] = useState<Set<string>>(new Set())
-  // Analytics aggregations for the dashboard charts. Real, derived from ONU
-  // rows: per-port counts + serial-prefix (OUI) buckets + a couple of summary
-  // totals. Reloaded on OLT select and on every 60-sec auto-refresh tick.
-  const [analytics, setAnalytics] = useState<{
-    by_port: { port_no: number; count: number }[]
-    by_vendor: { prefix: string; count: number }[]
-    totals: { onus: number; ports_populated: number; top_vendor_share: number }
-    vlans?: number[]
-    dba_profiles?: { id: number; name: string; type: number | null; assured_kbps: number | null; maximum_kbps: number | null }[]
-    line_profile_counts?: { name: string; count: number }[]
-    line_profile_defs?: { id: number; name: string; dba: string | null; vlan: number | null }[]
-    onu_details?: { serial: string; port_no: number; onu_id: number; line_profile: string | null }[]
-  } | null>(null)
-  // Drill-down selection. Any clickable chip/row/serial sets this; the
-  // bottom detail panel renders context-aware content for the selection.
-  const [drilldown, setDrilldown] = useState<
-    | { kind: 'vlan'; key: number }
-    | { kind: 'dba'; key: string }
-    | { kind: 'line_profile'; key: string }
-    | { kind: 'vendor'; key: string }
-    | { kind: 'onu'; key: string }
-    | null
-  >(null)
-
-  // Lazy-loaded ONU lists per port_id. Tree response only includes onu_count;
-  // the actual list of ONUs gets fetched on first expand of a port.
-  const [onusByPort, setOnusByPort] = useState<Record<string, Onu[]>>({})
-
-  async function loadOnusForPort(portId: string) {
-    if (onusByPort[portId]) return
-    const res = await bget<{ items: Onu[] }>(token, `/api/noc/onus?port_id=${portId}&page_size=500`)
-    if (res.ok && res.data) {
-      setOnusByPort(prev => ({ ...prev, [portId]: res.data!.items ?? [] }))
-    }
-  }
-
-  // ── Action results (sample readings + OTDR events keyed by target id) ──
-  const [readings, setReadings] = useState<Record<string, OpticalReading>>({})
-  const [otdrs, setOtdrs] = useState<Record<string, OtdrResult>>({})
-  const [expandedOtdr, setExpandedOtdr] = useState<Set<string>>(new Set())
-  const [busy, setBusy] = useState<Set<string>>(new Set())
-
-  // Click-outside dismiss for any open OTDR card. We tag every OTDR card
-  // wrapper with data-otdr-card; clicking anywhere outside an OTDR card
-  // wipes both the expanded-set AND the otdrs result map so the panels
-  // disappear entirely (not just collapse). Clicks on the OTDR scan
-  // trigger buttons themselves are excluded via data-otdr-trigger so they
-  // don't blow away a fresh result the same instant it lands.
-  useEffect(() => {
-    const hasResults = Object.keys(otdrs).length > 0
-    if (!hasResults && expandedOtdr.size === 0) return
-    function handle(e: MouseEvent) {
-      const target = e.target as HTMLElement | null
-      if (target && (target.closest('[data-otdr-card]') || target.closest('[data-otdr-trigger]'))) return
-      setExpandedOtdr(new Set())
-      setOtdrs({})
-    }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [expandedOtdr.size, otdrs])
-
-  // ── Technicians refresh state ──
-  const [techLoading, setTechLoading] = useState(false)
-
-  // ── Cluster module lazy-load state ──
-  // We attempt to dynamically import react-leaflet-cluster on mount; if it's
-  // not installed we silently fall back to non-clustered markers. The boolean
-  // here just forces a re-render once the import resolves.
-  const [clusterReady, setClusterReady] = useState<boolean>(MarkerClusterGroup != null)
-
-  // Permission gates
+export default function NocDashboardView({ capabilities }: NocDashboardProps) {
   const canViewService = can(capabilities, 'service', 'view')
-  const canWrite = canConfigure
 
-  // ── Map: technicians with usable GPS coordinates ──
-  // Filter defensively — last_lat/last_lng are nullable on the backend model,
-  // and we also guard against NaN / out-of-range values just in case.
-  const mappable = useMemo(() => {
-    return techs.filter((t) =>
-      typeof t.last_lat === 'number' &&
-      typeof t.last_lng === 'number' &&
-      Number.isFinite(t.last_lat) &&
-      Number.isFinite(t.last_lng) &&
-      Math.abs(t.last_lat as number) <= 90 &&
-      Math.abs(t.last_lng as number) <= 180,
-    ) as Array<Technician & { last_lat: number; last_lng: number }>
-  }, [techs])
+  // Widget visibility — every widget on by default. Gear menu toggles individual ones.
+  const [visibility, setVisibility] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(WIDGETS.map(w => [w.id, true]))
+  )
+  const [managerOpen, setManagerOpen] = useState(false)
 
-  // Center the map on the technician centroid when we have pings, otherwise Yerevan.
-  const mapCenter = useMemo<[number, number]>(() => {
-    if (mappable.length === 0) return ARMENIA_DEFAULT_CENTER
-    const sum = mappable.reduce(
-      (acc, t) => ({ lat: acc.lat + t.last_lat, lng: acc.lng + t.last_lng }),
-      { lat: 0, lng: 0 },
-    )
-    return [sum.lat / mappable.length, sum.lng / mappable.length]
-  }, [mappable])
+  // Universal slide-out drawer state.
+  const [drawer, setDrawer] = useState<DrawerPayload | null>(null)
+  const openDrawer = (payload: DrawerPayload) => setDrawer(payload)
+  const closeDrawer = () => setDrawer(null)
 
-  // Lazy-load the marker cluster module once. If the package isn't installed
-  // (e.g. in a clean checkout pre-`npm install react-leaflet-cluster`), the
-  // dynamic import rejects and we keep MarkerClusterGroup = null → fallback
-  // to plain Markers. The cluster CSS is bundled with the package.
-  useEffect(() => {
-    if (MarkerClusterGroup != null) return
-    let alive = true
-    void (async () => {
-      try {
-        const mod = await import(/* @vite-ignore */ 'react-leaflet-cluster')
-        if (!alive) return
-        const Comp = (mod as { default?: unknown }).default
-          ?? (mod as { MarkerClusterGroup?: unknown }).MarkerClusterGroup
-          ?? null
-        if (Comp) {
-          MarkerClusterGroup = Comp as React.ComponentType<ClusterGroupProps>
-          setClusterReady(true)
-        }
-      } catch {
-        // Package not installed — gracefully degrade to unclustered markers.
-        if (alive) setClusterReady(false)
-      }
-    })()
-    return () => { alive = false }
-  }, [])
-
-  // Memoize the branded marker icon — it's a pure value, but L.divIcon
-  // allocates DOM-bound state, so we only build it once per mount.
-  const gaahexIcon = useMemo(() => makeGaahexMarkerIcon(), [])
-
-  // Load dashboard rollup + OLT list
-  useEffect(() => {
-    if (!canViewService) { setLoading(false); setOltsLoading(false); return }
-    let alive = true
-
-    void (async () => {
-      const res = await bget<DashboardResp>(token, '/api/noc/dashboard')
-      if (!alive) return
-      if (res.status === 403) { setForbidden(true); setLoading(false); return }
-      if (res.status === 404) { setNotFound(true); setLoading(false); return }
-      if (!res.ok || !res.data) {
-        setError(`Failed to load NOC dashboard (HTTP ${res.status})`)
-        setLoading(false)
-        return
-      }
-      setHealth(res.data.olt_health ?? null)
-      setTechs(res.data.technicians ?? [])
-      setLoading(false)
-    })()
-
-    void (async () => {
-      const res = await bget<OltRecord[] | { records?: OltRecord[] }>(token, '/api/noc/olts')
-      if (!alive) return
-      if (res.status === 404) { setOltsLoading(false); return }
-      if (!res.ok) {
-        setOltsError(`Failed to load OLTs (HTTP ${res.status})`)
-        setOltsLoading(false)
-        return
-      }
-      const list = Array.isArray(res.data)
-        ? res.data
-        : (res.data && Array.isArray((res.data as { items?: OltRecord[] }).items))
-          ? (res.data as { items: OltRecord[] }).items
-          : (res.data && Array.isArray((res.data as { records?: OltRecord[] }).records))
-            ? (res.data as { records: OltRecord[] }).records
-            : []
-      setOlts(list)
-      setOltsLoading(false)
-      // Auto-select the first OLT so per-PON charts populate immediately
-      // without the user having to hunt for the inventory click target.
-      if (list.length > 0 && !selectedOltId) {
-        loadTree(list[0].id)
-      }
-    })()
-
-    return () => { alive = false }
-  }, [token, canViewService])
-
-  async function loadTree(oltId: string) {
-    setSelectedOltId(oltId)
-    setTree(null)
-    setTreeError(null)
-    setTreeLoading(true)
-    setExpandedChassis(new Set())
-    setExpandedCards(new Set())
-    setExpandedPorts(new Set())
-    const res = await bget<OltTree>(token, `/api/noc/olts/${oltId}/tree`)
-    if (res.status === 404) { setTreeError('Tree not available for this OLT'); setTreeLoading(false); return }
-    if (!res.ok || !res.data) { setTreeError(`Failed to load tree (HTTP ${res.status})`); setTreeLoading(false); return }
-    setTree(res.data)
-    setTreeLoading(false)
-    // Auto-open chassis on first load for visibility
-    const firstChassis = res.data.chassis?.[0]?.id
-    if (firstChassis) setExpandedChassis(new Set([firstChassis]))
-    // Fetch analytics in parallel with tree (no need to block tree rendering).
-    void loadAnalytics(oltId)
-  }
-
-  async function loadAnalytics(oltId: string) {
-    const res = await bget<{
-      by_port: { port_no: number; count: number }[]
-      by_vendor: { prefix: string; count: number }[]
-      totals: { onus: number; ports_populated: number; top_vendor_share: number }
-      vlans?: number[]
-      dba_profiles?: { id: number; name: string; type: number | null; assured_kbps: number | null; maximum_kbps: number | null }[]
-      line_profile_counts?: { name: string; count: number }[]
-    }>(token, `/api/noc/olts/${oltId}/analytics`)
-    if (res.ok && res.data) setAnalytics(res.data)
-  }
-
-  async function refreshTechs() {
-    setTechLoading(true)
-    const res = await bget<Technician[] | { technicians?: Technician[] }>(
-      token,
-      '/api/noc/technicians?since_minutes=30',
-    )
-    if (res.ok) {
-      const list = Array.isArray(res.data)
-        ? res.data
-        : (res.data && Array.isArray((res.data as { technicians?: Technician[] }).technicians))
-          ? (res.data as { technicians: Technician[] }).technicians
-          : []
-      setTechs(list)
-    } else if (res.status !== 404) {
-      toast.error(`Failed to refresh technicians (HTTP ${res.status})`)
+  const widgetsByModule = useMemo(() => {
+    const byMod = new Map<ModuleNum, WidgetDef[]>()
+    for (const m of MODULE_ORDER) byMod.set(m, [])
+    for (const w of WIDGETS) {
+      if (!visibility[w.id]) continue
+      byMod.get(w.module)?.push(w)
     }
-    setTechLoading(false)
-  }
+    return byMod
+  }, [visibility])
 
-  // Hit the live-refresh endpoint (POST /api/noc/olts/{id}/refresh) — the
-  // V1600 driver SSHes the OLT, pulls running-config, and upserts the tree.
-  // After the call we reload the rollup + tree so the dashboard reflects the
-  // freshly-pulled state. Silent — toast only on real errors so the 60-sec
-  // background tick doesn't spam.
-  async function refreshOltLive(oltId: string) {
-    const res = await fetch(`/api/noc/olts/${oltId}/refresh`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok && res.status !== 404 && res.status !== 501) {
-      const body = await res.text().catch(() => '')
-      console.warn('[noc] OLT refresh failed', res.status, body)
-      return false
-    }
-    return res.ok
-  }
-
-  // 60-second auto-refresh of the selected OLT. Each tick: POST /refresh
-  // (drives the V1600 driver to SSH the OLT, pull running-config, and upsert
-  // the DB), then reload the tree + rollup so the dashboard tiles show fresh
-  // numbers. No-op when no OLT is selected.
-  useEffect(() => {
-    if (!token || !selectedOltId) return
-    const id = window.setInterval(async () => {
-      const ok = await refreshOltLive(selectedOltId)
-      if (!ok) return
-      await loadTree(selectedOltId)
-      await loadAnalytics(selectedOltId)
-      const res = await bget<DashboardResp>(token, '/api/noc/dashboard')
-      if (res.ok && res.data) setHealth(res.data.olt_health ?? null)
-    }, 60_000)
-    return () => window.clearInterval(id)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, selectedOltId])
-
-  function toggle(setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) {
-    setter((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
-  }
-
-  function markBusy(key: string, on: boolean) {
-    setBusy((prev) => {
-      const next = new Set(prev)
-      if (on) next.add(key); else next.delete(key)
-      return next
-    })
-  }
-
-  async function sample(targetKind: 'port' | 'onu', id: string) {
-    const key = `sample:${targetKind}:${id}`
-    markBusy(key, true)
-    try {
-      const reading = await bpost<OpticalReading>(token, `/api/noc/${targetKind}s/${id}/optical-reading`)
-      setReadings((prev) => ({ ...prev, [`${targetKind}:${id}`]: reading }))
-      toast.success(`Reading captured (rx ${reading.rx_dbm ?? '—'} dBm)`)
-    } catch (e) {
-      const err = e as Error & { status?: number }
-      if (err.status === 409) toast.error('Conflict — device busy. Try again shortly.')
-      else toast.error(err.message || 'Sample failed')
-    } finally {
-      markBusy(key, false)
-    }
-  }
-
-  async function runOtdr(targetType: 'port' | 'onu', id: string) {
-    const key = `otdr:${targetType}:${id}`
-    markBusy(key, true)
-    try {
-      const result = await bpost<OtdrResult>(token, '/api/noc/otdr', { target_type: targetType, target_id: id })
-      const map = `${targetType}:${id}`
-      setOtdrs((prev) => ({ ...prev, [map]: result }))
-      setExpandedOtdr((prev) => new Set(prev).add(map))
-      toast.success('OTDR scan complete')
-    } catch (e) {
-      const err = e as Error & { status?: number }
-      if (err.status === 409) toast.error('Conflict — scan already in progress.')
-      else toast.error(err.message || 'OTDR scan failed')
-    } finally {
-      markBusy(key, false)
-    }
-  }
-
-  // ─── KPI tiles ─────────────────────────────────────────────────────────────
-  const kpis: KPISpec[] = loading
-    ? [
-        { label: 'OLTs',                     value: 0, loading: true },
-        { label: 'Ports Up',                 value: 0, loading: true },
-        { label: 'Ports Down',               value: 0, loading: true },
-        { label: 'ONUs Active',              value: 0, loading: true },
-        { label: 'Signals Below Threshold',  value: 0, loading: true },
-      ]
-    : health
-      ? [
-          { label: 'OLTs',                    value: health.total_olts },
-          { label: 'Ports Up',                value: health.ports_up,
-            subtitle: <span style={{ color: 'var(--gx-success-fg, #22c55e)' }}>healthy</span> },
-          { label: 'Ports Down',              value: health.ports_down + health.ports_fault, danger: (health.ports_down + health.ports_fault) > 0 },
-          { label: 'ONUs Active',             value: health.onus_active },
-          { label: 'Signals Below Threshold', value: health.ports_signaling_below_threshold, warning: health.ports_signaling_below_threshold > 0 },
-        ]
-      : []
-
-  // ─── Permission / error gates ──────────────────────────────────────────────
-  if (forbidden || !canViewService) {
+  if (!canViewService) {
     return (
-      <PageShell
-        type="OPERATIONS"
-        breadcrumb={['Tech & NOC', 'Tech & NOC Dashboard']}
-        icon={<ServerIcon size={18} />}
-        title="Tech & NOC Dashboard"
-        subtitle="OLT health · RADIUS sessions · technician GPS"
-      >
+      <PageShell type="OPERATIONS" breadcrumb={['Tech & NOC', 'NMS Dashboard']} title="NMS Dashboard">
         <PermissionDenied message="You don't have permission to view NOC monitoring." />
       </PageShell>
     )
   }
 
-  if (notFound) {
-    return (
-      <PageShell
-        type="OPERATIONS"
-        breadcrumb={['Tech & NOC', 'Tech & NOC Dashboard']}
-        icon={<ServerIcon size={18} />}
-        title="Tech & NOC Dashboard"
-        subtitle="OLT health · RADIUS sessions · technician GPS"
-      >
-        <EmptyState
-          icon={<ServerIcon size={36} />}
-          title="NOC dashboard endpoints not yet available"
-          message="The /api/noc/* endpoints are not deployed in this environment."
-        />
-      </PageShell>
-    )
-  }
-
-  // ─── Body ──────────────────────────────────────────────────────────────────
-  // Note on layout primitives:
-  //   - Outer wrapper keeps its padding inline because that padding is a page-level
-  //     gutter, not a primitive layout role.
-  //   - The two-column grid stays inline: the asymmetric 1.5fr / 1fr ratio has no
-  //     primitive analog (Grid cols={2} would force a symmetric split), and the
-  //     intentional asymmetry — tree left, technicians right — is part of the design.
-  //   - Every card section uses <Card pad="sm"> (sm = --sp-3 = 12px, matching the
-  //     prior inline padding) + <SectionHeading> for the title row.
-  const body = (
-    <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
-      {error && <ErrorBanner message={error} />}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: 'var(--sp-4)', alignItems: 'start' }}>
-        {/* ─── Left: OLT Tree ───────────────────────────────────────── */}
-        <Card pad="sm">
-          <SectionHeading
-            icon={<ServerIcon size={16} />}
-            title="OLT Inventory"
-            action={oltsLoading ? <span className="muted" style={{ fontSize: 12 }}>Loading…</span> : undefined}
-          />
-
-          {oltsError && <ErrorBanner message={oltsError} />}
-
-          {!oltsLoading && !oltsError && olts.length === 0 && (
-            <EmptyState
-              icon={<ServerIcon size={32} />}
-              title="No OLTs deployed yet"
-              message="Once OLTs are registered they will appear here with chassis, cards, ports, and ONUs."
-            />
-          )}
-
-          {!oltsLoading && olts.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 220px) 1fr', gap: 'var(--sp-3)' }}>
-              {/* OLT list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {olts.map((olt) => {
-                  const active = selectedOltId === olt.id
-                  return (
-                    <button
-                      key={olt.id}
-                      className={'btn btn-ghost' + (active ? ' on' : '')}
-                      style={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        padding: 'var(--sp-2) var(--sp-3)',
-                        background: active ? 'var(--gx-surface-2)' : undefined,
-                        border: active ? '1px solid var(--gx-border-strong)' : '1px solid var(--gx-border)',
-                        borderRadius: 'var(--gx-radius-sm)',
-                      }}
-                      onClick={() => loadTree(olt.id)}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <ServerIcon size={13} />
-                        <span style={{ fontSize: 13 }}>{oltDisplayName(olt)}</span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Tree panel — wrapped so a bad chassis/card payload can't take down the page. */}
-              <ErrorBoundary onReset={() => selectedOltId && loadTree(selectedOltId)}>
-              <div>
-                {!selectedOltId && (
-                  <p className="muted" style={{ fontSize: 13, padding: 'var(--sp-3)' }}>
-                    Select an OLT to view its chassis, cards, ports, and ONUs.
-                  </p>
-                )}
-                {selectedOltId && treeLoading && <LoadingState kind="rows" rows={5} label="Loading OLT tree…" />}
-                {selectedOltId && treeError && <ErrorBanner message={treeError} />}
-                {selectedOltId && !treeLoading && !treeError && tree && (
-                  <OltTreeView
-                    tree={tree}
-                    canWrite={canWrite}
-                    busy={busy}
-                    readings={readings}
-                    otdrs={otdrs}
-                    onusByPort={onusByPort}
-                    onOpenOnuDetail={(serial) => setDrilldown({ kind: 'onu', key: serial })}
-                    expandedChassis={expandedChassis}
-                    expandedCards={expandedCards}
-                    expandedPorts={expandedPorts}
-                    expandedOtdr={expandedOtdr}
-                    onToggleChassis={(id) => toggle(setExpandedChassis, id)}
-                    onToggleCard={(id) => toggle(setExpandedCards, id)}
-                    onTogglePort={(id) => { toggle(setExpandedPorts, id); void loadOnusForPort(id) }}
-                    onToggleOtdr={(key) => toggle(setExpandedOtdr, key)}
-                    onSamplePort={(id) => sample('port', id)}
-                    onSampleOnu={(id) => sample('onu', id)}
-                    onOtdrPort={(id) => runOtdr('port', id)}
-                    onOtdrOnu={(id) => runOtdr('onu', id)}
-                  />
-                )}
-              </div>
-              </ErrorBoundary>
-            </div>
-          )}
-        </Card>
-
-        {/* ─── Right: Technicians Live ──────────────────────────────── */}
-        <Card pad="sm">
-          <SectionHeading
-            icon={<ActivityIcon size={16} />}
-            title="Technicians Live"
-            action={
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={refreshTechs}
-                disabled={techLoading}
-                title="Refresh technician GPS"
-              >
-                <RefreshIcon size={13} /> Refresh
-              </button>
-            }
-          />
-
-          {/* ─── Live map (OpenStreetMap tiles, no API key) ─────────── */}
-          {/* Leaflet is a third-party DOM-mutating lib — a single bad tile / */}
-          {/* unmount race here would otherwise crater the whole NOC page.   */}
-          {!loading && (
-            <ErrorBoundary
-              fallback={
-                <div
-                  className="muted"
-                  style={{
-                    fontSize: 12,
-                    padding: 'var(--sp-3)',
-                    background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
-                    border: '1px solid var(--gx-border)',
-                    borderRadius: 'var(--gx-radius-sm)',
-                    marginBottom: 'var(--sp-3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <MapPinIcon size={13} />
-                  <span>Live map unavailable — check the browser console for details.</span>
-                </div>
-              }
-            >
-              <div
-                style={{
-                  marginBottom: 'var(--sp-3)',
-                  borderRadius: 'var(--gx-radius-sm)',
-                  overflow: 'hidden',
-                  border: '1px solid var(--gx-border)',
-                }}
-              >
-                <MapContainer
-                  center={mapCenter}
-                  zoom={ARMENIA_DEFAULT_ZOOM}
-                  scrollWheelZoom={false}
-                  style={{ height: 420, width: '100%' }}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  {(() => {
-                    // Build the marker children once — they're reused either
-                    // wrapped in <MarkerClusterGroup> (clustered) or as bare
-                    // siblings (fallback when the cluster pkg isn't loaded).
-                    const markers = mappable.map((t) => (
-                      <Marker
-                        key={t.technician_user_id}
-                        position={[t.last_lat, t.last_lng]}
-                        icon={gaahexIcon}
-                      >
-                        <Popup>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12 }}>
-                            <strong style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                              {short(t.technician_user_id, 12)}
-                            </strong>
-                            <span>
-                              Last seen:{' '}
-                              {t.last_recorded_at
-                                ? new Date(t.last_recorded_at).toLocaleString()
-                                : '—'}
-                            </span>
-                            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                              {t.last_lat.toFixed(5)}, {t.last_lng.toFixed(5)}
-                            </span>
-                            <span>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))
-                    // clusterReady is referenced so React re-renders the map
-                    // body once the lazy import resolves.
-                    void clusterReady
-                    if (MarkerClusterGroup) {
-                      const Cluster = MarkerClusterGroup
-                      return (
-                        <Cluster
-                          chunkedLoading
-                          maxClusterRadius={60}
-                          spiderfyOnMaxZoom
-                          showCoverageOnHover={false}
-                          iconCreateFunction={makeClusterIcon}
-                        >
-                          {markers}
-                        </Cluster>
-                      )
-                    }
-                    return <>{markers}</>
-                  })()}
-                </MapContainer>
-                {mappable.length === 0 && (
-                  <div
-                    className="muted"
-                    style={{
-                      fontSize: 12,
-                      padding: 'var(--sp-2) var(--sp-3)',
-                      background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
-                      borderTop: '1px solid var(--gx-border)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <MapPinIcon size={13} />
-                    <span>No technicians with GPS pings in the last 30 minutes — map shows region overview.</span>
-                  </div>
-                )}
-              </div>
-            </ErrorBoundary>
-          )}
-
-          {loading && <LoadingState kind="rows" rows={4} label="Loading technicians…" />}
-
-          {!loading && techs.length === 0 && (
-            <EmptyState
-              icon={<ActivityIcon size={32} />}
-              title="No technicians currently on shift"
-              message="Technicians appear here when their app pings GPS in the last 30 minutes."
-            />
-          )}
-
-          {!loading && techs.length > 0 && (
-            <Stack gap="sm">
-              {techs.map((t) => (
-                <Card key={t.technician_user_id} pad="sm">
-                  <Stack gap="xs">
-                    <Inline gap="xs" align="center" justify="between">
-                      <Inline gap="xs" align="center">
-                        <span style={{
-                          display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                          background: 'var(--gx-success-fg, #22c55e)',
-                        }} />
-                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 13, fontWeight: 500 }}>
-                          {short(t.technician_user_id, 10)}
-                        </span>
-                      </Inline>
-                      <span className="muted" style={{ fontSize: 11 }}>{timeAgo(t.last_recorded_at)}</span>
-                    </Inline>
-                    <Inline gap="sm" align="center" justify="between" className="muted">
-                      <Inline gap="xs" align="center" className="muted">
-                        <MapPinIcon size={11} />
-                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12 }}>
-                          {t.last_lat != null && t.last_lng != null
-                            ? `${t.last_lat.toFixed(5)}, ${t.last_lng.toFixed(5)}`
-                            : 'no coordinates'}
-                        </span>
-                      </Inline>
-                      <span style={{ fontSize: 12 }}>{t.ping_count} ping{t.ping_count === 1 ? '' : 's'}</span>
-                    </Inline>
-                  </Stack>
-                </Card>
-              ))}
-            </Stack>
-          )}
-        </Card>
-      </div>
-
-      {/* ─── Network Analytics — only real-data charts (vendor OUI + share-of-PON + per-PON bar) ─── */}
-      <div style={{ marginTop: 'var(--sp-4)' }} className="gx-dash">
-        <Card pad="sm">
-          <Stack gap="sm">
-            <SectionHeading icon={<ZapIcon size={14} />} title="Network Analytics" />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--sp-4)', alignItems: 'start' }}>
-              {/* ONU vendor OUI donut + clickable chip strip */}
-              <Stack gap="xs">
-                <Donut
-                  size={160}
-                  thickness={16}
-                  centerLabel={String(analytics?.totals.onus ?? 0)}
-                  centerCaption={analytics && analytics.by_vendor.length > 0 ? `${analytics.by_vendor[0].prefix} ${analytics.totals.top_vendor_share}%` : 'vendors'}
-                  data={(analytics?.by_vendor ?? []).slice(0, 6).map((v) => ({ label: v.prefix, value: v.count }))}
-                />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {(analytics?.by_vendor ?? []).slice(0, 6).map((v) => {
-                    const isActive = drilldown?.kind === 'vendor' && drilldown.key === v.prefix
-                    return (
-                      <button key={v.prefix} type="button" onClick={() => setDrilldown(isActive ? null : { kind: 'vendor', key: v.prefix })}
-                        style={{ padding: '2px 6px', borderRadius: 999, fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', cursor: 'pointer',
-                          border: isActive ? '1px solid var(--primary)' : '1px solid var(--gx-border)',
-                          background: isActive ? 'var(--primary-soft, rgba(59,130,246,0.18))' : 'var(--gx-surface-2)', color: 'inherit' }}>
-                        {v.prefix} · {v.count}
-                      </button>
-                    )
-                  })}
-                </div>
-              </Stack>
-              {/* Per-PON share donut — share of total ONUs by port */}
-              <Donut
-                size={160}
-                thickness={16}
-                centerLabel={String(analytics?.totals.ports_populated ?? 0)}
-                centerCaption="active PONs"
-                data={(analytics?.by_port ?? []).filter((p) => p.count > 0).map((p) => ({
-                  label: `0/${p.port_no}`,
-                  value: p.count,
-                }))}
-              />
-              {/* Per-PON load — inline horizontal bar chart */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
-                <div style={{ fontSize: 12, color: 'var(--gx-text-3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  ONUs per PON port
-                </div>
-                {(() => {
-                  const ports = tree?.chassis?.flatMap(c => c.cards?.flatMap(cd => cd.ports ?? []) ?? []) ?? []
-                  const max = Math.max(1, ...ports.map(p => p.onu_count ?? 0))
-                  if (ports.length === 0) return <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>Select an OLT to load per-PON load.</div>
-                  return ports.map(p => {
-                    const v = p.onu_count ?? 0
-                    const pct = (v / max) * 100
-                    return (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 12 }}>
-                        <div style={{ width: 40, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>0/{p.port_no}</div>
-                        <div style={{ flex: 1, height: 12, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', borderRadius: 6, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: v === 0 ? 'var(--gx-border, rgba(255,255,255,0.12))' : 'linear-gradient(90deg, var(--primary, #3b82f6), var(--accent, #c5a059))' }} />
-                        </div>
-                        <div style={{ width: 36, textAlign: 'right', fontFamily: 'var(--gx-font-mono, monospace)', color: v > 0 ? 'var(--gx-text-1)' : 'var(--gx-text-3)' }}>{v}</div>
-                      </div>
-                    )
-                  })
-                })()}
-              </div>
-            </div>
-          </Stack>
-        </Card>
-      </div>
-
-      {/* ─── Subscription Tier Distribution — line_profile counts (real, clickable) ─── */}
-      {analytics?.line_profile_counts && analytics.line_profile_counts.length > 0 && (
-        <div style={{ marginTop: 'var(--sp-4)' }} className="gx-dash">
-          <Card pad="sm">
-            <Stack gap="sm">
-              <SectionHeading icon={<ZapIcon size={14} />} title="Subscription Tier Distribution" />
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 220px) 1fr', gap: 'var(--sp-4)', alignItems: 'start' }}>
-                <Donut
-                  size={180}
-                  thickness={18}
-                  centerLabel={String(analytics.line_profile_counts.reduce((s, x) => s + x.count, 0))}
-                  centerCaption="ONUs"
-                  data={analytics.line_profile_counts.slice(0, 8).map((lp) => ({ label: lp.name, value: lp.count }))}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
-                  {(() => {
-                    const total = analytics.line_profile_counts!.reduce((s, x) => s + x.count, 0)
-                    const max = Math.max(1, ...analytics.line_profile_counts!.map(x => x.count))
-                    return analytics.line_profile_counts!.map((lp) => {
-                      const pct = total > 0 ? Math.round((lp.count / total) * 100) : 0
-                      const barPct = (lp.count / max) * 100
-                      const isActive = drilldown?.kind === 'line_profile' && drilldown.key === lp.name
-                      return (
-                        <button
-                          key={lp.name}
-                          type="button"
-                          onClick={() => setDrilldown(isActive ? null : { kind: 'line_profile', key: lp.name })}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 12,
-                            padding: '4px 6px', borderRadius: 6, cursor: 'pointer',
-                            background: isActive ? 'var(--gx-surface-2, rgba(255,255,255,0.06))' : 'transparent',
-                            border: isActive ? '1px solid var(--primary, #3b82f6)' : '1px solid transparent',
-                            textAlign: 'left', width: '100%', color: 'inherit',
-                          }}
-                        >
-                          <div style={{ width: 96, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>{lp.name}</div>
-                          <div style={{ flex: 1, height: 10, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', borderRadius: 5, overflow: 'hidden' }}>
-                            <div style={{ width: `${barPct}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary, #3b82f6), var(--accent, #c5a059))' }} />
-                          </div>
-                          <div style={{ width: 56, textAlign: 'right', fontFamily: 'var(--gx-font-mono, monospace)' }}>{lp.count}</div>
-                          <div style={{ width: 36, textAlign: 'right', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>{pct}%</div>
-                        </button>
-                      )
-                    })
-                  })()}
-                </div>
-              </div>
-            </Stack>
-          </Card>
-        </div>
-      )}
-
-      {/* ─── VLAN Inventory + DBA Bandwidth Pool ─── */}
-      {(analytics?.vlans?.length || analytics?.dba_profiles?.length) ? (
-        <div style={{ marginTop: 'var(--sp-4)', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--sp-4)' }}>
-          {/* VLANs */}
-          <Card pad="sm">
-            <Stack gap="sm">
-              <SectionHeading icon={<ZapIcon size={14} />} title={`VLAN Inventory · ${analytics?.vlans?.length ?? 0}`} />
-              {(analytics?.vlans?.length ?? 0) === 0 ? (
-                <div className="muted" style={{ fontSize: 12 }}>No VLANs in snapshot</div>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {analytics!.vlans!.map((v) => {
-                    const isActive = drilldown?.kind === 'vlan' && drilldown.key === v
-                    return (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setDrilldown(isActive ? null : { kind: 'vlan', key: v })}
-                        style={{
-                          padding: '4px 9px',
-                          borderRadius: 999,
-                          background: isActive ? 'var(--primary-soft, rgba(59,130,246,0.18))' : 'var(--gx-surface-2, rgba(255,255,255,0.04))',
-                          border: isActive ? '1px solid var(--primary, #3b82f6)' : '1px solid var(--gx-border, rgba(255,255,255,0.08))',
-                          fontFamily: 'var(--gx-font-mono, monospace)',
-                          fontSize: 12,
-                          cursor: 'pointer',
-                          color: v >= 2009 && v <= 2016 ? 'var(--success, #22c55e)' : v === 10 || v === 501 ? 'var(--accent, #c5a059)' : 'var(--gx-text-2)',
-                        }}
-                      >
-                        {v}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </Stack>
-          </Card>
-
-          {/* DBA bandwidth profiles */}
-          <Card pad="sm">
-            <Stack gap="sm">
-              <SectionHeading icon={<ZapIcon size={14} />} title={`DBA Bandwidth Pool · ${analytics?.dba_profiles?.length ?? 0}`} />
-              {(analytics?.dba_profiles?.length ?? 0) === 0 ? (
-                <div className="muted" style={{ fontSize: 12 }}>No DBA profiles in snapshot</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
-                  {analytics!.dba_profiles!.map((p) => {
-                    const fmt = (kbps: number | null) => kbps == null ? '—' : kbps >= 1000 ? `${(kbps / 1000).toFixed(kbps % 1000 === 0 ? 0 : 1)} Mbps` : `${kbps} kbps`
-                    const typeLabel: Record<number, string> = { 1: 'fixed', 2: 'assured', 3: 'assured+max', 4: 'max-only', 5: 'best-effort' }
-                    const isActive = drilldown?.kind === 'dba' && drilldown.key === p.name
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setDrilldown(isActive ? null : { kind: 'dba', key: p.name })}
-                        style={{
-                          padding: 'var(--sp-2) var(--sp-3)',
-                          borderRadius: 8,
-                          background: isActive ? 'var(--primary-soft, rgba(59,130,246,0.18))' : 'var(--gx-surface-2, rgba(255,255,255,0.04))',
-                          border: isActive ? '1px solid var(--primary, #3b82f6)' : '1px solid var(--gx-border, rgba(255,255,255,0.08))',
-                          display: 'grid',
-                          gridTemplateColumns: 'auto 1fr auto auto',
-                          gap: 'var(--sp-2)',
-                          alignItems: 'center',
-                          fontSize: 12,
-                          width: '100%',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          color: 'inherit',
-                        }}
-                      >
-                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>#{p.id}</span>
-                        <span style={{ fontWeight: 500 }}>{p.name}</span>
-                        <span className="muted" style={{ fontSize: 11 }}>
-                          type {p.type ?? '?'}{p.type != null && typeLabel[p.type] ? ` · ${typeLabel[p.type]}` : ''}
-                        </span>
-                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>
-                          {p.assured_kbps ? `${fmt(p.assured_kbps)} → ` : ''}{fmt(p.maximum_kbps)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </Stack>
-          </Card>
-        </div>
-      ) : null}
-
-      {/* ─── Drill-down detail panel — opens on chip/row/serial click ─── */}
-      {drilldown && analytics && (
-        <div style={{ marginTop: 'var(--sp-4)' }}>
-          <Card pad="sm" tone="emphasis">
-            <Stack gap="sm">
-              <Inline gap="sm" align="center" justify="between">
-                <SectionHeading
-                  icon={<ZapIcon size={14} />}
-                  title={
-                    drilldown.kind === 'vlan' ? `VLAN ${drilldown.key} — Detail`
-                    : drilldown.kind === 'dba' ? `DBA Profile · ${drilldown.key}`
-                    : drilldown.kind === 'line_profile' ? `Subscription Tier · ${drilldown.key}`
-                    : drilldown.kind === 'vendor' ? `Vendor OUI · ${drilldown.key}`
-                    : `ONU · ${drilldown.key}`
-                  }
-                />
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDrilldown(null)}>Close</button>
-              </Inline>
-              {(() => {
-                const details = analytics.onu_details ?? []
-                const defs = analytics.line_profile_defs ?? []
-                if (drilldown.kind === 'vlan') {
-                  const vlanId = drilldown.key
-                  const profilesUsing = defs.filter(d => d.vlan === vlanId)
-                  const profNames = new Set(profilesUsing.map(d => d.name))
-                  const onusOnVlan = details.filter(d => d.line_profile && profNames.has(d.line_profile))
-                  return (
-                    <Stack gap="xs">
-                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
-                        <b>{onusOnVlan.length}</b> ONUs riding this VLAN via <b>{profilesUsing.length}</b> line profile{profilesUsing.length === 1 ? '' : 's'}:{' '}
-                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{profilesUsing.map(p => p.name).join(', ') || 'none'}</span>
-                      </div>
-                      <details>
-                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--primary, #3b82f6)' }}>Show {onusOnVlan.length} ONU serials</summary>
-                        <div style={{ marginTop: 8, maxHeight: 260, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 4, fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11 }}>
-                          {onusOnVlan.slice(0, 300).map(o => (
-                            <button key={o.serial} type="button" onClick={() => setDrilldown({ kind: 'onu', key: o.serial })}
-                              style={{ padding: '3px 6px', borderRadius: 4, background: 'transparent', border: '1px solid var(--gx-border)', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
-                              {o.serial}
-                            </button>
-                          ))}
-                        </div>
-                        {onusOnVlan.length > 300 && <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>(showing first 300)</div>}
-                      </details>
-                    </Stack>
-                  )
-                }
-                if (drilldown.kind === 'dba') {
-                  const dbaName = drilldown.key
-                  const profilesUsing = defs.filter(d => d.dba === dbaName)
-                  const profNames = new Set(profilesUsing.map(d => d.name))
-                  const onusOnDba = details.filter(d => d.line_profile && profNames.has(d.line_profile))
-                  return (
-                    <Stack gap="xs">
-                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
-                        Backing <b>{profilesUsing.length}</b> line profile{profilesUsing.length === 1 ? '' : 's'}, serving <b>{onusOnDba.length}</b> ONUs:
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {profilesUsing.map(p => (
-                          <button key={p.name} type="button" onClick={() => setDrilldown({ kind: 'line_profile', key: p.name })}
-                            style={{ padding: '3px 8px', borderRadius: 999, border: '1px solid var(--gx-border)', background: 'var(--gx-surface-2)', fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11, cursor: 'pointer', color: 'inherit' }}>
-                            {p.name} · VLAN {p.vlan ?? '?'}
-                          </button>
-                        ))}
-                      </div>
-                    </Stack>
-                  )
-                }
-                if (drilldown.kind === 'line_profile') {
-                  const lpName = drilldown.key
-                  const def = defs.find(d => d.name === lpName)
-                  const onusOnTier = details.filter(d => d.line_profile === lpName)
-                  return (
-                    <Stack gap="xs">
-                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
-                        <b>{onusOnTier.length}</b> ONUs on tier{' '}
-                        <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{lpName}</span>
-                        {def?.vlan != null && (<> · VLAN <b>{def.vlan}</b></>)}
-                        {def?.dba && (<> · backed by <b>{def.dba}</b></>)}
-                      </div>
-                      <details open>
-                        <summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--primary, #3b82f6)' }}>Show ONU serials</summary>
-                        <div style={{ marginTop: 8, maxHeight: 260, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 4, fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11 }}>
-                          {onusOnTier.slice(0, 300).map(o => (
-                            <button key={o.serial} type="button" onClick={() => setDrilldown({ kind: 'onu', key: o.serial })}
-                              style={{ padding: '3px 6px', borderRadius: 4, background: 'transparent', border: '1px solid var(--gx-border)', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
-                              <span style={{ color: 'var(--gx-text-3)' }}>0/{o.port_no}·{o.onu_id}</span>{' '}{o.serial}
-                            </button>
-                          ))}
-                        </div>
-                        {onusOnTier.length > 300 && <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>(showing first 300)</div>}
-                      </details>
-                    </Stack>
-                  )
-                }
-                if (drilldown.kind === 'vendor') {
-                  const prefix = drilldown.key
-                  const matching = details.filter(d => (d.serial || '').toUpperCase().startsWith(prefix))
-                  return (
-                    <div style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
-                      <b>{matching.length}</b> ONUs with serial prefix{' '}
-                      <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{prefix}</span>
-                      <div style={{ marginTop: 8, maxHeight: 220, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 4, fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11 }}>
-                        {matching.slice(0, 200).map(o => (
-                          <button key={o.serial} type="button" onClick={() => setDrilldown({ kind: 'onu', key: o.serial })}
-                            style={{ padding: '3px 6px', borderRadius: 4, background: 'transparent', border: '1px solid var(--gx-border)', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
-                            {o.serial}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                }
-                if (drilldown.kind === 'onu') {
-                  const sn = drilldown.key
-                  const onu = details.find(d => d.serial === sn)
-                  if (!onu) return <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>ONU {sn} not found in current snapshot.</div>
-                  const def = defs.find(d => d.name === onu.line_profile)
-                  return (
-                    <Stack gap="sm">
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--sp-3)' }}>
-                        {[
-                          { label: 'Serial', value: onu.serial },
-                          { label: 'PON Port', value: `0/${onu.port_no}` },
-                          { label: 'ONU ID', value: `#${onu.onu_id}` },
-                          { label: 'Line Profile', value: onu.line_profile ?? '—' },
-                          { label: 'VLAN', value: def?.vlan != null ? String(def.vlan) : '—' },
-                          { label: 'DBA', value: def?.dba ?? '—' },
-                          { label: 'Status', value: 'active' },
-                          { label: 'Optical', value: 'awaiting reading' },
-                        ].map(c => (
-                          <div key={c.label} style={{ padding: 'var(--sp-2)', borderRadius: 6, background: 'var(--gx-surface-2, rgba(255,255,255,0.04))', border: '1px solid var(--gx-border)' }}>
-                            <div style={{ fontSize: 10, color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{c.label}</div>
-                            <div style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 13, marginTop: 2 }}>{c.value}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <Inline gap="sm" align="center">
-                        <button type="button" className="btn btn-secondary btn-sm" disabled
-                          title="Per-ONU optical-info command syntax for V1600 not verified yet">
-                          Pull optical reading
-                        </button>
-                        <button type="button" className="btn btn-secondary btn-sm" disabled
-                          title="V1600 ONU reboot command not implemented yet">
-                          Reboot ONU
-                        </button>
-                        <button type="button" className="btn btn-secondary btn-sm" disabled
-                          title="ONU delete via CLI not wired yet">
-                          De-provision
-                        </button>
-                        <span className="muted" style={{ fontSize: 11 }}>
-                          Hardware actions land once V1600 per-ONU CLI commands are confirmed on the device.
-                        </span>
-                      </Inline>
-                    </Stack>
-                  )
-                }
-                return null
-              })()}
-            </Stack>
-          </Card>
-        </div>
-      )}
-
-      {/* ─── Optical Signal Health — real ONU bucket counts + legend ─── */}
-      <div style={{ marginTop: 'var(--sp-4)' }}>
-        <Card pad="sm">
-          <Stack gap="sm">
-            <SectionHeading icon={<ZapIcon size={14} />} title="Optical Signal Health" />
-            {(() => {
-              const totalOnu = (health?.onus_active ?? 0) + (health?.onus_los ?? 0) + (health?.onus_offline ?? 0)
-              // Real buckets: until per-ONU optical readings are pulled, everything
-              // collapses to "Unknown". Active/LOS/Offline from the health rollup map
-              // approximately to signal health buckets — LOS = critical, offline =
-              // recently-lost, active without reading = unknown until probed.
-              const critical = health?.onus_los ?? 0
-              const degraded = 0
-              const unknown = (health?.onus_active ?? 0) + (health?.onus_offline ?? 0)
-              const normal = 0
-              const pct = (n: number) => totalOnu > 0 ? Math.round((n / totalOnu) * 100) : 0
-              const cells: Array<{ label: string; n: number; variant: 'active' | 'degraded' | 'critical' | 'neutral'; detail: string }> = [
-                { label: 'Normal', n: normal, variant: 'active', detail: 'rx ≥ -26 dBm' },
-                { label: 'Warning', n: degraded, variant: 'degraded', detail: '-28 ≤ rx < -26 dBm' },
-                { label: 'Critical', n: critical, variant: 'critical', detail: 'rx < -28 dBm' },
-                { label: 'Unknown', n: unknown, variant: 'neutral', detail: 'awaiting optical reading' },
-              ]
-              return (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--sp-3)' }}>
-                  {cells.map((c) => (
-                    <div key={c.label} style={{ padding: 'var(--sp-3)', borderRadius: 8, background: 'var(--gx-surface-2, rgba(255,255,255,0.03))', border: '1px solid var(--gx-border, rgba(255,255,255,0.08))', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <LegendChip variant={c.variant} label={c.label} detail={c.detail} />
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                        <div style={{ fontSize: 22, fontWeight: 600, fontFamily: 'var(--gx-font-mono, monospace)' }}>{c.n}</div>
-                        <div style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>{pct(c.n)}%</div>
-                      </div>
-                      <div style={{ height: 6, borderRadius: 3, background: 'var(--gx-border, rgba(255,255,255,0.08))', overflow: 'hidden' }}>
-                        <div style={{ width: `${pct(c.n)}%`, height: '100%', background: c.variant === 'active' ? 'var(--success, #22c55e)' : c.variant === 'degraded' ? 'var(--warning, #f59e0b)' : c.variant === 'critical' ? 'var(--danger, #ef4444)' : 'var(--gx-text-3, #94a3b8)' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            })()}
-            <div style={{ fontSize: 11, color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
-              Optical readings populate once the V1600 driver runs per-port optical-info pulls. Until then ONUs sit in "Unknown".
-            </div>
-          </Stack>
-        </Card>
-      </div>
-    </div>
-  )
-
   return (
     <PageShell
       type="OPERATIONS"
-      breadcrumb={['Tech & NOC', 'Tech & NOC Dashboard']}
-      icon={<ServerIcon size={18} />}
-      title="Tech & NOC Dashboard"
-      subtitle="OLT health · RADIUS sessions · technician GPS"
-      kpis={kpis.length > 0 ? kpis : undefined}
+      breadcrumb={['Tech & NOC', 'NMS Dashboard']}
+      title="NMS Dashboard"
+      subtitle="Network operations · alarms · provisioning · field"
     >
-      {body}
+      <div className="nms-page" style={{ padding: 'var(--nms-sp-4)' }}>
+        {/* Top bar — design-preview banner + gear menu */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--nms-sp-4)' }}>
+          <div style={{ fontSize: 11, color: 'var(--nms-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+            <span style={{ color: 'var(--nms-accent-gold)' }}>● </span>
+            Phase 1A · design preview · widgets tagged below are sample data
+          </div>
+          <WidgetManager
+            widgets={WIDGETS}
+            visibility={visibility}
+            onChange={setVisibility}
+            open={managerOpen}
+            setOpen={setManagerOpen}
+          />
+        </div>
+
+        {/* Render each module band + per-module row layout.
+            Wide widgets get their own row (100%); all other visible widgets
+            share one row, splitting the module's width equally and matching
+            height via flex stretch. */}
+        {MODULE_ORDER.map(mod => {
+          const widgets = widgetsByModule.get(mod) ?? []
+          if (widgets.length === 0) return null
+          const wides = widgets.filter(w => w.slot === 'wide')
+          const nonWides = widgets.filter(w => w.slot !== 'wide')
+          const renderWidget = (w: WidgetDef) => (
+            w.dataStatus === 'pending' && !shouldRenderPendingAsWidget(w.id) ? (
+              <NMSCard title={w.title} status="pending">
+                <PendingState
+                  headline={`Awaiting ${pendingPipelineFor(w.id)}`}
+                  body={pendingMessageFor(w.id)}
+                />
+              </NMSCard>
+            ) : (
+              <w.Component openDrawer={openDrawer} />
+            )
+          )
+          return (
+            <section key={mod}>
+              <div className="nms-module-band">{MODULE_LABELS[mod]}</div>
+              <div className="nms-module-stack">
+                {/* Each wide widget on its own row */}
+                {wides.map(w => (
+                  <div key={w.id} className="nms-row nms-row-wide">
+                    <div>{renderWidget(w)}</div>
+                  </div>
+                ))}
+                {/* All non-wide widgets share one row, split equally */}
+                {nonWides.length > 0 && (
+                  <div className="nms-row">
+                    {nonWides.map(w => (
+                      <div key={w.id}>{renderWidget(w)}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+
+      {/* Universal slide-out drawer */}
+      <SlideOutPanel
+        open={drawer !== null}
+        onClose={closeDrawer}
+        title={drawer ? drawerTitleFor(drawer) : ''}
+        subtitle={drawer ? drawerSubtitleFor(drawer) : undefined}
+      >
+        {drawer && <DrawerBody payload={drawer} />}
+      </SlideOutPanel>
     </PageShell>
   )
 }
 
-// ─── Subcomponents ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// 12. WIDGET MANAGER (gear menu)
+// ═══════════════════════════════════════════════════════════════════════
 
-function LegendChip({ variant, label, detail }: {
-  variant: 'active' | 'degraded' | 'critical' | 'neutral'
-  label: string
-  detail: string
+function WidgetManager({
+  widgets, visibility, onChange, open, setOpen,
+}: {
+  widgets: WidgetDef[]
+  visibility: Record<string, boolean>
+  onChange: (v: Record<string, boolean>) => void
+  open: boolean
+  setOpen: (b: boolean) => void
 }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <StatusPill variant={variant} label={label} size="sm" />
-      <span className="muted">{detail}</span>
-    </span>
-  )
-}
+  const byMod = useMemo(() => {
+    const m = new Map<ModuleNum, WidgetDef[]>()
+    for (const w of widgets) {
+      if (!m.has(w.module)) m.set(w.module, [])
+      m.get(w.module)!.push(w)
+    }
+    return m
+  }, [widgets])
 
-function OpticalReadout({ rx, tx }: { rx: number | null | undefined; tx: number | null | undefined }) {
-  const variant = thresholdVariant(rx)
-  const tone = thresholdLabel(rx)
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontFamily: 'var(--gx-font-mono, monospace)' }}>
-      <StatusPill variant={variant} label={`rx ${rx == null ? '—' : rx.toFixed(1)} dBm`} size="sm" />
-      <span className="muted">tx {tx == null ? '—' : tx.toFixed(1)} dBm</span>
-      <span className="muted">({tone})</span>
-    </span>
-  )
-}
-
-type TreeViewProps = {
-  tree: OltTree
-  canWrite: boolean
-  busy: Set<string>
-  readings: Record<string, OpticalReading>
-  otdrs: Record<string, OtdrResult>
-  onusByPort?: Record<string, Onu[]>
-  onOpenOnuDetail?: (serial: string) => void
-  expandedChassis: Set<string>
-  expandedCards: Set<string>
-  expandedPorts: Set<string>
-  expandedOtdr: Set<string>
-  onToggleChassis: (id: string) => void
-  onToggleCard: (id: string) => void
-  onTogglePort: (id: string) => void
-  onToggleOtdr: (key: string) => void
-  onSamplePort: (id: string) => void
-  onSampleOnu: (id: string) => void
-  onOtdrPort: (id: string) => void
-  onOtdrOnu: (id: string) => void
-}
-
-function OltTreeView(p: TreeViewProps) {
-  const chassis = p.tree.chassis ?? []
-  if (chassis.length === 0) {
-    return (
-      <EmptyState
-        icon={<LayersIcon size={28} />}
-        title="No chassis on this OLT"
-        message="This OLT has no chassis registered yet."
-      />
-    )
-  }
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {chassis.map((c) => {
-        const open = p.expandedChassis.has(c.id)
-        const cards = c.cards ?? []
-        return (
-          <div key={c.id} className="card" style={{ padding: 'var(--sp-2)' }}>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              style={{ justifyContent: 'flex-start', width: '100%' }}
-              onClick={() => p.onToggleChassis(c.id)}
-            >
-              {open ? <ChevronDownIcon size={13} /> : <ChevronRightIcon size={13} />}
-              <LayersIcon size={13} />
-              <span style={{ fontWeight: 500 }}>{c.name ?? `Chassis ${short(c.id)}`}</span>
-              <span style={{ flex: 1 }} />
-              <StatusPill variant={statusPillVariant(c.status)} label={c.status ?? 'unknown'} size="sm" />
-              <span className="muted" style={{ fontSize: 11 }}>{cards.length} card{cards.length === 1 ? '' : 's'}</span>
-            </button>
-            {open && (
-              <div style={{ marginTop: 6, marginLeft: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {cards.length === 0 && <p className="muted" style={{ fontSize: 12 }}>No cards</p>}
-                {cards.map((card) => {
-                  const cOpen = p.expandedCards.has(card.id)
-                  const ports = card.ports ?? []
-                  return (
-                    <div key={card.id}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ justifyContent: 'flex-start', width: '100%' }}
-                        onClick={() => p.onToggleCard(card.id)}
-                      >
-                        {cOpen ? <ChevronDownIcon size={13} /> : <ChevronRightIcon size={13} />}
-                        <PackageIcon size={12} />
-                        <span>Slot {card.slot_no ?? '—'}</span>
-                        <span className="muted" style={{ fontSize: 11 }}>{card.card_type ?? ''}</span>
-                        <span style={{ flex: 1 }} />
-                        <StatusPill variant={statusPillVariant(card.status)} label={card.status ?? 'unknown'} size="sm" />
-                        <span className="muted" style={{ fontSize: 11 }}>{ports.length} port{ports.length === 1 ? '' : 's'}</span>
-                      </button>
-                      {cOpen && (
-                        <div style={{ marginLeft: 18, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {ports.length === 0 && <p className="muted" style={{ fontSize: 12 }}>No ports</p>}
-                          {ports.map((port) => {
-                            const pOpen = p.expandedPorts.has(port.id)
-                            // Tree response carries onu_count only; the full
-                            // serial list is fetched lazily into onusByPort
-                            // when the port is first expanded.
-                            const onus = (p.onusByPort?.[port.id] ?? port.onus ?? [])
-                            const samplingKey = `sample:port:${port.id}`
-                            const otdrKey = `otdr:port:${port.id}`
-                            const reading = p.readings[`port:${port.id}`]
-                            const otdrRes = p.otdrs[`port:${port.id}`]
-                            const otdrOpen = p.expandedOtdr.has(`port:${port.id}`)
-                            return (
-                              <div key={port.id}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 6px', borderRadius: 'var(--gx-radius-sm)' }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    onClick={() => p.onTogglePort(port.id)}
-                                    title="Toggle ONUs"
-                                  >
-                                    {pOpen ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
-                                  </button>
-                                  <span style={{ fontWeight: 500, fontSize: 13 }}>Port {port.port_no ?? '—'}</span>
-                                  <span className="muted" style={{ fontSize: 11 }}>{port.type ?? ''}</span>
-                                  <StatusPill variant={statusPillVariant(port.status)} label={port.status ?? 'unknown'} size="sm" />
-                                  {port.last_polled_at && (
-                                    <span className="muted" style={{ fontSize: 11 }}>polled {timeAgo(port.last_polled_at)}</span>
-                                  )}
-                                  <span style={{ flex: 1 }} />
-                                  <span className="muted" style={{ fontSize: 11 }}>
-                                    {(port.onu_count ?? onus.length)} ONU{(port.onu_count ?? onus.length) === 1 ? '' : 's'}
-                                  </span>
-                                  {p.canWrite && (
-                                    <>
-                                      <button
-                                        type="button"
-                                        className="btn btn-ghost btn-sm"
-                                        disabled={p.busy.has(samplingKey)}
-                                        onClick={() => p.onSamplePort(port.id)}
-                                        title="Trigger an optical reading on this port"
-                                      >
-                                        {p.busy.has(samplingKey) ? '…' : 'Sample'}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="btn btn-ghost btn-sm"
-                                        data-otdr-trigger
-                                        disabled={p.busy.has(otdrKey)}
-                                        onClick={() => p.onOtdrPort(port.id)}
-                                        title="Run an OTDR scan from this port"
-                                      >
-                                        {p.busy.has(otdrKey) ? '…' : 'OTDR'}
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                                {reading && (
-                                  <div style={{ marginLeft: 28, padding: '2px 0' }}>
-                                    <OpticalReadout rx={reading.rx_dbm} tx={reading.tx_dbm} />
-                                  </div>
-                                )}
-                                {otdrRes && (
-                                  <div style={{ marginLeft: 28 }}>
-                                    <OtdrCard
-                                      open={otdrOpen}
-                                      onToggle={() => p.onToggleOtdr(`port:${port.id}`)}
-                                      result={otdrRes}
-                                    />
-                                  </div>
-                                )}
-                                {pOpen && (
-                                  <div style={{ marginLeft: 28, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    {onus.length === 0 && <p className="muted" style={{ fontSize: 12 }}>No ONUs</p>}
-                                    {onus.map((onu) => (
-                                      <OnuRow
-                                        key={onu.id}
-                                        onu={onu}
-                                        canWrite={p.canWrite}
-                                        busy={p.busy}
-                                        reading={p.readings[`onu:${onu.id}`]}
-                                        otdrRes={p.otdrs[`onu:${onu.id}`]}
-                                        otdrOpen={p.expandedOtdr.has(`onu:${onu.id}`)}
-                                        onSample={() => p.onSampleOnu(onu.id)}
-                                        onOtdr={() => p.onOtdrOnu(onu.id)}
-                                        onToggleOtdr={() => p.onToggleOtdr(`onu:${onu.id}`)}
-                                        onOpenDetail={p.onOpenOnuDetail}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function OnuRow({ onu, canWrite, busy, reading, otdrRes, otdrOpen, onSample, onOtdr, onToggleOtdr, onOpenDetail }: {
-  onu: Onu
-  canWrite: boolean
-  busy: Set<string>
-  reading: OpticalReading | undefined
-  otdrRes: OtdrResult | undefined
-  otdrOpen: boolean
-  onSample: () => void
-  onOtdr: () => void
-  onToggleOtdr: () => void
-  onOpenDetail?: (serial: string) => void
-}) {
-  const sampleKey = `sample:onu:${onu.id}`
-  const otdrKey = `otdr:onu:${onu.id}`
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px' }}>
-        <span style={{ width: 12 }} />
-        <button
-          type="button"
-          onClick={() => onu.serial && onOpenDetail?.(onu.serial)}
-          title="Open ONU detail panel"
-          style={{
-            fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12,
-            background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-            color: 'var(--primary, #3b82f6)', textDecoration: 'underline dotted',
-          }}
-        >
-          {short(onu.serial, 12)}
-        </button>
-        <span className="muted" style={{ fontSize: 11, fontFamily: 'var(--gx-font-mono, monospace)' }}>cust {short(onu.customer_id, 6)}</span>
-        <StatusPill variant={statusPillVariant(onu.status)} label={onu.status ?? 'unknown'} size="sm" />
-        {onu.distance_m != null && (
-          <span className="muted" style={{ fontSize: 11 }}>{onu.distance_m} m</span>
-        )}
-        <span style={{ flex: 1 }} />
-        {canWrite && (
-          <>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              disabled={busy.has(sampleKey)}
-              onClick={onSample}
-              title="Trigger an optical reading on this ONU"
-            >
-              {busy.has(sampleKey) ? '…' : 'Sample'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              data-otdr-trigger
-              disabled={busy.has(otdrKey)}
-              onClick={onOtdr}
-              title="Run an OTDR scan to this ONU"
-            >
-              {busy.has(otdrKey) ? '…' : 'OTDR'}
-            </button>
-          </>
-        )}
-      </div>
-      {reading && (
-        <div style={{ marginLeft: 18, padding: '2px 0' }}>
-          <OpticalReadout rx={reading.rx_dbm} tx={reading.tx_dbm} />
-        </div>
-      )}
-      {otdrRes && (
-        <div style={{ marginLeft: 18 }}>
-          <OtdrCard open={otdrOpen} onToggle={onToggleOtdr} result={otdrRes} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function OtdrCard({ open, onToggle, result }: { open: boolean; onToggle: () => void; result: OtdrResult }) {
-  const events = result.result_json?.events ?? []
-  return (
-    <div
-      className="card"
-      data-otdr-card
-      style={{
-        padding: 'var(--sp-2)',
-        marginTop: 4,
-        background: 'var(--gx-surface-2, rgba(255,255,255,0.03))',
-      }}
-    >
+    <div className="nms-widget-manager">
       <button
         type="button"
-        className="btn btn-ghost btn-sm"
-        style={{ justifyContent: 'flex-start', width: '100%' }}
-        onClick={onToggle}
+        className="nms-widget-manager-btn"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
       >
-        {open ? <ChevronDownIcon size={12} /> : <ChevronRightIcon size={12} />}
-        <ZapIcon size={12} />
-        <span style={{ fontSize: 12, fontWeight: 500 }}>OTDR scan</span>
-        <span className="muted" style={{ fontSize: 11 }}>{events.length} event{events.length === 1 ? '' : 's'}</span>
-        <span style={{ flex: 1 }} />
-        {result.recorded_at && <span className="muted" style={{ fontSize: 11 }}>{timeAgo(result.recorded_at)}</span>}
+        ⚙ Widgets · {Object.values(visibility).filter(Boolean).length}/{widgets.length}
       </button>
       {open && (
-        <div style={{ marginTop: 6 }}>
-          {events.length === 0 ? (
-            <p className="muted" style={{ fontSize: 12, margin: 0 }}>No events returned.</p>
-          ) : (
-            <table className="grid" style={{ width: '100%', fontSize: 11 }}>
-              <thead>
-                <tr>
-                  <th>Distance (m)</th>
-                  <th>Type</th>
-                  <th>Loss (dB)</th>
-                  <th>Refl. (dB)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((ev, idx) => (
-                  <tr key={idx}>
-                    <td>{ev.distance_m ?? '—'}</td>
-                    <td>{ev.event_type ?? '—'}</td>
-                    <td>{ev.loss_db ?? '—'}</td>
-                    <td>{ev.reflectance_db ?? '—'}</td>
-                  </tr>
+        <div className="nms-widget-manager-panel" onMouseLeave={() => setOpen(false)}>
+          {MODULE_ORDER.map(mod => {
+            const list = byMod.get(mod) ?? []
+            if (list.length === 0) return null
+            return (
+              <div key={mod} className="nms-widget-manager-group">
+                <div className="nms-widget-manager-group-label">{MODULE_LABELS[mod]}</div>
+                {list.map(w => (
+                  <label key={w.id} className="nms-widget-manager-row">
+                    <input
+                      type="checkbox"
+                      checked={visibility[w.id] ?? true}
+                      onChange={e => onChange({ ...visibility, [w.id]: e.target.checked })}
+                    />
+                    <span>{w.title}</span>
+                    <span className={'nms-pill ' + (
+                      w.dataStatus === 'live' ? 'nms-pill-green' :
+                      w.dataStatus === 'partial' ? 'nms-pill-amber' : 'nms-pill-cyan'
+                    )} style={{ fontSize: 9 }}>
+                      {w.dataStatus}
+                    </span>
+                  </label>
                 ))}
-              </tbody>
-            </table>
-          )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
   )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 13. DRAWER BODY (context-aware)
+// ═══════════════════════════════════════════════════════════════════════
+
+function drawerTitleFor(p: DrawerPayload): string {
+  switch (p.kind) {
+    case 'port':       return `Port ${p.label}`
+    case 'vendor':     return p.label
+    case 'tier':       return `Tier · ${p.name}`
+    case 'profile':    return p.name
+    case 'segment':    return p.label
+    case 'onu':        return p.serial
+    case 'olt':        return p.label
+    case 'region':     return p.label
+    case 'tech-group': return p.group.replace('_', ' ').toUpperCase()
+  }
+}
+
+function drawerSubtitleFor(p: DrawerPayload): string {
+  switch (p.kind) {
+    case 'port':       return 'PON port detail'
+    case 'vendor':     return `OUI prefix · ${p.prefix}`
+    case 'tier':       return 'Subscription tier'
+    case 'profile':    return 'Line / DBA profile'
+    case 'segment':    return 'Network segment'
+    case 'onu':        return 'ONU device'
+    case 'olt':        return 'OLT chassis'
+    case 'region':     return 'Region / hub site'
+    case 'tech-group': return 'Field technician group'
+  }
+}
+
+function DrawerBody({ payload }: { payload: DrawerPayload }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-4)' }}>
+      <div style={{ fontSize: 11, color: 'var(--nms-text-3)', fontStyle: 'italic' }}>
+        Slide-out drawer body — Phase 1A design preview. Real per-asset detail will
+        render here once each widget is wired to live data and the matching backend
+        endpoint exists.
+      </div>
+      <div style={{
+        padding: 'var(--nms-sp-3)',
+        background: 'var(--nms-surface-2)',
+        border: '1px solid var(--nms-border)',
+        borderRadius: 'var(--nms-radius-sm)',
+        fontSize: 12,
+        fontFamily: 'var(--gx-font-mono, monospace)',
+        color: 'var(--nms-text-2)',
+        whiteSpace: 'pre-wrap',
+      }}>
+        {JSON.stringify(payload, null, 2)}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 14. PENDING-MESSAGE COPY (per pipeline)
+// ═══════════════════════════════════════════════════════════════════════
+
+function pendingPipelineFor(id: string): string {
+  switch (id) {
+    case 'uplink-capacity': return 'SNMP feed'
+    case 'active-sessions': return 'RADIUS feed'
+    case 'ip-pool':         return 'IPAM feed'
+    case 'optical-rx':      return 'SNMP DDM polling'
+    case 'rogue-onu':       return 'rogue-detect parser'
+    case 'unprovisioned':   return 'auto-find parser'
+    case 'tech-fleet':      return 'tech-state endpoint'
+    default:                return 'data source'
+  }
+}
+
+function pendingMessageFor(id: string): string {
+  switch (id) {
+    case 'uplink-capacity': return 'Populates once SNMP polling on uplink interfaces is wired (Phase 2).'
+    case 'active-sessions': return 'Populates once RADIUS / BNG integration is wired (Phase 2).'
+    case 'ip-pool':         return 'Populates once IPAM / CGNAT pool tracking is wired (Phase 2).'
+    case 'optical-rx':      return 'V1600 firmware does not expose per-ONU rx dBm. Needs SNMP DDM polling or different firmware (Phase 2).'
+    case 'rogue-onu':       return 'Populates once a rogue-onu CLI parser is added to the V1600 driver (Phase 2 · ~2 h).'
+    case 'unprovisioned':   return 'Populates once the auto-find parser is added to the V1600 driver (Phase 2 · ~2 h).'
+    case 'tech-fleet':      return 'Populates once technicians can update Available / En Route / On-Site state from the field app (Phase 2).'
+    default:                return 'Populates when this widget is wired to its data source.'
+  }
+}
+
+// Widgets we render with sample data in Phase 1A even though dataStatus === 'pending'.
+// They show inside their normal body + the preview tag — so Gev can iterate on the
+// visual design now. Once the pipeline lands, the registry's dataStatus flips to
+// 'live' and the preview tag drops automatically.
+function shouldRenderPendingAsWidget(id: string): boolean {
+  return [
+    'uplink-capacity', 'active-sessions', 'ip-pool',
+    'optical-rx', 'rogue-onu', 'unprovisioned', 'tech-fleet',
+  ].includes(id)
 }

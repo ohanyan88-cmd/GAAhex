@@ -21,7 +21,6 @@ from this entry point (driver.get_status() still works for them).
 """
 from __future__ import annotations
 
-import uuid
 from typing import Any
 
 from sqlalchemy import select
@@ -125,6 +124,8 @@ async def _reconcile_topology(
         "line_profile_counts": topology.get("line_profile_counts") or [],
         "line_profile_defs": topology.get("line_profile_defs") or [],
         "onu_details": topology.get("onu_details") or [],
+        "phase_totals": topology.get("phase_totals") or {},
+        "phase_pull_error": topology.get("phase_pull_error"),
     }
     _flag(olt_record, "data")
 
@@ -215,6 +216,14 @@ async def _reconcile_topology(
     # ----- ONUs -----
     # Build serial → (port_id, payload) for upstream state.
     upstream_onus: dict[str, dict[str, Any]] = {}
+    # Map V1600 phase_state → Onu.status bucket the dashboard reads.
+    # working = serving traffic; dyinggasp = LOS imminent / fiber cut warning;
+    # offline = ONU not currently reachable.
+    _PHASE_TO_STATUS = {
+        "working": "active",
+        "offline": "offline",
+        "dyinggasp": "los",
+    }
     for p in pulled_ports:
         port_no = int(p["port_no"])
         port_row = port_by_no.get(port_no)
@@ -224,9 +233,15 @@ async def _reconcile_topology(
             serial = onu.get("serial")
             if not serial:
                 continue
+            phase = onu.get("phase_state")
+            status = (
+                _PHASE_TO_STATUS.get(phase)
+                if phase is not None
+                else onu.get("status") or "active"
+            ) or "active"
             upstream_onus[serial] = {
                 "port_id": port_row.id,
-                "status": onu.get("status") or "active",
+                "status": status,
             }
 
     # All current ONU rows for this OLT (any port on the card).
