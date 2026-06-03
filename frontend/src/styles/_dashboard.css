@@ -1,10 +1,10 @@
 /* ===================== DASHBOARD ===================== */
-.widgets { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.widgets { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--card-gap); }
 .widget {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--pad);
+  padding: var(--card-pad);
   box-shadow: var(--shadow);
   position: relative;
   display: flex; flex-direction: column;
@@ -12,18 +12,18 @@
 }
 .widget-label {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--text-3); margin-bottom: 12px;
+  color: var(--text-3); margin-bottom: var(--sp-3);
   font-weight: var(--fw-medium);
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: var(--inline-gap);
 }
 .widget-label-icon { color: var(--accent); }
 .widget-label-trend { margin-left: auto; font-family: var(--font-mono); font-size: 11px; }
 .widget-label-trend.up { color: var(--success); }
 .widget-label-trend.down { color: var(--danger); }
 .widget-foot {
-  margin-top: 14px;
-  display: flex; align-items: center; gap: 8px;
-  padding-top: 12px; border-top: 1px solid var(--border-soft);
+  margin-top: var(--sp-4);
+  display: flex; align-items: center; gap: var(--inline-gap);
+  padding-top: var(--sp-3); border-top: 1px solid var(--border-soft);
   font-size: 11px; color: var(--text-3);
 }
 .widget-kpi {

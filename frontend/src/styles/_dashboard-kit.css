@@ -10,7 +10,7 @@
    ========================================================================= */
 
 /* KPI grid + tile */
-.gx-dash .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+.gx-dash .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--kpi-gap); margin-bottom:var(--sp-5); }
 /* The KPI tile is a <button> with inline style `border:none` (DashboardView.tsx) which
    overrides this CSS border, so a border-color hover alone is invisible. We add an
    `outline` (not affected by inline border styles, doesn't shift layout) that goes
@@ -18,7 +18,7 @@
    existing tokens. See `.gx-dash .kpi:hover` below. */
 .gx-dash .kpi { min-width:0; overflow:hidden; position:relative;
   background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg);
-  padding:16px; box-shadow:var(--gx-shadow-sm);
+  padding:var(--card-pad); box-shadow:var(--gx-shadow-sm);
   outline:var(--gx-border-2) solid transparent; outline-offset:-2px;
   transition:box-shadow var(--gx-dur-base), transform var(--gx-dur-base),
              border-color var(--gx-dur-base), outline-color var(--gx-dur-base),
@@ -45,7 +45,7 @@
 .gx-dash .kpi--marquee::before { content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--gx-gold); border-radius:99px; }
 
 /* Two-column body (chart + breakdown) */
-.gx-dash .cols { display:grid; grid-template-columns:1.6fr 1fr; gap:18px; }
+.gx-dash .cols { display:grid; grid-template-columns:1.6fr 1fr; gap:var(--card-gap); }
 .gx-dash .cols > * { min-width:0; }
 @media (max-width:900px) { .gx-dash .cols { grid-template-columns:1fr; } .gx-dash .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
@@ -57,7 +57,7 @@
 .gx-dash .card-head h3 { font-family:var(--gx-font-sans); font-size:14px; font-weight:600; margin:0; color:var(--gx-text-1); }
 .gx-dash .card-head .spacer { flex:1; }
 .gx-dash .card-head .hint { color:var(--gx-text-3); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
-.gx-dash .card-pad { padding:18px; }
+.gx-dash .card-pad { padding:var(--card-pad); }
 
 /* Segmented control (.seg) — global base, used in calendar, studio, settings, dashboard */
 .seg { display:inline-flex; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); padding:2px; gap:2px; }

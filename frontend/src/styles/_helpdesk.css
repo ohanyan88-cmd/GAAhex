@@ -17,7 +17,7 @@
 .section-page .hd-shell {
   display: grid;
   grid-template-columns: 240px 1fr;
-  gap: 16px;
+  gap: var(--card-gap);
   align-items: flex-start;
 }
 .section-page .hd-rail {
@@ -97,10 +97,10 @@
   min-width: 0;
 }
 .section-page .hd-card {
-  padding: 16px;
+  padding: var(--card-pad);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--sp-4);
 }
 .section-page .hd-toolbar {
   margin-bottom: 0;

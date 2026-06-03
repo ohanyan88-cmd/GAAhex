@@ -1,7 +1,7 @@
 /* ===================== EMPTY / LOADING / ERROR ===================== */
 .empty-state {
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 48px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-9) var(--page-pad-x);
   text-align: center;
   background: var(--surface);
   border: 1px dashed var(--border);
@@ -13,20 +13,20 @@
 .empty-state p { color: var(--text-3); font-size: 13px; max-width: 380px; margin: 0; }
 
 .loading-state {
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 40px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-8) var(--page-pad-x);
   color: var(--text-3);
 }
 .spin-icon { animation: spin-icon 0.75s linear infinite; }
 
 .error-banner {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 12px 14px;
+  display: flex; align-items: flex-start; gap: var(--inline-gap);
+  padding: var(--sp-3) var(--sp-4);
   background: var(--danger-soft);
   border-left: 3px solid var(--danger);
   border-radius: var(--r-md);
   color: var(--text);
-  margin-bottom: 14px;
+  margin-bottom: var(--sp-4);
 }
 .error-banner-icon { color: var(--danger); flex: none; margin-top: 1px; }
 .error-banner-title { font-weight: var(--fw-semibold); font-size: 13px; }
