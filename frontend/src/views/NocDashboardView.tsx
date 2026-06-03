@@ -910,17 +910,48 @@ export default function NocDashboardView({
         </Card>
       </div>
 
-      {/* ─── Legend ───────────────────────────────────────────────── */}
+      {/* ─── Optical Signal Health — real ONU bucket counts + legend ─── */}
       <div style={{ marginTop: 'var(--sp-4)' }}>
         <Card pad="sm">
           <Stack gap="sm">
-            <SectionHeading icon={<ZapIcon size={14} />} title="Optical Signal Legend" />
-            <Inline gap="sm" align="center">
-              <LegendChip variant="active" label="Normal" detail="rx ≥ -26 dBm" />
-              <LegendChip variant="degraded" label="Warning" detail="-28 ≤ rx < -26 dBm" />
-              <LegendChip variant="critical" label="Critical" detail="rx < -28 dBm" />
-              <LegendChip variant="neutral" label="Unknown" detail="no recent reading" />
-            </Inline>
+            <SectionHeading icon={<ZapIcon size={14} />} title="Optical Signal Health" />
+            {(() => {
+              const totalOnu = (health?.onus_active ?? 0) + (health?.onus_los ?? 0) + (health?.onus_offline ?? 0)
+              // Real buckets: until per-ONU optical readings are pulled, everything
+              // collapses to "Unknown". Active/LOS/Offline from the health rollup map
+              // approximately to signal health buckets — LOS = critical, offline =
+              // recently-lost, active without reading = unknown until probed.
+              const critical = health?.onus_los ?? 0
+              const degraded = 0
+              const unknown = (health?.onus_active ?? 0) + (health?.onus_offline ?? 0)
+              const normal = 0
+              const pct = (n: number) => totalOnu > 0 ? Math.round((n / totalOnu) * 100) : 0
+              const cells: Array<{ label: string; n: number; variant: 'active' | 'degraded' | 'critical' | 'neutral'; detail: string }> = [
+                { label: 'Normal', n: normal, variant: 'active', detail: 'rx ≥ -26 dBm' },
+                { label: 'Warning', n: degraded, variant: 'degraded', detail: '-28 ≤ rx < -26 dBm' },
+                { label: 'Critical', n: critical, variant: 'critical', detail: 'rx < -28 dBm' },
+                { label: 'Unknown', n: unknown, variant: 'neutral', detail: 'awaiting optical reading' },
+              ]
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--sp-3)' }}>
+                  {cells.map((c) => (
+                    <div key={c.label} style={{ padding: 'var(--sp-3)', borderRadius: 8, background: 'var(--gx-surface-2, rgba(255,255,255,0.03))', border: '1px solid var(--gx-border, rgba(255,255,255,0.08))', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <LegendChip variant={c.variant} label={c.label} detail={c.detail} />
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                        <div style={{ fontSize: 22, fontWeight: 600, fontFamily: 'var(--gx-font-mono, monospace)' }}>{c.n}</div>
+                        <div style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>{pct(c.n)}%</div>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: 'var(--gx-border, rgba(255,255,255,0.08))', overflow: 'hidden' }}>
+                        <div style={{ width: `${pct(c.n)}%`, height: '100%', background: c.variant === 'active' ? 'var(--success, #22c55e)' : c.variant === 'degraded' ? 'var(--warning, #f59e0b)' : c.variant === 'critical' ? 'var(--danger, #ef4444)' : 'var(--gx-text-3, #94a3b8)' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+            <div style={{ fontSize: 11, color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+              Optical readings populate once the V1600 driver runs per-port optical-info pulls. Until then ONUs sit in "Unknown".
+            </div>
           </Stack>
         </Card>
       </div>
