@@ -1,4 +1,4 @@
-/* GAAhex Portal — interaction layer: toasts · record drawer · create modal ·
+/* GAAhex — interaction layer: toasts · record drawer · create modal ·
    row menu · confirm dialog · donut & line charts. All globally available. */
 
 // ───────────────────────── TOASTS (vanilla, robust) ─────────────────────────

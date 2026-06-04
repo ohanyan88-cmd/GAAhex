@@ -1,6 +1,6 @@
-# Applying the GAAhex Design System to your `ohanyan88-cmd/Portal` repo
+# Applying the GAAhex Design System to your `ohanyan88-cmd/GAAhex` repo
 
-This design system is **standalone** (tokens + CSS + reference UI kit). Your Portal app is
+This design system is **standalone** (tokens + CSS + reference UI kit). Your GAAhex app is
 **React + TypeScript + Vite** (`frontend/`). You don't replace your app — you **swap its visual
 foundation** and lift components/patterns from the kit. Here's the practical path.
 

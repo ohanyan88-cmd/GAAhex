@@ -1,4 +1,4 @@
-/* GAAhex Portal — generic renderers that turn a page config into a real screen.
+/* GAAhex — generic renderers that turn a page config into a real screen.
    EntityPage · KanbanGeneric · ModuleDashboard · MapView · CalendarView · SettingsPage */
 
 const STATUS_CLASS = (...a) => window.GXPages.STATUS_CLASS(...a);

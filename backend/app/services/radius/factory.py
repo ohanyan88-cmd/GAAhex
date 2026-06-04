@@ -1,7 +1,7 @@
 """M1-C Phase 0 — RadiusBackend factory.
 
 Mirrors the payments/comms factories: registry of zero-arg builders, falls back
-to the mock on ImportError / config errors so Portal boots without a RADIUS host.
+to the mock on ImportError / config errors so GAAhex boots without a RADIUS host.
 """
 from __future__ import annotations
 

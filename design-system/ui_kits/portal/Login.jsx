@@ -1,4 +1,4 @@
-/* GAAhex Portal — Login + Command Palette */
+/* GAAhex — Login + Command Palette */
 
 function Login({ onLogin }) {
   const [email, setEmail] = React.useState('admin@yerevan.isp');

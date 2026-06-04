@@ -159,7 +159,7 @@ class StripeGateway:
         """Vault a Stripe Elements ``pm_...`` token by attaching it to a Stripe Customer.
 
         Steps:
-          1. Find-or-create the Stripe Customer keyed by ``metadata.customer_ref`` (Portal UUID).
+          1. Find-or-create the Stripe Customer keyed by ``metadata.customer_ref`` (GAAhex UUID).
           2. Attach the PaymentMethod to that Customer.
           3. Return a normalized :class:`VaultResult` with last4/brand/expiry for display.
 

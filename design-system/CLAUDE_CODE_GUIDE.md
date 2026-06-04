@@ -1,4 +1,4 @@
-# Using Claude Code to apply the GAAhex Design System to `ohanyan88-cmd/Portal`
+# Using Claude Code to apply the GAAhex Design System to `ohanyan88-cmd/GAAhex`
 
 A start-to-finish workflow. You'll (A) get these design files into your repo, (B) open Claude Code,
 (C) run a sequence of copy-paste prompts that reskin the app module by module.
@@ -10,7 +10,7 @@ A start-to-finish workflow. You'll (A) get these design files into your repo, (B
 1. **Download this project** (the download card in chat, or the project menu → export zip).
 2. Unzip it and copy the whole folder into your repo as **`design-system/`**:
    ```
-   Portal/
+   GAAhex/
      design-system/         ← paste here
        README.md
        SKILL.md
@@ -35,10 +35,10 @@ A start-to-finish workflow. You'll (A) get these design files into your repo, (B
 ## B · Open Claude Code
 
 ```bash
-cd Portal
+cd GAAhex
 claude            # or: npm i -g @anthropic-ai/claude-code  then  claude
 ```
-(If you use the Claude Code VS Code extension, just open the `Portal` folder.)
+(If you use the Claude Code VS Code extension, just open the `GAAhex` folder.)
 
 First, let it read the system so it has full context:
 

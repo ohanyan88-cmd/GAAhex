@@ -1,7 +1,7 @@
 """M1-C Phase 0 — TwilioSmsGateway (real-vendor skeleton).
 
 Lazy-imports the ``twilio`` SDK. The factory catches ``ImportError`` /
-:class:`SmsGatewayConfigError` and falls back to the mock so Portal boots
+:class:`SmsGatewayConfigError` and falls back to the mock so GAAhex boots
 cleanly even when the SDK isn't installed and no keys are set.
 
 Status of methods

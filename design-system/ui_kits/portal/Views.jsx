@@ -1,4 +1,4 @@
-/* GAAhex Portal — Dashboard, Work Items, Module stub */
+/* GAAhex — Dashboard, Work Items, Module stub */
 
 function ViewHead({ icon, title, sub, actions }) {
   return (

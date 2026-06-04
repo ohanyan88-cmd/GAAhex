@@ -1,4 +1,4 @@
-# GAAhex Portal — UI kit
+# GAAhex — UI kit
 
 A high-fidelity, interactive recreation of the **GAAhex operations console** in the new
 *Cobalt & Gold* design language. This is the platform's single product surface — a multi-tenant,

@@ -140,7 +140,7 @@ GAAhex's revision graph doesn't contain `d3e4f5a6b7c8`, so running
 `alembic upgrade head` against the live DB would fail with the exact error captured above.
 
 Resolving that needs a deliberate cleanup (either stamp the live DB to a known-good GAAhex
-revision and re-run the missing Portal-sourced migration into GAAhex's history, or rebuild the
+revision and re-run the missing legacy-sourced migration into GAAhex's history, or rebuild the
 dev DB from scratch). That cleanup is **out of scope for Step 1**. Verifying the migration
 against a freshly-created temp DB proves the SQL/ORM are correct without touching the dev DB.
 

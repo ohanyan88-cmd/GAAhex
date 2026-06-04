@@ -1,8 +1,8 @@
 /* ============================================================================
-   GAAhex Portal — shared primitives. Copied VERBATIM from
+   GAAhex — shared primitives. Copied VERBATIM from
    design-system/ui_kits/portal/app.css lines 18-57 (the canonical
    .btn / .inp / .field / .pill / .badge rule set), followed by a small
-   extensions block to cover Portal component APIs the kit doesn't model
+   extensions block to cover GAAhex component APIs the kit doesn't model
    (Button link/gold, Input lg/error, FormField hint/error, StatusPill sm).
    ============================================================================ */
 
@@ -47,7 +47,7 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .tnum { font-variant-numeric:tabular-nums; }
 .spacer { flex:1; }
 
-/* ---- Portal extensions (not in kit) ---- */
+/* ---- GAAhex extensions (not in kit) ---- */
 
 /* extension: link variant (our API has Button variant: 'link'; kit doesn't) */
 .btn-link { background:transparent; color:var(--gx-primary); border:none; padding:0; height:auto; }
@@ -68,7 +68,7 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .field-error { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--gx-danger-fg); margin-top:4px; }
 
 /* extension: KPITile primitive — THE shared KPI card used across every dashboard
-   and list view in the Portal. Identical behavior everywhere — hover lift, click,
+   and list view in GAAhex. Identical behavior everywhere — hover lift, click,
    focus-visible ring all centralized here. Tile can render as <div>, <button>, or
    <a> depending on `onClick` / `href` (see KPITile.tsx). The `data-clickable="true"`
    attribute marks the interactive variant so hover/focus styles only apply there

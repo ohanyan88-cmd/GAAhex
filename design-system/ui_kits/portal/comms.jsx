@@ -1,4 +1,4 @@
-/* GAAhex Portal — Communications: Messenger (chat) + Email client.
+/* GAAhex — Communications: Messenger (chat) + Email client.
    Messages → Messenger · Outbound → Email */
 
 // ───────────────────────── MESSENGER ─────────────────────────

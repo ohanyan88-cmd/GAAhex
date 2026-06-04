@@ -781,7 +781,7 @@ export default function App() {
 }
 
 function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLabel: string }) {
-  // SPEC §1 modules that don't have a Portal view yet land here. Honest "coming soon" message,
+  // SPEC §1 modules that don't have a GAAhex view yet land here. Honest "coming soon" message,
   // no scary "not enabled for this tenant" copy (that read as a config problem when it's just
   // "this page hasn't been built yet").
   void moduleId

@@ -1,6 +1,6 @@
 """M1-C.1 — Stripe webhook event dispatcher.
 
-Translates an inbound Stripe event into Portal-side state changes:
+Translates an inbound Stripe event into GAAhex-side state changes:
 
   * ``payment_intent.succeeded``   → write Payment row, flip Invoice to PAID,
                                      recompute account balance
@@ -269,7 +269,7 @@ async def _handle_payment_method_attached(session: AsyncSession, event: dict) ->
     Stripe fires this when a PaymentMethod is attached to a Customer — usually right
     after our ``vault_card`` flow (which already wrote the row). The handler is
     idempotent: if a row with the same ``gateway_token`` exists, we touch ``last_used_at``
-    and return; otherwise we'd need the ``customer_id`` (Portal UUID) from metadata to
+    and return; otherwise we'd need the ``customer_id`` (GAAhex UUID) from metadata to
     insert a fresh row.
     """
     obj = _data_object(event)
@@ -300,7 +300,7 @@ async def _handle_payment_method_attached(session: AsyncSession, event: dict) ->
         existing.last_used_at = _utcnow()
         return "handled"
 
-    # Insertion path: we need the Portal customer_id from metadata to land a row.
+    # Insertion path: we need the GAAhex customer_id from metadata to land a row.
     customer_id = _coerce_uuid(meta.get("customer_ref"))
     if customer_id is None:
         _log.warning(

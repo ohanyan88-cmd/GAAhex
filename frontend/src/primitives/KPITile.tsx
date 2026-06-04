@@ -1,5 +1,5 @@
 // KPITile — THE shared KPI card primitive used across every dashboard, list, and
-// module page in the Portal. One component, identical behavior everywhere.
+// module page in GAAhex. One component, identical behavior everywhere.
 //
 // Spec (Gev 2026-05-31):
 //  - Hover lift on clickable tiles: shadow-md + translateY(-1px) + border-strong,

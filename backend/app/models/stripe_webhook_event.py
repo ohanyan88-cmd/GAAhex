@@ -3,7 +3,7 @@
 Why a dedicated table
 =====================
 Stripe retries webhook deliveries until our endpoint returns 2xx. A naive handler that
-mutates Portal records each time risks double-applying a charge if the second delivery
+mutates GAAhex records each time risks double-applying a charge if the second delivery
 arrives before the first response. The idempotency contract:
 
 1. Every inbound Stripe webhook is recorded here EXACTLY ONCE keyed by ``stripe_event_id``.

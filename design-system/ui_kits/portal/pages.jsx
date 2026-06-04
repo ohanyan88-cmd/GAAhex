@@ -1,4 +1,4 @@
-/* GAAhex Portal — config-driven page renderers.
+/* GAAhex — config-driven page renderers.
    Every nav item resolves here to a real page built from config — the same way the live
    GAAhex platform renders ~190 pages from studio_config (no hardcoded screens). */
 

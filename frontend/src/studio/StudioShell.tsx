@@ -30,7 +30,7 @@ export default function StudioShell({
   onBack?: () => void
 }) {
   // Keep the browser URL in sync with the in-app route so deep links work and the back button
-  // navigates within Studio. The Portal app uses a `view` state union (no React Router yet);
+  // navigates within Studio. The GAAhex app uses a `view` state union (no React Router yet);
   // pushState + popstate gives us URL fidelity without pulling in a router. P2 fills group/module/
   // leaf — for P1 the only path is `/studio`.
   useEffect(() => {

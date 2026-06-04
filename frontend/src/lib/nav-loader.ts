@@ -96,7 +96,7 @@ const MODULE_ICONS: Record<string, NavItemDef['icon']> = {
   import_export: ArrowRightIcon, documentation: BookmarkIcon,
 }
 
-// Map a SPEC nav group + module pair into the existing Portal NavSectionDef
+// Map a SPEC nav group + module pair into the existing GAAhex NavSectionDef
 // shape. Modules without a known viewType render as a module-stub (handled by
 // App.tsx's navItemClick) — same fallback the static config uses today.
 function transform(groups: ApiNavGroup[]): NavSectionDef[] {
@@ -107,7 +107,7 @@ function transform(groups: ApiNavGroup[]): NavSectionDef[] {
       label: m.name,
       icon: MODULE_ICONS[m.key] ?? meta.icon,
       // No viewType ⇒ click renders the existing module-stub view, which is the
-      // correct behavior until every SPEC module has a dedicated Portal view.
+      // correct behavior until every SPEC module has a dedicated GAAhex view.
     }))
     return {
       id: g.group_key,

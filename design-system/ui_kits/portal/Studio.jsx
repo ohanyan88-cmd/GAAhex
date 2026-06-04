@@ -1,4 +1,4 @@
-/* GAAhex Portal — Studio: visual builder + configuration center + publishing control.
+/* GAAhex — Studio: visual builder + configuration center + publishing control.
    12 sections (Page Manager … Publish Settings). Panes live in studio-panes.jsx.
    EntityBuilder + AppearancePane defined below are reused by Data Binding / Design Settings. */
 

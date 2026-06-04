@@ -415,7 +415,7 @@ The seven gates in §7 remain open. In particular:
 ### Verification (2026-05-31)
 
 ```
-cd C:/Users/Admin/Desktop/Portal/backend
+cd C:/Users/Admin/Desktop/GAAhex/backend
 .venv/Scripts/python.exe -c "from app.security import EncryptedString, encrypt_str, decrypt_str; print('OK')"
 # → prints "GAAHEX_FIELD_KEY not set — using deterministic DEV key…" (expected in dev) then "OK"
 
@@ -441,7 +441,7 @@ A full grep across `backend/app/models/*.py` for SPEC §4.4 candidate columns sh
 - `refresh_token.token_hash`, `api_key.key_hash` — irreversible hash (correct)
 - `webhook_def.secret` — EncryptedString (Fernet AEAD) — ACTIVATE landed this
 
-**Not yet modeled in Portal — these are the SPEC §4.4 candidate columns waiting for product features:**
+**Not yet modeled in GAAhex — these are the SPEC §4.4 candidate columns waiting for product features:**
 
 | SPEC §4.4 item | Likely future model & column | Encryption strategy |
 |---|---|---|
@@ -464,4 +464,4 @@ A full grep across `backend/app/models/*.py` for SPEC §4.4 candidate columns sh
 4. Tests: add a round-trip test in `tests/test_field_crypto.py` for the new column.
 5. Document the column added in this §11 table.
 
-**No work to do today** — Portal has no plaintext sensitive columns currently in its schema.
+**No work to do today** — GAAhex has no plaintext sensitive columns currently in its schema.

@@ -683,7 +683,7 @@ async def seed_portal_if_empty() -> None:
             customer_id=customer_record.id,
             email="portal@demo.isp",
             password_hash=hash_password("portal123"),
-            name="Demo Customer Portal",
+            name="Demo Customer GAAhex",
             is_active=True,
         ))
         await s.commit()

@@ -1,4 +1,4 @@
-// PageShell — the universal page wrapper. Every Portal page consumes this
+// PageShell — the universal page wrapper. Every GAAhex page consumes this
 // component going forward; the migration of existing views happens in a
 // later phase. This file is the FRAMEWORK orchestrator: it accepts the
 // composition spec, decides which zones to render based on the page type +
