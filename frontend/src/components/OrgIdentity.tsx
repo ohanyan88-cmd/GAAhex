@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from './Toast'
 import { EditIcon, CheckIcon, CloseIcon } from './icons'
 import { Upload } from 'lucide-react'
+import { Button } from '../primitives'  // T-P3-7
 
 import { BASE } from '../lib/config'
 
@@ -134,13 +135,13 @@ export default function OrgIdentity({ token }: { token: string }) {
                   {initialsOf(draftName)}
                 </span>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()}>
+              <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
                 <Upload size={13} />Upload logo
-              </button>
+              </Button>
               {draftLogo && (
-                <button className="btn btn-ghost btn-sm" onClick={() => setDraftLogo(null)} style={{ color: 'var(--gx-text-3)' }}>
+                <Button variant="ghost" size="sm" onClick={() => setDraftLogo(null)} style={{ color: 'var(--gx-text-3)' }}>
                   <CloseIcon size={13} />Remove logo
-                </button>
+                </Button>
               )}
             </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} style={{ display: 'none' }} />
@@ -157,10 +158,10 @@ export default function OrgIdentity({ token }: { token: string }) {
             />
           </label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={saving}>Cancel</button>
-            <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
+            <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="primary" size="sm" onClick={save} disabled={saving}>
               <CheckIcon size={13} />{saving ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
           </div>
         </div>
       )}

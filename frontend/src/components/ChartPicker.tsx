@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { CHART_CATALOG, CATEGORIES, type ChartDef } from '../lib/dashboard-catalog'
 import { Modal } from './Modal'
+import { Button } from '../primitives'  // T-P3-7
 
 export default function ChartPicker({
   initialSelected, onClose, onSave,
@@ -47,10 +48,10 @@ export default function ChartPicker({
       subtitle={`${selected.size} selected · ${implementedCount} available`}
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-md" onClick={() => { onSave(selected); onClose() }}>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="md" onClick={() => { onSave(selected); onClose() }}>
             Save layout
-          </button>
+          </Button>
         </>
       }
     >
@@ -65,8 +66,8 @@ export default function ChartPicker({
             className="inp inp-sm"
             style={{ flex: 1 }}
           />
-          <button className="btn btn-secondary btn-sm" onClick={selectAllImplemented}>Select all available</button>
-          <button className="btn btn-ghost btn-sm" onClick={clearAll}>Clear all</button>
+          <Button variant="secondary" size="sm" onClick={selectAllImplemented}>Select all available</Button>
+          <Button variant="ghost" size="sm" onClick={clearAll}>Clear all</Button>
         </div>
 
         {/* Category list */}

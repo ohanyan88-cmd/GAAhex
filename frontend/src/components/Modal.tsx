@@ -2,6 +2,7 @@ import type { ReactNode, CSSProperties } from 'react'
 import { useEffect, useId, useState } from 'react'
 import Overlay from './Overlay'
 import { CloseIcon } from './icons'
+import { Button } from '../primitives'  // T-P3-7
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'fullscreen'
 
@@ -121,17 +122,17 @@ export function ModalFooterActions({
 }) {
   return (
     <>
-      <button type="button" className="btn btn-ghost btn-md" onClick={onCancel}>
+      <Button variant="ghost" size="md" onClick={onCancel}>
         {cancelLabel}
-      </button>
-      <button
-        type="button"
-        className={'btn btn-md ' + (danger ? 'btn-danger' : 'btn-primary')}
+      </Button>
+      <Button
+        variant={danger ? 'danger' : 'primary'}
+        size="md"
         disabled={confirmDisabled}
         onClick={() => { void onConfirm() }}
       >
         {confirmLabel}
-      </button>
+      </Button>
     </>
   )
 }

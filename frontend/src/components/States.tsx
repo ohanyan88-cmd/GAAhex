@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { WarningIcon, LockIcon, SearchIcon, InboxIcon, SpinnerIcon } from './icons'
+import { Button } from '../primitives'  // T-P3-7 — canonical button primitive
 import { t } from '../lib/i18n'
 
 // Reusable feedback / state screens (Tier 6). Themed, SVG icons, dual-theme.
@@ -79,7 +80,7 @@ export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: (
     <div className="error-banner" role="alert">
       <WarningIcon size={16} />
       <span className="error-banner-msg">{message}</span>
-      {onRetry && <button className="btn btn-ghost btn-sm" onClick={onRetry}>Retry</button>}
+      {onRetry && <Button variant="ghost" size="sm" onClick={onRetry}>Retry</Button>}
     </div>
   )
 }

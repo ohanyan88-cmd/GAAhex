@@ -4,6 +4,7 @@
 
 import { LockIcon } from './icons'
 import { useI18n } from '../lib/i18n'
+import { Button } from '../primitives'  // T-P3-7
 
 interface NoAccessProps {
   /** Optional resource label shown in the message, e.g. "this record" */
@@ -35,14 +36,14 @@ export default function NoAccess({ what, onBack }: NoAccessProps) {
       </p>
       {onBack && (
         <div className="state-action">
-          <button
-            type="button"
-            className="btn btn-primary btn-md"
+          <Button
+            variant="primary"
+            size="md"
             onClick={onBack}
             aria-label={t('noaccess.backAriaLabel', 'Back to dashboard')}
           >
             {t('noaccess.back', 'Back to dashboard')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

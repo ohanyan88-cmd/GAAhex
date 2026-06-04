@@ -19,6 +19,13 @@ interface ButtonProps {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   type?: 'button' | 'submit' | 'reset'
   className?: string
+  /** T-P3-7 — inline style passthrough for migrating call sites that need
+   * one-off overrides (e.g. `style={{ width: '100%' }}` for full-bleed CTAs).
+   * Prefer className when the override is reused. */
+  style?: React.CSSProperties
+  /** Accessibility passthrough for icon-only buttons or context labels. */
+  'aria-label'?: string
+  title?: string
 }
 
 function Spinner() {
@@ -30,7 +37,21 @@ function Spinner() {
   )
 }
 
-export function Button({ variant = 'primary', size = 'md', leftIcon: LeftIcon, rightIcon: RightIcon, loading, disabled, children, onClick, type = 'button', className = '' }: ButtonProps) {
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  leftIcon: LeftIcon,
+  rightIcon: RightIcon,
+  loading,
+  disabled,
+  children,
+  onClick,
+  type = 'button',
+  className = '',
+  style,
+  'aria-label': ariaLabel,
+  title,
+}: ButtonProps) {
   const isDisabled = disabled || loading
   const iconSize = size === 'sm' ? 10 : 12
 
@@ -47,6 +68,9 @@ export function Button({ variant = 'primary', size = 'md', leftIcon: LeftIcon, r
       disabled={isDisabled}
       onClick={onClick}
       className={cls}
+      style={style}
+      aria-label={ariaLabel}
+      title={title}
     >
       {loading ? <Spinner /> : LeftIcon ? <LeftIcon size={iconSize} /> : null}
       {children}

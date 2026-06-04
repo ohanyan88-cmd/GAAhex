@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { type WorkItem, type WorkItemStatus } from '../lib/workitems'
 import type { User } from '../lib/users'
 import { resolveUserDisplay } from './UserPicker'
-import { StatusPill } from '../primitives'
+import { StatusPill, Button } from '../primitives'  // T-P3-7
 import { PlayIcon, CheckIcon, PauseIcon } from './icons'
 import { toast } from './Toast'
 import type { WorkItemAction } from './WorkItemsTable'
@@ -169,29 +169,29 @@ function BoardCard({
       {/* Inline status actions — same set as the table row */}
       <div className="row-actions" style={{ marginTop: 10, justifyContent: 'flex-end', display: 'flex', gap: 4 }}>
         {s === 'TODO' && (
-          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => act('start', e)} title="Start">
+          <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('start', e)} title="Start">
             <PlayIcon size={12} /> Start
-          </button>
+          </Button>
         )}
         {s === 'IN_PROGRESS' && (
           <>
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => act('complete', e)} title="Complete">
+            <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('complete', e)} title="Complete">
               <CheckIcon size={12} /> Done
-            </button>
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => act('block', e)} title="Block">
+            </Button>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('block', e)} title="Block">
               <PauseIcon size={12} />
-            </button>
+            </Button>
           </>
         )}
         {s === 'BLOCKED' && (
-          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => act('start', e)} title="Resume">
+          <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('start', e)} title="Resume">
             <PlayIcon size={12} /> Resume
-          </button>
+          </Button>
         )}
         {(s === 'DONE' || s === 'CANCELLED') && (
-          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={(e) => act('reopen', e)} title="Reopen">
+          <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('reopen', e)} title="Reopen">
             Reopen
-          </button>
+          </Button>
         )}
       </div>
     </div>

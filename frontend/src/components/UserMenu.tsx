@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, Sun, Moon, LogOut, SquarePen, User, Keyboard, Settings, SlidersHorizontal } from 'lucide-react'
 import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
+import { Button } from '../primitives'  // T-P3-7
 
 type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
 type ModalKey = 'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew'
@@ -193,13 +194,14 @@ export default function UserMenu({
                   </span>
                 </span>
               </div>
-              <button
-                className="btn btn-secondary btn-sm"
+              <Button
+                variant="secondary"
+                size="sm"
                 style={{ width: '100%', marginTop: 12 }}
                 onClick={() => { close(); onOpenModal('profile') }}
               >
                 <SquarePen size={13} />{t('profile.edit', 'Edit profile')}
-              </button>
+              </Button>
             </>
           )}
         </div>

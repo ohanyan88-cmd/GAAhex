@@ -13,7 +13,7 @@ import {
 } from '../lib/workitems'
 import type { User } from '../lib/users'
 import { resolveUserDisplay } from './UserPicker'
-import { StatusPill } from '../primitives'
+import { StatusPill, Button } from '../primitives'  // T-P3-7
 import { PlayIcon, CheckIcon, PauseIcon } from './icons'
 import { ChevronsUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from './Toast'
@@ -248,29 +248,29 @@ function WorkItemRow({
       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
           {s === 'TODO' && (
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act('start')} title="Start">
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('start')} title="Start">
               <PlayIcon size={12} /> Start
-            </button>
+            </Button>
           )}
           {s === 'IN_PROGRESS' && (
             <>
-              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act('complete')} title="Complete">
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('complete')} title="Complete">
                 <CheckIcon size={12} /> Done
-              </button>
-              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act('block')} title="Block">
+              </Button>
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('block')} title="Block">
                 <PauseIcon size={12} />
-              </button>
+              </Button>
             </>
           )}
           {s === 'BLOCKED' && (
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act('start')} title="Resume">
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('start')} title="Resume">
               <PlayIcon size={12} /> Resume
-            </button>
+            </Button>
           )}
           {(s === 'DONE' || s === 'CANCELLED') && (
-            <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act('reopen')} title="Reopen">
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('reopen')} title="Reopen">
               Reopen
-            </button>
+            </Button>
           )}
         </div>
       </td>

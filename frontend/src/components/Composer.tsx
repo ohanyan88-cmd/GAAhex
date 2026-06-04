@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import EmojiPicker from './EmojiPicker'
 import { SmileIcon } from './icons'
+import { Button } from '../primitives'  // T-P3-7
 
 // Composer — a message/comment input shared by the comments panel and the messages view:
 // a textarea (inp inp-area) + the EmojiPicker (inserts at the cursor) + a Send button.
@@ -60,9 +61,9 @@ export default function Composer({ onSend, placeholder = 'Write a message…' }:
           </button>
           {emojiOpen && <EmojiPicker anchor={emojiBtnRef.current} onPick={insert} onClose={() => setEmojiOpen(false)} />}
         </div>
-        <button type="button" className="btn btn-primary btn-sm" disabled={sending || !body.trim()} onClick={send}>
+        <Button variant="primary" size="sm" disabled={sending || !body.trim()} onClick={send} loading={sending}>
           {sending ? 'Sending…' : 'Send'}
-        </button>
+        </Button>
       </div>
     </div>
   )

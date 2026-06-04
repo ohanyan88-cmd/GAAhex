@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Bell, BellOff, Trash2, ArrowRight, AlertTriangle, CheckCircle2, Server as ServerIcon, Receipt, Wand2, Info } from 'lucide-react'
 import { toast } from './Toast'
 import { listNotifications, getUnreadCount, markRead, markAllRead, clearAll, type ServerNote } from '../lib/notifications'
+import { Button } from '../primitives'  // T-P3-7
 
 type EntityRef = { key: string; route_slug: string }
 
@@ -147,9 +148,9 @@ export default function NotificationBell({
             <span style={{ fontWeight: 600, fontSize: 13.5 }}>Notifications</span>
             {unread > 0 && <span className="badge" style={{ marginLeft: 8 }}>{unread}</span>}
             <span className="spacer" />
-            <button className="btn btn-ghost btn-sm" onClick={handleMarkAll} disabled={unread === 0}>
+            <Button variant="ghost" size="sm" onClick={handleMarkAll} disabled={unread === 0}>
               Mark all read
-            </button>
+            </Button>
           </div>
 
           <div className="notif-list">
@@ -192,13 +193,13 @@ export default function NotificationBell({
 
           {items.length > 0 && (
             <div className="notif-foot">
-              <button className="btn btn-ghost btn-sm" onClick={handleClearAll} style={{ color: 'var(--gx-text-3)' }}>
+              <Button variant="ghost" size="sm" onClick={handleClearAll} style={{ color: 'var(--gx-text-3)' }}>
                 <Trash2 size={13} />Clear all
-              </button>
+              </Button>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
                 View all<ArrowRight size={13} />
-              </button>
+              </Button>
             </div>
           )}
         </div>
