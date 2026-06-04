@@ -617,7 +617,7 @@ disabled: bg #15191F, text 30% opacity, not-allowed cursor
 ### 11.3 Search
 
 **Wrapper**: `.search.search-{sm|md|lg}` (position: relative)
-**Input**: `.search-input` (full width with left padding for icon, right padding for clear/kbd)
+**Input**: `.search-input` (full width with left padding for icon, right padding for clear)
 
 Size variants:
 ```
@@ -630,7 +630,6 @@ Size variants:
 - `.search-icon`: left side, `SearchIcon` (16px), `color: rgba(F4F6F9, 50%)`
 - `.search-clear`: right side, `CloseIcon` (12px), appears when query non-empty
 - `.search-filter`: right side, gold filter button (used in reports/entity list)
-- `.search-kbd`: right side, "⌘K" kbd hint (used in command palette trigger)
 
 **States same as `.inp`**: gold border on hover/focus, red on error.
 
@@ -1376,7 +1375,6 @@ Stack: multiple overlays stack correctly via z-index (emoji picker at toast leve
   [SearchIcon .cmdk-icon]
   [.cmdk-input text 15px, no border]
   [.cmdk-clear (CloseIcon) when query non-empty]
-  [⌘K .search-kbd hint]
 
 .cmdk-suggest   { flex; wrap; gap 4px; padding 6px 10px; --surface-2 bg; border-bottom }
   [.cmdk-suggest-item chips: saved searches and recent queries]
@@ -1988,7 +1986,7 @@ but not implemented in the current phase:
 
 /* Search */
 .search .search-sm .search-md .search-lg .search-input .search-icon .search-clear
-.search-filter .search-kbd
+.search-filter
 
 /* Studio */
 .studio .studio h3 .studio .grid td

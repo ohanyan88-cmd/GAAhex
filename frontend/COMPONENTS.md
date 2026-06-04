@@ -61,16 +61,16 @@ Structure: `<input class="inp inp-md" />`, `<textarea class="inp inp-md inp-area
 
 ## 3. Search — `search search-{size}` wrapper
 **Types:** Simple (icon + input) · With clear (+ `CloseIcon` button) · With filter (+ `.search-filter`
-chip, `ChevronDownIcon`) · Command-style (+ `.search-kbd` `⌘K` hint). Input has left padding for the
-search icon and right padding for the type-specific right slot.
+chip, `ChevronDownIcon`). Input has left padding for the search icon and right padding for the
+type-specific right slot.
 **Parts:** `.search-icon` (left, `SearchIcon`, non-interactive) · `.search-input` · `.search-clear`
-(right) · `.search-filter` (right chip) · `.search-kbd` (right shortcut). Same focus/error states as inputs.
+(right) · `.search-filter` (right chip). Same focus/error states as inputs.
 Structure:
 ```
 <div class="search search-md">
   <SearchIcon class="search-icon" />
   <input class="search-input" placeholder="Search records…" />
-  {/* right slot: <CloseIcon class="search-clear"/> | <button class="search-filter">All <ChevronDownIcon/></button> | <kbd class="search-kbd">⌘K</kbd> */}
+  {/* right slot: <CloseIcon class="search-clear"/> | <button class="search-filter">All <ChevronDownIcon/></button> */}
 </div>
 ```
 
