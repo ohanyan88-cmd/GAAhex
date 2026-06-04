@@ -17,6 +17,7 @@ import {
 } from '../lib/lifecycle'
 import { ArrowRightIcon, UsersIcon, LayersIcon, TruckIcon } from '../components/icons'
 import { PageShell } from '../page-shell'
+import { DetailTab } from '../primitives'  // TB-1 — canonical detail-tab primitive
 
 type PipelineTab = 'sales' | 'lifecycle' | 'delivery'
 
@@ -87,30 +88,12 @@ export default function PipelineView(props: PipelineViewProps) {
   )
 }
 
+// TB-1 — local TabButton delegates to the canonical `DetailTab` primitive.
 function TabButton(props: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string }) {
   return (
-    <button
-      role="tab"
-      aria-selected={props.active}
-      onClick={props.onClick}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        gap: 2,
-        padding: '10px 16px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: props.active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: props.active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: props.active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-      }}
-    >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{props.icon}{props.label}</span>
-      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3, #94a3b8)' }}>{props.sub}</span>
-    </button>
+    <DetailTab active={props.active} onSelect={props.onClick} icon={props.icon} subtitle={props.sub}>
+      {props.label}
+    </DetailTab>
   )
 }
 

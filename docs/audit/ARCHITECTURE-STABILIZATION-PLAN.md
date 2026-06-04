@@ -177,10 +177,10 @@ cd frontend && pnpm typecheck
 | ID | Description | Canonical target | Duplicate instances | A11y | Risk | Status |
 |---|---|---|---|---|---|---|
 | **MO-1** | 3 hand-rolled `position:fixed,inset:0` studio form modals. No focus trap, no Esc, no `aria-modal`. | `components/Modal.tsx:28` + `Overlay.tsx` | `studio/EntitiesPane.tsx:181–420` · `NotificationsPane.tsx:146–300` · `WebhooksPane.tsx:147–280` | ❌ | **H** | ⬜ TODO |
-| **MO-2** | 2 identical hand-rolled studio confirm dialogs. | `components/Modal.tsx ConfirmHost` | `studio/EntitiesPane.tsx:425–466` · `NotificationsPane.tsx:300–344` | ❌ | **H** | ⬜ TODO |
-| **MO-3** | 1 hand-rolled test-send confirm in NotificationsPane. | `components/Modal.tsx` | `studio/NotificationsPane.tsx:350–410` | ❌ | **M** | ⬜ TODO |
-| **MO-4** | `ChartPicker` — hand-rolled `position:fixed,inset:0` picker overlay. | `components/Modal.tsx` or popover | `components/ChartPicker.tsx:39–80` | ❌ | **M** | ⬜ TODO |
-| **MO-5** | `ConfigureDrawer` — hand-rolled `position:fixed` with `useFocusTrap` but no Esc on backdrop. | Wrap in `<Overlay>` | `modals/ConfigureDrawer.tsx:164–332` | PARTIAL | **L** | ⬜ TODO |
+| **MO-2** | 2 hand-rolled studio confirm dialogs. | `components/Modal.tsx` | `EntitiesPane` + `NotificationsPane` ConfirmDelete | YES | **H** | ✅ DONE — both wrapped in canonical `<Modal>`. |
+| **MO-3** | Test-send confirm in NotificationsPane. | `components/Modal.tsx` | `NotificationsPane.tsx:ConfirmTestSendDialog` | YES | **M** | ✅ DONE. |
+| **MO-4** | `ChartPicker` hand-rolled overlay. | `components/Modal.tsx` | `components/ChartPicker.tsx` | YES | **M** | ✅ DONE — wrapped in `<Modal size="lg">`. |
+| **MO-5** | `ConfigureDrawer` "no Esc on backdrop". | `useFocusTrap` at document capture | `modals/ConfigureDrawer.tsx` | YES | **L** | ✅ VERIFIED — useFocusTrap listens at document capture phase; Esc works regardless of focus. Clarifying comment added. |
 | **MO-6** | `ConfirmModal` footer button pair copy-pasted at every modal call site (12+). | `<ModalFooterActions>` in `components/Modal.tsx` | `ConfirmHost` migrated; 12 other callers incremental | n/a | **M** | ✅ FOUNDATION — helper landed; ConfirmHost uses it. Other 12 callers migrate as they're touched. |
 
 ### Drawer findings
@@ -196,7 +196,7 @@ cd frontend && pnpm typecheck
 
 | ID | Description | Canonical target | Duplicate instances | A11y | Risk | Status |
 |---|---|---|---|---|---|---|
-| **TB-1** | 10 distinct tab flavors — no canonical `<TabButton>` primitive. | `frontend/src/primitives/DetailTab.tsx` (DetailTab + DetailTabList) | 7 hand-rolled flavors remain (Customer/Ra/Ni/Collections/Pipeline tab buttons) | YES | **H** | ✅ FOUNDATION — primitive built + 2 callers migrated; 5 more incremental. |
+| **TB-1** | 10 distinct tab flavors. | `frontend/src/primitives/DetailTab.tsx` | All 7 flavors migrated (Invoices/Accounts/Customer/Ra/Ni/Collections/Pipeline). | YES | **H** | ✅ DONE — every hand-rolled tab button delegates to `DetailTab`. |
 | **TB-2** | `InvoiceTabButton` and `AccountTabButton` are identical. | Single `DetailTab` replaces both | `views/InvoicesView.tsx` · `views/AccountsView.tsx` | YES | **M** | ✅ DONE — both delegate to DetailTab. |
 | **TB-3** | No keyboard navigation in ANY hand-rolled tab implementation. WCAG 2.1.1 violated. | `DetailTabList` wires Arrow Left/Right/Up/Down + Home + End + roving tabindex | Primitive built; callers wrap with `<DetailTabList>` to opt in | YES | **H** | ✅ FOUNDATION — keyboard nav landed in the canonical. Callers wrap their tab strip in `<DetailTabList>` to inherit it. |
 | **TB-4** | 9-tab object-detail spec implemented 3 times — 16 duplicate React tab body components across InvoicesView + AccountsView. | Parameterize `views/customer-tabs/*` to accept entity-type + id props | `views/InvoicesView.tsx:695–960` · `views/AccountsView.tsx:677–960` | n/a | **H** | ⬜ TODO — Phase 4 Part 2 (large surgical refactor; needs care). |
@@ -206,9 +206,9 @@ cd frontend && pnpm typecheck
 
 | ID | Description | Canonical target | Duplicate instances | Risk | Status |
 |---|---|---|---|---|---|
-| **TL-1** | `<DataTableRow>` / `<DataTableCell>` — zero production callers; story-only dead code. | Decide: promote to production or delete. | `primitives/DataTableRow.tsx` · `primitives/DataTableCell.tsx` (0 production callers) | **H** | ⬜ TODO |
+| **TL-1** | `<DataTableRow>` / `<DataTableCell>` decision. | — | — | **H** | ✅ DECIDED — `DataTableRow` deleted (truly zero callers); `DataTableCell` kept (HelpdeskView's configurable column renderer uses it — audit was wrong). Added missing `muted` variant. Story removed. |
 | **TL-2** | Two parallel kanban board implementations bypass `WorkItemsBoard.tsx`. | `components/WorkItemsBoard.tsx` | `views/LeadPipelineView.tsx:256` · `views/InstallationBoardView.tsx:242` | **H** | ⬜ TODO |
-| **TL-3** | `<ul>/<li>` used for tabular data (timeline/comment tabs) in InvoicesView. | `components/ActivityTimeline.tsx` | `views/InvoicesView.tsx:715–729` · `views/InvoicesView.tsx:794–807` | **M** | ⬜ TODO |
+| **TL-3** | `<ul>/<li>` for tabular data in InvoicesView. | `ActivityTimeline` (timeline) + `<table className="grid">` (comments) | `views/InvoicesView.tsx` | **M** | ✅ DONE — timeline delegates to canonical; comments use table.grid. |
 | **TL-4** | Inline action buttons in 15+ table views bypass `RowActionsMenu`. | `components/RowActionsMenu.tsx:31` | `InvoicesView.tsx:330–334` · `CustomerView.tsx:641–642` · `CustomerBillingModal.tsx:206–208` + ~12 more | **H** | ⬜ TODO |
 | **TL-5** | 15+ views hand-roll search/filter inputs instead of `<FilterBar>` zone E. | `page-shell/FilterBar.tsx:19` (zone E) | 42 of 51 PageShell views pass no `filters=` prop | **M** | ⬜ TODO |
 | **TL-6** | `_ensure` / `_ensure_user` test fixture duplicated across 18 test files. | `tests/conftest.py:ensure_user` (idempotent factory) | 18 test files | **H** | ✅ FOUNDATION — `ensure_user` canonical in conftest. Per-test migration incremental. |
@@ -326,10 +326,10 @@ pnpm typecheck
 | Phase 1 — Financial Integrity | 11 | 5 | 3 | 3 | **9 done · 2 deferred** | **0** |
 | Phase 2 — API + State | 11 | 6 | 4 | 1 | **11 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 3 — Permissions + Validation + Pagination | 13 | 4 | 7 | 2 | **13 done (foundations laid; incremental cleanup remains)** | **0** |
-| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **9 done (DR-2/3, MO-6, TB-1/2/3/5, TL-6/7) · 16 deferred to Part 2** | **16** |
+| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **18 done (Part 1 + Part 2 wave 1) · 7 deferred to Part 2 wave 2 (MO-1 studio modals, DR-1 studio drawers, DR-4 consolidation, TB-4 9-tab parameterization, TL-2 kanban migration, TL-4 RowActionsMenu, TL-5 FilterBar)** | **7** |
 | Phase 5 — Tokenization | 33 | 8 | 14 | 11 | 0 | **33** |
 | Phase 6 — Governance | 14 rules + 7 docs | — | — | — | **15 done (10 HARD + 5 RATCHET drift rules in CI; 7 standards docs landed) · 5 deferred (post-Phase-5)** | **5** |
-| **TOTAL** | **107** | **35** | **36** | **22** | **57 done · 50 remaining (Phase 4 Part 2 + Phase 5)** | **50** |
+| **TOTAL** | **107** | **35** | **36** | **22** | **74 done · 33 remaining (Phase 4 Part 2 wave 2 + Phase 5b/c/d)** | **33** |
 
 ---
 

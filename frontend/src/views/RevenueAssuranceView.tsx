@@ -32,7 +32,7 @@ import { bget, bpost, loadCustomers, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { LineChart } from '../components/charts/LineChart'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill, KPITile, DetailTab } from '../primitives'
 import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
 import { PageShell, type KPISpec } from '../page-shell'
 import { Modal } from '../components/Modal'
@@ -763,33 +763,14 @@ export default function RevenueAssuranceView({
 // Note: the previous inline KpiTile was deleted in the KPI design-system sweep.
 // This view now uses the shared `<KPITile>` primitive imported above.
 
-// Tab button — kit pattern from PipelineView (label + sub line, bottom border on active).
+// TB-1 — local RaTabButton delegates to the canonical `DetailTab` primitive.
 function RaTabButton({ active, onClick, icon, label, sub }: {
   active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string
 }) {
   return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        gap: 2,
-        padding: '10px 16px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-      }}
-    >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{icon}{label}</span>
-      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3, #94a3b8)' }}>{sub}</span>
-    </button>
+    <DetailTab active={active} onSelect={onClick} icon={icon} subtitle={sub}>
+      {label}
+    </DetailTab>
   )
 }
 

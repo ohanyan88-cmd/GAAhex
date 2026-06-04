@@ -1,28 +1,31 @@
 import React from 'react'
 
-type CellVariant = 'default' | 'mono' | 'muted' | 'numeric' | 'id'
-type Align = 'left' | 'right' | 'center'
-
+// DataTableCell — kit-flavored <td> with variant tinting + sticky widths.
+// Used by HelpdeskView's configurable column renderer; other tables can
+// adopt incrementally.
+//
+// TL-1 — DataTableRow was deleted 2026-06-04 (zero production callers).
+// DataTableCell stayed because HelpdeskView uses it. If a future feature
+// needs the row-with-checkbox primitive, rebuild from current table
+// patterns (see RowActionsMenu for the canonical row-actions component).
 interface DataTableCellProps {
-  variant?: CellVariant
-  align?: Align
-  width?: string | number
+  variant?: 'default' | 'mono' | 'id' | 'num' | 'muted'
+  align?: 'left' | 'right' | 'center'
+  width?: string
   children: React.ReactNode
 }
 
 export function DataTableCell({ variant = 'default', align = 'left', width, children }: DataTableCellProps) {
-  const cls = [
-    'dtc',
-    variant === 'mono' ? 'dtc-mono' : '',
-    variant === 'muted' ? 'dtc-muted' : '',
-    variant === 'numeric' ? 'dtc-numeric' : '',
-    variant === 'id' ? 'dtc-id' : '',
-  ].filter(Boolean).join(' ')
-  // Inline style is reserved for caller-driven alignment and width truncation,
-  // which can't be expressed as a finite class set.
-  const style: React.CSSProperties = {
-    ...(align !== 'left' && variant !== 'numeric' ? { textAlign: align } : null),
-    ...(width != null ? { width, maxWidth: width, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : null),
-  }
-  return <td className={cls} style={style}>{children}</td>
+  const classes = ['dtc']
+  if (variant === 'mono') classes.push('mono')
+  if (variant === 'id') classes.push('mono', 'dtc-id')
+  if (variant === 'num') classes.push('num')
+  if (variant === 'muted') classes.push('hint')
+  if (align === 'right') classes.push('dtc-right')
+  if (align === 'center') classes.push('dtc-center')
+  return (
+    <td className={classes.join(' ')} style={width ? { width, minWidth: width } : undefined}>
+      {children}
+    </td>
+  )
 }

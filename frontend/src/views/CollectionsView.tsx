@@ -23,7 +23,7 @@ import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { InboxIcon, SearchIcon } from '../components/icons'
 import { Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PageShell } from '../page-shell'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill, KPITile, DetailTab } from '../primitives'
 import { useI18n } from '../lib/i18n'
 import { timeAgo } from '../lib/time'
 
@@ -912,31 +912,12 @@ function PoliciesTab({
   )
 }
 
-// ─── Tiny presentational bits ──────────────────────────────────────────────
+// TB-1 — local TabButton delegates to the canonical `DetailTab` primitive.
 function TabButton({ active, onClick, label, sub }: { active: boolean; onClick: () => void; label: string; sub: string }) {
   return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        gap: 2,
-        padding: '10px 16px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-      }}
-    >
-      <span>{label}</span>
-      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3, #94a3b8)' }}>{sub}</span>
-    </button>
+    <DetailTab active={active} onSelect={onClick} subtitle={sub}>
+      {label}
+    </DetailTab>
   )
 }
 

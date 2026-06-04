@@ -15,7 +15,7 @@ import {
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill, KPITile, DetailTab } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 // Canonical Object Detail tabs (file 10 §Object Detail). These nine render BEFORE the
 // CustomerView's own related-record tabs (accounts/contacts/sites/contracts/slas). Each
@@ -918,8 +918,10 @@ function tabIcon(k: TabKey): React.ReactNode {
   }
 }
 
-// Inline tab button — bottom-border highlight on active, count badge on the right.
-// `count === null` (tab not yet loaded) renders no badge so we don't show "· 0" prematurely.
+// TB-1 — local CustomerTabButton delegates to the canonical `DetailTab`
+// primitive. `count === null` (tab not yet loaded) → omit the count badge so
+// "· 0" doesn't flash prematurely; DetailTab itself only renders the badge
+// when count > 0, so passing `undefined` matches that contract.
 function CustomerTabButton({ active, label, count, icon, onClick }: {
   active: boolean
   label: string
@@ -928,50 +930,14 @@ function CustomerTabButton({ active, label, count, icon, onClick }: {
   onClick: () => void
 }) {
   return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '10px 14px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-        whiteSpace: 'nowrap',
-      }}
+    <DetailTab
+      active={active}
+      onSelect={onClick}
+      icon={icon}
+      count={count ?? undefined}
     >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{icon}{label}</span>
-      {count !== null && (
-        <span
-          aria-label={`${count} ${label}`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minWidth: 20,
-            height: 18,
-            padding: '0 6px',
-            borderRadius: 9,
-            fontSize: 11,
-            fontWeight: 600,
-            // D18: active tab count badge = azure (sits inside an interactive tab control)
-            background: active ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-bg-subtle)',
-            color: active ? '#fff' : 'var(--gx-text-3, #64748b)',
-          }}
-        >
-          {count}
-        </span>
-      )}
-    </button>
+      {label}
+    </DetailTab>
   )
 }
 

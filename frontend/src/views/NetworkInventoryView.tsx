@@ -20,7 +20,7 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
-import { StatusPill, KPITile } from '../primitives'
+import { StatusPill, KPITile, DetailTab } from '../primitives'
 import {
   PackageIcon, ServerIcon, PlusIcon, RefreshIcon, GlobeIcon, ActivityIcon,
   SendHorizontalIcon, CloseIcon, SearchIcon,
@@ -425,34 +425,14 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
   )
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Tab button — kit pattern (label + sub line, bottom border on active).
+// TB-1 — local NiTab delegates to the canonical `DetailTab` primitive.
 function NiTab({ active, onClick, icon, label, sub }: {
   active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string
 }) {
   return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-        gap: 2,
-        padding: '10px 16px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-      }}
-    >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{icon}{label}</span>
-      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3, #94a3b8)' }}>{sub}</span>
-    </button>
+    <DetailTab active={active} onSelect={onClick} icon={icon} subtitle={sub}>
+      {label}
+    </DetailTab>
   )
 }
 

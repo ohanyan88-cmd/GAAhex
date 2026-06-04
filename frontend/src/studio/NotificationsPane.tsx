@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { Modal } from '../components/Modal'  // MO-2/MO-3 — canonical modal chrome
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, RowsIcon, TrashIcon,
   PlayIcon, SendHorizontalIcon, ZapIcon,
@@ -297,6 +298,9 @@ function CreateDefModal({
 // ---------------------------------------------------------------------------
 // Delete confirmation
 // ---------------------------------------------------------------------------
+// MO-2 — canonical `<Modal>` chrome. Async error / loading state stays inline
+// in the body (custom footer with disabled-while-busy) since `confirmDialog()`'s
+// promise API doesn't expose those — a per-confirm Modal is the right primitive.
 function ConfirmDeleteDialog({
   defLabel, defKey, onCancel, onConfirm, deleting, err,
 }: {
@@ -305,48 +309,35 @@ function ConfirmDeleteDialog({
   deleting: boolean; err: string
 }) {
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          width: 'min(460px, 100%)', padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, 0 16px 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <h3 style={{ margin: '0 0 8px' }}>Delete notification def?</h3>
-        <p className="hint" style={{ margin: '0 0 14px' }}>
-          This will hard-delete <strong>{defLabel}</strong> (<code className="mono">{defKey}</code>).
-          Existing inbox rows that were rendered FROM this def are preserved (they're
-          immutable post-emit). Future emits of <code className="mono">{defKey}</code> become a
-          no-op until the def is recreated. Use <em>Disable</em> instead if you want to
-          temporarily stop emits without losing the def.
-        </p>
-        {err && <ErrorBanner message={err} />}
-        <div className="row" style={{ gap: 8 }}>
-          <span className="spacer" />
+    <Modal
+      open
+      onClose={onCancel}
+      title="Delete notification def?"
+      size="sm"
+      footer={
+        <>
           <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={deleting}>
             Cancel
           </button>
           <button type="button" className="btn btn-danger btn-md" onClick={onConfirm} disabled={deleting}>
             <TrashIcon size={13} /> {deleting ? 'Deleting…' : 'Delete def'}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="hint" style={{ margin: '0 0 14px' }}>
+        This will hard-delete <strong>{defLabel}</strong> (<code className="mono">{defKey}</code>).
+        Existing inbox rows that were rendered FROM this def are preserved (they're
+        immutable post-emit). Future emits of <code className="mono">{defKey}</code> become a
+        no-op until the def is recreated. Use <em>Disable</em> instead if you want to
+        temporarily stop emits without losing the def.
+      </p>
+      {err && <ErrorBanner message={err} />}
+    </Modal>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Confirm test-send
-// ---------------------------------------------------------------------------
+// MO-3 — canonical `<Modal>` chrome. Test-send confirm with loading state.
 function ConfirmTestSendDialog({
   defKey, channel, onCancel, onConfirm, sending,
 }: {
@@ -355,40 +346,29 @@ function ConfirmTestSendDialog({
   sending: boolean
 }) {
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          width: 'min(440px, 100%)', padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, 0 16px 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <h3 style={{ margin: '0 0 8px' }}>Send a test notification?</h3>
-        <p className="hint" style={{ margin: '0 0 14px' }}>
-          This will emit one notification through <code className="mono">{defKey}</code> on the
-          <strong> {channel}</strong> channel, addressed to you. If a real adapter is not
-          configured for this channel, the inbox row is still created (dev adapter) and the
-          response will say so honestly.
-        </p>
-        <div className="row" style={{ gap: 8 }}>
-          <span className="spacer" />
+    <Modal
+      open
+      onClose={onCancel}
+      title="Send a test notification?"
+      size="sm"
+      footer={
+        <>
           <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={sending}>
             Cancel
           </button>
           <button type="button" className="btn btn-primary btn-md" onClick={onConfirm} disabled={sending}>
             <SendHorizontalIcon size={13} /> {sending ? 'Sending…' : 'Send test'}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="hint" style={{ margin: '0 0 14px' }}>
+        This will emit one notification through <code className="mono">{defKey}</code> on the
+        <strong> {channel}</strong> channel, addressed to you. If a real adapter is not
+        configured for this channel, the inbox row is still created (dev adapter) and the
+        response will say so honestly.
+      </p>
+    </Modal>
   )
 }
 

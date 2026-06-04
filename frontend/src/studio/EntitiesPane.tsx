@@ -24,6 +24,7 @@
 // Tokens: --gx-* only, no raw hex. Icons: lucide via ../components/icons.
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { Modal } from '../components/Modal'  // MO-2 — canonical modal chrome
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon,
   ArrowUpIcon, ArrowDownIcon, ArrowRightIcon,
@@ -422,6 +423,11 @@ function CreateEntityModal({
 // ---------------------------------------------------------------------------
 // Delete confirmation
 // ---------------------------------------------------------------------------
+// MO-2 — migrated from hand-rolled `position:fixed,inset:0` chrome to the
+// canonical `<Modal>`. Modal provides focus trap + Esc + body scroll lock +
+// kit chrome consistently. The async error / loading states stay inline in
+// the body since the legacy `confirmDialog()` promise API doesn't expose
+// them; a per-confirm Modal is the right primitive here.
 function ConfirmDeleteDialog({
   entityLabel, onCancel, onConfirm, deleting, err,
 }: {
@@ -429,40 +435,29 @@ function ConfirmDeleteDialog({
   deleting: boolean; err: string
 }) {
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          width: 'min(460px, 100%)', padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, 0 16px 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <h3 style={{ margin: '0 0 8px' }}>Retire entity?</h3>
-        <p className="hint" style={{ margin: '0 0 14px' }}>
-          This will retire <strong>{entityLabel}</strong> — it disappears from the active
-          entity listing and its surface stops rendering for new use. Existing records
-          and audit events are preserved in the database (no data loss).
-        </p>
-        {err && <ErrorBanner message={err} />}
-        <div className="row" style={{ gap: 8 }}>
-          <span className="spacer" />
+    <Modal
+      open
+      onClose={onCancel}
+      title="Retire entity?"
+      size="sm"
+      footer={
+        <>
           <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={deleting}>
             Cancel
           </button>
           <button type="button" className="btn btn-danger btn-md" onClick={onConfirm} disabled={deleting}>
             <TrashIcon size={13} /> {deleting ? 'Retiring…' : 'Retire entity'}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="hint" style={{ margin: '0 0 14px' }}>
+        This will retire <strong>{entityLabel}</strong> — it disappears from the active
+        entity listing and its surface stops rendering for new use. Existing records
+        and audit events are preserved in the database (no data loss).
+      </p>
+      {err && <ErrorBanner message={err} />}
+    </Modal>
   )
 }
 

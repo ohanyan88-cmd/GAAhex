@@ -179,6 +179,9 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
   // Reset tab when slug changes (switching page) — entity mode only
   useEffect(() => { setTab('fields') }, [slug])
 
+  // MO-5 — useFocusTrap listens for Esc at `document` capture phase, so it
+  // fires regardless of whether focus is currently inside the panel or on the
+  // backdrop. The backdrop element itself does NOT need a separate onKeyDown.
   const panelRef = useFocusTrap<HTMLDivElement>(onClose)
 
   // Body scroll lock

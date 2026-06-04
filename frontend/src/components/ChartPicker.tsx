@@ -1,8 +1,11 @@
 // ChartPicker — modal for choosing which dashboard charts to show.
-// Categorized list with checkboxes. Disabled (greyed) for not-yet-implemented charts.
+// MO-4 — wrapped in canonical `<Modal>` (was hand-rolled position:fixed,
+// inset:0 chrome). Modal provides focus trap + Esc + body-scroll-lock +
+// kit chrome consistently.
 import { useState } from 'react'
-import { X, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { CHART_CATALOG, CATEGORIES, type ChartDef } from '../lib/dashboard-catalog'
+import { Modal } from './Modal'
 
 export default function ChartPicker({
   initialSelected, onClose, onSave,
@@ -36,40 +39,24 @@ export default function ChartPicker({
   const implementedCount = CHART_CATALOG.filter(c => c.implemented).length
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, padding: 20,
-    }}
-      onClick={onClose}
-    >
-      <div
-        className="card"
-        style={{
-          width: '100%', maxWidth: 900, maxHeight: '85vh',
-          display: 'flex', flexDirection: 'column',
-          background: 'var(--gx-surface)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{
-          padding: '16px 20px', borderBottom: '1px solid var(--gx-border)',
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, flex: 1 }}>
-            Customize Dashboard
-          </h2>
-          <span className="muted" style={{ fontSize: 12 }}>
-            {selected.size} selected · {implementedCount} available
-          </span>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
-            <X size={14} />
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      title="Customize Dashboard"
+      subtitle={`${selected.size} selected · ${implementedCount} available`}
+      footer={
+        <>
+          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary btn-md" onClick={() => { onSave(selected); onClose() }}>
+            Save layout
           </button>
-        </div>
-
+        </>
+      }
+    >
+      <>
         {/* Search + bulk actions */}
-        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--gx-border)', display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
           <input
             type="text"
             placeholder="Search charts…"
@@ -83,7 +70,7 @@ export default function ChartPicker({
         </div>
 
         {/* Category list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
+        <div>
           {CATEGORIES.map(cat => {
             const items = CHART_CATALOG.filter(c => c.category === cat && matchesQuery(c))
             if (items.length === 0) return null
@@ -143,18 +130,7 @@ export default function ChartPicker({
             )
           })}
         </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: '12px 20px', borderTop: '1px solid var(--gx-border)',
-          display: 'flex', justifyContent: 'flex-end', gap: 10,
-        }}>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary btn-sm" onClick={() => { onSave(selected); onClose() }}>
-            Save layout
-          </button>
-        </div>
-      </div>
-    </div>
+      </>
+    </Modal>
   )
 }
