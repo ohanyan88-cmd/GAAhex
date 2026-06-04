@@ -154,7 +154,6 @@
   --gx-ease-emphasis: cubic-bezier(0.3, 0, 0, 1);
   --gx-ease-out:      cubic-bezier(0, 0, 0.2, 1);
   --gx-ease-in:       cubic-bezier(0.4, 0, 1, 1);
-  --gx-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ── Z-INDEX ── */
   --gx-z-base:     0;
