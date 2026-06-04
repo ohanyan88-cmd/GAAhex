@@ -40,6 +40,13 @@ class Subscription(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     next_invoice_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_invoiced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)  # E20: idempotency marker for the billing-cycle run — last as_of this sub was billed for
+    # H9 Stage 2 (2026-06-04) — explicit per-subscription billing anchor day-of-month.
+    # NULL = derive the anchor from started_at.day (legacy behavior, fully backward compat).
+    # Values 1..28 → exact day each cycle. 29..31 → clamps to the target month's last day
+    # (Feb 28/29 for anchor=29..31, April 30 for anchor=31, etc.) — _add_cycle below + the
+    # validate_anchor_day() helper own the clamping; the DB stores the operator's intent.
+    # No NOT NULL alter — null lets every existing row keep deriving from started_at.
+    billing_anchor_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # Deletion / Archive / Restore Standard (file 12 — D14). Separate from lifecycle `status`.
     # 5-value enum: ACTIVE | ARCHIVED | SOFT_DELETED | PENDING_PURGE | PURGED. Default ACTIVE.
@@ -129,6 +136,13 @@ class Payment(Base):
     # invoice → customer/account). Backfill via invoice deferred to Wave 2.
     customer_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("record.id", ondelete="RESTRICT"), nullable=True, index=True)
     account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("account.id", ondelete="RESTRICT"), nullable=True, index=True)
+    # F6 (Critical D3) — settle_order race close. Set ONLY by payment_gateway.settle_order; legacy
+    # manual ``billing.add_payment`` rows stay NULL forever. A partial UNIQUE index
+    # ``uq_payment_one_per_order`` on (payment_order_id) WHERE payment_order_id IS NOT NULL
+    # (migration f8c5b1e9a3d2) makes two-Payments-per-PaymentOrder physically impossible — the DB
+    # is the third line of defense on top of the in-process FOR UPDATE lock and the app-side
+    # Payment-by-order existence check.
+    payment_order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payment_order.id", ondelete="RESTRICT"), nullable=True)
     # Deletion / Archive / Restore Standard (file 12 — D14). SPEC §0.3 forbids DELETE on
     # payment (trigger-enforced); deletion_state=ACTIVE is the only legal value at the DB
     # layer for now, but archived_at/restored_at remain useful for the lifecycle view.

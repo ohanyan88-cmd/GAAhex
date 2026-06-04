@@ -24,6 +24,7 @@ EventName / EventCategory):
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -40,9 +41,30 @@ from ..models.configuration import (
     VALID_SCOPES, VALID_STATUSES, SCOPE_PRECEDENCE,
 )
 from ..models.user import User
+from ..services import config_schemas
 from .auth import current_user
 
+_log = logging.getLogger("gaahex.configurations")
+
 router = APIRouter(prefix="/api/configurations", tags=["configurations"])
+
+
+def _validate_against_schema(config_key: str, value) -> None:
+    """H7 Stage 2 — JSONB shape check. Calls the registry; 422 on invalid; logs a warning
+    when no schema is registered so SuperAdmin can see schemaless writes.
+
+    Raises HTTPException(422, detail=msg) on shape mismatch. Permits when no schema is
+    registered for the key (registry is empty by default) — the warning makes the gap
+    observable rather than silent.
+    """
+    is_valid, err = config_schemas.validate(config_key, value)
+    if not is_valid:
+        raise HTTPException(status_code=422, detail=err or "Invalid configuration value")
+    # No schema registered → audit-visible warning. The registry is empty by default; we
+    # WANT this loud at info/warning level so the operator can see which keys still need
+    # a schema rather than silently accepting any JSON shape.
+    if config_key not in config_schemas.CONFIG_SCHEMAS:
+        _log.warning("CONFIG_SCHEMALESS_WRITE: key=%s", config_key)
 
 
 def _now() -> datetime:
@@ -132,6 +154,10 @@ async def create_configuration(
     value = payload.get("configurationValue")
     if value is None:
         raise HTTPException(status_code=422, detail="configurationValue is required")
+
+    # H7 Stage 2 — JSONB shape validation. 422 on schema mismatch; warns + permits if no
+    # schema is registered for this key.
+    _validate_against_schema(key, value)
 
     status_in = payload.get("status", "ACTIVE")
     status = _validate_enum(status_in, "status", VALID_STATUSES)
@@ -265,6 +291,8 @@ async def update_configuration(
                     status_code=422,
                     detail="configurationValue cannot be null on update",
                 )
+            # H7 Stage 2 — shape check against the registry; 422 on mismatch.
+            _validate_against_schema(cfg.configuration_key, new_value)
             cfg.configuration_value = new_value
         if has_status_change:
             cfg.status = new_status

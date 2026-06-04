@@ -45,6 +45,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .. import workflow
 from ..access import can, load_grants
 from ..db import get_session
+from ..exceptions.feature_gate import FeatureDisabledError  # noqa: F401  — re-export for callers
 from ..models.import_export import (
     EXPORT_STATUSES,
     EXPORT_TERMINAL,
@@ -54,6 +55,7 @@ from ..models.import_export import (
     ImportJob,
 )
 from ..models.user import User
+from ..services.feature_gate import is_enabled, require_import_engine  # noqa: F401
 from ..utils.refnum import next_reference_number
 from .auth import current_user
 
@@ -286,6 +288,9 @@ async def validate_import(
     transition immediately marks the row READY_TO_IMPORT so the lifecycle is
     exercisable end-to-end. We emit BOTH the intermediate VALIDATING change
     and the terminal validation result, so the audit chain is complete.
+
+    Validation is metadata-only. Apply requires the import engine feature to
+    be enabled (see /start, which is gated by ``feature_gate.is_enabled``).
     """
     grants = await load_grants(s, user)
     if not can(grants, "import", "run"):
@@ -327,11 +332,62 @@ async def start_import(
 ):
     """READY_TO_IMPORT -> IMPORTING. The background job (future addition)
     will then process the file and move the row to COMPLETED /
-    COMPLETED_WITH_ERRORS / FAILED."""
+    COMPLETED_WITH_ERRORS / FAILED.
+
+    Production-disabled fail-closed: when ``feature_gate.is_enabled("import_engine")``
+    is False (the default for this deployment), this endpoint refuses the
+    transition with 503 + a structured ``feature_disabled`` body, and emits an
+    ``IMPORT_ENGINE_DISABLED_BLOCKED`` audit Event for the blocked attempt.
+    The /validate endpoint stays available as a metadata-only dry-run stub.
+    """
     grants = await load_grants(s, user)
     if not can(grants, "import", "run"):
         raise HTTPException(status_code=403, detail="Access denied")
     j = await _get_import(s, user.tenant_id, job_id)
+
+    # Fail-closed: refuse the transition when the import engine isn't shipped
+    # in this deployment. The /validate endpoint stays available as metadata-
+    # only dry-run; only the actual data-ingest leg (this endpoint, plus any
+    # future /apply) is gated. Audit emit is best-effort — its failure must
+    # never swallow the 503 we're returning to the caller.
+    if not is_enabled("import_engine"):
+        try:
+            await workflow.emit(
+                s,
+                user.tenant_id,
+                "IMPORT_ENGINE_DISABLED_BLOCKED",
+                "import_job",
+                j.id,
+                user.id,
+                {
+                    "importJobId": str(j.id),
+                    "referenceNumber": j.reference_number,
+                    "status": j.status,
+                    "entityKey": j.entity_key,
+                    "jobType": j.job_type,
+                    "reason": "import_engine_enabled=False",
+                },
+                event_name="ImportJob.EngineDisabledBlocked",
+                category="INTEGRATION",
+            )
+            await s.flush()
+        except Exception:
+            pass  # audit best-effort — never block the 503 on emit failure
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "feature_disabled",
+                "feature": "import_engine",
+                "reason": (
+                    "Import engine is not implemented in this deployment. "
+                    "Validation (dry-run) is available."
+                ),
+            },
+        )
+
+    # Unreachable in any current deployment (no engine implementation ships
+    # with this build). Preserved so the code path lights up the day a real
+    # engine lands behind the flag.
     if j.status != "READY_TO_IMPORT":
         raise HTTPException(
             status_code=422,

@@ -59,6 +59,22 @@ from .control_gate import assert_can_advance_to_scheduling
 _log = logging.getLogger("gaahex.kernel.workflow_engine")
 
 
+# ============================================================================ AC1 dual-engine sentinel
+# Stage 2 remediation 2026-06-04 — defensive close for the dual workflow-engine overlap audit
+# finding. Two parallel engines drive workflow_def rows: the legacy `app.workflow` engine
+# (entity-lifecycle transitions, `config = {"transitions": [...]}`) and this kernel engine
+# (SPEC §5 Universal Workflow Contract, `actions_spec` / `conditions_spec` columns).
+#
+# Full collapse of the two engines is a multi-week refactor; until that lands, the lifespan
+# hook in `app.main` scans the workflow_def table at boot and FLIPS this sentinel to True
+# when an overlap (same entity_key + from_status + to_status owned by BOTH engines) is detected.
+# Tests + a SuperAdmin probe endpoint read the sentinel to surface the warning visibly.
+#
+# IMPORTANT: this is observation-only — no engine semantics change. The legacy + kernel paths
+# both continue to operate; the sentinel just makes the overlap WAVE auditable.
+_LEGACY_DUAL_ENGINE_DETECTED: bool = False
+
+
 class WorkflowExecutionError(Exception):
     """A workflow action raised and the def's `failure_action` was not `audit_only`.
 
@@ -572,6 +588,98 @@ def _clause_ok(clause: dict, context: dict) -> bool:
     if "equals" in clause:
         return context[key] == clause["equals"]
     return True
+
+
+async def scan_for_dual_engine_overlap(s: AsyncSession, *, tenant_id: uuid.UUID | None = None) -> list[dict]:
+    """AC1 audit defensive close — return a list of (entity_key, from_status, to_status) tuples
+    that BOTH the legacy `app.workflow` engine AND this kernel engine appear to claim authority on.
+
+    A WorkflowDef row is "legacy" when `entity_def_id IS NOT NULL` AND `config.transitions` is
+    set. It is "kernel" (SPEC §5 Universal Contract) when `actions_spec IS NOT NULL` AND any of
+    the kernel-specific spec columns are populated. A row claiming BOTH would be unusual, but
+    overlap can also arise between TWO separate rows targeting the same transition tuple.
+
+    Side effect: flips the module-level `_LEGACY_DUAL_ENGINE_DETECTED` sentinel to True iff any
+    overlap is returned. Idempotent — re-running the scan re-evaluates from the current DB
+    state, never flipping the sentinel BACK to False (a positive detection is sticky for the
+    rest of the process lifetime; restart to clear).
+
+    Args:
+        s:         AsyncSession (owner session preferred — runs at boot, before RLS).
+        tenant_id: Optional tenant scope. When NULL, scans every tenant (the boot lifespan calls
+                   it with NULL once because cross-tenant overlap is itself a finding).
+
+    Returns:
+        A list of dicts shaped `{"entity_key", "from_status", "to_status", "legacy_def_ids",
+        "kernel_def_ids"}` — one entry per overlap tuple. Empty list = clean.
+    """
+    global _LEGACY_DUAL_ENGINE_DETECTED
+    from ..models import WorkflowDef, EntityDef
+
+    q = select(WorkflowDef)
+    if tenant_id is not None:
+        q = q.where(WorkflowDef.tenant_id == tenant_id)
+    defs = (await s.execute(q)).scalars().all()
+
+    # Resolve entity_def_id -> entity_key once.
+    entity_keys: dict[uuid.UUID, str] = {}
+    if defs:
+        ent_rows = (await s.execute(select(EntityDef.id, EntityDef.key))).all()
+        entity_keys = {row.id: row.key for row in ent_rows}
+
+    # Bucket every (entity_key, from_status, to_status) tuple by engine.
+    legacy_map: dict[tuple[str, str | None, str | None], list[uuid.UUID]] = {}
+    kernel_map: dict[tuple[str, str | None, str | None], list[uuid.UUID]] = {}
+
+    for d in defs:
+        # ----- Legacy engine claim: entity_def_id NOT NULL + config.transitions present
+        if d.entity_def_id is not None and d.config and isinstance(d.config, dict):
+            transitions = d.config.get("transitions") or []
+            ekey = entity_keys.get(d.entity_def_id, "")
+            for t in transitions:
+                if not isinstance(t, dict):
+                    continue
+                tup = (ekey, t.get("from"), t.get("to"))
+                legacy_map.setdefault(tup, []).append(d.id)
+
+        # ----- Kernel engine claim: actions_spec present + trigger_spec carries entity_key
+        if d.actions_spec and isinstance(d.trigger_spec, dict):
+            ekey = d.trigger_spec.get("entity_key") or ""
+            # Kernel workflows don't always declare from/to status directly — they declare an
+            # entry trigger + a sequence of advance_stage / control_gate actions. We extract any
+            # `from_status`/`to_status` hints from the trigger + the actions_spec list so
+            # overlap detection finds the obvious cases without inventing semantics.
+            from_status = d.trigger_spec.get("from_status")
+            for action in (d.actions_spec or []):
+                if not isinstance(action, dict):
+                    continue
+                to_status = action.get("to_stage_key") or action.get("to_status")
+                if not to_status:
+                    continue
+                tup = (ekey, from_status, to_status)
+                kernel_map.setdefault(tup, []).append(d.id)
+
+    overlaps: list[dict] = []
+    for tup in set(legacy_map.keys()) & set(kernel_map.keys()):
+        ekey, frm, to = tup
+        overlaps.append({
+            "entity_key": ekey,
+            "from_status": frm,
+            "to_status": to,
+            "legacy_def_ids": [str(i) for i in legacy_map[tup]],
+            "kernel_def_ids": [str(i) for i in kernel_map[tup]],
+        })
+
+    if overlaps:
+        _LEGACY_DUAL_ENGINE_DETECTED = True
+        _log.warning(
+            "WORKFLOW_DUAL_ENGINE_OVERLAP — %d transition tuple(s) claimed by both legacy "
+            "and kernel engines: %s",
+            len(overlaps),
+            overlaps,
+        )
+
+    return overlaps
 
 
 def _safe_summary(result: Any) -> Any:

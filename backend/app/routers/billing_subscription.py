@@ -35,7 +35,7 @@ from ._billing_shared import (
     _deny, _owner_gate, _money, _now, _add_cycle, _customer_or_422,
     _iso, _sub, _invoice,
     _get_sub, _invoice_lines, _next_invoice_number,
-    _parse_dt,
+    _parse_dt, validate_anchor_day,
 )
 
 router = APIRouter(prefix="/api", tags=["billing"])
@@ -107,11 +107,17 @@ async def create_subscription(payload: dict, user: User = Depends(current_user),
     customer_id = payload.get("customer_id")
     await _customer_or_422(s, user.tenant_id, customer_id)
 
+    # H9 Stage 2 — explicit anchor day on subscription creation (1..31). NULL → derive from
+    # started_at.day in _add_cycle (legacy behavior). 422 on out-of-range / non-int.
+    anchor_day = payload.get("billing_anchor_day")
+    validate_anchor_day(anchor_day)
+
     started = _now()
     sub = Subscription(
         tenant_id=user.tenant_id, owner_node_id=user.primary_node_id, customer_id=customer_id,
         product_id=product_id, plan_name=plan_name, amount=amount, cycle=cycle, status="ACTIVE",
-        started_at=started, next_invoice_at=_add_cycle(started, cycle),
+        started_at=started, next_invoice_at=_add_cycle(started, cycle, anchor_day),
+        billing_anchor_day=anchor_day,
     )
     s.add(sub)
     await s.flush()
@@ -278,7 +284,7 @@ async def generate_invoice(sub_id: uuid.UUID, user: User = Depends(current_user)
         raise HTTPException(409, "Cannot generate an invoice for a CANCELLED subscription")
 
     period_start = sub.next_invoice_at or sub.started_at or _now()
-    period_end = _add_cycle(period_start, sub.cycle)
+    period_end = _add_cycle(period_start, sub.cycle, sub.billing_anchor_day)
     number = await _next_invoice_number(s, user.tenant_id)
     inv = Invoice(
         tenant_id=user.tenant_id, owner_node_id=sub.owner_node_id, customer_id=sub.customer_id,

@@ -51,7 +51,7 @@ from .seed_regions import seed_demo_regions_if_empty
 from .seed_nav_registry import seed_nav_registry_if_empty
 from .migrate_interactions import migrate_interactions
 from .scheduler import start_scheduler, stop_scheduler
-from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle
+from .routers import auth, meta, records, reports, notifications, notification_defs, dashboards, views, approvals, search, comm, export, activity, ops, billing_subscription, billing_invoice, billing_payment, billing_credit_note, billing_product, bulk, report_builder, orders, customer360, webhooks, apikeys, services, respool, usage, documents, i18n, accounts, analytics, ai, tenant_settings, convert, billing_cycle, capabilities, health, jobs, report_schedules, digests, search_assist, helpdesk, users, workitems, payment_gateway, calendar as calendar_router, portal_auth, portal, portal_billing, portal_support, portal_service, roles, automations, events, page_config, me, org_nodes, metrics, audit_log, studio_pages, feature_flags, page_bindings, assignments, mandatory_approvals, regions, kpis, customer_timeline, workflows, nav_registry, assets, procurement, contract_expiring, workspace, tariff_plans, credit_notes, dunning, revenue_assurance, payment_methods, install_board, noc_dashboard, noc_inventory, comments, watchers, tasks, slas, attachments, communications, configurations, escalations, relationships, imports_exports, lifecycle, privacy
 
 
 _log = logging.getLogger("gaahex")
@@ -99,6 +99,44 @@ async def lifespan(app: FastAPI):
         await seed_dev_bulk_if_empty()
     await migrate_interactions()      # copy interaction table rows → record table (idempotent)
     await start_scheduler(app)        # no-op unless settings.scheduler_enabled (auto batch jobs)
+
+    # ── AC1 Stage 2 — dual workflow-engine overlap scan (observation-only, fail-soft) ──
+    # The legacy `app.workflow` and kernel `app.kernel.workflow_engine` both drive WorkflowDef
+    # rows. A multi-week collapse is deferred; this scan + sentinel flip + audit Event is the
+    # defensive close so the overlap is VISIBLE in every boot, never silent. Boot continues
+    # regardless of the verdict — refusing to boot would gate every dev/test/CI on a finding
+    # that has no semantic effect today. See app/kernel/workflow_engine.scan_for_dual_engine_overlap.
+    try:
+        from .kernel import workflow_engine as _wfke
+        from .workflow import emit as _wf_emit
+        async with OwnerSessionLocal() as _scan_s:
+            _overlaps = await _wfke.scan_for_dual_engine_overlap(_scan_s)
+            if _overlaps:
+                # Emit one Event per tenant impacted so the SuperAdmin audit projection picks it up.
+                # We aggregate by tenant to avoid N events per overlap tuple on large datasets.
+                from .models import WorkflowDef as _WD
+                tenants_seen: set = set()
+                for overlap in _overlaps:
+                    # Resolve the tenant of one of the legacy_def_ids — every def belongs to a tenant.
+                    if not overlap["legacy_def_ids"]:
+                        continue
+                    legacy_id = overlap["legacy_def_ids"][0]
+                    row = (await _scan_s.execute(
+                        select(_WD).where(_WD.id == legacy_id)
+                    )).scalar_one_or_none()
+                    if row is None or row.tenant_id in tenants_seen:
+                        continue
+                    tenants_seen.add(row.tenant_id)
+                    await _wf_emit(
+                        _scan_s, row.tenant_id, "WORKFLOW_DUAL_ENGINE_OVERLAP",
+                        "workflow_def", None, None,
+                        {"overlaps": _overlaps, "scan_at_boot": True},
+                        event_name="WorkflowDef.DualEngineOverlap",
+                        category="SYSTEM",
+                    )
+                await _scan_s.commit()
+    except Exception:
+        _log.exception("dual-engine overlap scan failed (continuing boot)")
 
     # N1 — RLS-bypass / superuser safety check (best-effort, fail-soft; informational only).
     # Warns when the app DB role is a superuser that can bypass RLS, which would be a
@@ -247,6 +285,7 @@ app.include_router(escalations.router)            # /api/escalations — file 02
 app.include_router(relationships.router)          # /api/relationships — file 12 Relationship Standard
 app.include_router(imports_exports.router)        # /api/imports + /api/exports — file 08 Import/Export Standard
 app.include_router(lifecycle.router)              # /api/lifecycle — file 12 D14 deletion-state lifecycle (polymorphic)
+app.include_router(privacy.router)                # /api/privacy — GDPR Article 15 (access) + Article 17 (erasure) request workflow
 app.include_router(export.router)
 app.include_router(activity.router)
 app.include_router(audit_log.router)                # /api/audit-log (governance log; admin-scoped; before records)

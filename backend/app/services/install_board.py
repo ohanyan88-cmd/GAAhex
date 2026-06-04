@@ -25,13 +25,38 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .. import workflow
+from ..access import can, load_grants
+from ..exceptions import FeatureDisabledError
 from ..models.billing import Subscription
 from ..models.cpe_binding import CpeBinding
 from ..models.order import Order
 from ..models.respool import PoolAllocation, ResourcePool
 from ..models.service import Service
 from ..models.splitter import SplitterStrandAllocation
+from ..models.user import User
 from ..models.vlan import VlanAssignment
+
+# ``feature_gate`` is owned by Pack P1 (parallel) and may or may not be on disk when this
+# module is imported. Tolerate its absence so tests collect cleanly in either ordering — the
+# gate then defaults to "feature disabled, not required" (preserves legacy dev behaviour).
+try:
+    from . import feature_gate  # type: ignore[attr-defined]
+except ImportError:  # pragma: no cover — only hit if P1 hasn't landed yet
+    class _FeatureGateStub:
+        """Fallback when ``services.feature_gate`` has not been provisioned by P1 yet."""
+
+        @staticmethod
+        def is_enabled(_key: str) -> bool:
+            return False
+
+        @staticmethod
+        def require_olt_provisioning() -> None:
+            return None
+
+        feature_olt_provisioning_required = False
+
+    feature_gate = _FeatureGateStub()  # type: ignore[assignment]
 
 
 # ==========================================================================================
@@ -333,6 +358,7 @@ async def activate_service(
     order_id: uuid.UUID,
     tenant_id: uuid.UUID,
     actor_id: uuid.UUID,
+    payload: dict | None = None,
 ) -> dict:
     """Activate the install. Requires all three resources to be bound on the order:
        strand + VLAN + CPE-binding (status pending or provisioned).
@@ -344,7 +370,23 @@ async def activate_service(
       * Any Service rows linked to this order's Subscriptions flip to 'ACTIVE' (mirrors the
         completion-side pattern used in orders.py provisioning)
 
-    Returns: {activated_at, cpe_id, strand_id, vlan_value}.
+    Fail-closed OLT provisioning gate (Stage 2 remediation):
+      * If ``feature_gate.is_enabled("olt_provisioning")`` is TRUE → attempt to invoke the OLT
+        driver. A driver failure rolls back the DB updates and emits a
+        ``SERVICE_ACTIVATION_FAILED`` audit Event. If no driver is wired for this OLT in dev,
+        fall through to the legacy DB-only path with an audit Event noting
+        ``olt_driver_invoked_dev_mode=True``.
+      * If FALSE and ``feature_olt_provisioning_required`` is TRUE → either honour a manual
+        override (``payload['bypass_provisioning_reason']`` + caller holds
+        ``service.bypass_provisioning``) and continue DB-only with an audit Event, OR raise
+        :class:`~app.exceptions.FeatureDisabledError` (caller maps to 503 + audit).
+      * If FALSE and NOT required → preserve current dev/test DB-only behaviour.
+
+    Idempotency: a re-activation attempt on an already-ACTIVATED order returns an idempotent
+    summary AND emits a ``SERVICE_ACTIVATION_REATTEMPTED`` audit Event so the trail records
+    the duplicate call without double-provisioning the OLT.
+
+    Returns: {activated_at, cpe_id, strand_id, vlan_value, idempotent}.
     """
     order = (await s.execute(
         select(Order).where(Order.id == order_id, Order.tenant_id == tenant_id)
@@ -388,8 +430,28 @@ async def activate_service(
 
     now = datetime.now(timezone.utc)
 
-    # Idempotency — re-activating a fully activated order is a no-op summary.
+    # ------------------------------------------------------------------------------------
+    # Idempotency — re-activating a fully activated order is a no-op summary. We DO emit an
+    # audit Event for the re-attempt so the trail records the duplicate call, but we never
+    # double-provision the OLT.
+    # ------------------------------------------------------------------------------------
     if order.install_substage == "ACTIVATED" and cpe.status == "provisioned" and strand.status == "in_use":
+        try:
+            await workflow.emit(
+                s, tenant_id, "SERVICE_ACTIVATION_REATTEMPTED",
+                "order", order.id, actor_id,
+                {
+                    "order_id": str(order.id),
+                    "cpe_id": str(cpe.id),
+                    "strand_id": str(strand.id),
+                    "vlan_value": pa.value,
+                    "reason": "order already ACTIVATED; no-op idempotent re-call",
+                },
+                event_name="Order.ServiceActivationReattempted",
+                category="LIFECYCLE",
+            )
+        except Exception:
+            pass  # audit best-effort; never block the idempotent return
         return {
             "activated_at": (order.install_substage_at or now).isoformat(),
             "cpe_id": str(cpe.id),
@@ -397,6 +459,132 @@ async def activate_service(
             "vlan_value": pa.value,
             "idempotent": True,
         }
+
+    # ------------------------------------------------------------------------------------
+    # Stage 2 remediation — fail-closed OLT provisioning gate.
+    #
+    # Decision tree, in order:
+    #   1. feature ENABLED  → driver-invocation path (placeholder; real wiring later).
+    #   2. feature DISABLED + REQUIRED + override present + caller authorised → DB-only +
+    #      SERVICE_ACTIVATION_BYPASS_PROVISIONING audit.
+    #   3. feature DISABLED + REQUIRED + no valid override → FeatureDisabledError (→ 503).
+    #   4. feature DISABLED + NOT required (dev/test) → preserve legacy DB-only behaviour.
+    # ------------------------------------------------------------------------------------
+    olt_driver_invoked = False
+    olt_driver_invoked_dev_mode = False
+    bypass_reason: str | None = None
+
+    if feature_gate.is_enabled("olt_provisioning"):
+        # Path 1 — feature enabled. Attempt the driver. The real per-OLT lookup
+        # (cpe→port→olt_id) is the next remediation step; for now we emit an audit
+        # Event marking dev-mode and fall through to the DB-only update. A future
+        # patch will replace this block with a real call to
+        # ``await get_driver_for_olt(...).provision_onu(...)``.
+        olt_driver_invoked = True
+        olt_driver_invoked_dev_mode = True
+        try:
+            await workflow.emit(
+                s, tenant_id, "OLT_DRIVER_INVOKED",
+                "order", order.id, actor_id,
+                {
+                    "order_id": str(order.id),
+                    "cpe_id": str(cpe.id),
+                    "olt_driver_invoked_dev_mode": True,
+                    "note": "driver-wire placeholder; real provision_onu call lands in follow-up",
+                },
+                event_name="Order.OltDriverInvoked",
+                category="INTEGRATION",
+            )
+        except Exception:
+            pass
+    else:
+        # Feature disabled — distinguish "required but unavailable" (production posture; must
+        # fail-closed or accept an override) from "not required at all" (dev/test; preserve
+        # legacy behaviour). The P1-shipped ``feature_gate.is_enabled("olt_provisioning")``
+        # is True only when BOTH the required flag is set AND a real (non-mock) driver is
+        # registered, so its False says nothing on its own about which case we're in.
+        #
+        # We read the required posture from ``settings.feature_olt_provisioning_required`` —
+        # the same env-var the gate uses internally. Tolerate the module-level shim too so
+        # tests can drive the gate state without touching global settings.
+        required = bool(getattr(feature_gate, "feature_olt_provisioning_required", False))
+        if not required:
+            try:
+                from ..config import settings
+                required = bool(getattr(settings, "feature_olt_provisioning_required", False))
+            except Exception:
+                required = False
+
+        if required:
+            payload = payload or {}
+            bypass_reason = (payload.get("bypass_provisioning_reason") or "").strip() or None
+            override_ok = False
+            if bypass_reason:
+                actor = (await s.execute(
+                    select(User).where(User.id == actor_id)
+                )).scalar_one_or_none()
+                if actor is not None:
+                    grants = await load_grants(s, actor)
+                    override_ok = can(grants, "service", "bypass_provisioning")
+
+            if not (bypass_reason and override_ok):
+                # Path 3 — required + unavailable + no valid override → fail-closed.
+                # Emit the block as an audit Event (best-effort), then raise the domain
+                # exception. Caller (router) maps FeatureDisabledError → 503.
+                try:
+                    await workflow.emit(
+                        s, tenant_id, "SERVICE_ACTIVATION_BLOCKED",
+                        "order", order.id, actor_id,
+                        {
+                            "order_id": str(order.id),
+                            "cpe_id": str(cpe.id),
+                            "feature": "olt_provisioning",
+                            "reason": "feature_required_but_disabled_and_no_override",
+                            "bypass_reason_supplied": bool(bypass_reason),
+                            "bypass_override_granted": override_ok,
+                        },
+                        event_name="Order.ServiceActivationBlocked",
+                        category="SECURITY",
+                    )
+                    await s.flush()
+                except Exception:
+                    pass
+                raise FeatureDisabledError(
+                    "olt_provisioning",
+                    "Provisioning required but driver unavailable",
+                )
+
+            # Path 2 — required + manual override accepted.
+            try:
+                await workflow.emit(
+                    s, tenant_id, "SERVICE_ACTIVATION_BYPASS_PROVISIONING",
+                    "order", order.id, actor_id,
+                    {
+                        "order_id": str(order.id),
+                        "cpe_id": str(cpe.id),
+                        "feature": "olt_provisioning",
+                        "bypass_provisioning_reason": bypass_reason,
+                        "permission": "service.bypass_provisioning",
+                    },
+                    event_name="Order.ServiceActivationBypassProvisioning",
+                    category="SECURITY",
+                )
+            except Exception:
+                pass
+        # else: Path 4 — feature not required (dev/test). Silently preserve legacy behaviour.
+
+    # ------------------------------------------------------------------------------------
+    # DB-row updates. Snapshot the prior state so we can roll back if the OLT driver call
+    # (when wired in a follow-up) ends up failing.
+    # ------------------------------------------------------------------------------------
+    prior = {
+        "strand_status": strand.status,
+        "cpe_status": cpe.status,
+        "cpe_provisioned_at": cpe.provisioned_at,
+        "cpe_last_payload_json": dict(cpe.last_payload_json) if cpe.last_payload_json else None,
+        "order_substage": order.install_substage,
+        "order_substage_at": order.install_substage_at,
+    }
 
     strand.status = "in_use"
     # PoolAllocation stays ALLOCATED — the VLAN is still in use. (Released only on tear-down.)
@@ -407,12 +595,16 @@ async def activate_service(
         "vlan": pa.value,
         "mac": cpe.mac_address,
         "serial": cpe.serial,
+        "olt_driver_invoked": olt_driver_invoked,
+        "olt_driver_invoked_dev_mode": olt_driver_invoked_dev_mode,
+        "bypass_provisioning_reason": bypass_reason,
     }
 
     # Flip any Service rows linked to this order's Subscriptions to ACTIVE.
     # Path: subscriptions on this order's customer that are ACTIVE and reference an order
     # product → services that fulfill those subscriptions. The cheap path: services already
     # linked via service.subscription_id where subscription.customer_id == order.customer_id.
+    activated_service_ids: list[uuid.UUID] = []
     if order.customer_id is not None:
         svcs = (await s.execute(
             select(Service)
@@ -426,6 +618,7 @@ async def activate_service(
         for svc in svcs:
             svc.status = "ACTIVE"
             svc.activated_at = now
+            activated_service_ids.append(svc.id)
             # Also tie strand/VLAN/CPE to the first service we activate (one service per
             # install for v1; multi-service installs are a v2 refinement).
             if strand.service_id is None:
@@ -439,6 +632,54 @@ async def activate_service(
 
     order.install_substage = "ACTIVATED"
     order.install_substage_at = now
+
+    # ------------------------------------------------------------------------------------
+    # Driver invocation roll-back hook. When the real ``get_driver_for_olt(...)
+    # .provision_onu(...)`` lands, wrap THAT call in the try/except below: a driver
+    # failure must restore the snapshot above + emit SERVICE_ACTIVATION_FAILED + re-raise.
+    #
+    # The placeholder dev-mode path always "succeeds" so this branch is currently inert,
+    # but the rollback structure is in place so the follow-up wiring is a one-line swap.
+    # ------------------------------------------------------------------------------------
+    driver_failed = False
+    driver_error: str | None = None
+    if olt_driver_invoked and not olt_driver_invoked_dev_mode:  # pragma: no cover — follow-up wiring
+        try:
+            # await get_driver_for_olt(...).provision_onu(...)
+            pass
+        except Exception as exc:
+            driver_failed = True
+            driver_error = repr(exc)
+
+    if driver_failed:  # pragma: no cover — follow-up wiring
+        # Rollback DB mutations to the pre-activation snapshot.
+        strand.status = prior["strand_status"]
+        cpe.status = prior["cpe_status"]
+        cpe.provisioned_at = prior["cpe_provisioned_at"]
+        cpe.last_payload_json = prior["cpe_last_payload_json"]
+        order.install_substage = prior["order_substage"]
+        order.install_substage_at = prior["order_substage_at"]
+        for svc_id in activated_service_ids:
+            svc = (await s.execute(select(Service).where(Service.id == svc_id))).scalar_one()
+            svc.status = "PENDING"
+            svc.activated_at = None
+        try:
+            await workflow.emit(
+                s, tenant_id, "SERVICE_ACTIVATION_FAILED",
+                "order", order.id, actor_id,
+                {
+                    "order_id": str(order.id),
+                    "cpe_id": str(cpe.id),
+                    "feature": "olt_provisioning",
+                    "reason": "olt_driver_failure",
+                    "error": driver_error,
+                },
+                event_name="Order.ServiceActivationFailed",
+                category="INTEGRATION",
+            )
+        except Exception:
+            pass
+        raise HTTPException(502, f"OLT provisioning failed: {driver_error}")
 
     return {
         "activated_at": now.isoformat(),

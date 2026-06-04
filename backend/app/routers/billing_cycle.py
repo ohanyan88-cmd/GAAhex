@@ -59,14 +59,14 @@ def _is_due(sub: Subscription, as_of: datetime) -> bool:
     """Never cycle-billed, or the last cycle-bill is a full `cycle` (or more) behind `as_of`."""
     if sub.last_invoiced_at is None:
         return True
-    return _add_cycle(sub.last_invoiced_at, sub.cycle) <= as_of
+    return _add_cycle(sub.last_invoiced_at, sub.cycle, sub.billing_anchor_day) <= as_of
 
 
 async def _bill_one(s: AsyncSession, user: User, sub: Subscription, as_of: datetime) -> Invoice:
     """Mint one ISSUED invoice for `sub`'s current period — same construction as generate_invoice,
     then issued in place — and stamp the idempotency markers. Runs inside the caller's savepoint."""
     period_start = sub.next_invoice_at or sub.started_at or as_of
-    period_end = _add_cycle(period_start, sub.cycle)
+    period_end = _add_cycle(period_start, sub.cycle, sub.billing_anchor_day)
     number = await _next_invoice_number(s, user.tenant_id)
     inv = Invoice(
         tenant_id=user.tenant_id, owner_node_id=sub.owner_node_id, customer_id=sub.customer_id,

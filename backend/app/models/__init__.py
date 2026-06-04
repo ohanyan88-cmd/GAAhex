@@ -78,6 +78,7 @@ from .escalation import Escalation
 from .relationship import Relationship
 from .import_export import ImportJob, ExportJob
 from .idempotency_request import IdempotencyRequest
+from .privacy_request import PrivacyRequest
 
 __all__ = [
     "Base", "Tenant", "OrgNode", "User",
@@ -139,4 +140,5 @@ __all__ = [
     "Relationship",
     "ImportJob", "ExportJob",
     "IdempotencyRequest",
+    "PrivacyRequest",
 ]

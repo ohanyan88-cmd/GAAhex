@@ -53,6 +53,7 @@ pairs in the LIFECYCLE category (file 06 E13/E14):
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -70,7 +71,11 @@ from ..models import (
     Relationship, ImportJob, ExportJob,
 )
 from ..models.user import User
+from ..services.privacy import anonymize_customer
 from .auth import current_user
+
+
+_log = logging.getLogger("gaahex.lifecycle")
 
 
 router = APIRouter(prefix="/api/lifecycle", tags=["lifecycle"])
@@ -360,4 +365,42 @@ async def purge(
         {"from": prev_state, "to": PURGED, "note": note},
         event_name="Object.Purged", category="LIFECYCLE",
     )
+
+    # C4 — PURGED is no longer decorative for customer-type entities. We invoke the GDPR
+    # Article 17 anonymization service so the underlying PII on the customer Record (+ linked
+    # CustomerUser) is actually scrubbed. Financial / audit rows are preserved per the
+    # Article 17 financial-retention exception (handled inside anonymize_customer).
+    #
+    # The two-tier mapping below decides which entity_types are "customer-like":
+    #   * entity_type == "record" AND row.entity_key == "customer" — the canonical case.
+    #   * any future explicit customer entity_type can be added here.
+    # For every other entity_type we log a single info line documenting that purge stayed at
+    # column-flip-only — the retention sweep will hard-delete the row when its window elapses.
+    is_customer = (entity_type == "record" and getattr(row, "entity_key", None) == "customer")
+    if is_customer:
+        try:
+            summary = await anonymize_customer(s, user.tenant_id, row.id)
+            await workflow.emit(
+                s, user.tenant_id, "CUSTOMER_PURGED_PII_ANONYMIZED", "customer", row.id, user.id,
+                {
+                    "redactedFields": summary.get("redacted_fields", []),
+                    "triggeredBy": "lifecycle.purge",
+                },
+                event_name="Customer.PiiAnonymized",
+                category="SECURITY",
+            )
+        except ValueError as exc:
+            # Defensive: anonymize_customer raises on a non-customer Record. We already
+            # gated on entity_key='customer' above, so this should be unreachable — but if
+            # the row was concurrently mutated we surface the failure rather than silently
+            # leaving PII in place.
+            raise HTTPException(status_code=422, detail=f"Anonymization failed: {exc}")
+    else:
+        _log.info(
+            "lifecycle.purge: anonymization not implemented for entity_type=%s — "
+            "column flip only (deletion_state=PURGED); the retention job will hard-delete "
+            "this row when its window elapses.",
+            entity_type,
+        )
+
     return _serialize_state(entity_type, row)

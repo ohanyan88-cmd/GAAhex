@@ -9,6 +9,21 @@ Status of methods
 * All four async methods — :class:`NotImplementedError`. Wired in M1-C.4.
 
 RADIUS is connectionless UDP — there's no ``verify_webhook`` to implement.
+
+Stage-2 fail-closed (2026-06-04)
+================================
+This is a **placeholder backend**. All AAA operations raise
+:class:`NotImplementedError` until the real ``pyrad`` wiring lands in **M1-C.4**.
+
+The ``NotImplementedError`` bodies below are the **safety contract** — they
+guarantee that a misconfigured production deploy that somehow obtains this
+backend instance can never silently authenticate / accept / disconnect anyone.
+
+The fail-closed layer that **prevents the stub from ever being returned** in a
+RADIUS-required production deploy lives one level up in
+:mod:`app.services.radius.factory` — see ``get_radius_backend()``. Do not
+"fix" the NotImplementedErrors here by stubbing return values; the contract is
+that this class is unsafe to use in production until M1-C.4 wires real packets.
 """
 from __future__ import annotations
 
@@ -28,6 +43,15 @@ class FreeRadiusBackend:
     """
 
     provider: str = "freeradius"
+
+    # Stage-2 fail-closed marker (2026-06-04). Read by
+    # :func:`app.services.radius.factory.get_radius_backend` and the production
+    # deploy contract in :mod:`app.config`. When False, the factory refuses to
+    # return an instance of this class to a RADIUS-required production deploy
+    # and raises :class:`app.exceptions.FeatureDisabledError` instead. Flip to
+    # True only when all four async methods below have real pyrad wiring
+    # (target milestone: M1-C.4).
+    IS_PRODUCTION_READY: bool = False
 
     def __init__(
         self,

@@ -208,6 +208,8 @@ async def test_dunning_next_action_anchored_to_opened_at(client, admin):
     ``now + delta`` — otherwise schedules drift forward by however long the sweep was late
     (H10 / D7)."""
     from app.models.user import User
+    from app.models.party import Account, Party
+    from app.models import Invoice
 
     # Resolve a tenant id (any tenant — we'll use admin's).
     async with SessionLocal() as s:
@@ -231,12 +233,52 @@ async def test_dunning_next_action_anchored_to_opened_at(client, admin):
         s.add(policy)
         await s.flush()
 
+        # Bug fix (FK fixture): the previous version of this test set
+        # account_id=uuid.uuid4() and triggering_invoice_id=uuid.uuid4() without ever
+        # creating the parent rows — the INSERT failed the FK constraints
+        # (dunning_case.account_id → account.id, dunning_case.triggering_invoice_id →
+        # invoice.id). Seed real parent rows so the FK passes and the test can actually
+        # exercise advance_case.
+        party = Party(
+            tenant_id=tenant_id,
+            type="individual",
+            name=f"DunningAnchor Party {uuid.uuid4().hex[:6]}",
+            status="active",
+        )
+        s.add(party)
+        await s.flush()
+
+        account = Account(
+            tenant_id=tenant_id,
+            holder_party_id=party.id,
+            type="residential",
+            currency="AMD",
+            billing_cycle="monthly",
+            status="active",
+        )
+        s.add(account)
+        await s.flush()
+
+        # Minimal Invoice row to satisfy triggering_invoice_id FK. We only need the FK
+        # to point somewhere real — the dunning service body for advance_case does not
+        # touch this invoice (it walks subscriptions + services off the account).
+        invoice = Invoice(
+            tenant_id=tenant_id,
+            customer_id=None,
+            account_id=account.id,
+            number=f"INV-DUN-{uuid.uuid4().hex[:6]}",
+            total=1000,
+            status="ISSUED",
+        )
+        s.add(invoice)
+        await s.flush()
+
         # Open a case anchored 7 days ago. Force step 0 (NOTICE) executed already.
         opened = datetime.now(timezone.utc) - timedelta(days=7)
         case = DunningCase(
             tenant_id=tenant_id,
-            account_id=uuid.uuid4(),
-            triggering_invoice_id=uuid.uuid4(),
+            account_id=account.id,
+            triggering_invoice_id=invoice.id,
             policy_id=policy.id,
             current_step_index=0,
             step_entered_at=opened,

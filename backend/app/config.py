@@ -34,6 +34,21 @@ class Settings(BaseSettings):
     # WEBHOOK_ALLOW_PRIVATE=true only in a trusted network that legitimately needs internal webhooks.
     webhook_allow_private: bool = False
 
+    # ─── S4 Stage 2: Portal authentication mode (default-OFF cookie, prod-required) ────
+    # Controls how `/portal/auth/*` issues and validates the customer-facing access token.
+    #   "header" — legacy bearer-only flow (Authorization: Bearer <jwt>). DEV-DEFAULT for
+    #              backward compat: every existing fixture / test / SPA depends on this
+    #              shape. PRODUCTION-FORBIDDEN — the prod contract below refuses to boot
+    #              when ENVIRONMENT=production and PORTAL_AUTH_MODE=header.
+    #   "cookie" — HttpOnly cookie (gaahex_portal_session) ONLY. The bearer header is
+    #              rejected by `current_customer`. CSRF double-submit token required on
+    #              mutating verbs (POST/PUT/PATCH/DELETE) via the X-CSRF-Token header.
+    #   "both"   — issue both, accept either, prefer the cookie. Used for the cutover
+    #              window so an in-flight SPA can keep working while it migrates to the
+    #              cookie flow. CSRF token still required on mutating verbs (we have no
+    #              way to know if the caller used the cookie or the header — assume cookie).
+    portal_auth_mode: str = "header"
+
     # ---- outbound channel providers (opt-in; unset ⇒ dev/console behavior, suite unaffected) ----
     email_provider: str = "dev"           # dev|smtp
     smtp_host: str | None = None
@@ -107,6 +122,18 @@ class Settings(BaseSettings):
     radius_secret: str | None = None                # shared secret with RADIUS server
     radius_nas_ip: str | None = None                # our NAS-IP-Address attribute
     radius_dictionary_path: str | None = None       # path to RADIUS dictionary files
+
+    # ─── Feature gates (Packs P3-P6: RADIUS, OLT, Import, Warehouse) ───────
+    # All default to False so dev / test / fresh-clone boot with every subsystem
+    # OFF. Flipping any of these ON in production WITHOUT a real backend behind
+    # it is a hard RuntimeError at startup (see _assert_production_deploy_contract).
+    # Packs P3-P6 will call into app.services.feature_gate.require_*() at every
+    # subsystem entry point so a call site cannot accidentally exercise a stub
+    # backend in production. See app/services/feature_gate.py for the gate logic.
+    feature_radius_required: bool = False              # FEATURE_RADIUS_REQUIRED
+    feature_olt_provisioning_required: bool = False    # FEATURE_OLT_PROVISIONING_REQUIRED
+    feature_import_engine_enabled: bool = False        # FEATURE_IMPORT_ENGINE_ENABLED
+    feature_warehouse_enabled: bool = False            # FEATURE_WAREHOUSE_ENABLED
 
     # ─── Attachment storage backend ──────────────────────────────────────────
     # Vendor-agnostic via StorageBackend Protocol in app/services/storage/.
@@ -209,6 +236,114 @@ def _assert_production_deploy_contract() -> None:
             "via the corresponding *_PROVIDER env var. See "
             "docs/M1A-DEPLOY-CONTRACT.md."
         )
+
+    # ── S4 Stage 2: portal_auth_mode production contract ──────────────────
+    # Production MUST use either "cookie" or "both" — the legacy "header" mode emits the JWT
+    # in a JSON response body, where any XSS in the SPA can lift it from JS-accessible storage.
+    # The HttpOnly cookie mode makes the token unreachable from the renderer. "both" is allowed
+    # in prod for the migration window (cookie issued + header accepted), but the header-only
+    # flow is hard-rejected. Block is in its own logical scope to keep it adjacent to Pack P1's
+    # FeatureGate prod contract below.
+    portal_mode = (settings.portal_auth_mode or "").lower()
+    if portal_mode == "header":
+        raise RuntimeError(
+            "Production deploy contract violation: PORTAL_AUTH_MODE=header forbidden in "
+            "production. The legacy bearer-only flow exposes the customer JWT to any XSS in "
+            "the SPA — set PORTAL_AUTH_MODE=cookie (HttpOnly cookie only) or 'both' "
+            "(cookie + bearer; migration window). See docs/M1A-DEPLOY-CONTRACT.md."
+        )
+    if portal_mode not in {"cookie", "both"}:
+        raise RuntimeError(
+            f"Production deploy contract violation: PORTAL_AUTH_MODE={settings.portal_auth_mode!r} "
+            "is not a recognized value. Use 'cookie' or 'both' in production "
+            "(or 'header' in dev/test/staging). See docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
+    # ── Feature-gate sanity (Packs P3-P6) ─────────────────────────────────
+    # If a subsystem feature flag is ON in production it MUST have a real
+    # implementation behind it. Failing this check at boot is the WHOLE point
+    # of the fail-closed posture: we'd rather refuse to start than silently
+    # exercise a stub RADIUS backend / mock OLT driver / un-implemented import
+    # engine in front of real customer data.
+
+    # 1. RADIUS: feature ON + (mock/stub provider OR backend won't construct).
+    if settings.feature_radius_required:
+        radius_provider = (settings.radius_backend_provider or "").lower()
+        if radius_provider in ("mock", "stub"):
+            raise RuntimeError(
+                "Production deploy contract violation: FEATURE_RADIUS_REQUIRED=true "
+                f"but RADIUS_BACKEND_PROVIDER={radius_provider!r} is a stub. "
+                "Configure a real backend (e.g. 'freeradius') with RADIUS_HOST, "
+                "RADIUS_SECRET, RADIUS_NAS_IP set. See docs/M1A-DEPLOY-CONTRACT.md."
+            )
+        try:
+            from .services.radius.exceptions import RadiusBackendConfigError
+            from .services.radius.factory import _REGISTRY as _RADIUS_REGISTRY
+            builder = _RADIUS_REGISTRY.get(radius_provider)
+            if builder is None:
+                raise RuntimeError(
+                    f"Production deploy contract violation: RADIUS_BACKEND_PROVIDER="
+                    f"{radius_provider!r} is not registered. See docs/M1A-DEPLOY-CONTRACT.md."
+                )
+            try:
+                builder()
+            except (RadiusBackendConfigError, ImportError) as e:
+                raise RuntimeError(
+                    "Production deploy contract violation: FEATURE_RADIUS_REQUIRED=true "
+                    f"but RADIUS backend {radius_provider!r} failed to construct: {e}. "
+                    "Fix RADIUS_HOST / RADIUS_SECRET / RADIUS_NAS_IP / RADIUS_DICTIONARY_PATH. "
+                    "See docs/M1A-DEPLOY-CONTRACT.md."
+                )
+        except ImportError as e:
+            raise RuntimeError(
+                "Production deploy contract violation: FEATURE_RADIUS_REQUIRED=true "
+                f"but the RADIUS service layer could not be imported: {e}. "
+                "See docs/M1A-DEPLOY-CONTRACT.md."
+            )
+
+    # 2. OLT: feature ON + driver registry has only the mock entry.
+    if settings.feature_olt_provisioning_required:
+        try:
+            from .services.olt.factory import registered_vendors
+            real_vendors = [v for v in registered_vendors() if v.lower() != "mock"]
+            if not real_vendors:
+                raise RuntimeError(
+                    "Production deploy contract violation: "
+                    "FEATURE_OLT_PROVISIONING_REQUIRED=true but no real OLT vendor "
+                    "driver is registered (only 'mock'). Phases P3 (Huawei) / P4 (ZTE) "
+                    "must ship and self-register before this flag is flipped on. See "
+                    "docs/M1A-DEPLOY-CONTRACT.md."
+                )
+        except ImportError as e:
+            raise RuntimeError(
+                "Production deploy contract violation: "
+                "FEATURE_OLT_PROVISIONING_REQUIRED=true but the OLT service layer "
+                f"could not be imported: {e}. See docs/M1A-DEPLOY-CONTRACT.md."
+            )
+
+    # 3. IMPORT: feature ON + engine implementation has not landed.
+    if settings.feature_import_engine_enabled:
+        from .services.feature_gate import IMPORT_ENGINE_IMPLEMENTED
+        if not IMPORT_ENGINE_IMPLEMENTED:
+            raise RuntimeError(
+                "Production deploy contract violation: FEATURE_IMPORT_ENGINE_ENABLED=true "
+                "but the import engine has not been implemented yet "
+                "(app.services.feature_gate.IMPORT_ENGINE_IMPLEMENTED is False). "
+                "Flip the sentinel to True in the same commit that lands the real "
+                "engine. See docs/M1A-DEPLOY-CONTRACT.md."
+            )
+
+    # 4. WAREHOUSE: feature ON + module has not landed.
+    if settings.feature_warehouse_enabled:
+        from .services.feature_gate import WAREHOUSE_IMPLEMENTED
+        if not WAREHOUSE_IMPLEMENTED:
+            raise RuntimeError(
+                "Production deploy contract violation: FEATURE_WAREHOUSE_ENABLED=true "
+                "but the warehouse module has not been implemented yet "
+                "(app.services.feature_gate.WAREHOUSE_IMPLEMENTED is False). "
+                "Flip the sentinel to True in the same commit that lands the real "
+                "module. See docs/M1A-DEPLOY-CONTRACT.md."
+            )
 
 
 # ---- legacy single-tenant helpers (DO NOT USE IN REQUEST PATHS) ----------------------------------

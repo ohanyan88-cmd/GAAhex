@@ -30,6 +30,8 @@ from ..models.radius_session import RadiusSession
 from ..models.broadcast import MassBroadcast
 from ..access import can, load_grants
 from ..services import ipam as ipam_svc
+from ..services.feature_gate import is_enabled
+from .. import workflow
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["noc-inventory"])
@@ -464,6 +466,32 @@ async def move_asset(
     )).scalar_one_or_none()
     if not asset:
         raise HTTPException(404, "Asset record not found")
+
+    # Stage 2 warehouse remediation: this endpoint is an asset-row patch, not a real
+    # stock movement. When the warehouse subsystem is disabled (the default in M0/M1)
+    # emit an INVENTORY_TRACKING_LIMITED audit Event so SuperAdmin's audit log surfaces
+    # the gap explicitly. When the real warehouse module ships and the feature flag is
+    # flipped on, is_enabled("warehouse") returns True and this audit ceases firing —
+    # the cessation itself is the signal that full tracking is now in effect.
+    if not is_enabled("warehouse"):
+        try:
+            await workflow.emit(
+                s,
+                tenant_id=user.tenant_id,
+                type_="INVENTORY_TRACKING_LIMITED",
+                entity_key="asset",
+                record_id=asset_id,
+                actor_user_id=user.id,
+                data={
+                    "feature_warehouse_enabled": False,
+                    "note": "Asset moved via single-row patch; full warehouse tracking unavailable",
+                    "to_location_type": to_location_type,
+                },
+                event_name="Asset.InventoryTrackingLimited",
+                category="SYSTEM",
+            )
+        except Exception:
+            pass  # audit best-effort — must never mask the real move
 
     # Capture current location for the from_ fields
     data = dict(asset.data or {})

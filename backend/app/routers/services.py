@@ -7,6 +7,7 @@ This is the tail of the chain order → subscription → service.
 
 NOTE on namespacing: fixed paths under /api ("/api/services") → register BEFORE records.router.
 """
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -15,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
+from ..exceptions import FeatureDisabledError
 from ..models import User, Record
 from ..models.service import Service, ServiceResource
 from ..models.billing import Subscription
@@ -29,6 +31,8 @@ from ..kernel import (
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
 
+_log = logging.getLogger("portal.services")
+
 router = APIRouter(prefix="/api", tags=["services"])
 
 _STATUSES = {"PENDING", "ACTIVE", "SUSPENDED", "TERMINATED"}
@@ -37,6 +41,142 @@ _RESOURCE_KINDS = {"ip", "mac", "port", "device", "circuit", "other"}
 
 def _deny(perm: str):
     raise HTTPException(403, f"Not allowed: {perm}")
+
+
+# ---------------------------------------------------------------------------
+# Stage-2 fail-closed — RADIUS provisioning guard (2026-06-04)
+# ---------------------------------------------------------------------------
+# Service lifecycle endpoints below (activate / suspend / terminate) are the
+# canonical place where RADIUS would be invoked in a real production deploy
+# (Access-Request on activate, CoA Disconnect on suspend/terminate, etc.).
+# Pack P3 introduces the fail-closed contract:
+#
+# * In a deploy where ``settings.feature_radius_required`` is True (production)
+#   any lifecycle change that needs RADIUS MUST call through
+#   :func:`app.services.feature_gate.require_radius`. If the factory cannot
+#   hand out a production-ready backend, that helper raises
+#   :class:`~app.exceptions.FeatureDisabledError` which we map to HTTP 503 +
+#   an audit Event of type ``RADIUS_UNAVAILABLE_BLOCKED``.
+#
+# * In dev / test / RADIUS-optional deploys (``feature_radius_required=False``)
+#   the lifecycle path proceeds without RADIUS — the existing behavior.
+#
+# The actual pyrad packet send lands in M1-C.4. For now this helper exists so
+# the gate is in place at the production boundary and the next engineer plugs
+# in `await radius.authenticate(...)` after the gate.
+# RADIUS provisioning point — see feature_gate.require_radius()
+# ---------------------------------------------------------------------------
+
+
+def _map_feature_disabled_to_503(exc: FeatureDisabledError) -> HTTPException:
+    """Translate a domain-level :class:`FeatureDisabledError` to HTTP 503.
+
+    Pure-functional helper so call sites stay readable. The body matches the
+    schema used by the rest of the fail-closed packs (feature + reason keys),
+    so the frontend can distinguish "this feature is intentionally unavailable
+    in this deployment" from "the server blew up".
+    """
+    return HTTPException(status_code=503, detail={
+        "error": "feature_disabled",
+        "feature": exc.feature,
+        "reason": exc.reason,
+    })
+
+
+async def _ensure_radius_available_for_lifecycle(
+    s: AsyncSession,
+    *,
+    user: User,
+    service_id: uuid.UUID,
+    transition: str,
+) -> None:
+    """Fail-closed RADIUS gate for service-lifecycle transitions.
+
+    Behavior matrix:
+
+    * ``feature_radius_required=False`` (dev / test / RADIUS-optional deploy):
+      no-op. Existing behavior preserved — the suite is unaffected.
+    * ``feature_radius_required=True`` + factory can hand out a production-
+      ready backend: no-op (the actual pyrad call site goes here in M1-C.4).
+    * ``feature_radius_required=True`` + factory raises
+      :class:`FeatureDisabledError`: emit a ``RADIUS_UNAVAILABLE_BLOCKED``
+      audit Event under the caller's tenant + re-raise an HTTP 503.
+
+    The audit Event is emitted on the caller's session so it lands in the same
+    transaction as the failed lifecycle attempt; we commit before raising so
+    the row survives even though the request errors out.
+    """
+    from ..config import settings
+    if not getattr(settings, "feature_radius_required", False):
+        return  # dev/test path: RADIUS not required; proceed without it.
+
+    try:
+        # The feature_gate module is owned by Pack P1 (parallel). We import
+        # lazily so import-time circularity is avoided and so this module
+        # still imports cleanly if P1 hasn't landed yet on a given branch
+        # (the import error is treated as "feature unavailable"). The
+        # require_radius() helper is async — it emits its own FEATURE_BLOCKED_USE
+        # audit event on a fresh owner session before raising; we then ALSO
+        # emit a service-scoped RADIUS_UNAVAILABLE_BLOCKED event under the
+        # caller's tenant so the service detail page timeline shows the block.
+        from ..services import feature_gate  # type: ignore[attr-defined]
+        await feature_gate.require_radius()
+    except FeatureDisabledError as exc:
+        await _audit_radius_blocked(
+            s, user=user, service_id=service_id,
+            transition=transition, exc=exc,
+        )
+        await s.commit()
+        raise _map_feature_disabled_to_503(exc) from exc
+    except ImportError as exc:
+        # Pack P1 not landed yet on this branch — treat as feature unavailable.
+        fde = FeatureDisabledError(
+            "radius",
+            "feature_gate.require_radius() unavailable: "
+            f"{exc.__class__.__name__}: {exc}",
+        )
+        await _audit_radius_blocked(
+            s, user=user, service_id=service_id,
+            transition=transition, exc=fde,
+        )
+        await s.commit()
+        raise _map_feature_disabled_to_503(fde) from exc
+
+
+async def _audit_radius_blocked(
+    s: AsyncSession,
+    *,
+    user: User,
+    service_id: uuid.UUID,
+    transition: str,
+    exc: FeatureDisabledError,
+) -> None:
+    """Emit the canonical ``RADIUS_UNAVAILABLE_BLOCKED`` audit Event.
+
+    Category SECURITY (the failure model is "we refused to provision because a
+    safety-critical subsystem is stubbed") + visibility INTERNAL (operators
+    need to see it; customers don't).
+    """
+    try:
+        await workflow.emit(
+            s, user.tenant_id, "RADIUS_UNAVAILABLE_BLOCKED",
+            "service", service_id, user.id,
+            {
+                "feature": exc.feature,
+                "reason": exc.reason,
+                "transition": transition,
+            },
+            event_name="Service.RadiusUnavailableBlocked",
+            category="SECURITY",
+            visibility="INTERNAL",
+        )
+    except Exception as e:  # pragma: no cover — defensive
+        # The audit emit itself must not mask the 503 response. We log loudly
+        # so the operator can see we tried and failed.
+        _log.error(
+            "RADIUS_UNAVAILABLE_BLOCKED audit emit failed for service=%s "
+            "transition=%s: %s", service_id, transition, e,
+        )
 
 
 async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:
@@ -269,7 +409,18 @@ async def _service_status_change(s, user, service_id, new_status: str, allowed_f
 
 @router.post("/services/{service_id}/activate")
 async def activate_service(service_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
-    """PENDING or SUSPENDED → ACTIVE (sets activated_at on first activation)."""
+    """PENDING or SUSPENDED → ACTIVE (sets activated_at on first activation).
+
+    Stage-2 fail-closed: in a RADIUS-required production deploy the activation
+    must reach the AAA backend. The gate refuses the transition with HTTP 503
+    + ``RADIUS_UNAVAILABLE_BLOCKED`` audit Event when the factory cannot hand
+    out a production-ready backend. Dev / test (``feature_radius_required=
+    False``) preserve the existing behavior.
+    RADIUS provisioning point — see feature_gate.require_radius().
+    """
+    await _ensure_radius_available_for_lifecycle(
+        s, user=user, service_id=service_id, transition="ACTIVATE",
+    )
     return await _service_status_change(s, user, service_id, "ACTIVE", {"PENDING", "SUSPENDED"}, set_activated=True)
 
 
@@ -313,6 +464,14 @@ async def suspend_service(service_id: uuid.UUID, user: User = Depends(current_us
         target_entity_key="service",
         target_record_id=service_id,
     )
+    # Stage-2 fail-closed: suspending an ACTIVE service in production must
+    # CoA-Disconnect the running RADIUS session. Gate before the DB write so
+    # we never end up with a row marked SUSPENDED while the customer is still
+    # online on the BNG.
+    # RADIUS provisioning point — see feature_gate.require_radius().
+    await _ensure_radius_available_for_lifecycle(
+        s, user=user, service_id=service_id, transition="SUSPEND",
+    )
     result = await _service_status_change(s, user, service_id, "SUSPENDED", {"ACTIVE"})
     # Forward-only: consume the approval so it can't be re-used.
     if approved is not None:
@@ -323,6 +482,15 @@ async def suspend_service(service_id: uuid.UUID, user: User = Depends(current_us
 
 @router.post("/services/{service_id}/terminate")
 async def terminate_service(service_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Move a service to TERMINATED.
+
+    Stage-2 fail-closed: in production termination must Acct-Stop and CoA-
+    Disconnect any live RADIUS session before the row goes to TERMINATED.
+    RADIUS provisioning point — see feature_gate.require_radius().
+    """
+    await _ensure_radius_available_for_lifecycle(
+        s, user=user, service_id=service_id, transition="TERMINATE",
+    )
     return await _service_status_change(s, user, service_id, "TERMINATED", {"PENDING", "ACTIVE", "SUSPENDED"})
 
 

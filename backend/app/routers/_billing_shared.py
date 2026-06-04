@@ -103,14 +103,51 @@ def _record_job_run(s: AsyncSession, user: User, job_key: str, status: str, summ
     ))
 
 
-def _add_cycle(dt: datetime, cycle: str) -> datetime:
-    """Advance a date by one billing cycle, clamping the day to the target month's length."""
+def validate_anchor_day(day: int | None) -> None:
+    """H9 Stage 2 — accept None (means "derive from started_at.day") or an int in [1..31].
+    Anything else → HTTPException(422). Negative, zero, > 31 all rejected. Bool sneaks past
+    `isinstance(int)` so we reject it explicitly (caller almost certainly meant a number).
+    """
+    if day is None:
+        return
+    if isinstance(day, bool):
+        raise HTTPException(422, "billing_anchor_day must be an integer 1..31, not a boolean")
+    if not isinstance(day, int):
+        raise HTTPException(422, "billing_anchor_day must be an integer 1..31")
+    if day < 1 or day > 31:
+        raise HTTPException(422, f"billing_anchor_day must be in 1..31; got {day}")
+
+
+def _add_cycle(dt: datetime, cycle: str, anchor_day: int | None = None) -> datetime:
+    """Advance a date by one billing cycle, clamping the day to the target month's length.
+
+    H9 Stage 2 — when `anchor_day` is set, the target day is `anchor_day` (clamped to the
+    target month's last day for 29..31 in short months). When `anchor_day` is None we keep
+    the legacy behavior of carrying `dt.day` forward (also clamped). This means a subscription
+    that started on the 15th continues billing on the 15th regardless of which month — but a
+    subscription explicitly anchored to the 31st gets the last day of every short month and
+    snaps back to the 31st in long ones.
+
+    Examples:
+        anchor_day=29, started 2026-01-15  → 2026-02-28 → 2026-03-29 → 2026-04-29 …
+        anchor_day=31, started 2026-01-15  → 2026-01-31 → 2026-02-28 → 2026-03-31 …
+        anchor_day=None, dt=2026-01-15     → 2026-02-15 → 2026-03-15 … (legacy)
+
+    `anchor_day` is validated by the caller (via `validate_anchor_day`); we still clamp
+    defensively because `Subscription.billing_anchor_day` can be NULL or any int from the DB.
+    """
     if cycle == "yearly":
         year, month = dt.year + 1, dt.month
     else:  # monthly
         year = dt.year + (dt.month // 12)
         month = dt.month % 12 + 1
-    day = min(dt.day, calendar.monthrange(year, month)[1])
+    last_day_of_target = calendar.monthrange(year, month)[1]
+    if anchor_day is not None and 1 <= anchor_day <= 31:
+        # Anchor-driven: aim for anchor_day, clamp to the target month's last day.
+        day = min(anchor_day, last_day_of_target)
+    else:
+        # Legacy: carry dt.day forward, clamped.
+        day = min(dt.day, last_day_of_target)
     return dt.replace(year=year, month=month, day=day)
 
 
@@ -143,6 +180,8 @@ def _sub(x: Subscription) -> dict:
         "status": x.status,
         "started_at": _iso(x.started_at),
         "next_invoice_at": _iso(x.next_invoice_at),
+        # H9 Stage 2 — explicit anchor day on the wire; NULL = legacy derive-from-started_at.
+        "billing_anchor_day": x.billing_anchor_day,
         "created_at": _iso(x.created_at),
     }
 

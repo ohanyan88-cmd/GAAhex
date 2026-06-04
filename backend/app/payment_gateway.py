@@ -260,19 +260,54 @@ async def settle_order(
     # The original code read order.status, then wrote a Payment + flipped the order to PAID,
     # but two concurrent callers (e.g. an inbound provider callback racing with the periodic
     # reconcile sweep) could both see PENDING and both write a Payment row before either
-    # flipped status. SELECT ... FOR UPDATE serializes per-row: the second caller blocks on
-    # the lock, sees status='PAID' after the first commits, and exits via the idempotent guard.
+    # flipped status. THREE-LAYERED DEFENSE now closes the race even across independent sessions:
+    #
+    #   Layer 1 — Lock the PaymentOrder row with SELECT … FOR UPDATE and re-read status.
+    #             Two callers from independent sessions serialise on this lock; the second
+    #             unblocks AFTER the first commits, sees status='PAID', returns idempotent.
+    #   Layer 2 — Even if a perverse timing leaks past Layer 1 (e.g. the first caller errored
+    #             mid-flight without flipping status, then a third caller races a retry),
+    #             look up an existing Payment by payment_order_id BEFORE inserting. If one
+    #             already exists, finish the bookkeeping (set status=PAID, keep payment_id)
+    #             and return without a second INSERT.
+    #   Layer 3 — Partial UNIQUE INDEX ``uq_payment_one_per_order`` on
+    #             ``payment.payment_order_id`` (migration f8c5b1e9a3d2) makes the
+    #             two-Payments-per-order outcome physically impossible at the DB.
+    #
     # We re-fetch the row in-session under FOR UPDATE rather than reusing the input ``order``
     # (which may be detached from this session or pre-lock state).
+    order_id = order.id  # capture before re-binding to the locked row
     order = (await s.execute(
-        _select(PaymentOrder).where(PaymentOrder.id == order.id).with_for_update()
+        _select(PaymentOrder).where(PaymentOrder.id == order_id).with_for_update()
     )).scalar_one()
     if order.status == "PAID":
-        return  # already settled — idempotent guard (now race-safe)
+        return  # Layer 1: already settled by a concurrent caller — idempotent return
+
+    # Layer 2: existence check by payment_order_id. The other caller may have inserted a
+    # Payment without flipping order.status (e.g. it errored after INSERT, before status
+    # write). In that case we DO NOT insert a second Payment — we finish the linkage
+    # (status=PAID, payment_id linked) using the existing row and return. This makes the
+    # rest of the bookkeeping idempotent even outside the FOR UPDATE-only window.
+    existing_pay = (await s.execute(
+        _select(Payment).where(Payment.payment_order_id == order_id)
+    )).scalar_one_or_none()
+    if existing_pay is not None:
+        order.status = "PAID"
+        order.payment_id = existing_pay.id
+        if order.confirmed_at is None:
+            order.confirmed_at = datetime.now(timezone.utc)
+        if provider_ref is not None and order.provider_ref is None:
+            order.provider_ref = provider_ref
+        if raw is not None and order.raw_callback is None:
+            order.raw_callback = raw
+        return
 
     now = datetime.now(timezone.utc)
 
-    # 1. Create the billing Payment row (same fields as billing.add_payment)
+    # 1. Create the billing Payment row (same fields as billing.add_payment).
+    #    The Layer-3 partial UNIQUE on payment_order_id backstops this INSERT: if the F6
+    #    race somehow still leaks past Layers 1 and 2, the second INSERT raises
+    #    IntegrityError instead of silently writing a duplicate.
     pay = Payment(
         tenant_id=order.tenant_id,
         invoice_id=order.invoice_id,
@@ -280,6 +315,7 @@ async def settle_order(
         method=order.provider,
         paid_at=now,
         note=f"Gateway {order.provider}",
+        payment_order_id=order.id,
     )
     s.add(pay)
     await s.flush()  # so pay.id is available

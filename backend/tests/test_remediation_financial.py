@@ -415,34 +415,94 @@ async def test_credit_note_numbering_uses_sequence_no_race(client, admin):
 
 
 async def test_settle_order_with_for_update_serializes(client, admin):
-    """Two concurrent settle calls on the same PaymentOrder: the FOR UPDATE row-lock makes
-    the second wait, then it sees status=PAID and exits idempotently — no double-payment."""
+    """Two concurrent settle calls on the same PaymentOrder must produce exactly one Payment
+    and a single ``order.status=PAID`` outcome. The fix is a 3-layered defense:
+
+      1. FOR UPDATE on the PaymentOrder row inside ``settle_order`` — the second caller
+         from an independent session blocks on this lock until the first commits, then
+         sees status=PAID and returns idempotently.
+      2. Pre-INSERT existence check by ``payment_order_id`` — if a Payment already exists
+         for this order (any leak past Layer 1), reuse it instead of inserting a duplicate.
+      3. Partial UNIQUE INDEX ``uq_payment_one_per_order`` on ``payment.payment_order_id``
+         WHERE NOT NULL (migration f8c5b1e9a3d2) — the DB-level backstop that makes two
+         Payments per order **physically impossible**.
+
+    The session-per-coroutine pattern is critical: the SELECT … FOR UPDATE lock is
+    session-bound, so two coroutines sharing one session would not contend at all. With
+    independent sessions the second `FOR UPDATE` re-fetches the latest committed row
+    after the first session releases — that's where the F6 fix actually bites.
+    """
     from app.payment_gateway import settle_order
 
     inv = await _issued_invoice(client, admin, 3000, "f6_race")
     pay_init = await client.post(f"/api/invoices/{inv['id']}/pay", headers=admin)
     order_id = uuid.UUID(pay_init.json()["order_id"])
 
-    async def _settle_once() -> None:
+    # Synchronisation barrier — make both coroutines reach settle_order at roughly the
+    # same wall-clock instant so the race window is as wide as Python's scheduler permits.
+    # Without it the first coroutine could complete entirely before the second even loads
+    # the row, which would still pass but wouldn't exercise the lock-contention path.
+    started = asyncio.Event()
+
+    async def _settle_once(idx: int) -> None:
         async with SessionLocal() as s:
+            # Each coroutine has its own session — that's what makes FOR UPDATE actually
+            # contend (per-session locks). Re-fetching the row INSIDE settle_order under
+            # FOR UPDATE is the bit doing the real serialisation; we just pass `order_id`
+            # in via a lightweight stub to satisfy settle_order's signature.
             order = (await s.execute(
                 select(PaymentOrder).where(PaymentOrder.id == order_id)
             )).scalar_one()
+            if idx == 0:
+                started.set()
+            else:
+                await started.wait()
             await settle_order(s, order, actor_id=None)
             await s.commit()
 
-    await asyncio.gather(_settle_once(), _settle_once())
+    await asyncio.gather(_settle_once(0), _settle_once(1))
 
-    # End state: exactly one Payment row for the invoice; order.status=PAID.
+    # End state: exactly ONE Payment for the PaymentOrder (Layer 1+2+3 all agree).
+    # Asserting by payment_order_id directly catches the F6 bug at its narrowest waist —
+    # filtering by invoice_id alone would mask a duplicate if a legacy add_payment row
+    # for the same invoice were present in the future.
     async with SessionLocal() as s:
-        pays = (await s.execute(
+        pays_by_order = (await s.execute(
+            select(Payment).where(Payment.payment_order_id == order_id)
+        )).scalars().all()
+        assert len(pays_by_order) == 1, (
+            f"Expected exactly 1 Payment per PaymentOrder; got {len(pays_by_order)}. "
+            "F6 race regression — the FOR UPDATE + existence-check + partial UNIQUE chain "
+            "is no longer serialising concurrent settle_order callers."
+        )
+
+        # Belt-and-braces: the invoice-side count must also be 1 in this test setup
+        # (no prior legacy payments seeded).
+        pays_by_invoice = (await s.execute(
             select(Payment).where(Payment.invoice_id == uuid.UUID(inv["id"]))
         )).scalars().all()
-        assert len(pays) == 1, f"FOR UPDATE must prevent double-payment; got {len(pays)} rows"
+        assert len(pays_by_invoice) == 1, (
+            f"Expected 1 Payment on the invoice as well; got {len(pays_by_invoice)}"
+        )
+
+        # PaymentOrder flipped to PAID idempotently, with payment_id pointing at the
+        # single Payment row we wrote.
         order = (await s.execute(
             select(PaymentOrder).where(PaymentOrder.id == order_id)
         )).scalar_one()
         assert order.status == "PAID"
+        assert order.payment_id == pays_by_order[0].id, (
+            "PaymentOrder.payment_id must reference the single settled Payment"
+        )
+
+        # Invoice flipped to PAID (order.amount covered total).
+        from app.models import Invoice
+        invoice = (await s.execute(
+            select(Invoice).where(Invoice.id == uuid.UUID(inv["id"]))
+        )).scalar_one()
+        assert invoice.status == "PAID", (
+            f"Invoice should be PAID after settle (got {invoice.status})"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════

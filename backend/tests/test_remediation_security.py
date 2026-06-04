@@ -160,6 +160,8 @@ def _enter_production(monkeypatch):
     monkeypatch.setattr(settings, "email_gateway_provider", "sendgrid")
     monkeypatch.setattr(settings, "sms_gateway_provider", "twilio")
     monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
+    # Stage 2 — portal_auth_mode must be cookie/both in production.
+    monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
 
 
 def test_prod_contract_refuses_mock_payment_provider(monkeypatch):
