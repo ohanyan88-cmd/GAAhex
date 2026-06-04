@@ -32,7 +32,7 @@ for long daily use by ISP operators. Never playful, never casual. Clean and prec
 7. [Shadow & Elevation](#7-shadow--elevation)
 8. [Motion & Animation](#8-motion--animation)
 9. [Z-Index Stack](#9-z-index-stack)
-10. [Icon Library — All 45 SVGs](#10-icon-library)
+10. [Icon Library — All 66 SVGs](#10-icon-library)
 11. [Component Library — All CSS Classes](#11-component-library)
 12. [Shell Layout & Navigation Architecture](#12-shell-layout--navigation)
 13. [Auth & Login Page](#13-auth--login-page)
@@ -514,6 +514,27 @@ Color: always inherits `currentColor` — icons theme automatically.
 | `MuteIcon` | Bell with X strike-through | Mute notification channel |
 | `BookmarkIcon` | Ribbon bookmark | Save/pin items |
 | `PinIcon` | Pushpin | Pinned search results, pinned items |
+| `HomeIcon` | House silhouette with roof | Home nav entry, home view header |
+| `TruckIcon` | Box truck side view | Dispatch board, installation, delivery pipeline |
+| `MapIcon` | Folded map with crease lines | Org topology, page-shell demo, geo views |
+| `ShieldIcon` | Shield outline | Admin / security nav, permissions, coverage chrome |
+| `LayersIcon` | Three stacked diamonds | Services nav, coming-soon stacks, structural depth |
+| `PackageIcon` | Cardboard box with seam | Warehouse nav, inventory, resource pools |
+| `BriefcaseIcon` | Briefcase with handle | Enterprise nav entry |
+| `FolderIcon` | Folder tab silhouette | Customer file groups, folder nav |
+| `GlobeIcon` | Globe with meridian lines | API docs, network inventory, organisation |
+| `ActivityIcon` | Heartbeat / pulse line | Timeline, audit, system health |
+| `FilterIcon` | Funnel | Audit log filter chrome, list filtering |
+| `MoreVerticalIcon` | Three vertical dots | Row-actions menu (3-dot button) |
+| `PanelRightIcon` | Rectangle with right pane | Side-panel toggle (interactions, messages) |
+| `PaperclipIcon` | Paperclip curl | Attachments tab on customer / account / invoice |
+| `ZapIcon` | Lightning bolt | Notifications (activity / automation pane) |
+| `SendHorizontalIcon` | Paper plane pointing right | AI chat send, network message send, notifications |
+| `UserIcon` | Single person silhouette | Users pane in single-user contexts |
+| `StarIcon` | Five-point star | Outbound favorites, primary payment method |
+| `ReplyIcon` | Left-curving arrow | Message thread reply action |
+| `ForwardIcon` | Right-curving arrow | Message thread forward action |
+| `RefreshIcon` | Circular arrows | Manual refresh action |
 
 ### Icon Size Guidelines
 - Navigation icons: 16px (inside `.nav` items)
@@ -1651,7 +1672,7 @@ Rendered at 20px with `object-fit: contain`.
 Stored as: `entity.icon_url`.
 
 **Source 3 — Built-in Icon Library**:
-The 45 icons from `icons.tsx` are available as selectable options.
+The 66 icons from `icons.tsx` are available as selectable options.
 Icon picker grid: 8 columns, same grid layout as emoji picker, renders SVG previews.
 Active icon: `--accent-soft` bg + `--accent` border.
 
@@ -2121,7 +2142,7 @@ frontend/
     main.tsx              — React entry point, renders <App>
     App.tsx               — routing, auth gate, tenant gate, theme/theme context
     styles.css            — ALL design tokens + component classes (single file)
-    icons.tsx             — ALL SVG icons (45 icons, inline SVG components)
+    icons.tsx             — ALL SVG icons (66 icons, inline SVG components)
 
     api.ts                — ALL API calls (one file, all fetch functions)
 
