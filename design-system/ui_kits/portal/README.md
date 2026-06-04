@@ -1,5 +1,14 @@
 # GAAhex — UI kit
 
+> **Workspace status: VISUAL-REFERENCE / PROTOTYPE KIT — not production code.**
+> This folder is design-Claude's (Ոսկերիչ's) prototype workspace where tokens and
+> patterns are tried out before promotion to canonical `gaahex-tokens.css`. It is
+> **intentionally exempt from the D18 Tier-0-no-raw-scales policy** — raw scales,
+> exploratory values, and retired prototypes are allowed to live here.
+> Production code (`frontend/src/**`) and the canonical token file
+> (`frontend/src/styles/gaahex-tokens.css`) remain fully bound by the policy.
+> Cross-reference: `docs/branding/SWEEP_SPEC_2026-06-04.md` §11 follow-up #1.
+
 A high-fidelity, interactive recreation of the **GAAhex operations console** in the new
 *Cobalt & Gold* design language. This is the platform's single product surface — a multi-tenant,
 config-driven workspace for an entire ISP.
