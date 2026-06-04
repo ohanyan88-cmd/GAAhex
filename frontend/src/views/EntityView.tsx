@@ -14,7 +14,7 @@ import ActivityTimeline from '../components/ActivityTimeline'
 import { useI18n } from '../lib/i18n'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import { PageShell } from '../page-shell'
 import type { PageType, KPISpec, SecondaryAction } from '../page-shell'
 
@@ -770,14 +770,14 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                     <option value="">Move to…</option>
                     {transitionTargets.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <button className="btn btn-ghost btn-sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</button>
+                  <Button variant="ghost" size="sm" disabled={!bulkTo} onClick={() => runBulk('transition', bulkTo)}>Move</Button>
                 </>
               )}
               {/* B21: only show bulk delete if user can delete */}
               {canDelete && (
-                <button className="btn btn-danger btn-sm" onClick={bulkDelete}>Delete selected</button>
+                <Button variant="danger" size="sm" onClick={bulkDelete}>Delete selected</Button>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Cancel</button>
+              <Button variant="secondary" size="sm" onClick={() => setSelected(new Set())}>Cancel</Button>
             </div>
           )}
 

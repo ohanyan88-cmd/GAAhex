@@ -33,7 +33,7 @@ import { bget, bpost, loadCustomers, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { LineChart } from '../components/charts/LineChart'
-import { StatusPill, KPITile, DetailTab } from '../primitives'
+import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
 import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
 import { PageShell, type KPISpec } from '../page-shell'
 import { Modal } from '../components/Modal'
@@ -704,11 +704,9 @@ export default function RevenueAssuranceView({
             size="md"
             footer={
               <>
-                <button
-                  className="btn btn-ghost btn-md"
+                <Button variant="ghost" size="md"
                   onClick={() => setActionModal(null)}
-                  disabled={actionModal.submitting}
-                >Cancel</button>
+                  disabled={actionModal.submitting}>Cancel</Button>
                 <button
                   className={'btn btn-md ' + (actionModal.kind === 'resolve' ? 'btn-primary' : 'btn-secondary')}
                   onClick={submitActionModal}
@@ -1224,15 +1222,15 @@ function FindingDrawer(props: {
       footer={
         <>
           {canAdmin && actionable && f.status === 'open' && (
-            <button className="btn btn-ghost btn-md" onClick={onAck}>Acknowledge</button>
+            <Button variant="ghost" size="md" onClick={onAck}>Acknowledge</Button>
           )}
           {canAdmin && actionable && (
-            <button className="btn btn-secondary btn-md" onClick={() => onOpenMarkFP(f)}>Mark False Positive…</button>
+            <Button variant="secondary" size="md" onClick={() => onOpenMarkFP(f)}>Mark False Positive…</Button>
           )}
           {canAdmin && actionable && (
-            <button className="btn btn-primary btn-md" onClick={() => onOpenResolve(f)}>Resolve…</button>
+            <Button variant="primary" size="md" onClick={() => onOpenResolve(f)}>Resolve…</Button>
           )}
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Close</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Close</Button>
         </>
       }
     >

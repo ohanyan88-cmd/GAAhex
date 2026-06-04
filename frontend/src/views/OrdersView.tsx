@@ -29,7 +29,7 @@ import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { PageShell, type KPISpec } from '../page-shell'
-import { StatusPill, Pagination } from '../primitives'
+import { Button, Pagination, StatusPill } from '../primitives'
 import { fmtDate } from '../lib/time'
 
 // ── Stage 8 types ────────────────────────────────────────────────────────────
@@ -528,7 +528,7 @@ function CreateOrderModal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             disabled={busy || !customerId || !description.trim()}
@@ -968,7 +968,7 @@ function CollectDepositModal({
       size="sm"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             disabled={busy || !isFinite(parseFloat(amount)) || parseFloat(amount) <= 0}

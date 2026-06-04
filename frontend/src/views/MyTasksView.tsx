@@ -24,7 +24,7 @@ import { loadCustomers } from '../lib/billing'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import UserPicker from '../components/UserPicker'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import { PageShell, type KPISpec, type FiltersSpec, type PrimaryAction, type SecondaryAction, type ViewSwitcher } from '../page-shell'
 
 // Default column set for My Tasks. SLA is intentionally absent — WorkItem has
@@ -483,7 +483,7 @@ function MyTaskDetailModal({
           >
             <TrashIcon size={13} />
           </button>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             disabled={busy || !title.trim()}
@@ -704,7 +704,7 @@ function MyTaskCreateModal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             disabled={saving || !title.trim()}

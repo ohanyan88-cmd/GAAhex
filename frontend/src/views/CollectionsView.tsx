@@ -23,7 +23,7 @@ import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { InboxIcon, SearchIcon } from '../components/icons'
 import { Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PageShell } from '../page-shell'
-import { StatusPill, KPITile, DetailTab } from '../primitives'
+import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
 import { useI18n } from '../lib/i18n'
 import { timeAgo } from '../lib/time'
 
@@ -811,7 +811,7 @@ function PoliciesTab({
                 {draft.id ? t('collections.policy.edit', 'Edit policy') : t('collections.policy.create', 'Create policy')}
               </div>
               <span style={{ flex: 1 }} />
-              <button className="btn btn-ghost btn-sm" onClick={closeDraft}>{t('common.close', 'Close')}</button>
+              <Button variant="ghost" size="sm" onClick={closeDraft}>{t('common.close', 'Close')}</Button>
             </div>
 
             <label className="field">

@@ -9,7 +9,7 @@ import {
   SearchIcon, CloseIcon, PanelRightIcon,
 } from '../components/icons'
 import { t } from '../lib/i18n'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -647,7 +647,7 @@ function LogModal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button
             className="btn btn-accent btn-md"
             disabled={saving || !body.trim()}

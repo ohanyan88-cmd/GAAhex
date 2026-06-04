@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, Pagination } from '../primitives'
+import { Button, Pagination, StatusPill } from '../primitives'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 import ErrorBoundary from '../components/ErrorBoundary'
 import LoadingState from '../components/LoadingState'
@@ -471,7 +471,7 @@ function WorkItemDetailModal({
           >
             <TrashIcon size={13} />
           </button>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             disabled={busy || !title.trim()}
@@ -692,7 +692,7 @@ function CreateWorkItemModal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             disabled={saving || !title.trim()}

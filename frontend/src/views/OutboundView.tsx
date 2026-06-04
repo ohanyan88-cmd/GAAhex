@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
@@ -328,7 +329,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
         </div>
         <span className="spacer" />
         <button className="btn btn-secondary btn-sm hide-sm" onClick={load}><RefreshIcon size={14} />Sync</button>
-        <button className="btn btn-primary btn-sm" onClick={() => openCompose()}><PlusIcon size={14} />Compose</button>
+        <Button variant="primary" size="sm" onClick={() => openCompose()}><PlusIcon size={14} />Compose</Button>
       </div>
 
       <div className="mail">
@@ -384,7 +385,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
           </div>
           <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
             {list === null && !error && <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Loading…</div>}
-            {error && <div className="err" style={{ padding: 12 }}>{error} <button className="btn btn-ghost btn-sm" onClick={load}>Retry</button></div>}
+            {error && <div className="err" style={{ padding: 12 }}>{error} <Button variant="ghost" size="sm" onClick={load}>Retry</Button></div>}
             {unavailable && <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Wire /api/outbound to populate.</div>}
             {filtered.length === 0 && !error && !unavailable && list !== null && (
               <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>No messages match.</div>
@@ -452,8 +453,8 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
                 {current.body || <span className="muted">(empty body)</span>}
               </div>
               <div style={{ padding: '14px 22px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 10 }}>
-                <button className="btn btn-primary btn-sm" onClick={() => openCompose(buildReply(current))}><ReplyIcon size={14} />Reply</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => openCompose(buildForward(current))}><ForwardIcon size={14} />Forward</button>
+                <Button variant="primary" size="sm" onClick={() => openCompose(buildReply(current))}><ReplyIcon size={14} />Reply</Button>
+                <Button variant="secondary" size="sm" onClick={() => openCompose(buildForward(current))}><ForwardIcon size={14} />Forward</Button>
                 {/* Archive button removed (rule #4): the OutboundMessage model has no
                     archive flag and the backend exposes no archive endpoint, so the button
                     had nothing real to call. Re-add once a backend action exists. */}

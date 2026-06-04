@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { Modal } from '../components/Modal'
 import {
@@ -406,7 +407,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           <button className="tb-icon" onClick={calView === 'month' ? prev : prevWeek} aria-label="Previous">
             <ChevronLeftIcon size={18} />
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={goToday}>Today</button>
+          <Button variant="secondary" size="sm" onClick={goToday}>Today</Button>
           <button className="tb-icon" onClick={calView === 'month' ? next : nextWeek} aria-label="Next">
             <ChevronRightIcon size={18} />
           </button>

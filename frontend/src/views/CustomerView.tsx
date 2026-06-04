@@ -15,7 +15,7 @@ import {
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
-import { StatusPill, KPITile, DetailTab } from '../primitives'
+import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 // Canonical Object Detail tabs (file 10 §Object Detail). These nine render BEFORE the
 // CustomerView's own related-record tabs (accounts/contacts/sites/contracts/slas). Each
@@ -628,7 +628,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                               <td className="num"><span className="mono tnum">{money(inv.total)}</span></td>
                               <td><span className="mono">{fmtDate(inv.due_at)}</span></td>
                               <td className="actions-col row-actions">
-                                {canEditInvoice && st === 'DRAFT' && <button className="btn btn-primary btn-sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</button>}
+                                {canEditInvoice && st === 'DRAFT' && <Button variant="primary" size="sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</Button>}
                                 {canEditInvoice && (st === 'ISSUED' || st === 'OVERDUE') && <button className="btn btn-accent btn-sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</button>}
                               </td>
                             </tr>
@@ -684,7 +684,7 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
       size="sm"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>{t('common.cancel', 'Cancel')}</button>
+          <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
           <button className="btn btn-accent btn-md" disabled={saving || !amount} onClick={submit}>{saving ? t('common.saving', 'Saving…') : t('cust.record', 'Record')}</button>
         </>
       }

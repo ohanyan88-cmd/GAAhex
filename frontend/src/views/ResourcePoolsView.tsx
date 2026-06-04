@@ -375,7 +375,7 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
                             <td className="actions-col">
                               <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                                 {rs !== 'RELEASED' && (
-                                  <button className="btn btn-ghost btn-sm" onClick={() => release(a.id)}>Release</button>
+                                  <Button variant="ghost" size="sm" onClick={() => release(a.id)}>Release</Button>
                                 )}
                               </div>
                             </td>
@@ -433,7 +433,7 @@ function AllocateModal({ token, poolId, services, onClose, onDone }: { token: st
   return (
     <Modal open onClose={onClose} title="Allocate value" size="sm"
       footer={<>
-        <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+        <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
         <button className="btn btn-accent btn-md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>

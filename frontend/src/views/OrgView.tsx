@@ -17,7 +17,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { usePageConfig, type CustomFieldDef } from '../lib/pageConfig'
 import { useCustomFields, CustomFieldChip } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import { Modal } from '../components/Modal'
 import { PageShell } from '../page-shell'
 import { toast } from '../components/Toast'
@@ -1707,7 +1707,7 @@ function AddNodeModal({ token, parent, onClose, onDone }: {
         </label>
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
           <button type="submit" className="btn btn-primary btn-md" disabled={busy || !type.trim() || !name.trim()}>
             {busy ? 'Creating…' : 'Create'}
           </button>
@@ -1755,7 +1755,7 @@ function RenameNodeModal({ token, node, onClose, onDone }: {
         </label>
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
           <button type="submit" className="btn btn-primary btn-md" disabled={busy || !name.trim() || name.trim() === node.name}>
             {busy ? 'Saving…' : 'Save'}
           </button>
@@ -1865,7 +1865,7 @@ function MoveNodeModal({ token, node, nodes, onClose, onDone }: {
         <p className="hint">A node can’t move under itself or its own descendants — those are hidden.</p>
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
           <button type="button" className="btn btn-primary btn-md" onClick={doMove} disabled={busy || target === null}>
             {busy ? 'Moving…' : 'Move here'}
           </button>
@@ -1908,7 +1908,7 @@ function DeleteNodeModal({ token, node, onClose, onDone }: {
         <p className="hint">A node that still has children can’t be deleted — delete or move its children first.</p>
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
           <button type="button" className="btn btn-danger btn-md" onClick={doDelete} disabled={busy}>
             {busy ? 'Deleting…' : 'Delete'}
           </button>

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
-import { DetailTab } from '../primitives'  // TB-2 — canonical detail-tab primitive
+import { Button, DetailTab } from '../primitives'  // TB-2 — canonical detail-tab primitive
 // TB-4 — canonical Object Detail tab bodies parameterized over (entity, id).
 // Replaces 8 InvoiceXxxTab local copies that were ~280 LOC of pure
 // duplication of the customer-tabs originals.
@@ -521,7 +521,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                     action={
                       <Inline gap="sm" align="center">
                         {canEditInvoice && status === 'DRAFT' && (
-                          <button className="btn btn-primary btn-sm" onClick={issue}>Issue</button>
+                          <Button variant="primary" size="sm" onClick={issue}>Issue</Button>
                         )}
                         {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
                           <PayOnlineButton token={token} invoiceId={id} onDone={load} />
@@ -530,7 +530,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                           <button className="btn btn-accent btn-sm" onClick={() => setPayOpen(true)}>Record payment</button>
                         )}
                         {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
-                          <button className="btn btn-ghost btn-sm" onClick={voidInvoice}>Void</button>
+                          <Button variant="ghost" size="sm" onClick={voidInvoice}>Void</Button>
                         )}
                         <button
                           className="btn btn-ghost btn-sm"
@@ -694,7 +694,7 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
       size="sm"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button className="btn btn-accent btn-md" disabled={saving || !amount} onClick={submit}>
             {saving ? 'Saving…' : 'Record'}
           </button>
@@ -928,7 +928,7 @@ function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
       size="sm"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <button className="btn btn-primary btn-md" disabled={saving || !paymentId || !amount} onClick={submit}>
             {saving ? 'Allocating…' : 'Allocate'}
           </button>

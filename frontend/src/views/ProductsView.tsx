@@ -17,7 +17,7 @@ import {
 import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, Pagination } from '../primitives'
+import { Button, Pagination, StatusPill } from '../primitives'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
@@ -271,7 +271,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                             onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}
                           >Edit</button>
                           {p.active !== false && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => retire(p)}>Retire</button>
+                            <Button variant="ghost" size="sm" onClick={() => retire(p)}>Retire</Button>
                           )}
                         </div>
                       </td>

@@ -20,7 +20,7 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
-import { StatusPill, KPITile, DetailTab } from '../primitives'
+import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
 import {
   PackageIcon, ServerIcon, PlusIcon, RefreshIcon, GlobeIcon, ActivityIcon,
   SendHorizontalIcon, CloseIcon, SearchIcon,
@@ -629,7 +629,7 @@ function FiberCreateModal({ token, onClose, onCreated }: {
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose} disabled={submitting}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>Cancel</Button>
           <button className="btn btn-primary btn-md" onClick={submit} disabled={submitting || !name.trim()}>
             {submitting ? 'Creating…' : 'Create route'}
           </button>
@@ -845,7 +845,7 @@ function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onRelease,
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {canAdmin && isActive && (
-                              <button className="btn btn-ghost btn-sm" onClick={() => onRelease(a)}>Release</button>
+                              <Button variant="ghost" size="sm" onClick={() => onRelease(a)}>Release</Button>
                             )}
                           </div>
                         </td>
@@ -964,7 +964,7 @@ function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, onStop, 
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {canAdmin && isActive && (
-                              <button className="btn btn-ghost btn-sm" onClick={() => onStop(s)}>Stop</button>
+                              <Button variant="ghost" size="sm" onClick={() => onStop(s)}>Stop</Button>
                             )}
                           </div>
                         </td>
@@ -1063,7 +1063,7 @@ function BroadcastTab({ state, status, onStatus, canAdmin, onNew, onSend, onRelo
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {canAdmin && isDraft && (
-                              <button className="btn btn-ghost btn-sm" onClick={() => onSend(b)}>Send</button>
+                              <Button variant="ghost" size="sm" onClick={() => onSend(b)}>Send</Button>
                             )}
                           </div>
                         </td>
@@ -1122,7 +1122,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose} disabled={submitting}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>Cancel</Button>
           <button className="btn btn-primary btn-md" onClick={submit} disabled={submitting}>
             {submitting ? 'Creating…' : 'Create draft'}
           </button>

@@ -15,7 +15,7 @@ import { toast } from '../components/Toast'
 import { Modal, confirmDialog } from '../components/Modal'
 import { EmptyState, PermissionDenied, ErrorBanner } from '../components/States'
 import { CreditCardIcon, PlusIcon, StarIcon } from '../components/icons'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import { PageShell, type KPISpec } from '../page-shell'
 import { can, type Capabilities } from '../lib/capabilities'
 import { timeAgo } from '../lib/time'
@@ -432,7 +432,7 @@ function VaultModal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-md" onClick={onClose} disabled={busy}>Cancel</button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
           <button
             className="btn btn-primary btn-md"
             onClick={submit}

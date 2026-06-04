@@ -9,7 +9,7 @@ import { PageShell } from '../page-shell'
 import ReportSchedulePanel from '../modals/ReportSchedulePanel'
 import { EditIcon, PlusIcon, CloseIcon, TrashIcon } from '../components/icons'
 import { Donut, type DonutDatum } from '../components/charts/Donut'
-import { KPITile } from '../primitives'
+import { Button, KPITile } from '../primitives'
 
 // Report Builder — form-heavy wizard that pairs a builder form with a runner/preview.
 // Reskinned into the kit pattern: `.view → .view-inner gx-dash → .crumbs → .view-head`,
@@ -187,8 +187,8 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
               </div>
 
               <div className="rec-form-actions" style={{ marginTop: 12 }}>
-                <button className="btn btn-ghost btn-md" onClick={() => setBuilding(false)}>Cancel</button>
-                <button className="btn btn-primary btn-md" onClick={save} disabled={!name.trim() || !entity}>Save report</button>
+                <Button variant="ghost" size="md" onClick={() => setBuilding(false)}>Cancel</Button>
+                <Button variant="primary" size="md" onClick={save} disabled={!name.trim() || !entity}>Save report</Button>
               </div>
             </div>
           </div>

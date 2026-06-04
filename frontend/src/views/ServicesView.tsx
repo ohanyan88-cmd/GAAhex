@@ -306,7 +306,7 @@ function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose
   return (
     <Modal open onClose={onClose} title="New service" size="sm"
       footer={<>
-        <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+        <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
         <button className="btn btn-accent btn-md" disabled={saving || !name.trim()} onClick={submit}>{saving ? 'Saving…' : 'Create'}</button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
@@ -436,7 +436,7 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
                             <td className="actions-col">
                               <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                                 {rs !== 'RELEASED' && canEdit && (
-                                  <button className="btn btn-ghost btn-sm" onClick={() => release(r.id)}>Release</button>
+                                  <Button variant="ghost" size="sm" onClick={() => release(r.id)}>Release</Button>
                                 )}
                               </div>
                             </td>
@@ -515,7 +515,7 @@ function AllocateModal({ token, serviceId, onClose, onDone }: { token: string; s
   return (
     <Modal open onClose={onClose} title="Allocate resource" size="sm"
       footer={<>
-        <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+        <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
         <button className="btn btn-accent btn-md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>

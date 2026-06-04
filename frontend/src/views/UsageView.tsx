@@ -14,7 +14,7 @@ import { t } from '../lib/i18n'
 import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, Pagination } from '../primitives'
+import { Button, Pagination, StatusPill } from '../primitives'
 
 // Usage metering + rating (E15 /api/usage). List + Record usage. Degrades on 404.
 type Usage = {
@@ -283,7 +283,7 @@ function RecordUsageModal({ token, subs, onClose, onDone }: { token: string; sub
   return (
     <Modal open onClose={onClose} title="Record usage" size="sm"
       footer={<>
-        <button className="btn btn-ghost btn-md" onClick={onClose}>Cancel</button>
+        <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
         <button className="btn btn-accent btn-md" disabled={saving || !quantity} onClick={submit}>{saving ? 'Saving…' : 'Record'}</button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>

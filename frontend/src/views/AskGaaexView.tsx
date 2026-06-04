@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useRef, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
 import { PermissionDenied } from '../components/States'
@@ -141,8 +142,8 @@ export default function AskGaaexView({ token }: { token: string }) {
                           <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>
                           {m.state === 'pending' ? (
                             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                              <button className="btn btn-primary btn-sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</button>
-                              <button className="btn btn-ghost btn-sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</button>
+                              <Button variant="primary" size="sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</Button>
+                              <Button variant="ghost" size="sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</Button>
                             </div>
                           ) : m.state === 'done' ? (
                             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-success-fg)', marginTop: 8 }}>{m.result}</div>
