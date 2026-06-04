@@ -1,5 +1,13 @@
 /* ============================================================================
    GAAhex Design System — Master Tokens  ·  "Cobalt & Gold"
+
+   ⚠️  D19 — VALUE AUTHORITY NOTE (see T-P3-1 / color-tokens.css header).
+   ----------------------------------------------------------------------------
+   This file is the Tier-1/Tier-2 REGISTRY: it defines every `--gx-*` token
+   the design system promises (165 names). It is *not* the value authority
+   for the ~86 keys that color-tokens.css redefines later in the import
+   chain (main.tsx:11 loads after :8) — for those, color-tokens.css wins by
+   cascade order. Until T-P3-1 lands the merge, new tokens go HERE.
    ----------------------------------------------------------------------------
    Premium operations console for an entire ISP. Cobalt navy = brand/structure,
    Azure = interactive, Gold = premium accent (used sparingly), cool Slate =
@@ -273,6 +281,16 @@
   --gx-sidebar-w: 264px;
   --gx-sidebar-collapsed-w: 64px;
   --gx-tap-min:   44px;
+
+  /* ── BREAKPOINTS (T-P3-2) — canonical viewport widths. CSS doesn't allow
+     custom properties inside @media queries directly, so these are reference
+     constants for documentation and JS readers (matchMedia). The hand-rolled
+     breakpoints across _responsive.css and other partials should converge to
+     these three values: 480/768/1024. Anything outside this tier (560, 600,
+     720, 880, 900, 1100, 1180) is legacy and should migrate. */
+  --gx-bp-mobile:   480px;   /* small phones — single-column emergency layout */
+  --gx-bp-tablet:   768px;   /* portrait tablets — collapse multi-column → 2 */
+  --gx-bp-desktop:  1024px;  /* tablet landscape and up — full grid */
 
   /* ── BLUR / OPACITY ── */
   --gx-blur-sm: 4px;

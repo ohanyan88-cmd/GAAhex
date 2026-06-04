@@ -328,3 +328,26 @@ button.kpi-tile, a.kpi-tile {
 .menu-label { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--gx-text-3); font-weight:600; padding:6px 10px 4px; }
 .menu-item.danger { color:var(--gx-danger-fg); }
 .menu-item.danger:hover { background:var(--gx-danger-soft); }
+
+/* T-P3-3 — WCAG 2.5.5 (AAA) / 2.5.8 (AA) target-size. At touch viewports
+ * (≤ --gx-bp-tablet = 768px) every interactive control must hit 44×44 CSS px.
+ * Desktop keeps the compact 28/34/42 control heights; below the tablet
+ * breakpoint we floor min-height (and `.btn-icon` width) to --gx-tap-min.
+ * Padding-x stays — only the hit-target floor grows. */
+@media (max-width: 768px) {
+  .btn,
+  .iconbtn,
+  .tb-icon {
+    min-height: var(--gx-tap-min);
+  }
+  .btn-icon,
+  .iconbtn,
+  .tb-icon {
+    min-width: var(--gx-tap-min);
+  }
+  .inp,
+  .inp-sm,
+  select.inp {
+    min-height: var(--gx-tap-min);
+  }
+}
