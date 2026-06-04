@@ -203,8 +203,8 @@
   --gx-border-3: 3px;
 
   /* ── TYPOGRAPHY ── */
-  --gx-font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
-  --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --gx-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
   --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, 'Cascadia Code', monospace;
   --gx-font-am: 'Noto Sans Armenian', 'IBM Plex Sans', sans-serif; /* local-language */
 

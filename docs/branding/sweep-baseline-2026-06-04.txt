@@ -1,0 +1,98 @@
+# GAAhex Sweep Baseline — 2026-06-04
+
+## Cobalt/Gold/Azure/Slate Tier-0 leaks (frontend/src)
+
+## --gx- Tier-0 leaks (frontend/src)
+
+## Legacy alias surface
+
+## system-ui hits
+frontend-portal\src\styles\styles.css:1
+design-system\colors_and_type.css:2
+docs\specs\DESIGN_SYSTEM.md:2
+docs\branding\AUDIT.md:5
+docs\branding\PROPOSAL.md:2
+docs\branding\logo-proposals\v3-gaa-g-shape.svg:2
+frontend\src\styles\_tokens.css:1
+frontend\src\styles\gaahex-tokens.css:2
+frontend\src\styles\color-tokens.css:2
+docs\branding\_research\06-typography-inter-vs-plex.md:3
+docs\branding\SWEEP_SPEC_2026-06-04.md:31
+docs\branding\sweep-baseline-2026-06-04.txt:1
+
+## standalone 'Inter' hits
+docs\branding\logo-proposals\v3-gaa-g-shape.svg:2
+docs\branding\SWEEP_SPEC_2026-06-04.md:3
+docs\branding\sweep-baseline-2026-06-04.txt:1
+
+## Portal hits
+design-system\CLAUDE_CODE_GUIDE.md:4
+frontend-portal\index.html:1
+design-system\ui_kits\portal\data.jsx:1
+design-system\ui_kits\portal\Views.jsx:1
+design-system\ui_kits\portal\comms.jsx:1
+backend\docs\spec-build\STEP-07-NAV-REGISTRY.md:1
+design-system\ui_kits\portal\Studio.jsx:1
+backend\docs\spec-build\STEP-07-2-ROUTER-SWEEP.md:1
+design-system\ui_kits\portal\app.css:1
+backend\docs\spec-build\STEP-04-4-FIELD-ENCRYPTION.md:3
+backend\docs\spec-build\STEP-02-RELATIONSHIP-MAP.md:1
+design-system\ui_kits\portal\renderers.jsx:1
+design-system\README.md:2
+docs\standards\13-consistency-patch-notes.md:5
+design-system\ui_kits\portal\README.md:1
+frontend-portal\src\views\PortalShell.tsx:1
+design-system\ui_kits\portal\interactions.jsx:1
+design-system\ui_kits\portal\pages.jsx:1
+frontend-portal\src\views\LoginView.tsx:1
+design-system\ui_kits\portal\Login.jsx:1
+backend\docs\kernel-build\STEP-07-ROUTER-SWEEP-RESULTS.md:1
+backend\docs\kernel-build\STEP-01-DEF-TABLES.md:1
+docs\standards\01-strategic-product-direction.md:2
+docs\M1-C-ENV.md:3
+backend\tests\test_configurations.py:1
+backend\tests\test_hardening.py:3
+frontend\src\views\CollectionsView.tsx:1
+docs\specs\PAYMENTS-GATEWAY.md:1
+backend\app\services\radius\factory.py:1
+docs\specs\LAUNCH-HARDENING.md:2
+backend\app\services\payments\stripe_gateway.py:1
+backend\tests\test_portal.py:6
+backend\app\services\payments\stripe_events.py:3
+backend\tests\test_portal_support.py:5
+backend\tests\test_portal_service.py:3
+backend\tests\test_portal_billing.py:4
+design-system\INTEGRATION.md:2
+frontend\src\App.tsx:1
+frontend\src\lib\nav-loader.ts:2
+frontend\src\lib\lifecycle.ts:1
+frontend\src\styles\primitives.css:4
+docs\branding\SWEEP_SPEC_2026-06-04.md:20
+docs\branding\sweep-baseline-2026-06-04.txt:1
+frontend\src\page-shell\PageShell.tsx:1
+backend\app\services\comms\twilio_sms.py:1
+frontend\src\studio\StudioShell.tsx:1
+frontend\src\primitives\KPITile.tsx:1
+backend\app\seed_catalog.py:1
+backend\app\seed.py:1
+backend\app\models\customer_user.py:1
+backend\app\routers\auth.py:2
+backend\app\models\portal_ticket_reply.py:1
+backend\app\models\stripe_webhook_event.py:1
+backend\app\routers\portal_service.py:2
+backend\app\routers\portal_auth.py:2
+backend\app\routers\portal_support.py:1
+backend\app\routers\portal_billing.py:1
+backend\app\routers\portal.py:1
+
+## GAAex hits
+docs\branding\sweep-baseline-2026-06-04.txt:1
+docs\branding\SWEEP_SPEC_2026-06-04.md:17
+
+## Backend color-string hits
+backend\app\seed_catalog.py:1
+
+## Backend palette-hex hits
+backend\tests\test_documents.py:2
+backend\app\routers\documents.py:2
+backend\app\routers\portal_billing.py:4

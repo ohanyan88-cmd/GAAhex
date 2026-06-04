@@ -1,0 +1,71 @@
+=== POST-FLIGHT VERIFICATION 2026-06-04 ===
+
+## (1a) Tier-0 raw scale in frontend/src component code (TSX/TS/JSX/JS)
+ZERO
+
+## (1b) Tier-0 raw scale in frontend/src/styles (excluding 3 master files)
+ZERO
+
+## (2a) system-ui outside exception list
+docs\branding\logo-proposals\v3-gaa-g-shape.svg:    Type: 'IBM Plex Sans', 'Inter', system-ui, sans-serif (no Arial — defect from prod logo not repeated).
+docs\branding\logo-proposals\v3-gaa-g-shape.svg:  <g id="wordmark" font-family="'IBM Plex Sans', 'Inter', system-ui, sans-serif" text-anchor="middle">
+docs\branding\sweep-baseline-2026-06-04.txt:## system-ui hits
+
+## (2b) standalone Inter outside exception list
+docs\branding\sweep-baseline-2026-06-04.txt:## standalone 'Inter' hits
+docs\branding\logo-proposals\v3-gaa-g-shape.svg:    Type: 'IBM Plex Sans', 'Inter', system-ui, sans-serif (no Arial — defect from prod logo not repeated).
+docs\branding\logo-proposals\v3-gaa-g-shape.svg:  <g id="wordmark" font-family="'IBM Plex Sans', 'Inter', system-ui, sans-serif" text-anchor="middle">
+
+## (3) Orphan token names in standards (should be zero)
+docs/standards\13-consistency-patch-notes.md:| **Cobalt** | Brand spine — structural chrome only | `--gx-bg`, `--gx-surface`, `--gx-brand-primary` |
+docs/standards\13-consistency-patch-notes.md:| **Gold** | Brand signature — peak/featured moments only | `--gx-accent-gold`, `--gx-accent-gold-soft` |
+docs/standards\13-consistency-patch-notes.md:sweep** (`linear-gradient(90deg, --gx-brand-primary, --gx-accent-gold)`)
+docs/standards\13-consistency-patch-notes.md:- The `--gx-brand-primary` and `--gx-accent-gold` names in the previous D18 family
+docs/standards\09-design-system-standards.md:older `--gx-brand-primary` and `--gx-accent-gold` names referenced in earlier
+
+## (4a) GAAex platform-wide
+docs\standards\13-consistency-patch-notes.md:rg "Portal\b|GAAex\b" --type md --type tsx --type ts --type py
+docs\standards\13-consistency-patch-notes.md:font stacks (research/06 excepted), and clean Portal/GAAex brand-text leftovers.
+docs\standards\13-consistency-patch-notes.md:entire repo; pre-D18 leftovers removed; Portal/GAAex brand-text replaced.**
+docs\standards\13-consistency-patch-notes.md:rename (Portal/GAAex → GAAhex) to user-visible text only (no folder renames).
+docs\standards\13-consistency-patch-notes.md:  the post-flight verification (§10 of the spec). Brand-text Portal/GAAex
+docs\standards\13-consistency-patch-notes.md:- **frontend-portal content (Կոճ).** Brand-text Portal/GAAex replaced;
+docs\branding\sweep-baseline-2026-06-04.txt:## GAAex hits
+docs\branding\SWEEP_SPEC_2026-06-04.md:   what changes is product-facing brand text and user-visible "Portal"/"GAAex" strings
+docs\branding\SWEEP_SPEC_2026-06-04.md:rg "Portal\b|GAAex\b" --type md --type tsx --type ts --type py
+docs\branding\SWEEP_SPEC_2026-06-04.md:font stacks (research/06 excepted), and clean Portal/GAAex brand-text leftovers.
+docs\branding\SWEEP_SPEC_2026-06-04.md:entire repo; pre-D18 leftovers removed; Portal/GAAex brand-text replaced.**
+docs\branding\SWEEP_SPEC_2026-06-04.md:rename (Portal/GAAex → GAAhex) to user-visible text only (no folder renames).
+docs\branding\SWEEP_SPEC_2026-06-04.md:  the post-flight verification (§10 of the spec). Brand-text Portal/GAAex
+docs\branding\SWEEP_SPEC_2026-06-04.md:- **frontend-portal content (Կոճ).** Brand-text Portal/GAAex replaced;
+docs\branding\SWEEP_SPEC_2026-06-04.md:- `Portal\b` or `GAAex\b` as product-brand text in user-visible strings
+docs\branding\SWEEP_SPEC_2026-06-04.md:- `frontend-portal/index.html` — 1 Portal/GAAex hit (product-brand text in `<title>`
+docs\branding\SWEEP_SPEC_2026-06-04.md:- `frontend-portal/src/views/PortalShell.tsx`, `LoginView.tsx` — Portal/GAAex
+docs\branding\SWEEP_SPEC_2026-06-04.md:- `design-system/CLAUDE_CODE_GUIDE.md` (recon shows 4 Portal/GAAex hits — clean
+docs\branding\SWEEP_SPEC_2026-06-04.md:- `design-system/INTEGRATION.md` (2 Portal/GAAex hits — clean brand-text)
+docs\branding\SWEEP_SPEC_2026-06-04.md:- `ui_kits/portal/` `.jsx` files — Portal/GAAex brand-text → GAAhex; preserve any
+docs\branding\SWEEP_SPEC_2026-06-04.md:  contradict D18 (recon shows 2 Portal/GAAex hits; verify whether they're product
+docs\branding\SWEEP_SPEC_2026-06-04.md:**Scope:** ~12 files. Recon hot zones from grep "Portal|GAAex":
+docs\branding\SWEEP_SPEC_2026-06-04.md:  Product-brand text "GAAex" (any reference) → "GAAhex". These appear mainly in
+docs\branding\SWEEP_SPEC_2026-06-04.md:# (4) Brand-text — Portal/GAAex as PRODUCT BRAND only (manual review for
+
+## (4b) Portal as product-brand outside legitimate module/identifier paths
+backend\tests\test_configurations.py:    The Portal main.py wiring (`from .routers import ..., configurations` +
+backend\tests\test_hardening.py:  S4: Portal tenant assertion — token tenant_id != CustomerUser.tenant_id → 401
+backend\tests\test_hardening.py:# ===================== S4: Portal tenant assertion =====================
+backend\tests\test_hardening.py:# ===================== Portal setup fixture =====================
+frontend\src\lib\lifecycle.ts:  PORTAL_MESSAGE: 'Portal Message',
+frontend\src\styles\primitives.css:   GAAhex Portal — shared primitives. Copied VERBATIM from
+frontend\src\styles\primitives.css:   extensions block to cover Portal component APIs the kit doesn't model
+frontend\src\styles\primitives.css:/* ---- Portal extensions (not in kit) ---- */
+frontend\src\styles\primitives.css:   and list view in the Portal. Identical behavior everywhere — hover lift, click,
+backend\app\models\customer_user.py:represents exactly one customer Record. Portal JWTs carry kind='customer' to keep the
+backend\app\seed_catalog.py:       f("is_public",       "Show on Portal",    "boolean")],
+
+=== Token-files Portal residue (in Կայծ's files — Կյաժ flag #2) ===
+frontend/src/styles/primitives.css:   GAAhex Portal — shared primitives. Copied VERBATIM from
+frontend/src/styles/primitives.css:   extensions block to cover Portal component APIs the kit doesn't model
+frontend/src/styles/primitives.css:/* ---- Portal extensions (not in kit) ---- */
+frontend/src/styles/primitives.css:   and list view in the Portal. Identical behavior everywhere — hover lift, click,
+
+=== End verification ===

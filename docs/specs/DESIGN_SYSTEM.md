@@ -75,6 +75,13 @@ The product must feel like a serious professional tool — not a SaaS demo.
   tenant. The logo should be viewable and its colors should be adjustable in Studio > Appearance.
 
 ### Wordmark / Brand Text
+
+> **Batch 28 supersede (2026-06-04).** The locked font stack is now
+> `--gx-font-display` (Space Grotesk), `--gx-font-sans` (IBM Plex Sans),
+> `--gx-font-mono` (IBM Plex Mono), per D18 in
+> `docs/standards/09-design-system-standards.md`. The "system-ui inherits OS
+> font" line below is historical — treat the standard as canonical.
+
 - Font: `system-ui` (inherits OS font)
 - Weight: 700 (bold)
 - Size: 18px in sidebar
@@ -109,6 +116,10 @@ stays dark in both modes so the light logo reads correctly.
 | `--text-inv` | `#0D0F12` | `#FFFFFF` | Text on solid gold or cobalt fill |
 
 ### 2.3 Brand Tokens
+
+> **Batch 28 supersede (2026-06-04).** Palette values are canonical in D18
+> (`docs/standards/09-design-system-standards.md`). Treat any divergence below
+> as historical record.
 
 | Token | Dark Value | Light Value | Usage |
 |-------|-----------|-------------|-------|
@@ -218,6 +229,11 @@ The texture/image is overlaid at low opacity (10–25%) so tokens still control 
 ## 4. Typography System
 
 ### Font Stack
+
+> **Batch 28 supersede (2026-06-04).** Canonical body/UI stack is
+> `var(--gx-font-sans)`, resolving to `'IBM Plex Sans', 'Segoe UI',
+> -apple-system, sans-serif`. The line below is historical record.
+
 ```
 system-ui, -apple-system, "Segoe UI", sans-serif  (body, UI)
 ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace  (--font-mono, code/numbers)
@@ -494,6 +510,10 @@ transitions: background + border-color + box-shadow at `var(--dur-fast)`.
 ```
 
 **Color variants** (dark mode values):
+
+> **Batch 28 supersede (2026-06-04).** Palette values are canonical in D18
+> (`docs/standards/09-design-system-standards.md`). Treat any divergence below
+> as historical record.
 
 | Class | Background | Text | Hover | Disabled |
 |-------|-----------|------|-------|---------|

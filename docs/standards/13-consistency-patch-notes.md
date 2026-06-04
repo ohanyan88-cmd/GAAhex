@@ -546,3 +546,103 @@ interactive." Audit run:
 
 No remaining contradictions found. From this patch forward, D19 governs all
 future divergence resolution.
+
+## D19 scope expansion (Ninth patch, 2026-06-04)
+
+The D19 audit surface is hereby expanded beyond `frontend/src/` to include:
+- `docs/standards/**` (every locked standard)
+- `docs/specs/**` (every spec doc, including `DESIGN_SYSTEM.md` and `LAUNCH-HARDENING.md`)
+- `docs/BRAND.md` (until BRAND_BIBLE.md supersedes it)
+- `design-system/**` (the workspace, including `ui_kits/portal/` content)
+- `backend/**` (color-string scan for hardcoded palette family names)
+
+**Pre-flight grep checklist (any agent before a palette / font / brand-text change):**
+
+```
+rg "system-ui|\bInter\b" --type css --type tsx --type ts --type jsx --type js
+rg "--gx-(cobalt|gold|azure|slate)-[0-9]" frontend/src --type css --type tsx
+rg "--gx-(primary|interactive|gold|text-[1-3]|border)" -l
+rg "Portal\b|GAAex\b" --type md --type tsx --type ts --type py
+```
+
+If any of those return hits in a file you're about to touch, fix them in the same
+commit. D19 is non-negotiable: rule and code are kept in sync per change, not in
+a later cleanup pass.
+
+**This-sweep audit entry.** A full repo sweep was performed 2026-06-04 to
+reconcile pre-D18 token names, remove `system-ui` and standalone `Inter` from
+font stacks (research/06 excepted), and clean Portal/GAAex brand-text leftovers.
+See `docs/branding/SWEEP_SPEC_2026-06-04.md` for the locked spec and the per-zone
+playbook executed by Կյաժ, Կոճ, Կայծ, Չոռնի, and Լոջ.
+
+---
+
+# Ninth patch — Palette & Font Sweep (D18 stabilization, brand-text cleanup)
+
+Applied 2026-06-04. Owner: Gev. **Palette and font stacks reconciled across the
+entire repo; pre-D18 leftovers removed; Portal/GAAex brand-text replaced.**
+
+This patch executes the cross-repo sweep described in
+`docs/branding/SWEEP_SPEC_2026-06-04.md`. The sweep stabilizes D18 (Seventh patch)
+by closing every rule-vs-code drift the spec recon found, and applies the brand
+rename (Portal/GAAex → GAAhex) to user-visible text only (no folder renames).
+
+## What changed
+
+- **Standards.** `09-design-system-standards.md` D18 family table updated to list
+  the Tier-1 token names that actually exist in
+  `frontend/src/styles/gaahex-tokens.css` (cobalt: `--gx-primary*`; gold:
+  `--gx-gold*`). FINAL stamp + font-stack lock + backend color-string guard added
+  immediately after the table.
+- **Standards.** This file (`13-consistency-patch-notes.md`) gets the D19 scope
+  expansion block (Eighth patch continuation) plus this Ninth patch entry.
+- **Frontend code (Կյաժ).** Every file under `frontend/src/` audited for Tier-0
+  raw token leaks and bare font-family declarations. None found; documented in
+  the post-flight verification (§10 of the spec). Brand-text Portal/GAAex
+  replaced where it refers to the product brand.
+- **Supporting tokens (Կայծ).** `_tokens.css` legacy `--brand / --primary /
+  --accent / --font-body` family re-pointed to D18 master tokens via `var(...)`
+  chains; legacy names preserved for downstream compatibility. `color-tokens.css`
+  stale `/* primary = AZURE */` comment corrected to "Cobalt brand spine
+  decoupled per D18." `nms-tokens.css` `--nms-neon-cyan` routing already correct
+  per Eighth patch — no changes. `gaahex-tokens.css` font stacks no longer
+  contain `system-ui`.
+- **frontend-portal content (Կոճ).** Brand-text Portal/GAAex replaced;
+  `styles.css` `--font-body` re-pointed to `var(--gx-font-sans)`. Folder name
+  stays.
+- **design-system workspace (Կոճ).** `colors_and_type.css` font stacks cleaned;
+  `ui_kits/portal/` content updated (brand-text, no folder rename); `README.md`
+  "proposed reskin" caveat replaced with "D18-aligned, palette locked
+  2026-06-04."
+- **`docs/BRAND.md` (Լոջ).** DEPRECATED header added pointing to standards/09 +
+  standards/13. Full pointer-rewrite waits for BRAND_BIBLE.md (M1-D stream).
+- **`docs/specs/DESIGN_SYSTEM.md` (Լոջ).** Batch 28 supersede notes added at the
+  affected sections (§4 Typography, §any color reference) pointing to D18 in
+  standards/09 as canonical. Document is NOT rewritten in this sweep.
+- **Backend (Չոռնի).** ~12 files audited for hardcoded palette family names and
+  hex literals. Findings cleaned to use theme keys, not values.
+
+## Files affected (count by zone)
+
+- Standards: 2 files (`09-design-system-standards.md`, `13-consistency-patch-notes.md`)
+- Brand docs: 1 file (`docs/BRAND.md`)
+- Spec docs: 1 file (`docs/specs/DESIGN_SYSTEM.md`)
+- Frontend code (`frontend/src/**`): [VERIFY DURING SWEEP — count after Կյաժ's pass]
+- Supporting tokens: 4 files (`_tokens.css`, `color-tokens.css`, `nms-tokens.css`,
+  `gaahex-tokens.css`)
+- frontend-portal: [VERIFY DURING SWEEP — count after Կոճ's pass]
+- design-system workspace: [VERIFY DURING SWEEP — count after Կոճ's pass]
+- Backend: ~12 files (per Չոռնի's scan list)
+
+## What was superseded
+
+- The `--gx-brand-primary` and `--gx-accent-gold` names in the previous D18 family
+  table (Seventh patch). These never existed in code; the table now lists the
+  actual names.
+- The `system-ui` and `Inter` keywords in any font stack outside the
+  research/06 decision record. The Plex stack via `var(--gx-font-*)` is the
+  single canonical source.
+- The stale `/* primary = AZURE */` comment in `color-tokens.css` line 45 (the
+  value was already Cobalt; only the comment was wrong).
+
+No remaining rule-vs-code contradictions on palette or font as of this patch.

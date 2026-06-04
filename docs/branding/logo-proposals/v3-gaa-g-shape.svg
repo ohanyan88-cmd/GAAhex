@@ -9,15 +9,15 @@
       - The 4 o'clock hex (lower mid-right) reads as the G's tongue.
     Colors (locked tokens):
       cobalt #1C3B68 · cobalt-deep #142C4E · gold #C5A059 · slate-blue ring stroke #3B5B8E
-      canvas radial #070B1F → #162247  (per orchestrator brief, deeper than --gx-bg)
+      canvas radial #070B1F → #162247  (per orchestrator brief, deeper than the gx-bg token)
       cyan status dot #4FB6E6 · gold status dot #C5A059
-    Type: 'IBM Plex Sans', 'Inter', system-ui, sans-serif (no Arial — defect from prod logo not repeated).
+    Type: 'Space Grotesk', 'IBM Plex Sans', sans-serif (no Arial — defect from prod logo not repeated).
     Groups are id'd for surgical patching:
       #bg, #ambient, #outer-ring (each hex own id), #inner-cluster (each hex own id), #wordmark, #status-dots.
   -->
 
   <defs>
-    <!-- Canvas background: deep-cobalt radial, deeper than app --gx-bg so the mark sits "on a brand surface" not in a UI shell. -->
+    <!-- Canvas background: deep-cobalt radial, deeper than app gx-bg token so the mark sits "on a brand surface" not in a UI shell. -->
     <radialGradient id="canvas" cx="50%" cy="50%" r="65%">
       <stop offset="0"   stop-color="#162247"/>
       <stop offset="0.55" stop-color="#0C1531"/>
@@ -111,7 +111,7 @@
   </g>
 
   <!-- ============== WORDMARK (inside center hex) ============== -->
-  <g id="wordmark" font-family="'IBM Plex Sans', 'Inter', system-ui, sans-serif" text-anchor="middle">
+  <g id="wordmark" font-family="'Space Grotesk', 'IBM Plex Sans', sans-serif" text-anchor="middle">
     <!-- "GAA" — large, white, the daughters + the father condensed -->
     <text x="640" y="636"
           font-size="38" font-weight="700"

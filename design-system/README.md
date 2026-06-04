@@ -46,7 +46,7 @@ Studio scoped to that entity. The design system must therefore make *every* comp
 as a built screen **and** as something assembled live inside Studio.
 
 ### Sources
-- **GitHub:** `ohanyan88-cmd/Portal` (private) — the build. Explore further to design with higher
+- **GitHub:** `ohanyan88-cmd/GAAhex` (private) — the build. Explore further to design with higher
   fidelity: real views live in `frontend/src/views/`, primitives in `frontend/src/primitives/`,
   navigation in `frontend/src/lib/nav-config.ts`, Studio in `frontend/src/views/StudioView.tsx`.
 - Architecture blueprint referenced by the repo: `../GAAhex-Vision/` (not provided here).
@@ -189,7 +189,7 @@ ui_kits/
    themes work automatically.
 4. Reserve **gold** for prestige; reach for **azure** for anything interactive.
 
-> **Want higher fidelity?** Browse `ohanyan88-cmd/Portal` — `frontend/src/views/` has all ~190
+> **Want higher fidelity?** Browse `ohanyan88-cmd/GAAhex` — `frontend/src/views/` has all ~190
 > pages' real logic, and `StudioView.tsx` shows how config becomes UI.
 
 ---
@@ -199,5 +199,4 @@ ui_kits/
   shipped no font files, so these are *chosen*, not extracted. Swap in licensed/self-hosted files if
   you prefer; the token names won't change.
 - **Icons** use Lucide (CDN) as a stand-in for the repo's stroke-identical custom set — see §4.
-- This is a **proposed reskin**: it intentionally diverges from the current in-app tokens per your
-  request to "ignore the existing design and offer a new one."
+- **D18-aligned, palette locked 2026-06-04. See `docs/standards/09-design-system-standards.md` D18 family table for canonical token names; this workspace mirrors that.**

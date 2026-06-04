@@ -1,3 +1,12 @@
+> **DEPRECATED — 2026-06-04.** This document predates D18 (Color Token Families) and
+> uses a 2-family Cobalt+Gold palette plus a `system-ui` font stack that no longer
+> match the locked design system. **Canonical sources:** the palette and font rules
+> live in `docs/standards/09-design-system-standards.md` (Color Standard, D18 family
+> table) and `docs/standards/13-consistency-patch-notes.md` (Seventh patch D18, Eighth
+> patch D19, Ninth patch sweep). Full pointer rewrite of this file is queued behind
+> `docs/branding/BRAND_BIBLE.md` (M1-D stream). Until then: treat the content below as
+> historical-record only; do NOT cite it in code review.
+
 # GAAhex — Brand & Design Tokens
 
 The single source of truth for GAAhex's visual identity. GAAhex is **dark-first** (a deep obsidian

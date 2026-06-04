@@ -50,7 +50,7 @@
   --sidebar-on: rgba(58, 111, 181, 0.22);
 
   /* Typography */
-  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --fs-h1: 28px;
   --fs-h2: 22px;

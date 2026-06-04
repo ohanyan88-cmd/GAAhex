@@ -42,7 +42,7 @@
   --gx-text-3: #6E7F96;
   --gx-text-placeholder: #5A6B82;
 
-  /* primary = AZURE (interactive) */
+  /* primary = COBALT brand spine — decoupled from --azure-* per D18 (2026-06-04) */
   --gx-primary:        #3B7BE0;
   --gx-primary-hover:  #5293F2;
   --gx-primary-active: #2C63BC;
@@ -190,8 +190,8 @@
   --gx-weight-normal: 400; --gx-weight-medium: 500; --gx-weight-semibold: 600; --gx-weight-bold: 700;
 
   /* font families (new) — load Google Fonts or self-host; see CLAUDE_CODE_GUIDE.md */
-  --gx-font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
-  --gx-font-sans:    'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --gx-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --gx-font-sans:    'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
   --gx-font-mono:    'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
 
   /* ── MOTION (eases match the new system) ── */

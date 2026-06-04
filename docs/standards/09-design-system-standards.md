@@ -28,6 +28,27 @@ Forbidden: hardcoded colors, one-off styles, destructive action in primary/secon
 submit without loading protection, icon-only without label, disabled without reason,
 frontend-only enforcement, button text as business logic.
 
+**State → family mapping (D18, locked).** A button is an interactive control, so its
+default/hover/active/focus paint is Azure; destructive paint is Semantic-danger; disabled paint is
+Slate. Cobalt and Gold are never used on a button.
+
+| State                 | Family   | Tier-1 semantic token(s)                       |
+|-----------------------|----------|------------------------------------------------|
+| `DEFAULT` (PRIMARY)   | Azure    | `--gx-interactive` (bg/text)                   |
+| `HOVER`               | Azure    | `--gx-interactive-hover`                       |
+| `ACTIVE` (selected)   | Azure    | `--gx-interactive` border + `--gx-interactive-soft` bg |
+| `FOCUS` (ring)        | Azure    | `--gx-interactive` (focus ring)                |
+| `DEFAULT` (SECONDARY / TERTIARY / GHOST) | Slate | `--gx-text-1/2/3`, `--gx-border` |
+| `DEFAULT` (DESTRUCTIVE)                  | Semantic | `--gx-danger-fg` (text), Semantic-family bg per design system |
+| `DISABLED`            | Slate    | `--gx-text-3`, `--gx-border`                   |
+| `LOADING`             | (no color change — spinner only over the variant's existing paint) |
+| `PERMISSION_DENIED`   | Slate    | Same paint as `DISABLED`; reason surfaced per Permission rules |
+
+Hover affordance per D17 ↔ D18 reconciliation: buttons are **interactive controls**, so hover is
+azure tint + soft azure glow (never gold — gold-on-hover is reserved for container elements like
+KPI tiles and cards). Only the D18 Tier-1 semantic tokens above are permitted; Tier-0 raw scale
+references (`--azure-500`, `--cobalt-700`, etc.) are forbidden in component code.
+
 ## Badge Standard — LOCKED
 Types: `STATUS, PRIORITY, CATEGORY, VISIBILITY, SYSTEM, COUNT`. Non-interactive. Status/priority/
 visibility badges use canonical values. Labels translated for display only. Colors from tokens.
@@ -111,16 +132,64 @@ styling; icons never define statuses/meaning alone; clear in dense UI; focus/hov
 interactive. No random icon libraries, no icon as sole status indicator, no color as the only
 meaning indicator.
 
-## Color Standard — LOCKED
+## Color Standard — LOCKED (D18 — Color Token Families)
 **E20 — design tokens (color token names, spacing scale, typography roles) are design
 identifiers, not business enums; they are exempt from the Enum Standard's UPPER_SNAKE rule (like
-event names) and use the design-system's own PascalCase token naming.**
-Token categories: `Background, Surface, Border, Text, MutedText, Primary, Secondary, Success,
-Warning, Error, Info, Disabled, Focus, Overlay, Destructive`. All colors from approved tokens;
-no inline hex in page code. Status colors standardized; color never the only meaning indicator;
-error/warning/success/info/destructive consistent; feature-specific colors require token
-approval; light/dark support if themes exist; accessibility contrast required. Tenant-specific
-status colors forbidden unless approved as display-only theme tokens that do not change meaning.
+event names) and use the design-system's own token naming convention (kebab-case `--gx-*`
+semantic tokens, plus `--<family>-<step>` Tier-0 raw scales).**
+
+Five color families, one non-overlapping role each (D18, locked 2026-06-04 — see file 13
+"Seventh patch"). Component code uses ONLY the Tier-1 semantic tokens below; Tier-0 raw scale
+tokens (`--cobalt-500`, `--gold-300`, `--azure-400`, `--slate-700`) are for the design system to
+remap and are forbidden in component code.
+
+| Family | Role | Tokens (Tier 1 semantic) |
+|---|---|---|
+| **Cobalt** | Brand spine — structural chrome only | `--gx-bg`, `--gx-surface`, `--gx-sidebar`, `--gx-primary`, `--gx-primary-hover`, `--gx-primary-active`, `--gx-primary-soft`, `--gx-cobalt` |
+| **Gold** | Brand signature — peak/featured moments only | `--gx-gold`, `--gx-gold-soft`, `--gx-text-on-gold` |
+| **Azure** | Interactive — all clickable affordances | `--gx-interactive`, `--gx-interactive-hover`, `--gx-interactive-active`, `--gx-interactive-soft`, `--gx-interactive-ring` |
+| **Slate** | Neutrals — 90% of data viz + text hierarchy + surfaces | `--gx-text-1`, `--gx-text-2`, `--gx-text-3`, `--gx-text-disabled`, `--gx-border`, `--gx-border-subtle`, `--gx-border-strong`, `--gx-divider` |
+| **Semantic** | Status — success / warning / error on value text only | `--gx-success-fg`, `--gx-warning-fg`, `--gx-danger-fg` |
+
+**D18 — FINAL stamp (2026-06-04).** Master token file
+(`frontend/src/styles/gaahex-tokens.css`) is the canonical source for these names.
+`--gx-primary*` is the Cobalt brand-spine path, intentionally decoupled from
+`--azure-*` so the chrome cascade is independent of the interactive family. The
+older `--gx-brand-primary` and `--gx-accent-gold` names referenced in earlier
+drafts of this table never existed in code; this revision lists the names that DO
+exist. (D19 reconciliation, this patch.)
+
+**Font stack lock (D18, 2026-06-04).** The canonical font stacks are
+`--gx-font-display` (Space Grotesk), `--gx-font-sans` (IBM Plex Sans),
+`--gx-font-mono` (IBM Plex Mono), `--gx-font-am` (Noto Sans Armenian). `system-ui`
+and `Inter` are FORBIDDEN in any font stack across the codebase (one exception:
+the typography decision record at `docs/branding/_research/06-typography-inter-vs-plex.md`).
+Component code MUST reference `var(--gx-font-*)`, never bare family names.
+
+**Backend color-string guard (D18, 2026-06-04).** Palette family names ("cobalt",
+"gold", "azure", "slate") and raw hex literals that match palette anchors are
+FORBIDDEN as hardcoded strings in backend Python code outside tenant-theme
+configuration. Theming is a frontend concern; backend emits theme KEYS, not
+values.
+
+Per-family role assignment is exclusive: Cobalt is NEVER used on buttons, links, hover
+affordances, chips, status badges, or default data viz; Gold is NEVER used on default chrome,
+"ok" states, or hover-on-interactive (use Azure); Azure is NEVER used on passive data viz,
+decorative chrome, status signaling, or peak/featured highlight (use Gold); Slate is NEVER used
+for status signaling (Semantic) or interactive cues (Azure); Semantic is NEVER used on bar fills,
+card backgrounds, or chrome — value text only.
+
+Hover affordance follows the D17 ↔ D18 reconciliation: interactive controls (buttons, links,
+chips, drillable rows) hover **Azure**; container elements (KPI tiles, cards, section frames,
+drawer panels) hover **Gold**; the active selected state after click is **Azure border +
+azure-soft background**; static critical / peak markers are **Gold**.
+
+All colors from approved tokens; no inline hex, no inline RGB, no per-page palettes in page code.
+Status colors are Semantic-family only; color is never the only meaning indicator;
+error/warning/success consistent platform-wide; feature-specific colors require a new Tier-1
+token approved against the family roles above (never introduced ad-hoc in a view);
+light/dark support if themes exist; accessibility contrast required. Tenant-specific status
+colors forbidden unless approved as display-only theme tokens that do not change meaning.
 
 ## Spacing Standard — LOCKED
 Standardized spacing scale; page spacing follows PageShell/Universal Page; component spacing

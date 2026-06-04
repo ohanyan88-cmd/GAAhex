@@ -20,17 +20,18 @@
   --text-3: #64748B;
   --text-inv: #0F172A;
 
-  /* Brand / primary — interactive color is BLUE; cobalt is a brand mark only */
-  --brand: #1C3B68;
-  --primary: #3B82F6;
-  --primary-hover: #60A5FA;
-  --primary-soft: rgba(30, 58, 138, 0.5);
+  /* Brand / primary — legacy alias surface re-pointed to D18 master tokens (2026-06-04).
+     Legacy names PERSIST (other code may reference them); only values change. */
+  --brand: #1C3B68;                                /* cobalt — matches --cobalt-700 */
+  --primary: var(--gx-interactive);                /* azure interactive family */
+  --primary-hover: var(--gx-interactive-hover);
+  --primary-soft: var(--gx-interactive-soft);
 
-  /* Accent — gold, used only for small marks/accents (NOT primary buttons) */
-  --accent: #C5A059;
-  --accent-hover: #D4B26C;
-  --accent-soft: rgba(197, 160, 89, 0.16);
-  --accent-text: #0F172A;
+  /* Accent — gold (D18 signature family) */
+  --accent: var(--gx-gold);
+  --accent-hover: var(--gold-400);                 /* gold scale lookup */
+  --accent-soft: var(--gx-gold-soft);
+  --accent-text: var(--gx-text-on-gold);
 
   /* Signals */
   --success: #22C55E;
@@ -52,7 +53,7 @@
   --sidebar-on: #1E3A8A;
 
   /* Typography */
-  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: var(--gx-font-sans);
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --fs-h1: 28px;
   --fs-h2: 22px;
@@ -149,16 +150,16 @@
   --text-2: #64748B;
   --text-3: #94A3B8;
   --text-inv: #FFFFFF;
-  /* Brand / primary — interactive color is BLUE */
+  /* Brand / primary — legacy alias surface re-pointed to D18 master tokens (2026-06-04). */
   --brand: #1C3B68;
-  --primary: #2563EB;
-  --primary-hover: #1D4ED8;
-  --primary-soft: rgba(219, 234, 254, 0.7);
-  /* Accent — gold marks only */
-  --accent: #C5A059;
-  --accent-hover: #B0894A;
-  --accent-soft: rgba(197, 160, 89, 0.14);
-  --accent-text: #111827;
+  --primary: var(--gx-interactive);
+  --primary-hover: var(--gx-interactive-hover);
+  --primary-soft: var(--gx-interactive-soft);
+  /* Accent — gold (D18 signature family) */
+  --accent: var(--gx-gold);
+  --accent-hover: var(--gold-400);
+  --accent-soft: var(--gx-gold-soft);
+  --accent-text: var(--gx-text-on-gold);
   --success: #16A34A;
   --success-soft: rgba(220, 252, 231, 0.8);
   --warning: #D97706;
