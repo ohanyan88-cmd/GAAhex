@@ -47,7 +47,7 @@ export default function PipelineView(props: PipelineViewProps) {
         style={{
           display: 'flex',
           gap: 4,
-          borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+          borderBottom: '1px solid var(--gx-border)',
           marginBottom: 16,
           paddingBottom: 0,
         }}
@@ -103,12 +103,12 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 600 }}>{title}</h2>
-          <div style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
-            <UsersIcon size={12} /> Owner: <strong style={{ color: 'var(--gx-text-2, #475569)' }}>{owner}</strong>
+          <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+            <UsersIcon size={12} /> Owner: <strong style={{ color: 'var(--gx-text-2)' }}>{owner}</strong>
           </div>
         </div>
       </div>
-      <p style={{ fontSize: 13, color: 'var(--gx-text-3, #64748b)', maxWidth: 720, marginTop: 0, marginBottom: 18 }}>
+      <p style={{ fontSize: 13, color: 'var(--gx-text-3)', maxWidth: 720, marginTop: 0, marginBottom: 18 }}>
         {description}
       </p>
 
@@ -128,22 +128,22 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
 
       <div style={{
         background: 'var(--gx-bg-subtle)',
-        border: '1px solid var(--gx-border, #e2e8f0)',
+        border: '1px solid var(--gx-border)',
         borderRadius: 'var(--gx-radius-lg, 12px)',
         padding: 16,
       }}>
-        <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3, #64748b)', letterSpacing: '0.06em', marginBottom: 10 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 10 }}>
           Control gates referenced in this pipeline
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           {uniqueGates(stages).map((gate) => (
             <div key={gate} style={{
-              background: 'var(--gx-surface, #ffffff)',
-              border: '1px solid var(--gx-border, #e2e8f0)',
+              background: 'var(--gx-surface)',
+              border: '1px solid var(--gx-border)',
               borderRadius: 8, padding: 12,
             }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1, #0f172a)', marginBottom: 4 }}>{gate}</div>
-              <div style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 4 }}>{gate}</div>
+              <div style={{ fontSize: 12, color: 'var(--gx-text-3)', lineHeight: 1.5 }}>
                 {CONTROL_GATE_DEFINITIONS[gate]}
               </div>
             </div>
@@ -158,8 +158,8 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
   return (
     <div
       style={{
-        background: 'var(--gx-surface, #ffffff)',
-        border: '1px solid var(--gx-border, #e2e8f0)',
+        background: 'var(--gx-surface)',
+        border: '1px solid var(--gx-border)',
         borderRadius: 10,
         padding: 12,
         minHeight: 140,
@@ -172,20 +172,20 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
       <div style={{
         position: 'absolute', top: 8, right: 10,
         fontSize: 10, fontWeight: 700,
-        color: 'var(--gx-text-3, #94a3b8)',
+        color: 'var(--gx-text-3)',
         fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
       }}>
         #{index + 1}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1, #0f172a)', paddingRight: 24 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)', paddingRight: 24 }}>
         {stage.label}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--gx-text-3, #64748b)' }}>
-        Owner: <strong style={{ color: 'var(--gx-text-2, #475569)' }}>{stage.owner}</strong>
+      <div style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>
+        Owner: <strong style={{ color: 'var(--gx-text-2)' }}>{stage.owner}</strong>
       </div>
       {stage.supporting.length > 0 && (
-        <div style={{ fontSize: 11, color: 'var(--gx-text-3, #94a3b8)' }}>
-          Supporting: <span style={{ color: 'var(--gx-text-2, #475569)' }}>{stage.supporting.join(', ')}</span>
+        <div style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>
+          Supporting: <span style={{ color: 'var(--gx-text-2)' }}>{stage.supporting.join(', ')}</span>
         </div>
       )}
       {stage.gate && (
@@ -194,8 +194,8 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
             display: 'inline-block',
             padding: '2px 7px',
             background: 'var(--gx-bg-subtle)',
-            color: 'var(--gx-text-2, #475569)',
-            border: '1px solid var(--gx-border, #e2e8f0)',
+            color: 'var(--gx-text-2)',
+            border: '1px solid var(--gx-border)',
             borderRadius: 999,
             fontSize: 10,
             fontWeight: 600,
@@ -206,7 +206,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
           </span>
         </div>
       )}
-      <div style={{ marginTop: stage.gate ? 6 : 'auto', fontSize: 11, color: 'var(--gx-text-3, #94a3b8)', fontStyle: 'italic' }}>
+      <div style={{ marginTop: stage.gate ? 6 : 'auto', fontSize: 11, color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
         No assignments yet
       </div>
     </div>

@@ -34,8 +34,8 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
           marginTop: 60,
           padding: '56px 24px',
           textAlign: 'center',
-          background: 'var(--gx-surface, #ffffff)',
-          border: '1px dashed var(--gx-border, #e2e8f0)',
+          background: 'var(--gx-surface)',
+          border: '1px dashed var(--gx-border)',
           borderRadius: 'var(--gx-radius-lg, 12px)',
           maxWidth: 620,
           marginLeft: 'auto',
@@ -49,7 +49,7 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
             gap: 8,
             padding: '5px 14px',
             background: 'var(--gx-warning-soft)',
-            color: 'var(--gx-warning-fg, #92400e)',
+            color: 'var(--gx-warning-fg)',
             border: '1px solid var(--gx-warning)',
             borderRadius: 999,
             fontSize: 11,
@@ -62,7 +62,7 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
           Coming Soon
         </div>
 
-        <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--gx-text-1, #0f172a)', marginBottom: 8 }}>
+        <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 8 }}>
           {title}
           {id && (
             <span
@@ -71,8 +71,8 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
                 fontSize: 11,
                 padding: '2px 8px',
                 background: 'var(--gx-bg-subtle)',
-                color: 'var(--gx-text-3, #64748b)',
-                border: '1px solid var(--gx-border, #e2e8f0)',
+                color: 'var(--gx-text-3)',
+                border: '1px solid var(--gx-border)',
                 borderRadius: 6,
                 fontWeight: 500,
                 marginLeft: 10,
@@ -83,7 +83,7 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
           )}
         </div>
 
-        <p style={{ fontSize: 13, color: 'var(--gx-text-3, #64748b)', maxWidth: 440, margin: '0 auto', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: 'var(--gx-text-3)', maxWidth: 440, margin: '0 auto', lineHeight: 1.6 }}>
           {description ?? 'This page is locked in the navigation and reserved for upcoming functionality. The route, title, and section position are in place — the implementation lands in an upcoming build phase.'}
         </p>
       </div>

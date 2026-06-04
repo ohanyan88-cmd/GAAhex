@@ -57,7 +57,7 @@ export default function TimelineTab({ token, entity, id }: { token: string; enti
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {rows.map((r) => (
-          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border, #e2e8f0)' }}>
+          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border)' }}>
             <div style={{ fontSize: 13 }}>
               <strong>{r.action ?? 'event'}</strong>
               {r.actor && <span className="muted" style={{ marginLeft: 6 }}>· {r.actor}</span>}

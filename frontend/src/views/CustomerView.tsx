@@ -135,7 +135,7 @@ function balanceTone(s: string | null | undefined): string {
   if (s === null || s === undefined || s === '') return 'var(--gx-text-1)'
   const n = Number(s)
   if (!isFinite(n) || n === 0) return 'var(--gx-text-1)'
-  return n < 0 ? 'var(--gx-danger, #d6336c)' : 'var(--gx-success, #2f9e44)'
+  return n < 0 ? 'var(--gx-danger)' : 'var(--gx-success)'
 }
 
 // Numeric value of a Decimal-string for math (e.g. % of limit). Treat missing as 0.
@@ -496,7 +496,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               style={{
                 display: 'flex',
                 gap: 4,
-                borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+                borderBottom: '1px solid var(--gx-border)',
                 marginTop: 22,
                 marginBottom: 16,
                 paddingBottom: 0,

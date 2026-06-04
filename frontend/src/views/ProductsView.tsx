@@ -313,13 +313,13 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
         padding: '5px 11px',
         // D18: active filter chip = azure (interactive selection); 'primary' variant stays text-1 (high-emphasis label)
         background: active
-          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-interactive, #2563eb)')
+          ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
           : 'var(--gx-bg-subtle)',
-        color: active ? '#ffffff' : 'var(--gx-text-2, #475569)',
+        color: active ? '#ffffff' : 'var(--gx-text-2)',
         // D18: active chip outline matches background — azure for the default variant
         border: '1px solid ' + (active
-          ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-interactive, #2563eb)')
-          : 'var(--gx-border, #e2e8f0)'),
+          ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
+          : 'var(--gx-border)'),
         borderRadius: 999,
         fontSize: 12,
         fontWeight: active ? 600 : 500,
@@ -338,8 +338,8 @@ function CategoryGroup<T extends string>({ title, categories, active, onPick }: 
   onPick: (c: T | 'All') => void
 }) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 12px', background: 'var(--gx-surface, #ffffff)', border: '1px solid var(--gx-border, #e2e8f0)', borderRadius: 10 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3, #94a3b8)', letterSpacing: '0.06em', marginRight: 4 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 12px', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 10 }}>
+      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 4 }}>
         {title}
       </span>
       {categories.map((c) => (

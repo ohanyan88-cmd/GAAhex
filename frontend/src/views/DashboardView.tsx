@@ -308,9 +308,9 @@ function GanttChart({ projects }: { projects: { id: string; name: string; start_
   const statusColor = (s: string) => ({
     'PLANNING':  'var(--gx-text-3)',
     'ACTIVE':    'var(--gx-chart-active)',
-    'ON_HOLD':   'var(--gx-warning,#f59e0b)',
-    'DONE':      'var(--gx-success,#22c55e)',
-    'CANCELLED': 'var(--gx-danger,#ef4444)',
+    'ON_HOLD':   'var(--gx-warning)',
+    'DONE':      'var(--gx-success)',
+    'CANCELLED': 'var(--gx-danger)',
   }[s] ?? 'var(--gx-text-3)')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
@@ -362,7 +362,7 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
             points={data.map((d, i) => `${i + 0.5},${100 - d.cum_pct}`).join(' ')}
             fill="none" stroke="var(--gx-gold)" strokeWidth="0.8" vectorEffect="non-scaling-stroke"
           />
-          <line x1="0" y1="20" x2={data.length} y2="20" stroke="var(--gx-warning,#f59e0b)" strokeDasharray="2 2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
+          <line x1="0" y1="20" x2={data.length} y2="20" stroke="var(--gx-warning)" strokeDasharray="2 2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
         </svg>
       </div>
       <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: 'var(--gx-text-3)' }}>
@@ -489,13 +489,13 @@ function NetGrowthChart({ data }: { data: { week: string; new: number; churned: 
           <div key={d.week} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 1 }} title={`${d.week}: +${d.new} new, -${d.churned} churn, net ${d.net}`}>
             <div style={{
               height: `${(d.new / max) * 50}%`,
-              background: 'var(--gx-success,#22c55e)',
+              background: 'var(--gx-success)',
               borderRadius: '2px 2px 0 0',
               minHeight: d.new > 0 ? 2 : 0,
             }} />
             <div style={{
               height: `${(d.churned / max) * 50}%`,
-              background: 'var(--gx-danger,#ef4444)',
+              background: 'var(--gx-danger)',
               borderRadius: '0 0 2px 2px',
               minHeight: d.churned > 0 ? 2 : 0,
             }} />
@@ -505,8 +505,8 @@ function NetGrowthChart({ data }: { data: { week: string; new: number; churned: 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--gx-text-3)' }}>
         <span>Net change: {data.reduce((s, d) => s + d.net, 0)}</span>
         <span style={{ display: 'flex', gap: 10 }}>
-          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success,#22c55e)', borderRadius: 2, marginRight: 4 }} />New</span>
-          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-danger,#ef4444)', borderRadius: 2, marginRight: 4 }} />Churned</span>
+          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success)', borderRadius: 2, marginRight: 4 }} />New</span>
+          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-danger)', borderRadius: 2, marginRight: 4 }} />Churned</span>
         </span>
       </div>
     </div>
@@ -528,8 +528,8 @@ function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.
   const color = flat
     ? 'var(--gx-text-3)'
     : (up && goodUp) || (!up && !goodUp)
-      ? 'var(--gx-success,#22c55e)'
-      : 'var(--gx-danger,#ef4444)'
+      ? 'var(--gx-success)'
+      : 'var(--gx-danger)'
   return (
     <div className="card" style={{ padding: '14px 18px' }}>
       <div className="muted" style={{ fontSize: 11, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
@@ -915,11 +915,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               {/* D18: AR aging buckets — Current (success), 1-30 = sequential intermediate (slate default, not yet a warning), 31-60 (warning), 61-90 (danger-adjacent, was inline #f97316 → semantic warning is closest), 90+ (danger). */}
               {arAging.state === 'ok' && (
                 <HorizontalBarChart buckets={[
-                  { label: 'Current',   value: arAging.value.current, color: 'var(--gx-success,#22c55e)' },
+                  { label: 'Current',   value: arAging.value.current, color: 'var(--gx-success)' },
                   { label: '1-30 days', value: arAging.value.d1_30,   color: 'var(--gx-chart-default)' },
-                  { label: '31-60 days',value: arAging.value.d31_60,  color: 'var(--gx-warning,#f59e0b)' },
-                  { label: '61-90 days',value: arAging.value.d61_90,  color: 'var(--gx-warning,#f59e0b)' },
-                  { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger,#ef4444)' },
+                  { label: '31-60 days',value: arAging.value.d31_60,  color: 'var(--gx-warning)' },
+                  { label: '61-90 days',value: arAging.value.d61_90,  color: 'var(--gx-warning)' },
+                  { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger)' },
                 ].filter(b => b.value > 0)} />
               )}
               {arAging.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No outstanding AR</div>}
@@ -1032,8 +1032,8 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 labels={weekly.value.map((w: any) => w.week)}
                 series={[
                   { name: 'Revenue (x1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--gx-chart-active)' },
-                  { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: 'var(--gx-success,#22c55e)' },
-                  { name: 'Churns',             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger,#ef4444)' },
+                  { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: 'var(--gx-success)' },
+                  { name: 'Churns',             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger)' },
                 ]}
               />
             )}
@@ -1066,8 +1066,8 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   buckets={[
                     { label: 'TODO',        value: statusBreak.value.workitems.TODO ?? 0,        color: 'var(--gx-text-3)' },
                     { label: 'In Progress', value: statusBreak.value.workitems.IN_PROGRESS ?? 0, color: 'var(--gx-chart-active)' },
-                    { label: 'Blocked',     value: statusBreak.value.workitems.BLOCKED ?? 0,     color: 'var(--gx-danger,#ef4444)' },
-                    { label: 'Done',        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success,#22c55e)' },
+                    { label: 'Blocked',     value: statusBreak.value.workitems.BLOCKED ?? 0,     color: 'var(--gx-danger)' },
+                    { label: 'Done',        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success)' },
                   ]}
                 />
               </DashboardCard>
@@ -1080,8 +1080,8 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   // D18: OPEN = the active drillable ticket bucket → --gx-chart-active. Pending (warning), Resolved (success), Closed (slate).
                   buckets={[
                     { label: 'Open',     value: statusBreak.value.tickets.OPEN ?? 0,        color: 'var(--gx-chart-active)' },
-                    { label: 'Pending',  value: statusBreak.value.tickets.PENDING ?? 0,     color: 'var(--gx-warning,#f59e0b)' },
-                    { label: 'Resolved', value: statusBreak.value.tickets.RESOLVED ?? 0,    color: 'var(--gx-success,#22c55e)' },
+                    { label: 'Pending',  value: statusBreak.value.tickets.PENDING ?? 0,     color: 'var(--gx-warning)' },
+                    { label: 'Resolved', value: statusBreak.value.tickets.RESOLVED ?? 0,    color: 'var(--gx-success)' },
                     { label: 'Closed',   value: statusBreak.value.tickets.CLOSED ?? 0,      color: 'var(--gx-text-3)' },
                   ]}
                 />
@@ -1096,8 +1096,8 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   buckets={[
                     { label: 'Draft',   value: statusBreak.value.invoices.DRAFT ?? 0,   color: 'var(--gx-text-3)' },
                     { label: 'Issued',  value: statusBreak.value.invoices.ISSUED ?? 0,  color: 'var(--gx-chart-active)' },
-                    { label: 'Paid',    value: statusBreak.value.invoices.PAID ?? 0,    color: 'var(--gx-success,#22c55e)' },
-                    { label: 'Overdue', value: statusBreak.value.invoices.OVERDUE ?? 0, color: 'var(--gx-danger,#ef4444)' },
+                    { label: 'Paid',    value: statusBreak.value.invoices.PAID ?? 0,    color: 'var(--gx-success)' },
+                    { label: 'Overdue', value: statusBreak.value.invoices.OVERDUE ?? 0, color: 'var(--gx-danger)' },
                     { label: 'Void',    value: statusBreak.value.invoices.VOID ?? 0,    color: 'var(--gx-text-3)' },
                   ]}
                 />
@@ -1109,9 +1109,9 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.subscriptions).reduce((s: number, v) => s + (v as number), 0) as number}
                   buckets={[
-                    { label: 'Active',    value: statusBreak.value.subscriptions.ACTIVE ?? 0,    color: 'var(--gx-success,#22c55e)' },
-                    { label: 'Suspended', value: statusBreak.value.subscriptions.SUSPENDED ?? 0, color: 'var(--gx-warning,#f59e0b)' },
-                    { label: 'Cancelled', value: statusBreak.value.subscriptions.CANCELLED ?? 0, color: 'var(--gx-danger,#ef4444)' },
+                    { label: 'Active',    value: statusBreak.value.subscriptions.ACTIVE ?? 0,    color: 'var(--gx-success)' },
+                    { label: 'Suspended', value: statusBreak.value.subscriptions.SUSPENDED ?? 0, color: 'var(--gx-warning)' },
+                    { label: 'Cancelled', value: statusBreak.value.subscriptions.CANCELLED ?? 0, color: 'var(--gx-danger)' },
                   ]}
                 />
               </DashboardCard>
@@ -1131,9 +1131,9 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               {isShown('rag-health') && ragHealth.state === 'ok' && (
                 <DashboardCard title="RAG Execution Health" icon={AlertTriangle}>
                   <DonutChart slices={[
-                    { label: 'Red',   value: ragHealth.value.red,   color: 'var(--gx-danger,#ef4444)' },
-                    { label: 'Amber', value: ragHealth.value.amber, color: 'var(--gx-warning,#f59e0b)' },
-                    { label: 'Green', value: ragHealth.value.green, color: 'var(--gx-success,#22c55e)' },
+                    { label: 'Red',   value: ragHealth.value.red,   color: 'var(--gx-danger)' },
+                    { label: 'Amber', value: ragHealth.value.amber, color: 'var(--gx-warning)' },
+                    { label: 'Green', value: ragHealth.value.green, color: 'var(--gx-success)' },
                   ].filter(s => s.value > 0)} />
                 </DashboardCard>
               )}
@@ -1142,10 +1142,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 <DashboardCard title="Task Aging" icon={CheckSquare}>
                   {/* D18: aging sequence (0-7 success, 8-15 intermediate slate, 16-30 warning, 30+ danger). 8-15 was --azure-400 (Tier-0 violation) — now slate default. */}
                   <HorizontalBarChart buckets={[
-                    { label: '0-7 days',   value: taskAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
+                    { label: '0-7 days',   value: taskAging.value.d0_7,     color: 'var(--gx-success)' },
                     { label: '8-15 days',  value: taskAging.value.d8_15,    color: 'var(--gx-chart-default)' },
-                    { label: '16-30 days', value: taskAging.value.d16_30,   color: 'var(--gx-warning,#f59e0b)' },
-                    { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
+                    { label: '16-30 days', value: taskAging.value.d16_30,   color: 'var(--gx-warning)' },
+                    { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
                   <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Open workitems by age</div>
                 </DashboardCard>
@@ -1155,10 +1155,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 <DashboardCard title="Issue Aging" icon={Inbox}>
                   {/* D18: aging sequence mirror of Task Aging — 8-15 was --azure-400 (Tier-0 violation) → --gx-chart-default (slate). */}
                   <HorizontalBarChart buckets={[
-                    { label: '0-7 days',   value: ticketAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
+                    { label: '0-7 days',   value: ticketAging.value.d0_7,     color: 'var(--gx-success)' },
                     { label: '8-15 days',  value: ticketAging.value.d8_15,    color: 'var(--gx-chart-default)' },
-                    { label: '16-30 days', value: ticketAging.value.d16_30,   color: 'var(--gx-warning,#f59e0b)' },
-                    { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
+                    { label: '16-30 days', value: ticketAging.value.d16_30,   color: 'var(--gx-warning)' },
+                    { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
                   <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Open tickets by age</div>
                 </DashboardCard>

@@ -517,7 +517,7 @@ export default function RevenueAssuranceView({
           style={{
             display: 'flex',
             gap: 4,
-            borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+            borderBottom: '1px solid var(--gx-border)',
             marginBottom: 16,
             marginTop: 8,
             paddingBottom: 0,
@@ -877,8 +877,8 @@ function FindingsTab(props: {
         <span style={{ flex: 1 }} />
 
         {lastScan && (
-          <span style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
-            Last scan: <strong style={{ color: 'var(--gx-text-2, #475569)' }} title={lastScan.started_at}>
+          <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+            Last scan: <strong style={{ color: 'var(--gx-text-2)' }} title={lastScan.started_at}>
               {timeAgo(lastScan.started_at) || 'just now'}
             </strong>
             {' '}· {lastScan.findings_count} finding{lastScan.findings_count === 1 ? '' : 's'}
@@ -1098,7 +1098,7 @@ function FilterSelect({ label, value, onChange, options }: {
   options: [string, string][]
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3)' }}>
       <span>{label}</span>
       <select
         className="inp inp-sm"
@@ -1115,10 +1115,10 @@ function FilterSelect({ label, value, onChange, options }: {
 // Compact type chip with a tinted background driven by severity bucket.
 function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeverity }) {
   const tone = severity === 'critical' || severity === 'high'
-    ? { bg: 'rgba(239, 68, 68, 0.10)', fg: 'var(--gx-danger, #dc2626)' }
+    ? { bg: 'rgba(239, 68, 68, 0.10)', fg: 'var(--gx-danger)' }
     : severity === 'medium'
-      ? { bg: 'rgba(245, 158, 11, 0.10)', fg: 'var(--gx-warning, #d97706)' }
-      : { bg: 'var(--gx-bg-subtle)', fg: 'var(--gx-text-2, #475569)' }
+      ? { bg: 'rgba(245, 158, 11, 0.10)', fg: 'var(--gx-warning)' }
+      : { bg: 'var(--gx-bg-subtle)', fg: 'var(--gx-text-2)' }
   return (
     <span style={{
       display: 'inline-block',
@@ -1208,14 +1208,14 @@ function FindingDrawer(props: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <StatusPill variant={severityToPill(f.severity)} label={f.severity} size="sm" />
           <StatusPill variant={statusToPill(f.status)} label={STATUS_LABEL[f.status]} size="sm" />
-          <span style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }} title={f.detected_at}>
+          <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }} title={f.detected_at}>
             Detected {timeAgo(f.detected_at) || fmtDate(f.detected_at)}
           </span>
           {detail.state === 'loading' && (
             <span style={{ fontSize: 11, color: 'var(--gx-text-3)', marginLeft: 'auto' }}>Refreshing…</span>
           )}
           {detail.state === 'error' && (
-            <span style={{ fontSize: 11, color: 'var(--gx-warning, #d97706)', marginLeft: 'auto' }} title={detail.message}>
+            <span style={{ fontSize: 11, color: 'var(--gx-warning)', marginLeft: 'auto' }} title={detail.message}>
               Using cached row
             </span>
           )}
@@ -1240,7 +1240,7 @@ function FindingDrawer(props: {
         {/* Summary text */}
         <section>
           <div style={drawerSectionTitleStyle}>Summary</div>
-          <p style={{ margin: 0, color: 'var(--gx-text-1, #0f172a)', fontSize: 13, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, color: 'var(--gx-text-1)', fontSize: 13, lineHeight: 1.5 }}>
             {f.summary || <span style={{ color: 'var(--gx-text-3)' }}>No summary recorded.</span>}
           </p>
         </section>
@@ -1326,14 +1326,14 @@ const drawerSectionTitleStyle: React.CSSProperties = {
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: 0.4,
-  color: 'var(--gx-text-3, #64748b)',
+  color: 'var(--gx-text-3)',
   marginBottom: 8,
 }
 
 const drawerCardStyle: React.CSSProperties = {
   padding: 12,
-  background: 'var(--gx-surface-2, #f8fafc)',
-  border: '1px solid var(--gx-border-subtle, #e2e8f0)',
+  background: 'var(--gx-surface-2)',
+  border: '1px solid var(--gx-border-subtle)',
   borderRadius: 8,
 }
 
@@ -1341,7 +1341,7 @@ const drawerLabelStyle: React.CSSProperties = {
   display: 'inline-block',
   minWidth: 84,
   fontSize: 11,
-  color: 'var(--gx-text-3, #64748b)',
+  color: 'var(--gx-text-3)',
   fontWeight: 500,
 }
 
@@ -1397,7 +1397,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
             margin: 0,
             padding: 8,
             background: 'var(--gx-surface)',
-            border: '1px solid var(--gx-border-subtle, #e2e8f0)',
+            border: '1px solid var(--gx-border-subtle)',
             borderRadius: 6,
             fontSize: 11,
             lineHeight: 1.5,
@@ -1454,16 +1454,16 @@ function StatusFlow({ current }: { current: FindingStatus }) {
                 : reached ? 'var(--gx-surface)' : 'transparent',
               color: isCurrent
                 ? (s.key === 'resolved'
-                    ? 'var(--gx-success, #059669)'
+                    ? 'var(--gx-success)'
                     : s.key === 'false_positive'
-                      ? 'var(--gx-text-2, #475569)'
+                      ? 'var(--gx-text-2)'
                       : s.key === 'investigating'
-                        ? 'var(--gx-warning, #d97706)'
-                        : 'var(--gx-danger, #dc2626)')
+                        ? 'var(--gx-warning)'
+                        : 'var(--gx-danger)')
                 : reached ? 'var(--gx-text-2)' : 'var(--gx-text-3)',
               border: '1px solid ' + (isCurrent
                 ? 'transparent'
-                : reached ? 'var(--gx-border-subtle, #e2e8f0)' : 'var(--gx-border-subtle, #e2e8f0)'),
+                : reached ? 'var(--gx-border-subtle)' : 'var(--gx-border-subtle)'),
             }}>
               {s.label}
             </span>
@@ -1471,7 +1471,7 @@ function StatusFlow({ current }: { current: FindingStatus }) {
               <span style={{
                 width: 18,
                 height: 1,
-                background: 'var(--gx-border, #e2e8f0)',
+                background: 'var(--gx-border)',
                 display: 'inline-block',
               }} />
             )}

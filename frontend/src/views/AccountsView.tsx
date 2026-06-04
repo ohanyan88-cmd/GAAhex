@@ -76,7 +76,7 @@ function balanceTone(s: string | null | undefined): string {
   if (s === null || s === undefined || s === '') return 'var(--gx-text-1)'
   const n = Number(s)
   if (!isFinite(n) || n === 0) return 'var(--gx-text-1)'
-  return n < 0 ? 'var(--gx-danger, #d6336c)' : 'var(--gx-success, #2f9e44)'
+  return n < 0 ? 'var(--gx-danger)' : 'var(--gx-success)'
 }
 
 // Numeric value of a Decimal-string for sorting. Treat missing as 0 so sort is stable.
@@ -517,7 +517,7 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
               style={{
                 display: 'flex',
                 gap: 4,
-                borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+                borderBottom: '1px solid var(--gx-border)',
                 marginBottom: 16,
                 overflowX: 'auto',
               }}

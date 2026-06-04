@@ -345,7 +345,7 @@ export default function App() {
               display: 'flex', flexDirection: 'column', gap: 6,
               fontFamily: 'var(--gx-font-display)',
               fontSize: 18, fontWeight: 500,
-              color: 'var(--gx-text-1, #fff)',
+              color: 'var(--gx-text-1)',
               letterSpacing: '-.01em',
             }}>
               {['CRM', 'Billing', 'Network', 'Field Ops', 'Finance & More'].map((m) => (
@@ -406,7 +406,7 @@ export default function App() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'var(--gx-text-3, #94a3b8)',
+                    color: 'var(--gx-text-3)',
                     cursor: 'pointer',
                   }}
                 >

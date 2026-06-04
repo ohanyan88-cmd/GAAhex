@@ -179,7 +179,7 @@ export default function CollectionsView({
           style={{
             display: 'flex',
             gap: 4,
-            borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+            borderBottom: '1px solid var(--gx-border)',
             marginBottom: 16,
             marginTop: 8,
           }}
@@ -754,9 +754,9 @@ function PoliciesTab({
                   onClick={() => openEdit(p)}
                   style={{
                     textAlign: 'left',
-                    background: isSelected ? 'var(--gx-bg-subtle)' : 'var(--gx-surface, #ffffff)',
+                    background: isSelected ? 'var(--gx-bg-subtle)' : 'var(--gx-surface)',
                     // D18: active selection outline = azure (interactive)
-                    border: '1px solid ' + (isSelected ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-border, #e2e8f0)'),
+                    border: '1px solid ' + (isSelected ? 'var(--gx-interactive)' : 'var(--gx-border)'),
                     borderRadius: 10,
                     padding: 14,
                     cursor: 'pointer',
@@ -766,24 +766,24 @@ function PoliciesTab({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--gx-text-1, #0f172a)', flex: 1 }}>{p.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--gx-text-1)', flex: 1 }}>{p.name}</div>
                     {p.is_default && (
                       <span style={{
                         fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                         padding: '2px 7px', borderRadius: 999,
-                        background: 'var(--gx-bg-subtle)', color: 'var(--gx-text-2, #475569)',
-                        border: '1px solid var(--gx-border, #e2e8f0)',
+                        background: 'var(--gx-bg-subtle)', color: 'var(--gx-text-2)',
+                        border: '1px solid var(--gx-border)',
                       }}>
                         {t('collections.policy.default', 'Default')}
                       </span>
                     )}
                   </div>
                   {p.description && (
-                    <div style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)', lineHeight: 1.5 }}>{p.description}</div>
+                    <div style={{ fontSize: 12, color: 'var(--gx-text-3)', lineHeight: 1.5 }}>{p.description}</div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto' }}>
                     <StatusPill variant={p.active ? 'active' : 'neutral'} label={p.active ? 'active' : 'inactive'} size="sm" />
-                    <span style={{ fontSize: 11, color: 'var(--gx-text-3, #94a3b8)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>
                       {(p.steps_json?.length ?? 0)} {(p.steps_json?.length ?? 0) === 1 ? 'step' : 'steps'}
                     </span>
                   </div>
@@ -797,8 +797,8 @@ function PoliciesTab({
         {draft && (
           <div
             style={{
-              background: 'var(--gx-surface, #ffffff)',
-              border: '1px solid var(--gx-border, #e2e8f0)',
+              background: 'var(--gx-surface)',
+              border: '1px solid var(--gx-border)',
               borderRadius: 12,
               padding: 16,
               display: 'flex',
@@ -871,7 +871,7 @@ function PoliciesTab({
                 }}
               />
               {stepsError && (
-                <div style={{ fontSize: 12, color: 'var(--gx-danger, #d6336c)', marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--gx-danger)', marginTop: 4 }}>
                   {stepsError}
                 </div>
               )}

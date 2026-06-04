@@ -504,7 +504,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
                 cursor: u.onClick ? 'pointer' : 'default',
               }}
             >
-              <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger,#ef4444)' : 'var(--gx-warning,#f59e0b)'} />
+              <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'} />
               <span style={{ fontSize: 13, fontWeight: 500 }}>{u.label}</span>
             </div>
           ))}
@@ -529,9 +529,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
               {breachedTickets.length === 0 ? <Empty msg="No tickets past SLA" /> : breachedTickets.slice(0, 6).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <AlertTriangle size={13} color="var(--gx-danger,#ef4444)" />
+                  <AlertTriangle size={13} color="var(--gx-danger)" />
                   <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
-                  <span style={{ fontSize: 11, color: 'var(--gx-danger,#ef4444)' }}>{Math.round((Date.now()-Date.parse(t.created_at))/3600000)}h</span>
+                  <span style={{ fontSize: 11, color: 'var(--gx-danger)' }}>{Math.round((Date.now()-Date.parse(t.created_at))/3600000)}h</span>
                 </div>
               ))}
             </Widget>

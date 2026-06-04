@@ -334,7 +334,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
         style={{
           display: 'flex',
           gap: 4,
-          borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+          borderBottom: '1px solid var(--gx-border)',
           marginBottom: 16,
           marginTop: 8,
           paddingBottom: 0,
@@ -441,7 +441,7 @@ function FilterSelect({ label, value, onChange, options }: {
   options: [string, string][]
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3)' }}>
       <span>{label}</span>
       <select
         className="inp inp-sm"
@@ -561,11 +561,11 @@ function FiberTab({ state, status, onStatus, canAdmin, onNew, onReload, onOpen }
                     >
                       <td style={{ fontWeight: 500 }}>{r.name ?? r.id.slice(0, 8)}</td>
                       <td>
-                        <span style={{ color: 'var(--gx-text-2, #475569)' }}>
+                        <span style={{ color: 'var(--gx-text-2)' }}>
                           {r.origin_pop ?? '—'}
                         </span>
-                        <span style={{ margin: '0 6px', color: 'var(--gx-text-3, #94a3b8)' }}>→</span>
-                        <span style={{ color: 'var(--gx-text-2, #475569)' }}>
+                        <span style={{ margin: '0 6px', color: 'var(--gx-text-3)' }}>→</span>
+                        <span style={{ color: 'var(--gx-text-2)' }}>
                           {r.destination_pop ?? '—'}
                         </span>
                       </td>
@@ -722,13 +722,13 @@ function FiberDetailDrawer({ token, id, onClose }: {
               ? <pre style={{
                   margin: 0, padding: 12,
                   background: 'var(--gx-bg-subtle)',
-                  border: '1px solid var(--gx-border-subtle, #e2e8f0)',
+                  border: '1px solid var(--gx-border-subtle)',
                   borderRadius: 8,
                   fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
                   fontSize: 12,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-all',
-                  color: 'var(--gx-text-2, #475569)',
+                  color: 'var(--gx-text-2)',
                 }}>{route.geo_path}</pre>
               : <p className="muted" style={{ margin: 0, fontSize: 12 }}>No geo path recorded.</p>
             }
@@ -1166,7 +1166,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gx-text-2, #475569)' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gx-text-2)' }}>{label}</span>
       {children}
     </label>
   )
@@ -1176,7 +1176,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-      color: 'var(--gx-text-3, #64748b)', letterSpacing: '0.06em',
+      color: 'var(--gx-text-3)', letterSpacing: '0.06em',
       marginBottom: 8,
     }}>{children}</div>
   )
@@ -1187,8 +1187,8 @@ function KvGrid({ rows }: { rows: [string, React.ReactNode][] }) {
     <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 8, columnGap: 16 }}>
       {rows.map(([k, v], i) => (
         <span key={i} style={{ display: 'contents' }}>
-          <span style={{ fontSize: 12, color: 'var(--gx-text-3, #64748b)' }}>{k}</span>
-          <span style={{ fontSize: 13, color: 'var(--gx-text-2, #475569)' }}>{v}</span>
+          <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{k}</span>
+          <span style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>{v}</span>
         </span>
       ))}
     </div>

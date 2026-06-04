@@ -495,7 +495,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
             style={{
               display: 'flex',
               gap: 4,
-              borderBottom: '1px solid var(--gx-border, #e2e8f0)',
+              borderBottom: '1px solid var(--gx-border)',
               marginBottom: 16,
               overflowX: 'auto',
             }}

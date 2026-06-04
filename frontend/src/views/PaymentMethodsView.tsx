@@ -297,7 +297,7 @@ export default function PaymentMethodsView({
                       <td>
                         {p.is_default
                           ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--gx-warning, #d68c33)' }} title="Default card for this customer">
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--gx-warning)' }} title="Default card for this customer">
                               <StarIcon size={14} />
                               <span style={{ fontSize: 11 }}>Default</span>
                             </span>
