@@ -30,8 +30,8 @@ export function SkeletonRows({ rows = 5 }: { rows?: number }) {
     >
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} style={{ marginBottom: 8 }}>
-          <div className="skeleton skeleton-row" />
-          {i % 2 === 0 && <div className="skeleton skeleton-row-sm" style={{ marginTop: 4 }} />}
+          <div className="skel skel-row" />
+          {i % 2 === 0 && <div className="skel skel-row" style={{ marginTop: 4 }} />}
         </div>
       ))}
     </div>

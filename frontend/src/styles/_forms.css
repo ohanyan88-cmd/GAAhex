@@ -49,14 +49,9 @@
 [data-theme="light"] .search-icon { color: var(--text-3); }
 .search-md .search-icon { left: 12px; }
 .search-lg .search-icon { left: 14px; }
-.search-clear, .search-filter, .search-kbd {
+.search-clear, .search-filter {
   position: absolute; top: 50%; transform: translateY(-50%); right: 8px;
 }
 .search-clear { color: var(--text-3); background: transparent; border: 0; cursor: pointer; padding: 4px; border-radius: 4px; }
 .search-clear:hover { color: var(--text); background: var(--surface-2); }
-.search-kbd {
-  font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
-  background: var(--surface-2); border: 1px solid var(--border);
-  padding: 1px 6px; border-radius: 4px; pointer-events: none;
-}
 .search-filter { color: var(--accent); background: transparent; border: 0; cursor: pointer; padding: 4px; }
