@@ -28,6 +28,7 @@ from ..kernel import (
 )
 from .auth import current_user
 from .records import _node_paths, _paginate
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api/helpdesk", tags=["helpdesk"])
 
@@ -56,8 +57,6 @@ _CLOSED_STATUSES = {"RESOLVED", "CLOSED", "CANCELLED"}
 # helpers
 # ---------------------------------------------------------------------------
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:

@@ -26,7 +26,7 @@ import {
   SendHorizontalIcon, CloseIcon, SearchIcon,
 } from '../components/icons'
 import { bget, bpost, bpatch } from '../lib/billing'
-import { timeAgo } from '../lib/time'
+import { fmtDate, timeAgo } from '../lib/time'
 import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -144,11 +144,6 @@ function formatBytes(n: number | null | undefined): string {
   return `${scaled >= 100 ? scaled.toFixed(0) : scaled.toFixed(1)} ${units[i]}`
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // Tolerant list extractor — backend may return `[…]` or `{ items:[…] }` or `{ results:[…] }`.
 function asList<T>(raw: any): T[] {

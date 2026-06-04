@@ -24,14 +24,13 @@ from .auth import current_user
 from .records import _node_path, _node_paths, _paginate
 # reuse billing's exact helpers so usage→billing stays consistent (numbering, totals, serialization)
 from .billing import _invoice_total, _invoice_lines, _next_invoice_number, _invoice, _get_sub, _get_invoice, _money, _parse_dt
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api/usage", tags=["usage"])
 
 METRICS = {"gb", "minutes", "messages", "other"}
 
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt):

@@ -41,8 +41,6 @@ _REOPEN_FROM = {"DONE", "CANCELLED", "BLOCKED"}
 # helpers
 # ---------------------------------------------------------------------------
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _now() -> datetime:
@@ -54,6 +52,7 @@ def _iso(dt: datetime | None) -> str | None:
 
 
 from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+from ..utils.http_errors import deny as _deny  # BL-10
 
 
 def _parse_dt(value, field: str):

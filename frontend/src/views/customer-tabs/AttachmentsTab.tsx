@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
+import { fmtDateTime } from '../../lib/time'
 
 type AttachmentRow = {
   id: string
@@ -18,11 +19,6 @@ type AttachmentRow = {
   [k: string]: any
 }
 
-function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
 
 function fmtSize(n: number | null | undefined): string {
   if (n === null || n === undefined || !isFinite(n)) return '—'

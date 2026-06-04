@@ -22,6 +22,7 @@ from ..models.service import Service, ServiceResource
 from ..models.billing import Subscription
 from ..access import load_grants, can
 from .. import workflow
+from ..utils.http_errors import approval_required  # PC-2
 from ..kernel import (
     assert_can, AccessDenied,
     assert_writer_owns_record_firstclass, OwnerViolation,
@@ -30,6 +31,7 @@ from ..kernel import (
 )
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
+from ..utils.http_errors import deny as _deny  # BL-10
 
 _log = logging.getLogger("portal.services")
 
@@ -39,8 +41,6 @@ _STATUSES = {"PENDING", "ACTIVE", "SUSPENDED", "TERMINATED"}
 _RESOURCE_KINDS = {"ip", "mac", "port", "device", "circuit", "other"}
 
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 # ---------------------------------------------------------------------------
@@ -452,11 +452,7 @@ async def suspend_service(service_id: uuid.UUID, user: User = Depends(current_us
             payload={"transition": "ACTIVE->SUSPENDED"},
         )
         await s.commit()
-        raise HTTPException(202, detail={
-            "status": "approval_required",
-            "approval_id": str(approval.id),
-            "action_type": "service_suspend",
-        })
+        raise approval_required(approval.id, "service_suspend")
 
     approved = await find_approved_approval(
         s, tenant_id=user.tenant_id,

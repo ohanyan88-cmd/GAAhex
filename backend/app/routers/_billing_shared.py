@@ -30,8 +30,12 @@ from ..kernel import (
 from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5
 from ..utils.refnum import next_reference_number
 
+# VA-3 — canonical PAYMENT_METHODS lives in `app.utils.billing_constants`.
+# `_METHODS` stays as the legacy alias so existing call sites (billing.py,
+# billing_payment.py) keep working unchanged.
+from ..utils.billing_constants import PAYMENT_METHODS as _METHODS  # noqa: E402
+
 _CYCLES = {"monthly", "yearly"}
-_METHODS = {"cash", "card", "transfer"}
 _LINE_KINDS = {"charge", "discount", "tax"}
 _PRORATION_MODES = {"daily", "secondly", "none"}
 DEFAULT_DUE_DAYS = 14
@@ -59,9 +63,11 @@ def _invoice_total(lines) -> int:
 
 
 # ---- shared helpers ----
-
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
+# BL-10 — `_deny` is the canonical alias. The real implementation lives in
+# `app.utils.http_errors.deny` (it RAISES; do not call without expecting flow
+# to interrupt). Downstream importers (`from ._billing_shared import _deny`)
+# keep working unchanged.
+from ..utils.http_errors import deny as _deny  # noqa: E402, F401
 
 
 async def _owner_gate(s: AsyncSession, *, table_name: str, writer_module: str) -> None:

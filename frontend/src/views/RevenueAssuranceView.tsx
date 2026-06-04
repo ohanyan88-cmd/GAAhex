@@ -37,7 +37,7 @@ import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
 import { PageShell, type KPISpec } from '../page-shell'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
-import { timeAgo } from '../lib/time'
+import { fmtDate, timeAgo } from '../lib/time'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type Overview = {
@@ -127,11 +127,6 @@ function severityToPill(sev: FindingSeverity): PillVariant {
   }
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // ── View ─────────────────────────────────────────────────────────────────────
 export default function RevenueAssuranceView({

@@ -34,6 +34,7 @@ from ..models.order import Order
 from ..models.splitter import SplitterStrandAllocation
 from ..services import install_board as ib_service
 from .auth import current_user
+from ..utils.http_errors import deny as _deny  # BL-10
 
 
 router = APIRouter(prefix="/api", tags=["install-board"])
@@ -45,8 +46,6 @@ _PAGE_SIZE = 100
 # helpers
 # ==========================================================================================
 
-def _deny(perm: str) -> None:
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -313,11 +312,10 @@ async def list_cpe_bindings(
     if order_id:
         q = q.where(CpeBinding.order_id == order_id)
     q = q.order_by(CpeBinding.created_at.desc())
-    total = (await s.execute(
-        select(func.count()).select_from(q.subquery())
-    )).scalar_one()
-    q = q.offset((page - 1) * _PAGE_SIZE).limit(_PAGE_SIZE)
-    rows = (await s.execute(q)).scalars().all()
+    # DF-3 — count + page via canonical helpers.
+    from ..pagination import count_select, Page  # noqa: PLC0415 — co-located with use
+    total = (await s.execute(count_select(q))).scalar_one()
+    rows = (await s.execute(Page(_PAGE_SIZE, (page - 1) * _PAGE_SIZE).apply(q))).scalars().all()
     return {
         "page": page,
         "page_size": _PAGE_SIZE,

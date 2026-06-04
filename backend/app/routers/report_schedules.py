@@ -36,6 +36,7 @@ from .records import _paginate
 from .report_builder import run_report          # renders a saved report, org-scoped + fail-soft
 from .billing import _record_job_run, _now      # JobRun helper + tz-aware now (J96 job log)
 from .. import channels                          # dispatch(...) — the channel adapter delivery path
+from ..utils.http_errors import deny as _deny  # BL-10
 
 
 async def _kernel_gate(s, user) -> None:
@@ -52,8 +53,6 @@ _CADENCES = {"daily", "weekly", "monthly"}
 _STATUSES = {"ACTIVE", "PAUSED"}
 
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt):

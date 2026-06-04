@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { StatusPill } from '../../primitives'
+import { fmtDate } from '../../lib/time'
 
 type TaskRow = {
   id: string
@@ -16,11 +17,6 @@ type TaskRow = {
   [k: string]: any
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 function taskPill(s: string | null | undefined): 'active' | 'neutral' | 'critical' | 'info' {
   const v = (s ?? '').toUpperCase()

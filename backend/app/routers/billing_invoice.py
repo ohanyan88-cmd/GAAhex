@@ -28,6 +28,7 @@ from ..kernel import (
 from ..services.account_balance import recompute_account_balance
 from ..services.invoice_lock import ensure_invoice_mutable
 from ..services.payment_allocation import outstanding_for_invoice, invoice_balance_components
+from ..utils.http_errors import approval_required  # PC-2
 from ..services.payments import (
     PaymentGatewayCardError,
     PaymentGatewayConfigError,
@@ -174,11 +175,7 @@ async def create_invoice(payload: dict, user: User = Depends(current_user), s: A
                          "customer_id": str(customer_id) if customer_id else None},
             )
             await s.commit()
-            raise HTTPException(202, detail={
-                "status": "approval_required",
-                "approval_id": str(approval.id),
-                "action_type": "high_discount",
-            })
+            raise approval_required(approval.id, "high_discount")
         approved_approval = await find_approved_approval(
             s, tenant_id=user.tenant_id,
             action_type="high_discount",
@@ -521,11 +518,7 @@ async def void_invoice(inv_id: uuid.UUID, user: User = Depends(current_user),
             payload={"invoice_number": inv.number, "total": inv.total, "from_status": inv.status},
         )
         await s.commit()
-        raise HTTPException(202, detail={
-            "status": "approval_required",
-            "approval_id": str(approval.id),
-            "action_type": "invoice_cancel",
-        })
+        raise approval_required(approval.id, "invoice_cancel")
 
     approved = await find_approved_approval(
         s, tenant_id=user.tenant_id,

@@ -41,8 +41,6 @@ _PAGE_SIZE = 100
 # ==========================================================================================
 
 
-def _deny(perm: str) -> None:
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -98,6 +96,7 @@ async def _get_scan(s: AsyncSession, user: User, scan_id: uuid.UUID) -> RaScanRu
 
 
 from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+from ..utils.http_errors import deny as _deny  # BL-10
 
 
 def _parse_iso(value, field: str) -> datetime | None:

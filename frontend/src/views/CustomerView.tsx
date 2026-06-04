@@ -30,6 +30,7 @@ import ApprovalsTab from './customer-tabs/ApprovalsTab'
 import RelatedTab from './customer-tabs/RelatedTab'
 import CommunicationsTab from './customer-tabs/CommunicationsTab'
 import AuditTab from './customer-tabs/AuditTab'
+import { fmtDate } from '../lib/time'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
 // to see ONE customer's whole life: header money summary, services, subscriptions, invoices (with
@@ -111,11 +112,6 @@ type EntityRow = { id: string; status?: string | null; owner_node_id?: string | 
 // Helpdesk ticket shape we render in the SLAs tab (subset of helpdesk.ts `Ticket`).
 type SlaRow = { id: string; subject?: string; status?: string | null; priority?: string | null; customer_id?: string | null; sla_due_at?: string | null; sla_breached?: boolean | null; created_at?: string | null }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // Relative-time formatter for balance_updated_at; mirrors HomeView's relTime() so the
 // snapshot card reads consistently with the rest of the app.

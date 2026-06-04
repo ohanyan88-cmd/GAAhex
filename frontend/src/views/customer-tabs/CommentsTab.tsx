@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
+import { fmtDateTime } from '../../lib/time'
 
 type CommentRow = {
   id: string
@@ -15,11 +16,6 @@ type CommentRow = {
   [k: string]: any
 }
 
-function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '' : d.toLocaleString()
-}
 
 export default function CommentsTab({ token, customerId }: { token: string; customerId: string }) {
   const [rows, setRows] = useState<CommentRow[] | null | undefined>(undefined)

@@ -24,6 +24,7 @@ from ..kernel import (
 )
 from ..services.account_balance import recompute_account_balance
 from ..services.payment_allocation import allocate_payment_atomic, outstanding_for_invoice
+from ..utils.http_errors import approval_required  # PC-2
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate
 from ._billing_shared import (
@@ -151,11 +152,7 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
                 payload={"amount": amount, "method": method, "note": payload.get("note")},
             )
             await s.commit()
-            raise HTTPException(202, detail={
-                "status": "approval_required",
-                "approval_id": str(approval.id),
-                "action_type": "payment_adjust",
-            })
+            raise approval_required(approval.id, "payment_adjust")
         approved_approval = await find_approved_approval(
             s, tenant_id=user.tenant_id,
             action_type="payment_adjust",
@@ -271,11 +268,7 @@ async def refund_payment(
             },
         )
         await s.commit()
-        raise HTTPException(202, detail={
-            "status": "approval_required",
-            "approval_id": str(approval.id),
-            "action_type": "refund",
-        })
+        raise approval_required(approval.id, "refund")
 
     # Approval exists — find + consume it.
     approved = await find_approved_approval(

@@ -13,3 +13,22 @@ export function timeAgo(iso: string | null): string {
   if (d < 7) return `${d}d ago`
   return new Date(iso).toLocaleDateString()
 }
+
+
+// DF-4 — canonical date formatter. Was redefined privately in 15 view files.
+// Returns "—" for null/empty/invalid so callers don't need to guard.
+export function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
+}
+
+
+// DF-5 — canonical date+time formatter. Was redefined privately in 6
+// `views/customer-tabs/*.tsx` files plus a few outliers. Returns "—" for
+// null/empty/invalid.
+export function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
+}

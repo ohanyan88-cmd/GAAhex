@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalService, type PortalSubscription, type PortalUsage } from '../lib/api'
+import { fmt } from '../lib/money'  // DF-7 — canonical AMD formatter
 
 function servicePillClass(status: string): string {
   const map: Record<string, string> = {
@@ -10,10 +11,6 @@ function servicePillClass(status: string): string {
     CANCELLED:  'pill pill-muted',
   }
   return map[status] ?? 'pill pill-muted'
-}
-
-function fmt(luma: number) {
-  return (luma / 100).toLocaleString('hy-AM', { minimumFractionDigits: 2 }) + ' ֏'
 }
 
 export default function ServiceView() {

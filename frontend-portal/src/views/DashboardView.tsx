@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalSummary } from '../lib/api'
-
-function fmt(luma: number) {
-  const drams = luma / 100
-  return drams.toLocaleString('hy-AM', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ֏'
-}
+import { fmt } from '../lib/money'  // DF-7 — canonical AMD formatter
 
 interface StatWidgetProps {
   label: string

@@ -4,6 +4,7 @@
 // passes the relevant slice down so this tab paints instantly on activation).
 
 import type { ReactNode } from 'react'
+import { fmtDate } from '../../lib/time'
 
 type Profile = {
   id: string
@@ -13,11 +14,6 @@ type Profile = {
   [k: string]: any
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // Render a single labeled cell in the summary grid. Hide-if-missing: returns null
 // when the value is empty so the grid doesn't carry dead em-dashes for absent fields.

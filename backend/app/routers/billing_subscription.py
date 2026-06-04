@@ -23,6 +23,7 @@ from ..models.billing import Subscription, Invoice, InvoiceLine
 from ..models.product import Product
 from ..access import load_grants, can
 from .. import workflow
+from ..utils.http_errors import approval_required  # PC-2
 from ..kernel import (
     assert_can, AccessDenied,
     assert_approval_or_raise, ApprovalRequired,
@@ -184,11 +185,7 @@ async def update_subscription(sub_id: uuid.UUID, payload: dict, user: User = Dep
                 payload={k: payload[k] for k in ("plan_name", "amount", "cycle") if k in payload},
             )
             await s.commit()
-            raise HTTPException(202, detail={
-                "status": "approval_required",
-                "approval_id": str(approval.id),
-                "action_type": "contract_change",
-            })
+            raise approval_required(approval.id, "contract_change")
         approved_approval = await find_approved_approval(
             s, tenant_id=user.tenant_id,
             action_type="contract_change",

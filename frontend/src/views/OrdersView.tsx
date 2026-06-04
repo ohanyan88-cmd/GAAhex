@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { PageShell, type KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
+import { fmtDate } from '../lib/time'
 
 // ── Stage 8 types ────────────────────────────────────────────────────────────
 // Mirrors the response shape of POST /api/orders/{id}/stage8-check.
@@ -85,11 +86,6 @@ function mapOrderStatus(s: string | null | undefined): PillVariant {
   return 'info' // DRAFT
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // Friendly verb for the next /advance hop, derived from the order's current status.
 function nextAdvanceLabel(status: string): string | null {

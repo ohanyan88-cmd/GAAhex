@@ -23,14 +23,13 @@ from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api", tags=["resource-pools"])
 
 _KINDS = {"ipv4", "ipv6", "vlan", "phone", "other"}
 
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _now() -> datetime:

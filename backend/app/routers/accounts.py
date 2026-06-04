@@ -33,6 +33,7 @@ from ..services.account_balance import (
 )
 from .auth import current_user
 from .records import _node_path, _node_paths     # reuse the exact records scope primitives
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api", tags=["accounts"])
 
@@ -40,8 +41,6 @@ _PARTY_TYPES = {"individual", "organization", "carrier"}
 _ACCOUNT_TYPES = {"residential", "business", "wholesale"}
 
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt):
@@ -96,14 +95,10 @@ def _balance_snapshot(a: Account) -> dict:
     }
 
 
-def _parse_decimal_opt(value, field: str) -> Decimal | None:
-    """Optional Decimal parser — None passes through; bad input → 422."""
-    if value is None:
-        return None
-    try:
-        return Decimal(str(value))
-    except (InvalidOperation, ValueError):
-        raise HTTPException(422, f"'{field}' must be a decimal number")
+# VA-2 — canonical Decimal-opt parser lives in `_billing_shared` (already there
+# at L39 as `_parse_decimal_opt`). Re-export under the local name so call sites
+# don't change.
+from ._billing_shared import _parse_decimal_opt  # noqa: E402, F401
 
 
 # ---- loaders / validation ----

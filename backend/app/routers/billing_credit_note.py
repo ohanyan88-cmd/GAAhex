@@ -23,6 +23,7 @@ from ..kernel import (
     assert_approval_or_raise, ApprovalRequired,
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
+from ..utils.http_errors import approval_required  # PC-2
 from ..utils.refnum import next_reference_number
 from .auth import current_user
 from ._billing_shared import (
@@ -134,11 +135,7 @@ async def issue_credit_note(
             },
         )
         await s.commit()
-        raise HTTPException(202, detail={
-            "status": "approval_required",
-            "approval_id": str(approval.id),
-            "action_type": "credit_note",
-        })
+        raise approval_required(approval.id, "credit_note")
 
     # Approval exists — find + consume it.
     approved = await find_approved_approval(

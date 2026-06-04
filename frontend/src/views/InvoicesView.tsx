@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
 import { initiatePayment, confirmDevPayment, isDevFlow } from '../lib/paymentgw'
 import { money, toMinor } from '../lib/money'
-import { timeAgo } from '../lib/time'
+import { fmtDate, timeAgo } from '../lib/time'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
@@ -48,11 +48,6 @@ type Allocation = {
   applied_by: string | null
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // Status → pill style. Uses kit primitives (gx-token-backed) only.
 function statusPill(status: string | null | undefined) {

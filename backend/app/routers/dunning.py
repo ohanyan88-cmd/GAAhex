@@ -37,14 +37,13 @@ from ..models.job import JobRun
 from ..access import load_grants, can
 from ..services import dunning as dunning_service
 from .auth import current_user
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api", tags=["dunning"])
 
 
 # ---- helpers --------------------------------------------------------------------------
 
-def _deny(perm: str) -> None:
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -163,11 +162,10 @@ async def list_dunning_policies(
         q = q.where(DunningPolicy.active.is_(active))
     q = q.order_by(DunningPolicy.created_at)
 
-    total = (await s.execute(
-        select(func.count()).select_from(q.subquery())
-    )).scalar_one()
-    q = q.offset((page - 1) * _PAGE_SIZE).limit(_PAGE_SIZE)
-    rows = (await s.execute(q)).scalars().all()
+    # DF-3 — count + page via canonical helpers (was inline subquery + offset()/limit()).
+    from ..pagination import count_select, Page  # noqa: PLC0415 — co-located with use
+    total = (await s.execute(count_select(q))).scalar_one()
+    rows = (await s.execute(Page(_PAGE_SIZE, (page - 1) * _PAGE_SIZE).apply(q))).scalars().all()
     return {
         "page": page,
         "page_size": _PAGE_SIZE,

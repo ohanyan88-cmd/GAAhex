@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
+import { fmtDateTime } from '../../lib/time'
 
 type AuditRow = {
   id: string
@@ -18,11 +19,6 @@ type AuditRow = {
   [k: string]: any
 }
 
-function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
 
 export default function AuditTab({ token, customerId }: { token: string; customerId: string }) {
   const [rows, setRows] = useState<AuditRow[] | null | undefined>(undefined)

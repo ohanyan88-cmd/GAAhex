@@ -29,6 +29,7 @@ from ..models import User
 from ..models.tariff import TariffPlan
 from .auth import current_user
 from .records import _paginate
+from ..utils.http_errors import deny as _deny  # BL-10
 
 
 router = APIRouter(prefix="/api", tags=["tariff_plans"])
@@ -37,8 +38,6 @@ router = APIRouter(prefix="/api", tags=["tariff_plans"])
 _CYCLES = {"monthly", "quarterly", "yearly"}
 
 
-def _deny(perm: str) -> None:
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None) -> str | None:

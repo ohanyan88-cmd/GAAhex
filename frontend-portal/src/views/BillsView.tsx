@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalInvoice, type PortalPayment } from '../lib/api'
+import { fmt } from '../lib/money'  // DF-7 — canonical AMD formatter
 
 function statusPillClass(status: string): string {
   const map: Record<string, string> = {
@@ -10,10 +11,6 @@ function statusPillClass(status: string): string {
     VOID:    'pill pill-muted',
   }
   return map[status] ?? 'pill pill-muted'
-}
-
-function fmt(luma: number) {
-  return (luma / 100).toLocaleString('hy-AM', { minimumFractionDigits: 2 }) + ' ֏'
 }
 
 export default function BillsView() {

@@ -14,12 +14,8 @@ import {
 import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { StatusPill } from '../primitives'
+import { fmtDate } from '../lib/time'
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 function mapOrderStatus(s: string | null | undefined): PillVariant {

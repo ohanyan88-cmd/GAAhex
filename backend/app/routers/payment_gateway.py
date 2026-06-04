@@ -35,6 +35,7 @@ from ..payment_gateway import get_gateway, settle_order
 from ..services.payment_allocation import outstanding_for_invoice
 from .auth import current_user
 from .records import _node_paths, _paginate
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api", tags=["payments-gateway"])
 
@@ -43,8 +44,6 @@ router = APIRouter(prefix="/api", tags=["payments-gateway"])
 # helpers (shared with billing.py style)
 # ---------------------------------------------------------------------------
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _now() -> datetime:

@@ -33,6 +33,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User, Record
 from .. import workflow
+from ..utils.http_errors import approval_required  # PC-2
 from ..kernel import (
     assert_can, AccessDenied,
     assert_writer_owns_record_firstclass, OwnerViolation,
@@ -155,11 +156,7 @@ async def submit_purchase_order(
             },
         )
         await s.commit()
-        raise HTTPException(202, detail={
-            "status": "approval_required",
-            "approval_id": str(approval.id),
-            "action_type": "procurement",
-        })
+        raise approval_required(approval.id, "procurement")
 
     # Approval exists — find + consume it.
     approved = await find_approved_approval(

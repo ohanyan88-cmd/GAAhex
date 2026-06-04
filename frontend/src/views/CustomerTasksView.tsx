@@ -20,6 +20,7 @@ import { EmptyState, SkeletonRows, PermissionDenied, ErrorBanner } from '../comp
 import { CheckIcon, InboxIcon, SearchIcon } from '../components/icons'
 import { PageShell, Card, Stack, type FiltersSpec, type KPISpec } from '../page-shell'
 import { StatusPill } from '../primitives'
+import { fmtDate } from '../lib/time'
 
 // ── Types (mirror Task router serialize shape; only fields we render) ─────────
 
@@ -83,11 +84,6 @@ function priorityPill(priority: string | null | undefined) {
   return <StatusPill variant={variant} label={label} size="sm" />
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
 
 // ── Main view ────────────────────────────────────────────────────────────────
 

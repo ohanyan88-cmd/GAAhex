@@ -36,6 +36,7 @@ from ..kernel import assert_can, AccessDenied
 from ..services.account_balance import recompute_account_balance
 from ..utils.refnum import next_reference_number
 from .auth import current_user
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api/billing", tags=["credit-notes"])
 
@@ -43,8 +44,6 @@ router = APIRouter(prefix="/api/billing", tags=["credit-notes"])
 _STATUSES = {"DRAFT", "ISSUED", "APPLIED", "VOID"}
 
 
-def _deny(perm: str):
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None):
@@ -86,6 +85,7 @@ async def _next_credit_note_number(s: AsyncSession, tenant_id: uuid.UUID) -> str
 
 
 def _parse_decimal(value, field: str) -> Decimal:
+    """VA-2 — required-Decimal variant. The optional one is in `_billing_shared`."""
     try:
         return Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
@@ -133,11 +133,10 @@ async def list_credit_notes(
         q = q.where(CreditNote.customer_id == customer_id)
     q = q.order_by(CreditNote.created_at.desc())
 
-    total = (await s.execute(
-        select(func.count()).select_from(q.subquery())
-    )).scalar_one()
-    q = q.offset((page - 1) * page_size).limit(page_size)
-    rows = (await s.execute(q)).scalars().all()
+    # DF-3 — count + page via canonical helpers (was inline subquery + offset()/limit()).
+    from ..pagination import count_select, Page  # noqa: PLC0415 — co-located with use
+    total = (await s.execute(count_select(q))).scalar_one()
+    rows = (await s.execute(Page(page_size, (page - 1) * page_size).apply(q))).scalars().all()
     return {
         "page": page,
         "page_size": page_size,

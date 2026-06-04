@@ -46,8 +46,6 @@ _FIBER_STATUSES = {"active", "planned", "cut", "retired"}
 # helpers
 # ===========================================================================
 
-def _deny(perm: str) -> None:
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -795,6 +793,7 @@ def _opt_uuid(body: dict, field: str) -> Optional[uuid.UUID]:
 
 
 from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+from ..utils.http_errors import deny as _deny  # BL-10
 
 
 def _parse_dt(value: Any, field: str) -> datetime:

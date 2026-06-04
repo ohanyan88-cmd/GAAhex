@@ -25,6 +25,13 @@ function intercept401(status: number): void {
 }
 export { AUTH_401_EVENT }
 
+// VA-5 — discriminated status unions. Source of truth: docs/standards/14-enum-registry.md.
+// These will be auto-generated once DF-8 (openapi-typescript) lands; until then
+// keep them in sync manually. Any typo in a status string literal now fails at compile.
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'VOID'
+export type SubscriptionStatus = 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'
+export type PaymentMethodKind = 'cash' | 'card' | 'transfer'
+
 export type Subscription = {
   id: string
   customer_id?: string | null
@@ -32,7 +39,7 @@ export type Subscription = {
   plan_name?: string
   amount?: number          // luma
   cycle?: string           // monthly | yearly
-  status?: string | null   // ACTIVE | SUSPENDED | CANCELLED
+  status?: SubscriptionStatus | null
   started_at?: string | null
   next_invoice_at?: string | null
   created_at?: string | null
@@ -52,7 +59,7 @@ export type Invoice = {
   id: string
   number?: string
   customer_id?: string | null
-  status?: string | null   // DRAFT | ISSUED | PAID | VOID (| OVERDUE if dunning sets it)
+  status?: InvoiceStatus | null
   period_start?: string | null
   period_end?: string | null
   total?: number           // luma
@@ -69,7 +76,7 @@ export type Payment = {
   id: string
   invoice_id: string
   amount: number           // luma
-  method: string           // cash | card | transfer
+  method: PaymentMethodKind
   paid_at: string | null
   note: string | null
   created_at: string | null

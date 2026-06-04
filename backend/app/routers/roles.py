@@ -20,6 +20,7 @@ from ..kernel import (
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
 from .. import workflow
+from ..utils.http_errors import approval_required  # PC-2
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["roles"])
@@ -160,11 +161,7 @@ async def update_role(role_id: uuid.UUID, payload: dict, user: User = Depends(cu
                          "to_permissions": payload.get("permissions")},
             )
             await s.commit()
-            raise HTTPException(202, detail={
-                "status": "approval_required",
-                "approval_id": str(approval.id),
-                "action_type": "role_perm_change",
-            })
+            raise approval_required(approval.id, "role_perm_change")
         approved_approval = await find_approved_approval(
             s, tenant_id=user.tenant_id,
             action_type="role_perm_change",

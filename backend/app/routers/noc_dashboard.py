@@ -67,6 +67,7 @@ from ..services.olt import (
     get_driver_for_olt,
 )
 from .auth import current_user
+from ..utils.http_errors import deny as _deny  # BL-10
 
 router = APIRouter(prefix="/api/noc", tags=["noc"])
 
@@ -77,8 +78,6 @@ _PAGE_SIZE = 100
 # helpers
 # ==========================================================================================
 
-def _deny(perm: str) -> None:
-    raise HTTPException(403, f"Not allowed: {perm}")
 
 
 def _iso(dt: datetime | None) -> str | None:

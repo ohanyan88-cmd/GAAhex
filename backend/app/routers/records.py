@@ -11,6 +11,7 @@ from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Even
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT, count_select
 from .. import workflow, gxl, notify_hooks
+from ..utils.http_errors import approval_required  # PC-2
 from ..kernel import (
     MASTER_RECORD_KEYS,
     DuplicateMasterData,
@@ -493,11 +494,7 @@ async def delete_record(slug: str, rec_id: uuid.UUID, user: User = Depends(curre
                 payload={"name": (rec.data or {}).get("name"), "status": rec.status},
             )
             await s.commit()
-            raise HTTPException(202, detail={
-                "status": "approval_required",
-                "approval_id": str(approval.id),
-                "action_type": "customer_delete",
-            })
+            raise approval_required(approval.id, "customer_delete")
         approved_approval = await find_approved_approval(
             s, tenant_id=user.tenant_id,
             action_type="customer_delete",
@@ -574,11 +571,7 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, force: bool = 
                 payload={"from": rec.status, "to": to, "slug": slug},
             )
             await s.commit()
-            raise HTTPException(202, detail={
-                "status": "approval_required",
-                "approval_id": str(approval.id),
-                "action_type": "workflow_override",
-            })
+            raise approval_required(approval.id, "workflow_override")
         approved_override = await find_approved_approval(
             s, tenant_id=user.tenant_id,
             action_type="workflow_override",
