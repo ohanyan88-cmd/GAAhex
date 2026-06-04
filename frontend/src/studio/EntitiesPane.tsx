@@ -24,7 +24,7 @@
 // Tokens: --gx-* only, no raw hex. Icons: lucide via ../components/icons.
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
-import { Modal } from '../components/Modal'  // MO-2 — canonical modal chrome
+import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1/2 — canonical modal chrome
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon,
   ArrowUpIcon, ArrowDownIcon, ArrowRightIcon,
@@ -179,40 +179,30 @@ function CreateEntityModal({
     }
   }
 
+  // MO-1 — migrated from hand-rolled `position:fixed,inset:0` chrome to the
+  // canonical `<Modal>`. The form lives inside the modal body; the footer
+  // Cancel/Submit pair lives in `<ModalFooterActions>` and triggers submit
+  // via the `form="entity-create-form"` HTML attribute (the standard way to
+  // submit a form from a button rendered outside it).
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 100, display: 'flex', alignItems: 'flex-start',
-        justifyContent: 'center', padding: '40px 16px', overflowY: 'auto',
-      }}
+    <Modal
+      open
+      onClose={() => { if (!saving) onClose() }}
+      title="New entity"
+      size="lg"
+      footer={
+        <ModalFooterActions
+          onCancel={onClose}
+          onConfirm={() => {
+            const form = document.getElementById('entity-create-form') as HTMLFormElement | null
+            if (form) form.requestSubmit()
+          }}
+          confirmLabel={saving ? 'Creating…' : 'Create entity'}
+          confirmDisabled={saving}
+        />
+      }
     >
-      <form
-        onSubmit={submit}
-        style={{
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          width: 'min(720px, 100%)',
-          padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, 0 16px 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <div className="row" style={{ alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0 }}>New entity</h3>
-          <span className="spacer" />
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onClose}
-            disabled={saving}
-            aria-label="Close"
-          >
-            <CloseIcon size={14} />
-          </button>
-        </div>
-
+      <form id="entity-create-form" onSubmit={submit}>
         {err && <ErrorBanner message={err} />}
 
         <div className="section-head" style={{ marginTop: 4 }}>
@@ -406,17 +396,8 @@ function CreateEntityModal({
           </div>
         </div>
 
-        <div className="row" style={{ marginTop: 16, gap: 8 }}>
-          <span className="spacer" />
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary btn-md" disabled={saving}>
-            <CheckIcon size={14} /> {saving ? 'Creating…' : 'Create entity'}
-          </button>
-        </div>
       </form>
-    </div>
+    </Modal>
   )
 }
 

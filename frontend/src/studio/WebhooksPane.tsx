@@ -23,6 +23,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { StatusPill, KPITile } from '../primitives'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { timeAgo } from '../lib/time'
+import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1 — canonical modal chrome
 import {
   PlusIcon, CloseIcon, CheckIcon, EditIcon, TrashIcon, ServerIcon,
   PlayIcon, RowsIcon, LockIcon, ActivityIcon,
@@ -144,37 +145,26 @@ function CreateWebhookModal({
     }
   }
 
+  // MO-1 — migrated from hand-rolled fixed-overlay chrome to `<Modal>`.
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 100, display: 'flex', alignItems: 'flex-start',
-        justifyContent: 'center', padding: '40px 16px', overflowY: 'auto',
-      }}
+    <Modal
+      open
+      onClose={() => { if (!saving) onClose() }}
+      title="New webhook"
+      size="lg"
+      footer={
+        <ModalFooterActions
+          onCancel={onClose}
+          onConfirm={() => {
+            const f = document.getElementById('webhook-create-form') as HTMLFormElement | null
+            if (f) f.requestSubmit()
+          }}
+          confirmLabel={saving ? 'Creating…' : 'Create webhook'}
+          confirmDisabled={saving}
+        />
+      }
     >
-      <form
-        onSubmit={submit}
-        style={{
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          width: 'min(680px, 100%)',
-          padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, 0 16px 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <div className="row" style={{ alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0 }}>New webhook</h3>
-          <span className="spacer" />
-          <button
-            type="button" className="btn btn-ghost btn-sm"
-            onClick={onClose} disabled={saving} aria-label="Close"
-          >
-            <CloseIcon size={14} />
-          </button>
-        </div>
-
+      <form id="webhook-create-form" onSubmit={submit}>
         {err && <ErrorBanner message={err} />}
 
         <div className="section-head" style={{ marginTop: 4 }}>
@@ -249,17 +239,8 @@ function CreateWebhookModal({
           <span>Active — deliveries fire on subscribed events.</span>
         </label>
 
-        <div className="row" style={{ marginTop: 16, gap: 8 }}>
-          <span className="spacer" />
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={saving}>
-            Cancel
-          </button>
-          <button type="submit" className="btn btn-primary btn-md" disabled={saving}>
-            <CheckIcon size={14} /> {saving ? 'Creating…' : 'Create webhook'}
-          </button>
-        </div>
       </form>
-    </div>
+    </Modal>
   )
 }
 
@@ -275,40 +256,31 @@ function ConfirmDeleteDialog({
   deleting: boolean
   err: string
 }) {
+  // MO-2 — `<Modal>` chrome. Custom footer (vs ModalFooterActions) because the
+  // primary action label needs both an icon and a busy state.
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--gx-surface)',
-          border: '1px solid var(--gx-border)',
-          borderRadius: 'var(--gx-radius-lg)',
-          width: 'min(460px, 100%)', padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, 0 16px 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <h3 style={{ margin: '0 0 8px' }}>Delete webhook?</h3>
-        <p className="hint" style={{ margin: '0 0 14px' }}>
-          This will hard-delete <strong>{hookName}</strong>. Future events will no longer be
-          delivered to this endpoint. Past delivery records are preserved.
-        </p>
-        {err && <ErrorBanner message={err} />}
-        <div className="row" style={{ gap: 8 }}>
-          <span className="spacer" />
+    <Modal
+      open
+      onClose={onCancel}
+      title="Delete webhook?"
+      size="sm"
+      footer={
+        <>
           <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={deleting}>
             Cancel
           </button>
           <button type="button" className="btn btn-danger btn-md" onClick={onConfirm} disabled={deleting}>
             <TrashIcon size={13} /> {deleting ? 'Deleting…' : 'Delete webhook'}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="hint" style={{ margin: '0 0 14px' }}>
+        This will hard-delete <strong>{hookName}</strong>. Future events will no longer be
+        delivered to this endpoint. Past delivery records are preserved.
+      </p>
+      {err && <ErrorBanner message={err} />}
+    </Modal>
   )
 }
 
