@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '../lib/api'
+import { useI18n } from '../lib/i18n'  // T-P4-2
 
 interface Props {
   onLogin: () => void
@@ -10,6 +11,7 @@ export default function LoginView({ onLogin }: Props) {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
+  const { t } = useI18n()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,7 +24,7 @@ export default function LoginView({ onLogin }: Props) {
       await api.login(email, password)
       onLogin()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : t('login.error', 'Login failed'))
     } finally {
       setLoading(false)
     }
@@ -34,12 +36,12 @@ export default function LoginView({ onLogin }: Props) {
         {/* Logo */}
         <div className="logo-lg">GAAhex</div>
         <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 13, marginTop: -4, marginBottom: 4 }}>
-          Customer Portal
+          {t('login.title', 'Customer Portal')}
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="field">
-            <span className="uppercase-label">Email</span>
+            <span className="uppercase-label">{t('login.email', 'Email')}</span>
             <input
               className="inp inp-md"
               type="email"
@@ -51,7 +53,7 @@ export default function LoginView({ onLogin }: Props) {
           </div>
 
           <div className="field">
-            <span className="uppercase-label">Password</span>
+            <span className="uppercase-label">{t('login.password', 'Password')}</span>
             <input
               className="inp inp-md"
               type="password"
@@ -73,7 +75,7 @@ export default function LoginView({ onLogin }: Props) {
             className="btn btn-primary btn-lg btn-block"
             style={{ marginTop: 4 }}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? t('login.signing', 'Signing in...') : t('login.submit', 'Sign in')}
           </button>
         </form>
       </div>

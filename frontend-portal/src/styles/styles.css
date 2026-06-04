@@ -72,7 +72,9 @@
   --danger: #E63946;
   --danger-soft: rgba(230, 57, 70, 0.16);
 
-  --focus-ring: rgba(197, 160, 89, 0.55);
+  /* T-P4-1 — D18: focus ring is azure (interactive), not gold (signature).
+     Gold-on-focus was the canonical "one role, multiple uses" violation. */
+  --focus-ring: rgba(74, 130, 204, 0.55);
 
   /* Sidebar (never overridden) */
   --sidebar-bg: #1F242C;
@@ -150,6 +152,10 @@
 }
 
 /* ===================== LIGHT THEME ===================== */
+/* T-P4-1 — D18 doctrine fix: `--primary` now carries the **interactive** role
+   (azure family — matches --gx-interactive in the main frontend) instead of
+   doubling up cobalt. `--brand` remains the cobalt spine; `--accent` remains
+   gold signature only. `--focus-ring` is now azure-based, not gold-based. */
 [data-theme="light"] {
   color-scheme: light;
   --bg: #F8F9FA;
@@ -162,9 +168,11 @@
   --text-3: #6B7280;
   --text-inv: #FFFFFF;
   --brand: #1C3B68;
-  --primary: #1C3B68;
-  --primary-hover: #16314F;
-  --primary-soft: rgba(28, 59, 104, 0.10);
+  /* Interactive (azure) — used for buttons, links, hover states. Decoupled
+     from --brand so D18's "one role per family" holds. */
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-soft: rgba(37, 99, 235, 0.10);
   --accent: #C5A059;
   --accent-hover: #B68F47;
   --accent-soft: rgba(197, 160, 89, 0.14);
@@ -175,7 +183,8 @@
   --warning-soft: rgba(230, 95, 0, 0.12);
   --danger: #D90429;
   --danger-soft: rgba(217, 4, 41, 0.10);
-  --focus-ring: rgba(28, 59, 104, 0.45);
+  /* Azure-based focus ring (D18: interactive family, not gold). */
+  --focus-ring: rgba(37, 99, 235, 0.45);
   --shadow: 0 1px 3px rgba(17, 24, 39, .08);
   --shadow-card: 0 6px 24px rgba(17, 24, 39, .10);
   --shadow-pop: 0 12px 34px rgba(17, 24, 39, .16);

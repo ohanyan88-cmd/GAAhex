@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalTicket, type PortalReply } from '../lib/api'
+import { useI18n } from '../lib/i18n'  // T-P4-2
 
 type View = 'list' | 'new' | 'detail'
 
@@ -41,6 +42,27 @@ export default function SupportView() {
   const [replyBody, setReplyBody]   = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
+  const { t } = useI18n()
+
+  // T-P4-2 — value stays UPPER_SNAKE_CASE (B1).
+  const ticketStatusLabel = (s: string): string => {
+    const map: Record<string, string> = {
+      OPEN:        t('sup.statusOpen', 'OPEN'),
+      IN_PROGRESS: t('sup.statusInProgress', 'IN PROGRESS'),
+      RESOLVED:    t('sup.statusResolved', 'RESOLVED'),
+      CLOSED:      t('sup.statusClosed', 'CLOSED'),
+    }
+    return map[s] ?? s
+  }
+  const priorityLabel = (p: string): string => {
+    const map: Record<string, string> = {
+      LOW:    t('sup.priorityLow', 'LOW'),
+      NORMAL: t('sup.priorityNormal', 'NORMAL'),
+      HIGH:   t('sup.priorityHigh', 'HIGH'),
+      URGENT: t('sup.priorityUrgent', 'URGENT'),
+    }
+    return map[p] ?? p
+  }
 
   useEffect(() => {
     api.tickets().then(setTickets).catch(err => setError(err.message))
@@ -58,8 +80,8 @@ export default function SupportView() {
     e.preventDefault()
     setLoading(true)
     try {
-      const t = await api.createTicket(newSubject, newBody)
-      setTickets(prev => [t, ...prev])
+      const created = await api.createTicket(newSubject, newBody)
+      setTickets(prev => [created, ...prev])
       setNewSubject(''); setNewBody('')
       setView('list')
     } catch (err) {
@@ -90,16 +112,16 @@ export default function SupportView() {
       <div>
         <div className="view-head">
           <button className="btn btn-ghost btn-sm row gap-4" onClick={() => setView('list')}>
-            <IconBack /> Back
+            <IconBack /> {t('common.back', 'Back')}
           </button>
           <div className="view-title-wrap">
-            <h2>New support ticket</h2>
+            <h2>{t('sup.newTicket', 'New support ticket')}</h2>
           </div>
         </div>
 
         <form onSubmit={submitNew} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 560 }}>
           <div className="field">
-            <span className="uppercase-label">Subject</span>
+            <span className="uppercase-label">{t('sup.subject', 'Subject')}</span>
             <input
               className="inp inp-md"
               value={newSubject}
@@ -108,7 +130,7 @@ export default function SupportView() {
             />
           </div>
           <div className="field">
-            <span className="uppercase-label">Description</span>
+            <span className="uppercase-label">{t('sup.body', 'Description')}</span>
             <textarea
               className="inp inp-area"
               value={newBody}
@@ -123,10 +145,10 @@ export default function SupportView() {
               className="btn btn-primary btn-md"
               disabled={loading || !newSubject.trim()}
             >
-              {loading ? 'Submitting...' : 'Submit ticket'}
+              {loading ? t('sup.submitting', 'Submitting...') : t('sup.submit', 'Submit ticket')}
             </button>
             <button type="button" className="btn btn-ghost btn-md" onClick={() => setView('list')}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </button>
           </div>
         </form>
@@ -140,18 +162,18 @@ export default function SupportView() {
       <div style={{ maxWidth: 700 }}>
         <div className="view-head">
           <button className="btn btn-ghost btn-sm row gap-4" onClick={() => setView('list')}>
-            <IconBack /> Back
+            <IconBack /> {t('common.back', 'Back')}
           </button>
         </div>
 
         {!detail ? (
-          <div className="loading-state">Loading...</div>
+          <div className="loading-state">{t('common.loading', 'Loading...')}</div>
         ) : (
           <>
             <div style={{ marginBottom: 20 }}>
               <h2>{detail.ticket.subject}</h2>
               <div className="row" style={{ marginTop: 10 }}>
-                <span className={ticketPillClass(detail.ticket.status)}>{detail.ticket.status}</span>
+                <span className={ticketPillClass(detail.ticket.status)}>{ticketStatusLabel(detail.ticket.status)}</span>
                 <span className="muted" style={{ fontSize: 12 }}>
                   {new Date(detail.ticket.created_at).toLocaleDateString()}
                 </span>
@@ -168,7 +190,7 @@ export default function SupportView() {
             {/* Replies thread */}
             <div className="comments" style={{ maxHeight: 'none', marginBottom: 18 }}>
               {detail.replies.length === 0 ? (
-                <p className="muted" style={{ fontSize: 13 }}>No replies yet.</p>
+                <p className="muted" style={{ fontSize: 13 }}>{t('sup.noReplies', 'No replies yet.')}</p>
               ) : (
                 detail.replies.map(r => (
                   <div
@@ -178,7 +200,7 @@ export default function SupportView() {
                   >
                     <div className="comment-head">
                       <span className="comment-author" style={{ color: r.direction === 'inbound' ? 'var(--primary-hover)' : 'var(--accent)' }}>
-                        {r.direction === 'inbound' ? 'You' : 'Support'}
+                        {r.direction === 'inbound' ? t('sup.you', 'You') : t('sup.support', 'Support')}
                       </span>
                       <span className="comment-time">{new Date(r.created_at).toLocaleString()}</span>
                     </div>
@@ -195,7 +217,7 @@ export default function SupportView() {
                   className="inp inp-area"
                   value={replyBody}
                   onChange={e => setReplyBody(e.target.value)}
-                  placeholder="Write a reply..."
+                  placeholder={t('sup.replyPlaceholder', 'Write a reply...')}
                   rows={3}
                 />
                 <div className="composer-actions">
@@ -204,7 +226,7 @@ export default function SupportView() {
                     className="btn btn-primary btn-md"
                     disabled={loading || !replyBody.trim()}
                   >
-                    {loading ? 'Sending...' : 'Send reply'}
+                    {loading ? t('sup.sending', 'Sending...') : t('sup.reply', 'Send reply')}
                   </button>
                 </div>
               </form>
@@ -220,12 +242,12 @@ export default function SupportView() {
     <div>
       <div className="view-head">
         <div className="view-title-wrap">
-          <h2>Support</h2>
-          <span className="view-sub">Your support tickets</span>
+          <h2>{t('sup.title', 'Support')}</h2>
+          <span className="view-sub">{t('sup.subtitle', 'Your support tickets')}</span>
         </div>
         <div className="view-head-actions">
           <button className="btn btn-primary btn-md row gap-4" onClick={() => setView('new')}>
-            <IconPlus /> New ticket
+            <IconPlus /> {t('sup.newTicket', 'New ticket')}
           </button>
         </div>
       </div>
@@ -238,28 +260,28 @@ export default function SupportView() {
 
       {tickets.length === 0 ? (
         <div className="empty-state">
-          <h3>No tickets yet</h3>
-          <p>Open a support ticket and we'll get back to you shortly.</p>
+          <h3>{t('sup.empty', 'No tickets yet')}</h3>
+          <p>{t('sup.emptyHint', "Open a support ticket and we'll get back to you shortly.")}</p>
         </div>
       ) : (
         <table className="grid">
           <thead>
             <tr>
-              <th>Subject</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Opened</th>
+              <th>{t('sup.subject', 'Subject')}</th>
+              <th>{t('bills.status', 'Status')}</th>
+              <th>{t('sup.priority', 'Priority')}</th>
+              <th>{t('sup.opened', 'Opened')}</th>
             </tr>
           </thead>
           <tbody>
-            {tickets.map(t => (
-              <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => openTicket(t.id)}>
+            {tickets.map(tk => (
+              <tr key={tk.id} style={{ cursor: 'pointer' }} onClick={() => openTicket(tk.id)}>
                 <td>
-                  <button className="row-link">{t.subject}</button>
+                  <button className="row-link">{tk.subject}</button>
                 </td>
-                <td><span className={ticketPillClass(t.status)}>{t.status}</span></td>
-                <td><span className="badge">{t.priority}</span></td>
-                <td className="cell-meta">{new Date(t.created_at).toLocaleDateString()}</td>
+                <td><span className={ticketPillClass(tk.status)}>{ticketStatusLabel(tk.status)}</span></td>
+                <td><span className="badge">{priorityLabel(tk.priority)}</span></td>
+                <td className="cell-meta">{new Date(tk.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>

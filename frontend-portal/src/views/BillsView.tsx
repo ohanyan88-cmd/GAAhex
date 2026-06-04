@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalInvoice, type PortalPayment } from '../lib/api'
 import { fmt } from '../lib/money'  // DF-7 — canonical AMD formatter
+import { useI18n } from '../lib/i18n'  // T-P4-2
 
 function statusPillClass(status: string): string {
   const map: Record<string, string> = {
@@ -19,6 +20,20 @@ export default function BillsView() {
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState<string | null>(null)
   const [paying, setPaying]       = useState<string | null>(null)
+  const { t } = useI18n()
+
+  // T-P4-2 — translate the status-pill text. UPPER_SNAKE_CASE remains the
+  // canonical wire/value (B1); the user-visible label is what gets localized.
+  const statusLabel = (s: string): string => {
+    const map: Record<string, string> = {
+      PAID:    t('bills.statusPaid', 'PAID'),
+      ISSUED:  t('bills.statusIssued', 'ISSUED'),
+      OVERDUE: t('bills.statusOverdue', 'OVERDUE'),
+      DRAFT:   t('bills.statusDraft', 'DRAFT'),
+      VOID:    t('bills.statusVoid', 'VOID'),
+    }
+    return map[s] ?? s
+  }
 
   useEffect(() => {
     Promise.all([api.invoices(), api.payments()])
@@ -43,10 +58,10 @@ export default function BillsView() {
     }
   }
 
-  if (loading) return <div className="loading-state">Loading...</div>
+  if (loading) return <div className="loading-state">{t('common.loading', 'Loading...')}</div>
   if (error)   return (
     <div className="error-banner">
-      <span className="error-banner-title">Error</span>
+      <span className="error-banner-title">{t('common.error', 'Error')}</span>
       <span className="error-banner-msg">{error}</span>
     </div>
   )
@@ -61,36 +76,36 @@ export default function BillsView() {
     <div>
       <div className="view-head">
         <div className="view-title-wrap">
-          <h2>Bills</h2>
-          <span className="view-sub">Invoices and payment history</span>
+          <h2>{t('bills.title', 'Bills')}</h2>
+          <span className="view-sub">{t('bills.subtitle', 'Invoices and payment history')}</span>
         </div>
       </div>
 
       {totalBalance > 0 && (
         <div className="toast toast-warning" style={{ position: 'static', marginBottom: 20, width: '100%', boxSizing: 'border-box' }}>
           <div className="toast-msg">
-            <b>Balance due</b>
-            <span>{fmt(totalBalance)} outstanding — please pay to avoid service interruption</span>
+            <b>{t('dash.balanceDue', 'Balance due')}</b>
+            <span>{fmt(totalBalance)} {t('bills.outstandingMsg', 'outstanding — please pay to avoid service interruption')}</span>
           </div>
         </div>
       )}
 
       {/* Invoices section */}
-      <div className="section-head">Invoices</div>
+      <div className="section-head">{t('bills.invoices', 'Invoices')}</div>
 
       {invoices.length === 0 ? (
         <div className="empty-state">
-          <h3>No invoices yet</h3>
-          <p>Your invoices will appear here once they are issued.</p>
+          <h3>{t('bills.empty', 'No invoices yet')}</h3>
+          <p>{t('bills.emptyHint', 'Your invoices will appear here once they are issued.')}</p>
         </div>
       ) : (
         <table className="grid" style={{ marginBottom: 32 }}>
           <thead>
             <tr>
-              <th>Invoice</th>
-              <th>Status</th>
-              <th className="num">Total</th>
-              <th className="num">Balance</th>
+              <th>{t('bills.number', 'Invoice')}</th>
+              <th>{t('bills.status', 'Status')}</th>
+              <th className="num">{t('bills.total', 'Total')}</th>
+              <th className="num">{t('bills.balance', 'Balance')}</th>
               <th></th>
             </tr>
           </thead>
@@ -98,7 +113,7 @@ export default function BillsView() {
             {invoices.map(inv => (
               <tr key={inv.id}>
                 <td style={{ fontWeight: 600 }}>{inv.number}</td>
-                <td><span className={statusPillClass(inv.status)}>{inv.status}</span></td>
+                <td><span className={statusPillClass(inv.status)}>{statusLabel(inv.status)}</span></td>
                 <td className="num">{fmt(inv.total)}</td>
                 <td className="num" style={inv.balance > 0 ? { color: 'var(--danger)', fontWeight: 600 } : { color: 'var(--text-3)' }}>
                   {inv.balance > 0 ? fmt(inv.balance) : '—'}
@@ -110,7 +125,7 @@ export default function BillsView() {
                       onClick={() => handlePay(inv.id)}
                       disabled={paying === inv.id}
                     >
-                      {paying === inv.id ? 'Processing...' : 'Pay now'}
+                      {paying === inv.id ? t('bills.processing', 'Processing...') : t('bills.pay', 'Pay now')}
                     </button>
                   )}
                 </td>
@@ -121,20 +136,20 @@ export default function BillsView() {
       )}
 
       {/* Payment history section */}
-      <div className="section-head">Payment history</div>
+      <div className="section-head">{t('bills.payments', 'Payment history')}</div>
 
       {payments.length === 0 ? (
         <div className="empty-state">
-          <h3>No payments yet</h3>
-          <p>Completed payments will appear here.</p>
+          <h3>{t('bills.paymentsEmpty', 'No payments yet')}</h3>
+          <p>{t('bills.paymentsEmptyHint', 'Completed payments will appear here.')}</p>
         </div>
       ) : (
         <table className="grid">
           <thead>
             <tr>
-              <th className="num">Amount</th>
-              <th>Method</th>
-              <th>Date</th>
+              <th className="num">{t('bills.amount', 'Amount')}</th>
+              <th>{t('bills.method', 'Method')}</th>
+              <th>{t('bills.paidAt', 'Date')}</th>
             </tr>
           </thead>
           <tbody>

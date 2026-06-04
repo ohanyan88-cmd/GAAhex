@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, type PortalSummary } from '../lib/api'
 import { fmt } from '../lib/money'  // DF-7 — canonical AMD formatter
+import { useI18n } from '../lib/i18n'  // T-P4-2
 
 interface StatWidgetProps {
   label: string
@@ -24,6 +25,7 @@ function StatWidget({ label, value, accent, subLabel }: StatWidgetProps) {
 export default function DashboardView() {
   const [summary, setSummary] = useState<PortalSummary | null>(null)
   const [error, setError]     = useState<string | null>(null)
+  const { t } = useI18n()
 
   useEffect(() => {
     api.summary().then(setSummary).catch(err => setError(err.message))
@@ -32,48 +34,45 @@ export default function DashboardView() {
   if (error) {
     return (
       <div className="error-banner" style={{ marginTop: 0 }}>
-        <span className="error-banner-title">Failed to load summary</span>
+        <span className="error-banner-title">{t('common.error', 'Failed to load summary')}</span>
         <span className="error-banner-msg">{error}</span>
       </div>
     )
   }
 
   if (!summary) {
-    return <div className="loading-state">Loading...</div>
+    return <div className="loading-state">{t('common.loading', 'Loading...')}</div>
   }
 
   return (
     <div>
       <div className="view-head">
         <div className="view-title-wrap">
-          <h2>Dashboard</h2>
+          <h2>{t('shell.dashboard', 'Dashboard')}</h2>
           <span className="view-sub">
-            Welcome back, {summary.customer.name ?? summary.customer.email}
+            {t('dash.greeting', 'Welcome back, ')}{summary.customer.name ?? summary.customer.email}
           </span>
         </div>
       </div>
 
       <div className="widgets">
         <StatWidget
-          label="Balance due"
+          label={t('dash.balanceDue', 'Balance due')}
           value={fmt(summary.balance_due_luma)}
           accent={summary.balance_due_luma > 0}
           subLabel={summary.balance_due_luma > 0 ? 'Payment required' : 'All clear'}
         />
         <StatWidget
-          label="Open invoices"
+          label={t('dash.openInvoices', 'Open invoices')}
           value={summary.open_invoices_count}
-          subLabel="Awaiting payment"
         />
         <StatWidget
-          label="Open tickets"
+          label={t('dash.openTickets', 'Open tickets')}
           value={summary.open_tickets_count}
-          subLabel="Support requests"
         />
         <StatWidget
-          label="Active services"
+          label={t('dash.activeServices', 'Active services')}
           value={summary.active_services_count}
-          subLabel="Currently running"
         />
       </div>
     </div>

@@ -10,7 +10,7 @@ import html
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +31,8 @@ router = APIRouter(prefix="/api", tags=["documents"])
 # backend-color-string guard). Local module-level constants below are
 # thin aliases so existing f-string interpolations keep working unchanged.
 from ..branding.theme_constants import BRAND_PRINT_PALETTE as _PALETTE, STATUS_COLORS as _STATUS_COLOR  # noqa: E402
+# T-P4-3 — server-rendered HTML label translations (en/hy/ru).
+from ..branding.html_i18n import pick_locale as _pick_locale, t as _t  # noqa: E402
 
 _COBALT = _PALETTE["cobalt"]
 _GOLD = _PALETTE["gold"]
@@ -85,13 +87,15 @@ async def _customer_record(s, tenant_id, customer_id) -> Record | None:
 
 # ---- HTML shell (print-clean, A4-ish) ----
 
-def _page(title: str, body: str) -> str:
+def _page(title: str, body: str, locale: str = "en") -> str:
     # T-P1-6 — `<meta viewport>` for mobile default-zoom; existing
     # @media print block extended with -webkit-print-color-adjust so the
     # cobalt header band actually renders when "Print to PDF" is invoked
     # without "background graphics" enabled.
+    # T-P4-3 — `lang` reflects the locale picked from Accept-Language so AT
+    # (screen readers) pronounce Armenian/Russian docs correctly.
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="{locale}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_e(title)}</title>
 <style>
@@ -131,9 +135,10 @@ def _page(title: str, body: str) -> str:
 <body><div class="sheet">{body}</div></body></html>"""
 
 
-def _pill(status: str) -> str:
+def _pill(status: str, locale: str = "en") -> str:
     color = _STATUS_COLOR.get(status, _INK3)
-    return f'<span class="pill" style="background:{color}">{_e(status)}</span>'
+    label = _t(f"status.{(status or '').upper()}", locale, fallback=status)  # type: ignore[arg-type]
+    return f'<span class="pill" style="background:{color}">{_e(label)}</span>'
 
 
 # ==========================================================================================
@@ -141,7 +146,14 @@ def _pill(status: str) -> str:
 # ==========================================================================================
 
 @router.get("/invoices/{invoice_id}/document", response_class=HTMLResponse)
-async def invoice_document(invoice_id: uuid.UUID, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+async def invoice_document(
+    invoice_id: uuid.UUID,
+    request: Request,
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    locale = _pick_locale(request.headers.get("accept-language"))
+    L = lambda k: _t(k, locale)  # noqa: E731
     inv = (await s.execute(
         select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == user.tenant_id)
     )).scalar_one_or_none()
@@ -167,15 +179,15 @@ async def invoice_document(invoice_id: uuid.UUID, user: User = Depends(current_u
         f"<tr><td>{_e(l.description)}</td><td class='num'>{l.quantity}</td>"
         f"<td class='num'>{_amd(l.unit_amount)}</td><td class='num'>{_amd(l.line_total)}</td></tr>"
         for l in lines
-    ) or "<tr><td colspan='4' class='muted'>No line items.</td></tr>"
+    ) or f"<tr><td colspan='4' class='muted'>{_e(L('no_lines'))}</td></tr>"
 
     pay_rows = "".join(
         f"<tr><td>{_date(p.paid_at)}</td><td>{_e(p.method)}</td><td class='num'>{_amd(p.amount)}</td></tr>"
         for p in payments
     )
     payments_block = (
-        f"<h3 style='color:{_COBALT};font-size:13px;text-transform:uppercase;letter-spacing:.5px'>Payments</h3>"
-        f"<table><thead><tr><th>Date</th><th>Method</th><th class='num'>Amount</th></tr></thead>"
+        f"<h3 style='color:{_COBALT};font-size:13px;text-transform:uppercase;letter-spacing:.5px'>{_e(L('payments'))}</h3>"
+        f"<table><thead><tr><th>{_e(L('date'))}</th><th>{_e(L('method'))}</th><th class='num'>{_e(L('amount'))}</th></tr></thead>"
         f"<tbody>{pay_rows}</tbody></table>"
     ) if payments else ""
 
@@ -184,37 +196,37 @@ async def invoice_document(invoice_id: uuid.UUID, user: User = Depends(current_u
 
     body = f"""
     <div class="head">
-      <div><div class="issuer">{issuer}</div><div class="muted">Invoice issuer</div></div>
-      <div class="doc-title"><h1>INVOICE</h1><div class="muted">{_e(inv.number)}</div></div>
+      <div><div class="issuer">{issuer}</div><div class="muted">{_e(L('issuer'))}</div></div>
+      <div class="doc-title"><h1>{_e(L('invoice').upper())}</h1><div class="muted">{_e(inv.number)}</div></div>
     </div>
     <div class="meta">
       <div>
-        <div class="label">Billed to</div>
+        <div class="label">{_e(L('billed_to'))}</div>
         <div style="font-weight:600">{_e(cust['name'])}</div>
         <div class="muted">{_e(cust['email'])}</div>
         <div class="muted">{_e(cust['phone'])}</div>
       </div>
       <div style="text-align:right">
-        <div class="label">Status</div><div>{_pill(inv.status)}</div>
-        <div class="label" style="margin-top:8px">Period</div>
+        <div class="label">{_e(L('status'))}</div><div>{_pill(inv.status, locale)}</div>
+        <div class="label" style="margin-top:8px">{_e(L('period'))}</div>
         <div class="muted">{_date(inv.period_start)} → {_date(inv.period_end)}</div>
-        <div class="label" style="margin-top:8px">Issued / Due</div>
+        <div class="label" style="margin-top:8px">{_e(L('issued_due'))}</div>
         <div class="muted">{_date(inv.issued_at)} / {_date(inv.due_at)}</div>
       </div>
     </div>
     <table>
-      <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Amount</th></tr></thead>
+      <thead><tr><th>{_e(L('description'))}</th><th class="num">{_e(L('qty'))}</th><th class="num">{_e(L('unit'))}</th><th class="num">{_e(L('amount'))}</th></tr></thead>
       <tbody>{line_rows}</tbody>
     </table>
     <table class="totals">
-      <tr><td>Total</td><td class="num">{_amd(inv.total)}</td></tr>
-      <tr><td>Paid</td><td class="num">{_amd(int(paid))}</td></tr>
-      <tr class="grand"><td>Balance due</td><td class="num due">{_amd(balance)}</td></tr>
+      <tr><td>{_e(L('total'))}</td><td class="num">{_amd(inv.total)}</td></tr>
+      <tr><td>{_e(L('paid'))}</td><td class="num">{_amd(int(paid))}</td></tr>
+      <tr class="grand"><td>{_e(L('balance_due'))}</td><td class="num due">{_amd(balance)}</td></tr>
     </table>
     {payments_block}
-    <div class="foot">Generated by {issuer} · GAAhex · All amounts in Armenian Dram (֏).</div>
+    <div class="foot">{_e(L('footer'))} {issuer} · GAAhex · {_e(L('amounts_in'))}</div>
     """
-    return HTMLResponse(_page(f"Invoice {inv.number}", body))
+    return HTMLResponse(_page(f"{L('invoice')} {inv.number}", body, locale))
 
 
 # ==========================================================================================
@@ -224,6 +236,7 @@ async def invoice_document(invoice_id: uuid.UUID, user: User = Depends(current_u
 @router.get("/customers/{customer_id}/statement", response_class=HTMLResponse)
 async def customer_statement(
     customer_id: uuid.UUID,
+    request: Request,
     from_: str | None = Query(default=None, alias="from"),
     to: str | None = Query(default=None),
     user: User = Depends(current_user),
@@ -231,6 +244,8 @@ async def customer_statement(
 ):
     """Branded account statement: a customer's invoices + payments over an optional [from, to]
     window, with a running balance. Gated on customer-view scope."""
+    locale = _pick_locale(request.headers.get("accept-language"))
+    L = lambda k: _t(k, locale)  # noqa: E731
     cust_rec = (await s.execute(
         select(Record).where(Record.id == customer_id, Record.tenant_id == user.tenant_id, Record.entity_key == "customer")
     )).scalar_one_or_none()
@@ -287,30 +302,30 @@ async def customer_statement(
 
     body = f"""
     <div class="head">
-      <div><div class="issuer">{issuer}</div><div class="muted">Account statement</div></div>
-      <div class="doc-title"><h1>STATEMENT</h1><div class="muted">{_e(period)}</div></div>
+      <div><div class="issuer">{issuer}</div><div class="muted">{_e(L('statement'))}</div></div>
+      <div class="doc-title"><h1>{_e(L('statement').upper())}</h1><div class="muted">{_e(period)}</div></div>
     </div>
     <div class="meta">
       <div>
-        <div class="label">Account</div>
+        <div class="label">{_e(L('customer'))}</div>
         <div style="font-weight:600">{_e(cust['name'])}</div>
         <div class="muted">{_e(cust['email'])}</div>
         <div class="muted">{_e(cust['phone'])}</div>
       </div>
       <div style="text-align:right">
-        <div class="label">Billed</div><div>{_amd(total_billed)}</div>
-        <div class="label" style="margin-top:8px">Paid</div><div>{_amd(total_paid)}</div>
-        <div class="label" style="margin-top:8px">Closing balance</div>
+        <div class="label">{_e(L('total'))}</div><div>{_amd(total_billed)}</div>
+        <div class="label" style="margin-top:8px">{_e(L('paid'))}</div><div>{_amd(total_paid)}</div>
+        <div class="label" style="margin-top:8px">{_e(L('balance_due'))}</div>
         <div class="due" style="font-weight:700">{_amd(balance)}</div>
       </div>
     </div>
     <table>
-      <thead><tr><th>Date</th><th>Description</th><th class="num">Charges</th><th class="num">Payments</th><th class="num">Balance</th></tr></thead>
+      <thead><tr><th>{_e(L('date'))}</th><th>{_e(L('description'))}</th><th class="num">{_e(L('amount'))}</th><th class="num">{_e(L('payments'))}</th><th class="num">{_e(L('balance_due'))}</th></tr></thead>
       <tbody>{rows}</tbody>
     </table>
-    <div class="foot">Generated by {issuer} · GAAhex · All amounts in Armenian Dram (֏).</div>
+    <div class="foot">{_e(L('footer'))} {issuer} · GAAhex · {_e(L('amounts_in'))}</div>
     """
-    return HTMLResponse(_page(f"Statement — {cust['name']}", body))
+    return HTMLResponse(_page(f"{L('statement')} — {cust['name']}", body, locale))
 
 
 # ==========================================================================================
@@ -320,6 +335,7 @@ async def customer_statement(
 @router.get("/payments/{payment_id}/receipt", response_class=HTMLResponse)
 async def payment_receipt(
     payment_id: uuid.UUID,
+    request: Request,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
@@ -334,6 +350,8 @@ async def payment_receipt(
     The receipt uses the billing ``Payment`` row — the settled record created by
     ``settle_order`` — not the PaymentOrder itself.
     """
+    locale = _pick_locale(request.headers.get("accept-language"))
+    L = lambda k: _t(k, locale)  # noqa: E731
     # Load the Payment row (tenant-scoped)
     pay = (await s.execute(
         select(Payment).where(Payment.id == payment_id, Payment.tenant_id == user.tenant_id)
@@ -384,33 +402,33 @@ async def payment_receipt(
     inv_total = _amd(inv.total)
 
     # Payment status pill — a settled Payment is always confirmed
-    paid_pill = _pill("PAID")
+    paid_pill = _pill("PAID", locale)
 
     body = f"""
     <div class="head">
       <div>
         <div class="issuer">{issuer}</div>
-        <div class="muted">Payment receipt</div>
+        <div class="muted">{_e(L('payment_receipt'))}</div>
       </div>
       <div class="doc-title">
-        <h1>PAYMENT RECEIPT</h1>
+        <h1>{_e(L('payment_receipt').upper())}</h1>
         <div class="muted">No. {receipt_no}</div>
       </div>
     </div>
 
     <div class="meta">
       <div>
-        <div class="label">Customer</div>
+        <div class="label">{_e(L('customer'))}</div>
         <div style="font-weight:600">{_e(cust['name'])}</div>
         <div class="muted">{_e(cust['email'])}</div>
         <div class="muted">{_e(cust['phone'])}</div>
       </div>
       <div style="text-align:right">
-        <div class="label">Status</div>
+        <div class="label">{_e(L('status'))}</div>
         <div>{paid_pill}</div>
-        <div class="label" style="margin-top:8px">Date paid</div>
+        <div class="label" style="margin-top:8px">{_e(L('date'))}</div>
         <div class="muted">{_date(pay.paid_at)}</div>
-        <div class="label" style="margin-top:8px">Issued by</div>
+        <div class="label" style="margin-top:8px">{_e(L('issuer'))}</div>
         <div class="muted">{issuer}</div>
       </div>
     </div>
@@ -418,9 +436,9 @@ async def payment_receipt(
     <table>
       <thead>
         <tr>
-          <th>Description</th>
-          <th class="num">Invoice total</th>
-          <th class="num">Amount paid</th>
+          <th>{_e(L('description'))}</th>
+          <th class="num">{_e(L('total'))}</th>
+          <th class="num">{_e(L('paid'))}</th>
         </tr>
       </thead>
       <tbody>
@@ -433,18 +451,18 @@ async def payment_receipt(
     </table>
 
     <table class="totals">
-      <tr><td>Method</td><td class="num">{method_label}</td></tr>
+      <tr><td>{_e(L('method'))}</td><td class="num">{method_label}</td></tr>
       <tr class="grand">
-        <td>Total received</td>
+        <td>{_e(L('paid'))}</td>
         <td class="num due">{_amd(pay.amount)}</td>
       </tr>
     </table>
 
-    {f'<p class="muted" style="font-size:12px;margin-top:4px">Provider reference: {_e(provider_ref)}</p>' if provider_ref else ""}
-    {f'<p class="muted" style="font-size:12px;margin-top:4px">Note: {_e(pay.note)}</p>' if pay.note else ""}
+    {f'<p class="muted" style="font-size:12px;margin-top:4px">{_e(L("method"))}: {_e(provider_ref)}</p>' if provider_ref else ""}
+    {f'<p class="muted" style="font-size:12px;margin-top:4px">{_e(pay.note)}</p>' if pay.note else ""}
 
     <div class="foot">
-      Confirmed by {method_label}{provider_detail} · {issuer} · GAAhex · All amounts in Armenian Dram (֏).
+      {_e(L('method'))}: {method_label}{provider_detail} · {issuer} · GAAhex · {_e(L('amounts_in'))}
     </div>
     """
-    return HTMLResponse(_page(f"Receipt {receipt_no}", body))
+    return HTMLResponse(_page(f"{L('receipt')} {receipt_no}", body, locale))

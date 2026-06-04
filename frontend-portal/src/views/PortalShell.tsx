@@ -6,15 +6,9 @@ import DashboardView from './DashboardView'
 import BillsView from './BillsView'
 import SupportView from './SupportView'
 import ServiceView from './ServiceView'
+import { useI18n, type Lang } from '../lib/i18n'  // T-P4-2
 
 type Tab = 'dashboard' | 'bills' | 'support' | 'service'
-
-const NAV: { id: Tab; label: string; Icon: () => JSX.Element }[] = [
-  { id: 'dashboard', label: 'Dashboard', Icon: IconDashboard },
-  { id: 'bills',     label: 'Bills',     Icon: IconBills },
-  { id: 'support',   label: 'Support',   Icon: IconSupport },
-  { id: 'service',   label: 'Service',   Icon: IconService },
-]
 
 interface Props {
   onLogout: () => void
@@ -51,6 +45,15 @@ function IconMoon() {
 export default function PortalShell({ onLogout, theme, onToggleTheme }: Props) {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [me, setMe]   = useState<PortalCustomer | null>(null)
+  const { t, lang, setLang } = useI18n()
+
+  // T-P4-2 — sidebar labels are now i18n-keyed instead of hardcoded English.
+  const NAV: { id: Tab; label: string; Icon: () => JSX.Element }[] = [
+    { id: 'dashboard', label: t('shell.dashboard', 'Dashboard'), Icon: IconDashboard },
+    { id: 'bills',     label: t('shell.bills',     'Bills'),     Icon: IconBills },
+    { id: 'support',   label: t('shell.support',   'Support'),   Icon: IconSupport },
+    { id: 'service',   label: t('shell.service',   'Service'),   Icon: IconService },
+  ]
 
   useEffect(() => {
     api.me().then(setMe).catch(() => {})
@@ -105,7 +108,8 @@ export default function PortalShell({ onLogout, theme, onToggleTheme }: Props) {
           <button
             className="iconbtn"
             onClick={logout}
-            title="Sign out"
+            title={t('shell.signout', 'Sign out')}
+            aria-label={t('shell.signout', 'Sign out')}
           >
             <IconLogout />
           </button>
@@ -120,11 +124,24 @@ export default function PortalShell({ onLogout, theme, onToggleTheme }: Props) {
             {NAV.find(n => n.id === tab)?.label}
           </span>
           <div className="header-right">
+            {/* Language switcher — T-P4-2 */}
+            <select
+              className="iconbtn"
+              value={lang}
+              onChange={(e) => setLang(e.target.value as Lang)}
+              aria-label={t('shell.lang', 'Language')}
+              style={{ paddingInline: 8, fontSize: 12 }}
+            >
+              <option value="en">EN</option>
+              <option value="hy">ՀԱ</option>
+              <option value="ru">RU</option>
+            </select>
             {/* Theme toggle */}
             <button
               className="iconbtn"
               onClick={onToggleTheme}
               title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={t('shell.theme', 'Toggle theme')}
             >
               {theme === 'dark' ? <IconSun /> : <IconMoon />}
             </button>
