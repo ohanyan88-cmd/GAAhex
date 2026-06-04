@@ -14,10 +14,10 @@ type Service = {
   plan_name: string; status: string; started_at: string; created_at: string
 }
 
-function fmtDate(iso: string) {
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
+// DF-4 — canonical fmtDate in lib/time.ts. Local signature was tighter
+// (non-nullable string); the canonical accepts null/undefined and returns
+// '—' for empty, which is compatible at every call site here.
+import { fmtDate } from '../lib/time'
 
 export default function ProvisioningView({ token }: { token: string }) {
   const [services, setServices] = useState<Service[]>([])

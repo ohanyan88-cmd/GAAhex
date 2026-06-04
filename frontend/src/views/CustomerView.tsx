@@ -126,15 +126,9 @@ function relTime(iso: string | null | undefined): string {
   return `${Math.floor(d / 86400)}d ago`
 }
 
-// Balance is delivered as a Decimal string in MAJOR units (֏), not luma. lib/money.money() expects
-// integer luma, so we format here. Hide-if-missing: return em-dash for null/blank.
-function moneyDecimal(s: string | null | undefined): string {
-  if (s === null || s === undefined || s === '') return '—'
-  const n = Number(s)
-  if (!isFinite(n)) return '—'
-  const fmt = n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-  return `${fmt} ֏`
-}
+// DF-6 — balance is a Decimal string in MAJOR units (֏). Canonical formatter
+// in lib/money.ts; local alias keeps existing call sites unchanged.
+import { moneyDecStr as moneyDecimal } from '../lib/money'
 
 // NEGATIVE = customer owes us (red), POSITIVE = credit on account (green), zero = default.
 function balanceTone(s: string | null | undefined): string {

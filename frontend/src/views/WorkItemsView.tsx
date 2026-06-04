@@ -31,11 +31,9 @@ import type { KPISpec } from '../page-shell'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
+// DF-4/5 — local `fmtDate` was actually a datetime formatter (used
+// `toLocaleString`). Delegated to canonical `fmtDateTime`.
+import { fmtDateTime as fmtDate } from '../lib/time'
 
 // WorkItem status → StatusPill primitive variant — kept here for the detail
 // modal (table/board use their own copy of this mapping).

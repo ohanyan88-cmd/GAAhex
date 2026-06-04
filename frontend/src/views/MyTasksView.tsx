@@ -72,11 +72,9 @@ function statusLabelFull(s: string | null | undefined): string {
   if (v === 'CANCELLED') return 'Cancelled'
   return s ?? '—'
 }
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
+// DF-4/5 — local `fmtDate` was actually a date+time formatter (used
+// `toLocaleString`). Delegated to canonical `fmtDateTime`.
+import { fmtDateTime as fmtDate } from '../lib/time'
 function priorityPill(priority: string | null | undefined) {
   const p = (priority ?? '').toUpperCase()
   if (!priority) return <span className="muted">—</span>

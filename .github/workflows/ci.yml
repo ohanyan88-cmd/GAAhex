@@ -81,6 +81,16 @@ jobs:
       - name: Tenant-filter static analysis
         run: python backend/scripts/check_tenant_filter.py
 
+      # Phase 6 governance — architecture-drift guard.
+      # Forbids new occurrences of patterns ruled out by the canonicals
+      # introduced in Phases 1-4 (local _deny / _parse_dt / authH /
+      # fmtDate / etc.) AND ratchets the migration tail (let alive, raw
+      # fetch, btn-md, inp, token: string view props). Pre-existing counts
+      # are stored in tools/check_drift_baseline.json — CI fails if any
+      # count INCREASES, never on the pre-existing tail.
+      - name: Architecture-drift guard
+        run: python tools/check_drift.py
+
       - name: Tests (pytest)
         working-directory: backend
         run: pytest --tb=short -q

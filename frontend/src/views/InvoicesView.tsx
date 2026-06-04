@@ -27,7 +27,10 @@ function decStrToLuma(s: string | null | undefined): number {
   const n = parseFloat(s)
   return isNaN(n) ? 0 : Math.round(n * 100)
 }
-function moneyDec(s: string | null | undefined): string {
+// DF-6 — NOT the canonical (which is `moneyDecStr`). This wrapper does a
+// decimal-string → luma conversion first, then formats as luma. Renamed
+// from `moneyDec` to make it clear this is not the standard helper.
+function moneyDecToLumaFmt(s: string | null | undefined): string {
   return money(decStrToLuma(s))
 }
 
@@ -1120,20 +1123,20 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, alignItems: 'end' }}>
           <div>
             <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Total</div>
-            <div className="num mono" style={{ fontSize: 15 }}>{moneyDec(out.total)}</div>
+            <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.total)}</div>
           </div>
           <div>
             <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Paid</div>
-            <div className="num mono" style={{ fontSize: 15 }}>{moneyDec(out.paid)}</div>
+            <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.paid)}</div>
           </div>
           <div>
             <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Credited</div>
-            <div className="num mono" style={{ fontSize: 15 }}>{moneyDec(out.credited)}</div>
+            <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.credited)}</div>
           </div>
           <div>
             <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Outstanding</div>
             <div className="num mono" style={{ fontSize: 17, fontWeight: 700, color: outColor }}>
-              {moneyDec(out.outstanding)}
+              {moneyDecToLumaFmt(out.outstanding)}
             </div>
           </div>
         </div>
@@ -1167,7 +1170,7 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
               <tr key={a.id}>
                 <td className="mono" title={a.applied_at ?? ''}>{a.applied_at ? timeAgo(a.applied_at) : '—'}</td>
                 <td className="mono" title={a.payment_id}>{a.payment_id.slice(0, 8)}</td>
-                <td className="num">{moneyDec(a.amount)}</td>
+                <td className="num">{moneyDecToLumaFmt(a.amount)}</td>
               </tr>
             ))}
           </tbody>
@@ -1234,7 +1237,7 @@ function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
       open
       onClose={onClose}
       title="Allocate payment"
-      subtitle={`Outstanding ${moneyDec(outstanding)}`}
+      subtitle={`Outstanding ${moneyDecToLumaFmt(outstanding)}`}
       size="sm"
       footer={
         <>

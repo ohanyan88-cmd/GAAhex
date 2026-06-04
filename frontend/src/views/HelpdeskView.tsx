@@ -23,11 +23,10 @@ import type { KPISpec } from '../page-shell'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
+// DF-4/5 — the local `fmtDate` here was a date+time formatter (used
+// `toLocaleString`, not `toLocaleDateString`). Renamed and delegated to the
+// canonical `fmtDateTime` to match its actual behavior.
+import { fmtDateTime as fmtDate } from '../lib/time'
 
 function fmtDateShort(iso: string | null | undefined): string {
   if (!iso) return '—'

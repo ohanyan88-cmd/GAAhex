@@ -56,15 +56,9 @@ type ConsolidatedBalance = {
 // (403/404 on this account), object = real snapshot.
 type BalanceCell = BalanceSnapshot | null
 
-// Balance is delivered as a Decimal string in MAJOR units (֏), not luma. `money()` from lib/money
-// expects integer luma, so we format here. Hide-if-missing: return em-dash for null/blank.
-function moneyDecimal(s: string | null | undefined): string {
-  if (s === null || s === undefined || s === '') return '—'
-  const n = Number(s)
-  if (!isFinite(n)) return '—'
-  const fmt = n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-  return `${fmt} ֏`
-}
+// DF-6 — balance is a Decimal string in MAJOR units (֏). Canonical formatter
+// in lib/money.ts; local alias keeps existing call sites unchanged.
+import { moneyDecStr as moneyDecimal } from '../lib/money'
 
 // Balance sign tone: NEGATIVE = customer owes us (red), POSITIVE = credit on account (green),
 // zero = default. Returns an inline style snippet to keep the column tnum + right-aligned.

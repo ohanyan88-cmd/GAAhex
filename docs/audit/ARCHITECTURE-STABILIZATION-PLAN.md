@@ -328,8 +328,8 @@ pnpm typecheck
 | Phase 3 — Permissions + Validation + Pagination | 13 | 4 | 7 | 2 | **13 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **9 done (DR-2/3, MO-6, TB-1/2/3/5, TL-6/7) · 16 deferred to Part 2** | **16** |
 | Phase 5 — Tokenization | 33 | 8 | 14 | 11 | 0 | **33** |
-| Phase 6 — Governance | 14 rules + 5 docs | — | — | — | 0 | **19** |
-| **TOTAL** | **107** | **35** | **36** | **22** | **0** | **107** |
+| Phase 6 — Governance | 14 rules + 7 docs | — | — | — | **15 done (10 HARD + 5 RATCHET drift rules in CI; 7 standards docs landed) · 5 deferred (post-Phase-5)** | **5** |
+| **TOTAL** | **107** | **35** | **36** | **22** | **57 done · 50 remaining (Phase 4 Part 2 + Phase 5)** | **50** |
 
 ---
 

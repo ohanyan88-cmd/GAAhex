@@ -30,10 +30,8 @@ const STATUSES = ['PENDING', 'ACTIVE', 'SUSPENDED', 'TERMINATED']
 const TYPES = ['internet', 'tv', 'voip', 'hosting', 'other']
 const KINDS = ['ip', 'mac', 'port', 'device', 'circuit', 'other']
 
-function fmtDate(iso: string | null | undefined) {
-  if (!iso) return '—'
-  const d = new Date(iso); return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
-}
+// DF-4 — canonical fmtDate in lib/time.ts.
+import { fmtDate } from '../lib/time'
 
 type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 function mapServiceStatus(s: string | null | undefined): PillVariant {
