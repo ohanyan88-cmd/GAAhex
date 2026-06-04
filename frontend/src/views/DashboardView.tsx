@@ -50,7 +50,7 @@ function ChartSkeleton({ h = 160 }: { h?: number }) {
   )
 }
 
-// Bar chart — revenue (blue) + churn indicator (gold band at bottom)
+// Bar chart — revenue (azure-interactive) + churn indicator (gold band at bottom)
 function BarChart({ data }: { data: { label: string; primary: number; secondary?: number }[] }) {
   const maxP = Math.max(...data.map(d => d.primary), 1)
   const maxS = Math.max(...data.map(d => d.secondary ?? 0), 1)
@@ -59,7 +59,8 @@ function BarChart({ data }: { data: { label: string; primary: number; secondary?
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160 }}>
         {data.map(b => (
           <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }} title={b.label}>
-            <div style={{ height: `${b.primary / maxP * 82}%`, background: 'linear-gradient(180deg,var(--azure-400),var(--azure-600))', borderRadius: '4px 4px 0 0', minHeight: b.primary > 0 ? 4 : 0 }} />
+            {/* D18: primary revenue bar = drillable/active series → --gx-chart-active (= --gx-interactive). Gradient routed via --gx-interactive-hover → --gx-interactive-active to keep the depth cue without touching Tier-0 azure scales. */}
+            <div style={{ height: `${b.primary / maxP * 82}%`, background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))', borderRadius: '4px 4px 0 0', minHeight: b.primary > 0 ? 4 : 0 }} />
             {b.secondary != null && b.secondary > 0 && (
               <div style={{ height: `${b.secondary / maxS * 14}%`, background: 'var(--gx-gold)', borderRadius: '0 0 4px 4px', minHeight: 2 }} />
             )}
@@ -89,13 +90,14 @@ function AreaChart({ data }: { data: { label: string; value: number }[] }) {
     <div style={{ position: 'relative' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 120, overflow: 'visible' }}>
         <defs>
+          {/* D18: area chart fill + stroke = active drillable series → --gx-chart-active (= --gx-interactive). */}
           <linearGradient id="areafill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--azure-500)" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="var(--azure-500)" stopOpacity="0.03" />
+            <stop offset="0%" stopColor="var(--gx-chart-active)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--gx-chart-active)" stopOpacity="0.03" />
           </linearGradient>
         </defs>
         <polygon points={area} fill="url(#areafill)" />
-        <polyline points={polyline} fill="none" stroke="var(--azure-500)" strokeWidth="2" strokeLinejoin="round" />
+        <polyline points={polyline} fill="none" stroke="var(--gx-chart-active)" strokeWidth="2" strokeLinejoin="round" />
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--gx-text-3)', marginTop: 4 }}>
         <span>{data[0].label.slice(5)}</span>
@@ -121,12 +123,13 @@ function LineChart({ data, series1Label = 'Series 1', series2Label = 'Series 2' 
   return (
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 110, overflow: 'visible' }}>
-        <polyline points={pts1} fill="none" stroke="var(--azure-500)" strokeWidth="2" strokeLinejoin="round" />
+        {/* D18: series 1 = primary drillable line → --gx-chart-active; series 2 = peak/highlight → --gx-gold (dashed). */}
+        <polyline points={pts1} fill="none" stroke="var(--gx-chart-active)" strokeWidth="2" strokeLinejoin="round" />
         <polyline points={pts2} fill="none" stroke="var(--gx-gold)" strokeWidth="2" strokeLinejoin="round" strokeDasharray="4 3" />
       </svg>
       <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 12, height: 2, background: 'var(--azure-500)', display: 'inline-block', borderRadius: 1 }} />{series1Label}
+          <span style={{ width: 12, height: 2, background: 'var(--gx-chart-active)', display: 'inline-block', borderRadius: 1 }} />{series1Label}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 12, height: 2, background: 'var(--gx-gold)', display: 'inline-block', borderRadius: 1 }} />{series2Label}
@@ -249,7 +252,8 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
         </div>
         {trend.length > 1 && (
           <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, height: H, flexShrink: 0, opacity: 0.6 }}>
-            <polyline points={pts} fill="none" stroke={color ?? 'var(--azure-500)'} strokeWidth="1.5" strokeLinejoin="round" />
+            {/* D18: KPI sparkline default is passive/decorative → --gx-chart-default (= slate-400). Caller may override with a semantic state color (success/danger). */}
+            <polyline points={pts} fill="none" stroke={color ?? 'var(--gx-chart-default)'} strokeWidth="1.5" strokeLinejoin="round" />
           </svg>
         )}
       </div>
@@ -275,7 +279,12 @@ function Card({ title, icon: Icon, children, action }: {
   )
 }
 
-const PLAN_COLORS = ['var(--azure-500)', 'var(--azure-300)', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899']
+// D18: distinct-identity palette (plan slices, lead sources, sankey nodes) →
+// categorical viz palette --viz-1..--viz-8 (locked, color-blind aware). Raw
+// Tier-0 azure + inline hex previously here both violated D18: component code
+// must never reach raw scales, and the family must be slate/viz/semantic, not
+// the interactive azure family used for chart series.
+const PLAN_COLORS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-5)', 'var(--viz-4)', 'var(--viz-7)']
 
 // Gantt — projects as horizontal bars positioned by date range
 function GanttChart({ projects }: { projects: { id: string; name: string; start_date: string; due_date: string; status: string; owner?: string }[] }) {
@@ -286,9 +295,12 @@ function GanttChart({ projects }: { projects: { id: string; name: string; start_
   const minT = Math.min(...starts)
   const maxT = Math.max(...ends)
   const span = Math.max(1, maxT - minT)
+  // D18: Gantt status colors — PLANNING (neutral slate), ACTIVE = the
+  // in-progress drillable bar → --gx-chart-active (= --gx-interactive),
+  // ON_HOLD/DONE/CANCELLED → semantic family (warning/success/danger).
   const statusColor = (s: string) => ({
     'PLANNING':  'var(--gx-text-3)',
-    'ACTIVE':    'var(--azure-500)',
+    'ACTIVE':    'var(--gx-chart-active)',
     'ON_HOLD':   'var(--gx-warning,#f59e0b)',
     'DONE':      'var(--gx-success,#22c55e)',
     'CANCELLED': 'var(--gx-danger,#ef4444)',
@@ -327,9 +339,10 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
       <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 4, height: 160 }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', position: 'relative' }} title={`${d.category}: ${d.count} (${d.cum_pct}% cum)`}>
+            {/* D18: Pareto top-3 = highlighted drillable bars → --gx-chart-active; rest = passive slate → --gx-chart-default. */}
             <div style={{
               height: `${(d.count / maxCount) * 80}%`,
-              background: i < 3 ? 'var(--azure-500)' : 'var(--gx-text-3)',
+              background: i < 3 ? 'var(--gx-chart-active)' : 'var(--gx-chart-default)',
               borderRadius: '3px 3px 0 0',
             }} />
             <span style={{ fontSize: 9, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{d.category}</span>
@@ -346,7 +359,7 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
         </svg>
       </div>
       <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: 'var(--gx-text-3)' }}>
-        <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--azure-500)', borderRadius: 2, marginRight: 4 }} />Top 3</span>
+        <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--gx-chart-active)', borderRadius: 2, marginRight: 4 }} />Top 3</span>
         <span><span style={{ display: 'inline-block', width: 9, height: 2, background: 'var(--gx-gold)', verticalAlign: 'middle', marginRight: 4 }} />Cumulative %</span>
         <span style={{ marginLeft: 'auto' }}>80% target line</span>
       </div>
@@ -378,7 +391,10 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
               </div>
               {i < data.nodes.length - 1 && (
                 <div key={`arrow-${i}`} style={{
-                  flex: 1, height: 2, background: 'linear-gradient(90deg, var(--azure-500), var(--gx-text-3))',
+                  flex: 1, height: 2,
+                  // D18: connector encodes flow direction (active → passive). Start = active drillable
+                  // (--gx-chart-active), end = passive default text → keep --gx-text-3.
+                  background: 'linear-gradient(90deg, var(--gx-chart-active), var(--gx-text-3))',
                   position: 'relative',
                 }}>
                   <div style={{
@@ -405,11 +421,16 @@ function GeoMap({ points }: { points: { id: string; kind: string; name: string; 
   const minLon = Math.min(...lons), maxLon = Math.max(...lons)
   const latSpan = Math.max(0.01, maxLat - minLat)
   const lonSpan = Math.max(0.01, maxLon - minLon)
+  // D18: geo point kinds = distinct-identity categories → categorical viz
+  // palette. Tower's previous --gx-gold + customer's inline #22c55e + the
+  // coverage_check inline #ec4899 all violated D18 (gold is brand signature
+  // only, semantic green is for status, raw hex is Tier-0). Route all four
+  // through --viz-1..--viz-8 so the map is color-blind aware.
   const kindColor = (k: string) => ({
-    site: 'var(--azure-500)',
-    tower: 'var(--gx-gold)',
-    customer: '#22c55e',
-    coverage_check: '#ec4899',
+    site: 'var(--viz-1)',
+    tower: 'var(--viz-2)',
+    customer: 'var(--viz-3)',
+    coverage_check: 'var(--viz-4)',
   } as Record<string, string>)[k] ?? 'var(--gx-text-3)'
   const W = 100, H = 70
   return (
@@ -526,8 +547,9 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
         {data.map(d => (
           <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 4, height: '100%' }} title={`${d.label}: this ${d.thisVal} vs last ${d.lastVal}`}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2, height: '85%' }}>
+              {/* D18: "this period" = the active drillable series → gradient routed via --gx-interactive-hover/-active. "Last period" stays as faded slate text-3 (passive prior-period reference). */}
               <div style={{ width: '40%', height: `${d.thisVal / max * 100}%`,
-                background: 'linear-gradient(180deg,var(--azure-400),var(--azure-600))',
+                background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))',
                 borderRadius: '3px 3px 0 0', minHeight: d.thisVal > 0 ? 3 : 0 }} />
               <div style={{ width: '40%', height: `${d.lastVal / max * 100}%`,
                 background: 'var(--gx-text-3)', opacity: 0.5,
@@ -539,7 +561,7 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
       </div>
       <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 10, height: 10, background: 'var(--azure-500)', borderRadius: 2 }} />This period
+          <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />This period
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 10, height: 10, background: 'var(--gx-text-3)', opacity: 0.5, borderRadius: 2 }} />Last period
@@ -1022,7 +1044,8 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                     }))} />
                     <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--gx-text-3)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ width: 10, height: 10, background: 'var(--azure-500)', borderRadius: 2 }} />Collected
+                        {/* D18: legend swatch matches BarChart primary fill → --gx-chart-active. */}
+                        <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />Collected
                       </span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ width: 10, height: 10, background: 'var(--gx-gold)', borderRadius: 2 }} />Churn events
@@ -1088,11 +1111,12 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
             <Card title="AR Aging" icon={AlertTriangle}>
               {arAging.state === 'loading' && <ChartSkeleton h={100} />}
               {arAging.state === 'ok' && (
+                {/* D18: AR aging buckets — Current (success), 1-30 = sequential intermediate (slate default, not yet a warning), 31-60 (warning), 61-90 (danger-adjacent, was inline #f97316 → semantic warning is closest), 90+ (danger). */}
                 <HorizontalBarChart buckets={[
                   { label: 'Current',   value: arAging.value.current, color: 'var(--gx-success,#22c55e)' },
-                  { label: '1-30 days', value: arAging.value.d1_30,   color: 'var(--azure-400)' },
+                  { label: '1-30 days', value: arAging.value.d1_30,   color: 'var(--gx-chart-default)' },
                   { label: '31-60 days',value: arAging.value.d31_60,  color: 'var(--gx-warning,#f59e0b)' },
-                  { label: '61-90 days',value: arAging.value.d61_90,  color: '#f97316' },
+                  { label: '61-90 days',value: arAging.value.d61_90,  color: 'var(--gx-warning,#f59e0b)' },
                   { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger,#ef4444)' },
                 ].filter(b => b.value > 0)} />
               )}
@@ -1201,11 +1225,12 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
           <Card title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
             {weekly.state === 'loading' && <ChartSkeleton h={130} />}
             {weekly.state === 'ok' && (
+              {/* D18: three distinct-identity series in one multi-line chart. Revenue = primary drillable series → --gx-chart-active. New customers (was inline #22c55e) is the "good growth" line — keep semantic success. Churns stays on semantic danger. */}
               <MultiLineChart
                 labels={weekly.value.map((w: any) => w.week)}
                 series={[
-                  { name: 'Revenue (x1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--azure-500)' },
-                  { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: '#22c55e' },
+                  { name: 'Revenue (x1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--gx-chart-active)' },
+                  { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: 'var(--gx-success,#22c55e)' },
                   { name: 'Churns',             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger,#ef4444)' },
                 ]}
               />
@@ -1235,9 +1260,10 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
               <Card title="Workitems by Status" icon={CheckSquare}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.workitems).reduce((s: number, v) => s + (v as number), 0) as number}
+                  // D18: IN_PROGRESS = actively-being-worked status → --gx-chart-active (interactive). Other states use slate (todo), semantic danger (blocked), semantic success (done).
                   buckets={[
                     { label: 'TODO',        value: statusBreak.value.workitems.TODO ?? 0,        color: 'var(--gx-text-3)' },
-                    { label: 'In Progress', value: statusBreak.value.workitems.IN_PROGRESS ?? 0, color: 'var(--azure-500)' },
+                    { label: 'In Progress', value: statusBreak.value.workitems.IN_PROGRESS ?? 0, color: 'var(--gx-chart-active)' },
                     { label: 'Blocked',     value: statusBreak.value.workitems.BLOCKED ?? 0,     color: 'var(--gx-danger,#ef4444)' },
                     { label: 'Done',        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success,#22c55e)' },
                   ]}
@@ -1249,8 +1275,9 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
               <Card title="Tickets by Status" icon={Inbox}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.tickets).reduce((s: number, v) => s + (v as number), 0) as number}
+                  // D18: OPEN = the active drillable ticket bucket → --gx-chart-active. Pending (warning), Resolved (success), Closed (slate).
                   buckets={[
-                    { label: 'Open',     value: statusBreak.value.tickets.OPEN ?? 0,        color: 'var(--azure-500)' },
+                    { label: 'Open',     value: statusBreak.value.tickets.OPEN ?? 0,        color: 'var(--gx-chart-active)' },
                     { label: 'Pending',  value: statusBreak.value.tickets.PENDING ?? 0,     color: 'var(--gx-warning,#f59e0b)' },
                     { label: 'Resolved', value: statusBreak.value.tickets.RESOLVED ?? 0,    color: 'var(--gx-success,#22c55e)' },
                     { label: 'Closed',   value: statusBreak.value.tickets.CLOSED ?? 0,      color: 'var(--gx-text-3)' },
@@ -1263,9 +1290,10 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
               <Card title="Invoices by Status" icon={Banknote}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.invoices).reduce((s: number, v) => s + (v as number), 0) as number}
+                  // D18: ISSUED = the active drillable invoice bucket awaiting payment → --gx-chart-active. Paid (success), Overdue (danger), Draft/Void (slate).
                   buckets={[
                     { label: 'Draft',   value: statusBreak.value.invoices.DRAFT ?? 0,   color: 'var(--gx-text-3)' },
-                    { label: 'Issued',  value: statusBreak.value.invoices.ISSUED ?? 0,  color: 'var(--azure-500)' },
+                    { label: 'Issued',  value: statusBreak.value.invoices.ISSUED ?? 0,  color: 'var(--gx-chart-active)' },
                     { label: 'Paid',    value: statusBreak.value.invoices.PAID ?? 0,    color: 'var(--gx-success,#22c55e)' },
                     { label: 'Overdue', value: statusBreak.value.invoices.OVERDUE ?? 0, color: 'var(--gx-danger,#ef4444)' },
                     { label: 'Void',    value: statusBreak.value.invoices.VOID ?? 0,    color: 'var(--gx-text-3)' },
@@ -1310,9 +1338,10 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
 
               {isShown('task-aging') && taskAging.state === 'ok' && (
                 <Card title="Task Aging" icon={CheckSquare}>
+                  {/* D18: aging sequence (0-7 success, 8-15 intermediate slate, 16-30 warning, 30+ danger). 8-15 was --azure-400 (Tier-0 violation) — now slate default. */}
                   <HorizontalBarChart buckets={[
                     { label: '0-7 days',   value: taskAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
-                    { label: '8-15 days',  value: taskAging.value.d8_15,    color: 'var(--azure-400)' },
+                    { label: '8-15 days',  value: taskAging.value.d8_15,    color: 'var(--gx-chart-default)' },
                     { label: '16-30 days', value: taskAging.value.d16_30,   color: 'var(--gx-warning,#f59e0b)' },
                     { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
@@ -1322,9 +1351,10 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
 
               {isShown('issue-aging') && ticketAging.state === 'ok' && (
                 <Card title="Issue Aging" icon={Inbox}>
+                  {/* D18: aging sequence mirror of Task Aging — 8-15 was --azure-400 (Tier-0 violation) → --gx-chart-default (slate). */}
                   <HorizontalBarChart buckets={[
                     { label: '0-7 days',   value: ticketAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
-                    { label: '8-15 days',  value: ticketAging.value.d8_15,    color: 'var(--azure-400)' },
+                    { label: '8-15 days',  value: ticketAging.value.d8_15,    color: 'var(--gx-chart-default)' },
                     { label: '16-30 days', value: ticketAging.value.d16_30,   color: 'var(--gx-warning,#f59e0b)' },
                     { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
@@ -1388,7 +1418,8 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
                               <span style={{ fontWeight: 600 }}>{Number(cnt)}</span>
                             </div>
                             <div style={{ height: 6, borderRadius: 3, background: 'var(--gx-surface-2)' }}>
-                              <div style={{ height: '100%', width: `${(Number(cnt) / max) * 100}%`, background: 'var(--azure-500)', borderRadius: 3 }} />
+                              {/* D18: ranked-list bar = drillable per-rep performance → --gx-chart-active. */}
+                              <div style={{ height: '100%', width: `${(Number(cnt) / max) * 100}%`, background: 'var(--gx-chart-active)', borderRadius: 3 }} />
                             </div>
                           </div>
                         )

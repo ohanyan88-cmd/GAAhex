@@ -10,8 +10,11 @@
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; font-family:var(--gx-font-sans); font-weight:600; font-size:13px; height:var(--gx-control-md); padding:0 15px; border-radius:var(--gx-radius-md); border:1px solid transparent; cursor:pointer; transition:all var(--gx-dur-quick) var(--gx-ease-standard); white-space:nowrap; }
 .btn:focus-visible { outline:none; box-shadow:0 0 0 2px var(--gx-ring-offset), 0 0 0 4px var(--gx-ring); }
 .btn:active { transform:translateY(.5px); }
-.btn-primary { background:var(--gx-primary); color:var(--gx-on-primary); }
-.btn-primary:hover { background:var(--gx-primary-hover); }
+/* D18: primary action button = interactive affordance → --gx-interactive* (azure),
+   not --gx-primary* (cobalt brand spine). --gx-on-primary stays as the contrast
+   token — it resolves to #FFFFFF in both themes, which is the correct on-azure text. */
+.btn-primary { background:var(--gx-interactive); color:var(--gx-on-primary); }
+.btn-primary:hover { background:var(--gx-interactive-hover); }
 .btn-secondary { background:var(--gx-surface-2); color:var(--gx-text-1); border-color:var(--gx-border-strong); }
 .btn-secondary:hover { background:var(--gx-elevated); }
 .btn-ghost { background:transparent; color:var(--gx-text-2); }
@@ -50,8 +53,9 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 /* ---- GAAhex extensions (not in kit) ---- */
 
 /* extension: link variant (our API has Button variant: 'link'; kit doesn't) */
-.btn-link { background:transparent; color:var(--gx-primary); border:none; padding:0; height:auto; }
-.btn-link:hover { color:var(--gx-primary-hover); text-decoration:underline; }
+/* D18: link styling = interactive affordance → --gx-interactive* (azure), not cobalt brand spine. */
+.btn-link { background:transparent; color:var(--gx-interactive); border:none; padding:0; height:auto; }
+.btn-link:hover { color:var(--gx-interactive-hover); text-decoration:underline; }
 
 /* extension: large input (our API has Input size: 'lg'; kit doesn't) */
 .inp-lg { height:var(--gx-control-lg); font-size:14px; padding:0 14px; }
