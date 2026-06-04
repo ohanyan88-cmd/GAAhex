@@ -4,7 +4,7 @@ import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  InboxIcon, SearchIcon, GearIcon, ServerIcon,
+  InboxIcon, GearIcon, ServerIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
@@ -176,6 +176,16 @@ export default function ServicesView({ token, canConfigure = false, configVersio
       secondaryActions={canConfigure && onConfigure ? [
         { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
       ] : undefined}
+      // TL-5 — search + type quick-filter lift into PageShell zone D.
+      filters={{
+        search: { value: query, onChange: setQuery, placeholder: 'Search services' },
+        quick: [{
+          label: 'Type',
+          value: type,
+          onChange: setType,
+          options: [{ value: '', label: 'All' }, ...TYPES.map((t) => ({ value: t, label: t }))],
+        }],
+      }}
     >
         <div className="tabs">
           <button className={'tab' + (status === '' ? ' on' : '')} onClick={() => setStatus('')}>
@@ -201,22 +211,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search services"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <select className="inp inp-sm" aria-label="Filter by type" value={type} onChange={(e) => setType(e.target.value)} style={{ marginLeft: 8 }}>
-                <option value="">All types</option>
-                {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <span className="spacer" />
-            </div>
+            {/* TL-5 — search + type quick filter moved up to PageShell zone D. */}
 
             <div className="grid-wrap">
               <table className="grid">

@@ -7,7 +7,7 @@ import { money } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import {
-  CreditCardIcon, ReceiptIcon, SearchIcon, ArrowRightIcon,
+  CreditCardIcon, ReceiptIcon, ArrowRightIcon,
   ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, GearIcon,
   MoreVerticalIcon,
 } from '../components/icons'
@@ -157,6 +157,8 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
       secondaryActions={canConfigure && onConfigure ? [
         { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
       ] : undefined}
+      // TL-5 — search lifts into PageShell zone D.
+      filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search orders' } }}
     >
         <div className="tabs">
           {TAB_DEFS.map(([val, label]) => {
@@ -194,18 +196,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
 
         {orders && orders.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search orders"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <span className="spacer" />
-            </div>
+            {/* TL-5 — search lifted to PageShell zone D. */}
 
             <div className="grid-wrap">
               <table className="grid">

@@ -5,7 +5,7 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  ActivityIcon, ReceiptIcon, SearchIcon, GearIcon, MoreVerticalIcon,
+  ActivityIcon, ReceiptIcon, GearIcon, MoreVerticalIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
@@ -152,6 +152,8 @@ export default function UsageView({ token, canConfigure = false, configVersion =
       secondaryActions={!unavailable && canConfigure && onConfigure ? [
         { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
       ] : undefined}
+      // TL-5 — search lifts into PageShell zone D.
+      filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search usage' } }}
     >
         <div className="tabs">
           <button className={'tab' + (rated === '' ? ' on' : '')} onClick={() => setRated('')}>
@@ -174,19 +176,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
 
         {list && list.length > 0 && (
           <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
-            <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
-              <div className="tb-search" style={{ width: 280 }}>
-                <SearchIcon size={14} />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search usage"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
-                />
-              </div>
-              <span className="spacer" />
-            </div>
-
+            {/* TL-5 — search lifted to PageShell zone D. */}
             <div className="grid-wrap">
               <table className="grid">
                 <thead>
