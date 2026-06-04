@@ -29,13 +29,13 @@ function approvalPill(s: string | null | undefined): 'active' | 'critical' | 'ne
   return 'info'
 }
 
-export default function ApprovalsTab({ token, customerId }: { token: string; customerId: string }) {
+export default function ApprovalsTab({ token, entity, id }: { token: string; entity: string; id: string }) {
   const [rows, setRows] = useState<ApprovalRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<ApprovalRow[]>(token, `/api/approvals?target_entity_key=customer&target_record_id=${encodeURIComponent(customerId)}`)
+    bget<ApprovalRow[]>(token, `/api/approvals?target_entity_key=${encodeURIComponent(entity)}&target_record_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         // 404 = endpoint missing → empty state (per spec: handle gracefully).
@@ -44,7 +44,7 @@ export default function ApprovalsTab({ token, customerId }: { token: string; cus
         setRows(r.data)
       })
     return () => { cancelled = true }
-  }, [token, customerId])
+  }, [token, entity, id])
 
   if (rows === undefined) {
     return (

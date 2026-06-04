@@ -21,13 +21,13 @@ type CommunicationRow = {
 }
 
 
-export default function CommunicationsTab({ token, customerId }: { token: string; customerId: string }) {
+export default function CommunicationsTab({ token, entity, id }: { token: string; entity: string; id: string }) {
   const [rows, setRows] = useState<CommunicationRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<CommunicationRow[]>(token, `/api/communications?related_entity_type=customer&related_entity_id=${encodeURIComponent(customerId)}`)
+    bget<CommunicationRow[]>(token, `/api/communications?related_entity_type=${encodeURIComponent(entity)}&related_entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }
@@ -35,7 +35,7 @@ export default function CommunicationsTab({ token, customerId }: { token: string
         setRows(r.data)
       })
     return () => { cancelled = true }
-  }, [token, customerId])
+  }, [token, entity, id])
 
   if (rows === undefined) {
     return (

@@ -26,13 +26,14 @@ function taskPill(s: string | null | undefined): 'active' | 'neutral' | 'critica
   return 'info'
 }
 
-export default function TasksTab({ token, customerId }: { token: string; customerId: string }) {
+// TB-4 — parameterized over (entity, id) so all detail views share this one component.
+export default function TasksTab({ token, entity, id }: { token: string; entity: string; id: string }) {
   const [rows, setRows] = useState<TaskRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<TaskRow[]>(token, `/api/tasks?parent_entity_type=customer&parent_entity_id=${encodeURIComponent(customerId)}`)
+    bget<TaskRow[]>(token, `/api/tasks?parent_entity_type=${encodeURIComponent(entity)}&parent_entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }  // missing endpoint → empty state
@@ -40,7 +41,7 @@ export default function TasksTab({ token, customerId }: { token: string; custome
         setRows(r.data)
       })
     return () => { cancelled = true }
-  }, [token, customerId])
+  }, [token, entity, id])
 
   if (rows === undefined) {
     return (

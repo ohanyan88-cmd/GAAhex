@@ -29,13 +29,13 @@ function normalize(payload: RelatedGraph | null | undefined): RelatedRow[] {
   return payload.rows ?? payload.edges ?? payload.nodes ?? []
 }
 
-export default function RelatedTab({ token, customerId }: { token: string; customerId: string }) {
+export default function RelatedTab({ token, entity, id }: { token: string; entity: string; id: string }) {
   const [rows, setRows] = useState<RelatedRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<RelatedGraph>(token, `/api/relationships/graph?entity_type=customer&entity_id=${encodeURIComponent(customerId)}`)
+    bget<RelatedGraph>(token, `/api/relationships/graph?entity_type=${encodeURIComponent(entity)}&entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }
@@ -43,7 +43,7 @@ export default function RelatedTab({ token, customerId }: { token: string; custo
         setRows(normalize(r.data))
       })
     return () => { cancelled = true }
-  }, [token, customerId])
+  }, [token, entity, id])
 
   if (rows === undefined) {
     return (

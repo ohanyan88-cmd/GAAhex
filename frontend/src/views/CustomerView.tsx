@@ -957,14 +957,14 @@ function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
   // ── Canonical Object Detail tabs (file 10) ────────────────────────────────────
   // These nine come BEFORE the customer-specific tabs and each self-fetches.
   if (tab === 'overview')       return <OverviewTab customerId={customerId} profile={profile} />
-  if (tab === 'timeline')       return <TimelineTab token={token} customerId={customerId} />
-  if (tab === 'tasks')          return <TasksTab token={token} customerId={customerId} />
-  if (tab === 'comments')       return <CommentsTab token={token} customerId={customerId} />
-  if (tab === 'attachments')    return <AttachmentsTab token={token} customerId={customerId} />
-  if (tab === 'approvals')      return <ApprovalsTab token={token} customerId={customerId} />
-  if (tab === 'related')        return <RelatedTab token={token} customerId={customerId} />
-  if (tab === 'communications') return <CommunicationsTab token={token} customerId={customerId} />
-  if (tab === 'audit')          return <AuditTab token={token} customerId={customerId} />
+  if (tab === 'timeline')       return <TimelineTab token={token} entity="customer" id={customerId} />
+  if (tab === 'tasks')          return <TasksTab token={token} entity="customer" id={customerId} />
+  if (tab === 'comments')       return <CommentsTab token={token} entity="customer" id={customerId} />
+  if (tab === 'attachments')    return <AttachmentsTab token={token} entity="customer" id={customerId} />
+  if (tab === 'approvals')      return <ApprovalsTab token={token} entity="customer" id={customerId} />
+  if (tab === 'related')        return <RelatedTab token={token} entity="customer" id={customerId} />
+  if (tab === 'communications') return <CommunicationsTab token={token} entity="customer" id={customerId} />
+  if (tab === 'audit')          return <AuditTab token={token} entity="customer" id={customerId} />
 
   // ── Customer-specific tabs (legacy path with shared rows/fatal pipeline) ──────
   // Loading skeleton — 4 shimmering rows so the tab visually communicates "data incoming".

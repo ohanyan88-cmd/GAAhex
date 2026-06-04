@@ -20,13 +20,13 @@ type AuditRow = {
 }
 
 
-export default function AuditTab({ token, customerId }: { token: string; customerId: string }) {
+export default function AuditTab({ token, entity, id }: { token: string; entity: string; id: string }) {
   const [rows, setRows] = useState<AuditRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<AuditRow[]>(token, `/api/audit-log?entity_key=customer&record_id=${encodeURIComponent(customerId)}`)
+    bget<AuditRow[]>(token, `/api/audit-log?entity_key=${encodeURIComponent(entity)}&record_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }
@@ -40,7 +40,7 @@ export default function AuditTab({ token, customerId }: { token: string; custome
         setRows(sorted)
       })
     return () => { cancelled = true }
-  }, [token, customerId])
+  }, [token, entity, id])
 
   if (rows === undefined) {
     return (

@@ -1,7 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
 import { DetailTab } from '../primitives'  // TB-2 — canonical detail-tab primitive
-import ActivityTimeline from '../components/ActivityTimeline'  // TL-3 — canonical timeline
+// TB-4 — canonical Object Detail tab bodies parameterized over (entity, id).
+// Replaces 8 InvoiceXxxTab local copies that were ~280 LOC of pure
+// duplication of the customer-tabs originals.
+import TimelineTab from './customer-tabs/TimelineTab'
+import TasksTab from './customer-tabs/TasksTab'
+import CommentsTab from './customer-tabs/CommentsTab'
+import AttachmentsTab from './customer-tabs/AttachmentsTab'
+import ApprovalsTab from './customer-tabs/ApprovalsTab'
+import RelatedTab from './customer-tabs/RelatedTab'
+import CommunicationsTab from './customer-tabs/CommunicationsTab'
+import AuditTab from './customer-tabs/AuditTab'
 import { initiatePayment, confirmDevPayment, isDevFlow } from '../lib/paymentgw'
 import { money, toMinor } from '../lib/money'
 import { fmtDate, timeAgo } from '../lib/time'
@@ -621,14 +631,17 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                 />
               </Stack>
             )}
-            {tab === 'timeline'       && <InvoiceTimelineTab token={token} invoiceId={id} />}
-            {tab === 'tasks'          && <InvoiceTasksTab token={token} invoiceId={id} />}
-            {tab === 'comments'       && <InvoiceCommentsTab token={token} invoiceId={id} />}
-            {tab === 'attachments'    && <InvoiceAttachmentsTab token={token} invoiceId={id} />}
-            {tab === 'approvals'      && <InvoiceApprovalsTab token={token} invoiceId={id} />}
-            {tab === 'related'        && <InvoiceRelatedTab />}
-            {tab === 'communications' && <InvoiceCommunicationsTab token={token} invoiceId={id} />}
-            {tab === 'audit'          && <InvoiceAuditTab token={token} invoiceId={id} />}
+            {/* TB-4 — invoice detail tabs now reuse the canonical `customer-tabs/*`
+                components (parameterized over entity + id). The 8 Invoice*Tab
+                local copies were deleted — ~250 LOC of pure copy-paste. */}
+            {tab === 'timeline'       && <TimelineTab token={token} entity="invoice" id={id} />}
+            {tab === 'tasks'          && <TasksTab token={token} entity="invoice" id={id} />}
+            {tab === 'comments'       && <CommentsTab token={token} entity="invoice" id={id} />}
+            {tab === 'attachments'    && <AttachmentsTab token={token} entity="invoice" id={id} />}
+            {tab === 'approvals'      && <ApprovalsTab token={token} entity="invoice" id={id} />}
+            {tab === 'related'        && <RelatedTab token={token} entity="invoice" id={id} />}
+            {tab === 'communications' && <CommunicationsTab token={token} entity="invoice" id={id} />}
+            {tab === 'audit'          && <AuditTab token={token} entity="invoice" id={id} />}
           </div>
         </>
       )}
@@ -645,323 +658,13 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Canonical Object Detail tab bodies (file 10) — invoice-scoped. Each fetches
-// on mount; 404 from a missing endpoint degrades to a friendly empty state.
-// Same shape as customer-tabs/ and AccountsView tabs.
-// ─────────────────────────────────────────────────────────────────────────────
-type InvActivityRow = { id: string; action?: string | null; actor?: string | null; message?: string | null; at?: string | null; created_at?: string | null }
-type InvTaskRow = { id: string; title?: string | null; status?: string | null; priority?: string | null; assignee?: string | null; due_at?: string | null }
-type InvCommentRow = { id: string; author?: string | null; author_name?: string | null; body?: string | null; text?: string | null; created_at?: string | null }
-type InvAttachmentRow = { id: string; filename?: string | null; name?: string | null; mime_type?: string | null; size?: number | null; uploaded_by?: string | null; uploaded_at?: string | null; created_at?: string | null; url?: string | null }
-type InvApprovalRow = { id: string; request_type?: string | null; status?: string | null; requested_by?: string | null; requested_at?: string | null; decided_at?: string | null }
-type InvCommunicationRow = { id: string; channel?: string | null; direction?: string | null; subject?: string | null; from_address?: string | null; to_address?: string | null; occurred_at?: string | null; created_at?: string | null }
-type InvAuditRow = { id: string; action?: string | null; actor?: string | null; actor_id?: string | null; field?: string | null; old_value?: string | null; new_value?: string | null; at?: string | null; created_at?: string | null }
+// TB-4 — Inv* row types + helpers removed. The canonical
+// `customer-tabs/*` components own those types now.
 
-function fmtInvDT(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleString()
-}
-
-function invTabSkeleton(): ReactNode {
-  return (
-    <div className="card" style={{ padding: 14 }} aria-busy="true">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 10 }} />
-      ))}
-    </div>
-  )
-}
-
-// TL-3 — was hand-rolled `<ul>/<li>` over GET /api/activity. Now delegates to
-// the canonical `ActivityTimeline` component which renders the same feed with
-// the kit's vertical-timeline chrome (dot + spine + click-through routing)
-// instead of a flat list. Identical data source; richer presentation.
-function InvoiceTimelineTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  return <ActivityTimeline token={token} entity="invoice" record={invoiceId} />
-}
-
-function InvoiceTasksTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  const [rows, setRows] = useState<InvTaskRow[] | null | undefined>(undefined)
-  useEffect(() => {
-    let cancelled = false
-    setRows(undefined)
-    bget<InvTaskRow[]>(token, `/api/tasks?parent_entity_type=invoice&parent_entity_id=${encodeURIComponent(invoiceId)}`)
-      .then((r) => {
-        if (cancelled) return
-        if (r.status === 404) { setRows([]); return }
-        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
-        setRows(r.data)
-      })
-    return () => { cancelled = true }
-  }, [token, invoiceId])
-  if (rows === undefined) return invTabSkeleton()
-  if (rows === null) return <p className="muted">Could not load tasks.</p>
-  if (rows.length === 0) return <EmptyState title="No tasks recorded yet" message="Tasks linked to this invoice will appear here." />
-  return (
-    <Card pad="md">
-      <div className="grid-wrap">
-        <table className="grid">
-          <thead><tr>
-            <th scope="col">Title</th>
-            <th scope="col">Status</th>
-            <th scope="col">Priority</th>
-            <th scope="col">Assignee</th>
-            <th scope="col">Due</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.title ?? <span className="mono">{r.id.slice(0, 8)}</span>}</td>
-                <td>{r.status ?? '—'}</td>
-                <td>{r.priority ?? '—'}</td>
-                <td>{r.assignee ?? '—'}</td>
-                <td><span className="mono">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
-
-function InvoiceCommentsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  const [rows, setRows] = useState<InvCommentRow[] | null | undefined>(undefined)
-  useEffect(() => {
-    let cancelled = false
-    setRows(undefined)
-    bget<InvCommentRow[]>(token, `/api/comments?owner_entity_type=invoice&owner_entity_id=${encodeURIComponent(invoiceId)}`)
-      .then((r) => {
-        if (cancelled) return
-        if (r.status === 404) { setRows([]); return }
-        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
-        setRows(r.data)
-      })
-    return () => { cancelled = true }
-  }, [token, invoiceId])
-  if (rows === undefined) return invTabSkeleton()
-  if (rows === null) return <p className="muted">Could not load comments.</p>
-  if (rows.length === 0) return <EmptyState title="No comments recorded yet" message="Comments on this invoice will appear here." />
-  // TL-3 — comments rendered as `<table className="grid">` per file-04 standard;
-  // comment-feed chrome (author / preview / timestamp / body inline) lives in
-  // ActivityTimeline for the timeline tab. Comments aren't activity events,
-  // so they get their own table here.
-  return (
-    <Card pad="md">
-      <div className="grid-wrap">
-        <table className="grid">
-          <thead><tr>
-            <th scope="col">Author</th>
-            <th scope="col">Comment</th>
-            <th scope="col">Posted</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.author_name ?? r.author ?? 'Unknown'}</td>
-                <td style={{ whiteSpace: 'pre-wrap', maxWidth: 480 }}>{r.body ?? r.text ?? ''}</td>
-                <td><span className="mono">{fmtInvDT(r.created_at)}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
-
-function InvoiceAttachmentsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  const [rows, setRows] = useState<InvAttachmentRow[] | null | undefined>(undefined)
-  useEffect(() => {
-    let cancelled = false
-    setRows(undefined)
-    bget<InvAttachmentRow[]>(token, `/api/attachments?owner_entity_type=invoice&owner_entity_id=${encodeURIComponent(invoiceId)}`)
-      .then((r) => {
-        if (cancelled) return
-        if (r.status === 404) { setRows([]); return }
-        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
-        setRows(r.data)
-      })
-    return () => { cancelled = true }
-  }, [token, invoiceId])
-  if (rows === undefined) return invTabSkeleton()
-  if (rows === null) return <p className="muted">Could not load attachments.</p>
-  if (rows.length === 0) return <EmptyState title="No attachments recorded yet" message="Files uploaded against this invoice will appear here." />
-  return (
-    <Card pad="md">
-      <div className="grid-wrap">
-        <table className="grid">
-          <thead><tr>
-            <th scope="col">File</th>
-            <th scope="col">Type</th>
-            <th scope="col">Uploaded by</th>
-            <th scope="col">Uploaded at</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => {
-              const label = r.filename ?? r.name ?? r.id.slice(0, 8)
-              return (
-                <tr key={r.id}>
-                  <td>{r.url ? <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'var(--gx-link)' }}>{label}</a> : <span>{label}</span>}</td>
-                  <td>{r.mime_type ?? '—'}</td>
-                  <td>{r.uploaded_by ?? '—'}</td>
-                  <td><span className="mono">{fmtInvDT(r.uploaded_at ?? r.created_at)}</span></td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
-
-function InvoiceApprovalsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  const [rows, setRows] = useState<InvApprovalRow[] | null | undefined>(undefined)
-  useEffect(() => {
-    let cancelled = false
-    setRows(undefined)
-    bget<InvApprovalRow[]>(token, `/api/approvals?subject_type=invoice&subject_id=${encodeURIComponent(invoiceId)}`)
-      .then((r) => {
-        if (cancelled) return
-        if (r.status === 404) { setRows([]); return }
-        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
-        setRows(r.data)
-      })
-    return () => { cancelled = true }
-  }, [token, invoiceId])
-  if (rows === undefined) return invTabSkeleton()
-  if (rows === null) return <p className="muted">Could not load approvals.</p>
-  if (rows.length === 0) return <EmptyState title="No approvals recorded yet" message="Approval requests on this invoice will appear here." />
-  return (
-    <Card pad="md">
-      <div className="grid-wrap">
-        <table className="grid">
-          <thead><tr>
-            <th scope="col">Request</th>
-            <th scope="col">Status</th>
-            <th scope="col">Requested by</th>
-            <th scope="col">Requested at</th>
-            <th scope="col">Decided at</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.request_type ?? <span className="mono">{r.id.slice(0, 8)}</span>}</td>
-                <td>{r.status ?? '—'}</td>
-                <td>{r.requested_by ?? '—'}</td>
-                <td><span className="mono">{fmtInvDT(r.requested_at)}</span></td>
-                <td><span className="mono">{fmtInvDT(r.decided_at)}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
-
-// Related tab — placeholder per spec (no Wave A graph endpoint deployed yet).
-function InvoiceRelatedTab() {
-  return <EmptyState title="No related records recorded yet" message="Linked records across modules will appear here." />
-}
-
-function InvoiceCommunicationsTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  const [rows, setRows] = useState<InvCommunicationRow[] | null | undefined>(undefined)
-  useEffect(() => {
-    let cancelled = false
-    setRows(undefined)
-    bget<InvCommunicationRow[]>(token, `/api/communications?owner_entity_type=invoice&owner_entity_id=${encodeURIComponent(invoiceId)}`)
-      .then((r) => {
-        if (cancelled) return
-        if (r.status === 404) { setRows([]); return }
-        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
-        setRows(r.data)
-      })
-    return () => { cancelled = true }
-  }, [token, invoiceId])
-  if (rows === undefined) return invTabSkeleton()
-  if (rows === null) return <p className="muted">Could not load communications.</p>
-  if (rows.length === 0) return <EmptyState title="No communications recorded yet" message="Emails, calls, and messages will appear here." />
-  return (
-    <Card pad="md">
-      <div className="grid-wrap">
-        <table className="grid">
-          <thead><tr>
-            <th scope="col">Channel</th>
-            <th scope="col">Direction</th>
-            <th scope="col">Subject</th>
-            <th scope="col">From</th>
-            <th scope="col">To</th>
-            <th scope="col">At</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.channel ?? '—'}</td>
-                <td>{r.direction ?? '—'}</td>
-                <td>{r.subject ?? <span className="muted">—</span>}</td>
-                <td>{r.from_address ?? '—'}</td>
-                <td>{r.to_address ?? '—'}</td>
-                <td><span className="mono">{fmtInvDT(r.occurred_at ?? r.created_at)}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
-
-function InvoiceAuditTab({ token, invoiceId }: { token: string; invoiceId: string }) {
-  const [rows, setRows] = useState<InvAuditRow[] | null | undefined>(undefined)
-  useEffect(() => {
-    let cancelled = false
-    setRows(undefined)
-    bget<InvAuditRow[]>(token, `/api/events?entity_key=invoice&entity_id=${encodeURIComponent(invoiceId)}`)
-      .then((r) => {
-        if (cancelled) return
-        if (r.status === 404) { setRows([]); return }
-        if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
-        const sorted = [...r.data].sort((a, b) => (Date.parse(b.at ?? b.created_at ?? '') || 0) - (Date.parse(a.at ?? a.created_at ?? '') || 0))
-        setRows(sorted)
-      })
-    return () => { cancelled = true }
-  }, [token, invoiceId])
-  if (rows === undefined) return invTabSkeleton()
-  if (rows === null) return <p className="muted">Could not load audit log.</p>
-  if (rows.length === 0) return <EmptyState title="No audit entries recorded yet" message="Field-level changes to this invoice will appear here." />
-  return (
-    <Card pad="md">
-      <div className="grid-wrap">
-        <table className="grid">
-          <thead><tr>
-            <th scope="col">When</th>
-            <th scope="col">Actor</th>
-            <th scope="col">Action</th>
-            <th scope="col">Field</th>
-            <th scope="col">From</th>
-            <th scope="col">To</th>
-          </tr></thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td><span className="mono">{fmtInvDT(r.at ?? r.created_at)}</span></td>
-                <td>{r.actor ?? r.actor_id ?? '—'}</td>
-                <td>{r.action ?? '—'}</td>
-                <td>{r.field ?? '—'}</td>
-                <td><span className="muted">{r.old_value ?? '—'}</span></td>
-                <td>{r.new_value ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  )
-}
+// TB-4 — Invoice* tab body functions REMOVED.
+// Were ~280 LOC of pure copy-paste from the customer-tabs originals; the
+// switchboard above now uses the canonical components directly with
+// `entity="invoice" id={id}`.
 
 function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; invoiceId: string; onClose: () => void; onDone: () => void }) {
   const [amount, setAmount] = useState('')

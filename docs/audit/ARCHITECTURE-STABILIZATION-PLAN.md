@@ -199,7 +199,7 @@ cd frontend && pnpm typecheck
 | **TB-1** | 10 distinct tab flavors. | `frontend/src/primitives/DetailTab.tsx` | All 7 flavors migrated (Invoices/Accounts/Customer/Ra/Ni/Collections/Pipeline). | YES | **H** | ✅ DONE — every hand-rolled tab button delegates to `DetailTab`. |
 | **TB-2** | `InvoiceTabButton` and `AccountTabButton` are identical. | Single `DetailTab` replaces both | `views/InvoicesView.tsx` · `views/AccountsView.tsx` | YES | **M** | ✅ DONE — both delegate to DetailTab. |
 | **TB-3** | No keyboard navigation in ANY hand-rolled tab implementation. WCAG 2.1.1 violated. | `DetailTabList` wires Arrow Left/Right/Up/Down + Home + End + roving tabindex | Primitive built; callers wrap with `<DetailTabList>` to opt in | YES | **H** | ✅ FOUNDATION — keyboard nav landed in the canonical. Callers wrap their tab strip in `<DetailTabList>` to inherit it. |
-| **TB-4** | 9-tab object-detail spec implemented 3 times — 16 duplicate React tab body components across InvoicesView + AccountsView. | Parameterize `views/customer-tabs/*` to accept entity-type + id props | `views/InvoicesView.tsx:695–960` · `views/AccountsView.tsx:677–960` | n/a | **H** | ⬜ TODO — Phase 4 Part 2 (large surgical refactor; needs care). |
+| **TB-4** | 9-tab object-detail spec implemented 3 times — 16 duplicate React tab body components across InvoicesView + AccountsView. | Parameterized `views/customer-tabs/*` over (entity, id) | All 8 customer-tabs now accept `entity` + `id`; InvoicesView + AccountsView delete their 16 duplicates and import the canonicals. | n/a | **H** | ✅ DONE — ~580 LOC of duplication removed; CustomerView call sites updated to `entity="customer"`. |
 | **TB-5** | `PageShellDemoView` uses `aria-pressed` instead of `aria-selected`. | Replace with `aria-selected` | `views/PageShellDemoView.tsx:317–328` | FIXED | **L** | ✅ DONE. |
 
 ### Table findings
@@ -326,10 +326,10 @@ pnpm typecheck
 | Phase 1 — Financial Integrity | 11 | 5 | 3 | 3 | **9 done · 2 deferred** | **0** |
 | Phase 2 — API + State | 11 | 6 | 4 | 1 | **11 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 3 — Permissions + Validation + Pagination | 13 | 4 | 7 | 2 | **13 done (foundations laid; incremental cleanup remains)** | **0** |
-| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **18 done (Part 1 + Part 2 wave 1) · 7 deferred to Part 2 wave 2 (MO-1 studio modals, DR-1 studio drawers, DR-4 consolidation, TB-4 9-tab parameterization, TL-2 kanban migration, TL-4 RowActionsMenu, TL-5 FilterBar)** | **7** |
+| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **19 done · 6 deferred (MO-1 studio modals, DR-1 studio drawers, DR-4 consolidation, TL-2 kanban migration, TL-4 RowActionsMenu, TL-5 FilterBar)** | **6** |
 | Phase 5 — Tokenization | 33 | 8 | 14 | 11 | 0 | **33** |
 | Phase 6 — Governance | 14 rules + 7 docs | — | — | — | **15 done (10 HARD + 5 RATCHET drift rules in CI; 7 standards docs landed) · 5 deferred (post-Phase-5)** | **5** |
-| **TOTAL** | **107** | **35** | **36** | **22** | **74 done · 33 remaining (Phase 4 Part 2 wave 2 + Phase 5b/c/d)** | **33** |
+| **TOTAL** | **107** | **35** | **36** | **22** | **75 done · 32 remaining (Phase 4 Part 2 wave 2 + Phase 5b/c/d)** | **32** |
 
 ---
 

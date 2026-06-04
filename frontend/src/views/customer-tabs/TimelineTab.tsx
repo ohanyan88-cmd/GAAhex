@@ -19,13 +19,14 @@ type ActivityRow = {
 }
 
 
-export default function TimelineTab({ token, customerId }: { token: string; customerId: string }) {
+// TB-4 — parameterized over (entity, id) so all detail views share this one component.
+export default function TimelineTab({ token, entity, id }: { token: string; entity: string; id: string }) {
   const [rows, setRows] = useState<ActivityRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<ActivityRow[]>(token, `/api/activity?entity_key=customer&record_id=${encodeURIComponent(customerId)}`)
+    bget<ActivityRow[]>(token, `/api/activity?entity_key=${encodeURIComponent(entity)}&record_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }
@@ -38,7 +39,7 @@ export default function TimelineTab({ token, customerId }: { token: string; cust
         setRows(sorted)
       })
     return () => { cancelled = true }
-  }, [token, customerId])
+  }, [token, entity, id])
 
   if (rows === undefined) {
     return (
