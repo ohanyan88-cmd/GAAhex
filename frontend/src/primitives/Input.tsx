@@ -19,9 +19,44 @@ interface InputProps {
   rightIcon?: React.ReactNode
   id?: string
   className?: string
+  // T-P3-8 — standard HTML input passthrough props. Needed so raw inline-
+  // class input call sites with onKeyDown/onBlur/onFocus/style/etc can
+  // migrate to <Input> without losing behavior.
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void
+  name?: string
+  autoFocus?: boolean
+  autoComplete?: string
+  required?: boolean
+  style?: React.CSSProperties
+  'aria-label'?: string
 }
 
-export function Input({ type = 'text', size = 'md', variant = 'default', value, onChange, placeholder, disabled, error, readOnly, leftIcon, rightIcon, id, className = '' }: InputProps) {
+export function Input({
+  type = 'text',
+  size = 'md',
+  variant = 'default',
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  error,
+  readOnly,
+  leftIcon,
+  rightIcon,
+  id,
+  className = '',
+  onKeyDown,
+  onFocus,
+  onBlur,
+  name,
+  autoFocus,
+  autoComplete,
+  required,
+  style,
+  'aria-label': ariaLabel,
+}: InputProps) {
   const [showPwd, setShowPwd] = useState(false)
   const isPassword = type === 'password'
   const actualType = isPassword ? (showPwd ? 'text' : 'password') : type
@@ -48,7 +83,7 @@ export function Input({ type = 'text', size = 'md', variant = 'default', value, 
   }
 
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} className={className}>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', ...style }} className={className}>
       {hasLeft && (
         <span style={{ position: 'absolute', left: 11, display: 'flex', alignItems: 'center', color: 'var(--gx-text-3)', pointerEvents: 'none' }}>
           {leftIcon ?? <Search size={12} />}
@@ -59,6 +94,14 @@ export function Input({ type = 'text', size = 'md', variant = 'default', value, 
         type={actualType}
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        name={name}
+        autoFocus={autoFocus}
+        autoComplete={autoComplete}
+        required={required}
+        aria-label={ariaLabel}
         placeholder={placeholder}
         disabled={disabled}
         readOnly={readOnly}

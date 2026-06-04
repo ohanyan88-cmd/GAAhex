@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { WarningIcon, LockIcon, SearchIcon, InboxIcon, SpinnerIcon } from './icons'
 import { Button } from '../primitives'  // T-P3-7 — canonical button primitive
+import { EmptyState as PageShellEmptyState } from '../page-shell/EmptyState'  // T-P2-6
 import { t } from '../lib/i18n'
 
 // Reusable feedback / state screens (Tier 6). Themed, SVG icons, dual-theme.
@@ -39,6 +40,11 @@ export function SkeletonRows({ rows = 5 }: { rows?: number }) {
   )
 }
 
+// T-P2-6 — `EmptyState` now delegates to the canonical `page-shell/EmptyState`.
+// The legacy `.state` CSS class wasn't even defined (silent-styling bug), so
+// this delegation fixes 50+ legacy view empty states by giving them the
+// page-shell's `.ps-empty` styling. The fallback InboxIcon stays here for
+// callers that don't supply an icon (matches the prior behavior).
 export function EmptyState({ icon, title, message, action }: {
   icon?: ReactNode
   title: string
@@ -46,12 +52,12 @@ export function EmptyState({ icon, title, message, action }: {
   action?: ReactNode
 }) {
   return (
-    <div className="state">
-      <div className="state-icon">{icon ?? <InboxIcon size={40} />}</div>
-      <div className="state-title">{title}</div>
-      {message && <p className="state-msg">{message}</p>}
-      {action && <div className="state-action">{action}</div>}
-    </div>
+    <PageShellEmptyState
+      icon={icon ?? <InboxIcon size={40} />}
+      title={title}
+      message={message}
+      action={action}
+    />
   )
 }
 

@@ -1,4 +1,4 @@
-import { Button } from '../primitives'
+import { Button, Input } from '../primitives'
 import { useEffect, useRef, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
 import { PermissionDenied } from '../components/States'
@@ -177,8 +177,7 @@ export default function AskGaaexView({ token }: { token: string }) {
           </div>
 
           <form className="chat-composer" onSubmit={(e) => { e.preventDefault(); ask(q) }}>
-            <input
-              className="inp"
+            <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               disabled={busy}
