@@ -13,17 +13,21 @@ or rename that route in ops.py before registering health.router to avoid a silen
 """
 from __future__ import annotations
 
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import SessionLocal, get_session
 from ..models import Record, Tenant, User
 from .auth import current_user
+
+_log = logging.getLogger("gaahex.health")
 
 router = APIRouter(prefix="/api", tags=["health"])
 
@@ -76,29 +80,28 @@ async def liveness() -> dict[str, Any]:
     summary="Readiness probe — unauthenticated, SELECT 1 DB ping",
     response_model=None,
 )
-async def readiness(response: Response) -> dict[str, Any]:
+async def readiness(response: Response) -> Any:
     """Pings the DB with SELECT 1.
-    Returns 200 + {db: true} when healthy; 503 + {db: false, error} when unreachable.
-    Never raises — all exceptions are caught and surfaced as a 503 payload.
+    Returns 200 + {db: true} when healthy; 503 + {status: 'db_unavailable'} when unreachable.
+    Never raises — all exceptions are caught, logged server-side, and surfaced as a generic 503
+    so the public probe response never leaks driver-specific error text (H15, D13).
     """
-    db_ok: bool = False
-    error_msg: str | None = None
     try:
         async with SessionLocal() as s:
             await s.execute(text("SELECT 1"))
-        db_ok = True
     except Exception as exc:  # noqa: BLE001
-        error_msg = str(exc)
+        # Raw error stays server-side for ops; the wire payload is generic.
+        _log.warning("readiness DB check failed", exc_info=exc)
+        return JSONResponse(
+            status_code=503,
+            content={"status": "db_unavailable"},
+        )
 
-    payload: dict[str, Any] = {
-        "db": db_ok,
+    return {
+        "db": True,
         "version": _app_version(),
         "time": _now_iso(),
     }
-    if not db_ok:
-        payload["error"] = error_msg
-        response.status_code = 503
-    return payload
 
 
 # ---------------------------------------------------------------------------

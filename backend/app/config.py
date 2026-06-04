@@ -174,6 +174,42 @@ def _assert_production_deploy_contract() -> None:
             f"docs/M1A-DEPLOY-CONTRACT.md."
         )
 
+    # H3 — CORS wildcard refusal. A production deploy with
+    # CORS_ORIGINS=* (or any entry containing '*') would allow every origin on
+    # the internet to talk to the API with credentials; that's never the right
+    # configuration for a real ISP tenant. Dev/test/staging keep the default
+    # "*" because settings.environment != "production" exits early above.
+    cors_raw = (settings.cors_origins or "").strip()
+    if cors_raw == "*" or any(o.strip() == "*" or "*" in o for o in cors_raw.split(",")):
+        raise RuntimeError(
+            "Production deploy contract violation: CORS_ORIGINS contains a "
+            "wildcard ('*'). Set CORS_ORIGINS to an explicit, comma-separated "
+            "list of trusted frontend origins (e.g. https://app.example.com). "
+            "Wildcards are forbidden in production. See docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
+    # S1 — Mock-provider refusal. The mock gateways exist so dev/test/CI can
+    # exercise the gateway interfaces without external network. They MUST NOT
+    # be the active provider in production: a mock payment gateway silently
+    # marks every charge "successful" with no money moved, mock email/SMS drop
+    # outbound traffic on the floor, and mock RADIUS leaves every customer
+    # session unauthenticated.
+    mock_providers = {
+        "payment_gateway_provider": settings.payment_gateway_provider,
+        "email_gateway_provider": settings.email_gateway_provider,
+        "sms_gateway_provider": settings.sms_gateway_provider,
+        "radius_backend_provider": settings.radius_backend_provider,
+    }
+    offenders = sorted(name for name, value in mock_providers.items() if value == "mock")
+    if offenders:
+        raise RuntimeError(
+            "Production deploy contract violation: the following provider(s) "
+            f"are still set to 'mock' in production: {', '.join(offenders)}. "
+            "Configure a real provider (Stripe / SendGrid / Twilio / FreeRADIUS) "
+            "via the corresponding *_PROVIDER env var. See "
+            "docs/M1A-DEPLOY-CONTRACT.md."
+        )
+
 
 # ---- legacy single-tenant helpers (DO NOT USE IN REQUEST PATHS) ----------------------------------
 # WAVE 1 multi-tenant hardening (M1-A audit): the staff request path and the scheduler no longer

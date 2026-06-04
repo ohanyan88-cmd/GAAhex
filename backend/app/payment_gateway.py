@@ -250,12 +250,25 @@ async def settle_order(
 
     Idempotency: if order.status == "PAID" already, returns immediately without any write.
     """
-    if order.status == "PAID":
-        return  # already settled — idempotent guard
-
     # Import here to avoid a circular import (payment_gateway ← billing models ← no cycle)
     from .models.billing import Payment, Invoice  # noqa: PLC0415
+    from .models.payment_gateway import PaymentOrder  # noqa: PLC0415
     from . import workflow  # noqa: PLC0415
+    from sqlalchemy import select as _select  # noqa: PLC0415
+
+    # F6 (Critical D3) — settle_order race.
+    # The original code read order.status, then wrote a Payment + flipped the order to PAID,
+    # but two concurrent callers (e.g. an inbound provider callback racing with the periodic
+    # reconcile sweep) could both see PENDING and both write a Payment row before either
+    # flipped status. SELECT ... FOR UPDATE serializes per-row: the second caller blocks on
+    # the lock, sees status='PAID' after the first commits, and exits via the idempotent guard.
+    # We re-fetch the row in-session under FOR UPDATE rather than reusing the input ``order``
+    # (which may be detached from this session or pre-lock state).
+    order = (await s.execute(
+        _select(PaymentOrder).where(PaymentOrder.id == order.id).with_for_update()
+    )).scalar_one()
+    if order.status == "PAID":
+        return  # already settled — idempotent guard (now race-safe)
 
     now = datetime.now(timezone.utc)
 
@@ -271,17 +284,21 @@ async def settle_order(
     s.add(pay)
     await s.flush()  # so pay.id is available
 
-    # 2. Re-sum all payments for this invoice (identical to billing.add_payment's paid_sum query)
-    paid_sum = (await s.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(
-            Payment.invoice_id == order.invoice_id
-        )
-    )).scalar_one()
-
-    # 3. Load the invoice and optionally flip to PAID
+    # 3. Load the invoice WITH FOR UPDATE so the paid_sum read + status flip serialize against
+    # any concurrent payment path also re-summing this invoice (legacy add_payment, stripe
+    # webhook). Done BEFORE the re-sum so the lock fences the read.
     invoice = (await s.execute(
-        select(Invoice).where(Invoice.id == order.invoice_id)
+        _select(Invoice).where(Invoice.id == order.invoice_id).with_for_update()
     )).scalar_one_or_none()
+
+    # 2. Re-sum all payments for this invoice — F3 (Critical): subtract refunded_amount so the
+    # PAID flip reflects net-paid money, not gross-paid that ignores prior refunds.
+    paid_sum = (await s.execute(
+        select(func.coalesce(
+            func.sum(Payment.amount - func.coalesce(Payment.refunded_amount, 0)),
+            0,
+        )).where(Payment.invoice_id == order.invoice_id)
+    )).scalar_one()
 
     if invoice is not None and paid_sum >= invoice.total:
         invoice.status = "PAID"

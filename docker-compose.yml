@@ -21,6 +21,41 @@ services:
     container_name: gaahex-redis
     ports:
       - "6380:6379"          # 6380 host → avoids clashing with any local Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gaahex-backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - ./backend/.env
+    environment:
+      # The production deploy contract requires the app to connect as the
+      # NOBYPASSRLS role 'gaahex_app' so RLS policies are enforced. The owner
+      # role 'gaahex' (BYPASSRLS) is used for migrations and backups only.
+      DATABASE_URL: postgresql+asyncpg://gaahex_app:gaahex@db:5432/gaahex
+      OWNER_DATABASE_URL: postgresql+asyncpg://gaahex:gaahex@db:5432/gaahex
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: development  # ⚠️ override to production via .env in real deploy
+    ports:
+      - "8099:8099"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   gaahex_pgdata:

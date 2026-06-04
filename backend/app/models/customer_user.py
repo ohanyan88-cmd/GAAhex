@@ -31,3 +31,7 @@ class CustomerUser(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # T1 remediation 2026-06-04 (alembic e1a4b2c3d5f7). Portal JWTs whose `iat` is BEFORE this
+    # timestamp are rejected by current_customer. Logout / forced revoke-all-sessions stamps this
+    # to UTC now(). NULL = all tokens accepted (default, backward-compatible).
+    token_not_before: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

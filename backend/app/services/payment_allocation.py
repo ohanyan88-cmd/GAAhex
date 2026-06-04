@@ -106,8 +106,17 @@ async def allocate_payment(
         raise HTTPException(422, "allocation amount must be > 0")
 
     # ---- Tenant-scoped fetch on both sides. ----
+    # F7 (financial-integrity Critical) — allocate_payment race.
+    # Two concurrent allocations against the same Payment used to both read the same
+    # ``already_allocated`` SUM below and both pass the over-allocation guard, then both
+    # INSERT — letting the payment be over-allocated. SELECT ... FOR UPDATE on the Payment
+    # row serializes per-payment so the second caller blocks until the first commits, then
+    # sees the freshly-updated SUM. The migration's AFTER-INSERT trigger on payment_allocation
+    # enforcing SUM(amount) per payment_id <= payment.amount is the database-side second line
+    # of defence (Pack M).
     pay = (await session.execute(
         select(Payment).where(Payment.id == payment_id, Payment.tenant_id == tenant_id)
+        .with_for_update()
     )).scalar_one_or_none()
     if pay is None:
         raise HTTPException(404, "Payment not found")

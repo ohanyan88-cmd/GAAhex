@@ -5,11 +5,22 @@ customer_id == current_customer.customer_id — the same invariant as B34's /me/
 
 SECURITY: customers can only see their own invoices and payments. The ownership check on
 every by-id fetch (404 if not theirs) is the explicit gate; RLS provides a second layer.
+
+S3 (D14) XSS hardening: every dynamic value interpolated into HTMLResponse bodies is wrapped
+in html.escape (`_e`) so attacker-controlled fields (customer name/email, invoice number,
+status, line descriptions, tenant name, payment method, etc.) cannot inject markup. Static
+HTML structure remains unescaped. Mirrors the convention in routers/documents.py.
 """
 import uuid
+from html import escape as _html_escape
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
+
+
+def _e(v) -> str:
+    """HTML-escape any value (None / int / str / etc). Mirrors documents.py."""
+    return _html_escape("" if v is None else str(v))
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -142,16 +153,20 @@ async def invoice_document(
     def iso_date(dt) -> str:
         return dt.strftime("%Y-%m-%d") if dt else "—"
 
+    # S3 (D14): every dynamic value is escaped via _e to prevent stored-XSS via
+    # customer name, invoice number, status, line description, tenant name, etc.
     rows = "".join(
-        f"<tr><td>{l.description}</td><td>{l.quantity}</td>"
-        f"<td style='text-align:right'>{amd(l.unit_amount)}</td>"
-        f"<td style='text-align:right'>{amd(l.line_total)}</td></tr>"
+        f"<tr><td>{_e(l.description)}</td><td>{_e(l.quantity)}</td>"
+        f"<td style='text-align:right'>{_e(amd(l.unit_amount))}</td>"
+        f"<td style='text-align:right'>{_e(amd(l.line_total))}</td></tr>"
         for l in lines
     )
+    # status drives a CSS color from a fixed whitelist — never interpolate
+    # the raw inv.status into a CSS expression.
     status_color = {"PAID": "#10B981", "ISSUED": "#1C3B68", "OVERDUE": "#E65F00", "VOID": "#D90429"}.get(inv.status, "#6B7280")
 
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>Invoice {inv.number}</title>
+<title>Invoice {_e(inv.number)}</title>
 <style>
 body{{font-family:sans-serif;color:#111827;background:#fff;max-width:800px;margin:auto;padding:40px}}
 h1{{color:#1C3B68}}table{{width:100%;border-collapse:collapse;margin-top:20px}}
@@ -161,16 +176,16 @@ td{{padding:8px 10px;border-bottom:1px solid #E2E8F0}}
        color:{status_color};border:1px solid {status_color};font-size:12px;font-weight:600}}
 .total-row td{{font-weight:700;border-top:2px solid #E2E8F0}}
 </style></head><body>
-<h1>{tenant_name} — Invoice</h1>
-<p><strong>Invoice #:</strong> {inv.number} &nbsp; <span class="pill">{inv.status}</span></p>
-<p><strong>Customer:</strong> {customer_data.get("name","—")}</p>
-<p><strong>Period:</strong> {iso_date(inv.period_start)} – {iso_date(inv.period_end)}</p>
-<p><strong>Issued:</strong> {iso_date(inv.issued_at)} &nbsp; <strong>Due:</strong> {iso_date(inv.due_at)}</p>
+<h1>{_e(tenant_name)} — Invoice</h1>
+<p><strong>Invoice #:</strong> {_e(inv.number)} &nbsp; <span class="pill">{_e(inv.status)}</span></p>
+<p><strong>Customer:</strong> {_e(customer_data.get("name","—"))}</p>
+<p><strong>Period:</strong> {_e(iso_date(inv.period_start))} – {_e(iso_date(inv.period_end))}</p>
+<p><strong>Issued:</strong> {_e(iso_date(inv.issued_at))} &nbsp; <strong>Due:</strong> {_e(iso_date(inv.due_at))}</p>
 <table><thead><tr><th>Description</th><th>Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Total</th></tr></thead>
 <tbody>{rows}</tbody>
-<tfoot><tr class="total-row"><td colspan="3"><strong>Total</strong></td><td style="text-align:right">{amd(inv.total)}</td></tr>
-<tr><td colspan="3">Paid</td><td style="text-align:right">{amd(pt)}</td></tr>
-<tr class="total-row"><td colspan="3"><strong>Balance due</strong></td><td style="text-align:right;color:#E65F00">{amd(balance)}</td></tr>
+<tfoot><tr class="total-row"><td colspan="3"><strong>Total</strong></td><td style="text-align:right">{_e(amd(inv.total))}</td></tr>
+<tr><td colspan="3">Paid</td><td style="text-align:right">{_e(amd(pt))}</td></tr>
+<tr class="total-row"><td colspan="3"><strong>Balance due</strong></td><td style="text-align:right;color:#E65F00">{_e(amd(balance))}</td></tr>
 </tfoot></table>
 </body></html>"""
     return HTMLResponse(html)
@@ -273,17 +288,19 @@ async def payment_receipt(
     def amd(luma: int) -> str:
         return f"{luma / 100:,.2f} ֏"
 
+    # S3 (D14): escape every dynamic value before HTML interpolation.
+    paid_at_str = payment.paid_at.strftime('%Y-%m-%d %H:%M UTC') if payment.paid_at else '—'
     html = f"""<!doctype html><html><head><meta charset="utf-8">
-<title>Receipt — {inv.number}</title>
+<title>Receipt — {_e(inv.number)}</title>
 <style>body{{font-family:sans-serif;color:#111827;background:#fff;max-width:600px;margin:auto;padding:40px}}
 h1{{color:#1C3B68}}.amount{{font-size:28px;font-weight:700;color:#10B981;margin:16px 0}}</style></head>
 <body>
-<h1>{tenant_name} — Payment Receipt</h1>
-<p><strong>Invoice:</strong> {inv.number}</p>
-<p><strong>Customer:</strong> {customer_name}</p>
-<p><strong>Method:</strong> {payment.method}</p>
-<p><strong>Date:</strong> {payment.paid_at.strftime('%Y-%m-%d %H:%M UTC') if payment.paid_at else '—'}</p>
-<div class="amount">Paid: {amd(payment.amount)}</div>
+<h1>{_e(tenant_name)} — Payment Receipt</h1>
+<p><strong>Invoice:</strong> {_e(inv.number)}</p>
+<p><strong>Customer:</strong> {_e(customer_name)}</p>
+<p><strong>Method:</strong> {_e(payment.method)}</p>
+<p><strong>Date:</strong> {_e(paid_at_str)}</p>
+<div class="amount">Paid: {_e(amd(payment.amount))}</div>
 <p style="color:#6B7280;font-size:12px">This is a computer-generated receipt.</p>
 </body></html>"""
     return HTMLResponse(html)

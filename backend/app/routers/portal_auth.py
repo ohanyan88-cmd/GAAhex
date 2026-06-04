@@ -115,8 +115,56 @@ async def current_customer(
     if cu.tenant_id != tenant_id:
         raise HTTPException(401, "Token/identity mismatch")
 
+    # T1 remediation 2026-06-04: token-not-before check. A portal token issued BEFORE the
+    # customer_user's token_not_before timestamp is rejected — this is how /portal/auth/logout
+    # invalidates ALL outstanding portal access tokens for a user in a single column write,
+    # without per-token bookkeeping (portal tokens are stateless JWTs, no refresh family).
+    if cu.token_not_before is not None:
+        iat_raw = payload.get("iat")
+        if iat_raw is None:
+            # Legacy / malformed token with no iat → can't prove it was issued after the cutoff.
+            raise HTTPException(401, "Token issued before revocation cutoff")
+        # PyJWT decodes `iat` as either a numeric epoch second or a datetime; coerce both shapes.
+        if isinstance(iat_raw, datetime):
+            iat_epoch = iat_raw.timestamp()
+        else:
+            try:
+                iat_epoch = float(iat_raw)
+            except (TypeError, ValueError):
+                raise HTTPException(401, "Malformed token")
+        if iat_epoch < cu.token_not_before.timestamp():
+            raise HTTPException(401, "Token issued before revocation cutoff")
+
     await set_tenant_guc(s, tenant_id)
     return cu
+
+
+@router.post("/auth/logout")
+async def portal_logout(
+    cu: CustomerUser = Depends(current_customer),
+    s: AsyncSession = Depends(get_session),
+):
+    """Portal logout — revokes EVERY existing portal token for this customer_user.
+
+    T1 remediation 2026-06-04: portal tokens are stateless JWTs (no server-side refresh family),
+    so we can't revoke them individually. Instead we stamp `customer_user.token_not_before` to
+    now(); the `current_customer` dep then rejects any portal token whose `iat` is before that
+    cutoff. Effect: every outstanding portal session for this user is killed in a single column
+    write. Idempotent (calling logout twice just moves the cutoff forward by milliseconds).
+
+    The customer reload here re-binds to the request session `s` (the tenant GUC is now set by
+    the auth dep), mirroring routers/me.py:_own_row — the `cu` from Depends was loaded on the
+    detached owner session and can't be UPDATEd through `s` directly without a reload.
+    """
+    row = (await s.execute(
+        select(CustomerUser).where(CustomerUser.id == cu.id)
+    )).scalar_one_or_none()  # noqa: tenant-filter — RLS-scoped self-row reload, tenant GUC set by current_customer
+    if not row:
+        # Should never happen for an authed caller; treat as already-logged-out (idempotent).
+        return {"ok": True}
+    row.token_not_before = datetime.now(timezone.utc)
+    await s.commit()
+    return {"ok": True}
 
 
 @router.get("/auth/me")

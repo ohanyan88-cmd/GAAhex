@@ -53,6 +53,9 @@ def _serialize(k: ApiKey, raw_key: str | None = None) -> dict:
         "last_used_at": k.last_used_at.isoformat() if k.last_used_at else None,
         "revoked_at": k.revoked_at.isoformat() if k.revoked_at else None,
         "created_at": k.created_at.isoformat() if k.created_at else None,
+        # T4/T5 remediation 2026-06-04. Both fields are nullable (no expiry / no scope restriction).
+        "expires_at": k.expires_at.isoformat() if k.expires_at else None,
+        "scopes": list(k.scopes) if k.scopes else None,
     }
     if raw_key is not None:
         out["key"] = raw_key                       # shown ONCE, on create only
@@ -62,7 +65,12 @@ def _serialize(k: ApiKey, raw_key: str | None = None) -> dict:
 @router.post("", status_code=201)
 async def create_api_key(payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Create an API key. Returns the RAW key (`prefix.secret`) ONCE — it is never retrievable
-    again. `acts_as_user_id` defaults to the creator; if given, it must be a user in this tenant."""
+    again. `acts_as_user_id` defaults to the creator; if given, it must be a user in this tenant.
+
+    T4/T5 remediation 2026-06-04: optional `expires_at` (ISO-8601 datetime; NULL = no expiry) and
+    `scopes` (list[str] of `object.action` permission keys; NULL/[] = no scope restriction) are
+    accepted and persisted. Enforcement lives in `_user_from_api_key` (expiry) and `require_scope`
+    (scopes) — see auth.py."""
     await _require_admin(s, user)
     name = (payload.get("name") or "").strip()
     if not name:
@@ -75,6 +83,34 @@ async def create_api_key(payload: dict, user: User = Depends(current_user), s: A
     if not principal:
         raise HTTPException(422, "acts_as_user_id is not a user in this tenant")
 
+    # T4: optional expires_at. Accept ISO-8601; coerce to a timezone-aware UTC datetime. A naive
+    # input is assumed UTC (matches every other timestamp surface on the platform).
+    expires_at: datetime | None = None
+    raw_exp = payload.get("expires_at")
+    if raw_exp is not None:
+        if not isinstance(raw_exp, str):
+            raise HTTPException(422, "expires_at must be an ISO-8601 string")
+        try:
+            # fromisoformat handles "...+00:00" since 3.11; the trailing "Z" still trips it pre-3.11.
+            exp = datetime.fromisoformat(raw_exp.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(422, "expires_at must be an ISO-8601 string")
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        expires_at = exp
+
+    # T5: optional scopes. Must be a list[str] of `object.action` keys; we don't validate against
+    # the permission registry here (the registry is the SSoT but changes; keys are immutable once
+    # released — see docs/standards/15-permission-registry.md). An empty list normalises to None
+    # so listing and require_scope read the "no restriction" sentinel consistently.
+    raw_scopes = payload.get("scopes")
+    scopes: list[str] | None = None
+    if raw_scopes is not None:
+        if not isinstance(raw_scopes, list) or not all(isinstance(x, str) for x in raw_scopes):
+            raise HTTPException(422, "scopes must be a list of strings")
+        cleaned = [x.strip() for x in raw_scopes if x and x.strip()]
+        scopes = cleaned or None
+
     prefix = secrets.token_hex(4)                  # 8 hex chars, shown in lists
     secret = secrets.token_urlsafe(32)
     raw_key = f"{prefix}.{secret}"                  # the value the client sends as X-API-Key
@@ -82,6 +118,7 @@ async def create_api_key(payload: dict, user: User = Depends(current_user), s: A
     ak = ApiKey(
         tenant_id=user.tenant_id, name=name, prefix=prefix, key_hash=_hash_token(raw_key),
         acts_as_user_id=principal.id, created_by=user.id,
+        expires_at=expires_at, scopes=scopes,
     )
     s.add(ak)
     await s.commit()

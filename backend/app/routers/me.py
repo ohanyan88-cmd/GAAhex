@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import User
 from ..security import hash_password, verify_password
-from .auth import current_user
+from .auth import current_user, revoke_all_refresh_tokens_for_user
 
 router = APIRouter(prefix="/api/me", tags=["me"])
 
@@ -94,5 +94,12 @@ async def change_password(
     # Stamp the change so /auth/login stops returning must_change_password=true for this user
     # (the forced-first-login flow for the seeded default admin keys off NULL here).
     row.password_changed_at = datetime.now(timezone.utc)
+    # S6 remediation 2026-06-04: a password change MUST kill every still-live refresh token
+    # for this principal. The access token used to authorize this call is short-lived and
+    # stateless (and the user explicitly authenticated WITH it here), so we leave it alone —
+    # it expires on its normal schedule. Refresh tokens, however, would otherwise allow the
+    # OLD password to keep minting new access tokens for days, defeating the whole point of
+    # a password change. Same helper is reused by routers/users.py on user soft-deactivation.
+    revoked = await revoke_all_refresh_tokens_for_user(s, row.id)  # noqa: tenant-filter — self-user UPDATE, tenant GUC set
     await s.commit()
-    return {"ok": True}
+    return {"ok": True, "refresh_tokens_revoked": revoked}

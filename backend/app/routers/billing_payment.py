@@ -168,8 +168,15 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     s.add(pay)
     await s.flush()
 
+    # F3 (financial-integrity Critical) — net-paid flip.
+    # SUM(Payment.amount) ignored refunds. After a partial refund, gross-paid could still
+    # meet invoice.total while net-paid was below — leaving the invoice incorrectly flipped
+    # to PAID. Subtract refunded_amount so the flip reflects money actually retained.
     paid_sum = (await s.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == inv.id)
+        select(func.coalesce(
+            func.sum(Payment.amount - func.coalesce(Payment.refunded_amount, 0)),
+            0,
+        )).where(Payment.invoice_id == inv.id)
     )).scalar_one()
     if paid_sum >= inv.total:
         inv.status = "PAID"

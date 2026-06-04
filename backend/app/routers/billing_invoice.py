@@ -37,7 +37,7 @@ from ..services.payments import (
     PaymentGatewayValidationError,
     get_payment_gateway,
 )
-from .auth import current_user
+from .auth import current_user, require_scope
 from .records import _node_path, _node_paths, _paginate
 from .notifications import emit_notification
 from ._billing_shared import (
@@ -55,11 +55,17 @@ router = APIRouter(prefix="/api", tags=["billing"])
 # Invoices
 # ==========================================================================================
 
-@router.get("/invoices")
+@router.get("/invoices", dependencies=[Depends(require_scope("billing.read"))])
 async def list_invoices(customer: uuid.UUID | None = None, status: str | None = None,
                         since: Optional[date] = None,
                         limit: int = 200, offset: int = 0,
                         user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    # T5 remediation 2026-06-04 — PROOF-OF-CONCEPT scope enforcement.
+    # `require_scope("billing.read")` short-circuits to 403 when the caller authenticated via an
+    # API key whose `scopes` list is non-empty AND does not include "billing.read". JWT (human)
+    # callers and unrestricted keys (scopes=NULL/[]) pass through; the existing `invoice.view`
+    # RBAC check below still applies on top. Other billing endpoints intentionally NOT touched in
+    # this pass — see RISKS section of the remediation output for the rollout plan.
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "view"):
         _deny("invoice.view")

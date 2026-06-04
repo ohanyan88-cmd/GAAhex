@@ -2,13 +2,14 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
+from sqlalchemy import cast, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.types import Text
 
 from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
-from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT
+from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT, count_select
 from .. import workflow, gxl, notify_hooks
 from ..kernel import (
     MASTER_RECORD_KEYS,
@@ -33,8 +34,21 @@ MAX_PAGE = MAX_LIMIT  # 500
 
 
 def _paginate(items, limit=None, offset=0):
-    """Window an already-materialized list. limit=None => first DEFAULT_PAGE; limit capped at MAX_PAGE."""
-    return Page(DEFAULT_PAGE if limit is None else limit, offset).slice_list(items)
+    """Window an already-materialized list. limit=None => first DEFAULT_PAGE; limit capped at MAX_PAGE.
+
+    Back-compat shim used by sibling routers (billing/usage/interactions). Unlike the strict
+    ``Page.from_request`` (which 422s on overflow), this helper still CLAMPS an over-cap limit
+    to ``MAX_PAGE`` — those sibling routers were built against the clamp-not-reject contract and
+    we don't want to silently 422 their in-flight requests when ``MAX_LIMIT`` moved from 500 → 1000.
+    """
+    if limit is None:
+        bounded = DEFAULT_PAGE
+    else:
+        try:
+            bounded = max(1, min(int(limit), MAX_PAGE))
+        except (TypeError, ValueError):
+            bounded = DEFAULT_PAGE
+    return Page(bounded, offset).slice_list(items)
 
 router = APIRouter(prefix="/api", tags=["records"])
 
@@ -196,66 +210,134 @@ async def list_records(
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
-    """List records for an entity. All query params are optional and backward-compatible
-    (no params ⇒ prior behavior — still a plain JSON list, unchanged body):
-      - q:      case-insensitive substring over text data fields
+    """List records for an entity. All query params are optional.
+
+      - q:      case-insensitive substring over text data fields (pushed into SQL as
+                ``data::text ILIKE %q%`` — see TRADE-OFFS below)
       - filter: a GXL boolean evaluated per record (ctx = {**data, "status"}); broken ⇒ fail closed
-      - sort:   a field key (or `-key` for descending) over a data value / status / created_at
-      - limit:  page size — OMIT for the full list (default); when given, capped at 500
+      - sort:   a field key (or `-key` for descending) over status / created_at / a JSONB data key
+      - limit:  page size — defaults to ``DEFAULT_LIMIT`` (100), hard-capped at ``MAX_LIMIT`` (1000);
+                anything above the cap is rejected with HTTP 422 (see ``pagination.Page``)
       - offset: rows to skip (default 0)
-    Order of operations: org-scope + view-gate FIRST (never leak past access control), then q,
-    then filter, then sort, then pagination LAST (so paging never widens visibility).
-    The `X-Total-Count` response header always carries the total matching rows (post-filter,
-    pre-pagination) so a frontend can build a pager without the body shape changing.
+
+    REMEDIATION (D25 — Critical performance, 2026-06-04):
+    ------------------------------------------------------
+    Previously this endpoint loaded the ENTIRE tenant+entity slice into Python before filtering /
+    sorting / paging. That's now corrected: pagination, ordering, and the ``q`` ILIKE filter all
+    run in SQL so the result set is bounded at the database layer.
+
+    Order of operations:
+      SQL: tenant + entity_key + q (ILIKE on data::text) + ORDER BY + LIMIT/OFFSET
+        ↓
+      Python (per page, NOT per tenant):
+        1. org-scope ``can()`` view-gate — drops rows whose owner_node_id is outside the caller's
+           scope. Runs AFTER pagination because the org tree match is path-prefix and not
+           cheaply pushable into SQL.
+        2. GXL ``filter`` per record (broken/false excludes — never 500).
+        3. field-level view-gate redaction in ``_serialize``.
+
+    TRADE-OFFS (intentional, documented):
+      * The legacy ``_matches_q`` walked each record's data values and matched on
+        ``str.lower().contains(needle)``. The SQL form is ``data::text ILIKE '%q%'``, which is a
+        very-close approximation: it matches the same characters, but the comparison happens
+        over the JSON text representation, so a numeric ``42`` in a data field WILL match
+        ``q=42`` (where the Python form skipped non-strings). False-positive risk only — a
+        record that wasn't surfaced before may now appear. Acceptable for the perf-vs-fidelity
+        trade-off; the launch-critical bug here was unbounded reads, not q-fidelity.
+      * Because the org-scope filter runs in Python AFTER the LIMIT/OFFSET, a single returned
+        page MAY contain fewer items than ``limit`` (some rows on the page were dropped by the
+        view-gate). This is acceptable: clients walking pages should treat ``X-Total-Count``
+        as the upper bound and stop when they get an empty page rather than assume every page
+        is exactly ``limit`` long. The total reported in ``X-Total-Count`` is the pre-page,
+        pre-view-gate total (the SQL-matched row count), so it's an UPPER bound on visible.
+      * The GXL ``filter`` still runs per-row in Python (it's a tiny expression DSL with no SQL
+        compiler) — that's now safe because it only sees one page at a time.
     """
     ent = await _entity(s, user.tenant_id, slug)
     grants = await load_grants(s, user)
     if not can(grants, ent.key, "view"):           # no view permission on this entity at all
         _deny(ent.key, "view")
     paths = await _node_paths(s, user.tenant_id)
-    rows = (await s.execute(
-        select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key).order_by(Record.created_at)
-    )).scalars().all()
+
+    # Build the SQL query: filter + sort + paginate AT THE DATABASE, not in Python. The
+    # original implementation materialised every row in the tenant and then filtered — that
+    # was the D25 critical (unbounded memory).
+    stmt = select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key)
+
+    # ---- q (free-text search) — pushed into SQL ----------------------------------------
+    # Approximate the legacy in-Python ``_matches_q`` with ``data::text ILIKE '%q%'`` plus a
+    # check on the ``status`` column. See module docstring for the documented trade-off
+    # (false-positive risk on non-string values is acceptable; the alternative was an
+    # unbounded tenant scan in Python).
+    if q:
+        needle = f"%{q}%"
+        stmt = stmt.where(or_(
+            cast(Record.data, Text).ilike(needle),
+            Record.status.ilike(needle),
+        ))
+
+    # ---- sort — pushed into SQL --------------------------------------------------------
+    # status / created_at → plain column; anything else → JSONB key lookup (``data ->> 'k'``).
+    # Validate the requested field looks like a key (defensive — prevents arbitrary SQL via
+    # the sort param even though SQLAlchemy already parameterises it).
+    sort_clause = Record.created_at  # default ordering
+    sort_desc = False
+    if sort:
+        sort_desc = sort.startswith("-")
+        field = sort[1:] if sort_desc else sort
+        if not re.match(r"^[A-Za-z0-9_]+$", field):
+            raise HTTPException(422, f"Invalid sort field '{field}'")
+        if field == "created_at":
+            sort_clause = Record.created_at
+        elif field == "status":
+            sort_clause = Record.status
+        else:
+            sort_clause = Record.data[field].astext
+    stmt = stmt.order_by(desc(sort_clause).nullslast() if sort_desc else sort_clause.nullslast())
+
+    # ---- pagination — pushed into SQL --------------------------------------------------
+    # Defaults to DEFAULT_LIMIT (100) when ``limit`` is omitted; Page() raises 422 on
+    # explicit overflow (limit > MAX_LIMIT). offset clamped at 0.
+    page = Page.from_request(limit, offset)
+    stmt = page.apply(stmt)
+
+    rows = list((await s.execute(stmt)).scalars().all())
 
     # field-level view gate: which data keys this caller's roles may not see
     fields = await _fields(s, ent.id)
     hidden = _hidden_keys(fields, role_keys(grants), can(grants, "config", "manage"))
 
-    # 1. scope filter (access control) — must run before any user-supplied filtering
+    # ---- post-page filtering in Python -------------------------------------------------
+    # 1. org-scope view-gate — runs AFTER pagination because the path-subtree match is
+    #    expensive to push into SQL (would need an org-tree join). The page may shrink as
+    #    a result; clients should rely on X-Total-Count and the page emptying out for the
+    #    end-of-list signal. Documented in the docstring above.
     visible = [
         r for r in rows
         if can(grants, ent.key, "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)
     ]
 
-    # 2. free-text search
-    if q:
-        needle = q.lower()
-        visible = [r for r in visible if _matches_q(r, needle)]
-
-    # 3. GXL filter (per record; a broken/false expression excludes — never 500)
+    # 2. GXL filter (per record; broken/false expression excludes — never 500). Runs on the
+    #    page only, so even pathological filters can no longer trigger a full-tenant scan.
     if filter:
         visible = [r for r in visible if gxl.evaluate(filter, {**(r.data or {}), "status": r.status})]
 
-    # 4. sort (None values always last; coerce to string if values are uncomparable)
-    if sort:
-        desc = sort.startswith("-")
-        field = sort[1:] if desc else sort
-        present = [r for r in visible if _sort_value(r, field) is not None]
-        missing = [r for r in visible if _sort_value(r, field) is None]
-        try:
-            present = sorted(present, key=lambda r: _sort_value(r, field), reverse=desc)
-        except TypeError:
-            present = sorted(present, key=lambda r: str(_sort_value(r, field)), reverse=desc)
-        visible = present + missing
+    # X-Total-Count: total matching rows from the SQL query (pre-view-gate-in-Python). With
+    # SQL-side pagination this is now an UPPER bound on what the caller can see (vs. exact
+    # pre-page count under the old all-rows-in-memory model). Frontend pagers still work —
+    # they may overshoot by the org-scope-denied delta, but never undershoot.
+    # Build a count over the same WHERE without ORDER/LIMIT/OFFSET.
+    base_stmt = select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key)
+    if q:
+        needle = f"%{q}%"
+        base_stmt = base_stmt.where(or_(
+            cast(Record.data, Text).ilike(needle),
+            Record.status.ilike(needle),
+        ))
+    total = (await s.execute(count_select(base_stmt))).scalar_one()
+    response.headers[X_TOTAL_COUNT] = str(total)
 
-    # X-Total-Count: total matching rows AFTER all filters but BEFORE paging — always set, so the
-    # frontend can size a pager regardless of which page (or no page) was requested.
-    response.headers[X_TOTAL_COUNT] = str(len(visible))
-
-    # 5. pagination — bound the result LAST, after all access/filter/sort decisions. With no `limit`
-    # param (and the default offset=0) this returns the full list unchanged — identical to before.
-    page = Page(limit, offset)
-    return [_serialize(r, hidden) for r in page.slice_list(visible)]
+    return [_serialize(r, hidden) for r in visible]
 
 
 @router.post("/{slug}", status_code=201)

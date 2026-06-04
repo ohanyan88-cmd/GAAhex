@@ -85,15 +85,43 @@ async def _viewable_filtered(s: AsyncSession, user: User, ent, q, filter_expr, s
     return visible
 
 
+_DANGEROUS_LEADERS = frozenset("=+-@\t\r")
+
+
+def _neutralize_formula(s: str) -> str:
+    """Prefix a leading apostrophe to defang Excel / LibreOffice formula injection (H19, D32).
+
+    Per OWASP CSV-Injection guidance, any cell whose first character is one of
+    ``= + - @ \\t \\r`` (or whose first non-whitespace character is ``= + - @``) is
+    treated as a formula by spreadsheet apps. Prepending ``'`` forces the cell to render
+    literally without changing the visible content (the apostrophe is consumed by the
+    spreadsheet at display time). Pass-through for benign values keeps CSV diff-friendly.
+
+    Note: tab (``\\t``) and CR (``\\r``) are dangerous *as leading characters* but are also
+    whitespace; ``lstrip()`` alone would erase them and miss the threat. We check the raw
+    first byte first, then fall back to the lstripped form for the symbolic leaders.
+    """
+    if not s:
+        return s
+    if s[:1] in _DANGEROUS_LEADERS:
+        return "'" + s
+    lead = s.lstrip()
+    if lead and lead[:1] in _DANGEROUS_LEADERS:
+        return "'" + s
+    return s
+
+
 def _cell(v) -> str:
-    """Render one value as a CSV cell."""
+    """Render one value as a CSV / XLSX cell, with formula-injection neutralization."""
     if v is None:
         return ""
     if isinstance(v, bool):
         return "true" if v else "false"
     if isinstance(v, list):
-        return "; ".join("" if x is None else str(x) for x in v)
-    return str(v)
+        s = "; ".join("" if x is None else str(x) for x in v)
+    else:
+        s = str(v)
+    return _neutralize_formula(s)
 
 
 @router.get("/{slug}/export")

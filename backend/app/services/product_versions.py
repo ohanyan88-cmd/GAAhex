@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.product import Product
@@ -86,6 +86,26 @@ async def mint_new_version(
 
     The caller is responsible for ``await session.commit()``.
     """
+    # F4 (financial-integrity Critical) — mint_new_version race.
+    # Two concurrent mints on the same product_id used to both read
+    # ``max(version_no)``, both compute ``next_no = N+1``, and both try to insert a row with
+    # ``effective_to IS NULL`` — producing TWO open versions and a duplicate version_no.
+    #
+    # Defence in depth:
+    #   1. Postgres advisory transaction lock keyed on ``product_version:{product_id}`` so
+    #      concurrent callers serialize on the same product_id BEFORE the max() read. The
+    #      lock is held until commit/rollback (xact_lock variant) — no manual release.
+    #   2. The migration adds a partial UNIQUE INDEX
+    #      ``uq_product_version_one_open ON product_version (product_id) WHERE effective_to IS NULL``
+    #      so even if the advisory-lock layer were ever bypassed, the database refuses the
+    #      second open row at INSERT time with IntegrityError.
+    # The two combined make double-open impossible: the lock is the happy path (no contention
+    # on the unique index), the partial unique is the backstop.
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:k))"),
+        {"k": f"product_version:{product_id}"},
+    )
+
     now = _utcnow()
 
     # Single source of truth for the version's tenant: the parent Product's tenant_id. Anchoring
@@ -95,6 +115,8 @@ async def mint_new_version(
     )).scalar_one()
 
     # max version_no so far + the still-open version (if any) — one round-trip each, both cheap.
+    # Safe under the advisory lock above: any concurrent caller is blocked on the lock until
+    # this transaction commits, so the max() read sees the freshest committed state.
     max_no_row = (await session.execute(
         select(func.max(ProductVersion.version_no)).where(ProductVersion.product_id == product_id)
     )).scalar_one()
@@ -106,6 +128,16 @@ async def mint_new_version(
             ProductVersion.effective_to.is_(None),
         ).order_by(ProductVersion.version_no.desc())
     )).scalars().first()
+
+    # F4 (financial-integrity Critical) — close the prior open row BEFORE inserting the new
+    # open row. The partial UNIQUE INDEX from the migration only allows ONE row per product_id
+    # with effective_to IS NULL; if we inserted the new row first (effective_to=NULL) while the
+    # prior was still open, the insert would violate the index even on the happy path. Closing
+    # the prior first leaves zero open rows ⇒ the insert lands cleanly. superseded_by_id is
+    # wired in a follow-up UPDATE once new_version.id is materialized.
+    if open_prior is not None:
+        open_prior.effective_to = now
+        await session.flush()
 
     spec_json = dict(attrs.get("spec_json") or {})
     new_version = ProductVersion(
@@ -123,7 +155,6 @@ async def mint_new_version(
     await session.flush()  # populate new_version.id so we can wire superseded_by_id below
 
     if open_prior is not None:
-        open_prior.effective_to = now
         open_prior.superseded_by_id = new_version.id
         await session.flush()
 

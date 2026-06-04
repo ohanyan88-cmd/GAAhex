@@ -35,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.billing import Invoice, Payment
 from ...models.payment_method import PaymentMethod
 from ...services.account_balance import recompute_account_balance
+from ...services.payment_allocation import outstanding_for_invoice
 
 _log = logging.getLogger("portal.payments.stripe_events")
 
@@ -153,6 +154,38 @@ async def _handle_payment_intent_succeeded(session: AsyncSession, event: dict) -
         )
         return "ignored"
 
+    # F1 (financial-integrity Critical) — currency lock-in.
+    # GAAhex's money column is AMD luma (the smallest unit of AMD). A Stripe event arriving
+    # in any other currency would otherwise be credited at face value (e.g. 1000 USD cents
+    # would land as 1000 AMD luma) — silently miscrediting the invoice. We REFUSE to credit
+    # any non-AMD event; raise so the webhook router records the audit row as 'errored' for
+    # operator triage, and the surrounding transaction rolls back without writing a Payment.
+    currency = (obj.get("currency") or "").lower()
+    if currency != "amd":
+        _log.warning(
+            "stripe_events.payment_intent.succeeded: rejecting non-AMD currency %r on intent %s "
+            "(invoice %s, tenant %s)", currency, intent_id, invoice_id, tenant_id,
+        )
+        raise ValueError(
+            f"stripe webhook currency must be 'amd', got {currency!r} (intent={intent_id})"
+        )
+
+    # F2 (financial-integrity Critical) — amount-vs-outstanding gate.
+    # We must never credit more than what's actually owed on the invoice (cumulative payments +
+    # applied credit notes already subtracted). outstanding_for_invoice() returns Decimal luma.
+    # Comparing int luma (amount) against Decimal luma is safe — both are integer luma values.
+    outstanding = await outstanding_for_invoice(session, inv.id)
+    if amount > int(outstanding):
+        _log.warning(
+            "stripe_events.payment_intent.succeeded: rejecting over-payment amount=%s > "
+            "outstanding=%s on intent %s (invoice %s, tenant %s)",
+            amount, int(outstanding), intent_id, invoice_id, tenant_id,
+        )
+        raise ValueError(
+            f"stripe webhook amount {amount} exceeds invoice outstanding {int(outstanding)} "
+            f"(intent={intent_id})"
+        )
+
     pay = Payment(
         tenant_id=tenant_id,
         invoice_id=invoice_id,
@@ -166,13 +199,17 @@ async def _handle_payment_intent_succeeded(session: AsyncSession, event: dict) -
     session.add(pay)
     await session.flush()
 
-    # Flip the invoice to PAID if cumulative payments now meet/exceed the total. We use
-    # a fresh SUM here rather than relying on the in-memory state because there may be
-    # other payments (cash/transfer/card) already against this invoice.
+    # F3 (financial-integrity Critical) — net-paid flip.
+    # The auto-PAID flip used to look at SUM(Payment.amount), ignoring refunds. After a partial
+    # refund, gross-paid could still meet invoice.total while net-paid was below — leaving the
+    # invoice incorrectly stuck at PAID. Subtract refunded_amount so the flip reflects the money
+    # actually retained.
     from sqlalchemy import func as _f
     paid_sum = (await session.execute(
-        select(_f.coalesce(_f.sum(Payment.amount), 0))
-        .where(Payment.invoice_id == inv.id)
+        select(_f.coalesce(
+            _f.sum(Payment.amount - _f.coalesce(Payment.refunded_amount, 0)),
+            0,
+        )).where(Payment.invoice_id == inv.id)
     )).scalar_one()
     if paid_sum >= inv.total and inv.status not in ("PAID", "VOID"):
         inv.status = "PAID"

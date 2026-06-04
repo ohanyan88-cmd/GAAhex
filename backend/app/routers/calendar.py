@@ -7,7 +7,7 @@ NOTE: fixed paths under /api/calendar — register BEFORE the generic /api/{slug
 router so they aren't swallowed as entity slugs.
 """
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -48,12 +48,16 @@ def _event(e: CalendarEvent) -> dict:
 # ---- helpers ----
 
 def _parse_dt(value, field: str):
+    """Parse an ISO datetime; coerce tz-naive inputs to UTC (H8 / D7)."""
     if value in (None, ""):
         return None
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         raise HTTPException(422, f"'{field}' must be an ISO datetime")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 async def _get_event(s: AsyncSession, tenant_id, event_id) -> CalendarEvent:

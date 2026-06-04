@@ -344,12 +344,16 @@ async def create_task(
 
 
 def _parse_dt(value, field: str) -> datetime | None:
+    """Parse an ISO datetime; coerce tz-naive inputs to UTC (H8 / D7) and accept trailing 'Z'."""
     if value is None:
         return None
     try:
-        return datetime.fromisoformat(str(value))
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         raise HTTPException(status_code=422, detail=f"{field} must be ISO 8601")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 # ── READ ──────────────────────────────────────────────────────────────────────

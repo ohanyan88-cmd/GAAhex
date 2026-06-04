@@ -284,6 +284,14 @@ async def _get_product(s, user: User, product_id) -> Product:
 # ---- date parsing ----
 
 def _parse_dt(value, field: str, optional: bool = False):
+    """Parse an ISO-8601 string into a tz-aware ``datetime`` (H8 / D7).
+
+    A naive datetime (no offset, no ``Z``) is coerced to UTC rather than left tz-naive,
+    so downstream arithmetic against ``datetime.now(timezone.utc)`` never raises
+    ``TypeError: can't compare offset-naive and offset-aware datetimes``. The previous
+    implementation silently produced naive instances for inputs like ``2026-01-15T08:00:00``,
+    which made cycle/billing math non-deterministic across the API boundary.
+    """
     if value in (None, ""):
         if optional:
             return None
@@ -292,4 +300,6 @@ def _parse_dt(value, field: str, optional: bool = False):
         dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         raise HTTPException(422, f"'{field}' must be an ISO datetime")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
     return dt

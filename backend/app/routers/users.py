@@ -28,7 +28,7 @@ from ..models import User, Assignment, RoleDef, OrgNode
 from ..access import load_grants, can
 from ..security import hash_password
 from .. import workflow
-from .auth import current_user, validate_password_strength
+from .auth import current_user, validate_password_strength, revoke_all_refresh_tokens_for_user
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -286,9 +286,15 @@ async def delete_user(
     target = await _get_user(s, user.tenant_id, user_id)
 
     was = target.status
+    revoked = 0
     if was != "INACTIVE":
         target.status = "INACTIVE"
         await workflow.emit(s, user.tenant_id, "DELETE", "app_user", target.id, user.id,
                             {"email": target.email, "previous_status": was})
+        # S6 remediation 2026-06-04: soft-deactivation must also revoke every still-live refresh
+        # token for the target. login/refresh both already enforce status=='ACTIVE' (S2), but a
+        # token that's still in the DB as non-revoked is a liability for incident response and
+        # for accurate session telemetry — burn them all down here.
+        revoked = await revoke_all_refresh_tokens_for_user(s, target.id)  # noqa: tenant-filter — target is tenant-confirmed by _get_user above
     await s.commit()
-    return {"ok": True, "id": str(target.id), "status": target.status}
+    return {"ok": True, "id": str(target.id), "status": target.status, "refresh_tokens_revoked": revoked}

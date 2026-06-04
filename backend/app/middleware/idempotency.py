@@ -29,12 +29,14 @@ HTTP definition).
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -47,6 +49,18 @@ _RETENTION = timedelta(hours=24)
 
 # Max idempotency_key length (matches the model column).
 _MAX_KEY_LEN = 200
+
+# AC4 — TOCTOU fix: PENDING-row sentinel. The current IdempotencyRequest model
+# has no `status` column (adding one is a migration concern, not a code-only
+# change), so we encode PENDING into the existing `response_status` integer:
+# `0` means "handler in flight" — never a real HTTP status. Real responses
+# overwrite it with the 2xx/3xx/etc. status code on completion. See the
+# remediation note in the PR description for the migration follow-up.
+_PENDING_STATUS_SENTINEL = 0
+
+# Poll budget when a concurrent request owns the slot (status==PENDING).
+_PENDING_POLL_TRIES = 25
+_PENDING_POLL_DELAY_SECONDS = 0.2  # → 25 × 200 ms = 5 s total before 409
 
 
 class IdempotencyMiddleware(BaseHTTPMiddleware):
@@ -89,16 +103,24 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         method = request.method
         path = request.url.path
 
-        # --- lookup existing row -----------------------------------------
+        # --- AC4 TOCTOU fix: atomic claim-the-slot via INSERT ... ON CONFLICT ----
+        # The old shape was: SELECT → (no row) → run handler → INSERT. Two
+        # simultaneous requests with the same Idempotency-Key both saw "no row"
+        # and both ran the handler → duplicate side-effects (double charge /
+        # order / etc.). The fix: race for the row up front. Postgres'
+        # INSERT ... ON CONFLICT DO NOTHING RETURNING id atomically gives the
+        # winner a row, and tells losers (via "no rows returned") that someone
+        # else owns this slot. Losers then either replay the cached response
+        # (winner finished) or poll until it does (bounded 5s) or 409.
         from ..db import SessionLocal, set_tenant_guc  # local import: avoid app-startup cycles
         from ..models.idempotency_request import IdempotencyRequest
 
         now = datetime.now(timezone.utc)
-        async with SessionLocal() as s:
-            # Bind RLS for this lookup so the row is tenant-scoped.
-            await set_tenant_guc(s, tenant_id)
-            existing = (
-                await s.execute(
+        expires_at = now + _RETENTION
+
+        async def _fetch_existing(sess) -> IdempotencyRequest | None:
+            return (
+                await sess.execute(
                     select(IdempotencyRequest).where(
                         IdempotencyRequest.tenant_id == tenant_id,
                         IdempotencyRequest.idempotency_key == idem_key,
@@ -108,22 +130,99 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 )
             ).scalar_one_or_none()
 
-            if existing is not None and existing.expires_at > now:
-                if existing.request_fingerprint != fingerprint:
+        won_the_slot: bool
+        slot_row_id: uuid.UUID | None = None
+        async with SessionLocal() as s:
+            await set_tenant_guc(s, tenant_id)
+
+            # First, drop any clearly-expired row so we can claim its slot.
+            # This is best-effort: if a concurrent request already replaced
+            # it, ON CONFLICT below still handles the race correctly.
+            existing = await _fetch_existing(s)
+            if existing is not None and existing.expires_at <= now:
+                await s.delete(existing)
+                await s.commit()
+                # New transaction for the upsert below.
+                await set_tenant_guc(s, tenant_id)
+                existing = None
+
+            # Atomic claim. PENDING marker = response_status==0, body=={}.
+            # Random id so two concurrent inserters never collide on PK.
+            new_row_id = uuid.uuid4()
+            insert_stmt = (
+                pg_insert(IdempotencyRequest)
+                .values(
+                    id=new_row_id,
+                    tenant_id=tenant_id,
+                    idempotency_key=idem_key,
+                    method=method,
+                    path=path,
+                    request_fingerprint=fingerprint,
+                    response_status=_PENDING_STATUS_SENTINEL,
+                    response_body={},
+                    expires_at=expires_at,
+                )
+                .on_conflict_do_nothing(
+                    constraint="uq_idempotency_request",
+                )
+                .returning(IdempotencyRequest.id)
+            )
+            inserted = (await s.execute(insert_stmt)).scalar_one_or_none()
+            await s.commit()
+
+            if inserted is not None:
+                won_the_slot = True
+                slot_row_id = inserted
+            else:
+                # Lost the race — someone else owns the slot. Resolve by
+                # looking up the existing row and either replay/422/409/poll.
+                won_the_slot = False
+                slot_row_id = None
+
+        if not won_the_slot:
+            # ── path B: another request owns the slot ──
+            for attempt in range(_PENDING_POLL_TRIES):
+                async with SessionLocal() as s:
+                    await set_tenant_guc(s, tenant_id)
+                    other = await _fetch_existing(s)
+
+                if other is None:
+                    # Row vanished (expiry race + cleanup). Treat as MISS:
+                    # fall through to a fresh attempt by recursing once via
+                    # a direct call_next — accepting the (tiny) duplicate
+                    # window rather than spinning further.
+                    break
+
+                if other.response_status != _PENDING_STATUS_SENTINEL:
+                    # Winner has finished. Decide reply.
+                    if other.request_fingerprint != fingerprint:
+                        return JSONResponse(
+                            status_code=422,
+                            content={
+                                "detail": "Idempotency-Key reused with different request body",
+                            },
+                        )
                     return JSONResponse(
-                        status_code=422,
-                        content={
-                            "detail": "Idempotency-Key reused with different request body",
-                        },
+                        status_code=other.response_status,
+                        content=other.response_body,
+                        headers={"X-Idempotent-Replay": "true"},
                     )
-                # HIT + matching fingerprint → replay the cached response.
+
+                # Still PENDING — wait a beat and retry.
+                await asyncio.sleep(_PENDING_POLL_DELAY_SECONDS)
+            else:
+                # Exhausted the poll budget — winner is taking too long.
+                # Refuse the duplicate rather than risk a second side-effect.
                 return JSONResponse(
-                    status_code=existing.response_status,
-                    content=existing.response_body,
-                    headers={"X-Idempotent-Replay": "true"},
+                    status_code=409,
+                    content={
+                        "detail": "Idempotency request still in flight",
+                    },
                 )
 
-        # --- MISS (or expired): run the handler with a replayable body ----
+            # Row vanished mid-poll → fall through and run the handler fresh.
+
+        # ── path A (winner) OR the rare vanished-row fallback: run the handler ──
         async def _replay_receive():
             return {"type": "http.request", "body": body, "more_body": False}
 
@@ -133,6 +232,18 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
 
         # Only cache 2xx responses — failures should not replay.
         if not (200 <= response.status_code < 300):
+            # Non-2xx: roll the PENDING row back so subsequent retries get a
+            # fresh chance instead of being permanently locked out by a 5xx.
+            if won_the_slot and slot_row_id is not None:
+                try:
+                    async with SessionLocal() as s:
+                        await set_tenant_guc(s, tenant_id)
+                        slot = await _fetch_existing(s)
+                        if slot is not None and slot.response_status == _PENDING_STATUS_SENTINEL:
+                            await s.delete(slot)
+                            await s.commit()
+                except Exception:
+                    pass
             return response
 
         # Buffer the response body so we can both cache it AND forward it.
@@ -147,6 +258,17 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         try:
             parsed = json.loads(full_body) if full_body else {}
         except json.JSONDecodeError:
+            # Non-JSON: also free the PENDING slot so we don't lock the key.
+            if won_the_slot:
+                try:
+                    async with SessionLocal() as s:
+                        await set_tenant_guc(s, tenant_id)
+                        slot = await _fetch_existing(s)
+                        if slot is not None and slot.response_status == _PENDING_STATUS_SENTINEL:
+                            await s.delete(slot)
+                            await s.commit()
+                except Exception:
+                    pass
             return Response(
                 content=full_body,
                 status_code=response.status_code,
@@ -154,30 +276,38 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 media_type=response.media_type,
             )
 
-        # Write the cache row. Use a fresh session because the response is
-        # already on its way and we don't want to entangle errors.
+        # Flip the PENDING row to COMPLETED with the real response.
         try:
             async with SessionLocal() as s:
                 await set_tenant_guc(s, tenant_id)
-                if existing is not None:
-                    # Stale row past expiry — refresh it in place.
-                    existing.request_fingerprint = fingerprint
-                    existing.response_status = response.status_code
-                    existing.response_body = parsed
-                    existing.expires_at = now + _RETENTION
-                    s.add(existing)
+                slot = await _fetch_existing(s)
+                if slot is not None:
+                    slot.response_status = response.status_code
+                    slot.response_body = parsed
+                    slot.request_fingerprint = fingerprint
+                    slot.expires_at = expires_at
+                    s.add(slot)
+                    await s.commit()
                 else:
-                    s.add(IdempotencyRequest(
-                        tenant_id=tenant_id,
-                        idempotency_key=idem_key,
-                        method=method,
-                        path=path,
-                        request_fingerprint=fingerprint,
-                        response_status=response.status_code,
-                        response_body=parsed,
-                        expires_at=now + _RETENTION,
-                    ))
-                await s.commit()
+                    # Row missing entirely (vanished-row fallback path) —
+                    # insert a fresh COMPLETED row. Ignore conflict if a
+                    # concurrent winner already wrote one.
+                    insert_done = (
+                        pg_insert(IdempotencyRequest)
+                        .values(
+                            tenant_id=tenant_id,
+                            idempotency_key=idem_key,
+                            method=method,
+                            path=path,
+                            request_fingerprint=fingerprint,
+                            response_status=response.status_code,
+                            response_body=parsed,
+                            expires_at=expires_at,
+                        )
+                        .on_conflict_do_nothing(constraint="uq_idempotency_request")
+                    )
+                    await s.execute(insert_done)
+                    await s.commit()
         except Exception:
             # Caching is best-effort — never break a successful request because
             # the cache write failed (race with another retry, transient DB hiccup).

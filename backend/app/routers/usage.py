@@ -7,6 +7,7 @@ billing's own logic. Money is integer luma. Tenant + org scoped; `usage.*` permi
 NOTE: fixed paths under /api ("/api/usage"), so register BEFORE records.router ("/api/{slug}").
 """
 import uuid
+from decimal import Decimal, ROUND_HALF_UP
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -37,10 +38,21 @@ def _iso(dt):
     return dt.isoformat() if dt else None
 
 
-def _quantity(v) -> float:
+def _quantity(v) -> Decimal:
+    """Coerce caller input into Decimal — never float.
+
+    F8 (financial-integrity Critical) — usage float math.
+    The old helper returned ``float(v)``, which silently introduced binary-float drift on common
+    inputs like 0.1 (which has no exact binary representation). The amount computation later
+    multiplied that float by an int unit_rate and rounded — so quantity=0.1 unit_rate=1000 could
+    land as 99 or 101 luma depending on the rounding mode, instead of the exact 100.
+    Going through Decimal(str(v)) preserves the decimal digits the caller actually sent (JSON
+    numbers arrive as Python floats already, so ``str(v)`` is the shortest round-trip
+    representation — good enough for the 4-decimal Numeric(18,4) column we land into).
+    """
     try:
-        q = float(v)
-    except (TypeError, ValueError):
+        q = Decimal(str(v))
+    except (TypeError, ValueError, ArithmeticError):
         raise HTTPException(422, "quantity must be a number")
     if q < 0:
         raise HTTPException(422, "quantity must be >= 0")
@@ -107,7 +119,13 @@ async def record_usage(payload: dict, user: User = Depends(current_user), s: Asy
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
 
-    amount = int(round(quantity * unit_rate))
+    # F8 (financial-integrity Critical) — Decimal-safe amount.
+    # Multiplying Decimal × Decimal stays exact (no binary drift), and quantize() with
+    # ROUND_HALF_UP gives the banker-friendly rounding rule billing uses everywhere else.
+    # For quantity=0.1 / unit_rate=1000 this lands exactly on 100 luma, not 99 or 101.
+    amount = int(
+        (Decimal(quantity) * Decimal(unit_rate)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    )
     u = UsageRecord(
         tenant_id=user.tenant_id, owner_node_id=owner_node,
         subscription_id=sub_id, service_id=service_id,
@@ -119,7 +137,7 @@ async def record_usage(payload: dict, user: User = Depends(current_user), s: Asy
     s.add(u)
     await s.flush()
     await workflow.emit(s, user.tenant_id, "CREATE", "usage", u.id, user.id,
-                        {"metric": metric, "quantity": quantity, "amount": amount,
+                        {"metric": metric, "quantity": str(quantity), "amount": amount,
                          "subscription_id": str(sub_id) if sub_id else None})
     await s.commit()
     await s.refresh(u)

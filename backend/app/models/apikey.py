@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import String, ForeignKey, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -28,3 +28,9 @@ class ApiKey(Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # T4/T5 remediation 2026-06-04 (alembic e1a4b2c3d5f7). Both nullable, backward-compatible.
+    # expires_at NULL = no expiry. scopes NULL or [] = no scope restriction (full principal access).
+    # A scope is an `object.action` permission key from docs/standards/15-permission-registry.md;
+    # e.g. ["billing.read", "subscription.read"]. Enforced by routers.apikeys.require_scope().
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    scopes: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)

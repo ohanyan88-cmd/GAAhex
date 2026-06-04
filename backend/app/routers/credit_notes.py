@@ -34,6 +34,7 @@ from ..access import load_grants, can
 from .. import workflow
 from ..kernel import assert_can, AccessDenied
 from ..services.account_balance import recompute_account_balance
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api/billing", tags=["credit-notes"])
@@ -72,12 +73,16 @@ def _credit_note(c: CreditNote) -> dict:
 
 
 async def _next_credit_note_number(s: AsyncSession, tenant_id: uuid.UUID) -> str:
-    """Per-tenant monotonic CN-XXXXX number. Uses the existing CreditNote table count + 1."""
-    n = (await s.execute(
-        select(func.count()).select_from(CreditNote)
-        .where(CreditNote.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"CN-{n + 1:05d}"
+    """Per-tenant monotonic CN-XXXXX number.
+
+    F5 (financial-integrity Critical) — replaced the legacy SELECT COUNT(*)+1 pattern with
+    next_reference_number (utils/refnum.py), which is backed by a per-(tenant, prefix) Postgres
+    SEQUENCE. SEQUENCE allocation is MVCC-exempt: concurrent transactions get distinct values
+    without any app-side lock, so two parallel credit-note creates can never collide on the
+    same CN-XXXXX number. The width=5 matches the legacy "CN-{n+1:05d}" zero-padding so issued
+    receipts keep their numbering shape.
+    """
+    return await next_reference_number(s, tenant_id=tenant_id, prefix="CN", width=5)
 
 
 def _parse_decimal(value, field: str) -> Decimal:

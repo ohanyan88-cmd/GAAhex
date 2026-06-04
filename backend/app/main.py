@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # be populated before `from .config import settings` triggers app.* imports below.
 load_dotenv()
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -16,6 +16,7 @@ from sqlalchemy import text, select
 
 from .config import settings, _assert_production_deploy_contract
 from .db import SessionLocal, OwnerSessionLocal, engine, owner_engine
+from .utils.ids import uuid7
 from .models import (  # noqa: F401  (imported so the mappers register)
     Base, Tenant, OrgNode, User,
     EntityDef, FieldDef, StatusDef, RelationDef, WorkflowDef, Record,
@@ -140,6 +141,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             # Modern guidance: explicitly OFF; browsers use CSP instead.
             "X-XSS-Protection": "0",
             "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+            # H4 — restrictive CSP applied uniformly to JSON API + portal HTML
+            # routes (portal_billing.invoice_document). 'self' is tight enough
+            # for both: JSON responses ignore CSP; HTML invoice docs render only
+            # same-origin scripts and refuse to be embedded by a third party
+            # (frame-ancestors 'none' is the clickjacking belt-and-suspenders
+            # alongside X-Frame-Options: DENY above).
+            # style-src adds 'unsafe-inline' because the invoice HTML uses
+            # inline <style> blocks + style="" attributes (see
+            # routers/portal_billing.py::invoice_document). Inline styles
+            # carry zero scripting risk; only inline scripts do, and those
+            # remain blocked by the (default-src-inherited) script-src 'self'.
+            "Content-Security-Policy": (
+                "default-src 'self'; script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
+            ),
         }
         for name, value in defaults.items():
             if name not in headers:
@@ -150,6 +167,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if request.url.scheme == "https" and "Strict-Transport-Security" not in headers:
             headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
+        return response
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """H13 — stamp every request/response with a stable X-Request-ID.
+
+    Honors a client-supplied X-Request-ID when present (so a frontend correlation
+    id survives the round-trip); otherwise mints a fresh UUIDv7 (time-ordered, so
+    log sorts by id are also chronological). The value is exposed to downstream
+    handlers + middleware via `request.state.request_id` and echoed back on the
+    response. Sits BEFORE rate-limit/idempotency so anything they log carries the id.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        req_id = request.headers.get("X-Request-ID") or str(uuid7())
+        request.state.request_id = req_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = req_id
         return response
 
 
@@ -165,6 +200,14 @@ app.add_middleware(
 # Audit-P1 — security headers on every response. Registered between CORS and the
 # rate limiter so it sits in the response path for all normal traffic.
 app.add_middleware(SecurityHeadersMiddleware)
+# H13 — request-id stamping. Added AFTER SecurityHeaders so it runs BEFORE it on
+# the request path (Starlette middlewares run in reverse-registration order),
+# meaning request.state.request_id is set before SecurityHeaders / the endpoint
+# / the unhandled-exception handler can log. Also runs INSIDE the rate-limit +
+# idempotency middlewares so any logging they do can pick up state.request_id
+# from a downstream call that already set it — and conversely any X-Request-ID
+# the client sends survives both outer layers untouched.
+app.add_middleware(RequestIDMiddleware)
 # Abuse guard — OFF unless settings.rate_limit_enabled (so tests/dev are unaffected). In-process.
 app.add_middleware(apikeys.RateLimitMiddleware)
 # Idempotency-Key cache — outermost so cache hits short-circuit before rate-limit billing (B4 agent recommendation).
@@ -305,17 +348,40 @@ async def health_db():
 
 
 @app.get("/org-tree")
-async def org_tree():
-    """Baseline read: the seeded tenant + org tree. Public; lives outside the /api/{slug}
-    entity namespace so the generic record router doesn't shadow it."""
-    # public + no tenant context → owner session (bypasses RLS) so it isn't default-denied.
+async def org_tree(user: User = Depends(auth.current_user)):
+    """Baseline read: the caller's tenant + its org tree.
+
+    S5 remediation — was previously public + cross-tenant under the owner
+    session. That leaked every tenant's name and entire org hierarchy to anyone
+    on the internet. The endpoint now:
+      - Requires a valid JWT / API key (auth.current_user).
+      - Scopes the Tenant row to user.tenant_id (the JWT-validated tenant).
+      - Scopes OrgNode rows to user.tenant_id.
+
+    We keep the owner session because /org-tree historically ran outside the
+    RLS-bound request session and several callers depend on the response
+    shape. The explicit ``tenant_id == user.tenant_id`` WHERE clause IS the
+    authorization boundary; the audit-listener bypass (`audit_tenant_filter
+    =False`) is dropped so the safety net catches any future regression
+    that forgets to scope the query.
+    """
     async with OwnerSessionLocal() as s:
-        # Public org-tree endpoint is intentionally cross-tenant — bypass the tenant-filter audit.
-        await s.connection(execution_options={"audit_tenant_filter": False})
-        tenants = (await s.execute(select(Tenant))).scalars().all()
-        nodes = (await s.execute(select(OrgNode).order_by(OrgNode.path))).scalars().all()
+        tenant = (
+            await s.execute(select(Tenant).where(Tenant.id == user.tenant_id))
+        ).scalar_one_or_none()
+        nodes = (
+            await s.execute(
+                select(OrgNode)
+                .where(OrgNode.tenant_id == user.tenant_id)
+                .order_by(OrgNode.path)
+            )
+        ).scalars().all()
         return {
-            "tenants": [{"id": str(t.id), "name": t.name, "status": t.status} for t in tenants],
+            "tenants": (
+                [{"id": str(tenant.id), "name": tenant.name, "status": tenant.status}]
+                if tenant is not None
+                else []
+            ),
             "nodes": [
                 {
                     "id": str(n.id),

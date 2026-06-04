@@ -54,13 +54,18 @@ def _iso(dt: datetime | None) -> str | None:
 
 
 def _parse_dt(value, field: str):
-    """Parse an ISO datetime string (None/empty → None, bad format → 422)."""
+    """Parse an ISO datetime string (None/empty → None, bad format → 422). Tz-naive inputs are
+    coerced to UTC (H8 / D7) so downstream arithmetic against ``datetime.now(timezone.utc)``
+    never raises ``TypeError: can't compare offset-naive and offset-aware datetimes``."""
     if value in (None, ""):
         return None
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except ValueError:
         raise HTTPException(422, f"'{field}' must be a valid ISO datetime")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 def _workitem(w: WorkItem) -> dict:
@@ -368,6 +373,11 @@ async def assign_workitem(
     user_id = payload.get("user_id")
     if not user_id:
         raise HTTPException(422, "user_id is required")
+
+    # H5 (D12) IDOR fix: a body-supplied user_id must be a User inside the caller's
+    # tenant. Without this check, /assign would happily set assigned_user_id to a
+    # stranger in another tenant. Mirrors the guard already in create_workitem.
+    await _assigned_user_or_422(s, user.tenant_id, user_id)
 
     w.assigned_user_id = user_id
     await workflow.emit(s, user.tenant_id, "WORKITEM_ASSIGN", "workitem", w.id, user.id,

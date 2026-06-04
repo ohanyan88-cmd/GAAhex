@@ -32,6 +32,42 @@ Adapter = Callable[[str | None, str | None, str], Awaitable[None]]
 _REGISTRY: dict[str, Adapter] = {}
 
 
+# ---- PII redaction helpers (C1, D22) ---------------------------------------------------
+# Channel adapter logs MUST NOT carry full recipient addresses or message body content. The
+# delivery log row (OutboundMessage) keeps the full data behind RBAC; the INFO log line is the
+# operator-visible breadcrumb and is sized to "did it leave the box?" not "what was in it?".
+# These helpers are applied to every logger.info(...) call in this module — never to the raw
+# `to`/`body` arguments that travel to the actual adapter.
+
+def _redact_addr(addr: str | None) -> str:
+    """Return an email-shaped redaction: keep first 2 chars of the local-part + the domain."""
+    if not addr or "@" not in addr:
+        return "***"
+    local, domain = addr.split("@", 1)
+    return f"{local[:2]}***@{domain}" if len(local) > 2 else f"***@{domain}"
+
+
+def _redact_phone(phone: str | None) -> str:
+    """Return phone redaction: last-4 only, masked when the source is too short."""
+    if not phone:
+        return "***"
+    return f"***{phone[-4:]}" if len(phone) >= 4 else "***"
+
+
+def _redact_url(url: str | None) -> str:
+    """Webhook URL redaction: scheme+host only, drop path/query (which may carry tokens)."""
+    if not url:
+        return "***"
+    try:
+        from urllib.parse import urlparse  # noqa: PLC0415
+        p = urlparse(url)
+        if p.scheme and p.netloc:
+            return f"{p.scheme}://{p.netloc}/***"
+    except Exception:
+        pass
+    return "***"
+
+
 def register(name: str, adapter: Adapter) -> None:
     """Register (or replace) the adapter for a channel name."""
     _REGISTRY[name] = adapter
@@ -48,25 +84,27 @@ async def _inapp_adapter(to, subject, body):
 
 
 async def _console_adapter(to, subject, body):
-    logger.info("[console] to=%s subject=%s body=%s", to, subject, body)
+    logger.info("[console] to=%s subject=%s body_len=%d",
+                _redact_addr(to), subject, len(body or ""))
 
 
 async def _email_adapter(to, subject, body):
     if not to:
         raise ValueError("no email address for recipient")
-    logger.info("[email] to=%s subject=%s body=%s", to, subject, body)
+    logger.info("[email] to=%s subject=%s body_len=%d",
+                _redact_addr(to), subject, len(body or ""))
 
 
 async def _sms_adapter(to, subject, body):
     if not to:
         raise ValueError("no phone number for recipient")
-    logger.info("[sms] to=%s body=%s", to, body)
+    logger.info("[sms] to=%s body_len=%d", _redact_phone(to), len(body or ""))
 
 
 async def _webhook_adapter(to, subject, body):
     if not to:
         raise ValueError("no webhook url configured")
-    logger.info("[webhook] to=%s body=%s", to, body)
+    logger.info("[webhook] to=%s body_len=%d", _redact_url(to), len(body or ""))
 
 
 register("inapp", _inapp_adapter)

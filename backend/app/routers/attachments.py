@@ -40,6 +40,7 @@ from __future__ import annotations
 import hashlib
 import mimetypes
 import pathlib
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -77,6 +78,23 @@ VALID_CATEGORIES = {
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _safe_filename(name: str) -> str:
+    """H6 (D17): sanitize a stored filename before embedding it in a
+    Content-Disposition header.
+
+    Strips characters that allow header-splitting / quote-escape attacks:
+      * CR (\\r) and LF (\\n) — would inject extra response headers
+      * double-quote (") and backslash (\\) — would break out of the
+        quoted filename token
+
+    The result is always safe to drop inside `filename="..."`. Non-ASCII
+    characters are passed through unchanged; consumers that need strict
+    RFC 5987 handling can layer `filename*=UTF-8''<percent-encoded>` on
+    top — out of scope for this remediation.
+    """
+    return re.sub(r'[\r\n"\\]', '_', name or 'download')
 
 
 def _serialize(a: Attachment, include_storage_key: bool = False) -> dict:
@@ -320,10 +338,14 @@ async def download_attachment(
         visibility="INTERNAL" if not is_sensitive else "RESTRICTED",
     )
 
+    # H6 (D17): sanitize the user-supplied filename before embedding it in the
+    # Content-Disposition header so an attacker cannot inject CRLF / extra
+    # headers or escape the quoted filename token.
+    safe_name = _safe_filename(a.original_file_name)
     return Response(
         content=file_bytes,
         media_type=a.mime_type,
-        headers={"Content-Disposition": f'attachment; filename="{a.original_file_name}"'},
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
     )
 
 

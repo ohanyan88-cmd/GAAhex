@@ -21,7 +21,31 @@ import zipfile
 from datetime import date
 from typing import Sequence
 
-__all__ = ["build_xlsx", "build_pdf", "format_money"]
+__all__ = ["build_xlsx", "build_pdf", "format_money", "neutralize_formula"]
+
+
+# ---------------------------------------------------------------------------
+# Formula-injection neutralizer (H19 / D32) — OWASP CSV-Injection mitigation.
+# A cell whose first non-whitespace character is one of ``= + - @ \t \r`` is
+# treated as a formula by Excel / LibreOffice / Google Sheets. Prefixing an
+# apostrophe forces literal rendering. Applied to every XLSX inline-string
+# value so callers that build workbooks directly (bypassing routers/export.py
+# _cell) are still defended.
+# ---------------------------------------------------------------------------
+_DANGEROUS_LEADERS = frozenset("=+-@\t\r")
+
+
+def neutralize_formula(value: str) -> str:
+    if not value:
+        return value
+    # Check the raw first byte first (catches leading TAB / CR which lstrip would erase),
+    # then the lstripped form for symbolic leaders (``=`` / ``+`` / ``-`` / ``@``).
+    if value[:1] in _DANGEROUS_LEADERS:
+        return "'" + value
+    lead = value.lstrip()
+    if lead and lead[:1] in _DANGEROUS_LEADERS:
+        return "'" + value
+    return value
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +151,11 @@ def build_xlsx(header: Sequence[str], rows: Sequence[Sequence[str]]) -> bytes:
 
     def _cell_xml(col_idx: int, row_idx: int, value: str, style: int) -> str:
         col_letter = _col_letter(col_idx)
-        safe = _xml_escape(str(value) if value is not None else "")
+        raw = str(value) if value is not None else ""
+        # Defense-in-depth: neutralize formula-injection at the XLSX writer too. Idempotent —
+        # routers/export.py already neutralizes via _cell, but this guards direct callers
+        # (anything that imports build_xlsx and passes raw user data through).
+        safe = _xml_escape(neutralize_formula(raw))
         return f'<c r="{col_letter}{row_idx}" t="inlineStr" s="{style}"><is><t>{safe}</t></is></c>'
 
     # Header row (style=1 → bold)

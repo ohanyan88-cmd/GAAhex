@@ -54,6 +54,7 @@ from ..models.import_export import (
     ImportJob,
 )
 from ..models.user import User
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["imports_exports"])
@@ -104,20 +105,24 @@ def _serialize_export(j: ExportJob) -> dict:
 
 
 async def _next_import_ref(s: AsyncSession, tenant_id) -> str:
-    """IMP-000001 counter. SELECT COUNT(*)+1 — UNIQUE index is the authoritative
-    fence under concurrency (a duplicate raises rather than corrupts)."""
-    n = (await s.execute(
-        select(func.count()).select_from(ImportJob).where(ImportJob.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"IMP-{n + 1:06d}"
+    """IMP-000001 counter.
+
+    F5 (financial-integrity Critical) — replaced the legacy SELECT COUNT(*)+1 pattern with
+    next_reference_number, backed by a per-(tenant, prefix) Postgres SEQUENCE. Concurrent
+    inserts get distinct values straight from the sequence (MVCC-exempt) so the per-tenant
+    UNIQUE(reference_number) index never has to surface a constraint-violation 500. Width=6
+    preserves the IMP-NNNNNN shape.
+    """
+    return await next_reference_number(s, tenant_id=tenant_id, prefix="IMP", width=6)
 
 
 async def _next_export_ref(s: AsyncSession, tenant_id) -> str:
-    """EXP-000001 counter — same rationale as IMP-."""
-    n = (await s.execute(
-        select(func.count()).select_from(ExportJob).where(ExportJob.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"EXP-{n + 1:06d}"
+    """EXP-000001 counter — same rationale as IMP-.
+
+    F5 (financial-integrity Critical) — replaced legacy SELECT COUNT(*)+1 with the sequence-
+    backed next_reference_number helper. See _next_import_ref above.
+    """
+    return await next_reference_number(s, tenant_id=tenant_id, prefix="EXP", width=6)
 
 
 async def _get_import(s: AsyncSession, tenant_id, job_id: uuid.UUID) -> ImportJob:

@@ -767,12 +767,16 @@ def _opt_uuid(body: dict, field: str) -> Optional[uuid.UUID]:
 
 
 def _parse_dt(value: Any, field: str) -> datetime:
+    """Parse an ISO datetime; coerce tz-naive inputs to UTC (H8 / D7) and accept trailing 'Z'."""
     if isinstance(value, datetime):
-        return value
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
     try:
-        return datetime.fromisoformat(str(value))
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         raise HTTPException(400, f"{field} must be an ISO 8601 datetime string")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 def _parse_dt_opt(value: Any, field: str) -> Optional[datetime]:

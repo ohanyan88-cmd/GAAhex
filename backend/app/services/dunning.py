@@ -350,10 +350,15 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
     case.current_step_index = next_index
     case.step_entered_at = now
 
-    # Compute next_action_at from the delta between this step and the next.
+    # Compute next_action_at anchored on ``opened_at`` (H10 / D7), NOT on ``now``. Anchoring
+    # on now drifts the entire schedule forward by however long the sweep was late — a 6h
+    # sweep lag would push every subsequent step 6h later than the policy intended. Anchoring
+    # on ``opened_at + next_step.day_offset`` keeps the absolute schedule stable regardless
+    # of sweep cadence.
     if next_index + 1 < len(steps):
-        delta_days = int(steps[next_index + 1].get("day_offset", 0)) - int(step.get("day_offset", 0))
-        case.next_action_at = now + timedelta(days=max(delta_days, 0))
+        next_offset_days = int(steps[next_index + 1].get("day_offset", 0))
+        anchor = case.opened_at or now
+        case.next_action_at = anchor + timedelta(days=max(next_offset_days, 0))
     else:
         # Just executed the last step → close the case.
         case.status = "CLOSED"
