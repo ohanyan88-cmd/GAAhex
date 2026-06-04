@@ -91,13 +91,10 @@ interface Broadcast {
   [k: string]: any
 }
 
-type LoadState<T> =
-  | { state: 'loading' }
-  | { state: 'ok'; items: T[] }
-  | { state: 'empty' }
-  | { state: 'denied' }
-  | { state: 'unavailable' }
-  | { state: 'error'; message: string }
+// T-P2-3 — `LoadState<T>` lifted to `primitives/LoadShell.tsx`. Local import
+// keeps existing tab callers unchanged. Future PRs can drop the `type` re-
+// export once all FiberTab/IpamTab/etc references migrate to the import path.
+import type { LoadState } from '../primitives'
 
 type TabKey = 'fiber' | 'ipam' | 'radius' | 'broadcasts'
 
@@ -472,20 +469,27 @@ function TabToolbar({ left, right }: { left: React.ReactNode; right?: React.Reac
   )
 }
 
-// Re-usable render for the {loading | denied | unavailable | empty | error} states.
-function LoadShell<T>({ state, emptyTitle, emptyMessage, onRetry, children }: {
+// T-P2-3 — `LoadShell` now lives in `primitives/LoadShell.tsx`. The local
+// thin-shim below keeps the NOC-specific unavailable copy ("…once Phase NOC.C
+// ships") without forcing every other caller of the canonical to know about
+// that one-off message.
+import { LoadShell as _CanonicalLoadShell } from '../primitives'
+
+function LoadShell<T>(props: {
   state: LoadState<T>
   emptyTitle: string
   emptyMessage: string
   onRetry: () => void
   children: (items: T[]) => React.ReactNode
 }) {
-  if (state.state === 'loading')      return <SkeletonRows rows={5} />
-  if (state.state === 'denied')       return <PermissionDenied />
-  if (state.state === 'unavailable')  return <EmptyState icon={<PackageIcon size={36} />} title="NOC inventory endpoints not yet available" message="This page will populate once Phase NOC.C ships." />
-  if (state.state === 'error')        return <ErrorBanner message={state.message} onRetry={onRetry} />
-  if (state.state === 'empty')        return <EmptyState icon={<SearchIcon size={36} />} title={emptyTitle} message={emptyMessage} />
-  return <>{children(state.items)}</>
+  return (
+    <_CanonicalLoadShell
+      {...props}
+      unavailableTitle="NOC inventory endpoints not yet available"
+      unavailableMessage="This page will populate once Phase NOC.C ships."
+      unavailableIcon={<PackageIcon size={36} />}
+    />
+  )
 }
 
 // ─── Tab 1: Fiber Routes ─────────────────────────────────────────────────────

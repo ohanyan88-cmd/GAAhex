@@ -264,8 +264,12 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
   )
 }
 
-// Widget card shell
-function Card({ title, icon: Icon, children, action }: {
+// T-P2-7 — renamed from `Card` to `DashboardCard` so it doesn't shadow the
+// canonical `page-shell/primitives/Card.tsx`. The canonical is a surface-only
+// wrapper (pad/tone props); this is a header-chrome widget (title + icon +
+// optional action button). Different concept — kept here as a dashboard-
+// local widget but the name no longer collides.
+function DashboardCard({ title, icon: Icon, children, action }: {
   title: string; icon: LucideIcon
   children: React.ReactNode; action?: React.ReactNode
 }) {
@@ -833,7 +837,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
             {isShown('revenue-bar') && showRevenue && (
-              <Card title="Revenue vs Churn" icon={BarChart3}>
+              <DashboardCard title="Revenue vs Churn" icon={BarChart3}>
                 {revTrend.state === 'loading' && <ChartSkeleton />}
                 {revTrend.state === 'ok' && (
                   <>
@@ -851,11 +855,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     </div>
                   </>
                 )}
-              </Card>
+              </DashboardCard>
             )}
 
             {isShown('sub-donut') && (
-              <Card title="Subscription Mix" icon={PieChart}>
+              <DashboardCard title="Subscription Mix" icon={PieChart}>
                 {subMix.state === 'loading' && <ChartSkeleton h={120} />}
                 {subMix.state === 'ok' && (
                   <DonutChart slices={subMix.value.map((s, i) => ({
@@ -865,7 +869,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   }))} />
                 )}
                 {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No subscription data</div>}
-              </Card>
+              </DashboardCard>
             )}
           </div>
         )}
@@ -875,16 +879,16 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
           {isShown('payment-area') && showRevenue && (
-            <Card title="Payment Trend" icon={TrendingUp}>
+            <DashboardCard title="Payment Trend" icon={TrendingUp}>
               {revTrend.state === 'loading' && <ChartSkeleton h={120} />}
               {revTrend.state === 'ok' && (
                 <AreaChart data={revTrend.value.map(b => ({ label: b.month, value: b.collected }))} />
               )}
-            </Card>
+            </DashboardCard>
           )}
 
           {isShown('customer-line') && (
-          <Card title="New vs Churned Subs" icon={Users}>
+          <DashboardCard title="New vs Churned Subs" icon={Users}>
             {customerData.state === 'loading' && <ChartSkeleton h={120} />}
             {customerData.state === 'ok' && (
               <LineChart
@@ -896,7 +900,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               />
             )}
             {customerData.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No customer activity data</div>}
-          </Card>
+          </DashboardCard>
           )}
         </div>
         )}
@@ -906,7 +910,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px', marginBottom: '18px' }}>
 
           {isShown('ar-aging') && showRevenue && (
-            <Card title="AR Aging" icon={AlertTriangle}>
+            <DashboardCard title="AR Aging" icon={AlertTriangle}>
               {arAging.state === 'loading' && <ChartSkeleton h={100} />}
               {/* D18: AR aging buckets — Current (success), 1-30 = sequential intermediate (slate default, not yet a warning), 31-60 (warning), 61-90 (danger-adjacent, was inline #f97316 → semantic warning is closest), 90+ (danger). */}
               {arAging.state === 'ok' && (
@@ -919,26 +923,26 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 ].filter(b => b.value > 0)} />
               )}
               {arAging.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No outstanding AR</div>}
-            </Card>
+            </DashboardCard>
           )}
 
           {isShown('monthly-revenue') && showRevenue && (
-            <Card title="Monthly Revenue vs Prior" icon={BarChart3}>
+            <DashboardCard title="Monthly Revenue vs Prior" icon={BarChart3}>
               {revMetrics.state === 'loading' && <ChartSkeleton h={100} />}
               {revMetrics.state === 'ok' && (
                 <BarChart data={revMetrics.value.map((b: any) => ({
                   label: b.month, primary: b.revenue, secondary: b.churn
                 }))} />
               )}
-            </Card>
+            </DashboardCard>
           )}
 
           {isShown('funnel') && (
-          <Card title="Sales Funnel" icon={ArrowRight}>
+          <DashboardCard title="Sales Funnel" icon={ArrowRight}>
             {funnel.state === 'loading' && <ChartSkeleton h={100} />}
             {funnel.state === 'ok' && <FunnelChart stages={funnel.value} />}
             {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No pipeline data</div>}
-          </Card>
+          </DashboardCard>
           )}
         </div>
         )}
@@ -989,7 +993,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
               {isShown('qoq-bars') && (
-              <Card title="Quarter vs Last Quarter" icon={Calendar}>
+              <DashboardCard title="Quarter vs Last Quarter" icon={Calendar}>
                 <GroupedBarChart data={[
                   { label: 'Revenue',    thisVal: compare.value.quarter.revenue.this / 100,   lastVal: compare.value.quarter.revenue.last / 100 },
                   { label: 'Payments',   thisVal: compare.value.quarter.payments.this,        lastVal: compare.value.quarter.payments.last },
@@ -998,10 +1002,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   { label: 'Churn',      thisVal: compare.value.quarter.churned.this,         lastVal: compare.value.quarter.churned.last },
                   { label: 'Tickets',    thisVal: compare.value.quarter.tickets.this,         lastVal: compare.value.quarter.tickets.last },
                 ]} />
-              </Card>
+              </DashboardCard>
               )}
               {isShown('yoy-bars') && (
-              <Card title="Year vs Last Year (YoY)" icon={Calendar}>
+              <DashboardCard title="Year vs Last Year (YoY)" icon={Calendar}>
                 <GroupedBarChart data={[
                   { label: 'Revenue',    thisVal: compare.value.year.revenue.this / 100,      lastVal: compare.value.year.revenue.last / 100 },
                   { label: 'Payments',   thisVal: compare.value.year.payments.this,           lastVal: compare.value.year.payments.last },
@@ -1010,7 +1014,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   { label: 'Churn',      thisVal: compare.value.year.churned.this,            lastVal: compare.value.year.churned.last },
                   { label: 'Tickets',    thisVal: compare.value.year.tickets.this,            lastVal: compare.value.year.tickets.last },
                 ]} />
-              </Card>
+              </DashboardCard>
               )}
             </div>
           </>
@@ -1020,7 +1024,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {(isShown('weekly-trend') || isShown('heatmap')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '18px', marginBottom: '18px' }}>
           {isShown('weekly-trend') && (
-          <Card title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
+          <DashboardCard title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
             {weekly.state === 'loading' && <ChartSkeleton h={130} />}
             {/* D18: three distinct-identity series in one multi-line chart. Revenue = primary drillable series → --gx-chart-active. New customers (was inline #22c55e) is the "good growth" line — keep semantic success. Churns stays on semantic danger. */}
             {weekly.state === 'ok' && (
@@ -1034,15 +1038,15 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               />
             )}
             {weekly.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No weekly data</div>}
-          </Card>
+          </DashboardCard>
           )}
 
           {isShown('heatmap') && (
-          <Card title="Daily Payment Heatmap" icon={Activity}>
+          <DashboardCard title="Daily Payment Heatmap" icon={Activity}>
             {heatmap.state === 'loading' && <ChartSkeleton h={130} />}
             {heatmap.state === 'ok' && <HeatmapChart data={heatmap.value} />}
             {heatmap.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No payment activity</div>}
-          </Card>
+          </DashboardCard>
           )}
         </div>
         )}
@@ -1055,7 +1059,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', marginBottom: '18px' }}>
               {isShown('status-workitems') && (
-              <Card title="Workitems by Status" icon={CheckSquare}>
+              <DashboardCard title="Workitems by Status" icon={CheckSquare}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.workitems).reduce((s: number, v) => s + (v as number), 0) as number}
                   // D18: IN_PROGRESS = actively-being-worked status → --gx-chart-active (interactive). Other states use slate (todo), semantic danger (blocked), semantic success (done).
@@ -1066,11 +1070,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: 'Done',        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success,#22c55e)' },
                   ]}
                 />
-              </Card>
+              </DashboardCard>
               )}
 
               {isShown('status-tickets') && (
-              <Card title="Tickets by Status" icon={Inbox}>
+              <DashboardCard title="Tickets by Status" icon={Inbox}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.tickets).reduce((s: number, v) => s + (v as number), 0) as number}
                   // D18: OPEN = the active drillable ticket bucket → --gx-chart-active. Pending (warning), Resolved (success), Closed (slate).
@@ -1081,11 +1085,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: 'Closed',   value: statusBreak.value.tickets.CLOSED ?? 0,      color: 'var(--gx-text-3)' },
                   ]}
                 />
-              </Card>
+              </DashboardCard>
               )}
 
               {isShown('status-invoices') && (
-              <Card title="Invoices by Status" icon={Banknote}>
+              <DashboardCard title="Invoices by Status" icon={Banknote}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.invoices).reduce((s: number, v) => s + (v as number), 0) as number}
                   // D18: ISSUED = the active drillable invoice bucket awaiting payment → --gx-chart-active. Paid (success), Overdue (danger), Draft/Void (slate).
@@ -1097,11 +1101,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: 'Void',    value: statusBreak.value.invoices.VOID ?? 0,    color: 'var(--gx-text-3)' },
                   ]}
                 />
-              </Card>
+              </DashboardCard>
               )}
 
               {isShown('status-subs') && (
-              <Card title="Subscriptions by Status" icon={Users}>
+              <DashboardCard title="Subscriptions by Status" icon={Users}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.subscriptions).reduce((s: number, v) => s + (v as number), 0) as number}
                   buckets={[
@@ -1110,7 +1114,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: 'Cancelled', value: statusBreak.value.subscriptions.CANCELLED ?? 0, color: 'var(--gx-danger,#ef4444)' },
                   ]}
                 />
-              </Card>
+              </DashboardCard>
               )}
             </div>
           </>
@@ -1125,17 +1129,17 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '18px' }}>
 
               {isShown('rag-health') && ragHealth.state === 'ok' && (
-                <Card title="RAG Execution Health" icon={AlertTriangle}>
+                <DashboardCard title="RAG Execution Health" icon={AlertTriangle}>
                   <DonutChart slices={[
                     { label: 'Red',   value: ragHealth.value.red,   color: 'var(--gx-danger,#ef4444)' },
                     { label: 'Amber', value: ragHealth.value.amber, color: 'var(--gx-warning,#f59e0b)' },
                     { label: 'Green', value: ragHealth.value.green, color: 'var(--gx-success,#22c55e)' },
                   ].filter(s => s.value > 0)} />
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('task-aging') && taskAging.state === 'ok' && (
-                <Card title="Task Aging" icon={CheckSquare}>
+                <DashboardCard title="Task Aging" icon={CheckSquare}>
                   {/* D18: aging sequence (0-7 success, 8-15 intermediate slate, 16-30 warning, 30+ danger). 8-15 was --azure-400 (Tier-0 violation) — now slate default. */}
                   <HorizontalBarChart buckets={[
                     { label: '0-7 days',   value: taskAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
@@ -1144,11 +1148,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
                   <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Open workitems by age</div>
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('issue-aging') && ticketAging.state === 'ok' && (
-                <Card title="Issue Aging" icon={Inbox}>
+                <DashboardCard title="Issue Aging" icon={Inbox}>
                   {/* D18: aging sequence mirror of Task Aging — 8-15 was --azure-400 (Tier-0 violation) → --gx-chart-default (slate). */}
                   <HorizontalBarChart buckets={[
                     { label: '0-7 days',   value: ticketAging.value.d0_7,     color: 'var(--gx-success,#22c55e)' },
@@ -1157,11 +1161,11 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger,#ef4444)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
                   <div className="muted" style={{ fontSize: 11, marginTop: 8 }}>Open tickets by age</div>
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('risk-heatmap') && riskHeatmap.state === 'ok' && (
-                <Card title="Risk Heat Map" icon={AlertTriangle}>
+                <DashboardCard title="Risk Heat Map" icon={AlertTriangle}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: 3, padding: 6 }}>
                     <div></div>
                     {['Low', 'Medium', 'High'].map(im => (
@@ -1190,19 +1194,19 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     ))}
                   </div>
                   <div className="muted" style={{ fontSize: 11, marginTop: 6, textAlign: 'center' }}>Impact -&gt;</div>
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('lead-source-donut') && leadSources.state === 'ok' && (
-                <Card title="Lead Source Distribution" icon={Users}>
+                <DashboardCard title="Lead Source Distribution" icon={Users}>
                   <DonutChart slices={Object.entries(leadSources.value).map(([src, cnt], i) => ({
                     label: String(src), value: Number(cnt), color: PLAN_COLORS[i % PLAN_COLORS.length],
                   }))} />
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('salesperson-rank') && salesByUser.state === 'ok' && (
-                <Card title="Customers by Account Manager" icon={Users}>
+                <DashboardCard title="Customers by Account Manager" icon={Users}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {Object.entries(salesByUser.value)
                       .sort((a, b) => Number(b[1]) - Number(a[1]))
@@ -1223,7 +1227,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                         )
                       })}
                   </div>
-                </Card>
+                </DashboardCard>
               )}
 
             </div>
@@ -1239,38 +1243,38 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px', marginBottom: '18px' }}>
 
               {isShown('gantt') && gantt.state === 'ok' && (
-                <Card title="Project Gantt" icon={Calendar}>
+                <DashboardCard title="Project Gantt" icon={Calendar}>
                   <GanttChart projects={gantt.value} />
-                </Card>
+                </DashboardCard>
               )}
               {isShown('gantt') && gantt.state === 'hide' && (
-                <Card title="Project Gantt" icon={Calendar}>
+                <DashboardCard title="Project Gantt" icon={Calendar}>
                   <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No projects with start/due dates</div>
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('pareto-leads') && pareto.state === 'ok' && (
-                <Card title="Lead Sources Pareto" icon={BarChart3}>
+                <DashboardCard title="Lead Sources Pareto" icon={BarChart3}>
                   <ParetoChart data={pareto.value} />
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('sankey-leads') && sankey.state === 'ok' && (
-                <Card title="Sales Conversion Flow (Sankey)" icon={ArrowRight}>
+                <DashboardCard title="Sales Conversion Flow (Sankey)" icon={ArrowRight}>
                   <SankeyChart data={sankey.value} />
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('geographic-map') && geoPoints.state === 'ok' && (
-                <Card title="Geographic Distribution" icon={Activity}>
+                <DashboardCard title="Geographic Distribution" icon={Activity}>
                   <GeoMap points={geoPoints.value} />
-                </Card>
+                </DashboardCard>
               )}
 
               {isShown('net-subscriber-growth') && netGrowth.state === 'ok' && (
-                <Card title="Net Subscriber Growth (Weekly)" icon={Users}>
+                <DashboardCard title="Net Subscriber Growth (Weekly)" icon={Users}>
                   <NetGrowthChart data={netGrowth.value} />
-                </Card>
+                </DashboardCard>
               )}
 
             </div>

@@ -12,3 +12,4 @@ export { DataTableCell } from './DataTableCell'
 export { DetailTab, DetailTabList } from './DetailTab'
 export { StudioDrawer } from './StudioDrawer'  // DR-1
 export { Pagination } from './Pagination'  // T-P2-2
+export { LoadShell, type LoadState } from './LoadShell'  // T-P2-3

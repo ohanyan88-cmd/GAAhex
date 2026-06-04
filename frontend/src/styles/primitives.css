@@ -53,6 +53,15 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .pill-gold    { background:var(--gx-gold-soft);    color:var(--gx-gold); }
 /* D18: base .badge is a signal-value count chip (notification counts, unread counts, generic tallies — NOT an interactive control, NOT brand chrome). Route through slate neutral instead of cobalt brand spine. Callers wanting a semantic accent layer on .badge-success / .badge-warning / .badge-danger over this base. */
 .badge { display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:var(--gx-neutral); color:#fff; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+/* T-P2-8 — semantic badge variants. Previously referenced by HomeView,
+ * GlobalSearchView, DispatchBoardView, CoverageView without a CSS rule
+ * (silently fell back to the base slate-fill .badge). Now each variant lights
+ * up its semantic family per D18; the base .badge above stays the default. */
+.badge-primary { background: var(--gx-interactive); color: var(--gx-on-primary); }
+.badge-neutral { background: var(--gx-neutral); color: #fff; }
+.badge-success { background: var(--gx-success); color: #fff; }
+.badge-warning { background: var(--gx-warning); color: #fff; }
+.badge-danger  { background: var(--gx-danger);  color: #fff; }
 .mono { font-family:var(--gx-font-mono); }
 .tnum { font-variant-numeric:tabular-nums; }
 .spacer { flex:1; }
