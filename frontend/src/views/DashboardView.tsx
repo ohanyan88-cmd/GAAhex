@@ -1110,8 +1110,8 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
           {isShown('ar-aging') && showRevenue && (
             <Card title="AR Aging" icon={AlertTriangle}>
               {arAging.state === 'loading' && <ChartSkeleton h={100} />}
+              {/* D18: AR aging buckets — Current (success), 1-30 = sequential intermediate (slate default, not yet a warning), 31-60 (warning), 61-90 (danger-adjacent, was inline #f97316 → semantic warning is closest), 90+ (danger). */}
               {arAging.state === 'ok' && (
-                {/* D18: AR aging buckets — Current (success), 1-30 = sequential intermediate (slate default, not yet a warning), 31-60 (warning), 61-90 (danger-adjacent, was inline #f97316 → semantic warning is closest), 90+ (danger). */}
                 <HorizontalBarChart buckets={[
                   { label: 'Current',   value: arAging.value.current, color: 'var(--gx-success,#22c55e)' },
                   { label: '1-30 days', value: arAging.value.d1_30,   color: 'var(--gx-chart-default)' },
@@ -1224,8 +1224,8 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
           {isShown('weekly-trend') && (
           <Card title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
             {weekly.state === 'loading' && <ChartSkeleton h={130} />}
+            {/* D18: three distinct-identity series in one multi-line chart. Revenue = primary drillable series → --gx-chart-active. New customers (was inline #22c55e) is the "good growth" line — keep semantic success. Churns stays on semantic danger. */}
             {weekly.state === 'ok' && (
-              {/* D18: three distinct-identity series in one multi-line chart. Revenue = primary drillable series → --gx-chart-active. New customers (was inline #22c55e) is the "good growth" line — keep semantic success. Churns stays on semantic danger. */}
               <MultiLineChart
                 labels={weekly.value.map((w: any) => w.week)}
                 series={[
