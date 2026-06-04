@@ -27,7 +27,7 @@ import {
 } from '../components/icons'
 import { bget, bpost, bpatch } from '../lib/billing'
 import { timeAgo } from '../lib/time'
-import { can as canDo, FULL_ACCESS, fetchCapabilities, type Capabilities } from '../lib/capabilities'
+import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type FiberStatus = 'PLANNED' | 'CONSTRUCTION' | 'ACTIVE' | 'DECOMMISSIONED' | string
@@ -178,15 +178,11 @@ interface NetworkInventoryViewProps {
 }
 
 export default function NetworkInventoryView({ token, canConfigure = false, capabilities }: NetworkInventoryViewProps) {
-  // Fall back to fetching caps if parent didn't pass any; default-open until known.
-  const [caps, setCaps] = useState<Capabilities>(capabilities ?? FULL_ACCESS)
-  const [capsLoaded, setCapsLoaded] = useState<boolean>(!!capabilities)
-  useEffect(() => {
-    if (capabilities) { setCaps(capabilities); setCapsLoaded(true); return }
-    let alive = true
-    fetchCapabilities(token).then((c) => { if (alive) { setCaps(c); setCapsLoaded(true) } })
-    return () => { alive = false }
-  }, [token, capabilities])
+  // SM-2 — capabilities flow as a prop from App.tsx. The previous fallback fetch is
+  // gone; App is the single source. Until App finishes its initial fetch the prop
+  // is undefined and we default-open via FULL_ACCESS so first-paint isn't blank.
+  const caps: Capabilities = capabilities ?? FULL_ACCESS
+  const capsLoaded = capabilities !== undefined
 
   const canView = canDo(caps, 'service', 'view')
 

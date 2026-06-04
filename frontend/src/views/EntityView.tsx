@@ -52,7 +52,7 @@ type Mode = 'idle' | 'creating' | 'editing'
 type SavedView = { id: string | number; name: string; q?: string; filter?: string; sort?: string }
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 // ── PageShell metadata map ─────────────────────────────────────────────────
 // Static breadcrumb + page-type per known slug. Custom entities fall back to

@@ -66,12 +66,12 @@ def _openai_compatible(provider: str) -> CompletionFn:
     default_base, default_model = _OPENAI_COMPAT[provider]
 
     async def _complete(prompt: str, system: str | None) -> str:
-        import httpx  # already a dependency; lazy so it's only paid when a provider is live
+        from .utils.http_client import get_async_client  # AC-5 — canonical factory
         base = settings.ai_base_url or default_base
         model = settings.ai_model or default_model
         messages = ([{"role": "system", "content": system}] if system else []) + \
                    [{"role": "user", "content": prompt}]
-        async with httpx.AsyncClient(timeout=30) as client:
+        async with get_async_client(timeout=30) as client:
             resp = await client.post(
                 f"{base}/chat/completions",
                 headers={"Authorization": f"Bearer {settings.ai_api_key}"},
@@ -84,13 +84,13 @@ def _openai_compatible(provider: str) -> CompletionFn:
 
 
 async def _anthropic_complete(prompt: str, system: str | None) -> str:
-    import httpx
+    from .utils.http_client import get_async_client  # AC-5 — canonical factory
     base = settings.ai_base_url or "https://api.anthropic.com/v1"
     model = settings.ai_model or "claude-3-5-haiku-latest"
     body = {"model": model, "max_tokens": 1024, "messages": [{"role": "user", "content": prompt}]}
     if system:
         body["system"] = system
-    async with httpx.AsyncClient(timeout=20) as client:
+    async with get_async_client(timeout=20) as client:
         resp = await client.post(
             f"{base}/messages",
             headers={"x-api-key": settings.ai_api_key or "", "anthropic-version": "2023-06-01"},

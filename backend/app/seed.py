@@ -687,3 +687,24 @@ async def seed_portal_if_empty() -> None:
             is_active=True,
         ))
         await s.commit()
+
+
+# ── SM-5 — bootstrap helpers callable from both lifespan (main.py) and conftest ──
+
+async def apply_test_seeds() -> None:
+    """Run the minimum seed set the test fixture depends on.
+
+    Both ``main.py:lifespan`` and ``tests/conftest.py`` historically called these
+    four functions verbatim. Now they share one call so a future "added a 5th
+    seed to main, forgot conftest" can't silently regress the test environment.
+
+    ``main.py`` keeps its broader seed list AFTER calling this — the test seed
+    set is deliberately minimal so the suite stays fast.
+    """
+    from .seed_demo_loop import seed_demo_loop_if_empty
+    await seed_if_empty()
+    await seed_meta_if_empty()
+    await seed_access_if_empty()
+    # demo-loop seed guards on an empty subscription table — it MUST run before any
+    # test creates subscriptions, or it becomes a no-op for the whole session.
+    await seed_demo_loop_if_empty()

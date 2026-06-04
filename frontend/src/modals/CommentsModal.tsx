@@ -5,7 +5,7 @@ import { toast } from '../components/Toast'
 import { timeAgo } from '../lib/time'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 type Comment = {
   id: string

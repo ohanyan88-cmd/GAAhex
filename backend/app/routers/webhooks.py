@@ -138,8 +138,8 @@ async def _deliver(s: AsyncSession, hook: WebhookDef, event_type: str, payload: 
 
     delivery.attempts = 1
     try:
-        import httpx                                    # lazy: only needed when a webhook actually fires
-        async with httpx.AsyncClient(timeout=DELIVERY_TIMEOUT) as client:
+        from ..utils.http_client import get_async_client  # AC-5 — canonical factory
+        async with get_async_client(timeout=DELIVERY_TIMEOUT) as client:
             resp = await client.post(hook.url, content=body, headers=headers)
         delivery.status_code = resp.status_code
         if 200 <= resp.status_code < 300:

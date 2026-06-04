@@ -5,10 +5,9 @@
 import { useEffect, useState } from 'react'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { ClockIcon } from '../components/icons'
-import { BASE } from '../lib/billing'
+import { BASE, authH } from '../lib/billing'
 import { PageShell } from '../page-shell'
 
-const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
 type ActivityEvent = {
   id: string

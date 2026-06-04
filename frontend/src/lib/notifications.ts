@@ -13,7 +13,7 @@
 // and returns once the awaited Promise.all settles.
 
 import { BASE } from './config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from './billing'  // AC-1 — canonical Bearer-header factory
 
 // Server-side shape from notifications.py:_serialize — we only consume the fields the kit needs.
 export type ServerNote = {

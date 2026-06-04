@@ -14,7 +14,7 @@ import { PageShell } from '../page-shell'
 
 // Outbound delivery log (A12 GET /api/outbound) — admin view. Degrades quietly on 404.
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 // Field names mirror the backend `_serialize_outbound` payload (notifications.py).
 // The recipient column is `to_addr` server-side — using `to` here silently breaks

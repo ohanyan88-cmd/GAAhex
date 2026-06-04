@@ -6,9 +6,8 @@ import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { GearIcon } from '../components/icons'
-import { BASE } from '../lib/billing'
+import { BASE, authH } from '../lib/billing'
 
-const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
 type Service = {
   id: string; subscription_id: string | null; customer_id: string | null

@@ -7,7 +7,7 @@ import {
 } from '../components/icons'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: 'Bearer ' + token })
+import { authH } from '../lib/billing'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

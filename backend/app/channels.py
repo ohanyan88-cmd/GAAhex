@@ -267,11 +267,11 @@ async def _twilio_adapter(to, subject, body):
     """Real SMS via Twilio's REST API (httpx + basic auth SID/token). Raises on non-2xx."""
     if not to:
         raise ValueError("no phone number for recipient")
-    import httpx  # already a dependency; lazy so the import is only paid when Twilio is live
+    from .utils.http_client import get_async_client  # AC-5 — canonical factory
 
     url = f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json"
     data = {"From": settings.twilio_from, "To": to, "Body": body}
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with get_async_client(timeout=15) as client:
         resp = await client.post(url, data=data,
                                  auth=(settings.twilio_account_sid, settings.twilio_auth_token))
     if resp.status_code >= 300:

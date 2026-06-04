@@ -25,11 +25,11 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { BASE } from '../lib/config'
-import { fetchCapabilities, type Capabilities } from '../lib/capabilities'
+import { type Capabilities } from '../lib/capabilities'
 import { PageShell, type KPISpec } from '../page-shell'
 import { HomeIcon } from '../components/icons'
+import { authH } from '../lib/billing'
 
-const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
 type Me = { id: string; name: string; email: string }
@@ -227,13 +227,15 @@ function Skel({ rows = 3 }: { rows?: number }) {
 // ── Main view ────────────────────────────────────────────────────────────────
 const ROLE_OVERRIDE_KEY = 'gaahex.home.role.override.v1'
 
-export default function HomeView({ token, onNavigate }: {
+export default function HomeView({ token, onNavigate, capabilities }: {
   token: string
   onNavigate?: (type: string, id?: string) => void
+  capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
   const [me, setMe] = useState<Me | null>(null)
-  const [caps, setCaps] = useState<Capabilities>({})
-  const [capsLoaded, setCapsLoaded] = useState(false)
+  // SM-2 — receive caps via prop instead of refetching.
+  const caps: Capabilities = capabilities ?? {}
+  const capsLoaded = capabilities !== undefined
 
   // role: auto-detected from caps, optionally overridden by user
   const [override, setOverride] = useState<Role | null>(() => {
@@ -263,10 +265,7 @@ export default function HomeView({ token, onNavigate }: {
       .catch(() => {})
   }, [token])
 
-  // Capabilities → role detection
-  useEffect(() => {
-    fetchCapabilities(token).then(c => { setCaps(c); setCapsLoaded(true) })
-  }, [token])
+  // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
 
   // Fetch all the raw data the page might need (in parallel; each role uses a subset)
   useEffect(() => {

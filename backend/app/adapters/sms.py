@@ -118,7 +118,8 @@ class TwilioSmsAdapter(ChannelAdapter):
         data = {"From": self._from, "To": to, "Body": body or ""}
         logger.info("[sms:twilio] to=%r from=%r", to, self._from)
 
-        async with httpx.AsyncClient(timeout=15) as client:
+        from ..utils.http_client import get_async_client  # AC-5 — canonical factory
+        async with get_async_client(timeout=15) as client:
             resp = await client.post(url, data=data, auth=(self._sid, self._token))
 
         if resp.status_code >= 300:

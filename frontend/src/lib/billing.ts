@@ -1,9 +1,29 @@
 // Billing API helpers + types — matches the merged A9 contract (backend/app/routers/billing.py).
 // Money is integer luma (minor units; 100 = 1 ֏). Optional endpoints (products, dunning) are
 // treated as "not available yet" on 404 and degrade quietly.
+//
+// AC-1/AC-2/AC-3 — this module is the **canonical admin API client**:
+//   * `authH(token)` is the single Bearer-header factory; do NOT redefine in views.
+//   * `bget`/`bpost`/`bpatch`/`bput`/`bdel` are the only ways to hit the backend; raw
+//     `fetch()` in views is the AC-2 anti-pattern. Use `openDocument` for HTML blobs.
+//   * Every response is funneled through `intercept401` which dispatches the
+//     `gaahex:auth-401` DOM event so `App.tsx` (or future AuthContext) can clear
+//     React state and bounce to login.
 import { BASE } from './config'
 export { BASE }
 export const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+
+// AC-3 — centralized 401 intercept. Dispatches a DOM event so the React layer
+// can clear token state and re-render the login screen. We do NOT call
+// window.location.href here because the admin SPA owns its own login route via
+// React state; a full reload would lose any in-flight UX context.
+const AUTH_401_EVENT = 'gaahex:auth-401' as const
+function intercept401(status: number): void {
+  if (status === 401 && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(AUTH_401_EVENT))
+  }
+}
+export { AUTH_401_EVENT }
 
 export type Subscription = {
   id: string
@@ -83,6 +103,7 @@ export type Fetched<T> = { status: number; ok: boolean; data: T | null }
 // GET that never throws — returns status so callers can tell 404 (degrade) from real errors.
 export async function bget<T = any>(token: string, path: string): Promise<Fetched<T>> {
   const r = await fetch(`${BASE}${path}`, { headers: authH(token) })
+  intercept401(r.status)  // AC-3
   let data: any = null
   try { data = await r.json() } catch { /* empty/non-json body */ }
   return { status: r.status, ok: r.ok, data }
@@ -95,6 +116,7 @@ async function send<T = any>(token: string, method: string, path: string, body?:
     headers: { ...authH(token), 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
+  intercept401(r.status)  // AC-3
   let data: any = null
   try { data = await r.json() } catch { /* ignore */ }
   if (!r.ok) {

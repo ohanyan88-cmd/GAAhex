@@ -1,6 +1,5 @@
 import { BASE } from './config'
-
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from './billing'  // AC-1 — canonical Bearer-header factory
 
 export async function login(email: string, password: string): Promise<string> {
   const r = await fetch(`${BASE}/auth/login`, {

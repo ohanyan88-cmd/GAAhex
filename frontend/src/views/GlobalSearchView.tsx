@@ -4,10 +4,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { InboxIcon, SearchIcon } from '../components/icons'
-import { BASE } from '../lib/billing'
+import { BASE, authH } from '../lib/billing'
 import { PageShell } from '../page-shell'
 
-const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 
 type Match = { id: string; label: string; snippet: string; highlight: string; score: number; status: string | null }
 type Group = { entity_key: string; label_plural: string; route_slug: string; matches: Match[] }

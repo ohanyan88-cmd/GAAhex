@@ -20,7 +20,7 @@ import {
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: 'Bearer ' + token })
+import { authH } from '../lib/billing'
 
 // ---------------------------------------------------------------------------
 // OpenAPI shape (the subset we actually use)

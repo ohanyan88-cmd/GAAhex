@@ -5,7 +5,7 @@ import {
 } from '../components/icons'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: 'Bearer ' + token })
+import { authH } from '../lib/billing'
 
 const FIELD_TYPES = [
   'text', 'textarea', 'number', 'money', 'boolean', 'date', 'datetime',

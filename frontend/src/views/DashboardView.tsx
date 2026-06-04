@@ -19,14 +19,13 @@ import { useEffect, useState } from 'react'
 import { BarChart3, TrendingUp, TrendingDown, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, Settings, type LucideIcon } from 'lucide-react'
 import { GearIcon, ChartIcon } from '../components/icons'
 import { money } from '../lib/money'
-import { fetchCapabilities, can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
-import { BASE } from '../lib/billing'
+import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { BASE, authH } from '../lib/billing'
 import { loadSelected, saveSelected } from '../lib/dashboard-catalog'
 import ChartPicker from '../components/ChartPicker'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 
-const authH = (t: string) => ({ Authorization: `Bearer ${t}` })
 type Range = '7d' | '30d' | 'qtd' | 'ytd'
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
 
@@ -687,14 +686,18 @@ function StatusBreakdown({ buckets, total }: { buckets: { label: string; value: 
 
 
 // ─── main view ────────────────────────────────────────────────────────────────
-export default function DashboardView({ token, canConfigure = false, onConfigure, onNavigate }: {
+export default function DashboardView({ token, canConfigure = false, onConfigure, onNavigate, capabilities }: {
   token: string; configVersion?: number
   canConfigure?: boolean; onConfigure?: () => void
   onNavigate?: (target: { type: string }) => void
+  capabilities?: Capabilities  // SM-2 — App passes its single capabilities snapshot
 }) {
   const [range, setRange] = useState<Range>('30d')
-  const [caps, setCaps]   = useState<Capabilities>(FULL_ACCESS)
-  const [capsLoaded, setCapsLoaded] = useState(false)
+  // SM-2 — use App's capabilities prop instead of refetching. capsLoaded stays
+  // a flag indicating "App finished its initial capabilities fetch" — we infer
+  // it from the prop being present (non-FULL_ACCESS placeholder is also ok).
+  const caps: Capabilities = capabilities ?? FULL_ACCESS
+  const capsLoaded = capabilities !== undefined
 
   // Data state
   const [overview,     setOverview]     = useState<Fetched<any>>({ state: 'loading' })
@@ -725,11 +728,7 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   const [pickerOpen, setPickerOpen] = useState(false)
   const isShown = (id: string) => selected.has(id)
 
-  useEffect(() => {
-    let alive = true
-    fetchCapabilities(token).then(c => { if (alive) { setCaps(c); setCapsLoaded(true) } })
-    return () => { alive = false }
-  }, [token])
+  // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
 
   // Overview KPIs
   useEffect(() => {

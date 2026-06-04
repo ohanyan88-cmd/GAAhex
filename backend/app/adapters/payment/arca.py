@@ -74,7 +74,8 @@ class ArcaGateway:
                 "language":    "en",
                 "description": f"Order {order.id}",
             }
-            async with httpx.AsyncClient(timeout=15) as c:
+            from ...utils.http_client import get_async_client  # AC-5 — canonical factory
+            async with get_async_client(timeout=15) as c:
                 resp = await c.post(_REGISTER_URL, data=payload)
                 resp.raise_for_status()
                 data = resp.json()
@@ -96,7 +97,7 @@ class ArcaGateway:
     async def check_status(self, order) -> str:
         """Poll ARCA for payment status. Returns PENDING | PAID | FAILED. Never raises."""
         try:
-            import httpx  # noqa: PLC0415
+            from ...utils.http_client import get_async_client  # AC-5 — canonical factory
 
             payload = {
                 "userName": self._merchant,
@@ -104,7 +105,7 @@ class ArcaGateway:
                 "orderId":  getattr(order, "provider_ref", None) or str(order.id),
                 "language": "en",
             }
-            async with httpx.AsyncClient(timeout=10) as c:
+            async with get_async_client(timeout=10) as c:
                 resp = await c.post(_STATUS_URL, data=payload)
                 resp.raise_for_status()
                 data = resp.json()

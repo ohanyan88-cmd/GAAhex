@@ -2,7 +2,7 @@
 // view doesn't have to know route paths or response shapes.
 
 import { BASE } from './config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from './billing'  // AC-1 — canonical Bearer-header factory
 
 export type RevenueRange = '7d' | '30d' | 'qtd' | 'ytd'
 

@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, loadCustomers, loadCustomerOptions } from '../lib/billing'
 import { money } from '../lib/money'
-import { fetchCapabilities, can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { toast } from '../components/Toast'
 import { Modal } from '../components/Modal'
 import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
@@ -131,11 +131,15 @@ function toAmd(v: string | number | null | undefined): number {
 }
 
 // ── View ─────────────────────────────────────────────────────────────────────
-export default function OrdersView({ token }: { token: string }) {
+export default function OrdersView({ token, capabilities }: {
+  token: string
+  capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
+}) {
   const [list, setList] = useState<OrderRow[] | null>(null)
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
   const [customerOptions, setCustomerOptions] = useState<{ id: string; label: string }[]>([])
-  const [caps, setCaps] = useState<Capabilities>(FULL_ACCESS)
+  // SM-2 — receive caps via prop instead of refetching.
+  const caps: Capabilities = capabilities ?? FULL_ACCESS
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
@@ -171,7 +175,7 @@ export default function OrdersView({ token }: { token: string }) {
 
   useEffect(() => {
     let alive = true
-    fetchCapabilities(token).then((c) => { if (alive) setCaps(c) }).catch(() => {})
+    // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
     loadCustomers(token).then((m) => { if (alive) setCustomerNames(m) }).catch(() => {})
     loadCustomerOptions(token).then((opts) => { if (alive) setCustomerOptions(opts) }).catch(() => {})
     return () => { alive = false }

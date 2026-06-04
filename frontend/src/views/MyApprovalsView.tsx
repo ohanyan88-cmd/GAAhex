@@ -20,7 +20,7 @@ import { timeAgo } from '../lib/time'
 import { humanizeEntity } from '../lib/humanize'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 type Approval = {
   id: string

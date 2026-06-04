@@ -21,7 +21,7 @@ import type { KPISpec } from '../page-shell'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 // Backend never returns the secret value — only `has_secret: bool` — so the column is a presence indicator.
 type Webhook = { id: string; name?: string; url?: string; events?: string[]; active?: boolean; has_secret?: boolean; created_at?: string | null }

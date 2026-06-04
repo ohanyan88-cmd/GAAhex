@@ -420,12 +420,12 @@ async def run_automations(
                             rec.data = rec_data
 
                 elif atype == "webhook":
-                    import httpx
+                    from .utils.http_client import get_async_client  # AC-5 — canonical factory
                     url = aconfig.get("url")
                     if url:
                         method = (aconfig.get("method") or "POST").upper()
                         headers = aconfig.get("headers") or {}
-                        async with httpx.AsyncClient(timeout=10.0) as client:
+                        async with get_async_client(timeout=10.0) as client:
                             await client.request(method, url, json=ctx, headers=headers)
 
                 elif atype == "emit_event":

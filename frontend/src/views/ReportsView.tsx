@@ -16,7 +16,7 @@ import type { KPISpec } from '../page-shell'
 // Doctrine: real data only — we don't have a historical series for entity counts, so no
 // sparkline is rendered (rule 3: missing → hide; never fake a trend).
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 type Summary = { entity_key: string; route_slug: string; label_plural: string; count: number }
 type StatusCount = { status: string; label: string; count: number }

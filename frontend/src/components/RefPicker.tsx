@@ -6,7 +6,7 @@ import { WarningIcon } from './icons'
 // meta.py). We map that key → route_slug via /meta/entities, then load the target's records.
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 type EntityMeta = { key: string; label: string; label_plural: string; route_slug: string; icon?: string }
 type Row = Record<string, any>

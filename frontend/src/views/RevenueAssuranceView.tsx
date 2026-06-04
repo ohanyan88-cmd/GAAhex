@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import { bget, bpost, loadCustomers, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
-import { fetchCapabilities, can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { LineChart } from '../components/charts/LineChart'
 import { StatusPill, KPITile } from '../primitives'
 import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
@@ -135,15 +135,17 @@ function fmtDate(iso: string | null | undefined): string {
 
 // ── View ─────────────────────────────────────────────────────────────────────
 export default function RevenueAssuranceView({
-  token, canConfigure = false, onConfigure,
+  token, canConfigure = false, onConfigure, capabilities,
 }: {
   token: string
   configVersion?: number
   canConfigure?: boolean
   onConfigure?: () => void
+  capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
-  const [caps, setCaps] = useState<Capabilities>(FULL_ACCESS)
-  const [capsLoaded, setCapsLoaded] = useState(false)
+  // SM-2 — receive caps via prop instead of refetching.
+  const caps: Capabilities = capabilities ?? FULL_ACCESS
+  const capsLoaded = capabilities !== undefined
   const [denied, setDenied] = useState(false)
 
   // Tab state — Overview (default) wraps the original dashboard; Findings is the B.3 worklist.
@@ -156,16 +158,8 @@ export default function RevenueAssuranceView({
   const [overdue, setOverdue] = useState<Fetched<Invoice[]>>({ state: 'loading' })
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
 
-  // Permissions — capability check is async, so we wait before showing data widgets to avoid
-  // briefly flashing values the role can't actually access.
-  useEffect(() => {
-    let alive = true
-    fetchCapabilities(token).then((c) => {
-      if (!alive) return
-      setCaps(c); setCapsLoaded(true)
-    }).catch(() => { if (alive) setCapsLoaded(true) })
-    return () => { alive = false }
-  }, [token])
+  // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
+  // The capsLoaded flag derives from "did App pass us caps yet" (vs. the placeholder).
 
   const canView = canDo(caps, 'invoice', 'view')
 

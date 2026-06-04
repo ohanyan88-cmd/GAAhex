@@ -17,7 +17,7 @@ import {
 } from '../components/icons'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 // Emoji palette for the composer picker. Per icons.tsx convention, emoji are
 // allowed in human communication (the chat itself) but never as product UI chrome.

@@ -47,8 +47,8 @@ async def _setup_db():
     from sqlalchemy import text
     from app.db import engine
     from app.models import Base
-    from app.seed import seed_if_empty, seed_meta_if_empty, seed_access_if_empty
-    from app.seed_demo_loop import seed_demo_loop_if_empty
+    # SM-5 — apply_test_seeds is the canonical minimum set, shared with main.py:lifespan.
+    from app.seed import apply_test_seeds
 
     # CREATE EXTENSION IF NOT EXISTS is NOT atomic in Postgres: two concurrent
     # transactions can both see "doesn't exist", both try to create, one hits the
@@ -83,12 +83,7 @@ async def _setup_db():
 
     async with engine.begin() as c:
         await c.run_sync(Base.metadata.create_all)
-    await seed_if_empty()
-    await seed_meta_if_empty()
-    await seed_access_if_empty()
-    # Run demo-loop seed BEFORE any test creates subscriptions — the seed guards on an empty
-    # subscription table, so it must fire first or it becomes a no-op for the whole session.
-    await seed_demo_loop_if_empty()
+    await apply_test_seeds()
     yield
     await engine.dispose()
 

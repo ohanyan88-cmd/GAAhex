@@ -291,6 +291,18 @@ export default function App() {
     localStorage.removeItem('gaahex-gx-palette')
   }, [])
 
+  // AC-3 — listen for centralized 401 events from the canonical API client
+  // (frontend/src/lib/billing.ts). Any bget/bpost/etc. that hits a 401 dispatches
+  // `gaahex:auth-401`; we clear React auth state which re-renders the login screen.
+  useEffect(() => {
+    const onAuth401 = () => {
+      setToken(null); setUser(null); setEntities([]); setView({ type: 'home' })
+      setCapabilities(FULL_ACCESS)
+    }
+    window.addEventListener('gaahex:auth-401', onAuth401)
+    return () => window.removeEventListener('gaahex:auth-401', onAuth401)
+  }, [])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -601,6 +613,7 @@ export default function App() {
               : view.type === 'home'
                 ? <HomeView
                     token={token}
+                    capabilities={capabilities}
                     onNavigate={(type, id) => {
                       if (type === 'workitems') setView({ type: 'workitems' })
                       else if (type === 'my-approvals') setView({ type: 'my-approvals' })
@@ -613,6 +626,7 @@ export default function App() {
                     token={token}
                     configVersion={pageConfigVersion}
                     canConfigure={!!user?.can_configure}
+                    capabilities={capabilities}
                     onNavigate={(target) => {
                       if (target.type === 'subscriptions') setView({ type: 'subscriptions' })
                       else if (target.type === 'invoices') setView({ type: 'invoices' })
@@ -712,9 +726,9 @@ export default function App() {
               : view.type === 'reports'
                 ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'orders'
-                ? <OrdersView token={token} />
+                ? <OrdersView token={token} capabilities={capabilities} />
               : view.type === 'revenue-assurance'
-                ? <RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
+                ? <RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'collections'
                 ? <CollectionsView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'studio'

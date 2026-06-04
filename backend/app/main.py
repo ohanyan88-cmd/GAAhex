@@ -73,16 +73,17 @@ async def lifespan(app: FastAPI):
 
     # Schema is managed by Alembic migrations — run `alembic upgrade head` before starting.
     # On boot we only seed demo data (idempotent).
-    await seed_if_empty()
+    # SM-5 — apply_test_seeds is the canonical minimum set shared with conftest, so the
+    # test environment can't drift from prod boot. main.py extends it with the broader
+    # production-shape seeds below.
+    from .seed import apply_test_seeds  # noqa: PLC0415
+    await apply_test_seeds()
     await seed_demo_regions_if_empty()  # SPEC §0.6 — one canonical region per tenant (idempotent)
-    await seed_meta_if_empty()
-    await seed_access_if_empty()
     await seed_spec_roles_if_missing()      # SPEC §4.3 — ensure all SPEC roles exist (idempotent)
     await backfill_demo_user_departments()  # SPEC §4.1 — M0 demo dept backfill (idempotent; NULL-only)
     await seed_notifications_if_empty()
     await seed_portal_if_empty()
     await i18n.seed_i18n_if_empty()
-    await seed_demo_loop_if_empty()   # one sample customer with the full daily loop (idempotent)
     await seed_catalog_if_missing()   # promote enterprise-nav stubs into real config-driven entities (idempotent)
     await seed_canonical_pipeline_if_empty()  # SPEC §3 — 14 stages + 14 KPIs (Step 4; idempotent)
     await seed_workflows_if_missing()         # SPEC §5 — 5 cross-entity workflows W1..W5 (Step 4; idempotent)

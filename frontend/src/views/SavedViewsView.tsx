@@ -19,7 +19,7 @@ import { getEntities } from '../lib/api'
 import { PageShell } from '../page-shell'
 
 import { BASE } from '../lib/config'
-const authH = (token: string) => ({ Authorization: `Bearer ${token}` })
+import { authH } from '../lib/billing'
 
 type SavedView = {
   id: string
