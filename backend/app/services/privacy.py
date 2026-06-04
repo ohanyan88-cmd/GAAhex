@@ -315,7 +315,11 @@ async def anonymize_customer(
             cu.is_active = False
             redacted_fields.append("customer_user.is_active")
         # Revoke every outstanding portal session for this login.
-        cu.token_not_before = _utcnow()
+        # Floor to integer-second resolution — see portal_auth.portal_logout for the
+        # JWT-NumericDate rationale. A token issued in an EARLIER second is rejected;
+        # a token issued in the SAME or LATER second is accepted (sub-second logout
+        # window is the standard JWT-revocation trade-off).
+        cu.token_not_before = _utcnow().replace(microsecond=0)
         redacted_fields.append("customer_user.token_not_before")
 
     await s.flush()

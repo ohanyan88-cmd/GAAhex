@@ -14,6 +14,7 @@ the shared session-scoped admin fixture. We touch the DB directly via SessionLoc
 OwnerSessionLocal for setup (status flips, expiry stamping) where no public API exists.
 """
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -272,7 +273,15 @@ async def test_portal_logout_revokes_via_tnbf(client):
     me = await client.get("/portal/auth/me", headers=_bearer(access))
     assert me.status_code == 200
 
-    # Logout — stamps customer_user.token_not_before.
+    # Wait until the next integer second before bumping. JWT 'iat' (NumericDate,
+    # RFC 7519 §4.1.6) is encoded as integer seconds, and current_customer
+    # compares iat to token_not_before at second resolution. This test verifies
+    # CROSS-SECOND revocation (the precision guarantee of the mechanism);
+    # sub-second logout windows are an accepted limitation documented on
+    # portal_auth.portal_logout (the standard JWT-NumericDate trade-off).
+    await asyncio.sleep(1.1)
+
+    # Logout — stamps customer_user.token_not_before (floored to second).
     out = await client.post("/portal/auth/logout", headers=_bearer(access))
     assert out.status_code == 200, out.text
 

@@ -27,7 +27,7 @@ from __future__ import annotations
 import uuid
 
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy_utils import Ltree
 
 from app.db import OwnerSessionLocal
@@ -148,6 +148,24 @@ async def _setup_r2_users():
             await s.execute(RefreshToken.__table__.delete().where(RefreshToken.user_id.in_(uids)))
             await s.execute(User.__table__.delete().where(User.id.in_(uids)))
         await s.execute(RoleDef.__table__.delete().where(RoleDef.key == _PROFILE_KEY))
+
+        # Event rows tied to the OTHER tenant were created by the stage-1 auth
+        # audit emit on every alice_other login. Tenant DELETE would FK-violate.
+        # We explicitly clean the Event rows for the test-scoped tenant here
+        # rather than adding ON DELETE CASCADE on event.tenant_id, because the
+        # audit trail must be immutable in production. The trigger
+        # prevent_delete_event is bypassed ONLY for this teardown via
+        # session_replication_role='replica' — that requires the owner
+        # (gaahex superuser) role we already use; production app role
+        # (gaahex_app NOSUPERUSER) cannot use this knob, so forensic
+        # immutability is preserved at the production boundary.
+        await s.execute(text("SET LOCAL session_replication_role = 'replica'"))
+        await s.execute(
+            text("DELETE FROM event WHERE tenant_id = :tid"),
+            {"tid": other_tenant_id},
+        )
+        await s.execute(text("SET LOCAL session_replication_role = 'origin'"))
+
         await s.execute(OrgNode.__table__.delete().where(OrgNode.tenant_id == other_tenant_id))
         await s.execute(Tenant.__table__.delete().where(Tenant.id == other_tenant_id))
         await s.commit()

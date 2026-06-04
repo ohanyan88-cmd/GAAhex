@@ -289,7 +289,16 @@ async def portal_logout(
     if not row:
         # Should never happen for an authed caller; treat as already-logged-out (idempotent).
         return {"ok": True}
-    row.token_not_before = datetime.now(timezone.utc)
+    # Floor to integer-second resolution. JWT 'iat' (NumericDate, RFC 7519 §4.1.6)
+    # is encoded as integer seconds — within the same second, an iat issued by a
+    # legitimate relogin is indistinguishable from an iat that pre-dated the bump.
+    # By storing tnbf as the floor of the bump second, the comparison
+    # `iat < tnbf` in current_customer correctly rejects every token issued in
+    # an EARLIER second while accepting a relogin in the SAME or LATER second.
+    # Trade-off: a stale token issued earlier in the bump second is also accepted
+    # — that's the standard sub-second logout window every JWT-based revocation
+    # design accepts, in exchange for not blocking legitimate relogin for 1 sec.
+    row.token_not_before = datetime.now(timezone.utc).replace(microsecond=0)
     await s.commit()
     return {"ok": True}
 

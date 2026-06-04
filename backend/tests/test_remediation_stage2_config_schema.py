@@ -18,6 +18,7 @@ from sqlalchemy_utils import Ltree
 
 from app.db import OwnerSessionLocal
 from app.models import Tenant, OrgNode, RoleDef, Assignment
+from app.models.configuration import Configuration, ConfigurationHistory
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.security import hash_password
@@ -87,6 +88,20 @@ async def _setup_cfg_schema_user():
             select(User).where(User.email == _USER_EMAIL)
         )).scalar_one_or_none()
         if u:
+            # Configuration rows created during the test reference this user via
+            # configuration.created_by (FK to app_user.id); ConfigurationHistory
+            # references it via changed_by. Both must be deleted before the user
+            # so the FK constraint doesn't block teardown. This is explicit test
+            # cleanup — we do NOT add ON DELETE CASCADE to the FK because in
+            # production these rows are operator-trail records that should
+            # survive a user-account close-out (governance audit trail).
+            await s.execute(
+                ConfigurationHistory.__table__.delete()
+                .where(ConfigurationHistory.changed_by == u.id)
+            )
+            await s.execute(
+                Configuration.__table__.delete().where(Configuration.created_by == u.id)
+            )
             await s.execute(Assignment.__table__.delete().where(Assignment.user_id == u.id))
             await s.execute(RefreshToken.__table__.delete().where(RefreshToken.user_id == u.id))
             await s.execute(User.__table__.delete().where(User.id == u.id))
