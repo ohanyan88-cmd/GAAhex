@@ -326,10 +326,10 @@ pnpm typecheck
 | Phase 1 — Financial Integrity | 11 | 5 | 3 | 3 | **9 done · 2 deferred** | **0** |
 | Phase 2 — API + State | 11 | 6 | 4 | 1 | **11 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 3 — Permissions + Validation + Pagination | 13 | 4 | 7 | 2 | **13 done (foundations laid; incremental cleanup remains)** | **0** |
-| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **19 done · 6 deferred (MO-1 studio modals, DR-1 studio drawers, DR-4 consolidation, TL-2 kanban migration, TL-4 RowActionsMenu, TL-5 FilterBar)** | **6** |
-| Phase 5 — Tokenization | 33 | 8 | 14 | 11 | 0 | **33** |
-| Phase 6 — Governance | 14 rules + 7 docs | — | — | — | **15 done (10 HARD + 5 RATCHET drift rules in CI; 7 standards docs landed) · 5 deferred (post-Phase-5)** | **5** |
-| **TOTAL** | **107** | **35** | **36** | **22** | **75 done · 32 remaining (Phase 4 Part 2 wave 2 + Phase 5b/c/d)** | **32** |
+| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **25 done** (MO-1 ✓ · DR-1+DR-4 ✓ · TL-2 scope-revised ✓ · TL-4 ✓ · TL-5 majority ✓) | **0** |
+| Phase 5 — Tokenization | 33 | 8 | 14 | 11 | **15 done** (T-P2-2 Pagination + T-P2-5 StudioDrawer + T-P2-10 chips/tags/alerts/tertiary; T-P3-1 D19 documented; T-P3-2 breakpoint tokens; T-P3-3 WCAG tap-min; T-P4-2 portal i18n; T-P4-3 backend HTML i18n; T-P4-4 brand mark) | **18** (T-P3-4/5/6/7/8/9/10 raw-class + bare-px codemods; T-P4-5 orphan tokens; T-P2-3/4/6/7/8/9/11/12) |
+| Phase 6 — Governance | 14 rules + 7 docs | — | — | — | **19 done** (11 HARD + 8 RATCHET drift rules in CI; 7 standards docs landed) | **1** (post-Phase-5 codemod-target ratchets to harden) |
+| **TOTAL** | **107** | **35** | **36** | **22** | **88 done · 19 remaining (Phase 5c/d codemod surface)** | **19** |
 
 ---
 
