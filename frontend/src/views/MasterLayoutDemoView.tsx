@@ -6,6 +6,18 @@
 //   - Zone 1 / Zone 2 / Zone 3 are slot-driven from the page
 //
 // Use this as the copy-paste template for every real page from now on.
+//
+// T-P1-8 — DEMO-ONLY hex literals.
+// The inline `style={{ color: '#0f172a', background: '#fff', ... }}` blocks
+// in this file (~17 sites between L118-L209) are intentional light-theme
+// reference values, used to demo what a "default light" Master Layout looks
+// like without inheriting the user's active theme. They WILL render
+// incorrectly in dark mode — that's the demo's whole point.
+//
+// Do NOT migrate these to `var(--gx-*)` tokens. Do NOT add this file to a
+// production navigation surface. If the demo needs to be presented in
+// dark mode, fork it as `MasterLayoutDemoDarkView.tsx` with the dark
+// palette inlined the same way.
 import { useState } from 'react'
 import {
   MasterLayout,

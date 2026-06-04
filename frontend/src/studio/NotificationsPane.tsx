@@ -147,7 +147,7 @@ function CreateDefModal({
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
         zIndex: 100, display: 'flex', alignItems: 'flex-start',
         justifyContent: 'center', padding: '40px 16px', overflowY: 'auto',
       }}
@@ -155,7 +155,7 @@ function CreateDefModal({
       <form
         onSubmit={submit}
         style={{
-          background: 'var(--gx-surface-1)',
+          background: 'var(--gx-surface)',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-lg)',
           width: 'min(680px, 100%)',
@@ -308,13 +308,13 @@ function ConfirmDeleteDialog({
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
         zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
       <div
         style={{
-          background: 'var(--gx-surface-1)',
+          background: 'var(--gx-surface)',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-lg)',
           width: 'min(460px, 100%)', padding: 20,
@@ -358,13 +358,13 @@ function ConfirmTestSendDialog({
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
         zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
       <div
         style={{
-          background: 'var(--gx-surface-1)',
+          background: 'var(--gx-surface)',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-lg)',
           width: 'min(440px, 100%)', padding: 20,
@@ -786,13 +786,13 @@ function DrawerShell({
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
         zIndex: 100, display: 'flex', justifyContent: 'flex-end',
       }}
     >
       <div
         style={{
-          background: 'var(--gx-surface-1)',
+          background: 'var(--gx-surface)',
           borderLeft: '1px solid var(--gx-border)',
           width: 'min(720px, 100%)',
           height: '100vh', overflowY: 'auto', padding: 20,

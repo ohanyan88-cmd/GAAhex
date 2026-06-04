@@ -519,7 +519,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={Inbox} title="My Open Tickets" count={myTickets.filter(t => !['RESOLVED','CLOSED'].includes(t.status)).length}>
               {tickets.state === 'loading' && <Skel />}
               {myTickets.length === 0 ? <Empty msg="All clear" /> : myTickets.slice(0, 6).map(t => (
-                <div key={t.id} onClick={() => onNavigate?.('helpdesk', t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-primary" style={{ fontSize: 11 }}>{t.status}</span>
                 </div>
@@ -528,7 +528,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
             <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
               {breachedTickets.length === 0 ? <Empty msg="No tickets past SLA" /> : breachedTickets.slice(0, 6).map(t => (
-                <div key={t.id} onClick={() => onNavigate?.('helpdesk', t.id)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <AlertTriangle size={13} color="var(--gx-danger,#ef4444)" />
                   <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
                   <span style={{ fontSize: 11, color: 'var(--gx-danger,#ef4444)' }}>{Math.round((Date.now()-Date.parse(t.created_at))/3600000)}h</span>
@@ -542,7 +542,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <>
             <Widget icon={Users} title="My Pipeline" count={myLeads.length}>
               {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
-                <div key={l.id} onClick={() => onNavigate?.('entity', 'leads')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={l.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'leads')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'leads'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 11 }}>{l.status}</span>
                 </div>
@@ -551,7 +551,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
             <Widget icon={FileText} title="Active Quotes" count={quoteArr.filter(q => q.status === 'SENT').length}>
               {quoteArr.length === 0 ? <Empty msg="No quotes yet" /> : quoteArr.filter(q => q.status === 'SENT').slice(0, 6).map(q => (
-                <div key={q.id} onClick={() => onNavigate?.('entity', 'quotes')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={q.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'quotes')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'quotes'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13 }}>{q.data?.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
                   {q.data?.amount && <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data.amount)/100).toLocaleString()}֏</span>}
                 </div>
@@ -574,7 +574,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
             <Widget icon={CheckSquare} title="Open Work Orders" count={tasksOpen.length}>
               {tasksOpen.length === 0 ? <Empty msg="No open work orders" /> : tasksOpen.slice(0, 6).map(t => (
-                <div key={t.id} onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('workitems')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('workitems'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
                 </div>
@@ -587,7 +587,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <>
             <Widget icon={Banknote} title="Issued Invoices" count={invoiceArr.length}>
               {invoiceArr.length === 0 ? <Empty msg="No outstanding invoices" /> : invoiceArr.slice(0, 6).map(i => (
-                <div key={i.id} onClick={() => onNavigate?.('invoices')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={i.id} role="button" tabIndex={0} onClick={() => onNavigate?.('invoices')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('invoices'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13 }}>{i.number}</span>
                   <span className="mono" style={{ fontSize: 12 }}>{Math.round(Number(i.total)/100).toLocaleString()}֏</span>
                 </div>
@@ -596,7 +596,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
             <Widget icon={Shield} title="Pending Approvals" count={approvalArr.length}>
               {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
-                <div key={a.id} onClick={() => onNavigate?.('my-approvals')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('my-approvals'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
                   <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
                 </div>
@@ -609,7 +609,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <>
             <Widget icon={CheckSquare} title="My Tasks" count={tasksOpen.length}>
               {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 6).map(t => (
-                <div key={t.id} onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('workitems')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('workitems'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
                 </div>
@@ -618,7 +618,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
             <Widget icon={Shield} title="Approvals Waiting" count={approvalArr.length}>
               {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
-                <div key={a.id} onClick={() => onNavigate?.('my-approvals')} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('my-approvals'))() } }} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
                   <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
                 </div>

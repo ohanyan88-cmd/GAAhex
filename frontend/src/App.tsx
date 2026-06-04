@@ -469,7 +469,16 @@ export default function App() {
   return (
     <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
       <a href="#main-content" className="skip-link">Skip to content</a>
-      {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
+      {navOpen && (
+        <div
+          className="nav-scrim"
+          role="button"
+          tabIndex={-1}
+          aria-label="Close navigation"
+          onClick={() => setNavOpen(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setNavOpen(false) }}
+        />
+      )}
       <aside className="sb">
         <div className="sb-head">
           <img

@@ -534,7 +534,7 @@ export default function UsersPane({ token }: { token: string }) {
       {selected && (
         <div
           style={{
-            background: 'var(--gx-surface-1)',
+            background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
             borderRadius: 6,
             padding: '16px 18px',

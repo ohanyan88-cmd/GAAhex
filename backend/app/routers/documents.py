@@ -27,19 +27,18 @@ from .records import _node_path
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
-# BRAND light/print palette (print on white)
-_COBALT = "#1C3B68"
-_GOLD = "#C5A059"
-_INK = "#111827"
-_INK2 = "#4B5563"
-_INK3 = "#6B7280"
-_BORDER = "#E2E8F0"
-_SURFACE = "#F1F3F5"
+# T-P1-7 — brand palette comes from `app.branding.theme_constants` (D18
+# backend-color-string guard). Local module-level constants below are
+# thin aliases so existing f-string interpolations keep working unchanged.
+from ..branding.theme_constants import BRAND_PRINT_PALETTE as _PALETTE, STATUS_COLORS as _STATUS_COLOR  # noqa: E402
 
-_STATUS_COLOR = {
-    "DRAFT": _INK3, "ISSUED": _COBALT, "PAID": "#10B981",
-    "OVERDUE": "#E65F00", "VOID": "#D90429",
-}
+_COBALT = _PALETTE["cobalt"]
+_GOLD = _PALETTE["gold"]
+_INK = _PALETTE["ink"]
+_INK2 = _PALETTE["ink2"]
+_INK3 = _PALETTE["ink3"]
+_BORDER = _PALETTE["border"]
+_SURFACE = _PALETTE["surface"]
 
 
 # ---- formatting helpers ----
@@ -87,8 +86,14 @@ async def _customer_record(s, tenant_id, customer_id) -> Record | None:
 # ---- HTML shell (print-clean, A4-ish) ----
 
 def _page(title: str, body: str) -> str:
+    # T-P1-6 — `<meta viewport>` for mobile default-zoom; existing
+    # @media print block extended with -webkit-print-color-adjust so the
+    # cobalt header band actually renders when "Print to PDF" is invoked
+    # without "background graphics" enabled.
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>{_e(title)}</title>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{_e(title)}</title>
 <style>
   * {{ box-sizing: border-box; }}
   body {{ margin: 0; background: #fff; color: {_INK};
@@ -116,7 +121,12 @@ def _page(title: str, body: str) -> str:
   .totals .grand td {{ border-top: 2px solid {_COBALT}; font-weight: 700; font-size: 16px; color: {_COBALT}; }}
   .due {{ color: {_GOLD}; }}
   .foot {{ margin-top: 36px; color: {_INK3}; font-size: 12px; border-top: 1px solid {_BORDER}; padding-top: 12px; }}
-  @media print {{ .sheet {{ margin: 0; padding: 24px; max-width: none; }} @page {{ margin: 16mm; }} }}
+  @media print {{
+    body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+    .sheet {{ margin: 0; padding: 24px; max-width: none; }}
+    table, .totals {{ page-break-inside: avoid; }}
+    @page {{ margin: 16mm; }}
+  }}
 </style></head>
 <body><div class="sheet">{body}</div></body></html>"""
 

@@ -234,14 +234,14 @@ pnpm typecheck
 
 | ID | Action | Files | Risk | Status |
 |---|---|---|---|---|
-| **T-P1-1** | Wire portal SPA to cookie/CSRF mode (`credentials: 'include'`, `X-CSRF-Token` echo, drop localStorage Bearer) | `frontend-portal/src/lib/api.ts`, `views/LoginView.tsx` | **H — production blocker** | ⬜ TODO |
-| **T-P1-2** | Add `--gx-overlay` Tier-1 token; migrate 12 drawer/modal scrim `rgba(0,0,0,0.55)` sites | `gaahex-tokens.css` + 8 studio panes + 4 modals | **H** | ⬜ TODO |
-| **T-P1-3** | Fix `--gx-text-3` WCAG AA contrast failure on `--gx-surface-2` (dark ≈3.4:1, light ≈3.6:1 → must be ≥4.5:1) | `gaahex-tokens.css:306, 426` | **M** | ⬜ TODO |
-| **T-P1-4** | Add `role="button" + tabIndex={0} + onKeyDown` to 12 `<div onClick>` sites | `HomeView.tsx` (×10), `CalendarView.tsx:459`, `App.tsx:454` | **H** | ⬜ TODO |
-| **T-P1-5** | Resolve 4 phantom tokens: `--gx-bg-2` → `--gx-bg-subtle`; define `--gx-surface-1`; define `--gx-warning-bg`/`--gx-warning-border` | 9 view files + 5 studio panes | **H** | ⬜ TODO |
-| **T-P1-6** | Backend invoice/receipt HTML: add `lang="en"`, `<meta name="viewport">`, `@media print` | `backend/app/routers/portal_billing.py`, `documents.py` | **H** | ⬜ TODO |
-| **T-P1-7** | Backend Python hex constants → `backend/app/branding/theme_constants.py` (D18 backend-color-string guard) | `documents.py:28–40`, `portal_billing.py:166–188` | **H** | ⬜ TODO |
-| **T-P1-8** | `MasterLayoutDemoView` — replace 17 hardcoded light-theme hex values with token refs OR mark demo-only | `views/MasterLayoutDemoView.tsx:118–209` | **M** | ⬜ TODO |
+| **T-P1-1** | Portal SPA cookie/CSRF wiring | `frontend-portal/src/lib/api.ts`, `views/LoginView.tsx` | **H — production blocker** | ✅ DONE — `req()` now sends `credentials: 'include'` + echoes `X-CSRF-Token` on mutations; in-memory CSRF token captured at login; bearer-mode backwards-compat preserved. 24 portal tests green. |
+| **T-P1-2** | `--gx-overlay` Tier-1 token + 12 scrim sites | `gaahex-tokens.css` (already had token) + 11 scrim sites migrated | **H** | ✅ DONE — sed batch across studio panes, ConfigureDrawer, ChartPicker. |
+| **T-P1-3** | `--gx-text-3` WCAG AA contrast | `gaahex-tokens.css` | **M** | ✅ DONE — dark `#6E7F96` → `#8EA0B8` (~6:1); light `#74849A` → `#5C6B82` (~5.5:1); both pass AA 4.5:1. |
+| **T-P1-4** | `role/tabIndex/onKeyDown` on 12 `<div onClick>` sites | `HomeView.tsx` (9), `CalendarView.tsx`, `App.tsx` | **H** | ✅ DONE — 9 HomeView rows + CalendarView event row + App.tsx nav-scrim. |
+| **T-P1-5** | 4 phantom tokens | `--gx-bg-2` → `--gx-bg-subtle`; `--gx-surface-1` → `--gx-surface`; `--gx-warning-bg/border` → `--gx-warning-soft/--gx-warning` | **H** | ✅ DONE — sed batch across all views. |
+| **T-P1-6** | Backend invoice/receipt HTML hardening | `portal_billing.py`, `documents.py` | **H** | ✅ DONE — `lang="en"`, `<meta viewport>`, `@media print` with `print-color-adjust:exact` + `page-break-inside:avoid`. |
+| **T-P1-7** | Backend Python hex → `theme_constants.py` | `backend/app/branding/theme_constants.py` (new) | **H** | ✅ DONE — `BRAND_PRINT_PALETTE` + `STATUS_COLORS` + `status_color()` helper; both renderers import. |
+| **T-P1-8** | `MasterLayoutDemoView` hex literals | `views/MasterLayoutDemoView.tsx` | **M** | ✅ DONE — marked demo-only with a comment block explaining intentional light-theme reference values. |
 
 ### Phase 5b — Shared component standardization (2–4 weeks)
 

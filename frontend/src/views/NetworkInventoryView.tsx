@@ -737,7 +737,7 @@ function FiberDetailDrawer({ token, id, onClose }: {
             {route.geo_path
               ? <pre style={{
                   margin: 0, padding: 12,
-                  background: 'var(--gx-bg-2, #f8fafc)',
+                  background: 'var(--gx-bg-subtle)',
                   border: '1px solid var(--gx-border-subtle, #e2e8f0)',
                   borderRadius: 8,
                   fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',

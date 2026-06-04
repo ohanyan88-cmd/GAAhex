@@ -167,9 +167,16 @@ async def invoice_document(
     )
     # status drives a CSS color from a fixed whitelist — never interpolate
     # the raw inv.status into a CSS expression.
-    status_color = {"PAID": "#10B981", "ISSUED": "#1C3B68", "OVERDUE": "#E65F00", "VOID": "#D90429"}.get(inv.status, "#6B7280")
+    # T-P1-7 — single brand palette in `app.branding.theme_constants`.
+    from ..branding.theme_constants import status_color as _status_color  # noqa: PLC0415
+    status_color = _status_color(inv.status)
 
-    html = f"""<!doctype html><html><head><meta charset="utf-8">
+    # T-P1-6 — `lang="en"` (i18n landing target for Phase 5d), `<meta name="viewport">`
+    # (mobile default-zoom hint), CSP header (defense in depth), and an
+    # `@media print` block that forces print-color rendering and avoids
+    # page breaks inside table rows.
+    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Invoice {_e(inv.number)}</title>
 <style>
 body{{font-family:sans-serif;color:#111827;background:#fff;max-width:800px;margin:auto;padding:40px}}
@@ -179,6 +186,11 @@ td{{padding:8px 10px;border-bottom:1px solid #E2E8F0}}
 .pill{{display:inline-block;padding:3px 12px;border-radius:999px;background:{status_color}22;
        color:{status_color};border:1px solid {status_color};font-size:12px;font-weight:600}}
 .total-row td{{font-weight:700;border-top:2px solid #E2E8F0}}
+@media print {{
+  body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  table {{ page-break-inside: avoid; }}
+  @page {{ margin: 16mm; }}
+}}
 </style></head><body>
 <h1>{_e(tenant_name)} — Invoice</h1>
 <p><strong>Invoice #:</strong> {_e(inv.number)} &nbsp; <span class="pill">{_e(inv.status)}</span></p>
@@ -293,10 +305,17 @@ async def payment_receipt(
 
     # S3 (D14): escape every dynamic value before HTML interpolation.
     paid_at_str = payment.paid_at.strftime('%Y-%m-%d %H:%M UTC') if payment.paid_at else '—'
-    html = f"""<!doctype html><html><head><meta charset="utf-8">
+    # T-P1-6 — lang + viewport + print rules (see invoice_document above).
+    html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Receipt — {_e(inv.number)}</title>
 <style>body{{font-family:sans-serif;color:#111827;background:#fff;max-width:600px;margin:auto;padding:40px}}
-h1{{color:#1C3B68}}.amount{{font-size:28px;font-weight:700;color:#10B981;margin:16px 0}}</style></head>
+h1{{color:#1C3B68}}.amount{{font-size:28px;font-weight:700;color:#10B981;margin:16px 0}}
+@media print {{
+  body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  @page {{ margin: 16mm; }}
+}}
+</style></head>
 <body>
 <h1>{_e(tenant_name)} — Payment Receipt</h1>
 <p><strong>Invoice:</strong> {_e(inv.number)}</p>

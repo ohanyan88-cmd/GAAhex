@@ -964,7 +964,7 @@ function CustomerTabButton({ active, label, count, icon, onClick }: {
             fontSize: 11,
             fontWeight: 600,
             // D18: active tab count badge = azure (sits inside an interactive tab control)
-            background: active ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-bg-2, #f1f5f9)',
+            background: active ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-bg-subtle)',
             color: active ? '#fff' : 'var(--gx-text-3, #64748b)',
           }}
         >

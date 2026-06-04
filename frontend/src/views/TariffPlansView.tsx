@@ -514,7 +514,7 @@ export default function TariffPlansView({
                             display: 'inline-block',
                             padding: '2px 7px',
                             borderRadius: 999,
-                            background: 'var(--gx-bg-2, #f1f5f9)',
+                            background: 'var(--gx-bg-subtle)',
                             color: 'var(--gx-text-2, #475569)',
                             fontSize: 11,
                             fontWeight: 600,

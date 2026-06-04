@@ -144,7 +144,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
       </div>
 
       <div style={{
-        background: 'var(--gx-bg-2, #f8fafc)',
+        background: 'var(--gx-bg-subtle)',
         border: '1px solid var(--gx-border, #e2e8f0)',
         borderRadius: 'var(--gx-radius-lg, 12px)',
         padding: 16,
@@ -210,7 +210,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
           <span style={{
             display: 'inline-block',
             padding: '2px 7px',
-            background: 'var(--gx-bg-2, #f1f5f9)',
+            background: 'var(--gx-bg-subtle)',
             color: 'var(--gx-text-2, #475569)',
             border: '1px solid var(--gx-border, #e2e8f0)',
             borderRadius: 999,

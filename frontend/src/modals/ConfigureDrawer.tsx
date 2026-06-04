@@ -194,7 +194,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
       style={{
         position: 'fixed', inset: 0,
         zIndex: 'var(--z-modal)' as any,
-        background: 'rgba(0,0,0,0.45)',
+        background: 'var(--gx-overlay)',
         animation: 'overlay-fade var(--dur-base) var(--ease-decelerate)',
       }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}

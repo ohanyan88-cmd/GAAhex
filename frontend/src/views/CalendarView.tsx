@@ -456,7 +456,14 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                   const tone = calColor(e)
                   const d = new Date(e.start_at)
                   return (
-                    <div key={e.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => openEdit(e)}>
+                    <div
+                      key={e.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openEdit(e)}
+                      onKeyDown={(ke) => { if (ke.key === 'Enter' || ke.key === ' ') { ke.preventDefault(); openEdit(e) } }}
+                      style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }}
+                    >
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: tone, marginTop: 5, flexShrink: 0 }} />
                       <div style={{ fontSize: 12, minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>

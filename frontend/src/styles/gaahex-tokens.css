@@ -303,7 +303,9 @@
   /* Text */
   --gx-text-1: #F4F7FB;   /* primary  */
   --gx-text-2: #AEBDD0;   /* secondary */
-  --gx-text-3: #6E7F96;   /* tertiary / muted */
+  /* T-P1-3 — lifted from #6E7F96 (~3.4:1 contrast on --gx-surface-2 #182943,
+     failed WCAG AA) to #8EA0B8 (~6:1 contrast, passes AA 4.5:1 for normal text). */
+  --gx-text-3: #8EA0B8;   /* tertiary / muted */
   --gx-text-disabled: #44546B;
   --gx-text-inverse: #0F172A;
   --gx-text-on-primary: #FFFFFF;
@@ -423,7 +425,9 @@
 
   --gx-text-1: #0F2138;
   --gx-text-2: #475569;
-  --gx-text-3: #74849A;
+  /* T-P1-3 — lifted from #74849A (~3.6:1 contrast on --gx-surface-2 #F7F9FB,
+     failed WCAG AA) to #5C6B82 (~5.5:1 contrast, passes AA 4.5:1 for normal text). */
+  --gx-text-3: #5C6B82;
   --gx-text-disabled: #AEBACA;
   --gx-text-inverse: #F4F7FB;
   --gx-text-on-primary: #FFFFFF;

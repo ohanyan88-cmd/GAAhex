@@ -754,7 +754,7 @@ function PoliciesTab({
                   onClick={() => openEdit(p)}
                   style={{
                     textAlign: 'left',
-                    background: isSelected ? 'var(--gx-bg-2, #f1f5f9)' : 'var(--gx-surface, #ffffff)',
+                    background: isSelected ? 'var(--gx-bg-subtle)' : 'var(--gx-surface, #ffffff)',
                     // D18: active selection outline = azure (interactive)
                     border: '1px solid ' + (isSelected ? 'var(--gx-interactive, #2563eb)' : 'var(--gx-border, #e2e8f0)'),
                     borderRadius: 10,
@@ -771,7 +771,7 @@ function PoliciesTab({
                       <span style={{
                         fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                         padding: '2px 7px', borderRadius: 999,
-                        background: 'var(--gx-bg-2, #f1f5f9)', color: 'var(--gx-text-2, #475569)',
+                        background: 'var(--gx-bg-subtle)', color: 'var(--gx-text-2, #475569)',
                         border: '1px solid var(--gx-border, #e2e8f0)',
                       }}>
                         {t('collections.policy.default', 'Default')}

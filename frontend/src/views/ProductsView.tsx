@@ -335,7 +335,7 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
         // D18: active filter chip = azure (interactive selection); 'primary' variant stays text-1 (high-emphasis label)
         background: active
           ? (primary ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-interactive, #2563eb)')
-          : 'var(--gx-bg-2, #f1f5f9)',
+          : 'var(--gx-bg-subtle)',
         color: active ? '#ffffff' : 'var(--gx-text-2, #475569)',
         // D18: active chip outline matches background — azure for the default variant
         border: '1px solid ' + (active

@@ -1132,7 +1132,7 @@ function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeve
     ? { bg: 'rgba(239, 68, 68, 0.10)', fg: 'var(--gx-danger, #dc2626)' }
     : severity === 'medium'
       ? { bg: 'rgba(245, 158, 11, 0.10)', fg: 'var(--gx-warning, #d97706)' }
-      : { bg: 'var(--gx-bg-2, #f1f5f9)', fg: 'var(--gx-text-2, #475569)' }
+      : { bg: 'var(--gx-bg-subtle)', fg: 'var(--gx-text-2, #475569)' }
   return (
     <span style={{
       display: 'inline-block',
@@ -1410,7 +1410,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
           <pre style={{
             margin: 0,
             padding: 8,
-            background: 'var(--gx-surface-1, #ffffff)',
+            background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border-subtle, #e2e8f0)',
             borderRadius: 6,
             fontSize: 11,
@@ -1465,7 +1465,7 @@ function StatusFlow({ current }: { current: FindingStatus }) {
                       : s.key === 'investigating'
                         ? 'rgba(245, 158, 11, 0.12)'
                         : 'rgba(239, 68, 68, 0.12)')
-                : reached ? 'var(--gx-surface-1, #ffffff)' : 'transparent',
+                : reached ? 'var(--gx-surface)' : 'transparent',
               color: isCurrent
                 ? (s.key === 'resolved'
                     ? 'var(--gx-success, #059669)'

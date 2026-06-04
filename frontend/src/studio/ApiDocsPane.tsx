@@ -301,7 +301,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
         <div
           style={{
             marginTop: 8, padding: 10,
-            background: 'var(--gx-surface-1)',
+            background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
             borderRadius: 'var(--gx-radius-md)',
           }}
@@ -367,7 +367,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
     <div
       style={{
         padding: '12px 14px',
-        background: 'var(--gx-surface-1)',
+        background: 'var(--gx-surface)',
         borderTop: '1px solid var(--gx-border)',
       }}
     >
@@ -507,7 +507,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                       style={{
                         margin: 0, padding: 10, fontSize: 11.5, lineHeight: 1.5,
                         maxHeight: 220, overflow: 'auto',
-                        background: 'var(--gx-surface-1)',
+                        background: 'var(--gx-surface)',
                         color: 'var(--gx-text-2)',
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                       }}
@@ -546,7 +546,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         borderRadius: 'var(--gx-radius-md)',
         marginBottom: 6,
         overflow: 'hidden',
-        background: 'var(--gx-surface-1)',
+        background: 'var(--gx-surface)',
       }}
     >
       <button

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, setToken } from '../lib/api'
+import { api } from '../lib/api'
 
 interface Props {
   onLogin: () => void
@@ -16,8 +16,10 @@ export default function LoginView({ onLogin }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const result = await api.login(email, password)
-      setToken(result.access_token)
+      // T-P1-1 — api.login() now handles both bearer token storage (header
+      // mode) and CSRF capture (cookie / both mode). LoginView no longer
+      // needs to call setToken() explicitly.
+      await api.login(email, password)
       onLogin()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')

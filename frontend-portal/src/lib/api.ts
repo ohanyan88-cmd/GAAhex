@@ -1,17 +1,51 @@
+// T-P1-1 — Portal SPA auth client supports the Stage-2 cookie/CSRF backend
+// contract AND the legacy bearer/localStorage contract.
+//
+// Backend modes (set via `settings.portal_auth_mode`):
+//   * header — Bearer token in Authorization (legacy default)
+//   * cookie — HttpOnly cookie; `access_token` in login response is empty
+//     string; `csrf_token` is returned for the SPA to echo on mutations
+//   * both   — cookie set AND access_token returned (migration window)
+//
+// This client's contract:
+//   * Always sends `credentials: 'include'` so the HttpOnly cookie rides on
+//     cross-origin requests. No-op in header-only mode (no cookie set).
+//   * Stores the in-memory `csrfToken` after login (NOT in localStorage).
+//   * Always echoes `X-CSRF-Token` header on mutating verbs when csrfToken
+//     is set. Backend validates against the cookie-derived token.
+//   * Stores the bearer token in `localStorage` only if the login response
+//     returns one (header / both modes). In cookie-only mode no token is
+//     stored anywhere.
+//   * On 401: clears every piece of state and redirects to /login.
+
 const BASE = import.meta.env.VITE_API_BASE ?? ''
 const TOKEN_KEY = 'gaahex-portal-token'
+
+// In-memory CSRF token. Lives on the module scope; lost on full page reload,
+// which is fine because the next request will be the login attempt, and the
+// login response will refresh it. Mutations between page reloads (the normal
+// case) work because the SPA keeps the value in JS memory.
+let csrfToken: string | null = null
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
 export function setToken(t: string) {
-  localStorage.setItem(TOKEN_KEY, t)
+  if (t) localStorage.setItem(TOKEN_KEY, t)
+  else localStorage.removeItem(TOKEN_KEY)
 }
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  csrfToken = null
 }
+
+export function setCsrfToken(t: string | null) {
+  csrfToken = t
+}
+
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = getToken()
@@ -21,7 +55,21 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE}${path}`, { ...opts, headers })
+  // T-P1-1 — echo CSRF token on mutating verbs. Backend validates it against
+  // the HttpOnly cookie's derived hash (double-submit-cookie pattern). No-op
+  // when the SPA is running against a header-only backend (csrfToken is null).
+  const method = (opts.method ?? 'GET').toUpperCase()
+  if (csrfToken && MUTATING_METHODS.has(method)) {
+    headers['X-CSRF-Token'] = csrfToken
+  }
+
+  const res = await fetch(`${BASE}${path}`, {
+    ...opts,
+    headers,
+    // T-P1-1 — ride the HttpOnly portal session cookie on cross-origin
+    // requests. No-op in header-only mode (no cookie set on this origin).
+    credentials: 'include',
+  })
   if (res.status === 401) {
     clearToken()
     window.location.href = '/login'
@@ -53,6 +101,8 @@ export interface LoginResult {
     customer_id: string
     tenant_id: string
   }
+  /** T-P1-1 — set in cookie / both modes; SPA echoes via X-CSRF-Token header. */
+  csrf_token?: string | null
 }
 
 export interface PortalSummary {
@@ -131,11 +181,17 @@ export interface PortalUsage {
 // ── API calls ────────────────────────────────────────────────────────────────
 
 export const api = {
-  login: (email: string, password: string, tenantId?: string) =>
-    req<LoginResult>('/portal/auth/login', {
+  login: async (email: string, password: string, tenantId?: string) => {
+    const result = await req<LoginResult>('/portal/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password, ...(tenantId ? { tenant_id: tenantId } : {}) }),
-    }),
+    })
+    // T-P1-1 — capture CSRF token (cookie/both modes) and the bearer token
+    // (header/both modes). LoginView no longer needs to call setToken().
+    if (result.csrf_token) setCsrfToken(result.csrf_token)
+    if (result.access_token) setToken(result.access_token)
+    return result
+  },
 
   me: () => req<PortalCustomer>('/portal/auth/me'),
   summary: () => req<PortalSummary>('/portal/me/summary'),

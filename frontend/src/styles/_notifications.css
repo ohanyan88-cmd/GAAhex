@@ -4,7 +4,7 @@
   position:absolute; top:calc(100% + 6px); right:0;
   z-index:var(--gx-z-popover);
   width:380px; max-height:520px;
-  background:var(--gx-surface-1);
+  background:var(--gx-surface);
   border:1px solid var(--gx-border);
   border-radius:var(--gx-radius-lg);
   display:flex; flex-direction:column;
