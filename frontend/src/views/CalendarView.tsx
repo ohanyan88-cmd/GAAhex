@@ -437,7 +437,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                         borderColor: cal.color,
                       }}
                     >
-                      {on && <CheckIcon size={11} style={{ color: '#0A1120' }} />}
+                      {on && <CheckIcon size={11} style={{ color: 'var(--gx-text-on-gold)' }} />}
                     </span>
                     <span style={{ fontSize: 12.5, color: on ? 'var(--gx-text-1)' : 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {cal.name}

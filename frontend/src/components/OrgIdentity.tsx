@@ -131,7 +131,7 @@ export default function OrgIdentity({ token }: { token: string }) {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {draftLogo
               ? <img src={draftLogo} alt="" style={{ width: 46, height: 46, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
-              : <span style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#2A1E07', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
+              : <span style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
                   {initialsOf(draftName)}
                 </span>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
