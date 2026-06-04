@@ -6,8 +6,9 @@ import { timeAgo } from '../lib/time'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../components/States'
 import {
-  InfoIcon, ServerIcon, SearchIcon, GearIcon,
+  InfoIcon, ServerIcon, SearchIcon, GearIcon, EditIcon, TrashIcon, PlayIcon, ActivityIcon,
 } from '../components/icons'
+import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'  // TL-4
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
   ChevronLeft, ChevronRight,
@@ -277,12 +278,23 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                       })}
                       {cf.cells(w.id)}
                       <td className="actions-col" onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
-                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setDeliveriesFor(w)} title="View deliveries">Log</button>
-                          {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => test(w)} title="Test webhook">Test</button>}
-                          {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => setDraft({ id: w.id, name: w.name ?? '', url: w.url ?? '', events: w.events ?? [], active: w.active !== false })}>Edit</button>}
-                          {canConfigure && <button className="btn btn-ghost btn-sm" onClick={() => remove(w)}>Delete</button>}
-                        </div>
+                        {/* TL-4 — 4 inline ghost buttons (Log/Test/Edit/Delete) → canonical RowActionsMenu.
+                            Log stays inline as the primary shortcut; the rest collapse into the kebab. */}
+                        {(() => {
+                          const actions: RowAction[] = []
+                          if (canConfigure) {
+                            actions.push({ key: 'test',   label: 'Test webhook', icon: <PlayIcon size={14} />, onClick: () => test(w) })
+                            actions.push({ key: 'edit',   label: 'Edit',         icon: <EditIcon size={14} />, onClick: () => setDraft({ id: w.id, name: w.name ?? '', url: w.url ?? '', events: w.events ?? [], active: w.active !== false }) })
+                            actions.push({ key: 'delete', label: 'Delete',       icon: <TrashIcon size={14} />, danger: true, onClick: () => remove(w) })
+                          }
+                          return (
+                            <RowActionsMenu
+                              primary={{ key: 'log', label: 'View deliveries', icon: <ActivityIcon size={14} />, onClick: () => setDeliveriesFor(w) }}
+                              actions={actions}
+                              ariaLabel="Webhook actions"
+                            />
+                          )
+                        })()}
                       </td>
                     </tr>
                   ))}

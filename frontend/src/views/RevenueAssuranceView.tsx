@@ -23,7 +23,8 @@
 // Permissions: gated on `invoice.view` (the data layer all four overview widgets live on).
 // The Findings tab additionally treats backend 403 as PermissionDenied and 404 as "not available".
 import { useEffect, useMemo, useState } from 'react'
-import { ShieldIcon, GearIcon, ReceiptIcon, SearchIcon } from '../components/icons'
+import { ShieldIcon, GearIcon, ReceiptIcon, SearchIcon, CheckIcon, EditIcon, CloseIcon } from '../components/icons'
+import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'  // TL-4
 import {
   Banknote, AlertTriangle, TrendingUp, BarChart3,
   ListChecks, Play, RefreshCw, ChevronLeft, ChevronRight,
@@ -1021,17 +1022,21 @@ function FindingsTab(props: {
                         />
                       </td>
                       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                        <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          {actionable && f.status === 'open' && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => onAck(f)}>Ack</button>
-                          )}
-                          {actionable && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => onOpenResolve(f)}>Resolve</button>
-                          )}
-                          {actionable && canAdmin && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => onOpenMarkFP(f)}>False positive</button>
-                          )}
-                        </div>
+                        {/* TL-4 — Ack/Resolve/False-positive collapse into RowActionsMenu. */}
+                        {(() => {
+                          const actions: RowAction[] = []
+                          if (actionable && f.status === 'open') {
+                            actions.push({ key: 'ack', label: 'Acknowledge', icon: <CheckIcon size={14} />, onClick: () => onAck(f) })
+                          }
+                          if (actionable) {
+                            actions.push({ key: 'resolve', label: 'Resolve', icon: <EditIcon size={14} />, onClick: () => onOpenResolve(f) })
+                          }
+                          if (actionable && canAdmin) {
+                            actions.push({ key: 'fp', label: 'Mark false positive', icon: <CloseIcon size={14} />, danger: true, onClick: () => onOpenMarkFP(f) })
+                          }
+                          if (actions.length === 0) return null
+                          return <RowActionsMenu actions={actions} ariaLabel="Finding actions" />
+                        })()}
                       </td>
                     </tr>
                   )
