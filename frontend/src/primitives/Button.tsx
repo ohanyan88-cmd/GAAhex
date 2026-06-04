@@ -26,6 +26,10 @@ interface ButtonProps {
   /** Accessibility passthrough for icon-only buttons or context labels. */
   'aria-label'?: string
   title?: string
+  /** HTML `form` attribute — associates this button with a form by id when
+   * the button is rendered OUTSIDE the form element (canonical pattern for
+   * modal-body forms whose Cancel/Submit buttons live in the modal footer). */
+  form?: string
 }
 
 function Spinner() {
@@ -51,6 +55,7 @@ export function Button({
   style,
   'aria-label': ariaLabel,
   title,
+  form,
 }: ButtonProps) {
   const isDisabled = disabled || loading
   const iconSize = size === 'sm' ? 10 : 12
@@ -71,6 +76,7 @@ export function Button({
       style={style}
       aria-label={ariaLabel}
       title={title}
+      form={form}
     >
       {loading ? <Spinner /> : LeftIcon ? <LeftIcon size={iconSize} /> : null}
       {children}

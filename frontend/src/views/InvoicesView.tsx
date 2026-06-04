@@ -117,9 +117,10 @@ function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceI
 
   return (
     <>
-      <button className="btn btn-primary btn-sm" onClick={handlePay} disabled={busy}>
+      <Button variant="primary" size="sm"
+            onClick={handlePay} disabled={busy}>
         <CreditCardIcon size={13} /> {busy ? 'Initiating…' : 'Pay online'}
-      </button>
+      </Button>
 
       {devConfirm && (
         <Modal
@@ -129,10 +130,12 @@ function PayOnlineButton({ token, invoiceId, onDone }: { token: string; invoiceI
           size="sm"
           footer={
             <>
-              <button className="btn btn-ghost btn-md" onClick={() => { setDevConfirm(null); setBusy(false) }}>Cancel</button>
-              <button className="btn btn-primary btn-md" onClick={handleConfirmDev} disabled={busy}>
+              <Button variant="ghost" size="md"
+            onClick={() => { setDevConfirm(null); setBusy(false) }}>Cancel</Button>
+              <Button variant="primary" size="md"
+            onClick={handleConfirmDev} disabled={busy}>
                 {busy ? 'Confirming…' : 'Confirm payment'}
-              </button>
+              </Button>
             </>
           }
         >
@@ -532,15 +535,14 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                         {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
                           <Button variant="ghost" size="sm" onClick={voidInvoice}>Void</Button>
                         )}
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={async () => {
+                        <Button variant="ghost" size="sm"
+            onClick={async () => {
                             const e = await openDocument(token, `/api/invoices/${id}/document`)
                             if (e) toast.error(e)
                           }}
                         >
                           <PrinterIcon size={14} /> Print / Download
-                        </button>
+                        </Button>
                       </Inline>
                     }
                   />
@@ -834,9 +836,10 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
         )}
         {canAllocate && outNum > 0 && (
           <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
+            <Button variant="primary" size="sm"
+            onClick={() => setOpen(true)}>
               Allocate payment
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -929,9 +932,10 @@ function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-          <button className="btn btn-primary btn-md" disabled={saving || !paymentId || !amount} onClick={submit}>
+          <Button variant="primary" size="md"
+            disabled={saving || !paymentId || !amount} onClick={submit}>
             {saving ? 'Allocating…' : 'Allocate'}
-          </button>
+          </Button>
         </>
       }
     >

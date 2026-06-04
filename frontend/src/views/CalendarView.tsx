@@ -558,17 +558,20 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
         footer={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
             {editing && (
-              <button type="button" className="btn btn-danger btn-sm" onClick={handleDelete} disabled={fSaving}>
+              <Button variant="danger" size="sm"
+            type="button"  onClick={handleDelete} disabled={fSaving}>
                 Delete
-              </button>
+              </Button>
             )}
             <span style={{ flex: 1 }} />
-            <button type="button" className="btn btn-ghost btn-md" onClick={() => setModalOpen(false)}>
+            <Button variant="ghost" size="md"
+            type="button"  onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button type="button" className="btn btn-primary btn-md" onClick={handleSave} disabled={fSaving}>
+            </Button>
+            <Button variant="primary" size="md"
+            type="button"  onClick={handleSave} disabled={fSaving}>
               {fSaving ? 'Saving...' : 'Save'}
-            </button>
+            </Button>
           </div>
         }
       >
@@ -649,14 +652,14 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                 />
               ))}
               {fColor && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <Button variant="ghost" size="sm"
+            type="button"
+                  
                   style={{ padding: '0 8px', height: 24, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
                   onClick={() => setFColor(null)}
                 >
                   <CloseIcon size={10} /> Clear
-                </button>
+                </Button>
               )}
             </div>
           </div>

@@ -13,7 +13,7 @@ import {
 } from '../components/icons'
 import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import { fmtDate } from '../lib/time'
 
 
@@ -243,13 +243,12 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                           {o.payment_id && (
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => handleOpenReceipt(o.payment_id!)}
+                            <Button variant="ghost" size="sm"
+            onClick={() => handleOpenReceipt(o.payment_id!)}
                               title="Open receipt"
                             >
                               <ReceiptIcon size={13} /> Receipt
-                            </button>
+                            </Button>
                           )}
                           <button
                             className="iconbtn"
@@ -281,13 +280,15 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
               </span>
               <span className="spacer" />
-              <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              <Button variant="ghost" size="sm"
+            disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 <ChevronLeftIcon size={13} /> Prev
-              </button>
+              </Button>
               <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
-              <button className="btn btn-ghost btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+              <Button variant="ghost" size="sm"
+            disabled={page>= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
                 Next <ArrowRightIcon size={13} />
-              </button>
+              </Button>
             </div>
           </div>
         )}

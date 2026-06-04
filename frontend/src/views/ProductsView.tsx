@@ -266,10 +266,9 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                       {cf.cells(p.id)}
                       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}
-                          >Edit</button>
+                          <Button variant="ghost" size="sm"
+            onClick={() => setDraft({ id: p.id, key: p.key ?? '', name: p.name ?? '', default_amount: p.default_amount != null ? String(p.default_amount / 100) : '', cycle: p.cycle ?? 'monthly', active: p.active !== false })}
+                          >Edit</Button>
                           {p.active !== false && (
                             <Button variant="ghost" size="sm" onClick={() => retire(p)}>Retire</Button>
                           )}

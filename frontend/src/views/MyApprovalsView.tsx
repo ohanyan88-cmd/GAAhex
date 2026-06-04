@@ -8,6 +8,7 @@
 // Doctrine: no mock fallbacks. 0 results → empty state. 403 → PermissionDenied.
 // Network error → ErrorBanner. Mutations refresh the list on success.
 
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { EmptyState, PermissionDenied, SkeletonRows, ErrorBanner } from '../components/States'
 import {
@@ -145,23 +146,21 @@ export default function MyApprovalsView({ token }: { token: string }) {
                       </td>
                       <td className="actions-col" style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: 6 }}>
-                          <button
-                            className="btn btn-primary btn-sm"
-                            disabled={busy === a.id}
+                          <Button variant="primary" size="sm"
+            disabled={busy === a.id}
                             onClick={() => decide(a.id, 'approve')}
                             title="Approve this transition"
                           >
                             <CheckIcon size={12} /> Approve
-                          </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            disabled={busy === a.id}
+                          </Button>
+                          <Button variant="ghost" size="sm"
+            disabled={busy === a.id}
                             onClick={() => decide(a.id, 'reject')}
                             title="Reject this transition"
                             style={{ color: 'var(--gx-danger-fg)' }}
                           >
                             <CloseIcon size={12} /> Reject
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>

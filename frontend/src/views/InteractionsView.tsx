@@ -190,9 +190,10 @@ export default function InteractionsView({
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{t('interactions.title', 'Interactions')}</h3>
-          <button className="btn btn-primary btn-sm" onClick={() => { setFollowUpFor(null); setLogOpen(true) }}>
+          <Button variant="primary" size="sm"
+            onClick={() => { setFollowUpFor(null); setLogOpen(true) }}>
             <PlusIcon size={13} /> Log
-          </button>
+          </Button>
         </div>
 
         {error && <ErrorBanner message={error} onRetry={load} />}
@@ -263,9 +264,10 @@ export default function InteractionsView({
           </div>
         </div>
         <span className="spacer" />
-        <button className="btn btn-primary btn-sm" onClick={() => { setFollowUpFor(null); setLogOpen(true) }}>
+        <Button variant="primary" size="sm"
+            onClick={() => { setFollowUpFor(null); setLogOpen(true) }}>
           <PlusIcon size={13} /> Log interaction
-        </button>
+        </Button>
       </div>
 
       {/* Body: left rail + right pane */}
@@ -570,9 +572,10 @@ function InteractionDetail({
 
       {/* Action bar — "Log follow-up" is a real POST action */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 10, alignItems: 'center' }}>
-        <button className="btn btn-primary btn-sm" onClick={onLogFollowUp}>
+        <Button variant="primary" size="sm"
+            onClick={onLogFollowUp}>
           <PlusIcon size={13} /> Log follow-up
-        </button>
+        </Button>
         <span className="spacer" />
         <span className="hint" style={{ fontSize: 11 }}>
           {timeAgo(it.occurred_at ?? it.created_at ?? null)}

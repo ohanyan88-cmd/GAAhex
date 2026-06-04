@@ -160,18 +160,18 @@ function ComposeModal({
       size="md"
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-md" onClick={handleClose}>
+          <Button variant="ghost" size="md"
+            type="button"  onClick={handleClose}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button variant="primary" size="md"
             type="button"
-            className="btn btn-primary btn-md"
+            
             disabled={!canSend}
-            onClick={handleSend}
-          >
+            onClick={handleSend}>
             <MailIcon size={15} />
             {sending ? 'Sending…' : 'Send'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -335,9 +335,10 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
       <div className="mail">
         {/* ── Folder rail ── */}
         <div className="mail-folders">
-          <button className="btn btn-gold btn-sm" style={{ width: '100%', marginBottom: 10 }} onClick={() => openCompose()}>
+          <Button variant="gold" size="sm"
+            style={{ width: '100%', marginBottom: 10 }} onClick={() => openCompose()}>
             <PlusIcon size={14} />Compose
-          </button>
+          </Button>
           {FOLDERS.map(f => {
             const FIcon = f.icon
             const count = folderCounts[f.key] ?? 0

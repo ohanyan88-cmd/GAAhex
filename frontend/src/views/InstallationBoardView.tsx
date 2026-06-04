@@ -22,7 +22,7 @@ import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../comp
 import { TruckIcon, RefreshIcon, ServerIcon, CheckIcon, PlusIcon, EditIcon, InfoIcon } from '../components/icons'
 import { timeAgo } from '../lib/time'
 import { can, type Capabilities, FULL_ACCESS } from '../lib/capabilities'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import { PageShell, type KPISpec } from '../page-shell'
 
 type Substage = null | 'RESOURCE_ALLOC' | 'CPE_BOUND' | 'ACTIVATED'
@@ -365,37 +365,31 @@ function OrderCard({
 
       <div onClick={stop} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
         {column === 'NONE' && canEdit && (
-          <button
-            className="btn btn-primary btn-sm"
+          <Button variant="primary" size="sm"
             onClick={onAllocate}
             disabled={busy}
-            style={{ fontSize: 11 }}
-          >
+            style={{ fontSize: 11 }}>
             <PlusIcon size={11} />
             {busy ? 'Allocating…' : 'Allocate Resources'}
-          </button>
+          </Button>
         )}
         {column === 'RESOURCE_ALLOC' && canEdit && (
-          <button
-            className="btn btn-primary btn-sm"
+          <Button variant="primary" size="sm"
             onClick={onBind}
             disabled={busy}
-            style={{ fontSize: 11 }}
-          >
+            style={{ fontSize: 11 }}>
             <EditIcon size={11} />
             Bind CPE
-          </button>
+          </Button>
         )}
         {column === 'CPE_BOUND' && canEdit && (
-          <button
-            className="btn btn-primary btn-sm"
+          <Button variant="primary" size="sm"
             onClick={onActivate}
             disabled={busy}
-            style={{ fontSize: 11 }}
-          >
+            style={{ fontSize: 11 }}>
             <CheckIcon size={11} />
             {busy ? 'Activating…' : 'Activate'}
-          </button>
+          </Button>
         )}
         {column === 'ACTIVATED' && (
           <span
@@ -477,17 +471,17 @@ function BindCpeModal({
       size="md"
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-md" onClick={onClose} disabled={saving}>
+          <Button variant="ghost" size="md"
+            type="button"  onClick={onClose} disabled={saving}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button variant="primary" size="md"
             type="submit"
             form="bind-cpe-form"
-            className="btn btn-primary btn-md"
-            disabled={!canSubmit}
-          >
+            
+            disabled={!canSubmit}>
             {saving ? 'Binding…' : 'Bind CPE'}
-          </button>
+          </Button>
         </>
       }
     >

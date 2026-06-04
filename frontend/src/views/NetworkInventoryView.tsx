@@ -521,13 +521,15 @@ function FiberTab({ state, status, onStatus, canAdmin, onNew, onReload, onOpen }
         }
         right={
           <>
-            <button className="btn btn-ghost btn-sm" onClick={onReload}>
+            <Button variant="ghost" size="sm"
+            onClick={onReload}>
               <RefreshIcon size={13} /> Refresh
-            </button>
+            </Button>
             {canAdmin && (
-              <button className="btn btn-primary btn-sm" onClick={onNew}>
+              <Button variant="primary" size="sm"
+            onClick={onNew}>
                 <PlusIcon size={13} /> New Fiber Route
-              </button>
+              </Button>
             )}
           </>
         }
@@ -630,9 +632,10 @@ function FiberCreateModal({ token, onClose, onCreated }: {
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <button className="btn btn-primary btn-md" onClick={submit} disabled={submitting || !name.trim()}>
+          <Button variant="primary" size="md"
+            onClick={submit} disabled={submitting || !name.trim()}>
             {submitting ? 'Creating…' : 'Create route'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -796,9 +799,10 @@ function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onRelease,
           </>
         }
         right={
-          <button className="btn btn-ghost btn-sm" onClick={onReload}>
+          <Button variant="ghost" size="sm"
+            onClick={onReload}>
             <RefreshIcon size={13} /> Refresh
-          </button>
+          </Button>
         }
       />
 
@@ -895,9 +899,10 @@ function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, onStop, 
           </>
         }
         right={
-          <button className="btn btn-ghost btn-sm" onClick={onReload}>
+          <Button variant="ghost" size="sm"
+            onClick={onReload}>
             <RefreshIcon size={13} /> Refresh
-          </button>
+          </Button>
         }
       />
 
@@ -1010,13 +1015,15 @@ function BroadcastTab({ state, status, onStatus, canAdmin, onNew, onSend, onRelo
         }
         right={
           <>
-            <button className="btn btn-ghost btn-sm" onClick={onReload}>
+            <Button variant="ghost" size="sm"
+            onClick={onReload}>
               <RefreshIcon size={13} /> Refresh
-            </button>
+            </Button>
             {canAdmin && (
-              <button className="btn btn-primary btn-sm" onClick={onNew}>
+              <Button variant="primary" size="sm"
+            onClick={onNew}>
                 <PlusIcon size={13} /> New Broadcast
-              </button>
+              </Button>
             )}
           </>
         }
@@ -1123,9 +1130,10 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>Cancel</Button>
-          <button className="btn btn-primary btn-md" onClick={submit} disabled={submitting}>
+          <Button variant="primary" size="md"
+            onClick={submit} disabled={submitting}>
             {submitting ? 'Creating…' : 'Create draft'}
-          </button>
+          </Button>
         </>
       }
     >

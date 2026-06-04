@@ -734,13 +734,15 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           ))}
           <div className="rec-form-actions">
             <span className="spacer" />
-            <button type="button" className="btn btn-ghost btn-md" onClick={closeForm}>
+            <Button variant="ghost" size="md"
+            type="button"  onClick={closeForm}>
               {t('common.cancel', 'Cancel')}
-            </button>
-            <button type="submit" className="btn btn-primary btn-md">
+            </Button>
+            <Button variant="primary" size="md"
+            type="submit">
               <CheckIcon size={14} aria-hidden />
               {mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -751,9 +753,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           title={`${t('common.noneYet', 'No')} ${def.label_plural.toLowerCase()} ${t('common.yet', 'yet')}`}
           message={canCreate ? t('common.createFirst', 'Create the first one to get started.') : undefined}
           action={canCreate ? (
-            <button className="btn btn-primary btn-md" onClick={openCreate}>
+            <Button variant="primary" size="md"
+            onClick={openCreate}>
               <PlusIcon size={13} aria-hidden /> {t('common.new', 'New')} {def.label}
-            </button>
+            </Button>
           ) : undefined}
         />
       ) : (
@@ -814,9 +817,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                     <option key={String(v.id)} value={String(v.id)}>{v.name}</option>
                   ))}
                 </select>
-                <button className="btn btn-ghost btn-sm" onClick={saveView}>
+                <Button variant="ghost" size="sm"
+            onClick={saveView}>
                   Save view
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -966,22 +970,20 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   .replace('{total}', String(total))}
               </span>
               <span className="spacer" />
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
+              <Button variant="ghost" size="sm"
+            onClick={() => goToPage(Math.max(0, offset - PAGE_SIZE))}
                 disabled={offset === 0 || loading}
                 aria-label={t('pager.prev', 'Previous page')}
               >
                 <ChevronLeftIcon size={13} /> {t('pager.prev', 'Prev')}
-              </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => goToPage(offset + PAGE_SIZE)}
+              </Button>
+              <Button variant="ghost" size="sm"
+            onClick={() => goToPage(offset + PAGE_SIZE)}
                 disabled={offset + PAGE_SIZE >= total || loading}
                 aria-label={t('pager.next', 'Next page')}
               >
                 {t('pager.next', 'Next')} <ChevronRightIcon size={13} />
-              </button>
+              </Button>
             </div>
           )}
         </div>

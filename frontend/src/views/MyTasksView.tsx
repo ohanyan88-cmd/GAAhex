@@ -474,23 +474,19 @@ function MyTaskDetailModal({
       size="lg"
       footer={
         <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
-          <button
-            className="btn btn-ghost btn-sm"
+          <Button variant="ghost" size="sm"
             disabled={busy}
             onClick={handleDelete}
             style={{ color: 'var(--danger)', marginRight: 'auto' }}
-            title="Delete"
-          >
+            title="Delete">
             <TrashIcon size={13} />
-          </button>
+          </Button>
           <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-          <button
-            className="btn btn-primary btn-md"
+          <Button variant="primary" size="md"
             disabled={busy || !title.trim()}
-            onClick={handleSave}
-          >
+            onClick={handleSave}>
             {busy ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -517,25 +513,29 @@ function MyTaskDetailModal({
                   <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => handleAction('complete')}>
                     <CheckIcon size={12} /> Complete
                   </button>
-                  <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleAction('block')}>
+                  <Button variant="ghost" size="sm"
+            disabled={busy} onClick={() => handleAction('block')}>
                     <PauseIcon size={12} /> Block
-                  </button>
+                  </Button>
                 </>
               )}
               {s === 'BLOCKED' && (
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleAction('start')}>
+                <Button variant="ghost" size="sm"
+            disabled={busy} onClick={() => handleAction('start')}>
                   <PlayIcon size={12} /> Resume
-                </button>
+                </Button>
               )}
               {(s === 'TODO' || s === 'IN_PROGRESS' || s === 'BLOCKED') && (
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => handleAction('cancel')}>
+                <Button variant="ghost" size="sm"
+            disabled={busy} onClick={() => handleAction('cancel')}>
                   <CloseIcon size={12} /> Cancel
-                </button>
+                </Button>
               )}
               {(s === 'DONE' || s === 'CANCELLED') && (
-                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => handleAction('reopen')}>
+                <Button variant="primary" size="sm"
+            disabled={busy} onClick={() => handleAction('reopen')}>
                   Reopen
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -705,13 +705,11 @@ function MyTaskCreateModal({
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-          <button
-            className="btn btn-primary btn-md"
+          <Button variant="primary" size="md"
             disabled={saving || !title.trim()}
-            onClick={submit}
-          >
+            onClick={submit}>
             {saving ? 'Creating…' : 'Create'}
-          </button>
+          </Button>
         </>
       }
     >

@@ -324,9 +324,10 @@ export default function OrdersView({ token, capabilities }: {
             title="No orders"
             message={canCreate ? 'Start by creating a draft order for a customer.' : 'No orders to show yet.'}
             action={canCreate ? (
-              <button className="btn btn-primary btn-sm" onClick={() => setCreateOpen(true)}>
+              <Button variant="primary" size="sm"
+            onClick={() => setCreateOpen(true)}>
                 <Plus size={14} /> New order
-              </button>
+              </Button>
             ) : undefined}
           />
         )}
@@ -529,13 +530,11 @@ function CreateOrderModal({
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-          <button
-            className="btn btn-primary btn-md"
+          <Button variant="primary" size="md"
             disabled={busy || !customerId || !description.trim()}
-            onClick={submit}
-          >
+            onClick={submit}>
             {busy ? 'Creating…' : 'Create draft'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -672,19 +671,22 @@ function OrderDetailModal({
           canEdit && order ? (
             <>
               {canFinalCancel && (
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => action('cancel')}>
+                <Button variant="ghost" size="sm"
+            disabled={busy} onClick={() => action('cancel')}>
                   <CloseIcon size={13} /> Cancel order
-                </button>
+                </Button>
               )}
               {status === 'DRAFT' && (
-                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => action('submit')}>
+                <Button variant="primary" size="sm"
+            disabled={busy} onClick={() => action('submit')}>
                   <ArrowRightIcon size={13} /> Submit
-                </button>
+                </Button>
               )}
               {advLbl && (
-                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => action('advance')}>
+                <Button variant="primary" size="sm"
+            disabled={busy} onClick={() => action('advance')}>
                   <CheckIcon size={13} /> {advLbl}
-                </button>
+                </Button>
               )}
             </>
           ) : null
@@ -802,23 +804,27 @@ function Stage8Modal({
       size="md"
       footer={
         <>
-          <button className="btn btn-ghost btn-sm" disabled={loading || busy} onClick={runCheck}>
+          <Button variant="ghost" size="sm"
+            disabled={loading || busy} onClick={runCheck}>
             Re-run check
-          </button>
+          </Button>
           {canEdit && (
-            <button className="btn btn-secondary btn-sm" disabled={loading || busy || denied || unavailable} onClick={doApply}>
+            <Button variant="secondary" size="sm"
+            disabled={loading || busy || denied || unavailable} onClick={doApply}>
               Apply verdict
-            </button>
+            </Button>
           )}
           {canEdit && depositShortfall && (
-            <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => setDepositOpen(true)}>
+            <Button variant="secondary" size="sm"
+            disabled={busy} onClick={() => setDepositOpen(true)}>
               Collect deposit
-            </button>
+            </Button>
           )}
           {canEdit && canRelease && (
-            <button className="btn btn-primary btn-sm" disabled={busy} onClick={doRelease}>
+            <Button variant="primary" size="sm"
+            disabled={busy} onClick={doRelease}>
               <ArrowRightIcon size={13} /> Release to Provisioning
-            </button>
+            </Button>
           )}
         </>
       }
@@ -969,13 +975,11 @@ function CollectDepositModal({
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
-          <button
-            className="btn btn-primary btn-md"
+          <Button variant="primary" size="md"
             disabled={busy || !isFinite(parseFloat(amount)) || parseFloat(amount) <= 0}
-            onClick={submit}
-          >
+            onClick={submit}>
             {busy ? 'Collecting…' : 'Collect'}
-          </button>
+          </Button>
         </>
       }
     >

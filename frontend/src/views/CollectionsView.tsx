@@ -352,15 +352,13 @@ function CasesTab({
         </div>
         <span style={{ flex: 1 }} />
         {isAdmin && (
-          <button
-            className="btn btn-primary btn-sm"
+          <Button variant="primary" size="sm"
             onClick={runSweep}
             disabled={sweeping}
-            title={t('collections.sweep.tip', 'Process all due dunning cases now')}
-          >
+            title={t('collections.sweep.tip', 'Process all due dunning cases now')}>
             <RefreshCw size={14} />
             {sweeping ? t('collections.sweep.running', 'Running…') : t('collections.sweep.btn', 'Run Sweep')}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -474,21 +472,19 @@ function CasesTab({
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                           {isAdmin && c.status !== 'closed' && c.status !== 'cured' && (
                             <>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => advanceCase(c)}
+                              <Button variant="ghost" size="sm"
+            onClick={() => advanceCase(c)}
                                 disabled={!!busy[c.id]}
                                 title={t('collections.case.advanceTip', 'Advance this case to the next step')}
                               >
                                 {t('collections.case.advance', 'Advance')}
-                              </button>
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => closeCase(c)}
+                              </Button>
+                              <Button variant="ghost" size="sm"
+            onClick={() => closeCase(c)}
                                 disabled={!!busy[c.id]}
                               >
                                 {t('collections.case.close', 'Close')}
-                              </button>
+                              </Button>
                             </>
                           )}
                         </div>
@@ -709,9 +705,10 @@ function PoliciesTab({
           {policies.length} {policies.length === 1 ? t('collections.policy.one', 'policy') : t('collections.policy.many', 'policies')}
         </div>
         <span style={{ flex: 1 }} />
-        <button className="btn btn-primary btn-sm" onClick={openCreate} disabled={!!draft && !draft.id}>
+        <Button variant="primary" size="sm"
+            onClick={openCreate} disabled={!!draft && !draft.id}>
           <Plus size={14} /> {t('collections.policy.new', 'New Policy')}
-        </button>
+        </Button>
       </div>
 
       {policies.length === 0 && !draft && (
@@ -720,9 +717,10 @@ function PoliciesTab({
           title={t('collections.policy.empty.title', 'No policies configured')}
           message={t('collections.policy.empty.msg', 'No policies configured. Create one to start the dunning sequence.')}
           action={
-            <button className="btn btn-primary btn-md" onClick={openCreate}>
+            <Button variant="primary" size="md"
+            onClick={openCreate}>
               <Plus size={14} /> {t('collections.policy.new', 'New Policy')}
-            </button>
+            </Button>
           }
         />
       )}
@@ -882,9 +880,8 @@ function PoliciesTab({
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
               {draft.id && (
-                <button
-                  className="btn btn-danger btn-md"
-                  onClick={() => {
+                <Button variant="danger" size="md"
+            onClick={() => {
                     const p = policies.find((x) => x.id === draft.id)
                     if (p) void removePolicy(p)
                   }}
@@ -892,18 +889,17 @@ function PoliciesTab({
                   style={{ marginRight: 'auto' }}
                 >
                   {deletingId === draft.id ? t('common.deleting', 'Deleting…') : t('common.delete', 'Delete')}
-                </button>
+                </Button>
               )}
-              <button className="btn btn-ghost btn-md" onClick={closeDraft} disabled={saving}>
+              <Button variant="ghost" size="md"
+            onClick={closeDraft} disabled={saving}>
                 {t('common.cancel', 'Cancel')}
-              </button>
-              <button
-                className="btn btn-primary btn-md"
-                onClick={save}
-                disabled={saving || (!draft.id && !draft.name.trim())}
-              >
+              </Button>
+              <Button variant="primary" size="md"
+            onClick={save}
+                disabled={saving || (!draft.id && !draft.name.trim())}>
                 {saving ? t('common.saving', 'Saving…') : draft.id ? t('common.save', 'Save') : t('common.create', 'Create')}
-              </button>
+              </Button>
             </div>
           </div>
         )}

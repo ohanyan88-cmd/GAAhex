@@ -24,7 +24,7 @@ import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { PageShell, type KPISpec } from '../page-shell'
-import { StatusPill, Pagination } from '../primitives'
+import { Button, Pagination, StatusPill } from '../primitives'
 
 interface TariffPlan {
   id: string
@@ -464,9 +464,10 @@ export default function TariffPlansView({
             title="No tariff plans yet"
             message="Tariff plans define base recurring price, included units, overage and tiered rates."
             action={canWrite ? (
-              <button className="btn btn-primary btn-sm" onClick={openCreate}>
+              <Button variant="primary" size="sm"
+            onClick={openCreate}>
                 <Plus size={14} /> Create your first tariff plan
-              </button>
+              </Button>
             ) : undefined}
           />
         )}
@@ -533,14 +534,16 @@ export default function TariffPlansView({
                       <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                         <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                           {canWrite && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => openEdit(p)}>
+                            <Button variant="ghost" size="sm"
+            onClick={() => openEdit(p)}>
                               Edit
-                            </button>
+                            </Button>
                           )}
                           {canWrite && p.active && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => retire(p)}>
+                            <Button variant="ghost" size="sm"
+            onClick={() => retire(p)}>
                               Retire
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </td>

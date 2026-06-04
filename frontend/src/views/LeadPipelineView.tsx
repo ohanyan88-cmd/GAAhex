@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
 import { createRecord, transitionRecord } from '../lib/api'
@@ -229,12 +230,14 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
           })}
           <div className="rec-form-actions">
             <span className="spacer" />
-            <button className="btn btn-ghost btn-sm" type="button" onClick={() => setShowNew(false)}>
+            <Button variant="ghost" size="sm"
+            type="button" onClick={() => setShowNew(false)}>
               <CloseIcon size={14} />{t('common.cancel', 'Cancel')}
-            </button>
-            <button className="btn btn-primary btn-sm" type="submit" disabled={saving || !canSubmit}>
+            </Button>
+            <Button variant="primary" size="sm"
+            type="submit" disabled={saving || !canSubmit}>
               {saving ? t('common.saving', 'Saving…') : t('common.add', 'Add')}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -245,9 +248,10 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
           title={t('leads.emptyTitle', 'No leads yet')}
           message={t('leads.empty', 'Create the first one to start the pipeline.')}
           action={canCreate ? (
-            <button className="btn btn-primary btn-md" onClick={() => setShowNew(true)}>
+            <Button variant="primary" size="md"
+            onClick={() => setShowNew(true)}>
               <PlusIcon size={13} aria-hidden /> {t('leads.new', 'New lead')}
-            </button>
+            </Button>
           ) : undefined}
         />
       )}
@@ -298,14 +302,16 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                             <SparkleIcon size={12} />
                           </button>
                           {canEdit && nextFrom(lead.status).map((to) => (
-                            <button key={to} className="btn btn-ghost btn-sm" onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 11 }}>
+                            <Button variant="ghost" size="sm"
+            key={to}  onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 11 }}>
                               <ArrowRightIcon size={11} />{labelOf(to)}
-                            </button>
+                            </Button>
                           ))}
                           {canEdit && !convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
-                            <button className="btn btn-primary btn-sm" onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 11 }}>
+                            <Button variant="primary" size="sm"
+            onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 11 }}>
                               <UsersIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert')}
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>

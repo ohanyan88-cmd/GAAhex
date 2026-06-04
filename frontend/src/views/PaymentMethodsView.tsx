@@ -238,9 +238,10 @@ export default function PaymentMethodsView({
           title="No payment methods vaulted yet"
           message="Vault a customer's card to start billing it via the gateway."
           action={canWrite ? (
-            <button className="btn btn-primary btn-md" onClick={() => setShowNew(true)}>
+            <Button variant="primary" size="md"
+            onClick={() => setShowNew(true)}>
               <PlusIcon size={14} /> Vault first card
-            </button>
+            </Button>
           ) : undefined}
         />
       )}
@@ -433,13 +434,11 @@ function VaultModal({
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
-          <button
-            className="btn btn-primary btn-md"
+          <Button variant="primary" size="md"
             onClick={submit}
-            disabled={!valid || busy}
-          >
+            disabled={!valid || busy}>
             {busy ? 'Vaulting…' : 'Vault card'}
-          </button>
+          </Button>
         </>
       }
     >

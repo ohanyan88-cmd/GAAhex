@@ -882,21 +882,17 @@ function FindingsTab(props: {
             {' '}· {lastScan.findings_count} finding{lastScan.findings_count === 1 ? '' : 's'}
           </span>
         )}
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={onRetry}
-          title="Reload findings"
-        >
+        <Button variant="ghost" size="sm"
+            onClick={onRetry}
+          title="Reload findings">
           <RefreshCw size={13} /> Refresh
-        </button>
+        </Button>
         {canAdmin && (
-          <button
-            className="btn btn-primary btn-sm"
+          <Button variant="primary" size="sm"
             onClick={onRunScan}
-            title="Start a new scan run"
-          >
+            title="Start a new scan run">
             <Play size={13} /> Run Scan
-          </button>
+          </Button>
         )}
       </div>
 
@@ -946,9 +942,10 @@ function FindingsTab(props: {
             ? `Last scan ${timeAgo(lastScan.started_at) || 'just now'}.`
             : 'Run a scan to detect revenue leakage.'}
           action={canAdmin ? (
-            <button className="btn btn-primary btn-sm" onClick={onRunScan}>
+            <Button variant="primary" size="sm"
+            onClick={onRunScan}>
               <Play size={13} /> Run Scan
-            </button>
+            </Button>
           ) : undefined}
         />
       )}

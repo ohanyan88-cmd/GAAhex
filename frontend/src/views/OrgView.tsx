@@ -1708,9 +1708,10 @@ function AddNodeModal({ token, parent, onClose, onDone }: {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
           <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
-          <button type="submit" className="btn btn-primary btn-md" disabled={busy || !type.trim() || !name.trim()}>
+          <Button variant="primary" size="md"
+            type="submit"  disabled={busy || !type.trim() || !name.trim()}>
             {busy ? 'Creating…' : 'Create'}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
@@ -1756,9 +1757,10 @@ function RenameNodeModal({ token, node, onClose, onDone }: {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
           <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
-          <button type="submit" className="btn btn-primary btn-md" disabled={busy || !name.trim() || name.trim() === node.name}>
+          <Button variant="primary" size="md"
+            type="submit"  disabled={busy || !name.trim() || name.trim() === node.name}>
             {busy ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
@@ -1866,9 +1868,10 @@ function MoveNodeModal({ token, node, nodes, onClose, onDone }: {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
           <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
-          <button type="button" className="btn btn-primary btn-md" onClick={doMove} disabled={busy || target === null}>
+          <Button variant="primary" size="md"
+            type="button"  onClick={doMove} disabled={busy || target === null}>
             {busy ? 'Moving…' : 'Move here'}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -1909,9 +1912,10 @@ function DeleteNodeModal({ token, node, onClose, onDone }: {
         {err && <p className="err" role="alert">{err}</p>}
         <div className="org-edit-foot">
           <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
-          <button type="button" className="btn btn-danger btn-md" onClick={doDelete} disabled={busy}>
+          <Button variant="danger" size="md"
+            type="button"  onClick={doDelete} disabled={busy}>
             {busy ? 'Deleting…' : 'Delete'}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -2020,9 +2024,10 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
                 {editing && (
                   <>
                     {' '}
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditState({ kind: 'add', parent: null })}>
+                    <Button variant="ghost" size="sm"
+            type="button"  onClick={() => setEditState({ kind: 'add', parent: null })}>
                       <PlusIcon size={14} /> Add the first node
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
