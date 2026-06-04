@@ -204,9 +204,10 @@ export default function ViewsPane({ token }: { token: string }) {
         </div>
         <span className="spacer" />
         {mode === 'idle' && selectedEntity && (
-          <button className="btn btn-primary btn-sm" onClick={openCreate}>
+          <Button variant="primary" size="sm"
+            onClick={openCreate}>
             <PlusIcon size={13} /> New view
-          </button>
+          </Button>
         )}
       </div>
 
@@ -286,20 +287,18 @@ export default function ViewsPane({ token }: { token: string }) {
                             <div className="row-actions">
                               {!v.shared && (
                                 <>
-                                  <button
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label="Edit view"
+                                  <Button variant="ghost" size="sm"
+            aria-label="Edit view"
                                     onClick={() => openEdit(v)}
                                   >
                                     <EditIcon size={13} />
-                                  </button>
-                                  <button
-                                    className="btn btn-ghost btn-sm"
-                                    aria-label="Delete view"
+                                  </Button>
+                                  <Button variant="ghost" size="sm"
+            aria-label="Delete view"
                                     onClick={() => deleteView(v)}
                                   >
                                     <TrashIcon size={13} />
-                                  </button>
+                                  </Button>
                                 </>
                               )}
                             </div>
@@ -322,9 +321,10 @@ export default function ViewsPane({ token }: { token: string }) {
             <EditIcon size={15} className="section-icon" />
             {mode === 'create' ? 'New view' : 'Edit view'}
             <span className="spacer" />
-            <button className="btn btn-ghost btn-sm" onClick={() => setMode('idle')}>
+            <Button variant="ghost" size="sm"
+            onClick={() => setMode('idle')}>
               <CloseIcon size={13} /> Cancel
-            </button>
+            </Button>
           </div>
 
           {saveErr && <ErrorBanner message={saveErr} />}

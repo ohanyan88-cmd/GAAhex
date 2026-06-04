@@ -201,9 +201,10 @@ function EditFieldRow({
             type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
             </Button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
+            <Button variant="ghost" size="sm"
+            type="button"  onClick={onDone} disabled={saving}>
               <CloseIcon size={13} />
-            </button>
+            </Button>
           </div>
         </td>
       </tr>
@@ -337,13 +338,13 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
               <div className="section-head">
                 <EditIcon size={15} className="section-icon" /> Fields
                 <span className="spacer" />
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
+                <Button variant="primary" size="sm"
+            type="button"
+                  
                   onClick={() => { setShowAdd((v) => !v); setEditingKey(null) }}
                 >
                   <PlusIcon size={13} /> Add field
-                </button>
+                </Button>
               </div>
 
               {deleteErr && <ErrorBanner message={deleteErr} />}
@@ -395,23 +396,23 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
                                 </td>
                                 <td>
                                   <div className="row-actions">
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
+                                    <Button variant="ghost" size="sm"
+            type="button"
+                                      
                                       aria-label={`Edit field ${f.key}`}
                                       onClick={() => { setEditingKey(f.key); setShowAdd(false) }}
                                     >
                                       <EditIcon size={13} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
+                                    </Button>
+                                    <Button variant="ghost" size="sm"
+            type="button"
+                                      
                                       aria-label={`Delete field ${f.key}`}
                                       disabled={deletingKey === f.key}
                                       onClick={() => deleteField(f.key)}
                                     >
                                       <TrashIcon size={13} />
-                                    </button>
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>

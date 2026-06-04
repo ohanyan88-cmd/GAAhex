@@ -3,6 +3,7 @@
 // Wired to GET/POST/PATCH/DELETE /api/feature-flags.
 // Every toggle fires a PATCH which the backend audits to the Event log.
 
+import { Button } from '../primitives'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, ToggleLeft, Trash2 } from 'lucide-react'
 import { BASE } from '../lib/billing'
@@ -112,9 +113,10 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
       hint="toggle features per tenant without a deploy"
       right={
         !adding ? (
-          <button className="btn btn-primary btn-sm" type="button" onClick={() => setAdding(true)}>
+          <Button variant="primary" size="sm"
+            type="button" onClick={() => setAdding(true)}>
             <Plus size={13} />New flag
-          </button>
+          </Button>
         ) : undefined
       }
     />
@@ -189,16 +191,16 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
             />
           </label>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn btn-primary btn-sm" type="submit" disabled={saving}>
+            <Button variant="primary" size="sm"
+            type="submit" disabled={saving}>
               {saving ? 'Saving…' : 'Create'}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              type="button"
+            </Button>
+            <Button variant="ghost" size="sm"
+            type="button"
               onClick={() => { setAdding(false); setNewKey(''); setNewLabel(''); setNewScope('') }}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

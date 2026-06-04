@@ -316,12 +316,11 @@ export default function UsersPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => { setShowCreate(true); setCreateErr('') }}
+        <Button variant="primary" size="sm"
+            onClick={() => { setShowCreate(true); setCreateErr('') }}
         >
           <PlusIcon size={13} /> Add user
-        </button>
+        </Button>
       </div>
 
       {/* Create form */}
@@ -395,13 +394,13 @@ export default function UsersPane({ token }: { token: string }) {
             type="submit"  disabled={creating}>
               <CheckIcon size={13} /> {creating ? 'Creating…' : 'Create user'}
             </Button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button variant="ghost" size="sm"
+            type="button"
+              
               onClick={() => { setShowCreate(false); setCreateErr('') }}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -489,13 +488,12 @@ export default function UsersPane({ token }: { token: string }) {
                   </td>
                   <td className="actions-col">
                     <div className="row-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        title="View / edit"
+                      <Button variant="ghost" size="sm"
+            title="View / edit"
                         onClick={() => selectUser(u)}
                       >
                         <EditIcon size={13} />
-                      </button>
+                      </Button>
                       {deleteId === u.id ? (
                         <>
                           <button
@@ -506,22 +504,20 @@ export default function UsersPane({ token }: { token: string }) {
                           >
                             {deleting ? 'Deactivating…' : 'Confirm'}
                           </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setDeleteId(null)}
+                          <Button variant="ghost" size="sm"
+            onClick={() => setDeleteId(null)}
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </>
                       ) : (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          title="Deactivate user"
+                        <Button variant="ghost" size="sm"
+            title="Deactivate user"
                           onClick={() => setDeleteId(u.id)}
                           disabled={u.status === 'inactive'}
                         >
                           <TrashIcon size={13} />
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -547,13 +543,12 @@ export default function UsersPane({ token }: { token: string }) {
             <UserIcon size={14} className="section-icon" />
             User detail — <strong style={{ marginLeft: 4 }}>{selected.name}</strong>
             <span className="spacer" />
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setSelected(null)}
+            <Button variant="ghost" size="sm"
+            onClick={() => setSelected(null)}
               title="Close"
             >
               <CloseIcon size={13} />
-            </button>
+            </Button>
           </div>
 
           {/* Identity card */}
@@ -635,19 +630,19 @@ export default function UsersPane({ token }: { token: string }) {
             onClick={saveEdit} disabled={savingEdit}>
                   <CheckIcon size={13} /> {savingEdit ? 'Saving…' : 'Save'}
                 </Button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => { setEditing(false); setEditErr('') }}
+                <Button variant="ghost" size="sm"
+            onClick={() => { setEditing(false); setEditErr('') }}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
             <div className="row" style={{ marginBottom: 16 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(true)}>
+              <Button variant="ghost" size="sm"
+            onClick={() => setEditing(true)}>
                 <EditIcon size={13} /> Edit user
-              </button>
+              </Button>
               {editMsg && <span style={{ marginLeft: 8, color: 'var(--gx-success)', fontSize: 12 }}>{editMsg}</span>}
             </div>
           )}
@@ -658,9 +653,8 @@ export default function UsersPane({ token }: { token: string }) {
             Roles
             <span className="spacer" />
             {!showAddRole && (
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
+              <Button variant="primary" size="sm"
+            onClick={() => {
                   setShowAddRole(true); setAddRoleErr('')
                   setAddRoleId(roles[0]?.id ?? '')
                   setAddNodeId(selected.primary_node_id ?? nodes[0]?.id ?? '')
@@ -668,7 +662,7 @@ export default function UsersPane({ token }: { token: string }) {
                 disabled={roles.length === 0 || nodes.length === 0}
               >
                 <PlusIcon size={13} /> Add role
-              </button>
+              </Button>
             )}
           </div>
 
@@ -723,13 +717,13 @@ export default function UsersPane({ token }: { token: string }) {
             type="submit"  disabled={addingRole}>
                   <CheckIcon size={13} /> {addingRole ? 'Adding…' : 'Add role'}
                 </Button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
+                <Button variant="ghost" size="sm"
+            type="button"
+                  
                   onClick={() => { setShowAddRole(false); setAddRoleErr('') }}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -773,21 +767,19 @@ export default function UsersPane({ token }: { token: string }) {
                       >
                         {removingAssign ? 'Removing…' : 'Confirm'}
                       </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setRemoveAssignId(null)}
+                      <Button variant="ghost" size="sm"
+            onClick={() => setRemoveAssignId(null)}
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </>
                   ) : (
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setRemoveAssignId(a.id)}
+                    <Button variant="ghost" size="sm"
+            onClick={() => setRemoveAssignId(a.id)}
                       title="Remove role assignment"
                     >
                       <TrashIcon size={13} />
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}

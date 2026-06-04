@@ -219,9 +219,10 @@ export default function DashboardsPane({ token }: { token: string }) {
         </div>
         <span className="spacer" />
         {mode === 'idle' && (
-          <button className="btn btn-primary btn-sm" onClick={openCreate}>
+          <Button variant="primary" size="sm"
+            onClick={openCreate}>
             <PlusIcon size={13} /> New dashboard
-          </button>
+          </Button>
         )}
       </div>
 
@@ -260,12 +261,14 @@ export default function DashboardsPane({ token }: { token: string }) {
                 <ChartIcon size={15} className="section-icon" />
                 {detail.label}
                 <span className="spacer" />
-                <button className="btn btn-ghost btn-sm" onClick={openEdit}>
+                <Button variant="ghost" size="sm"
+            onClick={openEdit}>
                   <EditIcon size={13} /> Edit
-                </button>
-                <button className="btn btn-ghost btn-sm" onClick={deleteBoard} style={{ marginLeft: 4 }}>
+                </Button>
+                <Button variant="ghost" size="sm"
+            onClick={deleteBoard} style={{ marginLeft: 4 }}>
                   <TrashIcon size={13} /> Delete
-                </button>
+                </Button>
               </div>
               {detail.description && <p className="hint" style={{ marginBottom: 12 }}>{detail.description}</p>}
               <div className="grid-wrap">
@@ -312,9 +315,10 @@ export default function DashboardsPane({ token }: { token: string }) {
             <EditIcon size={15} className="section-icon" />
             {mode === 'create' ? 'New dashboard' : `Edit: ${detail?.label}`}
             <span className="spacer" />
-            <button className="btn btn-ghost btn-sm" onClick={() => setMode('idle')}>
+            <Button variant="ghost" size="sm"
+            onClick={() => setMode('idle')}>
               <CloseIcon size={13} /> Cancel
-            </button>
+            </Button>
           </div>
 
           {saveErr && <ErrorBanner message={saveErr} />}
@@ -345,13 +349,13 @@ export default function DashboardsPane({ token }: { token: string }) {
           <div className="section-head">
             <ChartIcon size={15} className="section-icon" /> Widgets
             <span className="spacer" />
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button variant="ghost" size="sm"
+            type="button"
+              
               onClick={() => setFormWidgets([...formWidgets, emptyWidget()])}
             >
               <PlusIcon size={13} /> Add widget
-            </button>
+            </Button>
           </div>
 
           <div className="grid-wrap">
@@ -459,14 +463,14 @@ export default function DashboardsPane({ token }: { token: string }) {
                     </td>
                     <td>
                       <div className="row-actions">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
+                        <Button variant="ghost" size="sm"
+            type="button"
+                          
                           aria-label="Remove widget"
                           onClick={() => setFormWidgets(formWidgets.filter((_, j) => j !== i))}
                         >
                           <CloseIcon size={13} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>

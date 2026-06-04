@@ -20,7 +20,7 @@
 // value. Light + dark via --gx-* tokens; zero raw hex. No emoji.
 
 import { useCallback, useEffect, useState } from 'react'
-import { StatusPill, KPITile } from '../primitives'
+import { Button, KPITile, StatusPill } from '../primitives'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { timeAgo } from '../lib/time'
 import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1 — canonical modal chrome
@@ -267,12 +267,14 @@ function ConfirmDeleteDialog({
       size="sm"
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={deleting}>
+          <Button variant="ghost" size="md"
+            type="button"  onClick={onCancel} disabled={deleting}>
             Cancel
-          </button>
-          <button type="button" className="btn btn-danger btn-md" onClick={onConfirm} disabled={deleting}>
+          </Button>
+          <Button variant="danger" size="md"
+            type="button"  onClick={onConfirm} disabled={deleting}>
             <TrashIcon size={13} /> {deleting ? 'Deleting…' : 'Delete webhook'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -505,13 +507,13 @@ function DetailDrawer({
 
           <div className="row" style={{ marginTop: 12, gap: 8 }}>
             <span className="spacer" />
-            <button
-              type="button" className="btn btn-primary btn-md"
+            <Button variant="primary" size="md"
+            type="button" 
               onClick={() => saveAll({ rotate: false })}
               disabled={saving}
             >
               <CheckIcon size={13} /> {saving ? 'Saving…' : 'Save changes'}
-            </button>
+            </Button>
           </div>
 
           <div className="section-head" style={{ marginTop: 22 }}>
@@ -545,13 +547,13 @@ function DetailDrawer({
             </label>
             <div className="row" style={{ marginTop: 10, gap: 8 }}>
               <span className="spacer" />
-              <button
-                type="button" className="btn btn-secondary btn-md"
+              <Button variant="secondary" size="md"
+            type="button" 
                 onClick={() => saveAll({ rotate: true })}
                 disabled={saving}
               >
                 <LockIcon size={13} /> {saving ? 'Rotating…' : (newSecret.trim() ? 'Rotate secret' : 'Clear secret')}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -585,12 +587,11 @@ function DetailDrawer({
               )}
             </div>
           )}
-          <button
-            type="button" className="btn btn-secondary btn-sm"
-            onClick={runTest} disabled={testing}
-          >
+          <Button variant="secondary" size="sm"
+            type="button" 
+            onClick={runTest} disabled={testing}>
             <PlayIcon size={13} /> {testing ? 'Sending…' : 'Send test event'}
-          </button>
+          </Button>
 
           <div className="section-head" style={{ marginTop: 22 }}>
             <ActivityIcon size={15} className="section-icon" /> Delivery log
@@ -658,12 +659,12 @@ function DetailDrawer({
               Hard-delete <strong>{hook.name}</strong>. Future events will no longer be delivered.
               To temporarily stop deliveries instead, uncheck <strong>Active</strong> above and Save.
             </p>
-            <button
-              type="button" className="btn btn-danger btn-sm"
+            <Button variant="danger" size="sm"
+            type="button" 
               onClick={() => setConfirmDel(true)}
             >
               <TrashIcon size={13} /> Delete webhook
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -750,12 +751,12 @@ export default function WebhooksPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-primary btn-md"
+        <Button variant="primary" size="md"
+            type="button" 
           onClick={() => setShowCreate(true)}
         >
           <PlusIcon size={13} /> New webhook
-        </button>
+        </Button>
       </div>
 
       {total > 0 && (
@@ -849,13 +850,13 @@ export default function WebhooksPane({ token }: { token: string }) {
                       : <StatusPill variant="neutral" label="disabled" size="sm" />}
                   </td>
                   <td className="actions-col">
-                    <button
-                      type="button" className="btn btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
+            type="button" 
                       onClick={(ev) => { ev.stopPropagation(); setOpenId(w.id) }}
                       aria-label={`Open ${w.name}`}
                     >
                       <EditIcon size={13} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

@@ -176,12 +176,11 @@ export default function RolesPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <button
-          className="btn btn-primary btn-sm"
-          onClick={() => { setShowCreate(true); setCreateErr('') }}
+        <Button variant="primary" size="sm"
+            onClick={() => { setShowCreate(true); setCreateErr('') }}
         >
           <PlusIcon size={13} /> New role
-        </button>
+        </Button>
       </div>
 
       {/* Create form */}
@@ -209,13 +208,13 @@ export default function RolesPane({ token }: { token: string }) {
             type="submit"  disabled={creating}>
               <CheckIcon size={13} /> {creating ? 'Creating…' : 'Create role'}
             </Button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button variant="ghost" size="sm"
+            type="button"
+              
               onClick={() => { setShowCreate(false); setCreateErr('') }}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -258,13 +257,12 @@ export default function RolesPane({ token }: { token: string }) {
                   </td>
                   <td>
                     <div className="row-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        title="Edit permissions"
+                      <Button variant="ghost" size="sm"
+            title="Edit permissions"
                         onClick={() => selectRole(role)}
                       >
                         <EditIcon size={13} />
-                      </button>
+                      </Button>
                       {deleteId === role.id ? (
                         <>
                           <button
@@ -275,21 +273,19 @@ export default function RolesPane({ token }: { token: string }) {
                           >
                             {deleting ? 'Deleting…' : 'Confirm'}
                           </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setDeleteId(null)}
+                          <Button variant="ghost" size="sm"
+            onClick={() => setDeleteId(null)}
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </>
                       ) : (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          title="Delete role"
+                        <Button variant="ghost" size="sm"
+            title="Delete role"
                           onClick={() => setDeleteId(role.id)}
                         >
                           <TrashIcon size={13} />
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -312,12 +308,11 @@ export default function RolesPane({ token }: { token: string }) {
               disabled={saving}>
               <CheckIcon size={13} /> {saving ? 'Saving…' : 'Save'}
             </Button>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setSelected(null)}
+            <Button variant="ghost" size="sm"
+            onClick={() => setSelected(null)}
             >
               <CloseIcon size={13} />
-            </button>
+            </Button>
           </div>
 
           {saveErr && <ErrorBanner message={saveErr} />}

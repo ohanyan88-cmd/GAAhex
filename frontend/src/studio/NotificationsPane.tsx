@@ -300,12 +300,14 @@ function ConfirmDeleteDialog({
       size="sm"
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={deleting}>
+          <Button variant="ghost" size="md"
+            type="button"  onClick={onCancel} disabled={deleting}>
             Cancel
-          </button>
-          <button type="button" className="btn btn-danger btn-md" onClick={onConfirm} disabled={deleting}>
+          </Button>
+          <Button variant="danger" size="md"
+            type="button"  onClick={onConfirm} disabled={deleting}>
             <TrashIcon size={13} /> {deleting ? 'Deleting…' : 'Delete def'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -337,12 +339,14 @@ function ConfirmTestSendDialog({
       size="sm"
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={sending}>
+          <Button variant="ghost" size="md"
+            type="button"  onClick={onCancel} disabled={sending}>
             Cancel
-          </button>
-          <button type="button" className="btn btn-primary btn-md" onClick={onConfirm} disabled={sending}>
+          </Button>
+          <Button variant="primary" size="md"
+            type="button"  onClick={onConfirm} disabled={sending}>
             <SendHorizontalIcon size={13} /> {sending ? 'Sending…' : 'Send test'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -626,12 +630,11 @@ function DetailDrawer({
       {metaErr && <ErrorBanner message={metaErr} />}
       {metaMsg && <div className="hint" style={{ marginTop: 8 }}>{metaMsg}</div>}
       <div className="row" style={{ marginTop: 10, gap: 8 }}>
-        <button
-          type="button" className="btn btn-primary btn-sm"
-          onClick={saveMeta} disabled={savingMeta}
-        >
+        <Button variant="primary" size="sm"
+            type="button" 
+          onClick={saveMeta} disabled={savingMeta}>
           <CheckIcon size={13} /> {savingMeta ? 'Saving…' : 'Save changes'}
-        </button>
+        </Button>
       </div>
 
       {/* preview + test-send */}
@@ -648,12 +651,11 @@ function DetailDrawer({
         />
       </label>
       <div className="row" style={{ marginTop: 10, gap: 8 }}>
-        <button
-          type="button" className="btn btn-ghost btn-sm"
-          onClick={runPreview} disabled={previewing}
-        >
+        <Button variant="ghost" size="sm"
+            type="button" 
+          onClick={runPreview} disabled={previewing}>
           <PlayIcon size={13} /> {previewing ? 'Rendering…' : 'Preview'}
-        </button>
+        </Button>
         <Button variant="gold" size="sm"
             type="button" 
           onClick={() => setConfirmSend(true)} disabled={sending}
@@ -714,12 +716,12 @@ function DetailDrawer({
           <strong> Enabled</strong> off in Identity above and Save — future emits become no-ops
           while history is preserved.
         </p>
-        <button
-          type="button" className="btn btn-danger btn-sm"
+        <Button variant="danger" size="sm"
+            type="button" 
           onClick={() => setConfirmDel(true)}
         >
           <TrashIcon size={13} /> Delete def
-        </button>
+        </Button>
       </div>
 
       {confirmSend && (
@@ -818,12 +820,12 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
           <p className="hint" style={{ margin: 0 }}>{headingHint}</p>
         </div>
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-primary btn-md"
+        <Button variant="primary" size="md"
+            type="button" 
           onClick={() => setShowCreate(true)}
         >
           <PlusIcon size={13} /> {createLabel}
-        </button>
+        </Button>
       </div>
 
       <div style={{ marginBottom: 12, maxWidth: 320 }}>
@@ -891,13 +893,13 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
                     ) : <span className="hint">—</span>}
                   </td>
                   <td className="actions-col">
-                    <button
-                      type="button" className="btn btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
+            type="button" 
                       onClick={(ev) => { ev.stopPropagation(); setOpenKey(d.key) }}
                       aria-label={`Open ${d.label}`}
                     >
                       <EditIcon size={13} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useState } from 'react'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -82,9 +83,10 @@ export default function SecurityModal({
         {err && <p className="err" role="alert">{err}</p>}
 
         <div className="profile-modal-foot">
-          <button type="submit" className="btn btn-primary btn-md" disabled={busy || !current || !next}>
+          <Button variant="primary" size="md"
+            type="submit"  disabled={busy || !current || !next}>
             {busy ? t('common.saving', 'Saving…') : t('security.updatePw', 'Update password')}
-          </button>
+          </Button>
         </div>
 
         <div className="menu-sep" style={{ margin: '14px 0' }} />

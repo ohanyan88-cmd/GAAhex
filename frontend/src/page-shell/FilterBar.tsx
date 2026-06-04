@@ -9,7 +9,7 @@
 // reveal the node when clicked.
 import { useEffect, useRef, useState } from 'react'
 import { Filter, ChevronDown, Bookmark } from 'lucide-react'
-import { Input } from '../primitives'
+import { Button, Input } from '../primitives'
 import type { FiltersSpec } from './types'
 
 interface FilterBarProps {
@@ -76,15 +76,15 @@ export function FilterBar({ filters }: FilterBarProps) {
       <div className="ps-filter-tail">
         {filters.advanced && (
           <div className="ps-filter-advanced-wrap" ref={advRef}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
+            <Button variant="secondary" size="sm"
+            type="button"
+              
               onClick={() => setAdvOpen((v) => !v)}
               aria-expanded={advOpen}
             >
               <Filter size={12} />
               Advanced
-            </button>
+            </Button>
             {advOpen && (
               <div className="ps-filter-advanced-pop" role="dialog" aria-label="Advanced filters">
                 {filters.advanced}
@@ -94,16 +94,16 @@ export function FilterBar({ filters }: FilterBarProps) {
         )}
         {filters.savedViews && filters.savedViews.length > 0 && (
           <div className="ps-saved-views-wrap" ref={savedRef}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
+            <Button variant="secondary" size="sm"
+            type="button"
+              
               onClick={() => setSavedOpen((v) => !v)}
               aria-expanded={savedOpen}
             >
               <Bookmark size={12} />
               Saved views
               <ChevronDown size={12} />
-            </button>
+            </Button>
             {savedOpen && (
               <div className="ps-saved-views-pop" role="menu">
                 {filters.savedViews.map((v) => (

@@ -3,6 +3,7 @@
 // Bound to GET/PUT /api/tenant/settings/theme. Names match the backend allow-list:
 // accent ∈ {Azure, Cobalt, Gold, Emerald, Violet, Teal}.
 
+import { Button } from '../primitives'
 import React, { useState, useEffect, useRef } from 'react'
 import { Check, Globe, Plus, Settings } from 'lucide-react'
 import { registerSnapshot, unregisterSnapshot } from './publishRegistry'
@@ -346,23 +347,19 @@ export function AppearancePane({ token }: { token?: string } = {}) {
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20, alignItems: 'center' }}>
-        <button
-          className="btn btn-primary btn-md"
-          type="button"
+        <Button variant="primary" size="md"
+            type="button"
           style={{ background: accent.val }}
           onClick={save}
-          disabled={!token || !dirty || saving}
-        >
+          disabled={!token || !dirty || saving}>
           <Check size={14} />{saving ? 'Saving…' : 'Save appearance'}
-        </button>
-        <button
-          className="btn btn-ghost btn-md"
-          type="button"
+        </Button>
+        <Button variant="ghost" size="md"
+            type="button"
           onClick={reset}
-          disabled={!dirty || saving}
-        >
+          disabled={!dirty || saving}>
           Reset
-        </button>
+        </Button>
         {dirty && (
           <span className="hint" style={{ fontSize: 12, color: 'var(--gx-warning)' }}>Unsaved changes</span>
         )}

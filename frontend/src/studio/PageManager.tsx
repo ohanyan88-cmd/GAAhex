@@ -2,6 +2,7 @@
 // Extracted from StudioRichPanes.tsx. Behavior unchanged.
 // All panes start in EMPTY / MINIMAL state — no hardcoded mock content.
 
+import { Button } from '../primitives'
 import { useState } from 'react'
 import { Copy, File, FilePen, Files, Plus, Trash2 } from 'lucide-react'
 import { Sec } from './_shared'
@@ -47,9 +48,10 @@ export function PageManager() {
         title="Page Manager"
         hint="create, duplicate, rename, delete pages"
         right={
-          <button className="btn btn-primary btn-sm" type="button" onClick={add}>
+          <Button variant="primary" size="sm"
+            type="button" onClick={add}>
             <Plus size={13} />New page
-          </button>
+          </Button>
         }
       />
       <div className="card" style={{ overflow: 'hidden' }}>

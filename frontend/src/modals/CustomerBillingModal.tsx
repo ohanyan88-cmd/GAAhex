@@ -115,9 +115,10 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
         <>
           <div className="bill-section-head">
             <h3>Account</h3>
-            <button className="btn btn-ghost btn-sm" onClick={async () => { const e = await openDocument(token, `/api/customers/${customerId}/statement`); if (e) toast.error(e) }}>
+            <Button variant="ghost" size="sm"
+            onClick={async () => { const e = await openDocument(token, `/api/customers/${customerId}/statement`); if (e) toast.error(e) }}>
               <PrinterIcon size={14} /> Statement
-            </button>
+            </Button>
           </div>
 
           <h3>Accounts</h3>
@@ -169,7 +170,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
           <div className="bill-section-head" style={{ marginTop: 18 }}>
             <h3>Subscriptions</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : '+ New subscription'}</button>
+            <Button variant="ghost" size="sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : '+ New subscription'}</Button>
           </div>
 
           {creating && (
@@ -205,8 +206,8 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                       <td>{s.cycle ?? '—'}</td>
                       <td>{s.status ? <span className="pill">{s.status}</span> : '—'}</td>
                       <td className="actions-col row-actions">
-                        {(s.status ?? '').toUpperCase() !== 'CANCELLED' && <button className="btn btn-ghost btn-sm" onClick={() => generate(s.id)}>Generate invoice</button>}
-                        {unrated[s.id] ? <button className="btn btn-ghost btn-sm" onClick={() => rateUsage(s.id)}>Rate usage ({unrated[s.id]})</button> : null}
+                        {(s.status ?? '').toUpperCase() !== 'CANCELLED' && <Button variant="ghost" size="sm" onClick={() => generate(s.id)}>Generate invoice</Button>}
+                        {unrated[s.id] ? <Button variant="ghost" size="sm" onClick={() => rateUsage(s.id)}>Rate usage ({unrated[s.id]})</Button> : null}
                       </td>
                     </tr>
                   ))}

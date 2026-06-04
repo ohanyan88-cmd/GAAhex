@@ -142,27 +142,25 @@ function ScheduleItem({
         <StatusPill variant={pill.variant} label={pill.label} size="sm" />
       </td>
       <td className="actions-col" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
+        <Button variant="ghost" size="sm"
+            type="button"
+          
           disabled={busy}
           onClick={togglePause}
           aria-label={isPaused ? t('sched.resume', 'Resume') : t('sched.pause', 'Pause')}
           title={isPaused ? t('sched.resume', 'Resume') : t('sched.pause', 'Pause')}
-          style={{ marginRight: 6 }}
-        >
+          style={{ marginRight: 6 }}>
           {isPaused ? <PlayIcon size={13} /> : <PauseIcon size={13} />}
-        </button>
-        <button
-          type="button"
-          className="btn btn-danger btn-sm"
+        </Button>
+        <Button variant="danger" size="sm"
+            type="button"
+          
           disabled={busy}
           onClick={remove}
           aria-label={t('sched.delete', 'Delete')}
-          title={t('sched.delete', 'Delete')}
-        >
+          title={t('sched.delete', 'Delete')}>
           <TrashIcon size={13} />
-        </button>
+        </Button>
       </td>
     </tr>
   )
@@ -273,15 +271,14 @@ function ScheduleForm({
           disabled={saving || !reportId}>
           {saving ? t('common.saving', 'Saving…') : t('sched.save', 'Save schedule')}
         </Button>
-        <button
-          type="button"
-          className="btn btn-ghost btn-md"
+        <Button variant="ghost" size="md"
+            type="button"
+          
           onClick={onCancel}
-          aria-label={t('common.close', 'Close')}
-        >
+          aria-label={t('common.close', 'Close')}>
           <CloseIcon size={14} />
           {t('common.cancel', 'Cancel')}
-        </button>
+        </Button>
       </div>
     </form>
   )
@@ -321,13 +318,13 @@ export default function ReportSchedulePanel({
         <h3 style={{ margin: 0 }}>{t('sched.title', 'Schedules')}</h3>
         {!showForm && reports.length > 0 && (
           <div className="view-head-actions">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
+            <Button variant="primary" size="sm"
+            type="button"
+              
               onClick={() => setShowForm(true)}
             >
               {t('sched.new', '+ Schedule')}
-            </button>
+            </Button>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 // GAAhex Studio — Templates pane.
 // Extracted from StudioRichPanes.tsx. Behavior unchanged.
 
+import { Button } from '../primitives'
 import React from 'react'
 import {
   BarChart3,
@@ -40,9 +41,10 @@ export function Templates() {
               <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
               <div className="hint" style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
               {/* Instantiate wires to POST /api/templates/{id}/instantiate when that endpoint is built */}
-              <button className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: 10 }} type="button" disabled>
+              <Button variant="secondary" size="sm"
+            style={{ width: '100%', marginTop: 10 }} type="button" disabled>
                 <Plus size={13} />Use template
-              </button>
+              </Button>
             </div>
           </div>
         ))}

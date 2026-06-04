@@ -5,6 +5,7 @@
 //
 // Rendered only when at least one of `views`, `primaryAction`, or
 // `secondaryActions` is present. Hidden by PageShell when type === 'PLACEHOLDER'.
+import { Button } from '../primitives'
 import type { PrimaryAction, SecondaryAction, ViewSwitcher, ViewKind } from './types'
 
 interface ActionBarProps {
@@ -48,29 +49,27 @@ export function ActionBar({ views, primaryAction, secondaryActions }: ActionBarP
       {secondaryActions && secondaryActions.length > 0 && (
         <div className="ps-actions-secondaries">
           {secondaryActions.map((a, i) => (
-            <button
-              key={`${a.label}-${i}`}
+            <Button variant="secondary" size="sm"
+            key={`${a.label}-${i}`}
               type="button"
-              className="btn btn-secondary btn-sm"
+              
               onClick={a.onClick}
-              disabled={a.disabled}
-            >
+              disabled={a.disabled}>
               {a.icon}
               {a.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
       {primaryAction && (
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
+        <Button variant="primary" size="sm"
+            type="button"
+          
           onClick={primaryAction.onClick}
-          disabled={primaryAction.disabled || primaryAction.loading}
-        >
+          disabled={primaryAction.disabled || primaryAction.loading}>
           {primaryAction.icon}
           {primaryAction.label}
-        </button>
+        </Button>
       )}
     </div>
   )

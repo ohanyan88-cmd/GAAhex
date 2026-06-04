@@ -149,9 +149,10 @@ function EditStatusRow({
             type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
             </Button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
+            <Button variant="ghost" size="sm"
+            type="button"  onClick={onDone} disabled={saving}>
               <CloseIcon size={13} />
-            </button>
+            </Button>
           </div>
         </td>
       </tr>
@@ -258,14 +259,14 @@ function TransitionsEditor({
                   </td>
                   <td>
                     <div className="row-actions">
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
+                      <Button variant="ghost" size="sm"
+            type="button"
+                        
                         aria-label="Delete transition"
                         onClick={() => setRows(rows.filter((_, j) => j !== i))}
                       >
                         <TrashIcon size={13} />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -276,13 +277,13 @@ function TransitionsEditor({
       )}
 
       <div className="row" style={{ marginTop: 10, gap: 8 }}>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm"
+        <Button variant="ghost" size="sm"
+            type="button"
+          
           onClick={() => setRows([...rows, { from: null, to: '', guard: '' }])}
         >
           <PlusIcon size={13} /> Add transition
-        </button>
+        </Button>
         <span className="spacer" />
         <Button variant="gold" size="sm"
             type="button"  onClick={save} disabled={saving}>
@@ -449,13 +450,13 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                   <div className="section-head">
                     <ArrowRightIcon size={15} className="section-icon" /> Statuses
                     <span className="spacer" />
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
+                    <Button variant="primary" size="sm"
+            type="button"
+                      
                       onClick={() => setShowAddStatus((v) => !v)}
                     >
                       <PlusIcon size={13} /> Add status
-                    </button>
+                    </Button>
                   </div>
 
                   {deleteErr && <ErrorBanner message={deleteErr} />}
@@ -492,26 +493,26 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                               <tr key={st.key}>
                                 <td>
                                   <div className="row-actions">
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
+                                    <Button variant="ghost" size="sm"
+            type="button"
+                                      
                                       aria-label="Move up"
                                       disabled={i === 0 || reordering}
                                       onClick={() => moveStatus(i, i - 1)}
                                       title="Move up"
                                     >
                                       &#8593;
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
+                                    </Button>
+                                    <Button variant="ghost" size="sm"
+            type="button"
+                                      
                                       aria-label="Move down"
                                       disabled={i === statuses.length - 1 || reordering}
                                       onClick={() => moveStatus(i, i + 1)}
                                       title="Move down"
                                     >
                                       &#8595;
-                                    </button>
+                                    </Button>
                                   </div>
                                 </td>
                                 <td><code className="mono">{st.key}</code></td>
@@ -519,24 +520,24 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                                 <td>{st.is_initial ? <CheckIcon size={14} /> : <span className="hint">—</span>}</td>
                                 <td>
                                   <div className="row-actions">
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
+                                    <Button variant="ghost" size="sm"
+            type="button"
+                                      
                                       aria-label={`Edit status ${st.key}`}
                                       disabled={!!editingStatusKey}
                                       onClick={() => { setEditingStatusKey(st.key); setShowAddStatus(false) }}
                                     >
                                       <EditIcon size={13} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost btn-sm"
+                                    </Button>
+                                    <Button variant="ghost" size="sm"
+            type="button"
+                                      
                                       aria-label={`Delete status ${st.key}`}
                                       disabled={deletingKey === st.key || !!editingStatusKey}
                                       onClick={() => deleteStatus(st.key)}
                                     >
                                       <TrashIcon size={13} />
-                                    </button>
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>

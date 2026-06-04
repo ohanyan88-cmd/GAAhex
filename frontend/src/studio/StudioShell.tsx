@@ -6,6 +6,7 @@
 // any future /studio/* endpoint must depend on `current_user` and `can(grants, "config", "manage")`
 // (see backend/app/routers/auth.py `me` for the canonical check, and backend/app/access.py
 // for `load_grants` + `can`). UI hiding alone is not security.
+import { Button } from '../primitives'
 import { useEffect } from 'react'
 import { ChevronLeft, Eye, Rocket, Shield } from 'lucide-react'
 import ViewHead from '../components/ViewHead'
@@ -107,9 +108,10 @@ export default function StudioShell({
         actions={
           <>
             {onBack && (
-              <button className="btn btn-ghost btn-sm" type="button" onClick={onBack}>
+              <Button variant="ghost" size="sm"
+            type="button" onClick={onBack}>
                 <ChevronLeft size={14} />Back
-              </button>
+              </Button>
             )}
             <span className="pill pill-gold" style={{ marginRight: 2 }}>
               <Shield size={12} />SuperAdmin
@@ -117,22 +119,20 @@ export default function StudioShell({
             <span className="studio-pill draft">
               <span className="d" />Draft
             </span>
-            <button
-              className="btn btn-secondary btn-sm"
-              type="button"
+            <Button variant="secondary" size="sm"
+            type="button"
               onClick={() => onRoute({ group: 'quality', leaf: 'preview' })}
               title="Open Preview Mode"
             >
               <Eye size={14} />Preview
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              type="button"
+            </Button>
+            <Button variant="primary" size="sm"
+            type="button"
               onClick={() => onRoute({ group: 'release', leaf: 'deployment' })}
               title="Open Publish Settings"
             >
               <Rocket size={14} />Publish
-            </button>
+            </Button>
           </>
         }
       />

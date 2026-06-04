@@ -3,6 +3,7 @@
 // Wired to real entities/fields (GET /meta/entities, GET /meta/entities/{slug}).
 // "Save bindings" POSTs each complete binding row to /api/page-bindings.
 
+import { Button } from '../primitives'
 import { useState, useEffect, useCallback } from 'react'
 import { Check, Database, Plus, X } from 'lucide-react'
 import { registerSnapshot, unregisterSnapshot } from './publishRegistry'
@@ -216,22 +217,18 @@ export function DataBinding({ token }: { token?: string } = {}) {
         </div>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          className="btn btn-primary btn-sm"
-          type="button"
+        <Button variant="primary" size="sm"
+            type="button"
           onClick={add}
-          disabled={!!error || entities.length === 0}
-        >
+          disabled={!!error || entities.length === 0}>
           <Plus size={13} />Bind a component
-        </button>
-        <button
-          className="btn btn-ghost btn-sm"
-          type="button"
+        </Button>
+        <Button variant="ghost" size="sm"
+            type="button"
           onClick={saveBindings}
-          disabled={saveState === 'saving'}
-        >
+          disabled={saveState === 'saving'}>
           <Check size={13} />{saveState === 'saving' ? 'Saving…' : 'Save bindings'}
-        </button>
+        </Button>
       </div>
     </div>
   )

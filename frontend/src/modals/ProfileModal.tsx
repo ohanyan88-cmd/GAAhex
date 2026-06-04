@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useRef, useState } from 'react'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -83,14 +84,14 @@ export default function ProfileModal({
               : <span>{initial}</span>}
           </div>
           <div className="profile-avatar-actions">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
+            <Button variant="ghost" size="sm"
+            type="button"
+              
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
             >
               {uploading ? t('profile.uploading', 'Uploading…') : t('profile.upload', 'Upload picture')}
-            </button>
+            </Button>
             <div className="hint">{t('profile.avatarHint', 'PNG or JPG, up to 2 MB.')}</div>
             <input
               ref={fileRef}
@@ -121,9 +122,10 @@ export default function ProfileModal({
         </label>
 
         <div className="profile-modal-foot">
-          <button type="button" className="btn btn-primary btn-md" onClick={onSaveName} disabled={nameDraft === name}>
+          <Button variant="primary" size="md"
+            type="button"  onClick={onSaveName} disabled={nameDraft === name}>
             {t('common.save', 'Save')}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

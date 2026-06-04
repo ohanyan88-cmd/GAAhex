@@ -1,3 +1,4 @@
+import { Button } from './primitives'
 import { useEffect, useState } from 'react'
 import { login, me, getEntities, orgTree } from './lib/api'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -421,13 +422,15 @@ export default function App() {
               <a className="btn-link" style={{ fontSize: 12.5, cursor: 'pointer' }}>Forgot password?</a>
             </div>
             {error && <p className="err" style={{ marginTop: -10, marginBottom: 14, color: 'var(--gx-danger-fg)', fontSize: 12.5 }}>{error}</p>}
-            <button className="btn btn-primary btn-lg" style={{ width: '100%' }} type="submit"><LogIn size={16} />{t('auth.signin', 'Sign in')}</button>
+            <Button variant="primary" size="lg"
+            style={{ width: '100%' }} type="submit"><LogIn size={16} />{t('auth.signin', 'Sign in')}</Button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
               <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
               <span className="hint" style={{ fontSize: 11 }}>or</span>
               <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
             </div>
-            <button className="btn btn-secondary btn-lg" style={{ width: '100%' }} type="button"><Shield size={16} />Continue with SSO</button>
+            <Button variant="secondary" size="lg"
+            style={{ width: '100%' }} type="button"><Shield size={16} />Continue with SSO</Button>
             <p className="hint" style={{ marginTop: 18, fontSize: 11, textAlign: 'center' }}>demo: admin@demo.isp / admin123</p>
           </form>
         </div>

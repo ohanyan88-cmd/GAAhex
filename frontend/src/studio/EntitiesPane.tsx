@@ -256,9 +256,10 @@ function CreateEntityModal({
         <div className="section-head" style={{ marginTop: 16 }}>
           <EditIcon size={15} className="section-icon" /> Fields
           <span className="spacer" />
-          <button type="button" className="btn btn-primary btn-sm" onClick={addField}>
+          <Button variant="primary" size="sm"
+            type="button"  onClick={addField}>
             <PlusIcon size={13} /> Add field
-          </button>
+          </Button>
         </div>
         {fields.length === 0 ? (
           <div className="hint" style={{ padding: '12px 0' }}>
@@ -318,12 +319,12 @@ function CreateEntityModal({
                       ) : <span className="hint">—</span>}
                     </td>
                     <td className="actions-col">
-                      <button
-                        type="button" className="btn btn-ghost btn-sm"
+                      <Button variant="ghost" size="sm"
+            type="button" 
                         onClick={() => rmField(i)} aria-label="Remove field"
                       >
                         <CloseIcon size={13} />
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -335,9 +336,10 @@ function CreateEntityModal({
         <div className="section-head" style={{ marginTop: 16 }}>
           <ArrowRightIcon size={15} className="section-icon" /> Statuses
           <span className="spacer" />
-          <button type="button" className="btn btn-ghost btn-sm" onClick={addStatus}>
+          <Button variant="ghost" size="sm"
+            type="button"  onClick={addStatus}>
             <PlusIcon size={13} /> Status
-          </button>
+          </Button>
         </div>
         {statuses.length === 0 ? (
           <div className="hint" style={{ padding: '8px 0' }}>
@@ -424,12 +426,14 @@ function ConfirmDeleteDialog({
       size="sm"
       footer={
         <>
-          <button type="button" className="btn btn-ghost btn-md" onClick={onCancel} disabled={deleting}>
+          <Button variant="ghost" size="md"
+            type="button"  onClick={onCancel} disabled={deleting}>
             Cancel
-          </button>
-          <button type="button" className="btn btn-danger btn-md" onClick={onConfirm} disabled={deleting}>
+          </Button>
+          <Button variant="danger" size="md"
+            type="button"  onClick={onConfirm} disabled={deleting}>
             <TrashIcon size={13} /> {deleting ? 'Retiring…' : 'Retire entity'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -679,24 +683,23 @@ function DetailDrawer({
       {metaErr && <ErrorBanner message={metaErr} />}
       {metaMsg && <div className="hint" style={{ marginTop: 8 }}>{metaMsg}</div>}
       <div className="row" style={{ marginTop: 10, gap: 8 }}>
-        <button
-          type="button" className="btn btn-primary btn-sm"
-          onClick={saveMeta} disabled={savingMeta}
-        >
+        <Button variant="primary" size="sm"
+            type="button" 
+          onClick={saveMeta} disabled={savingMeta}>
           <CheckIcon size={13} /> {savingMeta ? 'Saving…' : 'Save metadata'}
-        </button>
+        </Button>
       </div>
 
       {/* Fields */}
       <div className="section-head" style={{ marginTop: 18 }}>
         <EditIcon size={15} className="section-icon" /> Fields ({detail.fields.length})
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-primary btn-sm"
+        <Button variant="primary" size="sm"
+            type="button" 
           onClick={() => { setShowAddField((v) => !v); setEditingFieldKey(null) }}
         >
           <PlusIcon size={13} /> Add field
-        </button>
+        </Button>
       </div>
       {fieldErr && <ErrorBanner message={fieldErr} />}
       {detail.fields.length === 0 ? (
@@ -730,20 +733,20 @@ function DetailDrawer({
                     <td><span className="hint">{configExtra(f) || '—'}</span></td>
                     <td className="actions-col">
                       <div className="row-actions">
-                        <button
-                          type="button" className="btn btn-ghost btn-sm"
+                        <Button variant="ghost" size="sm"
+            type="button" 
                           aria-label={`Edit field ${f.key}`}
                           onClick={() => setEditingFieldKey(f.key)}
                         >
                           <EditIcon size={13} />
-                        </button>
-                        <button
-                          type="button" className="btn btn-ghost btn-sm"
+                        </Button>
+                        <Button variant="ghost" size="sm"
+            type="button" 
                           aria-label={`Delete field ${f.key}`}
                           onClick={() => deleteField(f.key)}
                         >
                           <TrashIcon size={13} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -765,12 +768,12 @@ function DetailDrawer({
       <div className="section-head" style={{ marginTop: 18 }}>
         <ArrowRightIcon size={15} className="section-icon" /> Statuses ({detail.statuses.length})
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-primary btn-sm"
+        <Button variant="primary" size="sm"
+            type="button" 
           onClick={() => setShowAddStatus((v) => !v)}
         >
           <PlusIcon size={13} /> Add status
-        </button>
+        </Button>
       </div>
       {statusErr && <ErrorBanner message={statusErr} />}
       {detail.statuses.length === 0 ? (
@@ -792,22 +795,22 @@ function DetailDrawer({
                 <tr key={s.key}>
                   <td>
                     <div className="row-actions">
-                      <button
-                        type="button" className="btn btn-ghost btn-sm"
+                      <Button variant="ghost" size="sm"
+            type="button" 
                         disabled={i === 0}
                         onClick={() => moveStatus(i, -1)}
                         aria-label="Move up"
                       >
                         <ArrowUpIcon size={13} />
-                      </button>
-                      <button
-                        type="button" className="btn btn-ghost btn-sm"
+                      </Button>
+                      <Button variant="ghost" size="sm"
+            type="button" 
                         disabled={i === detail.statuses.length - 1}
                         onClick={() => moveStatus(i, 1)}
                         aria-label="Move down"
                       >
                         <ArrowDownIcon size={13} />
-                      </button>
+                      </Button>
                     </div>
                   </td>
                   <td><code className="mono">{s.key}</code></td>
@@ -816,22 +819,22 @@ function DetailDrawer({
                     {s.is_initial ? (
                       <CheckIcon size={13} />
                     ) : (
-                      <button
-                        type="button" className="btn btn-ghost btn-sm"
+                      <Button variant="ghost" size="sm"
+            type="button" 
                         onClick={() => setInitialStatus(s.key)}
                       >
                         Set initial
-                      </button>
+                      </Button>
                     )}
                   </td>
                   <td className="actions-col">
-                    <button
-                      type="button" className="btn btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
+            type="button" 
                       onClick={() => deleteStatus(s.key)}
                       aria-label={`Delete status ${s.key}`}
                     >
                       <TrashIcon size={13} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -851,14 +854,14 @@ function DetailDrawer({
       <div className="section-head" style={{ marginTop: 18 }}>
         <ArrowRightIcon size={15} className="section-icon" /> Transitions ({detail.transitions.length})
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-primary btn-sm"
+        <Button variant="primary" size="sm"
+            type="button" 
           onClick={() => setShowAddTrans((v) => !v)}
           disabled={detail.statuses.length === 0}
           title={detail.statuses.length === 0 ? 'Add statuses first' : 'Add transition'}
         >
           <PlusIcon size={13} /> Add transition
-        </button>
+        </Button>
       </div>
       {transErr && <ErrorBanner message={transErr} />}
       {detail.transitions.length === 0 ? (
@@ -882,13 +885,13 @@ function DetailDrawer({
                   <td><span className="hint mono">{t.from ?? '(initial)'}</span></td>
                   <td><span className="mono">{t.to}</span></td>
                   <td className="actions-col">
-                    <button
-                      type="button" className="btn btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
+            type="button" 
                       onClick={() => deleteTransition(t)}
                       aria-label={`Delete transition ${t.from ?? '(initial)'} → ${t.to}`}
                     >
                       <TrashIcon size={13} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -923,12 +926,12 @@ function DetailDrawer({
           Removes <code className="mono">{detail.route_slug}</code> from the active entity list.
           Existing records and audit history are preserved (soft-retire).
         </p>
-        <button
-          type="button" className="btn btn-danger btn-sm"
+        <Button variant="danger" size="sm"
+            type="button" 
           onClick={() => setConfirmDel(true)}
         >
           <TrashIcon size={13} /> Retire entity
-        </button>
+        </Button>
       </div>
 
       {confirmDel && (
@@ -1028,9 +1031,10 @@ function AddFieldInline({
             type="submit"  disabled={saving}>
             <CheckIcon size={13} />
           </Button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={saving}>
+          <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel} disabled={saving}>
             <CloseIcon size={13} />
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -1095,9 +1099,10 @@ function EditFieldInline({
             type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
             </Button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
+            <Button variant="ghost" size="sm"
+            type="button"  onClick={onDone} disabled={saving}>
               <CloseIcon size={13} />
-            </button>
+            </Button>
           </div>
         </td>
       </tr>
@@ -1164,9 +1169,10 @@ function AddStatusInline({
             type="submit"  disabled={saving}>
             <CheckIcon size={13} />
           </Button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={saving}>
+          <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel} disabled={saving}>
             <CloseIcon size={13} />
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -1216,9 +1222,10 @@ function AddTransitionInline({
             type="submit">
             <CheckIcon size={13} />
           </Button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+          <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel}>
             <CloseIcon size={13} />
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -1280,12 +1287,12 @@ export default function EntitiesPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-primary btn-md"
+        <Button variant="primary" size="md"
+            type="button" 
           onClick={() => setShowCreate(true)}
         >
           <PlusIcon size={13} /> New entity
-        </button>
+        </Button>
       </div>
 
       <div style={{ marginBottom: 12, maxWidth: 320 }}>
@@ -1330,13 +1337,13 @@ export default function EntitiesPane({ token }: { token: string }) {
                     <span className="hint">{e.status}</span>
                   </td>
                   <td className="actions-col">
-                    <button
-                      type="button" className="btn btn-ghost btn-sm"
+                    <Button variant="ghost" size="sm"
+            type="button" 
                       onClick={(ev) => { ev.stopPropagation(); setOpenSlug(e.route_slug) }}
                       aria-label={`Open ${e.label}`}
                     >
                       <EditIcon size={13} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

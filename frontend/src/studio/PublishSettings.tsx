@@ -1,6 +1,7 @@
 // GAAhex Studio — Publish Settings pane.
 // Extracted from StudioRichPanes.tsx. Behavior unchanged.
 
+import { Button } from '../primitives'
 import { useState, useEffect } from 'react'
 import { Plus, Rocket, Save } from 'lucide-react'
 import { collectSnapshot } from './publishRegistry'
@@ -172,9 +173,10 @@ export function PublishSettings({ token }: { token?: string } = {}) {
           </select>
         ) : null}
         {!creating && (
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setCreating(true)}>
+          <Button variant="ghost" size="sm"
+            type="button" onClick={() => setCreating(true)}>
             <Plus size={13} />Create page
-          </button>
+          </Button>
         )}
       </div>
 
@@ -209,16 +211,16 @@ export function PublishSettings({ token }: { token?: string } = {}) {
             <span style={{ fontSize: 12, color: 'var(--gx-danger-fg)' }}>{createError}</span>
           )}
           <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn btn-primary btn-sm" type="submit" disabled={createSaving}>
+            <Button variant="primary" size="sm"
+            type="submit" disabled={createSaving}>
               {createSaving ? 'Creating…' : 'Create'}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              type="button"
+            </Button>
+            <Button variant="ghost" size="sm"
+            type="button"
               onClick={() => { setCreating(false); setNewKey(''); setNewLabel(''); setCreateError(null) }}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

@@ -14,7 +14,7 @@
 // the SVG wrapper set in components/icons.tsx.
 
 import { useCallback, useEffect, useState } from 'react'
-import { StatusPill, KPITile } from '../primitives'
+import { Button, KPITile, StatusPill } from '../primitives'
 import { ErrorBanner } from '../components/States'
 import {
   ActivityIcon, RefreshIcon, ServerIcon, CheckIcon, WarningIcon, ClockIcon,
@@ -289,14 +289,13 @@ export default function SystemHealthPane({ token }: { token: string }) {
           />
           <span>Auto-refresh</span>
         </label>
-        <button
-          type="button"
-          className="btn btn-ghost btn-md"
+        <Button variant="ghost" size="md"
+            type="button"
+          
           onClick={checkAll}
-          aria-label="Refresh all probes"
-        >
+          aria-label="Refresh all probes">
           <RefreshIcon size={13} /> Refresh all
-        </button>
+        </Button>
       </div>
 
       {/* ---- KPI strip (data from /api/health/status when available) ---- */}

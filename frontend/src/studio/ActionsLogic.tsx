@@ -7,6 +7,7 @@
 // ALLOWED_ACTION_TYPES so the DO picker stays in lockstep with the executor. Save flow is
 // Full CRUD lives in AutomationsPane; this pane is the visual rule-builder UI.
 
+import { Button } from '../primitives'
 import { useState, useEffect } from 'react'
 import { ArrowRight, Check, Plus, X, Zap } from 'lucide-react'
 import { registerSnapshot, unregisterSnapshot } from './publishRegistry'
@@ -111,9 +112,10 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         title="Actions & Logic"
         hint="button actions, submit behavior, navigation, conditions, visibility"
         right={
-          <button className="btn btn-primary btn-sm" type="button" onClick={add} disabled={loading || !!error}>
+          <Button variant="primary" size="sm"
+            type="button" onClick={add} disabled={loading || !!error}>
             <Plus size={13} />New rule
-          </button>
+          </Button>
         }
       />
       {loading && (
@@ -200,8 +202,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
       )}
       {!loading && !error && (
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          <button
-            className="btn btn-secondary btn-sm"
+          <Button variant="secondary" size="sm"
             type="button"
             disabled={rules.every(r => !r.on || !r.act)}
             title={rules.every(r => !r.on || !r.act) ? 'Fill in WHEN and DO for at least one rule' : 'Save rules to /api/automations'}
@@ -224,7 +225,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
             }}
           >
             <Check size={13} />Save rule{rules.filter(r => r.on && r.act).length > 1 ? 's' : ''}
-          </button>
+          </Button>
         </div>
       )}
     </div>

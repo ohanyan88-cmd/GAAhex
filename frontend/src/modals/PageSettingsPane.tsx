@@ -203,12 +203,14 @@ export default function PageSettingsPane({
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>
-        <button type="button" className="btn btn-primary btn-md" disabled={saving || !dirty} onClick={save}>
+        <Button variant="primary" size="md"
+            type="button"  disabled={saving || !dirty} onClick={save}>
           {saving ? 'Saving…' : 'Save page settings'}
-        </button>
-        <button type="button" className="btn btn-ghost btn-md" disabled={saving} onClick={reset}>
+        </Button>
+        <Button variant="ghost" size="md"
+            type="button"  disabled={saving} onClick={reset}>
           Reset to default
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -270,9 +272,10 @@ function CustomFieldsSection({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
         <h4 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Custom fields</h4>
         {!formOpen && (
-          <button type="button" className="btn btn-primary btn-sm" onClick={startAdd}>
+          <Button variant="primary" size="sm"
+            type="button"  onClick={startAdd}>
             <PlusIcon size={13} /> Add field
-          </button>
+          </Button>
         )}
       </div>
       <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-3)' }}>
@@ -337,9 +340,10 @@ function CustomFieldsSection({
             type="button"  onClick={commit}>
                 <CheckIcon size={13} /> {editing != null ? 'Save' : 'Add'}
               </Button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={cancel}>
+              <Button variant="ghost" size="sm"
+            type="button"  onClick={cancel}>
                 <CloseIcon size={13} />
-              </button>
+              </Button>
             </div>
           </div>
           {editing != null && (

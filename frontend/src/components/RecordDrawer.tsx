@@ -20,7 +20,7 @@ import {
   Link as LinkIcon,
   MessageSquare,
 } from 'lucide-react'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 
 export type RecordDrawerStatusVariant =
   | 'active'
@@ -391,9 +391,9 @@ export default function RecordDrawer({
                       marginTop: 8,
                     }}
                   >
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
+                    <Button variant="primary" size="sm"
+            type="button"
+                      
                       disabled={!noteDraft.trim()}
                       onClick={() => {
                         const body = noteDraft.trim()
@@ -403,7 +403,7 @@ export default function RecordDrawer({
                       }}
                     >
                       Post note
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

@@ -12,6 +12,7 @@
 // header is reused so the live test calls inherit the current SuperAdmin
 // session. Light + dark via --gx-* tokens; no raw hex; no emoji.
 
+import { Button } from '../primitives'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner } from '../components/States'
 import {
@@ -242,12 +243,11 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
           Live request — your current session token is reused.
         </span>
         <span className="spacer" />
-        <button
-          type="button" className="btn btn-secondary btn-sm"
-          onClick={run} disabled={running}
-        >
+        <Button variant="secondary" size="sm"
+            type="button" 
+          onClick={run} disabled={running}>
           <PlayIcon size={13} /> {running ? 'Sending…' : 'Send request'}
-        </button>
+        </Button>
       </div>
 
       {pathParams.length > 0 && (

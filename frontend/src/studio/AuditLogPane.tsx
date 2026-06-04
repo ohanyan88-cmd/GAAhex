@@ -19,7 +19,7 @@
 // the SVG wrapper set in components/icons.tsx.
 
 import { Fragment, useCallback, useEffect, useState } from 'react'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill } from '../primitives'
 import {
   EmptyState, ErrorBanner, PermissionDenied, SkeletonRows,
 } from '../components/States'
@@ -223,13 +223,12 @@ export default function AuditLogPane({ token }: { token: string }) {
         </p>
       </div>
       <span className="spacer" />
-      <button
-        type="button" className="btn btn-ghost btn-md"
+      <Button variant="ghost" size="md"
+            type="button" 
         onClick={load} disabled={loading} aria-label="Refresh audit log"
-        title="Refresh"
-      >
+        title="Refresh">
         <RefreshIcon size={13} /> Refresh
-      </button>
+      </Button>
     </div>
   )
 
@@ -294,13 +293,15 @@ export default function AuditLogPane({ token }: { token: string }) {
         />
       </label>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button className="btn btn-primary btn-sm" type="button" onClick={applyFilters} disabled={loading}>
+        <Button variant="primary" size="sm"
+            type="button" onClick={applyFilters} disabled={loading}>
           Apply
-        </button>
+        </Button>
         {filtersActive ? (
-          <button className="btn btn-ghost btn-sm" type="button" onClick={clearFilters} disabled={loading}>
+          <Button variant="ghost" size="sm"
+            type="button" onClick={clearFilters} disabled={loading}>
             Clear
-          </button>
+          </Button>
         ) : null}
       </div>
     </div>
@@ -445,14 +446,12 @@ export default function AuditLogPane({ token }: { token: string }) {
 
           {items.length < total && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                type="button"
+              <Button variant="secondary" size="sm"
+            type="button"
                 onClick={loadMore}
-                disabled={loadingMore}
-              >
+                disabled={loadingMore}>
                 {loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}
-              </button>
+              </Button>
             </div>
           )}
         </>

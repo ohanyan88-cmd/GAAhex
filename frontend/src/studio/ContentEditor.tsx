@@ -1,6 +1,7 @@
 // GAAhex Studio — Content Editor pane.
 // Extracted from StudioRichPanes.tsx. Behavior unchanged.
 
+import { Button } from '../primitives'
 import { useState } from 'react'
 import { Check, Image, Type, Upload } from 'lucide-react'
 import { Sec } from './_shared'
@@ -36,9 +37,10 @@ export function ContentEditor() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--gx-bg-subtle)', border: '1px dashed var(--gx-border-strong)', borderRadius: 'var(--gx-radius-md)' }}>
               <Image size={18} style={{ color: 'var(--gx-text-3)' }} />
               <span className="hint" style={{ fontSize: 12 }}>No image</span>
-              <button className="btn btn-ghost btn-sm" type="button" style={{ marginLeft: 'auto' }}>
+              <Button variant="ghost" size="sm"
+            type="button" style={{ marginLeft: 'auto' }}>
                 <Upload size={13} />Upload
-              </button>
+              </Button>
             </div>
           </label>
           <label className="field"><span>Placeholder text</span><input className="inp inp-sm" /></label>
@@ -55,9 +57,10 @@ export function ContentEditor() {
       )}
       <div style={{ marginTop: 18 }}>
         {/* Save wires to PUT /api/pages/{pageId}/content when that endpoint is built */}
-        <button className="btn btn-primary btn-sm" type="button" disabled title="Content save not yet wired">
+        <Button variant="primary" size="sm"
+            type="button" disabled title="Content save not yet wired">
           <Check size={13} />Save content
-        </button>
+        </Button>
       </div>
     </div>
   )

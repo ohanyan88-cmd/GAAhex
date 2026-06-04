@@ -157,9 +157,10 @@ function ReportsList({ token }: { token: string }) {
       <div className="section-head" style={{ marginTop: 0 }}>
         <DownloadIcon size={15} className="section-icon" /> Saved reports
         <span className="spacer" />
-        <button className="btn btn-primary btn-sm" onClick={() => { setCreating(true); setEditing(null) }}>
+        <Button variant="primary" size="sm"
+            onClick={() => { setCreating(true); setEditing(null) }}>
           <PlusIcon size={13} /> New report
-        </button>
+        </Button>
       </div>
 
       {(creating || editing) && (
@@ -209,28 +210,25 @@ function ReportsList({ token }: { token: string }) {
                       <td>{r.shared ? 'Shared' : 'Private'}</td>
                       <td>
                         <div className="row-actions">
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            title="Run report"
+                          <Button variant="ghost" size="sm"
+            title="Run report"
                             disabled={running === r.id}
                             onClick={() => runReport(r.id)}
                           >
                             <PlayIcon size={13} />
-                          </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            title="Edit"
+                          </Button>
+                          <Button variant="ghost" size="sm"
+            title="Edit"
                             onClick={() => { setEditing(r); setCreating(false) }}
                           >
                             <EditIcon size={13} />
-                          </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            title="Delete"
+                          </Button>
+                          <Button variant="ghost" size="sm"
+            title="Delete"
                             onClick={() => deleteReport(r)}
                           >
                             <TrashIcon size={13} />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -247,9 +245,10 @@ function ReportsList({ token }: { token: string }) {
               <div className="section-head">
                 <ChartIcon size={15} className="section-icon" /> Run result — {runResult.name}
                 <span className="spacer" />
-                <button className="btn btn-ghost btn-sm" onClick={() => setRunResult(null)}>
+                <Button variant="ghost" size="sm"
+            onClick={() => setRunResult(null)}>
                   <CloseIcon size={13} />
-                </button>
+                </Button>
               </div>
 
               {runResult.error ? (
@@ -373,9 +372,10 @@ function ReportForm({
       <div className="row" style={{ marginBottom: 12 }}>
         <strong>{isEdit ? 'Edit report' : 'New report'}</strong>
         <span className="spacer" />
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+        <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel}>
           <CloseIcon size={13} />
-        </button>
+        </Button>
       </div>
 
       {error && <ErrorBanner message={error} />}
@@ -483,9 +483,10 @@ function ReportForm({
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {isEdit ? 'Save changes' : 'Create report'}
           </Button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+          <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -560,9 +561,10 @@ function SchedulesList({ token }: { token: string }) {
       <div className="section-head" style={{ marginTop: 0 }}>
         <CalendarIcon size={15} className="section-icon" /> Report schedules
         <span className="spacer" />
-        <button className="btn btn-primary btn-sm" onClick={() => setCreating(true)}>
+        <Button variant="primary" size="sm"
+            onClick={() => setCreating(true)}>
           <PlusIcon size={13} /> New schedule
-        </button>
+        </Button>
       </div>
 
       {creating && (
@@ -624,20 +626,18 @@ function SchedulesList({ token }: { token: string }) {
                       <td style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>{fmtDt(s.next_run_at)}</td>
                       <td>
                         <div className="row-actions">
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            title={s.status === 'ACTIVE' ? 'Pause' : 'Resume'}
+                          <Button variant="ghost" size="sm"
+            title={s.status === 'ACTIVE' ? 'Pause' : 'Resume'}
                             onClick={() => toggleStatus(s)}
                           >
                             {s.status === 'ACTIVE' ? <PauseIcon size={13} /> : <PlayIcon size={13} />}
-                          </button>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            title="Delete"
+                          </Button>
+                          <Button variant="ghost" size="sm"
+            title="Delete"
                             onClick={() => deleteSchedule(s)}
                           >
                             <TrashIcon size={13} />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -693,9 +693,10 @@ function ScheduleForm({
       <div className="row" style={{ marginBottom: 12 }}>
         <strong>New schedule</strong>
         <span className="spacer" />
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+        <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel}>
           <CloseIcon size={13} />
-        </button>
+        </Button>
       </div>
 
       {error && <ErrorBanner message={error} />}
@@ -747,9 +748,10 @@ function ScheduleForm({
             type="submit"  disabled={saving}>
               <CheckIcon size={13} /> Create schedule
             </Button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
+            <Button variant="ghost" size="sm"
+            type="button"  onClick={onCancel}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

@@ -252,9 +252,10 @@ export default function AutomationsPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <button className="btn btn-primary btn-sm" onClick={openCreate}>
+        <Button variant="primary" size="sm"
+            onClick={openCreate}>
           <PlusIcon size={13} /> New automation
-        </button>
+        </Button>
       </div>
 
       {deleteErr && <ErrorBanner message={deleteErr} />}
@@ -266,9 +267,10 @@ export default function AutomationsPane({ token }: { token: string }) {
           title="No automations yet."
           message="Create a rule to trigger actions on entity events."
           action={
-            <button className="btn btn-primary btn-sm" onClick={openCreate}>
+            <Button variant="primary" size="sm"
+            onClick={openCreate}>
               <PlusIcon size={13} /> New automation
-            </button>
+            </Button>
           }
         />
       ) : (
@@ -324,13 +326,12 @@ export default function AutomationsPane({ token }: { token: string }) {
                   </td>
                   <td>
                     <div className="row-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        title="Edit"
+                      <Button variant="ghost" size="sm"
+            title="Edit"
                         onClick={() => openEdit(a)}
                       >
                         <EditIcon size={13} />
-                      </button>
+                      </Button>
                       {deleteId === a.id ? (
                         <>
                           <button
@@ -341,18 +342,18 @@ export default function AutomationsPane({ token }: { token: string }) {
                           >
                             {deleting ? 'Deleting…' : 'Confirm'}
                           </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setDeleteId(null)}>
+                          <Button variant="ghost" size="sm"
+            onClick={() => setDeleteId(null)}>
                             Cancel
-                          </button>
+                          </Button>
                         </>
                       ) : (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          title="Delete automation"
+                        <Button variant="ghost" size="sm"
+            title="Delete automation"
                           onClick={() => setDeleteId(a.id)}
                         >
                           <TrashIcon size={13} />
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -373,9 +374,10 @@ export default function AutomationsPane({ token }: { token: string }) {
             <SparkleIcon size={14} className="section-icon" />
             {editTarget ? `Edit: ${editTarget.name}` : 'New automation'}
             <span className="spacer" />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={closeForm}>
+            <Button variant="ghost" size="sm"
+            type="button"  onClick={closeForm}>
               <CloseIcon size={13} />
-            </button>
+            </Button>
           </div>
 
           {formErr && <ErrorBanner message={formErr} />}
@@ -515,9 +517,10 @@ export default function AutomationsPane({ token }: { token: string }) {
               <CheckIcon size={13} />
               {submitting ? 'Saving…' : editTarget ? 'Save changes' : 'Create automation'}
             </Button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={closeForm}>
+            <Button variant="ghost" size="sm"
+            type="button"  onClick={closeForm}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

@@ -6,6 +6,7 @@
 // The component name stays VersionHistory because RICH_PANE_MAP still routes
 // "Versioning" / "Workflow Versions" / "Page Versioning" through it.
 
+import { Button } from '../primitives'
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronDown,
@@ -262,14 +263,13 @@ function PageVersionsTab({ token }: { token?: string }) {
                     <span style={{ flex: 1 }} />
                     <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ver.created_at)}</span>
                     {!isCurrentPublished && (
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        type="button"
+                      <Button variant="ghost" size="sm"
+            type="button"
                         onClick={e => { e.stopPropagation(); rollback(ver) }}
                         title={`Rollback to v${ver.version_no}`}
                       >
                         <RotateCcw size={13} />Rollback
-                      </button>
+                      </Button>
                     )}
                     {isOpen
                       ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} />
@@ -438,9 +438,9 @@ function AuditLogTab({ token }: { token?: string }) {
         <input className="inp inp-sm" type="date" value={filterSince} onChange={e => setFilterSince(e.target.value)} />
       </label>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button className="btn btn-primary btn-sm" type="button" onClick={applyFilters} disabled={loading}>Apply</button>
+        <Button variant="primary" size="sm" type="button" onClick={applyFilters} disabled={loading}>Apply</Button>
         {filtersActive ? (
-          <button className="btn btn-ghost btn-sm" type="button" onClick={clearFilters} disabled={loading}>Clear</button>
+          <Button variant="ghost" size="sm" type="button" onClick={clearFilters} disabled={loading}>Clear</Button>
         ) : null}
       </div>
     </div>
@@ -509,9 +509,10 @@ function AuditLogTab({ token }: { token?: string }) {
           </div>
           {items.length < total && (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
-              <button className="btn btn-secondary btn-sm" type="button" onClick={loadMore} disabled={loadingMore}>
+              <Button variant="secondary" size="sm"
+            type="button" onClick={loadMore} disabled={loadingMore}>
                 {loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}
-              </button>
+              </Button>
             </div>
           )}
         </>
