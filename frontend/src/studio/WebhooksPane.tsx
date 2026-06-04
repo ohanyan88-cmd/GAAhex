@@ -24,6 +24,7 @@ import { StatusPill, KPITile } from '../primitives'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { timeAgo } from '../lib/time'
 import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1 — canonical modal chrome
+import { StudioDrawer } from '../primitives'  // DR-1
 import {
   PlusIcon, CloseIcon, CheckIcon, EditIcon, TrashIcon, ServerIcon,
   PlayIcon, RowsIcon, LockIcon, ActivityIcon,
@@ -680,39 +681,14 @@ function DetailDrawer({
   )
 }
 
+// DR-4 — `DrawerShell` now wraps the canonical `<StudioDrawer>` primitive.
 function DrawerShell({
   onClose, title, children,
 }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'fixed', inset: 0, background: 'var(--gx-overlay)',
-        zIndex: 100, display: 'flex', justifyContent: 'flex-end',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--gx-surface)',
-          borderLeft: '1px solid var(--gx-border)',
-          width: 'min(720px, 100%)',
-          height: '100vh', overflowY: 'auto', padding: 20,
-          boxShadow: 'var(--gx-shadow-lg, -16px 0 48px rgba(0,0,0,0.3))',
-        }}
-      >
-        <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
-          <h3 style={{ margin: 0 }}>{title}</h3>
-          <span className="spacer" />
-          <button
-            type="button" className="btn btn-ghost btn-sm"
-            onClick={onClose} aria-label="Close drawer"
-          >
-            <CloseIcon size={14} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <StudioDrawer open onClose={onClose} title={title} bodyPadding={20}>
+      {children}
+    </StudioDrawer>
   )
 }
 

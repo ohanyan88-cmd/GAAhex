@@ -10,3 +10,4 @@ export { KPITile } from './KPITile'
 // row-actions component).
 export { DataTableCell } from './DataTableCell'
 export { DetailTab, DetailTabList } from './DetailTab'
+export { StudioDrawer } from './StudioDrawer'  // DR-1
