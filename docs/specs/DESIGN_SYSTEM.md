@@ -50,15 +50,14 @@ for long daily use by ISP operators. Never playful, never casual. Clean and prec
 ## 1. Brand Identity & Logo
 
 ### Identity Statement
-GAAhex = "GAA" (the business initials) + "ex" suffix suggesting excellence/exchange.
+GAAhex is named after the family that built it: **G**ev +  +  — Gev, , and  (, and ). The hex tile *is* the "G"; the wordmark reads **"AAhex"** with the two A's in gold. It is a family's name on a system — not "GAA business initials" and not an "-ex" suffix for excellence/exchange. Treat the family origin as the soul of the brand, not marketing copy. Family-built is the tone: serious, precise, made by people who run the thing — never corporate suffix-coining.
 Visual personality: structured, disciplined, modern without being trendy.
 The product must feel like a serious professional tool — not a SaaS demo.
 
 ### Color Rationale
 - **Deep Cobalt** (`#1C3B68`): structural authority, the "backbone" — used for navigation,
   headers, structural elements. Cobalt signals trust and precision (aviation, finance, telecom).
-- **Matte Gold** (`#C5A059`): the signature accent — used sparingly on KPIs, active states,
-  focus rings, call-to-action accents. Gold = value, premium, the thing that matters.
+- **Matte Gold** (`#C5A059`): the family-name accent — spent sparingly on the one brand moment that matters (hover affordance, focus, active selection, a single primary CTA). Per D17, gold is **not** used to color KPI values or mark "the important number." Gold = the family signature, never decoration.
 - **Obsidian / Charcoal**: the dark canvas is not black — it has warmth to reduce eye strain
   during 8-hour ISP operator shifts.
 
@@ -165,6 +164,30 @@ Rule: `:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2p
 | `--sidebar-label` | `#7C8794` | Section label text |
 | `--sidebar-on` | `rgba(58,111,181,0.22)` | Active nav item cobalt tint |
 
+### 2.7 Data-Visualization Color Rule (D18 — LOCKED 2026-06-04)
+
+Five color families, five jobs. Charts are decided by **what the data IS**, not by what
+looks varied. The default is restraint — most slop comes from a color doing a job that
+isn't its own (gold on an "ok" state, cobalt on a data bar, semantic on decoration).
+
+| Data shape | Fill rule | Token | Why |
+|------------|-----------|-------|-----|
+| **Same-kind, multi-item** (8 PON ports, 4 vendor slices, 5 tier entries, ranked lists) | Slate bars/slices + **ONE gold peak** (the leader / single critical entry). Thin background dividers between items, never color variety. **Never** a cobalt→gold sweep across items. | `--gx-chart-default` + `--gx-chart-peak` | Gold = one look-here moment per view. Eight gradient bars is decoration; one gold bar is information. |
+| **Single continuous gauge** (one bar/arc encoding 0→100% — Total Bandwidth, Storage Remaining, IP Pool, single uplink load) | Cobalt→gold **sweep** along the bar/arc length. | `--gx-chart-sweep` | Here the gradient *encodes the progression* — it's one object filling up, not a palette across items. |
+| **Distinct-identity data** (departments, tenants, environments, status enums) | `--viz-1..8` categorical palette. | `--viz-1` … `--viz-8` | Items are genuinely different identities; separable color is the signal. |
+| **Status composition** (online/degraded/offline stacked in one bar) | Semantic green/amber/red fills. | `--gx-success` / `--gx-warning` / `--gx-danger` | The status split *is* the operator's signal — not viz, not brand. |
+
+Role boundaries (the DON'Ts carry the discipline):
+- **Cobalt** = brand & structure (sidebar, chrome, headers). **Not** data bars, donuts, default viz, "ok" states, or buttons (those are Azure).
+- **Azure** = interactive only (buttons, links, hover, focus, active row, drillable chips, the selected/drilled chart series). **Not** passive data or headlines.
+- **Gold** = the one-per-view brand moment (peak marker, critical alarm, featured tier). **Never** an "ok" state, default chrome, or more than once per view.
+- **Slate** = neutrals: 90% of chart fills, text hierarchy, surfaces, dividers. **Never** signals severity.
+- **Semantic** = status value text + badge chrome + status-mix segments. **Never** decorative tinting or status-pulse animation (D17 — value-text colorway only).
+
+Charts are built **hand-SVG**, not a charting lib: the vocabulary is small (~6–8 shapes) and
+a lib's rainbow defaults + bundle fight D17. Per-case exception: one tiny dedicated module
+(e.g. `d3-sankey` ~8KB) for a genuinely different shape (Sankey/Treemap).
+
 ---
 
 ## 3. Color Themes
@@ -177,7 +200,12 @@ Rule: `:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2p
 Theme is toggled via the sun/moon icon in the header. Stored in `localStorage("theme")`.
 The `SunIcon` and `MoonIcon` SVGs are used for the toggle button.
 
-### 3.2 New Requirement — User-Selectable Color Palettes
+### 3.2 Deferred to M2 — User-Selectable Color Palettes
+
+**Dropped from Phase 1 / M0** (decision 2026-06-04): per-tenant palette customization is deferred to M2 so it doesn't complicate the M0 milestone. The two shipped themes (dark default, light) are the whole surface for now; the multi-palette exploration below is kept for reference only and is **not** in scope. Do not build tenant palette switching yet.
+
+<details>
+<summary>M2 reference (out of scope)</summary>
 
 Beyond dark and light, users should be able to choose custom color palette themes.
 Suggested approach: additional `[data-theme="..."]` attribute values with full token overrides.
@@ -201,6 +229,8 @@ The sidebar always remains dark regardless of palette (same rule as light/dark s
 - Hover: scale 1.08, transition 120ms
 - Label below each swatch
 - Future: allow custom hex input for power users / tenant branding
+
+</details>
 
 ### 3.3 Custom Backgrounds Per Section (New Requirement)
 

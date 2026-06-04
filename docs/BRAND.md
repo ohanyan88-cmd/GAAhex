@@ -16,8 +16,7 @@ marks (Cobalt + Gold) and the functional signals carry across both themes; only 
 The `frontend` design-token pass must use **exactly** these values (as CSS custom properties) — do
 not guess or introduce off-palette colors, and never hardcode a theme's hex in a component.
 
-The logo carries the identity: **"GA" in Deep Cobalt, "ex" in Matte Gold** (already baked into
-`design-system/frontend/public/full-dark.png` / `icon-light.png`, which sit on the dark background).
+The logo carries the identity: the **hex "G" tile *is* the "G"**, and the wordmark reads **"AAhex"** with the two A's in **Matte Gold** on **Deep Cobalt**. GAAhex is named after the family that built it — **G**ev +  +  (Gev, , and :  and ). The mark is a family's name on a system, not "GAA business initials" + an "-ex" suffix. Treat the family origin as load-bearing in tone — family-built, not corporate suffix-coining. (Note: the baked raster marks in `design-system/frontend/public/` still carry the old "GA + ex" art and must be regenerated to the hex-G + AAhex lockup.)
 
 ---
 
@@ -26,8 +25,8 @@ The logo carries the identity: **"GA" in Deep Cobalt, "ex" in Matte Gold** (alre
 ### Brand core
 | Name | Hex | Role |
 |------|-----|------|
-| Deep Cobalt Blue | `#1C3B68` | Primary brand element — logo "GA", structural UI, headers, high-importance type. Institutional stability, precision, reliability. |
-| Matte Gold | `#C5A059` | Core accent / signature — logo "ex", performance highlights, precision metrics, critical focus states. Premium, verified quality, elite tiering. |
+| Deep Cobalt Blue | `#1C3B68` | Primary brand element — the hex-G mark and wordmark, structural UI, headers, high-importance type. Institutional stability, precision, reliability. |
+| Matte Gold | `#C5A059` | The family-name accent — the two gold A's in the wordmark, and the single brand moment in the UI (hover affordance, focus, active selection, one primary CTA). Spent sparingly; never decoration, never KPI-value color (D17). |
 
 ### Infrastructure & interface neutrals — DARK
 | Name | Hex | Role |

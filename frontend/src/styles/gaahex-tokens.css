@@ -353,16 +353,28 @@
   /* Interaction overlays */
   --gx-hover:    rgba(174, 189, 208, 0.06);
   --gx-pressed:  rgba(174, 189, 208, 0.12);
-  --gx-selected: rgba(59, 123, 224, 0.16);
-  --gx-ring:     rgba(82, 147, 242, 0.55);
+  /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
+  --gx-selected: var(--gx-interactive-soft);
+  --gx-ring:     var(--gx-interactive-ring);
   --gx-ring-offset: var(--gx-bg);
 
   /* Status — semantic */
   --gx-success: var(--green-400);  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
   --gx-warning: var(--amber-400);  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
   --gx-danger:  var(--red-400);    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
-  --gx-info:    #5293F2;           --gx-info-soft:    var(--gx-primary-soft); --gx-info-fg:#A9CBF7;
+  --gx-info:    var(--azure-400);   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#A9CBF7;
   --gx-neutral: var(--slate-400);  --gx-neutral-soft: rgba(148,163,184,0.16);
+
+  /* Chart roles (D18 — default viz fill is SLATE, gold marks the ONE peak/critical/featured
+     datum per view, azure = the selected/interactive series, semantic only for value text.
+     NOT a categorical palette — use --viz-1..8 for distinct-identity data. */
+  --gx-chart-track:     rgba(130,161,204,0.10);             /* unfilled bar/gauge track */
+  --gx-chart-default:   var(--slate-400);                   /* 90% of bars & donut slices */
+  --gx-chart-default-2: var(--slate-600);                   /* alternate same-kind slice */
+  --gx-chart-peak:      var(--gx-gold);                     /* the one look-here datum, one per view */
+  --gx-chart-active:    var(--gx-interactive);              /* the selected / drilled series */
+  --gx-chart-grid:      var(--gx-border-subtle);            /* axes & gridlines */
+  --gx-chart-sweep:     linear-gradient(90deg, var(--gx-cobalt), var(--gx-gold)); /* single continuous gauge only */
 
   /* ISP / Network status */
   --gx-online:       var(--green-400);
@@ -448,15 +460,25 @@
 
   --gx-hover:    rgba(15, 33, 56, 0.04);
   --gx-pressed:  rgba(15, 33, 56, 0.08);
-  --gx-selected: rgba(59, 123, 224, 0.10);
-  --gx-ring:     rgba(44, 99, 188, 0.40);
+  /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
+  --gx-selected: var(--gx-interactive-soft);
+  --gx-ring:     var(--gx-interactive-ring);
   --gx-ring-offset: #FFFFFF;
 
   --gx-success: var(--green-600);  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
   --gx-warning: var(--amber-600);  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
   --gx-danger:  var(--red-500);    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
-  --gx-info:    #2C63BC;           --gx-info-soft:    rgba(59,123,224,0.12); --gx-info-fg:#234E96;
+  --gx-info:    var(--azure-600);   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#234E96;
   --gx-neutral: var(--slate-500);  --gx-neutral-soft: rgba(100,116,139,0.12);
+
+  /* Chart roles (light) — same D18 rule */
+  --gx-chart-track:     rgba(71,85,105,0.10);
+  --gx-chart-default:   var(--slate-400);
+  --gx-chart-default-2: var(--slate-300);
+  --gx-chart-peak:      var(--gx-gold);
+  --gx-chart-active:    var(--gx-interactive);
+  --gx-chart-grid:      var(--gx-border-subtle);
+  --gx-chart-sweep:     linear-gradient(90deg, var(--gx-cobalt), var(--gx-gold));
 
   --gx-online:       var(--green-600);
   --gx-offline:      var(--slate-400);
