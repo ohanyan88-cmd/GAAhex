@@ -27,7 +27,7 @@ from ..kernel import (
 )
 from ..services.account_balance import recompute_account_balance
 from ..services.invoice_lock import ensure_invoice_mutable
-from ..services.payment_allocation import outstanding_for_invoice
+from ..services.payment_allocation import outstanding_for_invoice, invoice_balance_components
 from ..services.payments import (
     PaymentGatewayCardError,
     PaymentGatewayConfigError,
@@ -228,10 +228,10 @@ async def get_invoice(inv_id: uuid.UUID, user: User = Depends(current_user), s: 
     grants = await load_grants(s, user)
     if not can(grants, "invoice", "view", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.view")
-    paid_total = (await s.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == inv.id)
-    )).scalar_one()
-    return _invoice(inv, await _invoice_lines(s, inv.id), paid_total=int(paid_total))
+    # BL-1 — single canonical: net paid (legacy + allocations) − applied credit notes.
+    components = await invoice_balance_components(s, inv.id)
+    paid_total = int(components["paid"])
+    return _invoice(inv, await _invoice_lines(s, inv.id), paid_total=paid_total)
 
 
 @router.post("/invoices/{inv_id}/issue")
@@ -300,34 +300,18 @@ async def get_invoice_outstanding(
     if not can(grants, "invoice", "view", await _node_path(s, inv.owner_node_id)):
         _deny("invoice.view")
 
-    paid = (await s.execute(
-        select(func.coalesce(func.sum(PaymentAllocation.amount), 0))
-        .where(PaymentAllocation.invoice_id == inv.id)
-    )).scalar_one()
-    from ..models.credit_note import CreditNote as _CreditNote  # local to avoid circularity at module load
-    credited = (await s.execute(
-        select(func.coalesce(func.sum(_CreditNote.amount), 0))
-        .where(
-            _CreditNote.applied_to_invoice_id == inv.id,
-            _CreditNote.status == "APPLIED",
-        )
-    )).scalar_one()
-    total_d = Decimal(str(inv.total or 0))
-    paid_d = Decimal(str(paid or 0))
-    credited_d = Decimal(str(credited or 0))
-    outstanding = total_d - paid_d - credited_d
-    if outstanding < 0:
-        outstanding = Decimal("0")
+    # BL-8 — single canonical formula lives in invoice_balance_components.
+    components = await invoice_balance_components(s, inv.id)
 
     def _fmt(d: Decimal) -> str:
         return f"{d.quantize(Decimal('0.01'))}"
 
     return {
         "id": str(inv.id),
-        "total": _fmt(total_d),
-        "paid": _fmt(paid_d),
-        "credited": _fmt(credited_d),
-        "outstanding": _fmt(outstanding),
+        "total": _fmt(components["total"]),
+        "paid": _fmt(components["paid"]),
+        "credited": _fmt(components["credited"]),
+        "outstanding": _fmt(components["outstanding"]),
     }
 
 

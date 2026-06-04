@@ -78,6 +78,7 @@ async def main():
     from app.models.workitem import WorkItem
     from app.models.usage import UsageRecord
     from sqlalchemy import select, func
+    from app.utils.refnum import next_reference_number  # BL-11 — canonical refnum source
 
     async with OwnerSessionLocal() as s:
         tenant = (await s.execute(
@@ -139,12 +140,16 @@ async def main():
                     else:
                         status = rng.choice(["ISSUED", "PAID"])
 
-                    n_count = (await s.execute(
-                        select(func.count()).select_from(Invoice).where(Invoice.tenant_id == t)
-                    )).scalar_one()
+                    # BL-11 — route through the canonical SEQUENCE-backed refnum helper
+                    # rather than COUNT+1 (race-prone). Same source the production
+                    # /api/invoices endpoint uses; the prod sequence advances so any
+                    # later real invoice on this tenant gets a number above the seed range.
+                    inv_number = await next_reference_number(
+                        s, tenant_id=t, prefix="INV", width=5,
+                    )
                     inv = Invoice(
                         tenant_id=t, customer_id=cust.id,
-                        number=f"INV-{n_count + 1:05d}",
+                        number=inv_number,
                         period_start=inv_date,
                         period_end=inv_date + timedelta(days=30),
                         status=status, total=amount,

@@ -15,6 +15,12 @@ What is added
   granularity level
 • Lead Records created inside each window (new-leads KPI tile)
 
+BL-11 — Numbering: this script writes invoices with the ``INV-C…`` (churned-
+historic) and ``INV-R…`` (revenue-window) prefixes deliberately, so seed rows are
+visually distinguishable from production invoices (``INV-NNNNN`` from the
+per-tenant SEQUENCE). The seed prefix never collides with the prod prefix, so it
+does not need to consume the SEQUENCE. Keep this split when adding new seed data.
+
 Usage (from backend/):
     .venv/Scripts/python.exe -m scripts.seed_churn_data
 """
@@ -138,9 +144,8 @@ async def main():
                     inv_date = started_at + timedelta(days=30 * m)
                     if inv_date >= churn_at:
                         break
-                    n_count = (await s.execute(
-                        select(func.count()).select_from(Invoice).where(Invoice.tenant_id == t)
-                    )).scalar_one()
+                    # BL-11 — INV-C{churn_idx}-{month} is a deliberate seed-data prefix,
+                    # never collides with the prod INV-NNNNN sequence (see module docstring).
                     inv = Invoice(
                         tenant_id=t, customer_id=cust.id,
                         number=f"INV-C{total_churn:04d}-{m:02d}",
@@ -206,9 +211,7 @@ async def main():
                 s.add(cust)
                 await s.flush()
 
-                n_count = (await s.execute(
-                    select(func.count()).select_from(Invoice).where(Invoice.tenant_id == t)
-                )).scalar_one()
+                # BL-11 — INV-R{rev_idx} is a deliberate seed-data prefix; see docstring.
                 inv_date = _ts(win_start, win_end)
                 status = "PAID" if (NOW - inv_date).days > 5 else "ISSUED"
                 inv = Invoice(

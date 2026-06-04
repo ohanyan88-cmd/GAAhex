@@ -343,17 +343,12 @@ async def create_task(
     return _serialize(t)
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_dt(value, field: str) -> datetime | None:
-    """Parse an ISO datetime; coerce tz-naive inputs to UTC (H8 / D7) and accept trailing 'Z'."""
-    if value is None:
-        return None
-    try:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"{field} must be ISO 8601")
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True)."""
+    return _parse_iso_dt_canon(value, field, optional=True)
 
 
 # ── READ ──────────────────────────────────────────────────────────────────────

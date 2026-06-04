@@ -31,6 +31,8 @@ from ..models.customer_user import CustomerUser
 from ..models.record import Record
 from ..models.tenant import Tenant
 from ..payment_gateway import get_gateway
+from ..services.payment_allocation import invoice_balance_components
+from ..utils.money import amd_format
 from .portal_auth import current_customer
 
 router = APIRouter(prefix="/portal", tags=["portal-billing"])
@@ -40,22 +42,25 @@ def _iso(dt):
     return dt.isoformat() if dt else None
 
 
-async def _paid_total(s: AsyncSession, invoice_id) -> int:
-    val = (await s.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == invoice_id)
-    )).scalar_one()
-    return int(val)
+async def _balance(s: AsyncSession, invoice_id) -> tuple[int, int]:
+    """BL-1 — return (paid_total, balance_luma) via the canonical service.
+
+    `paid_total` = net payments (legacy + allocations), `balance` = total − paid − credited.
+    """
+    comp = await invoice_balance_components(s, invoice_id)
+    return int(comp["paid"]), int(comp["outstanding"])
 
 
-def _invoice_out(inv: Invoice, paid_total: int | None = None) -> dict:
+def _invoice_out(inv: Invoice, paid_total: int | None = None, balance: int | None = None) -> dict:
     pt = paid_total if paid_total is not None else 0
+    bal = balance if balance is not None else max(0, inv.total - pt)
     return {
         "id": str(inv.id),
         "number": inv.number,
         "status": inv.status,
         "total": inv.total,
         "paid_total": pt,
-        "balance": max(0, inv.total - pt),
+        "balance": bal,
         "period_start": _iso(inv.period_start),
         "period_end": _iso(inv.period_end),
         "issued_at": _iso(inv.issued_at),
@@ -100,8 +105,8 @@ async def list_invoices(
     )).scalars().all()
     result = []
     for inv in invoices:
-        pt = await _paid_total(s, inv.id)
-        result.append(_invoice_out(inv, pt))
+        pt, bal = await _balance(s, inv.id)
+        result.append(_invoice_out(inv, pt, bal))
     return result
 
 
@@ -112,11 +117,11 @@ async def get_invoice(
     s: AsyncSession = Depends(get_session),
 ):
     inv = await _own_invoice(s, cu, invoice_id)
-    pt = await _paid_total(s, inv.id)
+    pt, bal = await _balance(s, inv.id)
     lines = (await s.execute(
         select(InvoiceLine).where(InvoiceLine.invoice_id == inv.id)  # noqa: tenant-filter cross-tenant — invoice ownership verified by _own_invoice above
     )).scalars().all()
-    out = _invoice_out(inv, pt)
+    out = _invoice_out(inv, pt, bal)
     out["lines"] = [
         {"id": str(l.id), "kind": l.kind, "description": l.description,
          "quantity": l.quantity, "unit_amount": l.unit_amount, "line_total": l.line_total}
@@ -138,8 +143,7 @@ async def invoice_document(
     lines = (await s.execute(
         select(InvoiceLine).where(InvoiceLine.invoice_id == inv.id)  # noqa: tenant-filter cross-tenant — invoice ownership verified by _own_invoice above
     )).scalars().all()
-    pt = await _paid_total(s, inv.id)
-    balance = max(0, inv.total - pt)
+    pt, balance = await _balance(s, inv.id)
 
     tenant = (await s.execute(select(Tenant))).scalars().first()
     tenant_name = tenant.name if tenant else "GAAhex"
@@ -147,8 +151,8 @@ async def invoice_document(
     record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — customer-portal; cu.customer_id is auth-bound
     customer_data = record.data or {} if record else {}
 
-    def amd(luma: int) -> str:
-        return f"{luma / 100:,.2f} ֏"
+    # BL-2 — single canonical money formatter (app.utils.money.amd_format).
+    amd = amd_format
 
     def iso_date(dt) -> str:
         return dt.strftime("%Y-%m-%d") if dt else "—"
@@ -203,8 +207,7 @@ async def pay_invoice(
     if inv.status not in {"ISSUED", "OVERDUE"}:
         raise HTTPException(409, f"Invoice must be ISSUED or OVERDUE (is {inv.status})")
 
-    paid_sum = await _paid_total(s, inv.id)
-    balance = max(0, inv.total - paid_sum)
+    _, balance = await _balance(s, inv.id)
 
     from ..config import settings as _settings  # noqa: PLC0415
     callback_base = getattr(_settings, "payment_callback_base_url", None) or ""
@@ -285,8 +288,8 @@ async def payment_receipt(
     record = (await s.execute(select(Record).where(Record.id == cu.customer_id))).scalar_one_or_none()  # noqa: tenant-filter cross-tenant — customer-portal; cu.customer_id is auth-bound
     customer_name = (record.data or {}).get("name", "—") if record else "—"
 
-    def amd(luma: int) -> str:
-        return f"{luma / 100:,.2f} ֏"
+    # BL-2 — single canonical money formatter (app.utils.money.amd_format).
+    amd = amd_format
 
     # S3 (D14): escape every dynamic value before HTML interpolation.
     paid_at_str = payment.paid_at.strftime('%Y-%m-%d %H:%M UTC') if payment.paid_at else '—'

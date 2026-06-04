@@ -18,9 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..kernel import assert_can, AccessDenied
-from ..models import User, Event
+from ..models import User
 from ..models.feature_flag import FeatureFlag
 from ..access import load_grants, can
+from .. import workflow
 from .auth import current_user
 
 router = APIRouter(prefix="/api/feature-flags", tags=["feature-flags"])
@@ -152,19 +153,15 @@ async def patch_flag(
 
     after = {"enabled": flag.enabled, "role_scope": flag.role_scope}
 
-    # Audit event
-    s.add(Event(
-        tenant_id=user.tenant_id,
-        type="FEATURE_FLAG.UPDATE",
-        entity_key="feature_flag",
-        actor_user_id=user.id,
-        data={
-            "flag_id": str(flag.id),
-            "flag_key": flag.key,
-            "before": before,
-            "after": after,
-        },
-    ))
+    # BL-7 — route through workflow.emit so the audit Event carries full metadata
+    # (schema_version, actor_type, visibility, category, event_name) — the prior
+    # hand-rolled `s.add(Event(...))` left those fields NULL.
+    await workflow.emit(
+        s, user.tenant_id, "FEATURE_FLAG.UPDATE", "feature_flag",
+        flag.id, user.id,
+        {"flag_id": str(flag.id), "flag_key": flag.key, "before": before, "after": after},
+        event_name="FeatureFlag.Updated", category="SYSTEM",
+    )
     await s.commit()
     return _out(flag)
 

@@ -35,11 +35,12 @@ class PortalUserIn(BaseModel):
     password: str | None = None
     name: str | None = None
 
+from ..utils.billing_constants import BILLED_STATUSES  # BL-6 — single source of truth
+
 SUBS_CAP = 50
 INVOICE_CAP = 20
 SERVICE_CAP = 50
 ACTIVITY_CAP = 15
-BILLED_STATUSES = ("ISSUED", "PAID", "OVERDUE")     # DRAFT/VOID don't count toward billed
 RELATED_ENTITIES = ("deal", "contact", "ticket")
 
 

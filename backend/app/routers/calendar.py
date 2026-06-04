@@ -47,17 +47,13 @@ def _event(e: CalendarEvent) -> dict:
 
 # ---- helpers ----
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_dt(value, field: str):
-    """Parse an ISO datetime; coerce tz-naive inputs to UTC (H8 / D7)."""
-    if value in (None, ""):
-        return None
-    try:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(422, f"'{field}' must be an ISO datetime")
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    """Parse an ISO datetime; optional (empty → None). BL-5 — thin wrapper over
+    the canonical helper in ``app.utils.dt`` so every router shares one parser."""
+    return _parse_iso_dt_canon(value, field, optional=True)
 
 
 async def _get_event(s: AsyncSession, tenant_id, event_id) -> CalendarEvent:

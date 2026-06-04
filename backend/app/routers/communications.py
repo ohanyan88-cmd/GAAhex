@@ -30,8 +30,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, and_, func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import workflow
@@ -44,6 +43,7 @@ from ..models.communication import (
     COMMUNICATION_PARTICIPANT_TYPES,
 )
 from ..models.user import User
+from ..utils.refnum import next_reference_number
 from .auth import current_user
 
 router = APIRouter(prefix="/api", tags=["communications"])
@@ -89,20 +89,6 @@ async def _get(s: AsyncSession, tenant_id, communication_id: uuid.UUID) -> Commu
     if row is None:
         raise HTTPException(status_code=404, detail="Communication not found")
     return row
-
-
-async def _next_reference_number(s: AsyncSession, tenant_id) -> str:
-    """Issue COM-000001, COM-000002, … per-tenant via SELECT COUNT+1.
-
-    The DB UNIQUE (tenant_id, reference_number) is the fence: under contention two
-    callers may compute the same sequence value; the second INSERT will get an
-    IntegrityError, which the caller retries (a small bounded loop in the create
-    handler). This mirrors the file-15 pattern for human-visible reference numbers.
-    """
-    n = (await s.execute(
-        select(func.count()).select_from(Communication).where(Communication.tenant_id == tenant_id)
-    )).scalar_one()
-    return f"COM-{(n + 1):06d}"
 
 
 def _parse_uuid_opt(value, field_name: str) -> uuid.UUID | None:
@@ -167,39 +153,29 @@ async def create_communication(
     participant_id = _parse_uuid_opt(payload.get("participantId"), "participantId")
     correlation_id = _parse_uuid_opt(payload.get("correlationId"), "correlationId")
 
-    # Bounded retry loop on the COM-### unique fence. Each pass recomputes the next
-    # number; under contention the second writer races a duplicate INSERT and we
-    # try again with the now-higher count.
-    last_err: Exception | None = None
-    for _ in range(5):
-        ref = await _next_reference_number(s, user.tenant_id)
-        c = Communication(
-            reference_number=ref,
-            tenant_id=user.tenant_id,
-            channel=channel,
-            direction=direction,
-            related_entity_type=related_entity_type,
-            related_entity_id=related_entity_id,
-            participant_type=participant_type,
-            participant_id=participant_id,
-            subject=payload.get("subject"),
-            message_body=payload.get("messageBody"),
-            content_reference=payload.get("contentReference"),
-            status="DRAFT",
-            created_by=user.id,
-            correlation_id=correlation_id,
-        )
-        s.add(c)
-        try:
-            await s.flush()
-            break
-        except IntegrityError as e:
-            await s.rollback()
-            last_err = e
-            continue
-    else:
-        # Exhausted retries — surface a 500 so the caller knows it wasn't validation.
-        raise HTTPException(status_code=500, detail=f"Reference number contention: {last_err}")
+    # BL-4 — single canonical reference-number issuer. Backed by per-tenant Postgres
+    # SEQUENCE (utils/refnum.next_reference_number) which is MVCC-exempt and serves
+    # distinct values to every concurrent caller. The previous COUNT+1 + 5-iteration
+    # IntegrityError retry loop is gone — under contention it could exhaust → HTTP 500.
+    ref = await next_reference_number(s, tenant_id=user.tenant_id, prefix="COM", width=6)
+    c = Communication(
+        reference_number=ref,
+        tenant_id=user.tenant_id,
+        channel=channel,
+        direction=direction,
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+        participant_type=participant_type,
+        participant_id=participant_id,
+        subject=payload.get("subject"),
+        message_body=payload.get("messageBody"),
+        content_reference=payload.get("contentReference"),
+        status="DRAFT",
+        created_by=user.id,
+        correlation_id=correlation_id,
+    )
+    s.add(c)
+    await s.flush()
 
     await workflow.emit(
         s, user.tenant_id, "communication_created",

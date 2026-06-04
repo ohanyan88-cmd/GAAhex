@@ -20,6 +20,8 @@ from ..models import User, Record
 from ..models.tenant import Tenant
 from ..models.billing import Invoice, InvoiceLine, Payment
 from ..access import load_grants, can
+from ..services.payment_allocation import invoice_balance_components
+from ..utils.money import amd_format
 from .auth import current_user
 from .records import _node_path
 
@@ -41,10 +43,10 @@ _STATUS_COLOR = {
 
 
 # ---- formatting helpers ----
-
-def _amd(luma: int) -> str:
-    """Integer luma → grouped AMD string, e.g. 1500000 → '15,000.00 ֏'."""
-    return f"{(luma or 0) / 100:,.2f} ֏"
+# BL-2 — money formatting is centralized in app.utils.money. _amd remains as a
+# zero-cost alias only so legacy in-file f-strings stay readable; new call sites
+# should import ``amd_format`` directly.
+_amd = amd_format
 
 
 def _e(v) -> str:
@@ -55,13 +57,16 @@ def _date(dt: datetime | None) -> str:
     return dt.strftime("%Y-%m-%d") if dt else "—"
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_dt(value):
-    if value in (None, ""):
-        return None
-    try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(422, "from/to must be ISO dates")
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True).
+
+    Documents-specific shorthand: caller passes only the value; field name in the
+    422 message is hardcoded to ``"from/to"`` for the statement endpoint range params.
+    """
+    return _parse_iso_dt_canon(value, "from/to", optional=True)
 
 
 def _customer_view(rec: Record | None) -> dict:
@@ -143,9 +148,9 @@ async def invoice_document(invoice_id: uuid.UUID, user: User = Depends(current_u
     payments = (await s.execute(
         select(Payment).where(Payment.invoice_id == inv.id).order_by(Payment.paid_at)
     )).scalars().all()
-    paid = (await s.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == inv.id)
-    )).scalar_one()
+    # BL-1 — single canonical balance: legacy payments + allocations − applied credit notes.
+    components = await invoice_balance_components(s, inv.id)
+    paid = int(components["paid"])
     cust = _customer_view(await _customer_record(s, user.tenant_id, inv.customer_id))
 
     line_rows = "".join(
@@ -164,7 +169,7 @@ async def invoice_document(invoice_id: uuid.UUID, user: User = Depends(current_u
         f"<tbody>{pay_rows}</tbody></table>"
     ) if payments else ""
 
-    balance = max(0, (inv.total or 0) - int(paid))
+    balance = int(components["outstanding"])
     issuer = _e(tenant.name if tenant else "GAAhex")
 
     body = f"""

@@ -23,7 +23,7 @@ from ..kernel import (
     create_approval_request, find_approved_approval, mark_approval_executed,
 )
 from ..services.account_balance import recompute_account_balance
-from ..services.payment_allocation import allocate_payment_atomic
+from ..services.payment_allocation import allocate_payment_atomic, outstanding_for_invoice
 from .auth import current_user
 from .records import _node_path, _node_paths, _paginate
 from ._billing_shared import (
@@ -168,22 +168,20 @@ async def add_payment(inv_id: uuid.UUID, payload: dict, user: User = Depends(cur
     s.add(pay)
     await s.flush()
 
-    # F3 (financial-integrity Critical) — net-paid flip.
-    # SUM(Payment.amount) ignored refunds. After a partial refund, gross-paid could still
-    # meet invoice.total while net-paid was below — leaving the invoice incorrectly flipped
-    # to PAID. Subtract refunded_amount so the flip reflects money actually retained.
-    paid_sum = (await s.execute(
-        select(func.coalesce(
-            func.sum(Payment.amount - func.coalesce(Payment.refunded_amount, 0)),
-            0,
-        )).where(Payment.invoice_id == inv.id)
-    )).scalar_one()
-    if paid_sum >= inv.total:
+    # BL-3 — single canonical PAID flip via outstanding_for_invoice.
+    # The canonical helper (services/payment_allocation.invoice_balance_components) deducts
+    # both refunded amounts (F3 protection) AND applied credit notes. The two prior code
+    # paths used different formulas — allocation service deducted both, legacy add_payment
+    # only deducted refunds. Now both routes through one source of truth.
+    outstanding = await outstanding_for_invoice(s, inv.id)
+    if outstanding <= 0:
         inv.status = "PAID"
 
+    # Net retained-paid figure still useful in the audit payload for forensic traceability.
+    net_paid = int(Decimal(str(inv.total or 0)) - outstanding)
     await workflow.emit(s, user.tenant_id, "payment", "invoice", inv.id, user.id,
                         {"payment_id": str(pay.id), "amount": amount, "method": method,
-                         "paid_sum": int(paid_sum), "invoice_status": inv.status,
+                         "paid_sum": net_paid, "invoice_status": inv.status,
                          "adjust": is_adjust})
     if approved_approval is not None:
         await mark_approval_executed(s, approval_id=approved_approval.id, actor_user_id=user.id)

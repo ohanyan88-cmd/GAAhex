@@ -76,20 +76,17 @@ def _job_run(j: JobRun) -> dict:
     }
 
 
-def _parse_iso(value: str | None, *, field: str) -> datetime | None:
-    """Parse an ISO-8601 datetime query param, or 422 on malformed input.
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
 
-    Accepts trailing 'Z' (substituted to '+00:00' so ``datetime.fromisoformat`` is happy).
+
+def _parse_iso(value: str | None, *, field: str) -> datetime | None:
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True).
+
+    The previous local copy did NOT coerce tz-naive datetimes to UTC, so a query
+    string like ``?since=2026-01-15T08:00:00`` produced a naive ``datetime`` and
+    a ``TypeError`` at the first comparison against ``now_utc()``.
     """
-    if value is None:
-        return None
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
-        raise HTTPException(
-            status_code=422,
-            detail=f"{field} must be an ISO-8601 datetime (got {value!r})",
-        )
+    return _parse_iso_dt_canon(value, field, optional=True)
 
 
 @router.get("/jobs")

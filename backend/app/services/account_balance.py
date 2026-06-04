@@ -34,13 +34,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.party import Account
 from ..models.billing import Invoice, Payment
+from ..utils.billing_constants import BILLED_STATUSES as _BILLED_STATUSES  # BL-6
 
 
 _ZERO = Decimal("0")
-# Invoice statuses that count as "outstanding billed revenue" toward the account balance. DRAFT
-# isn't billed; VOID is reversed; everything else is on the customer's tab (PAID included — it
-# still represents a billed amount that was offset by a Payment row, so the two cancel out).
-_BILLED_STATUSES = ("ISSUED", "OVERDUE", "PAID")
 
 
 def _utcnow() -> datetime:

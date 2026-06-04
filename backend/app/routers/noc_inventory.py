@@ -794,20 +794,22 @@ def _opt_uuid(body: dict, field: str) -> Optional[uuid.UUID]:
         raise HTTPException(400, f"{field} must be a valid UUID")
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_dt(value: Any, field: str) -> datetime:
-    """Parse an ISO datetime; coerce tz-naive inputs to UTC (H8 / D7) and accept trailing 'Z'."""
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (required).
+
+    Accepts existing ``datetime`` instances unchanged (some callers pass already-
+    parsed datetimes). Empty/missing → 422 — this is the "required" variant.
+    """
     if isinstance(value, datetime):
         return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    try:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except (ValueError, TypeError):
-        raise HTTPException(400, f"{field} must be an ISO 8601 datetime string")
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    return _parse_iso_dt_canon(value, field, optional=False)
 
 
 def _parse_dt_opt(value: Any, field: str) -> Optional[datetime]:
-    if value is None or value == "":
-        return None
-    return _parse_dt(value, field)
+    """BL-5 — optional variant, returns ``None`` for empty input."""
+    if isinstance(value, datetime):
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    return _parse_iso_dt_canon(value, field, optional=True)

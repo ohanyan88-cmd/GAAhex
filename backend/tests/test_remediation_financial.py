@@ -296,9 +296,16 @@ async def test_invoice_remains_unpaid_after_refund_when_net_below_total_stripe_w
 async def test_invoice_remains_unpaid_after_refund_when_net_below_total_settle_order(client, admin):
     """Path 3 — ``payment_gateway.settle_order`` (gateway-confirmed callback path).
 
-    Issue a 2000-luma invoice, record 1200 via legacy + refund 700 (net 500). Then settle
-    a PaymentOrder for 800 — gross=1200+800=2000 (would flip with the OLD bug) but
-    net=500+800=1300 < 2000, so invoice must stay ISSUED with the F3 fix.
+    Issue a 2000-luma invoice, record 1200 via legacy + refund 700 (net 500). Seed a
+    PaymentOrder for 800 directly (bypassing /pay) and confirm it via the dev gateway
+    settle path — gross=1200+800=2000 would flip with the OLD bug, but net=500+800=1300
+    < 2000 so the invoice must stay ISSUED with the F3 fix.
+
+    We seed the PaymentOrder via SessionLocal rather than the /pay endpoint because BL-1
+    made /pay return the canonical net outstanding (1500 here, not 800). The F3 defense
+    inside settle_order is the surface under test here — it must reject any gateway-
+    confirmed amount that would flip a refund-eroded invoice prematurely, regardless of
+    how the order was minted.
     """
     inv = await _issued_invoice(client, admin, 2000, "f3_settle")
 
@@ -309,14 +316,22 @@ async def test_invoice_remains_unpaid_after_refund_when_net_below_total_settle_o
     inv_after = (await client.get(f"/api/invoices/{inv['id']}", headers=admin)).json()
     assert inv_after["status"] == "ISSUED"
 
-    # Create a PaymentOrder via /pay then confirm-dev — that fires settle_order.
-    # /pay sets order.amount = invoice.total - SUM(Payment.amount gross) = 2000 - 1200 = 800.
-    # GROSS-paid SUM after settle = 1200 + 800 = 2000 ≥ 2000 → would flip with the OLD bug.
-    # NET-paid (F3 fix) = (1200 - 700) + 800 = 1300 < 2000 → must stay ISSUED.
-    pay_init = await client.post(f"/api/invoices/{inv['id']}/pay", headers=admin)
-    assert pay_init.status_code in (200, 201), pay_init.text
-    order_id = pay_init.json()["order_id"]
-    assert pay_init.json()["amount"] == 800
+    # Seed a PaymentOrder for 800 directly — bypassing /pay so the F3-trap amount
+    # (gross-2000 / net-1300) is reachable independently of BL-1's /pay update.
+    tenant_id = await _admin_tenant_id()
+    async with SessionLocal() as s:
+        order = PaymentOrder(
+            tenant_id=tenant_id,
+            invoice_id=uuid.UUID(inv["id"]),
+            customer_id=uuid.UUID(inv["customer_id"]),
+            provider="dev",
+            amount=800,
+            currency="AMD",
+            status="PENDING",
+        )
+        s.add(order)
+        await s.commit()
+        order_id = str(order.id)
 
     r = await client.post(f"/api/payment-orders/{order_id}/confirm-dev", headers=admin)
     assert r.status_code == 200, r.text

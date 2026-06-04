@@ -13,6 +13,7 @@ from ..models.helpdesk import HelpdeskTicket
 from ..models.service import Service
 from ..models.customer_user import CustomerUser
 from ..models.record import Record
+from ..services.payment_allocation import outstanding_for_invoice
 from .portal_auth import current_customer
 
 router = APIRouter(prefix="/portal", tags=["portal"])
@@ -38,21 +39,18 @@ async def portal_summary(
         )
     )).scalar_one()
 
-    # Balance due: sum of open invoice totals minus payments against those invoices
+    # Balance due: sum of canonical outstanding across open invoices. BL-1 — uses the
+    # single source of truth (services/payment_allocation.invoice_balance_components) so
+    # legacy payments AND applied credit notes are both accounted for.
     open_inv_ids_rows = (await s.execute(
-        select(Invoice.id, Invoice.total).where(  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cid (current_customer.customer_id)
+        select(Invoice.id).where(  # noqa: tenant-filter cross-tenant — customer-portal; scoped by cid (current_customer.customer_id)
             Invoice.customer_id == cid,
             Invoice.status.in_(["ISSUED", "OVERDUE"]),
         )
     )).all()
     balance_due_luma = 0
-    for inv_id, inv_total in open_inv_ids_rows:
-        paid = (await s.execute(
-            select(func.coalesce(func.sum(Payment.amount), 0)).where(
-                Payment.invoice_id == inv_id
-            )
-        )).scalar_one()
-        balance_due_luma += max(0, inv_total - paid)
+    for (inv_id,) in open_inv_ids_rows:
+        balance_due_luma += int(await outstanding_for_invoice(s, inv_id))
 
     # Open tickets
     open_tickets = (await s.execute(

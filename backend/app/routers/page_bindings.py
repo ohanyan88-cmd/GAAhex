@@ -24,10 +24,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..kernel import assert_can, AccessDenied
-from ..models import User, Event
+from ..models import User
 from ..models.page_binding import PageBinding
 from ..models.studio_page import StudioPage
 from ..access import load_grants, can
+from .. import workflow
 from .auth import current_user
 
 router = APIRouter(prefix="/api/page-bindings", tags=["page-bindings"])
@@ -136,21 +137,22 @@ async def create_binding(
         updated_at=now,
     )
     s.add(binding)
+    await s.flush()
 
-    # Audit event
-    s.add(Event(
-        tenant_id=user.tenant_id,
-        type="PAGE_BINDING.CREATE",
-        entity_key="page_binding",
-        actor_user_id=user.id,
-        data={
+    # BL-7 — route through workflow.emit so audit Event carries full metadata
+    # (schema_version, actor_type, visibility, category, event_name).
+    await workflow.emit(
+        s, user.tenant_id, "PAGE_BINDING.CREATE", "page_binding",
+        binding.id, user.id,
+        {
             "binding_id": str(binding.id),
             "page_id": str(body.page_id) if body.page_id else None,
             "component_key": binding.component_key,
             "entity_slug": binding.entity_slug,
             "field_key": binding.field_key,
         },
-    ))
+        event_name="PageBinding.Created", category="SYSTEM",
+    )
 
     await s.commit()
     return _out(binding)
@@ -175,20 +177,19 @@ async def delete_binding(
     if not binding:
         raise HTTPException(404, f"Binding '{binding_id}' not found")
 
-    # Audit event before deletion (so we still have attribute values)
-    s.add(Event(
-        tenant_id=user.tenant_id,
-        type="PAGE_BINDING.DELETE",
-        entity_key="page_binding",
-        actor_user_id=user.id,
-        data={
+    # BL-7 — emit audit Event before deletion (still have attribute values).
+    await workflow.emit(
+        s, user.tenant_id, "PAGE_BINDING.DELETE", "page_binding",
+        binding.id, user.id,
+        {
             "binding_id": str(binding.id),
             "page_id": str(binding.page_id) if binding.page_id else None,
             "component_key": binding.component_key,
             "entity_slug": binding.entity_slug,
             "field_key": binding.field_key,
         },
-    ))
+        event_name="PageBinding.Deleted", category="SYSTEM",
+    )
 
     await s.delete(binding)
     await s.commit()

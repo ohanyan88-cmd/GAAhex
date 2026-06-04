@@ -311,15 +311,18 @@ async def delete_webhook(webhook_id: str, user: User = Depends(current_user), s:
 _VALID_DELIVERY_STATUSES = {"PENDING", "SENT", "DELIVERED", "FAILED", "RETRYING", "DEAD_LETTERED"}
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_iso(name: str, raw: str | None) -> datetime | None:
-    """Parse an ISO-8601 query-string datetime (Z suffix allowed). 422 on garbage."""
-    if not raw:
-        return None
-    try:
-        # Accept the trailing 'Z' that JS/clients emit.
-        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except Exception:
-        raise HTTPException(422, f"{name} must be ISO-8601 datetime")
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True).
+
+    Args are reversed vs the canonical (``name, raw``) — preserved to avoid
+    touching every call site in this router. The previous local copy did NOT
+    coerce tz-naive inputs to UTC, so query strings without a ``Z`` suffix
+    raised ``TypeError`` at the first comparison.
+    """
+    return _parse_iso_dt_canon(raw, name, optional=True)
 
 
 @router.get("/{webhook_id}/deliveries")

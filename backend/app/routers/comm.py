@@ -5,11 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import User, Record, Event
+from ..models import User, Record
 from ..models.comm import Thread, Message
 from ..access import load_grants, can
 from ..kernel import assert_can, AccessDenied
-from .. import notify_hooks
+from .. import notify_hooks, workflow
 from .auth import current_user
 from .records import _entity, _get, _node_path     # reuse the exact records scope-check primitives
 
@@ -134,11 +134,14 @@ async def add_comment(slug: str, rec_id: uuid.UUID, payload: dict, user: User = 
     await s.flush()
 
     preview = str(body)[:140]
-    # audit: a comment is a first-class event on the record's history
-    s.add(Event(
-        tenant_id=user.tenant_id, type="COMMENT", entity_key=ent.key, record_id=rec.id,
-        actor_user_id=user.id, data={"thread_id": str(th.id), "message_id": str(msg.id), "preview": preview},
-    ))
+    # BL-7 — route through workflow.emit so the audit Event is fully populated
+    # (schema_version, actor_type, visibility, category, event_name) instead of
+    # the structurally-undersized hand-rolled Event row.
+    await workflow.emit(
+        s, user.tenant_id, "COMMENT", ent.key, rec.id, user.id,
+        {"thread_id": str(th.id), "message_id": str(msg.id), "preview": preview},
+        event_name="Comment.Posted", category="COMMENT",
+    )
     # notify the record's other participants (fail-soft; no-op unless a "{entity}.comment" def is configured)
     await notify_hooks.fire(
         s, tenant_id=user.tenant_id, event_type="COMMENT", entity_key=ent.key, record=rec,

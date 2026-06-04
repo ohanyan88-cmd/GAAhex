@@ -53,19 +53,16 @@ def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_dt(value, field: str):
-    """Parse an ISO datetime string (None/empty → None, bad format → 422). Tz-naive inputs are
-    coerced to UTC (H8 / D7) so downstream arithmetic against ``datetime.now(timezone.utc)``
-    never raises ``TypeError: can't compare offset-naive and offset-aware datetimes``."""
-    if value in (None, ""):
-        return None
-    try:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(422, f"'{field}' must be a valid ISO datetime")
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True).
+
+    Returns ``None`` for empty input. Bad format → 422. Tz-naive inputs are
+    coerced to UTC so downstream comparisons against ``now_utc()`` never raise.
+    """
+    return _parse_iso_dt_canon(value, field, optional=True)
 
 
 def _workitem(w: WorkItem) -> dict:

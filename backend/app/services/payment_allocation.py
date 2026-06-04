@@ -46,17 +46,66 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def outstanding_for_invoice(session: AsyncSession, invoice_id: uuid.UUID) -> Decimal:
-    """Return the live outstanding balance on one invoice as a Decimal (clamped ≥ 0)."""
+async def invoice_balance_components(
+    session: AsyncSession, invoice_id: uuid.UUID
+) -> dict[str, Decimal]:
+    """Canonical breakdown of one invoice's financial state.
+
+    Returns ``{total, paid, credited, outstanding}`` — all ``Decimal`` luma.
+
+    Two payment ledgers coexist:
+      * Legacy path (``billing_payment.add_payment``) — inserts ``Payment`` with
+        ``Payment.invoice_id`` set, no ``PaymentAllocation`` row. The payment is
+        implicitly applied in full to its ``invoice_id``.
+      * Modern path (``allocate_payment``) — inserts ``PaymentAllocation`` rows that
+        explicitly split a payment across one or more invoices. When any allocation
+        exists for a Payment, the allocation rows are the authoritative ledger and
+        the implicit legacy attribution is superseded.
+
+    Formula::
+
+        total       = invoice.total
+        paid_direct = Σ(Payment.amount − refunded_amount)
+                          WHERE Payment.invoice_id = X
+                          AND NOT EXISTS(PaymentAllocation FOR THIS Payment)
+        paid_alloc  = Σ(PaymentAllocation.amount WHERE invoice_id = X)
+        paid        = paid_direct + paid_alloc
+        credited    = Σ(CreditNote.amount WHERE applied_to_invoice_id = X
+                                            AND status = 'APPLIED')
+        outstanding = max(0, total − paid − credited)
+
+    BL-1 — previously this helper only counted PaymentAllocation, so any legacy
+    payment recorded via the standard /payments endpoint was invisible to the
+    balance calc. Customers on the legacy path with an applied credit note saw
+    a too-high outstanding balance; customers paying via the modern allocation
+    path with a legacy invoice saw outstanding=total because their payment was
+    on the wrong ledger. This single canonical now unifies both.
+    """
     inv_total = (await session.execute(
         select(Invoice.total).where(Invoice.id == invoice_id)  # noqa: tenant-filter cross-tenant — pure helper; RLS-scoped session; invoice_id is tenant-anchored FK from caller
     )).scalar_one_or_none()
     if inv_total is None:
-        return _ZERO
+        return {"total": _ZERO, "paid": _ZERO, "credited": _ZERO, "outstanding": _ZERO}
 
-    paid = (await session.execute(
+    # Allocations against this invoice (modern ledger).
+    paid_alloc = (await session.execute(
         select(func.coalesce(func.sum(PaymentAllocation.amount), 0))
         .where(PaymentAllocation.invoice_id == invoice_id)
+    )).scalar_one()
+
+    # Legacy payments: Payment.invoice_id == X AND no PaymentAllocation rows exist
+    # for that Payment. When an allocation appears, ledger ownership shifts to the
+    # allocation rows so we DON'T double-count the legacy attribution.
+    has_alloc = (
+        select(PaymentAllocation.id)
+        .where(PaymentAllocation.payment_id == Payment.id)
+        .exists()
+    )
+    paid_direct = (await session.execute(
+        select(func.coalesce(
+            func.sum(Payment.amount - func.coalesce(Payment.refunded_amount, 0)), 0
+        ))
+        .where(Payment.invoice_id == invoice_id, ~has_alloc)
     )).scalar_one()
 
     credited = (await session.execute(
@@ -67,10 +116,27 @@ async def outstanding_for_invoice(session: AsyncSession, invoice_id: uuid.UUID) 
         )
     )).scalar_one()
 
-    outstanding = Decimal(str(inv_total or 0)) - Decimal(str(paid or 0)) - Decimal(str(credited or 0))
+    total_d = Decimal(str(inv_total or 0))
+    paid_d = Decimal(str(paid_alloc or 0)) + Decimal(str(paid_direct or 0))
+    credited_d = Decimal(str(credited or 0))
+    outstanding = total_d - paid_d - credited_d
     if outstanding < _ZERO:
-        return _ZERO
-    return outstanding
+        outstanding = _ZERO
+    return {
+        "total": total_d,
+        "paid": paid_d,
+        "credited": credited_d,
+        "outstanding": outstanding,
+    }
+
+
+async def outstanding_for_invoice(session: AsyncSession, invoice_id: uuid.UUID) -> Decimal:
+    """Return the live outstanding balance on one invoice as a Decimal (clamped ≥ 0).
+
+    Thin wrapper over ``invoice_balance_components`` for callers that only need
+    the single outstanding figure.
+    """
+    return (await invoice_balance_components(session, invoice_id))["outstanding"]
 
 
 async def allocate_payment(

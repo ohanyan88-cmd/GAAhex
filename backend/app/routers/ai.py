@@ -17,6 +17,7 @@ from ..access import load_grants, can
 from sqlalchemy import func
 
 from ..ai import score_lead, summarize_record, ask_assistant, active_provider, plan_chat
+from ..utils.money import amd_format
 from .auth import current_user
 from .records import _node_path, create_record as records_create, transition as records_transition
 
@@ -29,8 +30,14 @@ router = APIRouter(prefix="/api/ai", tags=["ai"])
 
 
 def _amd(luma) -> str:
-    """luma (minor units) → a plain '12,345 ֏' string for the assistant context."""
-    return f"{int(luma) / 100:,.0f} ֏"
+    """BL-2 — assistant monetary string, standardized to 2 d.p. across all routers.
+
+    Previously this used ``{:,.0f}`` (0 d.p.), silently truncating sub-dram precision
+    when an invoice/payment carried odd luma. Now delegates to the canonical
+    ``app.utils.money.amd_format`` so an AI summary and the corresponding invoice
+    PDF show identical figures.
+    """
+    return amd_format(int(luma))
 
 
 async def _require_ai(s: AsyncSession, user: User):

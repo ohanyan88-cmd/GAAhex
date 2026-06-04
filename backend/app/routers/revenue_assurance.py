@@ -97,20 +97,12 @@ async def _get_scan(s: AsyncSession, user: User, scan_id: uuid.UUID) -> RaScanRu
     return r
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_iso(value, field: str) -> datetime | None:
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value:
-        raise HTTPException(422, f"'{field}' must be an ISO 8601 timestamp string")
-    try:
-        # Accept both "...Z" and offsetless forms.
-        v = value.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(v)
-    except ValueError:
-        raise HTTPException(422, f"'{field}' is not a valid ISO 8601 timestamp")
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True)."""
+    return _parse_iso_dt_canon(value, field, optional=True)
 
 
 # ==========================================================================================

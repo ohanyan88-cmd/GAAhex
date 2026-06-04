@@ -32,6 +32,7 @@ from ..access import load_grants, can
 from ..kernel import assert_can, AccessDenied
 from .. import workflow
 from ..payment_gateway import get_gateway, settle_order
+from ..services.payment_allocation import outstanding_for_invoice
 from .auth import current_user
 from .records import _node_paths, _paginate
 
@@ -139,11 +140,8 @@ async def initiate_payment(
             409, f"Invoice must be ISSUED or OVERDUE to pay online (status is {inv.status})"
         )
 
-    # Compute the unpaid balance (total minus all prior payments)
-    paid_sum = (await s.execute(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.invoice_id == inv.id)
-    )).scalar_one()
-    balance = max(0, inv.total - int(paid_sum))
+    # BL-1 — single canonical balance: includes legacy payments AND applied credit notes.
+    balance = int(await outstanding_for_invoice(s, inv.id))
 
     callback_base = getattr(settings_ref(), "payment_callback_base_url", None) or ""
 

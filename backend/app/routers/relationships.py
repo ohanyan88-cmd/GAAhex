@@ -127,17 +127,18 @@ def _parse_uuid(val, name: str) -> uuid.UUID:
         raise HTTPException(status_code=422, detail=f"{name} must be a UUID")
 
 
+from ..utils.dt import parse_iso_dt as _parse_iso_dt_canon  # BL-5 — single source
+
+
 def _parse_iso(val, name: str) -> datetime | None:
-    if val is None:
-        return None
+    """BL-5 — thin wrapper over ``app.utils.dt.parse_iso_dt`` (optional=True).
+
+    Accepts existing ``datetime`` instances unchanged (some callers pass already-
+    parsed datetimes via the entity_def coercion path).
+    """
     if isinstance(val, datetime):
         return val
-    try:
-        # Allow trailing Z (Python <3.11 of fromisoformat doesn't accept Z).
-        s = str(val).replace("Z", "+00:00")
-        return datetime.fromisoformat(s)
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"{name} must be ISO-8601 datetime")
+    return _parse_iso_dt_canon(val, name, optional=True)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
