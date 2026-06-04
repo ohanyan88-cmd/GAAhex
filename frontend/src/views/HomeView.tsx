@@ -67,8 +67,14 @@ const ROLE_SUBTITLE: Record<Role, string> = {
   general: 'Your workspace',
 }
 
+// D18: per-role identity palette is categorical (each role = distinct identity)
+// → use --viz-N tokens. Support keeps the "primary" slot (--viz-1, cobalt-ish blue)
+// since it's the default-feeling role; other roles retain their existing hex hues
+// (greens/ambers/purples/pinks) — those are intentional non-azure identities that
+// the D18 viz palette doesn't yet cover with a 1:1 swap, so left in place pending
+// a future viz palette migration. The azure removal is the D18-critical change.
 const ROLE_COLOR: Record<Role, string> = {
-  support: 'var(--azure-500)',
+  support: 'var(--viz-1)',
   sales:   '#22c55e',
   tech:    '#f59e0b',
   finance: '#8b5cf6',
@@ -121,7 +127,8 @@ const ROLE_KPIS: Record<Role, Target[]> = {
 type QuickAction = { label: string; icon: LucideIcon; target: string; color: string }
 const ROLE_ACTIONS: Record<Role, QuickAction[]> = {
   support: [
-    { label: 'New Ticket',     icon: Ticket,   target: 'helpdesk',         color: 'var(--azure-500)' },
+    // D18: primary action chip mirrors the support role identity (--viz-1)
+    { label: 'New Ticket',     icon: Ticket,   target: 'helpdesk',         color: 'var(--viz-1)' },
     { label: 'Lookup Customer',icon: Search,   target: 'entity:customers', color: 'var(--gx-text-2)' },
     { label: 'KB Article',     icon: FileText, target: 'entity:kb-articles',color:'var(--gx-text-2)' },
   ],
@@ -146,7 +153,9 @@ const ROLE_ACTIONS: Record<Role, QuickAction[]> = {
     { label: 'Reports',        icon: TrendingUp,target:'reports',          color: 'var(--gx-text-2)' },
   ],
   general: [
-    { label: 'Add Lead',       icon: Plus,     target: 'entity:leads',     color: 'var(--azure-500)' },
+    // D18: primary action chip — distinct identity slot, --viz-1 matches the
+    // categorical role palette (avoids raw --azure-* per D18 family rules)
+    { label: 'Add Lead',       icon: Plus,     target: 'entity:leads',     color: 'var(--viz-1)' },
     { label: 'New Ticket',     icon: Ticket,   target: 'helpdesk',         color: 'var(--gx-text-2)' },
     { label: 'My Tasks',       icon: CheckSquare,target:'workitems',       color: 'var(--gx-text-2)' },
   ],

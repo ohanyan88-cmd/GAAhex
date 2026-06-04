@@ -112,10 +112,14 @@ export default function ChartPicker({
                           transition: 'background .12s',
                         }}
                       >
+                        {/* D18: checkbox "on" state = interactive selection
+                            → --gx-interactive (azure family alias, theme-aware).
+                            Border + fill both swap to the same token so the
+                            check mark stays legible on the filled square. */}
                         <div style={{
                           width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                          border: `1.5px solid ${on ? 'var(--azure-500)' : 'var(--gx-border-strong, var(--gx-border))'}`,
-                          background: on ? 'var(--azure-500)' : 'transparent',
+                          border: `1.5px solid ${on ? 'var(--gx-interactive)' : 'var(--gx-border-strong, var(--gx-border))'}`,
+                          background: on ? 'var(--gx-interactive)' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
                           {on && <Check size={12} color="#fff" />}

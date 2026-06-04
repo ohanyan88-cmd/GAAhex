@@ -355,7 +355,13 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
           <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: '12px 4px', paddingTop: 12 }}>
             <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 6px 8px' }}>Channels</div>
             {CHANNELS.map(c => {
-              const tone = c === 'email' ? 'var(--azure-400)' : c === 'sms' ? 'var(--gx-warning)' : c === 'push' ? 'var(--gx-success)' : c === 'webhook' ? 'var(--gx-gold)' : 'var(--gx-text-3)'
+              // D18: channel-tone palette is categorical (each channel = distinct identity).
+              // Email = --viz-1 (matches its previous blue tone) so the rail still reads
+              // "email is the cool/calm channel" without leaking raw --azure-* into views.
+              // SMS/push/webhook intentionally keep semantic/signature tokens because each
+              // is genuinely doing double duty here (warning-amber for SMS opt-out vibe,
+              // success-green for push delivery, gold for webhook signature integration).
+              const tone = c === 'email' ? 'var(--viz-1)' : c === 'sms' ? 'var(--gx-warning)' : c === 'push' ? 'var(--gx-success)' : c === 'webhook' ? 'var(--gx-gold)' : 'var(--gx-text-3)'
               return (
                 <button key={c} className={'mail-folder' + (channel === c ? ' on' : '')} onClick={() => setChannel(channel === c ? '' : c)}>
                   <span style={{ width: 9, height: 9, borderRadius: 3, background: tone }} /><span>{CHANNEL_LABEL[c] ?? c}</span>
