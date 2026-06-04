@@ -31,7 +31,8 @@
 .inp { width:100%; height:var(--gx-control-md); padding:0 11px; background:var(--gx-bg-subtle); color:var(--gx-text-1); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); font-family:var(--gx-font-sans); font-size:13px; transition:all var(--gx-dur-quick) var(--gx-ease-standard); }
 .inp::placeholder { color:var(--gx-text-placeholder); }
 .inp:hover { border-color:var(--gx-border-strong); }
-.inp:focus { outline:none; border-color:var(--gx-primary); box-shadow:0 0 0 3px var(--gx-primary-soft); }
+/* D18: input focus = interactive affordance (user IS focusing this control) → --gx-interactive* (azure ring), not cobalt brand spine. Reconciles D17↔D18: focus on interactive control = azure. */
+.inp:focus { outline:none; border-color:var(--gx-interactive); box-shadow:0 0 0 3px var(--gx-interactive-soft); }
 .inp-sm { height:var(--gx-control-sm); font-size:12px; }
 select.inp { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23748' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; padding-right:28px; }
 .field { display:flex; flex-direction:column; gap:6px; }
@@ -45,7 +46,8 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .pill-info    { background:var(--gx-info-soft);    color:var(--gx-info-fg); }
 .pill-neutral { background:var(--gx-neutral-soft); color:var(--gx-text-2); }
 .pill-gold    { background:var(--gx-gold-soft);    color:var(--gx-gold); }
-.badge { display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:var(--gx-primary); color:#fff; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+/* D18: base .badge is a signal-value count chip (notification counts, unread counts, generic tallies — NOT an interactive control, NOT brand chrome). Route through slate neutral instead of cobalt brand spine. Callers wanting a semantic accent layer on .badge-success / .badge-warning / .badge-danger over this base. */
+.badge { display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:var(--gx-neutral); color:#fff; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
 .mono { font-family:var(--gx-font-mono); }
 .tnum { font-variant-numeric:tabular-nums; }
 .spacer { flex:1; }
@@ -120,8 +122,9 @@ button.kpi-tile, a.kpi-tile {
   box-shadow:0 6px 24px var(--gx-gold-soft);
 }
 .kpi-tile[data-clickable="true"]:focus { outline:none; }
+/* D18: KPI tile is drillable/clickable when data-clickable="true" → focus-visible on an interactive surface = azure ring, not cobalt brand spine. D17 hover stays gold (signature); D18 focus stays azure (interactive). */
 .kpi-tile[data-clickable="true"]:focus-visible {
-  outline:2px solid var(--gx-primary);
+  outline:2px solid var(--gx-interactive);
   outline-offset:2px;
 }
 
@@ -205,7 +208,8 @@ button.kpi-tile, a.kpi-tile {
 .dtr-sm > td { padding-top:6px; padding-bottom:6px; }
 .dtr-check { padding:11px 14px; width:32px; }
 .dtr-check-box { width:14px; height:14px; border-radius:var(--gx-radius-sm); border:1px solid var(--gx-border-strong); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all var(--gx-dur-fast); }
-.dtr-check-box.on { background:var(--gx-primary); border-color:var(--gx-primary); }
+/* D18: checkbox in checked/on state = interactive selected → --gx-interactive* (azure). Matches the --gx-selected → azure routing already locked in gaahex-tokens.css. */
+.dtr-check-box.on { background:var(--gx-interactive); border-color:var(--gx-interactive); }
 
 /* extension: account-menu positioning helper (kit `.menu` is positionless) */
 .user-menu-pop { position:absolute; top:calc(100% + 8px); right:0; width:280px; }
@@ -214,7 +218,8 @@ button.kpi-tile, a.kpi-tile {
 .menu-head { display:flex; align-items:center; gap:10px; padding:10px 8px 12px; border-bottom:1px solid var(--gx-border-subtle); margin:-5px -5px 5px; padding-left:12px; padding-right:12px; }
 .menu-head-name { font-size:13px; font-weight:600; color:var(--gx-text-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .menu-head-email { font-size:11px; color:var(--gx-text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.menu-head-rolebadge { display:inline-block; margin-top:4px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gx-primary); background:var(--gx-primary-soft); padding:1px 7px; border-radius:999px; }
+/* D18: role badge ("Admin", "Manager", etc.) is an administrative classification tag — NOT interactive (no hover/focus/click contract), NOT brand chrome. Signal-value tag → slate neutral. Keeps it readable as identity metadata without grabbing cobalt brand-spine weight or azure interactive weight. */
+.menu-head-rolebadge { display:inline-block; margin-top:4px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--gx-text-2); background:var(--gx-neutral-soft); padding:1px 7px; border-radius:999px; }
 .menu-label { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--gx-text-3); font-weight:600; padding:6px 10px 4px; }
 .menu-item.danger { color:var(--gx-danger-fg); }
 .menu-item.danger:hover { background:var(--gx-danger-soft); }
