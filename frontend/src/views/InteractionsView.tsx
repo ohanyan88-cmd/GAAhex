@@ -651,13 +651,11 @@ function LogModal({
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-          <button
-            className="btn btn-accent btn-md"
+          <Button variant="gold" size="md"
             disabled={saving || !body.trim()}
-            onClick={submit}
-          >
+            onClick={submit}>
             {saving ? 'Saving…' : 'Log'}
-          </button>
+          </Button>
         </>
       }
     >

@@ -202,7 +202,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                   <label className="field"><span>To</span><input className="inp inp-md mono" value={to} onChange={(e) => setTo(e.target.value)} placeholder="200" /></label>
                 </>
               )}
-              <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={create} disabled={!name.trim()}>Create</button></div>
+              <div className="rec-form-actions"><Button variant="gold" size="md" onClick={create} disabled={!name.trim()}>Create</Button></div>
             </div>
           </div>
         )}
@@ -434,7 +434,7 @@ function AllocateModal({ token, poolId, services, onClose, onDone }: { token: st
     <Modal open onClose={onClose} title="Allocate value" size="sm"
       footer={<>
         <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-        <button className="btn btn-accent btn-md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</button>
+        <Button variant="gold" size="md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</Button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field"><span>Value *</span><input className="inp inp-md mono" value={value} onChange={(e) => setValue(e.target.value)} placeholder="10.0.0.5" /></label>

@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -128,9 +129,10 @@ function AddFieldForm({
           </label>
         )}
         <div style={{ paddingBottom: 2 }}>
-          <button type="submit" className="btn btn-accent btn-sm" disabled={saving}>
+          <Button variant="gold" size="sm"
+            type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {saving ? 'Saving…' : 'Add field'}
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -195,9 +197,10 @@ function EditFieldRow({
         </td>
         <td>
           <div className="row-actions">
-            <button type="button" className="btn btn-accent btn-sm" onClick={save} disabled={saving}>
+            <Button variant="gold" size="sm"
+            type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
-            </button>
+            </Button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
               <CloseIcon size={13} />
             </button>

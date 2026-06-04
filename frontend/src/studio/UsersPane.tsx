@@ -18,6 +18,7 @@
 //
 // NO emoji. NO raw hex. Inline lucide-react icons via ../components/icons.
 
+import { Button } from '../primitives'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   LoadingState, EmptyState, ErrorBanner, PermissionDenied,
@@ -390,9 +391,10 @@ export default function UsersPane({ token }: { token: string }) {
             </label>
           </div>
           <div className="row">
-            <button type="submit" className="btn btn-accent btn-sm" disabled={creating}>
+            <Button variant="gold" size="sm"
+            type="submit"  disabled={creating}>
               <CheckIcon size={13} /> {creating ? 'Creating…' : 'Create user'}
-            </button>
+            </Button>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -629,9 +631,10 @@ export default function UsersPane({ token }: { token: string }) {
                 </label>
               </div>
               <div className="row">
-                <button className="btn btn-accent btn-sm" onClick={saveEdit} disabled={savingEdit}>
+                <Button variant="gold" size="sm"
+            onClick={saveEdit} disabled={savingEdit}>
                   <CheckIcon size={13} /> {savingEdit ? 'Saving…' : 'Save'}
-                </button>
+                </Button>
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => { setEditing(false); setEditErr('') }}
@@ -716,9 +719,10 @@ export default function UsersPane({ token }: { token: string }) {
                 </label>
               </div>
               <div className="row">
-                <button type="submit" className="btn btn-accent btn-sm" disabled={addingRole}>
+                <Button variant="gold" size="sm"
+            type="submit"  disabled={addingRole}>
                   <CheckIcon size={13} /> {addingRole ? 'Adding…' : 'Add role'}
-                </button>
+                </Button>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"

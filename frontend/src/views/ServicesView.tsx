@@ -307,7 +307,7 @@ function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose
     <Modal open onClose={onClose} title="New service" size="sm"
       footer={<>
         <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-        <button className="btn btn-accent btn-md" disabled={saving || !name.trim()} onClick={submit}>{saving ? 'Saving…' : 'Create'}</button>
+        <Button variant="gold" size="md" disabled={saving || !name.trim()} onClick={submit}>{saving ? 'Saving…' : 'Create'}</Button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field"><span>Name *</span>
@@ -516,7 +516,7 @@ function AllocateModal({ token, serviceId, onClose, onDone }: { token: string; s
     <Modal open onClose={onClose} title="Allocate resource" size="sm"
       footer={<>
         <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-        <button className="btn btn-accent btn-md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</button>
+        <Button variant="gold" size="md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</Button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field"><span>Kind</span>

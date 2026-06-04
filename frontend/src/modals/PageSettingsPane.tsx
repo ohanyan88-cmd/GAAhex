@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { toast } from '../components/Toast'
 import { LoadingState, ErrorBanner } from '../components/States'
@@ -332,9 +333,10 @@ function CustomFieldsSection({
               </label>
             )}
             <div style={{ display: 'flex', gap: 4, paddingBottom: 2 }}>
-              <button type="button" className="btn btn-accent btn-sm" onClick={commit}>
+              <Button variant="gold" size="sm"
+            type="button"  onClick={commit}>
                 <CheckIcon size={13} /> {editing != null ? 'Save' : 'Add'}
-              </button>
+              </Button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={cancel}>
                 <CloseIcon size={13} />
               </button>

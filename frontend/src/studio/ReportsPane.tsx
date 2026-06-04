@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -478,9 +479,10 @@ function ReportForm({
         </div>
 
         <div className="row" style={{ marginTop: 16, gap: 8 }}>
-          <button type="submit" className="btn btn-accent btn-sm" disabled={saving}>
+          <Button variant="gold" size="sm"
+            type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {isEdit ? 'Save changes' : 'Create report'}
-          </button>
+          </Button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
             Cancel
           </button>
@@ -741,9 +743,10 @@ function ScheduleForm({
           </div>
 
           <div className="row" style={{ marginTop: 16, gap: 8 }}>
-            <button type="submit" className="btn btn-accent btn-sm" disabled={saving}>
+            <Button variant="gold" size="sm"
+            type="submit"  disabled={saving}>
               <CheckIcon size={13} /> Create schedule
-            </button>
+            </Button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
               Cancel
             </button>

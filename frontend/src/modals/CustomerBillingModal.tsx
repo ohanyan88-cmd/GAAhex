@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { Modal } from '../components/Modal'
 import { bget, bpost, loadProducts, openDocument, type Subscription, type Invoice, type Product } from '../lib/billing'
@@ -187,7 +188,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                   <option value="yearly">Yearly</option>
                 </select>
               </label>
-              <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={createSub} disabled={!planName.trim()}>Create</button></div>
+              <div className="rec-form-actions"><Button variant="gold" size="md" onClick={createSub} disabled={!planName.trim()}>Create</Button></div>
             </div>
           )}
 

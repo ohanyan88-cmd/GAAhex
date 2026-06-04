@@ -15,7 +15,7 @@ import {
 import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, Pagination } from '../primitives'
+import { Button, Pagination, StatusPill} from '../primitives'
 import ErrorBoundary from '../components/ErrorBoundary'
 import LoadingState from '../components/LoadingState'
 
@@ -255,7 +255,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
               </select>
             </label>
             <div className="rec-form-actions">
-              <button className="btn btn-accent btn-md" onClick={createSub} disabled={!draft.plan_name.trim()}>Create</button>
+              <Button variant="gold" size="md" onClick={createSub} disabled={!draft.plan_name.trim()}>Create</Button>
             </div>
           </div>
         )}

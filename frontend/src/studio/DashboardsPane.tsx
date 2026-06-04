@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -481,14 +482,13 @@ export default function DashboardsPane({ token }: { token: string }) {
             </div>
           </div>
 
-          <button
+          <Button variant="gold" size="md"
             type="button"
-            className="btn btn-accent btn-md"
+            
             onClick={save}
-            disabled={saving}
-          >
+            disabled={saving}>
             <CheckIcon size={14} /> {saving ? 'Saving…' : (mode === 'create' ? 'Create dashboard' : 'Save changes')}
-          </button>
+          </Button>
         </div>
       )}
     </div>

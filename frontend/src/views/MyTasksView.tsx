@@ -504,15 +504,17 @@ function MyTaskDetailModal({
             {cust && <span className="muted" style={{ fontSize: 12 }}>{cust}</span>}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               {s === 'TODO' && (
-                <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => handleAction('start')}>
+                <Button variant="gold" size="sm"
+            disabled={busy} onClick={() => handleAction('start')}>
                   <PlayIcon size={12} /> Start
-                </button>
+                </Button>
               )}
               {s === 'IN_PROGRESS' && (
                 <>
-                  <button className="btn btn-accent btn-sm" disabled={busy} onClick={() => handleAction('complete')}>
+                  <Button variant="gold" size="sm"
+            disabled={busy} onClick={() => handleAction('complete')}>
                     <CheckIcon size={12} /> Complete
-                  </button>
+                  </Button>
                   <Button variant="ghost" size="sm"
             disabled={busy} onClick={() => handleAction('block')}>
                     <PauseIcon size={12} /> Block

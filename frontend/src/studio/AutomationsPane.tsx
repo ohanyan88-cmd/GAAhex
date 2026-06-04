@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState, useCallback } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -509,10 +510,11 @@ export default function AutomationsPane({ token }: { token: string }) {
           </div>
 
           <div className="row" style={{ marginTop: 4 }}>
-            <button type="submit" className="btn btn-accent btn-sm" disabled={submitting}>
+            <Button variant="gold" size="sm"
+            type="submit"  disabled={submitting}>
               <CheckIcon size={13} />
               {submitting ? 'Saving…' : editTarget ? 'Save changes' : 'Create automation'}
-            </button>
+            </Button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={closeForm}>
               Cancel
             </button>

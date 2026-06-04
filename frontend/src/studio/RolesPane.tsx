@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState, useCallback } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -204,9 +205,10 @@ export default function RolesPane({ token }: { token: string }) {
             </label>
           </div>
           <div className="row">
-            <button type="submit" className="btn btn-accent btn-sm" disabled={creating}>
+            <Button variant="gold" size="sm"
+            type="submit"  disabled={creating}>
               <CheckIcon size={13} /> {creating ? 'Creating…' : 'Create role'}
-            </button>
+            </Button>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -305,13 +307,11 @@ export default function RolesPane({ token }: { token: string }) {
             <LockIcon size={14} className="section-icon" />
             Permissions for <strong style={{ marginLeft: 4 }}>{selected.label}</strong>
             <span className="spacer" />
-            <button
-              className="btn btn-accent btn-sm"
-              onClick={savePerms}
-              disabled={saving}
-            >
+            <Button variant="gold" size="sm"
+            onClick={savePerms}
+              disabled={saving}>
               <CheckIcon size={13} /> {saving ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
             <button
               className="btn btn-ghost btn-sm"
               onClick={() => setSelected(null)}

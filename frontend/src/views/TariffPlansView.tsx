@@ -433,17 +433,15 @@ export default function TariffPlansView({
               />
             </label>
             <div className="rec-form-actions">
-              <button
-                className="btn btn-accent btn-md"
-                onClick={save}
+              <Button variant="gold" size="md"
+            onClick={save}
                 disabled={
                   !draft.name.trim()
                   || (!draft.id && !draft.key.trim())
                   || !draft.base_recurring_price.trim()
-                }
-              >
+                }>
                 {draft.id ? 'Save' : 'Create'}
-              </button>
+              </Button>
             </div>
           </div>
         )}

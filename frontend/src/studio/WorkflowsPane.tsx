@@ -1,3 +1,4 @@
+import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -80,9 +81,10 @@ function AddStatusForm({
           <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 8 }} />
         </label>
         <div style={{ paddingBottom: 2 }}>
-          <button type="submit" className="btn btn-accent btn-sm" disabled={saving}>
+          <Button variant="gold" size="sm"
+            type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {saving ? 'Saving…' : 'Add status'}
-          </button>
+          </Button>
         </div>
       </div>
     </form>
@@ -143,9 +145,10 @@ function EditStatusRow({
         </td>
         <td>
           <div className="row-actions">
-            <button type="button" className="btn btn-accent btn-sm" onClick={save} disabled={saving}>
+            <Button variant="gold" size="sm"
+            type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
-            </button>
+            </Button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
               <CloseIcon size={13} />
             </button>
@@ -281,9 +284,10 @@ function TransitionsEditor({
           <PlusIcon size={13} /> Add transition
         </button>
         <span className="spacer" />
-        <button type="button" className="btn btn-accent btn-sm" onClick={save} disabled={saving}>
+        <Button variant="gold" size="sm"
+            type="button"  onClick={save} disabled={saving}>
           <CheckIcon size={13} /> {saving ? 'Saving…' : 'Save transitions'}
-        </button>
+        </Button>
       </div>
     </div>
   )

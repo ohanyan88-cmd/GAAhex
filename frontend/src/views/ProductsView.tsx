@@ -216,7 +216,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
               </select>
             </label>
             <label className="field"><span>Active</span><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /></label>
-            <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={save} disabled={!draft.name.trim() || (!draft.id && !draft.key.trim())}>{draft.id ? 'Save' : 'Create'}</button></div>
+            <div className="rec-form-actions"><Button variant="gold" size="md" onClick={save} disabled={!draft.name.trim() || (!draft.id && !draft.key.trim())}>{draft.id ? 'Save' : 'Create'}</Button></div>
           </div>
         )}
 

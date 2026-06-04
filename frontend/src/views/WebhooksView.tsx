@@ -15,7 +15,7 @@ import {
 import { t } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, KPITile, Pagination } from '../primitives'
+import { Button, KPITile, Pagination, StatusPill} from '../primitives'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 
@@ -205,7 +205,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
             <label className="field"><span>URL *</span><input className="inp inp-md" value={draft.url} onChange={(e) => setDraft({ ...draft, url: e.target.value })} placeholder="https://example.com/hook" /></label>
             <label className="field"><span>Events</span><MultiSelect value={draft.events} options={EVENT_OPTIONS} onChange={(v) => setDraft({ ...draft, events: v })} /></label>
             <label className="field"><span>Active</span><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /></label>
-            <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={save} disabled={!draft.name.trim() || !draft.url.trim()}>{draft.id ? 'Save' : 'Create'}</button></div>
+            <div className="rec-form-actions"><Button variant="gold" size="md" onClick={save} disabled={!draft.name.trim() || !draft.url.trim()}>{draft.id ? 'Save' : 'Create'}</Button></div>
           </div>
         )}
 

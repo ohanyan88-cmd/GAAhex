@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1/2/3 — canonical modal chrome
-import { StudioDrawer } from '../primitives'  // DR-1
+import { Button, StudioDrawer} from '../primitives'  // DR-1
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, RowsIcon, TrashIcon,
   PlayIcon, SendHorizontalIcon, ZapIcon,
@@ -654,12 +654,12 @@ function DetailDrawer({
         >
           <PlayIcon size={13} /> {previewing ? 'Rendering…' : 'Preview'}
         </button>
-        <button
-          type="button" className="btn btn-accent btn-sm"
+        <Button variant="gold" size="sm"
+            type="button" 
           onClick={() => setConfirmSend(true)} disabled={sending}
         >
           <SendHorizontalIcon size={13} /> {sending ? 'Sending…' : 'Test send'}
-        </button>
+        </Button>
       </div>
       {previewErr && <div style={{ marginTop: 8 }}><ErrorBanner message={previewErr} /></div>}
       {preview && (

@@ -17,7 +17,7 @@ import { useI18n } from '../lib/i18n'
 import { PageShell, Stack, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, DetailTab, Pagination } from '../primitives'  // TB-2 — DetailTab is the canonical tab primitive
+import { Button, DetailTab, Pagination, StatusPill} from '../primitives'  // TB-2 — DetailTab is the canonical tab primitive
 // TB-4 — canonical Object Detail tab bodies parameterized over (entity, id).
 // Replaces 8 AccountXxxTab local copies (~300 LOC of duplication).
 import TimelineTab from './customer-tabs/TimelineTab'
@@ -342,7 +342,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
             <label className="field"><span>{t('accounts.cycle', 'Billing cycle')}</span>
               <select className="inp inp-md" value={cycle} onChange={(e) => setCycle(e.target.value)}>{CYCLES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
             </label>
-            <div className="rec-form-actions"><button className="btn btn-accent btn-md" onClick={create} disabled={!holder}>{t('common.create', 'Create')}</button></div>
+            <div className="rec-form-actions"><Button variant="gold" size="md" onClick={create} disabled={!holder}>{t('common.create', 'Create')}</Button></div>
           </div>
         )}
 

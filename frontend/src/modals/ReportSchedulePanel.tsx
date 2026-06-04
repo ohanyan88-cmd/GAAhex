@@ -10,7 +10,7 @@ import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { CalendarIcon, PauseIcon, PlayIcon, TrashIcon, CloseIcon } from '../components/icons'
-import { StatusPill } from '../primitives'
+import { Button, StatusPill} from '../primitives'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -267,13 +267,12 @@ function ScheduleForm({
 
       {/* Actions — spans full grid width */}
       <div className="rec-form-actions">
-        <button
-          type="submit"
-          className="btn btn-accent btn-md"
-          disabled={saving || !reportId}
-        >
+        <Button variant="gold" size="md"
+            type="submit"
+          
+          disabled={saving || !reportId}>
           {saving ? t('common.saving', 'Saving…') : t('sched.save', 'Save schedule')}
-        </button>
+        </Button>
         <button
           type="button"
           className="btn btn-ghost btn-md"

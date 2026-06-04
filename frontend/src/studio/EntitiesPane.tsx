@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1/2 — canonical modal chrome
-import { StudioDrawer } from '../primitives'  // DR-1 — canonical drawer chrome
+import { Button, StudioDrawer} from '../primitives'  // DR-1 — canonical drawer chrome
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon,
   ArrowUpIcon, ArrowDownIcon, ArrowRightIcon,
@@ -1024,9 +1024,10 @@ function AddFieldInline({
           />
         </label>
         <div className="row-actions" style={{ paddingBottom: 2 }}>
-          <button type="submit" className="btn btn-accent btn-sm" disabled={saving}>
+          <Button variant="gold" size="sm"
+            type="submit"  disabled={saving}>
             <CheckIcon size={13} />
-          </button>
+          </Button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={saving}>
             <CloseIcon size={13} />
           </button>
@@ -1090,9 +1091,10 @@ function EditFieldInline({
         </td>
         <td className="actions-col">
           <div className="row-actions">
-            <button type="button" className="btn btn-accent btn-sm" onClick={save} disabled={saving}>
+            <Button variant="gold" size="sm"
+            type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
-            </button>
+            </Button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={onDone} disabled={saving}>
               <CloseIcon size={13} />
             </button>
@@ -1158,9 +1160,10 @@ function AddStatusInline({
           <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 8 }} />
         </label>
         <div className="row-actions" style={{ paddingBottom: 2 }}>
-          <button type="submit" className="btn btn-accent btn-sm" disabled={saving}>
+          <Button variant="gold" size="sm"
+            type="submit"  disabled={saving}>
             <CheckIcon size={13} />
-          </button>
+          </Button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={saving}>
             <CloseIcon size={13} />
           </button>
@@ -1209,9 +1212,10 @@ function AddTransitionInline({
           </select>
         </label>
         <div className="row-actions" style={{ paddingBottom: 2 }}>
-          <button type="submit" className="btn btn-accent btn-sm">
+          <Button variant="gold" size="sm"
+            type="submit">
             <CheckIcon size={13} />
-          </button>
+          </Button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
             <CloseIcon size={13} />
           </button>
