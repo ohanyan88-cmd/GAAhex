@@ -149,6 +149,8 @@ Tech & NOC
 ├── Incidents & Outages
 ├── Infrastructure Projects
 └── Network & Stock Inventory
+Operations
+└── Warehouse
 Analytics & AI
 ├── Operational Dashboards
 └── Reports & AI Insights
@@ -163,6 +165,8 @@ Admin Panel
 ├── Dev Internals
 └── Studio
 ```
+**Operations · Warehouse vs. Tech & NOC · Network & Stock Inventory** — these are distinct surfaces, not duplicates. *Operations · Warehouse* is the platform-level stock module (parts/SKUs, bin assignments, transfers, field-tech draws); *Tech & NOC · Network & Stock Inventory* is the NOC's OLT-side hardware sub-block. Do not collapse them; see `nav-backlog-2026-06-03.md`.
+
 Behavior: desktop persistent (collapsible, preserving icons/labels/active state/permission
 filtering); mobile drawer/menu navigation without hiding core workflows. Permission-aware (hide
 or explain inaccessible items; backend still enforces; hiding is not security). Respects TenantID,

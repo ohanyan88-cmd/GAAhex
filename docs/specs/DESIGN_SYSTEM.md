@@ -32,7 +32,7 @@ for long daily use by ISP operators. Never playful, never casual. Clean and prec
 7. [Shadow & Elevation](#7-shadow--elevation)
 8. [Motion & Animation](#8-motion--animation)
 9. [Z-Index Stack](#9-z-index-stack)
-10. [Icon Library — All 46 SVGs](#10-icon-library)
+10. [Icon Library — All 45 SVGs](#10-icon-library)
 11. [Component Library — All CSS Classes](#11-component-library)
 12. [Shell Layout & Navigation Architecture](#12-shell-layout--navigation)
 13. [Auth & Login Page](#13-auth--login-page)
@@ -1651,7 +1651,7 @@ Rendered at 20px with `object-fit: contain`.
 Stored as: `entity.icon_url`.
 
 **Source 3 — Built-in Icon Library**:
-The 46 icons from `icons.tsx` are available as selectable options.
+The 45 icons from `icons.tsx` are available as selectable options.
 Icon picker grid: 8 columns, same grid layout as emoji picker, renders SVG previews.
 Active icon: `--accent-soft` bg + `--accent` border.
 
@@ -2121,7 +2121,7 @@ frontend/
     main.tsx              — React entry point, renders <App>
     App.tsx               — routing, auth gate, tenant gate, theme/theme context
     styles.css            — ALL design tokens + component classes (single file)
-    icons.tsx             — ALL SVG icons (46 icons, inline SVG components)
+    icons.tsx             — ALL SVG icons (45 icons, inline SVG components)
 
     api.ts                — ALL API calls (one file, all fetch functions)
 
