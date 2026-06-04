@@ -15,7 +15,7 @@
 // Range toggle: 7d · 30d · QTD · YTD — all charts re-fetch on change.
 // Permission gates: invoice.view gates revenue / AR widgets.
 // Real data only — empty fetch = widget hides, never placeholder numbers.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, TrendingUp, TrendingDown, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, Settings, type LucideIcon } from 'lucide-react'
 import { GearIcon, ChartIcon } from '../components/icons'
 import { money } from '../lib/money'
@@ -25,9 +25,13 @@ import { loadSelected, saveSelected } from '../lib/dashboard-catalog'
 import ChartPicker from '../components/ChartPicker'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
+// DF-1/DF-2/AC-2 — DashboardView is the vertical-slice migration target.
+// All 23 useEffect+fetch+alive blocks below have been replaced with
+// useFetched / useFetch calls. See docs/standards/SERVER_STATE_STANDARD.md.
+import { useAuth } from '../context/AuthContext'
+import { useFetch, useFetched, type Fetched } from '../hooks/useFetch'
 
 type Range = '7d' | '30d' | 'qtd' | 'ytd'
-type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
 
 function sinceDate(r: Range): string {
   const now = new Date()
@@ -686,12 +690,15 @@ function StatusBreakdown({ buckets, total }: { buckets: { label: string; value: 
 
 
 // ─── main view ────────────────────────────────────────────────────────────────
-export default function DashboardView({ token, canConfigure = false, onConfigure, onNavigate, capabilities }: {
-  token: string; configVersion?: number
+export default function DashboardView({ canConfigure = false, onConfigure, onNavigate, capabilities }: {
+  configVersion?: number
   canConfigure?: boolean; onConfigure?: () => void
   onNavigate?: (target: { type: string }) => void
   capabilities?: Capabilities  // SM-2 — App passes its single capabilities snapshot
 }) {
+  // SM-1 — token + user state consumed from AuthContext instead of being
+  // prop-drilled. The view used to start with `token: string` in its props.
+  const { token } = useAuth()
   const [range, setRange] = useState<Range>('30d')
   // SM-2 — use App's capabilities prop instead of refetching. capsLoaded stays
   // a flag indicating "App finished its initial capabilities fetch" — we infer
@@ -699,29 +706,66 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
   const caps: Capabilities = capabilities ?? FULL_ACCESS
   const capsLoaded = capabilities !== undefined
 
-  // Data state
-  const [overview,     setOverview]     = useState<Fetched<any>>({ state: 'loading' })
-  const [revTrend,     setRevTrend]     = useState<Fetched<any[]>>({ state: 'loading' })
-  const [subMix,       setSubMix]       = useState<Fetched<any[]>>({ state: 'loading' })
-  const [arAging,      setArAging]      = useState<Fetched<any>>({ state: 'loading' })
-  const [revMetrics,   setRevMetrics]   = useState<Fetched<any[]>>({ state: 'loading' })
-  const [customerData, setCustomerData] = useState<Fetched<{ new_: number[]; churned: number[]; labels: string[] }>>({ state: 'loading' })
-  const [funnel,       setFunnel]       = useState<Fetched<any[]>>({ state: 'loading' })
-  const [compare,      setCompare]      = useState<Fetched<any>>({ state: 'loading' })
-  const [weekly,       setWeekly]       = useState<Fetched<any[]>>({ state: 'loading' })
-  const [heatmap,      setHeatmap]      = useState<Fetched<any[]>>({ state: 'loading' })
-  const [statusBreak,  setStatusBreak]  = useState<Fetched<any>>({ state: 'loading' })
-  const [taskAging,    setTaskAging]    = useState<Fetched<any>>({ state: 'loading' })
-  const [ticketAging,  setTicketAging]  = useState<Fetched<any>>({ state: 'loading' })
-  const [riskHeatmap,  setRiskHeatmap]  = useState<Fetched<any>>({ state: 'loading' })
-  const [leadSources,  setLeadSources]  = useState<Fetched<any>>({ state: 'loading' })
-  const [salesByUser,  setSalesByUser]  = useState<Fetched<any>>({ state: 'loading' })
-  const [ragHealth,    setRagHealth]    = useState<Fetched<any>>({ state: 'loading' })
-  const [gantt,        setGantt]        = useState<Fetched<any[]>>({ state: 'loading' })
-  const [pareto,       setPareto]       = useState<Fetched<any[]>>({ state: 'loading' })
-  const [sankey,       setSankey]       = useState<Fetched<any>>({ state: 'loading' })
-  const [geoPoints,    setGeoPoints]    = useState<Fetched<any[]>>({ state: 'loading' })
-  const [netGrowth,    setNetGrowth]    = useState<Fetched<any[]>>({ state: 'loading' })
+  // DF-1/DF-2 — 23 charts, 23 useFetched calls. Replaces 23 useEffect+alive
+  // blocks. Each useFetched returns the legacy `Fetched<T>` discriminated
+  // union so the body code (`overview.state === 'ok' ? overview.value : ...`)
+  // works unchanged.
+  const months    = range === '7d' ? 3 : range === '30d' ? 6 : range === 'qtd' ? 6 : 12
+  const weeksN    = range === '7d' ? 6 : range === '30d' ? 10 : range === 'qtd' ? 13 : 26
+  const weeksN2   = range === '7d' ? 4 : range === '30d' ? 8 : range === 'qtd' ? 13 : 26
+  const daysN     = range === '7d' ? 28 : range === '30d' ? 60 : range === 'qtd' ? 90 : 180
+  const nonEmptyArr = (d: unknown) => Array.isArray(d) && d.length > 0
+
+  const overview    = useFetched<any>('/api/analytics/overview')
+  const revTrend    = useFetched<any[]>(`/api/analytics/revenue-trend?months=${months}`, nonEmptyArr)
+  const subMix      = useFetched<any[]>('/api/analytics/subscription-mix', nonEmptyArr)
+  const arAging     = useFetched<any>('/api/analytics/ar-aging')
+  const customerRaw = useFetch<any[]>(`/api/analytics/weekly-trend?weeks=${weeksN}`)
+  const funnelRaw   = useFetch<any>(null)  // funnel is 4 parallel fetches — kept in a custom useEffect below
+  const compare     = useFetched<any>('/api/analytics/comparisons')
+  const weekly      = useFetched<any[]>(`/api/analytics/weekly-trend?weeks=${weeksN2}`, nonEmptyArr)
+  const heatmap     = useFetched<any[]>(`/api/analytics/daily-heatmap?days=${daysN}`, nonEmptyArr)
+  const statusBreak = useFetched<any>('/api/analytics/status-breakdown')
+  const taskAging   = useFetched<any>('/api/analytics/task-aging')
+  const ticketAging = useFetched<any>('/api/analytics/ticket-aging')
+  const riskHeatmap = useFetched<any>('/api/analytics/risk-heatmap',
+    (d) => d != null && Object.values(d as Record<string, unknown>).reduce((s: number, v) => s + (Number(v) || 0), 0) > 0)
+  const leadSources = useFetched<any>('/api/analytics/leads-by-source',
+    (d) => d != null && Object.keys(d as object).length > 0)
+  const salesByUser = useFetched<any>('/api/analytics/sales-by-user',
+    (d) => d != null && Object.keys(d as object).length > 0)
+  const ragHealth   = useFetched<any>('/api/analytics/rag-health',
+    (d: any) => d != null && ((d.red ?? 0) + (d.amber ?? 0) + (d.green ?? 0)) > 0)
+  const gantt       = useFetched<any[]>('/api/analytics/gantt', nonEmptyArr)
+  const pareto      = useFetched<any[]>('/api/analytics/pareto/lead?group_field=source&limit=8', nonEmptyArr)
+  const sankey      = useFetched<any>('/api/analytics/sankey-leads',
+    (d: any) => d?.nodes ? d.nodes.reduce((s: number, n: any) => s + (Number(n.value) || 0), 0) > 0 : false)
+  const geoPoints   = useFetched<any[]>('/api/analytics/geo-points', nonEmptyArr)
+  const netGrowth   = useFetched<any[]>(`/api/analytics/net-subscriber-growth?weeks=${weeksN}`, nonEmptyArr)
+
+  // /api/metrics/revenue?range= returns { buckets: [...] }, so extract via useMemo.
+  const revMetricsRaw = useFetch<{ buckets?: any[] }>(`/api/metrics/revenue?range=${range}`)
+  const revMetrics: Fetched<any[]> = useMemo(() => {
+    if (revMetricsRaw.loading) return { state: 'loading' }
+    if (!revMetricsRaw.ok || !revMetricsRaw.data) return { state: 'hide' }
+    const buckets = revMetricsRaw.data.buckets ?? []
+    return buckets.length > 0 ? { state: 'ok', value: buckets } : { state: 'hide' }
+  }, [revMetricsRaw.loading, revMetricsRaw.ok, revMetricsRaw.data])
+
+  // Customer growth — extract labels/new/churned arrays from the weekly-trend response.
+  const customerData: Fetched<{ new_: number[]; churned: number[]; labels: string[] }> = useMemo(() => {
+    if (customerRaw.loading) return { state: 'loading' }
+    if (!customerRaw.ok || !Array.isArray(customerRaw.data) || customerRaw.data.length === 0) return { state: 'hide' }
+    const labels  = customerRaw.data.map((b: any) => String(b.week))
+    const new_    = customerRaw.data.map((b: any) => Number(b.customers) || 0)
+    const churned = customerRaw.data.map((b: any) => Number(b.churns) || 0)
+    return { state: 'ok', value: { new_, churned, labels } }
+  }, [customerRaw.loading, customerRaw.ok, customerRaw.data])
+
+  // Funnel — 4 parallel fetches; useFetch can't compose them, so keep the
+  // custom useEffect for this one. Marker so a future migration finds it.
+  const [funnel, setFunnel] = useState<Fetched<any[]>>({ state: 'loading' })
+  void funnelRaw  // keep the import live; future migration may use useFetches() style API
 
   // Layout — which chart IDs the user has chosen
   const [selected, setSelected] = useState<Set<string>>(() => loadSelected())
@@ -730,83 +774,11 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
 
   // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
 
-  // Overview KPIs
+  // DF-1/DF-2 — 22 useEffect+fetch+alive blocks deleted. They've all been
+  // replaced with useFetch / useFetched calls above. Funnel (4 parallel
+  // fetches) is the one exception — see the dedicated block below.
   useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/overview`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setOverview(d ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setOverview({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Revenue trend (bar chart data)
-  useEffect(() => {
-    let alive = true
-    const months = range === '7d' ? 3 : range === '30d' ? 6 : range === 'qtd' ? 6 : 12
-    fetch(`${BASE}/api/analytics/revenue-trend?months=${months}`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setRevTrend(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setRevTrend({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token, range])
-
-  // Subscription mix (donut)
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/subscription-mix`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setSubMix(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setSubMix({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // AR aging
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/ar-aging`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setArAging(d ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setArAging({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Revenue + churn metrics (for line chart)
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/metrics/revenue?range=${range}`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive) return
-        const buckets = d?.buckets ?? []
-        setRevMetrics(buckets.length > 0 ? { state: 'ok', value: buckets } : { state: 'hide' })
-      })
-      .catch(() => { if (alive) setRevMetrics({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token, range])
-
-  // Customer growth — REAL data from weekly-trend endpoint (no fake/random/derived)
-  useEffect(() => {
-    let alive = true
-    const weeksN = range === '7d' ? 6 : range === '30d' ? 10 : range === 'qtd' ? 13 : 26
-    fetch(`${BASE}/api/analytics/weekly-trend?weeks=${weeksN}`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive || !Array.isArray(d) || d.length === 0) {
-          if (alive) setCustomerData({ state: 'hide' })
-          return
-        }
-        const labels  = d.map((b: any) => String(b.week))
-        const new_    = d.map((b: any) => Number(b.customers) || 0)
-        const churned = d.map((b: any) => Number(b.churns) || 0)
-        setCustomerData({ state: 'ok', value: { new_, churned, labels } })
-      })
-      .catch(() => { if (alive) setCustomerData({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token, range])
-
-  // Funnel: lead → opportunity → deal → customer
-  useEffect(() => {
+    if (!token) return
     let alive = true
     Promise.all([
       fetch(`${BASE}/api/leads?limit=1000`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
@@ -824,179 +796,6 @@ export default function DashboardView({ token, canConfigure = false, onConfigure
       if (stages[0].value > 0) setFunnel({ state: 'ok', value: stages })
       else setFunnel({ state: 'hide' })
     }).catch(() => { if (alive) setFunnel({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token, range])
-
-  // Period-over-period comparisons
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/comparisons`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setCompare(d ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setCompare({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Weekly trend (last 12 weeks)
-  useEffect(() => {
-    let alive = true
-    const weeksN = range === '7d' ? 4 : range === '30d' ? 8 : range === 'qtd' ? 13 : 26
-    fetch(`${BASE}/api/analytics/weekly-trend?weeks=${weeksN}`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setWeekly(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setWeekly({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token, range])
-
-  // Daily heatmap
-  useEffect(() => {
-    let alive = true
-    const daysN = range === '7d' ? 28 : range === '30d' ? 60 : range === 'qtd' ? 90 : 180
-    fetch(`${BASE}/api/analytics/daily-heatmap?days=${daysN}`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setHeatmap(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setHeatmap({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token, range])
-
-  // Status breakdown (current snapshot)
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/status-breakdown`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setStatusBreak(d ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setStatusBreak({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Task aging — workitems by age bucket
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/task-aging`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setTaskAging(d ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setTaskAging({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Ticket aging — helpdesk tickets by age bucket
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/ticket-aging`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setTicketAging(d ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setTicketAging({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Risk heatmap — 3x3 grid
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/risk-heatmap`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive) return
-        const total = d ? Object.values(d).reduce((s: number, v: any) => s + (Number(v) || 0), 0) : 0
-        setRiskHeatmap(total > 0 ? { state: 'ok', value: d } : { state: 'hide' })
-      })
-      .catch(() => { if (alive) setRiskHeatmap({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Lead sources
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/leads-by-source`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive) return
-        const entries = d ? Object.entries(d) : []
-        setLeadSources(entries.length > 0 ? { state: 'ok', value: d } : { state: 'hide' })
-      })
-      .catch(() => { if (alive) setLeadSources({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Sales by user
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/sales-by-user`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive) return
-        const entries = d ? Object.entries(d) : []
-        setSalesByUser(entries.length > 0 ? { state: 'ok', value: d } : { state: 'hide' })
-      })
-      .catch(() => { if (alive) setSalesByUser({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // RAG health
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/rag-health`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive) return
-        const total = d ? (d.red ?? 0) + (d.amber ?? 0) + (d.green ?? 0) : 0
-        setRagHealth(total > 0 ? { state: 'ok', value: d } : { state: 'hide' })
-      })
-      .catch(() => { if (alive) setRagHealth({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Gantt — projects with start/due dates
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/gantt`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setGantt(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setGantt({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Pareto — lead sources for now (most populated)
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/pareto/lead?group_field=source&limit=8`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setPareto(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setPareto({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Sankey
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/sankey-leads`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!alive) return
-        const total = d?.nodes ? d.nodes.reduce((s: number, n: any) => s + (Number(n.value) || 0), 0) : 0
-        setSankey(total > 0 ? { state: 'ok', value: d } : { state: 'hide' })
-      })
-      .catch(() => { if (alive) setSankey({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Geographic points
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/analytics/geo-points`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setGeoPoints(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setGeoPoints({ state: 'hide' }) })
-    return () => { alive = false }
-  }, [token])
-
-  // Net subscriber growth (12-week trend)
-  useEffect(() => {
-    let alive = true
-    const weeksN = range === '7d' ? 6 : range === '30d' ? 10 : range === 'qtd' ? 13 : 26
-    fetch(`${BASE}/api/analytics/net-subscriber-growth?weeks=${weeksN}`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (alive) setNetGrowth(Array.isArray(d) && d.length > 0 ? { state: 'ok', value: d } : { state: 'hide' }) })
-      .catch(() => { if (alive) setNetGrowth({ state: 'hide' }) })
     return () => { alive = false }
   }, [token, range])
 

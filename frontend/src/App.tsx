@@ -63,6 +63,7 @@ import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
 import { PanelLeft, Wand, LogIn, Shield, Eye, EyeOff } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
+import { useAuth } from './context/AuthContext'
 import ProfileModal from './modals/ProfileModal'
 import SecurityModal from './modals/SecurityModal'
 import { ShortcutsModal, DocsModal, WhatsNewModal } from './modals/SupportModals'
@@ -163,17 +164,19 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
 
 
 export default function App() {
-  const [token, setToken] = useState<string | null>(null)
-  const [user, setUser] = useState<Me | null>(null)
-  const [entities, setEntities] = useState<Entity[]>([])
-  const [orgNodes, setOrgNodes] = useState<OrgNode[]>([])
+  // SM-1 — auth state (token, user, capabilities, entities, orgNodes) lives in
+  // AuthContext now. App.tsx still drives login/logout but reads/writes through
+  // the context so views can migrate to useAuth() incrementally.
+  const {
+    token, user, capabilities, entities, orgNodes,
+    setToken, setUser, setCapabilities, setEntities, setOrgNodes, clearAuth,
+  } = useAuth()
   const [view, setView] = useState<View>({ type: 'home' })
   const [prevView, setPrevView] = useState<View>({ type: 'home' })
   const [customerReturn, setCustomerReturn] = useState<View>({ type: 'home' })
   const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
   const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)   // …or for this bespoke page (page-config, not an entity)
   const [pageConfigVersion, setPageConfigVersion] = useState(0)   // bumped on a page-config save so the live view re-reads it
-  const [capabilities, setCapabilities] = useState<Capabilities>(FULL_ACCESS)
 
   function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
 
@@ -293,15 +296,17 @@ export default function App() {
 
   // AC-3 — listen for centralized 401 events from the canonical API client
   // (frontend/src/lib/billing.ts). Any bget/bpost/etc. that hits a 401 dispatches
-  // `gaahex:auth-401`; we clear React auth state which re-renders the login screen.
+  // `gaahex:auth-401`; clearAuth() (from AuthContext) clears every piece of
+  // session state and re-renders the login screen via the `if (!token)` gate
+  // below. View state (current page, drawers) is App-local and reset here.
   useEffect(() => {
     const onAuth401 = () => {
-      setToken(null); setUser(null); setEntities([]); setView({ type: 'home' })
-      setCapabilities(FULL_ACCESS)
+      clearAuth()
+      setView({ type: 'home' })
     }
     window.addEventListener('gaahex:auth-401', onAuth401)
     return () => window.removeEventListener('gaahex:auth-401', onAuth401)
-  }, [])
+  }, [clearAuth])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -319,7 +324,8 @@ export default function App() {
   }
 
   function logout() {
-    setToken(null); setUser(null); setEntities([]); setView({ type: 'home' }); setCapabilities(FULL_ACCESS)
+    clearAuth()
+    setView({ type: 'home' })
     setNavSections(NAV_SECTIONS)
     setOpenSections(new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)))
   }
@@ -623,7 +629,6 @@ export default function App() {
                   />
               : view.type === 'dashboards'
                 ? <DashboardView
-                    token={token}
                     configVersion={pageConfigVersion}
                     canConfigure={!!user?.can_configure}
                     capabilities={capabilities}
