@@ -27,10 +27,9 @@ import {
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { PageShell, type KPISpec } from '../page-shell'
-import { StatusPill } from '../primitives'
+import { StatusPill, Pagination } from '../primitives'
 import { fmtDate } from '../lib/time'
 
 // ── Stage 8 types ────────────────────────────────────────────────────────────
@@ -434,25 +433,13 @@ export default function OrdersView({ token, capabilities }: {
               </table>
             </div>
 
-            <div className="table-foot">
-              <span className="hint">
-                {sorted.length === 0
-                  ? '0 records'
-                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                  <ChevronLeft size={15} />
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map((p) => (
-                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
-                ))}
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              pageSize={PAGE_SIZE}
+              total={sorted.length}
+              onChange={setPage}
+            />
           </div>
         )}
 

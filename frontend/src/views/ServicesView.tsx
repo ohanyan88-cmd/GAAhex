@@ -8,13 +8,13 @@ import {
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight, Pause, Play, Trash2,
+  Pause, Play, Trash2,
 } from 'lucide-react'
 import { PageShell, type KPISpec } from '../page-shell'
 import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, Button } from '../primitives'
+import { StatusPill, Button, Pagination } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { humanizeStatus } from '../lib/humanize'
 
@@ -257,25 +257,13 @@ export default function ServicesView({ token, canConfigure = false, configVersio
               </table>
             </div>
 
-            <div className="table-foot">
-              <span className="hint">
-                {sorted.length === 0
-                  ? '0 records'
-                  : `Showing ${(pg - 1) * PAGE_SIZE + 1}–${Math.min(pg * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={pg <= 1} onClick={() => setPg(p => Math.max(1, p - 1))}>
-                  <ChevronLeft size={15} />
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
-                  <button key={p} className={'btn btn-sm btn-icon ' + (p === pg ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPg(p)}>{p}</button>
-                ))}
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={pg >= pageCount} onClick={() => setPg(p => Math.min(pageCount, p + 1))}>
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={pg}
+              pageCount={pageCount}
+              pageSize={PAGE_SIZE}
+              total={sorted.length}
+              onChange={setPg}
+            />
           </div>
         )}
 

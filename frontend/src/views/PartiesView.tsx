@@ -7,11 +7,10 @@ import {
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import { PageShell, type KPISpec } from '../page-shell'
-import { StatusPill } from '../primitives'
+import { StatusPill, Pagination } from '../primitives'
 
 // Parties UI (A17 /api/parties) — the "who" layer (individuals / organizations / carriers) that
 // Accounts hang off. Lighter than Accounts. Shows the parent→child hierarchy hint via an indent.
@@ -233,25 +232,13 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
               </table>
             </div>
 
-            <div className="table-foot">
-              <span className="hint">
-                {sorted.length === 0
-                  ? '0 records'
-                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
-                  <ChevronLeft size={15} />
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
-                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
-                ))}
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              pageSize={PAGE_SIZE}
+              total={sorted.length}
+              onChange={setPage}
+            />
           </div>
         )}
     </PageShell>

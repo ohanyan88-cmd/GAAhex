@@ -11,13 +11,13 @@ import {
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
-  ChevronLeft, ChevronRight, RefreshCw,
+  RefreshCw,
 } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 import { PageShell, Stack, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill, DetailTab } from '../primitives'  // TB-2 — DetailTab is the canonical tab primitive
+import { StatusPill, DetailTab, Pagination } from '../primitives'  // TB-2 — DetailTab is the canonical tab primitive
 // TB-4 — canonical Object Detail tab bodies parameterized over (entity, id).
 // Replaces 8 AccountXxxTab local copies (~300 LOC of duplication).
 import TimelineTab from './customer-tabs/TimelineTab'
@@ -401,25 +401,13 @@ export default function AccountsView({ token, canConfigure = false, configVersio
               </table>
             </div>
 
-            <div className="table-foot">
-              <span className="hint">
-                {sorted.length === 0
-                  ? '0 records'
-                  : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
-              </span>
-              <span className="spacer" />
-              <div style={{ display: 'flex', gap: 4 }}>
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
-                  <ChevronLeft size={15} />
-                </button>
-                {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map(p => (
-                  <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
-                ))}
-                <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
-                  <ChevronRight size={15} />
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              pageSize={PAGE_SIZE}
+              total={sorted.length}
+              onChange={setPage}
+            />
           </div>
         )}
     </PageShell>

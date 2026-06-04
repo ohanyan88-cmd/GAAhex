@@ -11,3 +11,4 @@ export { KPITile } from './KPITile'
 export { DataTableCell } from './DataTableCell'
 export { DetailTab, DetailTabList } from './DetailTab'
 export { StudioDrawer } from './StudioDrawer'  // DR-1
+export { Pagination } from './Pagination'  // T-P2-2
