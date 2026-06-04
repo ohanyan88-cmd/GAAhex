@@ -141,6 +141,28 @@ def _pill(status: str, locale: str = "en") -> str:
     return f'<span class="pill" style="background:{color}">{_e(label)}</span>'
 
 
+# T-P4-4 — GAAhex brand mark for branded HTML documents.
+# The platform identity: a cobalt hexagon containing the letter "G" + the
+# "AAhex" wordmark, with the "ex" suffix in gold (echoing the live SPA's
+# `.brand-mark .ex` rule). Used in document footers as the platform
+# attribution (NOT as the issuer — the issuer is the rendering tenant).
+# The SVG is inlined so the document is fully self-contained for print/PDF;
+# no network fetch, no external asset. Light-print-safe (cobalt + gold +
+# white only; no theme-dependent tokens).
+_BRAND_MARK_SVG = f"""<svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="vertical-align:middle;margin-right:6px"><path d="M7 0L13.4641 4V12L7 16L0.535898 12V4L7 0Z" fill="{_COBALT}"/><text x="7" y="11" text-anchor="middle" fill="#fff" font-family="-apple-system, Segoe UI, sans-serif" font-size="8" font-weight="700">G</text></svg>"""
+
+
+def _brand_mark() -> str:
+    """Return inline GAAhex platform mark (hex tile + AAhex wordmark)."""
+    return (
+        f'<span style="display:inline-flex;align-items:center">{_BRAND_MARK_SVG}'
+        f'<span style="font-weight:700;color:{_COBALT}">AA</span>'
+        f'<span style="font-weight:700;color:{_COBALT}">h</span>'
+        f'<span style="font-weight:700;color:{_GOLD}" class="ex">ex</span>'
+        f'</span>'
+    )
+
+
 # ==========================================================================================
 # Invoice document
 # ==========================================================================================
@@ -224,7 +246,7 @@ async def invoice_document(
       <tr class="grand"><td>{_e(L('balance_due'))}</td><td class="num due">{_amd(balance)}</td></tr>
     </table>
     {payments_block}
-    <div class="foot">{_e(L('footer'))} {issuer} · GAAhex · {_e(L('amounts_in'))}</div>
+    <div class="foot">{_e(L('footer'))} {issuer} · {_brand_mark()} · {_e(L('amounts_in'))}</div>
     """
     return HTMLResponse(_page(f"{L('invoice')} {inv.number}", body, locale))
 
@@ -323,7 +345,7 @@ async def customer_statement(
       <thead><tr><th>{_e(L('date'))}</th><th>{_e(L('description'))}</th><th class="num">{_e(L('amount'))}</th><th class="num">{_e(L('payments'))}</th><th class="num">{_e(L('balance_due'))}</th></tr></thead>
       <tbody>{rows}</tbody>
     </table>
-    <div class="foot">{_e(L('footer'))} {issuer} · GAAhex · {_e(L('amounts_in'))}</div>
+    <div class="foot">{_e(L('footer'))} {issuer} · {_brand_mark()} · {_e(L('amounts_in'))}</div>
     """
     return HTMLResponse(_page(f"{L('statement')} — {cust['name']}", body, locale))
 
@@ -462,7 +484,7 @@ async def payment_receipt(
     {f'<p class="muted" style="font-size:12px;margin-top:4px">{_e(pay.note)}</p>' if pay.note else ""}
 
     <div class="foot">
-      {_e(L('method'))}: {method_label}{provider_detail} · {issuer} · GAAhex · {_e(L('amounts_in'))}
+      {_e(L('method'))}: {method_label}{provider_detail} · {issuer} · {_brand_mark()} · {_e(L('amounts_in'))}
     </div>
     """
     return HTMLResponse(_page(f"{L('receipt')} {receipt_no}", body, locale))
