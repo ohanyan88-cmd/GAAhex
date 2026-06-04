@@ -195,27 +195,21 @@
   --gx-font-mono:    'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
 
   /* ── MOTION (eases match the new system) ── */
-  --gx-duration-instant: 0ms;
-  --gx-duration-fast:    120ms;
-  --gx-duration-base:    180ms;
-  --gx-duration-slow:    240ms;
+  /* T-P4-5 — `--gx-duration-*` removed (orphan, never consumed; canonical is
+     `--gx-dur-instant/-fast/-base/-slow` in gaahex-tokens.css). */
   --gx-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --gx-ease-emphasis: cubic-bezier(0.3, 0, 0, 1);
 
   /* ── Z-INDEX (unchanged) ── */
   --gx-z-dropdown: 100; --gx-z-sticky: 200; --gx-z-overlay: 300; --gx-z-modal: 400; --gx-z-toast: 500;
 
-  /* ── COMPONENT TOKENS (unchanged — your dense heights) ── */
-  --gx-input-height-sm: 24px; --gx-input-height-md: 28px; --gx-input-height-lg: 32px;
-  --gx-btn-height-sm:   24px; --gx-btn-height-md:   28px; --gx-btn-height-lg:   32px;
-  --gx-btn-px-sm: var(--gx-space-4); --gx-btn-px-md: var(--gx-space-6); --gx-btn-px-lg: var(--gx-space-8);
+  /* ── COMPONENT TOKENS ──
+     T-P4-5 — `--gx-input-height-*` / `--gx-btn-height-*` / `--gx-btn-px-*`
+     removed (orphan, never consumed; canonical is `--gx-control-sm/-md/-lg`
+     in gaahex-tokens.css which Input/Button primitives already reference). */
 }
 
-/* OPTIONAL — "premium breathing room" density (the design-system default).
-   Uncomment to adopt larger controls + spacing. Test layouts after enabling.
-:root {
-  --gx-input-height-sm: 28px; --gx-input-height-md: 34px; --gx-input-height-lg: 42px;
-  --gx-btn-height-sm:   28px; --gx-btn-height-md:   34px; --gx-btn-height-lg:   42px;
-  --gx-space-5: 16px; --gx-space-6: 20px; --gx-space-7: 24px; --gx-space-8: 32px;
-}
-*/
+/* T-P4-5 — removed the dead "premium breathing room" alt-density block. It
+   used the same `--gx-input-height-*` / `--gx-btn-height-*` names whose
+   canonical is now `--gx-control-*`; any future density experiment should
+   re-introduce as `--gx-control-sm/-md/-lg` directly. */
