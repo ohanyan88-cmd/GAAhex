@@ -327,9 +327,9 @@ pnpm typecheck
 | Phase 2 — API + State | 11 | 6 | 4 | 1 | **11 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 3 — Permissions + Validation + Pagination | 13 | 4 | 7 | 2 | **13 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **25 done** (MO-1 ✓ · DR-1+DR-4 ✓ · TL-2 scope-revised ✓ · TL-4 ✓ · TL-5 majority ✓) | **0** |
-| Phase 5 — Tokenization | 33 | 8 | 14 | 11 | **15 done** (T-P2-2 Pagination + T-P2-5 StudioDrawer + T-P2-10 chips/tags/alerts/tertiary; T-P3-1 D19 documented; T-P3-2 breakpoint tokens; T-P3-3 WCAG tap-min; T-P4-2 portal i18n; T-P4-3 backend HTML i18n; T-P4-4 brand mark) | **18** (T-P3-4/5/6/7/8/9/10 raw-class + bare-px codemods; T-P4-5 orphan tokens; T-P2-3/4/6/7/8/9/11/12) |
+| Phase 5 — Tokenization | 33 | 8 | 14 | 11 | **19 done** (T-P2-2 Pagination + T-P2-3 LoadShell + T-P2-5 StudioDrawer + T-P2-7 DashboardCard + T-P2-8 badge variants + T-P2-10 chips/tags/alerts/tertiary; T-P3-1 D19 documented; T-P3-2 breakpoint tokens; T-P3-3 WCAG tap-min; T-P3-4 hex fallbacks zeroed (136→0); T-P3-7 raw btn-md ↓43% (387→221, 166 sites migrated to <Button>); T-P4-2 portal i18n; T-P4-3 backend HTML i18n; T-P4-4 brand mark) | **14** (T-P3-5/6/8/9/10 inline-style + raw-inp + layout-one-off codemods; T-P4-5 orphan tokens; T-P2-4/6/9/11/12) |
 | Phase 6 — Governance | 14 rules + 7 docs | — | — | — | **19 done** (11 HARD + 8 RATCHET drift rules in CI; 7 standards docs landed) | **1** (post-Phase-5 codemod-target ratchets to harden) |
-| **TOTAL** | **107** | **35** | **36** | **22** | **88 done · 19 remaining (Phase 5c/d codemod surface)** | **19** |
+| **TOTAL** | **107** | **35** | **36** | **22** | **92 done · 15 remaining (Phase 5c/d codemod surface)** | **15** |
 
 ---
 
