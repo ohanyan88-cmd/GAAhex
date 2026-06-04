@@ -17,7 +17,7 @@ import { useI18n } from '../lib/i18n'
 import { PageShell, Stack, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
-import { StatusPill } from '../primitives'
+import { StatusPill, DetailTab } from '../primitives'  // TB-2 — DetailTab is the canonical tab primitive
 
 // Accounts UI (A17 /api/accounts) — the money/billing layer on a Party. Stage 1 may be dormant
 // (no data) — that's fine; degrades to empty states, and 404 to "not available yet".
@@ -465,9 +465,10 @@ function accountTabIcon(k: AccountTabKey): ReactNode {
   }
 }
 
-// Inline tab button mirrors the CustomerView pattern: bottom-border highlight on
-// active, no count badge (tab data is local to each tab body — parent doesn't
-// pre-load counts for the canonical nine).
+// TB-2 — local AccountTabButton was identical to InvoiceTabButton. Both now
+// use the canonical `DetailTab` primitive from `../primitives/DetailTab`
+// (imported below). Wrap the tab strip with `<DetailTabList>` to inherit
+// WCAG-conformant arrow-key navigation (TB-3).
 function AccountTabButton({ active, label, icon, onClick }: {
   active: boolean
   label: string
@@ -475,29 +476,9 @@ function AccountTabButton({ active, label, icon, onClick }: {
   onClick: () => void
 }) {
   return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '10px 14px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {icon}{label}
-    </button>
+    <DetailTab active={active} onSelect={onClick} icon={icon}>
+      {label}
+    </DetailTab>
   )
 }
 

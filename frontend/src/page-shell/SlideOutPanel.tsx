@@ -13,6 +13,7 @@
 //   - Body scroll is locked while open.
 //   - Animation: 280ms ease, transform-only — no layout shift.
 import { useEffect } from 'react'
+import { useFocusTrap } from '../lib/useFocusTrap'  // DR-3 — keep Tab focus inside
 
 export interface SlideOutPanelProps {
   open: boolean
@@ -28,6 +29,13 @@ export interface SlideOutPanelProps {
 export function SlideOutPanel({
   open, onClose, title, children, dismissible = true, subtitle,
 }: SlideOutPanelProps) {
+  // DR-3 — useFocusTrap moves initial focus inside, traps Tab key, restores
+  // focus on unmount, AND wires Esc-to-close. Replaces the previous Esc-only
+  // handler that left Tab key escaping the drawer (WCAG 2.1.1 violation).
+  // Note: focus trap is keyed on the `open` boolean so the hook mounts/unmounts
+  // with the visible drawer.
+  const drawerRef = useFocusTrap<HTMLElement>(onClose)
+
   // Lock body scroll while drawer is open. Restores prior overflow on close.
   useEffect(() => {
     if (!open) return
@@ -35,16 +43,6 @@ export function SlideOutPanel({
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
   }, [open])
-
-  // ESC to close.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
 
   return (
     <>
@@ -54,11 +52,13 @@ export function SlideOutPanel({
         aria-hidden={!open}
       />
       <aside
+        ref={open ? drawerRef : undefined}
         className={'nms-drawer' + (open ? ' is-open' : '')}
         role="dialog"
         aria-modal="true"
         aria-labelledby="nms-drawer-title"
         aria-hidden={!open}
+        tabIndex={-1}
       >
         <div className="nms-drawer-header">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

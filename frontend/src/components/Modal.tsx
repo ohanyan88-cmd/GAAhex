@@ -98,6 +98,45 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
   )
 }
 
+// MO-6 — ModalFooterActions. Every Modal caller used to copy-paste the same
+// "Cancel + primary action" button pair. This helper standardizes the
+// footer-row markup so a future style change (Cancel goes from `btn-ghost`
+// to `btn-secondary`, primary becomes loading-spinner-aware, etc.) lands in
+// one place. Pass into Modal's `footer` prop.
+export function ModalFooterActions({
+  onCancel,
+  onConfirm,
+  cancelLabel = 'Cancel',
+  confirmLabel = 'Confirm',
+  confirmDisabled = false,
+  danger = false,
+}: {
+  onCancel: () => void
+  onConfirm: () => void | Promise<void>
+  cancelLabel?: string
+  confirmLabel?: string
+  confirmDisabled?: boolean
+  /** Use the danger variant on the primary button (red — for destructive flows). */
+  danger?: boolean
+}) {
+  return (
+    <>
+      <button type="button" className="btn btn-ghost btn-md" onClick={onCancel}>
+        {cancelLabel}
+      </button>
+      <button
+        type="button"
+        className={'btn btn-md ' + (danger ? 'btn-danger' : 'btn-primary')}
+        disabled={confirmDisabled}
+        onClick={() => { void onConfirm() }}
+      >
+        {confirmLabel}
+      </button>
+    </>
+  )
+}
+
+
 // ── confirmDialog: a promise-based confirm that replaces window.confirm ──────────────────────────
 export type ConfirmOptions = {
   title?: string
@@ -142,12 +181,13 @@ export function ConfirmHost() {
       title={opts.title ?? 'Confirm'}
       size="sm"
       footer={
-        <>
-          <button className="btn btn-ghost btn-md" onClick={() => close(false)}>{opts.cancelLabel ?? 'Cancel'}</button>
-          <button className={'btn btn-md ' + (opts.danger ? 'btn-danger' : 'btn-primary')} onClick={() => close(true)}>
-            {opts.confirmLabel ?? 'Confirm'}
-          </button>
-        </>
+        <ModalFooterActions
+          onCancel={() => close(false)}
+          onConfirm={() => close(true)}
+          cancelLabel={opts.cancelLabel}
+          confirmLabel={opts.confirmLabel ?? 'Confirm'}
+          danger={!!opts.danger}
+        />
       }
     >
       <p style={{ margin: 0, color: 'var(--gx-text-2)', fontSize: 13, lineHeight: 1.5 }}>{opts.message}</p>

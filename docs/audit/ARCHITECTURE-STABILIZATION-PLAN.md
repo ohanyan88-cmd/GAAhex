@@ -181,26 +181,26 @@ cd frontend && pnpm typecheck
 | **MO-3** | 1 hand-rolled test-send confirm in NotificationsPane. | `components/Modal.tsx` | `studio/NotificationsPane.tsx:350–410` | ❌ | **M** | ⬜ TODO |
 | **MO-4** | `ChartPicker` — hand-rolled `position:fixed,inset:0` picker overlay. | `components/Modal.tsx` or popover | `components/ChartPicker.tsx:39–80` | ❌ | **M** | ⬜ TODO |
 | **MO-5** | `ConfigureDrawer` — hand-rolled `position:fixed` with `useFocusTrap` but no Esc on backdrop. | Wrap in `<Overlay>` | `modals/ConfigureDrawer.tsx:164–332` | PARTIAL | **L** | ⬜ TODO |
-| **MO-6** | `ConfirmModal` footer button pair copy-pasted at every modal call site (12+). | Extract `<ModalFooterActions onCancel onConfirm label />` | All 12+ modal callers | n/a | **M** | ⬜ TODO |
+| **MO-6** | `ConfirmModal` footer button pair copy-pasted at every modal call site (12+). | `<ModalFooterActions>` in `components/Modal.tsx` | `ConfirmHost` migrated; 12 other callers incremental | n/a | **M** | ✅ FOUNDATION — helper landed; ConfirmHost uses it. Other 12 callers migrate as they're touched. |
 
 ### Drawer findings
 
 | ID | Description | Canonical target | Duplicate instances | A11y | Risk | Status |
 |---|---|---|---|---|---|---|
 | **DR-1** | 3 verbatim copies of slide-out drawer chrome in studio panes. No focus trap, no Esc, no ARIA. | `components/RecordDrawer.tsx:91` → build `<StudioDrawer>` | `studio/EntitiesPane.tsx:970–1004` · `WebhooksPane.tsx:711–745` · `NotificationsPane.tsx:782–820` | ❌ | **H** | ⬜ TODO |
-| **DR-2** | `RecordDrawer` has no focus trap — focus escapes into underlying page. | Add `useFocusTrap(drawerRef, { onClose })` | `components/RecordDrawer.tsx:91` (the canonical itself is incomplete) | PARTIAL | **H** | ⬜ TODO |
-| **DR-3** | `SlideOutPanel` (NMS) has no focus trap. | Add `useFocusTrap` | `page-shell/SlideOutPanel.tsx:28` | NO | **M** | ⬜ TODO |
+| **DR-2** | `RecordDrawer` has no focus trap — focus escapes into underlying page. | `useFocusTrap(drawerRef, onClose)` | `components/RecordDrawer.tsx` | YES | **H** | ✅ DONE — useFocusTrap wired; Esc + Tab + focus-restore all canonical now. |
+| **DR-3** | `SlideOutPanel` (NMS) has no focus trap. | `useFocusTrap` | `page-shell/SlideOutPanel.tsx` | YES | **M** | ✅ DONE. |
 | **DR-4** | 4 distinct drawer flavors with inconsistent A11y capabilities. | Consolidate: `ConfigureDrawer` pattern → canonical; `RecordDrawer` + `SlideOutPanel` get `useFocusTrap`; studio panes use `<StudioDrawer>` | 6 files | VARIES | **H** | ⬜ TODO |
 
 ### Tab findings
 
 | ID | Description | Canonical target | Duplicate instances | A11y | Risk | Status |
 |---|---|---|---|---|---|---|
-| **TB-1** | 10 distinct tab flavors — no canonical `<TabButton>` primitive. No keyboard nav anywhere. | Build `<DetailTab>` (underline + count) and `<PillTab>` | 14+ files | VARIES | **H** | ⬜ TODO |
-| **TB-2** | `InvoiceTabButton` and `AccountTabButton` are identical. | Single `<DetailTab>` replaces both | `views/InvoicesView.tsx:401` · `views/AccountsView.tsx:471` | YES | **M** | ⬜ TODO |
-| **TB-3** | No keyboard navigation in ANY hand-rolled tab implementation. WCAG 2.1.1 violated. | Arrow-key nav + Home/End + `aria-controls`↔`aria-labelledby` in `<DetailTab>` | All 14+ tab implementations | ❌ | **H** | ⬜ TODO |
-| **TB-4** | 9-tab object-detail spec implemented 3 times — 16 duplicate React tab body components across InvoicesView + AccountsView. | Parameterize `views/customer-tabs/*` to accept entity-type + id props | `views/InvoicesView.tsx:695–960` · `views/AccountsView.tsx:677–960` | n/a | **H** | ⬜ TODO |
-| **TB-5** | `PageShellDemoView` uses `aria-pressed` instead of `aria-selected` on tab buttons. Incorrect pattern example. | Replace `aria-pressed` with `aria-selected` | `views/PageShellDemoView.tsx:317–328` | BUG | **L** | ⬜ TODO |
+| **TB-1** | 10 distinct tab flavors — no canonical `<TabButton>` primitive. | `frontend/src/primitives/DetailTab.tsx` (DetailTab + DetailTabList) | 7 hand-rolled flavors remain (Customer/Ra/Ni/Collections/Pipeline tab buttons) | YES | **H** | ✅ FOUNDATION — primitive built + 2 callers migrated; 5 more incremental. |
+| **TB-2** | `InvoiceTabButton` and `AccountTabButton` are identical. | Single `DetailTab` replaces both | `views/InvoicesView.tsx` · `views/AccountsView.tsx` | YES | **M** | ✅ DONE — both delegate to DetailTab. |
+| **TB-3** | No keyboard navigation in ANY hand-rolled tab implementation. WCAG 2.1.1 violated. | `DetailTabList` wires Arrow Left/Right/Up/Down + Home + End + roving tabindex | Primitive built; callers wrap with `<DetailTabList>` to opt in | YES | **H** | ✅ FOUNDATION — keyboard nav landed in the canonical. Callers wrap their tab strip in `<DetailTabList>` to inherit it. |
+| **TB-4** | 9-tab object-detail spec implemented 3 times — 16 duplicate React tab body components across InvoicesView + AccountsView. | Parameterize `views/customer-tabs/*` to accept entity-type + id props | `views/InvoicesView.tsx:695–960` · `views/AccountsView.tsx:677–960` | n/a | **H** | ⬜ TODO — Phase 4 Part 2 (large surgical refactor; needs care). |
+| **TB-5** | `PageShellDemoView` uses `aria-pressed` instead of `aria-selected`. | Replace with `aria-selected` | `views/PageShellDemoView.tsx:317–328` | FIXED | **L** | ✅ DONE. |
 
 ### Table findings
 
@@ -211,8 +211,8 @@ cd frontend && pnpm typecheck
 | **TL-3** | `<ul>/<li>` used for tabular data (timeline/comment tabs) in InvoicesView. | `components/ActivityTimeline.tsx` | `views/InvoicesView.tsx:715–729` · `views/InvoicesView.tsx:794–807` | **M** | ⬜ TODO |
 | **TL-4** | Inline action buttons in 15+ table views bypass `RowActionsMenu`. | `components/RowActionsMenu.tsx:31` | `InvoicesView.tsx:330–334` · `CustomerView.tsx:641–642` · `CustomerBillingModal.tsx:206–208` + ~12 more | **H** | ⬜ TODO |
 | **TL-5** | 15+ views hand-roll search/filter inputs instead of `<FilterBar>` zone E. | `page-shell/FilterBar.tsx:19` (zone E) | 42 of 51 PageShell views pass no `filters=` prop | **M** | ⬜ TODO |
-| **TL-6** | `_ensure` / `_ensure_user` test fixture duplicated across 18 test files. | Move to `conftest.py` as `async def ensure_user(...)` | 18 test files | **H** | ⬜ TODO |
-| **TL-7** | `_customer(client, admin, name)` test helper duplicated across 27 test files. | Move to `conftest.py` as `async def make_customer(...)` | 27 test files | **H** | ⬜ TODO |
+| **TL-6** | `_ensure` / `_ensure_user` test fixture duplicated across 18 test files. | `tests/conftest.py:ensure_user` (idempotent factory) | 18 test files | **H** | ✅ FOUNDATION — `ensure_user` canonical in conftest. Per-test migration incremental. |
+| **TL-7** | `_customer(client, admin, name)` test helper duplicated across 27 test files. | `tests/conftest.py:make_customer` (name optional, auto-generated if absent) | 27 test files | **H** | ✅ FOUNDATION — `make_customer` canonical in conftest. Per-test migration incremental. |
 
 ### Phase 4 verification
 
@@ -326,7 +326,7 @@ pnpm typecheck
 | Phase 1 — Financial Integrity | 11 | 5 | 3 | 3 | **9 done · 2 deferred** | **0** |
 | Phase 2 — API + State | 11 | 6 | 4 | 1 | **11 done (foundations laid; incremental cleanup remains)** | **0** |
 | Phase 3 — Permissions + Validation + Pagination | 13 | 4 | 7 | 2 | **13 done (foundations laid; incremental cleanup remains)** | **0** |
-| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | 0 | **25** |
+| Phase 4 — Modals + Drawers + Tabs + Tables | 25 | 12 | 8 | 5 | **9 done (DR-2/3, MO-6, TB-1/2/3/5, TL-6/7) · 16 deferred to Part 2** | **16** |
 | Phase 5 — Tokenization | 33 | 8 | 14 | 11 | 0 | **33** |
 | Phase 6 — Governance | 14 rules + 5 docs | — | — | — | 0 | **19** |
 | **TOTAL** | **107** | **35** | **36** | **22** | **0** | **107** |

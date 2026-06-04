@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { bget, bpost, loadCustomers, openDocument, type Invoice, type Payment } from '../lib/billing'
+import { DetailTab } from '../primitives'  // TB-2 — canonical detail-tab primitive
 import { initiatePayment, confirmDevPayment, isDevFlow } from '../lib/paymentgw'
 import { money, toMinor } from '../lib/money'
 import { fmtDate, timeAgo } from '../lib/time'
@@ -393,6 +394,8 @@ function invoiceTabIcon(k: InvoiceTabKey): ReactNode {
   }
 }
 
+// TB-2 — local InvoiceTabButton delegates to the canonical `DetailTab`
+// primitive (identical recipe across InvoicesView and AccountsView pre-dedupe).
 function InvoiceTabButton({ active, label, icon, onClick }: {
   active: boolean
   label: string
@@ -400,29 +403,9 @@ function InvoiceTabButton({ active, label, icon, onClick }: {
   onClick: () => void
 }) {
   return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '10px 14px',
-        background: 'transparent',
-        border: 'none',
-        // D18: active tab underline = azure (interactive selection)
-        borderBottom: active ? '2px solid var(--gx-interactive, #2563eb)' : '2px solid transparent',
-        color: active ? 'var(--gx-text-1, #0f172a)' : 'var(--gx-text-3, #64748b)',
-        fontSize: 13,
-        fontWeight: active ? 600 : 500,
-        cursor: 'pointer',
-        marginBottom: -1,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {icon}{label}
-    </button>
+    <DetailTab active={active} onSelect={onClick} icon={icon}>
+      {label}
+    </DetailTab>
   )
 }
 

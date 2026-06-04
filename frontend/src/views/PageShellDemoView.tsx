@@ -315,12 +315,16 @@ export default function PageShellDemoView() {
     <div className="ps-demo-root">
       <div className="ps-demo-tabs" role="tablist" aria-label="Page type">
         {TYPES.map((t) => (
+          // TB-5 — `aria-selected` is the correct attribute for `role="tab"`.
+          // `aria-pressed` is for toggle-buttons; screen readers will announce
+          // the active page-type tab as "not pressed" / "pressed" otherwise,
+          // which is wrong for a tab control.
           <button
             key={t}
             type="button"
             role="tab"
             className="ps-demo-tab"
-            aria-pressed={active === t}
+            aria-selected={active === t}
             onClick={() => setActive(t)}
           >
             {t}
