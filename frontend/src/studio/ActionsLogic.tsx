@@ -130,7 +130,9 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rules.map(r => (
             <div key={r.id} className="rule-card">
-              <span className="rule-pill" style={{ background: 'var(--gx-primary-soft)', color: 'var(--gx-info-fg)' }}>
+              {/* D18: WHEN/IF/DO are semantic-tagged pills. WHEN = trigger/event =
+                  interactive (azure-soft). IF stays warning, DO presumably success. */}
+              <span className="rule-pill" style={{ background: 'var(--gx-interactive-soft)', color: 'var(--gx-info-fg)' }}>
                 WHEN
               </span>
               <select

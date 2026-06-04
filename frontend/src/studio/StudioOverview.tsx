@@ -21,16 +21,21 @@ import { iconFor } from './iconMap'
 import type { StudioPick } from './StudioTree'
 
 // One row per layer: [groupId, icon-slug, label, one-liner, relationship-to-next, tone]
+// D18: nine layers = distinct-identity data (per D18 chart rules). Use the
+// categorical viz palette `--viz-1..--viz-8` (locked, color-blind aware)
+// instead of raw Tier-0 scales, inline hex, or overloading `--gx-gold` for
+// identity. The viz palette was designed exactly for this scenario.
+// system-control keeps slate text-2 as the passive "neutral last category" anchor.
 type Layer = [string, string, string, string, string | null, string]
 const LAYERS: Layer[] = [
-  ['experience',     'monitor',     'Experience',     'What users see',          'uses',          'var(--azure-400)'],
-  ['data',           'database',    'Data',           'What users store',        'controlled by', 'var(--green-400)'],
-  ['logic',          'zap',         'Logic',          'What the system does',    'protected by',  'var(--gx-gold)'],
-  ['security',       'shield',      'Security',       'Who can do it',           'enhanced by',   'var(--red-400)'],
-  ['intelligence',   'sparkles',    'Intelligence',   'How the system thinks',   'verified by',   'var(--violet-400)'],
-  ['quality',        'check-check', 'Quality',        'How changes are tested',  'published by',  '#2A9DB5'],
-  ['release',        'rocket',      'Release',        'How changes go live',     'tracked by',    'var(--amber-400)'],
-  ['governance',     'gavel',       'Governance',     'How changes are tracked', 'managed by',    'var(--cobalt-400)'],
+  ['experience',     'monitor',     'Experience',     'What users see',          'uses',          'var(--viz-1)'],
+  ['data',           'database',    'Data',           'What users store',        'controlled by', 'var(--viz-3)'],
+  ['logic',          'zap',         'Logic',          'What the system does',    'protected by',  'var(--viz-2)'],
+  ['security',       'shield',      'Security',       'Who can do it',           'enhanced by',   'var(--viz-7)'],
+  ['intelligence',   'sparkles',    'Intelligence',   'How the system thinks',   'verified by',   'var(--viz-4)'],
+  ['quality',        'check-check', 'Quality',        'How changes are tested',  'published by',  'var(--viz-6)'],
+  ['release',        'rocket',      'Release',        'How changes go live',     'tracked by',    'var(--viz-5)'],
+  ['governance',     'gavel',       'Governance',     'How changes are tracked', 'managed by',    'var(--viz-8)'],
   ['system-control', 'settings',    'System Control', 'How the platform runs',   null,            'var(--gx-text-2)'],
 ]
 

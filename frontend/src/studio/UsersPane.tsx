@@ -432,7 +432,8 @@ export default function UsersPane({ token }: { token: string }) {
                   key={u.id}
                   style={{
                     cursor: 'pointer',
-                    background: selected?.id === u.id ? 'var(--gx-primary-soft)' : undefined,
+                    // D18: selected user row = azure-soft (interactive family, active selected state)
+                    background: selected?.id === u.id ? 'var(--gx-interactive-soft)' : undefined,
                     opacity: u.status === 'inactive' ? 0.6 : 1,
                   }}
                   onClick={() => selectUser(u)}

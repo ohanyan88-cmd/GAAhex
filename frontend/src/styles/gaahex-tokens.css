@@ -121,8 +121,9 @@
   /* Azure — D18 interactive family (LOCKED 2026-06-04).
      Sky-blue hue family, color-blind-distinct from cobalt at every stop.
      Tailwind sky-derived palette; --azure-500 = #0EA5E9 is the canonical anchor.
-     Used by --gx-interactive* (buttons/links/hover/focus/active).
-     NOTE: legacy --gx-primary*/--gx-link* now use inline cobalt-azure hexes
+     Used by --gx-interactive* (buttons/links/hover/focus/active) and aliased
+     by --gx-link* (D18/D19 — link is interactive).
+     NOTE: --gx-primary* (brand spine) still uses inline cobalt-azure hexes
            (not --azure-*) so the brand-spine cascade stays unaffected. */
   --azure-50:  #F0F9FF;
   --azure-100: #E0F2FE;
@@ -309,8 +310,11 @@
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #5A6B82;
-  --gx-link: #5293F2;       /* legacy cobalt-azure — decoupled from --azure-* (D18) */
-  --gx-link-hover: #7FB0FF;
+  /* D18/D19 — link is interactive: route through --gx-interactive* (azure-500/400).
+     Previous legacy cobalt-azure hexes (#5293F2 / #7FB0FF) overloaded the cobalt
+     spine for an interactive role; aliasing collapses the duplicate token family. */
+  --gx-link:       var(--gx-interactive);
+  --gx-link-hover: var(--gx-interactive-hover);
 
   /* Borders */
   --gx-border:        rgba(130, 161, 204, 0.16);
@@ -414,8 +418,11 @@
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #94A3B8;
-  --gx-link: #2C63BC;       /* legacy cobalt-azure — decoupled from --azure-* (D18) */
-  --gx-link-hover: #224E96;
+  /* D18/D19 — link is interactive: route through --gx-interactive* (azure-600/500).
+     Previous legacy cobalt hexes (#2C63BC / #224E96) overloaded the cobalt spine
+     for an interactive role; aliasing collapses the duplicate token family. */
+  --gx-link:       var(--gx-interactive);
+  --gx-link-hover: var(--gx-interactive-hover);
 
   --gx-border:        #DCE3EB;
   --gx-border-subtle: #EDF1F5;

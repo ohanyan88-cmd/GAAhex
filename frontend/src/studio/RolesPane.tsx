@@ -243,7 +243,8 @@ export default function RolesPane({ token }: { token: string }) {
               {roles.map((role) => (
                 <tr
                   key={role.id}
-                  style={{ cursor: 'pointer', background: selected?.id === role.id ? 'var(--gx-primary-soft)' : undefined }}
+                  // D18: selected row = azure-soft (interactive family, active selected state)
+                  style={{ cursor: 'pointer', background: selected?.id === role.id ? 'var(--gx-interactive-soft)' : undefined }}
                   onClick={() => selectRole(role)}
                 >
                   <td><code className="mono">{role.key}</code></td>

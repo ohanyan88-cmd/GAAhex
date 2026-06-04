@@ -165,8 +165,9 @@
 .tree-overview:hover {
   background: var(--gx-hover);
 }
+/* D18: active selected tree-overview = azure-soft (interactive family, active selected state). */
 .tree-overview.on {
-  background: var(--gx-primary-soft);
+  background: var(--gx-interactive-soft);
   color: var(--gx-info-fg);
 }
 
@@ -245,8 +246,9 @@
   background: var(--gx-hover);
   color: var(--gx-text-1);
 }
+/* D18: active selected tree-leaf = azure-soft (interactive family, active selected state). */
 .tree-leaf.on {
-  background: var(--gx-primary-soft);
+  background: var(--gx-interactive-soft);
   color: var(--gx-info-fg);
   font-weight: 600;
 }
@@ -317,7 +319,10 @@
   gap: 14px;
   padding: 14px 16px;
   border: 1px solid var(--gx-border);
-  border-left: 3px solid var(--lt, var(--gx-primary));
+  /* D18: layer-card is an interactive control; --lt encodes per-layer identity
+     (see StudioOverview LAYERS → viz palette). Fallback when --lt absent = azure
+     (interactive family), not cobalt brand spine. */
+  border-left: 3px solid var(--lt, var(--gx-interactive));
   background: var(--gx-surface);
   border-radius: var(--gx-radius-lg);
   cursor: pointer;
@@ -369,9 +374,10 @@
   flex-shrink: 0;
   transition: transform var(--gx-dur-fast);
 }
+/* D18: hover affordance on interactive control = azure (interactive family). */
 .layer-card:hover .layer-go {
   transform: translateX(3px);
-  color: var(--gx-primary);
+  color: var(--gx-interactive);
 }
 .layer-rel {
   display: flex;
@@ -526,15 +532,17 @@
   color: var(--gx-text-1);
 }
 
-/* .banner — inline alert used by ArchForm danger leaves */
+/* .banner — inline info alert (callers can override to danger / warning).
+   D18: default "info" tone = azure (interactive family). Callers using the
+   .banner for danger override border-left + background inline (see ActionsLogic). */
 .studio-pane .banner {
   display: flex;
   gap: 11px;
   padding: 12px 14px;
   border-radius: var(--gx-radius-md);
   border: 1px solid var(--gx-border);
-  border-left: 3px solid var(--gx-primary);
-  background: var(--gx-primary-soft);
+  border-left: 3px solid var(--gx-interactive);
+  background: var(--gx-interactive-soft);
 }
 .studio-pane .banner .bt {
   font-weight: 600;
@@ -619,10 +627,11 @@
   cursor: pointer;
   transition: all var(--gx-dur-fast);
 }
+/* D18: canvas-add is an interactive control; hover affordance = azure. */
 .canvas-add:hover {
-  border-color: var(--gx-primary);
-  color: var(--gx-primary);
-  background: var(--gx-primary-soft);
+  border-color: var(--gx-interactive);
+  color: var(--gx-interactive);
+  background: var(--gx-interactive-soft);
 }
 
 /* .rule-card — a single WHEN/IF/DO rule row in ActionsLogic */
@@ -672,9 +681,12 @@
   transition: all var(--gx-dur-fast);
   font-family: var(--gx-font-sans);
 }
+/* D18: .comp-card is an interactive "add this component" tile (primarily a
+   button, not a passive container) — hover affordance = azure (interactive
+   family), per the D17↔D18 reconciliation rule for interactive controls. */
 .comp-card:hover {
-  border-color: var(--gx-primary);
-  background: var(--gx-primary-soft);
+  border-color: var(--gx-interactive);
+  background: var(--gx-interactive-soft);
   transform: translateY(-1px);
   box-shadow: var(--gx-shadow-sm);
 }
@@ -683,14 +695,14 @@
   display: inline-flex;
 }
 .comp-card:hover .comp-ic {
-  color: var(--gx-primary);
+  color: var(--gx-interactive);
 }
 .comp-add {
   position: absolute;
   top: 6px;
   right: 6px;
   opacity: 0;
-  color: var(--gx-primary);
+  color: var(--gx-interactive);
   transition: opacity var(--gx-dur-fast);
 }
 .comp-card:hover .comp-add {

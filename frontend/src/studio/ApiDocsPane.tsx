@@ -78,8 +78,10 @@ const METHOD_COLOR: Record<Endpoint['method'], string> = {
   HEAD:    'var(--gx-text-3)',
 }
 
+// D18: GET (safe-read default) = azure-soft (interactive family). The rest map to
+// semantic status families (success/warning/danger) or slate surface for OPTIONS/HEAD.
 const METHOD_BG: Record<Endpoint['method'], string> = {
-  GET:     'var(--gx-primary-soft)',
+  GET:     'var(--gx-interactive-soft)',
   POST:    'var(--gx-success-soft)',
   PUT:     'var(--gx-warning-soft)',
   PATCH:   'var(--gx-warning-soft)',

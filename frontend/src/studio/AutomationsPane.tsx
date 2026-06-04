@@ -289,7 +289,8 @@ export default function AutomationsPane({ token }: { token: string }) {
                   key={a.id}
                   style={{
                     cursor: 'pointer',
-                    background: editTarget?.id === a.id ? 'var(--gx-primary-soft)' : undefined,
+                    // D18: selected automation row = azure-soft (interactive family, active selected state)
+                    background: editTarget?.id === a.id ? 'var(--gx-interactive-soft)' : undefined,
                     opacity: a.is_active ? 1 : 0.55,
                   }}
                   onClick={() => openEdit(a)}

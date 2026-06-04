@@ -359,7 +359,8 @@ function CreateEntityModal({
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '4px 8px',
-                  background: s.is_initial ? 'var(--gx-primary-soft)' : 'var(--gx-surface-2)',
+                  // D18: active "initial status" pill = azure-soft (interactive family)
+                  background: s.is_initial ? 'var(--gx-interactive-soft)' : 'var(--gx-surface-2)',
                   border: '1px solid var(--gx-border)',
                   borderRadius: 'var(--gx-radius-md)',
                   fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12,
