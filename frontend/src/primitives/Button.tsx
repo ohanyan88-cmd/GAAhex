@@ -1,7 +1,11 @@
 import React from 'react'
 import type { LucideIcon } from 'lucide-react'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link' | 'gold'
+// T-P2-10 — `tertiary` is the standards' third-tier action (after primary/
+// secondary): subdued text-button styling for low-emphasis actions like
+// "Clear", "Skip", "Cancel" rendered inline next to a primary. Visually less
+// loud than ghost (no hover lift); semantically the inverse of `danger`.
+type Variant = 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger' | 'link' | 'gold'
 type Size = 'sm' | 'md' | 'lg'
 
 interface ButtonProps {

@@ -19,6 +19,11 @@
 .btn-secondary:hover { background:var(--gx-elevated); }
 .btn-ghost { background:transparent; color:var(--gx-text-2); }
 .btn-ghost:hover { background:var(--gx-hover); color:var(--gx-text-1); }
+/* T-P2-10 — tertiary: text-only button for low-emphasis actions. Less loud
+ * than ghost (no hover surface lift), more readable than link (preserves
+ * button padding + alignment). */
+.btn-tertiary { background:transparent; color:var(--gx-text-3); border-color:transparent; }
+.btn-tertiary:hover { color:var(--gx-text-1); }
 .btn-gold { background:var(--gx-gold); color:var(--gx-text-on-gold); }
 .btn-gold:hover { filter:brightness(1.06); }
 .btn-danger { background:var(--gx-danger); color:#fff; }
@@ -210,6 +215,106 @@ button.kpi-tile, a.kpi-tile {
 .dtr-check-box { width:14px; height:14px; border-radius:var(--gx-radius-sm); border:1px solid var(--gx-border-strong); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all var(--gx-dur-fast); }
 /* D18: checkbox in checked/on state = interactive selected → --gx-interactive* (azure). Matches the --gx-selected → azure routing already locked in gaahex-tokens.css. */
 .dtr-check-box.on { background:var(--gx-interactive); border-color:var(--gx-interactive); }
+
+/* ===========================================================================
+ * T-P2-10 — spec-without-impl utility classes.
+ *
+ * The standards (file 17 + 18 + D18) call out a small set of metadata atoms —
+ * chips, tags, monochips, checkboxes, inline alerts, tips — that were
+ * documented as the canonical patterns but never had CSS rules. Pages still
+ * needed them, so they re-implemented the same shapes inline with bare
+ * style props. These rules establish the shared baseline.
+ *
+ * Token discipline (D18):
+ *   .gx-chip       — interactive selection/filter atom        → azure family
+ *   .gx-tag        — non-interactive classification metadata  → slate family
+ *   .gx-monochip   — non-interactive identifier (id/sku)      → slate family + mono
+ *   .gx-check      — checkbox surface                         → azure on-state
+ *   .gx-alert      — inline information / warning banner      → semantic family
+ *   .gx-tip        — quiet helper text below a field          → slate text-3
+ * =========================================================================== */
+
+/* D18 — interactive selection chip (filters, multi-select picks). Hover lifts
+ * to interactive-soft; active state uses the full azure surface. */
+.gx-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--gx-surface-2); color: var(--gx-text-2);
+  border: 1px solid var(--gx-border);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: background var(--gx-dur-fast), color var(--gx-dur-fast), border-color var(--gx-dur-fast);
+}
+.gx-chip:hover { background: var(--gx-interactive-soft); color: var(--gx-text-1); border-color: var(--gx-interactive); }
+.gx-chip.on,
+.gx-chip[aria-pressed="true"] { background: var(--gx-interactive); color: #fff; border-color: var(--gx-interactive); }
+.gx-chip:focus-visible { outline: 2px solid var(--gx-focus-ring); outline-offset: 1px; }
+
+/* D18 — non-interactive classification tag (priority labels, role badges, etc.).
+ * Slate family by default; semantic variants stack on top. */
+.gx-tag {
+  display: inline-block;
+  padding: 1px 8px; border-radius: 999px;
+  background: var(--gx-neutral-soft); color: var(--gx-text-2);
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.gx-tag--info    { background: var(--gx-info-soft);    color: var(--gx-info); }
+.gx-tag--success { background: var(--gx-success-soft); color: var(--gx-success); }
+.gx-tag--warning { background: var(--gx-warning-soft); color: var(--gx-warning); }
+.gx-tag--danger  { background: var(--gx-danger-soft);  color: var(--gx-danger); }
+
+/* D18 — non-interactive identifier monochip (record IDs, ref numbers, MAC
+ * addresses). Monospace + slate so it reads as data, not chrome. */
+.gx-monochip {
+  display: inline-block;
+  padding: 1px 7px; border-radius: var(--gx-radius-sm);
+  background: var(--gx-surface-2); color: var(--gx-text-3);
+  border: 1px solid var(--gx-border-subtle);
+  font-family: var(--gx-font-mono); font-size: 11.5px;
+  letter-spacing: -.01em;
+}
+
+/* D18 — checkbox shell, used outside <input> for stylized clickable surfaces
+ * (kit's `.dtr-check-box` is row-scoped; this is the general-purpose variant). */
+.gx-check {
+  width: 14px; height: 14px; border-radius: var(--gx-radius-sm);
+  border: 1px solid var(--gx-border-strong);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--gx-surface);
+  color: transparent;
+  transition: background var(--gx-dur-fast), border-color var(--gx-dur-fast), color var(--gx-dur-fast);
+  cursor: pointer;
+}
+.gx-check.on,
+.gx-check[aria-checked="true"] {
+  background: var(--gx-interactive); border-color: var(--gx-interactive); color: #fff;
+}
+.gx-check:focus-visible { outline: 2px solid var(--gx-focus-ring); outline-offset: 1px; }
+
+/* D18 — inline alert banner family. Less prominent than the toast/error-banner
+ * pair; sits inline with surrounding content. Variant modifiers stack the
+ * semantic color family. */
+.gx-alert {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; border-radius: var(--gx-radius-md);
+  background: var(--gx-surface-2); color: var(--gx-text-1);
+  border-left: 3px solid var(--gx-border-strong);
+  font-size: 12.5px; line-height: 1.5;
+}
+.gx-alert--info    { background: var(--gx-info-soft);    border-left-color: var(--gx-info); }
+.gx-alert--success { background: var(--gx-success-soft); border-left-color: var(--gx-success); }
+.gx-alert--warning { background: var(--gx-warning-soft); border-left-color: var(--gx-warning); }
+.gx-alert--danger  { background: var(--gx-danger-soft);  border-left-color: var(--gx-danger); }
+
+/* D18 — tip / helper line. Slate text-3, smaller; used below form fields and
+ * inline explanations. Not interactive. */
+.gx-tip {
+  display: block;
+  margin-top: 4px;
+  color: var(--gx-text-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
 
 /* extension: account-menu positioning helper (kit `.menu` is positionless) */
 .user-menu-pop { position:absolute; top:calc(100% + 8px); right:0; width:280px; }
