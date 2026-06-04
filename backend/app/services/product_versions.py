@@ -25,6 +25,7 @@ from typing import Any
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..models.product import Product
 from ..models.product_version import ProductVersion
 
 
@@ -87,6 +88,12 @@ async def mint_new_version(
     """
     now = _utcnow()
 
+    # Single source of truth for the version's tenant: the parent Product's tenant_id. Anchoring
+    # here (vs. accepting it from the caller) keeps it FK-consistent and prevents cross-tenant mints.
+    tenant_id = (await session.execute(
+        select(Product.tenant_id).where(Product.id == product_id)
+    )).scalar_one()
+
     # max version_no so far + the still-open version (if any) — one round-trip each, both cheap.
     max_no_row = (await session.execute(
         select(func.max(ProductVersion.version_no)).where(ProductVersion.product_id == product_id)
@@ -102,6 +109,7 @@ async def mint_new_version(
 
     spec_json = dict(attrs.get("spec_json") or {})
     new_version = ProductVersion(
+        tenant_id=tenant_id,
         product_id=product_id,
         version_no=next_no,
         effective_from=now,
