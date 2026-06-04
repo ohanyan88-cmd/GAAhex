@@ -145,6 +145,29 @@ HARD_RULES: list[HardRule] = [
     ),
     # SM-1 — demoted to a ratchet rule below (45 views still take token; per-
     # view incremental migration). Promote back to HARD when count reaches 0.
+
+    # Phase 6 — new prevention rules.
+    HardRule(
+        name="MO-* hand-rolled fixed modal/drawer chrome",
+        description=(
+            "New `position:fixed,inset:0,background:var(--gx-overlay)` blocks "
+            "are forbidden. Use `<Modal>` / `<StudioDrawer>` / `<Overlay>`."
+        ),
+        # Matches the canonical hand-rolled shape: position:fixed + inset:0 + the
+        # gx-overlay backdrop literal, which together identify a custom modal
+        # overlay (not a tooltip or popover, which have different anchors).
+        pattern=r"position:\s*['\"]fixed['\"]\s*,\s*inset:\s*0\s*,\s*background:\s*['\"]var\(--gx-overlay\)",
+        paths=["frontend/src/", "frontend-portal/src/"],
+        # Canonical implementations LIVE in these files; the rule applies to
+        # any other module that re-implements the chrome by hand.
+        exclude=[
+            "components/Overlay.tsx",
+            "components/Modal.tsx",
+            "primitives/StudioDrawer.tsx",
+            "modals/ConfigureDrawer.tsx",  # MO-5 — pre-migration; FocusTrap-wrapped
+        ],
+        regex=True,
+    ),
 ]
 
 
@@ -195,6 +218,45 @@ RATCHET_RULES: list[RatchetRule] = [
         description="Admin views should consume token via `useAuth()`. Migrate per view as touched.",
         pattern=r"^export default function \w+View\([^)]*token: string",
         paths=["frontend/src/views/"],
+        regex=True,
+    ),
+    # Phase 6 — additional ratchet rules.
+    RatchetRule(
+        name="Phase-5 hex literal in style={{}}",
+        description=(
+            "Inline `style={{ ...:'#abc...' }}` literals bypass D18 token "
+            "discipline. Migrate to `var(--gx-*)` references. Per-PR ratchet."
+        ),
+        # Matches `'#abc'`, `'#abcdef'`, `"#abc"`, `"#abcdef"` inside a JSX
+        # attribute value (we sweep `style={{` blocks broadly; false positives
+        # in raw string templates are accepted noise — the trend matters).
+        pattern=r"style=\{\{[^}]*['\"]#[0-9A-Fa-f]{3,8}['\"]",
+        paths=["frontend/src/", "frontend-portal/src/"],
+        regex=True,
+    ),
+    RatchetRule(
+        name="Phase-5 var(--gx-x, #hex) fallback",
+        description=(
+            "Defensive hex fallbacks in `var(--gx-foo, #abc)` mean the token "
+            "definition is presumed missing. Drop the fallback once the token "
+            "is in gaahex-tokens.css. Per-PR ratchet."
+        ),
+        pattern=r"var\(--gx-[a-z0-9-]+,\s*#[0-9A-Fa-f]{3,8}\)",
+        paths=["frontend/src/", "frontend-portal/src/"],
+        regex=True,
+    ),
+    RatchetRule(
+        name="A11y div onClick",
+        description=(
+            "`<div onClick>` without role+tabIndex+onKeyDown breaks keyboard "
+            "users (WCAG 2.1.1). Use <button> or add the trio. Per-PR ratchet."
+        ),
+        # Matches any `<div ... onClick={...}>` opening; a follow-up audit
+        # task verifies the matching divs DO include role/tabIndex/onKeyDown.
+        # The ratchet keeps the count from growing while we migrate existing
+        # ones to <button>.
+        pattern=r"<div\b[^>]*\sonClick=\{",
+        paths=["frontend/src/", "frontend-portal/src/"],
         regex=True,
     ),
 ]
