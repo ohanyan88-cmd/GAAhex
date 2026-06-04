@@ -26,21 +26,17 @@ import {
   Calendar,
   BarChart3,
   Check,
-  CheckCheck,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
   CreditCard,
-  DollarSign,
   Download,
-  FileText,
   Filter,
   Folder,
   Forward,
   Globe,
   Home,
-  Image,
   Inbox,
   Info,
   Layers,
@@ -48,7 +44,6 @@ import {
   Lock,
   Mail,
   Map,
-  MapPin,
   Menu,
   MessageCircle,
   Moon,
@@ -192,8 +187,6 @@ export const BookmarkIcon = ({ size, strokeWidth, ...r }: IconProps) =>
 export const PinIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Pin, size, strokeWidth, r)
 export const HomeIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Home, size, strokeWidth, r)
 export const TruckIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Truck, size, strokeWidth, r)
-export const FileIcon = ({ size, strokeWidth, ...r }: IconProps) =>
-  W(FileText, size, strokeWidth, r)
 export const MapIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Map, size, strokeWidth, r)
 export const ShieldIcon = ({ size, strokeWidth, ...r }: IconProps) =>
   W(Shield, size, strokeWidth, r)
@@ -201,8 +194,6 @@ export const LayersIcon = ({ size, strokeWidth, ...r }: IconProps) =>
   W(Layers, size, strokeWidth, r)
 export const PackageIcon = ({ size, strokeWidth, ...r }: IconProps) =>
   W(Package, size, strokeWidth, r)
-export const DollarIcon = ({ size, strokeWidth, ...r }: IconProps) =>
-  W(DollarSign, size, strokeWidth, r)
 export const BriefcaseIcon = ({ size, strokeWidth, ...r }: IconProps) =>
   W(Briefcase, size, strokeWidth, r)
 export const FolderIcon = ({ size, strokeWidth, ...r }: IconProps) =>
@@ -221,12 +212,6 @@ export const PaperclipIcon = ({ size, strokeWidth, ...r }: IconProps) =>
 export const ZapIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Zap, size, strokeWidth, r)
 export const SendHorizontalIcon = ({ size, strokeWidth, ...r }: IconProps) =>
   W(SendHorizontal, size, strokeWidth, r)
-export const PictureIcon = ({ size, strokeWidth, ...r }: IconProps) =>
-  W(Image, size, strokeWidth, r)
-export const MapPinIcon = ({ size, strokeWidth, ...r }: IconProps) =>
-  W(MapPin, size, strokeWidth, r)
-export const CheckCheckIcon = ({ size, strokeWidth, ...r }: IconProps) =>
-  W(CheckCheck, size, strokeWidth, r)
 export const UserIcon = ({ size, strokeWidth, ...r }: IconProps) => W(User, size, strokeWidth, r)
 export const StarIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Star, size, strokeWidth, r)
 export const ReplyIcon = ({ size, strokeWidth, ...r }: IconProps) => W(Reply, size, strokeWidth, r)

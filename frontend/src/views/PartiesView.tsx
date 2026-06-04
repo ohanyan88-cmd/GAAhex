@@ -3,7 +3,7 @@ import { bget, bpost, type Party } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
-  UsersIcon, SearchIcon, GearIcon,
+  UsersIcon, SearchIcon, GearIcon, MoreVerticalIcon,
 } from '../components/icons'
 import {
   Plus, ChevronsUpDown, ArrowUp, ArrowDown,
@@ -24,18 +24,6 @@ function mapPartyStatus(s: string | null | undefined): PillVariant {
   if (v === 'INACTIVE' || v === 'CLOSED') return 'neutral'
   if (v === 'PENDING' || v === 'PROSPECT') return 'info'
   return 'info'
-}
-
-// 3-dot row-menu icon (inline; no emoji rule — inline SVG only).
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
 }
 
 export default function PartiesView({ token, canConfigure = false, onConfigure }: { token: string; canConfigure?: boolean; onConfigure?: () => void }) {

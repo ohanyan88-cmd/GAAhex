@@ -9,6 +9,7 @@ import { EmptyState, ErrorBanner } from '../components/States'
 import {
   CreditCardIcon, ReceiptIcon, SearchIcon, ArrowRightIcon,
   ChevronLeftIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon, GearIcon,
+  MoreVerticalIcon,
 } from '../components/icons'
 import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
@@ -38,17 +39,6 @@ const TAB_DEFS: Array<[string, string]> = [
   ['EXPIRED', 'Expired'],
   ['CANCELLED', 'Cancelled'],
 ]
-
-function MoreVerticalIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="12" cy="12" r="1.4" />
-      <circle cx="12" cy="19" r="1.4" />
-    </svg>
-  )
-}
 
 export default function PaymentGatewayView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
   const cfg = usePageConfig(token, 'gateway', configVersion)
