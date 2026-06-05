@@ -99,7 +99,13 @@ async def _setup_comm_users():
         await s.execute(RoleDef.__table__.delete().where(RoleDef.key.in_(list(_PROFILES.keys()))))
         if _OTHER_TENANT_ID is not None:
             await s.execute(OrgNode.__table__.delete().where(OrgNode.tenant_id == _OTHER_TENANT_ID))
-            await s.execute(Tenant.__table__.delete().where(Tenant.id == _OTHER_TENANT_ID))
+            # Cross-tenant teardown helper — purges every tenant_id-scoped row
+
+            # before the final tenant DELETE (otherwise event/audit/record FKs block it).
+
+            from tests.conftest import delete_tenant_cleanly
+
+            await delete_tenant_cleanly(s, _OTHER_TENANT_ID)
         await s.commit()
 
 

@@ -132,6 +132,42 @@ async def make_customer(client, admin, name: str | None = None) -> str:
     return r.json()["id"]
 
 
+async def delete_tenant_cleanly(s, tenant_id):
+    """Cross-tenant test teardown helper.
+
+    13 cross-tenant tests across the suite create a 2nd tenant and then can't
+    DELETE it at teardown because Event/Record/WorkItem/Audit rows still
+    reference it via tenant_id FKs that aren't `ON DELETE CASCADE`. Each
+    test fixture used to delete users/roles/org-nodes then try `DELETE FROM
+    tenant`, hitting `event_tenant_id_fkey` violations 13 times in the
+    suite run.
+
+    This helper finds every tenant_id-bearing table in the live schema and
+    deletes rows for the given tenant before the final tenant DELETE. The
+    schema introspection (information_schema.columns) keeps this helper
+    forward-compatible: new tenant-scoped tables shipped by migrations get
+    cleaned automatically without code changes here.
+    """
+    from sqlalchemy import text
+    # Discover every table that has a tenant_id column in the live schema —
+    # we don't have to hand-list models, and we can't import them all without
+    # creating circular-import pain. information_schema is authoritative.
+    tenant_tables = (await s.execute(text(
+        """
+        SELECT table_name
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND column_name = 'tenant_id'
+           AND table_name != 'tenant'
+        """
+    ))).scalars().all()
+    for tbl in tenant_tables:
+        # Quote the identifier so reserved-word table names (e.g. "user") work.
+        await s.execute(text(f'DELETE FROM "{tbl}" WHERE tenant_id = :tid'), {"tid": tenant_id})
+    from app.models.tenant import Tenant
+    await s.execute(Tenant.__table__.delete().where(Tenant.id == tenant_id))
+
+
 async def ensure_user(s, *, tenant_id, node_id, email: str, role_id, password: str = "test-123"):
     """TL-6 — canonical user-with-assignment factory.
 

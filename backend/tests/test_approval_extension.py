@@ -132,8 +132,10 @@ async def _setup_appx_users():
             await s.execute(RefreshToken.__table__.delete().where(RefreshToken.user_id.in_(uids)))
             await s.execute(User.__table__.delete().where(User.id.in_(uids)))
         await s.execute(RoleDef.__table__.delete().where(RoleDef.key.in_(list(_PROFILES.keys()))))
-        await s.execute(OrgNode.__table__.delete().where(OrgNode.tenant_id == other_tenant_id))
-        await s.execute(Tenant.__table__.delete().where(Tenant.id == other_tenant_id))
+        # Cross-tenant teardown — purge every tenant_id-scoped row before the
+        # final tenant DELETE (otherwise event/audit/record/etc FKs block it).
+        from tests.conftest import delete_tenant_cleanly
+        await delete_tenant_cleanly(s, other_tenant_id)
         await s.commit()
 
 

@@ -120,7 +120,13 @@ async def _setup_lifecycle_users():
         other_tid = _CTX.get("other_tenant_id")
         if other_tid is not None:
             await s.execute(OrgNode.__table__.delete().where(OrgNode.tenant_id == other_tid))
-            await s.execute(Tenant.__table__.delete().where(Tenant.id == other_tid))
+            # Cross-tenant teardown helper — purges every tenant_id-scoped row
+
+            # before the final tenant DELETE (otherwise event/audit/record FKs block it).
+
+            from tests.conftest import delete_tenant_cleanly
+
+            await delete_tenant_cleanly(s, other_tid)
         await s.commit()
 
 
