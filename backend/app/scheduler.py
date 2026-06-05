@@ -56,6 +56,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .config import settings
 from .db import OwnerSessionLocal
 from .models import User, RoleDef, Assignment, Tenant
+from .services import tenant_flag
 
 # Reuse the real handler logic — do NOT reimplement billing/report rules.
 from .routers.billing import run_dunning
@@ -147,6 +148,21 @@ _JOBS = (
 )
 
 
+# Q5 / FEATURE_GATING_POLICY.md system #2 — per-tenant business flags gating scheduler jobs.
+#
+# Map of (scheduler job label → FeatureFlag.key). A job listed here runs for a tenant only when
+# that tenant's flag is enabled. Jobs NOT listed here run unconditionally for every tenant
+# (platform-wide non-optional automation: billing cycle, SLA breach, notification expiry, etc.).
+#
+# Adding a tenant-controlled job: insert its (label, flag_key) here AND seed the canonical flag
+# row in seed.py::_CANONICAL_BUSINESS_FLAGS so every existing tenant gets a default-OFF row at
+# boot. The manual HTTP endpoint counterpart (admin-triggered) remains ungated — explicit
+# admin invocation = explicit consent. The flag controls automated background firing only.
+_TENANT_FLAG_GATED_JOBS: dict[str, str] = {
+    "billing.run_dunning": "dunning_automation",
+}
+
+
 async def _run_one_job(label: str, factory, actor: User) -> None:
     """Invoke one reused handler on a fresh owner session. Fail-soft: any exception is logged and
     swallowed so neither the other jobs nor other tenants are affected. The handler itself already
@@ -159,15 +175,50 @@ async def _run_one_job(label: str, factory, actor: User) -> None:
                       label, getattr(actor, "tenant_id", None), getattr(actor, "id", None))
 
 
+async def _resolve_tenant_gates(s: AsyncSession, tenant_id) -> dict[str, bool]:
+    """Pre-compute, for one tenant, which gated jobs they have opted into.
+
+    Returns a dict of ``{job_label: True/False}`` covering every entry in
+    ``_TENANT_FLAG_GATED_JOBS``. Jobs not in that map are unconditionally enabled
+    by the caller and don't appear here.
+
+    One DB read per distinct flag — typically O(1) flag keys, so cheap. Reads on
+    an OwnerSessionLocal (caller-passed) so the lookup is cross-tenant-safe.
+    """
+    gates: dict[str, bool] = {}
+    # Cache per-flag-key so multiple jobs sharing a flag pay one query.
+    flag_cache: dict[str, bool] = {}
+    for label, flag_key in _TENANT_FLAG_GATED_JOBS.items():
+        if flag_key not in flag_cache:
+            flag_cache[flag_key] = await tenant_flag.is_flag_enabled_for_tenant(
+                s, tenant_id, flag_key, default=False,
+            )
+        gates[label] = flag_cache[flag_key]
+    return gates
+
+
 async def _run_for_tenant(tenant_id) -> None:
     """Run every job for one tenant, fail-soft per job. Resolves the tenant's own system actor
-    so the audit/JobRun rows are stamped correctly and the per-job permission gates pass."""
+    so the audit/JobRun rows are stamped correctly and the per-job permission gates pass.
+
+    Per FEATURE_GATING_POLICY.md §5.4 — jobs that are tenant-controlled business preferences
+    (see ``_TENANT_FLAG_GATED_JOBS``) are skipped for a tenant whose flag is OFF. The check
+    happens inside the per-tenant loop, never at the platform level (would short-circuit all
+    tenants on one tenant's choice)."""
     async with OwnerSessionLocal() as s:
         actor = await _system_actor(s, tenant_id)
-    if actor is None:
-        log.warning("scheduler: tenant %s has no usable system actor — skipping", tenant_id)
-        return
+        if actor is None:
+            log.warning("scheduler: tenant %s has no usable system actor — skipping", tenant_id)
+            return
+        tenant_gates = await _resolve_tenant_gates(s, tenant_id)
+
     for label, factory in _JOBS:
+        if label in _TENANT_FLAG_GATED_JOBS and not tenant_gates.get(label, False):
+            log.debug(
+                "scheduler: tenant %s has %s OFF — skipping %s",
+                tenant_id, _TENANT_FLAG_GATED_JOBS[label], label,
+            )
+            continue
         await _run_one_job(label, factory, actor)
 
 

@@ -1,5 +1,21 @@
 """Feature-gate service — single chokepoint for fail-closed subsystems.
 
+System role — see ``docs/standards/FEATURE_GATING_POLICY.md``
+------------------------------------------------------------
+This module is the **platform deploy-shape gate** (policy system #1). It answers
+"can the platform technically provide this subsystem in *this* deployment?" and
+is **platform-wide**: a deploy-shape gate is the same answer for every tenant.
+
+It is **NOT** the right place for tenant business preferences. Per the policy:
+
+- ``feature_gate.is_enabled()`` MUST stay platform-wide. Adding a ``tenant_id``
+  parameter is forbidden (would collapse the two systems).
+- New deploy-shape keys are added here only when a new infrastructure subsystem
+  ships and may legitimately be unwired in some deploys.
+- Tenant business preferences (e.g. ``dunning_automation``, ``self_serve_signup``)
+  live in the DB-backed :class:`FeatureFlag` table, accessed server-side via
+  :mod:`app.services.tenant_flag` (system #2 — per-tenant, audit-logged).
+
 Packs P3-P6 (RADIUS, OLT provisioning, Import engine, Warehouse) call into
 :func:`require` / :func:`is_enabled` (or the per-feature helpers below) at the
 top of every request handler / service-action entry point. When the feature

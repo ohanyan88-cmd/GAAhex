@@ -9,10 +9,20 @@ from .config import _set_the_tenant_id
 from .db import OwnerSessionLocal as SessionLocal   # seeding runs privileged (bypasses RLS)
 from .models import (
     Tenant, OrgNode, User, EntityDef, FieldDef, StatusDef, WorkflowDef,
-    PermissionDef, RoleDef, Assignment, Record,
+    PermissionDef, RoleDef, Assignment, Record, FeatureFlag,
 )
 from .models.customer_user import CustomerUser
 from .security import hash_password
+
+
+# Canonical tenant-controlled business feature flags (Q5 / FEATURE_GATING_POLICY.md system #2).
+# Each tenant gets one row per key, default OFF — the tenant opts in via PATCH
+# /api/feature-flags. New M1 business flags get appended here; deploy-shape keys
+# (radius / olt_provisioning / import_engine / warehouse) stay env-var-only and
+# MUST NOT be added here (policy §5.2, anti-pattern §6).
+_CANONICAL_BUSINESS_FLAGS: tuple[tuple[str, str], ...] = (
+    ("dunning_automation", "Dunning Automation"),
+)
 
 
 # CRM entity keys that participate in the standard view/create/edit/delete permission matrix.
@@ -691,6 +701,49 @@ async def seed_portal_if_empty() -> None:
 
 # ── SM-5 — bootstrap helpers callable from both lifespan (main.py) and conftest ──
 
+async def seed_business_flags_if_empty() -> None:
+    """Idempotently seed the canonical tenant-controlled business feature flags
+    (Q5 / FEATURE_GATING_POLICY.md system #2).
+
+    For every existing tenant, ensures a ``FeatureFlag`` row exists for every key
+    in ``_CANONICAL_BUSINESS_FLAGS``. Default enabled=False — each tenant opts in
+    by flipping via ``PATCH /api/feature-flags/<id>`` (audit-logged via
+    ``workflow.emit``).
+
+    Safe to call repeatedly: existing rows are not touched. New tenants pick up
+    the canonical set the next time this seed runs.
+
+    Constraint (policy §5.2 / anti-pattern §6): only **tenant business
+    preferences** belong here. Deploy-shape gates (radius / olt_provisioning /
+    import_engine / warehouse) stay env-var-only — adding them to this seed
+    would violate the feature-gating policy.
+    """
+    async with SessionLocal() as s:
+        # Owner-session seeding is intentionally cross-tenant — bypass the
+        # tenant-filter audit listener.
+        await s.connection(execution_options={"audit_tenant_filter": False})
+        tenants = (await s.execute(select(Tenant))).scalars().all()
+        if not tenants:
+            return
+        for tenant in tenants:
+            for key, label in _CANONICAL_BUSINESS_FLAGS:
+                existing = (await s.execute(
+                    select(FeatureFlag.id).where(  # noqa: tenant-filter — owner-session cross-tenant idempotent seed; per-tenant uniqueness enforced by unique constraint (tenant_id, key)
+                        FeatureFlag.tenant_id == tenant.id,
+                        FeatureFlag.key == key,
+                    )
+                )).scalar_one_or_none()
+                if existing is not None:
+                    continue
+                s.add(FeatureFlag(
+                    tenant_id=tenant.id,
+                    key=key,
+                    label=label,
+                    enabled=False,
+                ))
+        await s.commit()
+
+
 async def apply_test_seeds() -> None:
     """Run the minimum seed set the test fixture depends on.
 
@@ -708,3 +761,6 @@ async def apply_test_seeds() -> None:
     # demo-loop seed guards on an empty subscription table — it MUST run before any
     # test creates subscriptions, or it becomes a no-op for the whole session.
     await seed_demo_loop_if_empty()
+    # Q5 — tenant-controlled business flags. Must run AFTER seed_if_empty (which
+    # creates the tenant row) so there's a tenant to attach flag rows to.
+    await seed_business_flags_if_empty()
