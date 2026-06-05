@@ -25,6 +25,7 @@
 // so keyboard tabbing skips them.
 import type { CSSProperties } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from './Button'
 
 export type PaginationProps = {
   page: number
@@ -74,15 +75,15 @@ export function Pagination({
       <span className="spacer" />
       {pageCount > 1 && (
         <div style={{ display: 'flex', gap: 4 }}>
-          <button
+          <Button variant="ghost" size="sm" iconOnly
             type="button"
-            className="btn btn-ghost btn-sm btn-icon"
+            
             disabled={page <= 1}
             onClick={() => onChange(Math.max(1, page - 1))}
             aria-label="Previous page"
           >
             <ChevronLeft size={15} />
-          </button>
+          </Button>
           {numbers.map((p) => (
             <button
               key={p}
@@ -95,15 +96,15 @@ export function Pagination({
               {p}
             </button>
           ))}
-          <button
+          <Button variant="ghost" size="sm" iconOnly
             type="button"
-            className="btn btn-ghost btn-sm btn-icon"
-            disabled={page >= pageCount}
+            
+            disabled={page>= pageCount}
             onClick={() => onChange(Math.min(pageCount, page + 1))}
             aria-label="Next page"
           >
             <ChevronRight size={15} />
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -30,6 +30,9 @@ interface ButtonProps {
    * the button is rendered OUTSIDE the form element (canonical pattern for
    * modal-body forms whose Cancel/Submit buttons live in the modal footer). */
   form?: string
+  /** T-P3-7 — icon-only button (square, no text). Use when the button
+   * renders ONLY an icon (no label children). Set `aria-label` for a11y. */
+  iconOnly?: boolean
 }
 
 function Spinner() {
@@ -56,6 +59,7 @@ export function Button({
   'aria-label': ariaLabel,
   title,
   form,
+  iconOnly,
 }: ButtonProps) {
   const isDisabled = disabled || loading
   const iconSize = size === 'sm' ? 10 : 12
@@ -64,6 +68,7 @@ export function Button({
     'btn',
     `btn-${variant}`,
     size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : '',
+    iconOnly ? 'btn-icon' : '',
     className,
   ].filter(Boolean).join(' ')
 

@@ -246,16 +246,15 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
                     )}
                   </td>
                   <td className="actions-col">
-                    <button
-                      className="btn btn-ghost btn-sm btn-icon"
-                      type="button"
+                    <Button variant="ghost" size="sm" iconOnly
+            type="button"
                       title="Delete flag"
                       aria-label={`Delete flag ${flag.key}`}
                       onClick={() => remove(flag)}
                       style={{ color: 'var(--gx-danger-fg)' }}
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

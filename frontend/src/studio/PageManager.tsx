@@ -84,21 +84,22 @@ export function PageManager() {
                 <td className="hint" style={{ fontSize: 11.5 }}>{pg.updated}</td>
                 <td className="actions-col">
                   <div style={{ display: 'flex', gap: 'var(--gx-space-1)', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-ghost btn-sm btn-icon" title="Rename" type="button" onClick={() => rename(pg)}>
+                    <Button variant="ghost" size="sm" iconOnly
+            title="Rename" type="button" onClick={() => rename(pg)}>
                       <FilePen size={14} />
-                    </button>
-                    <button className="btn btn-ghost btn-sm btn-icon" title="Duplicate" type="button" onClick={() => dup(pg)}>
+                    </Button>
+                    <Button variant="ghost" size="sm" iconOnly
+            title="Duplicate" type="button" onClick={() => dup(pg)}>
                       <Copy size={14} />
-                    </button>
-                    <button
-                      className="btn btn-ghost btn-sm btn-icon"
-                      title="Delete"
+                    </Button>
+                    <Button variant="ghost" size="sm" iconOnly
+            title="Delete"
                       type="button"
                       onClick={() => del(pg)}
                       style={{ color: 'var(--gx-danger-fg)' }}
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>

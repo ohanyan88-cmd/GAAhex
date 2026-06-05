@@ -268,9 +268,10 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                   <span style={{ fontSize: 12, fontWeight: 600 }}>{col.label}</span>
                   <span className="kcol-count">{items.length}</span>
                   {canCreate && (
-                    <button className="btn btn-ghost btn-sm btn-icon" style={{ width: 22, height: 22 }} onClick={() => setShowNew(true)}>
+                    <Button variant="ghost" size="sm" iconOnly
+            style={{ width: 22, height: 22 }} onClick={() => setShowNew(true)}>
                       <PlusIcon size={13} />
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <div className="kcol-body">
@@ -298,9 +299,10 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                               {sc.band}
                             </span>
                           )}
-                          <button className="btn btn-ghost btn-sm btn-icon" title={t('leads.aiScore', 'AI score')} onClick={() => scoreLead(lead.id)} disabled={sc === 'loading'} style={{ width: 22, height: 22 }}>
+                          <Button variant="ghost" size="sm" iconOnly
+            title={t('leads.aiScore', 'AI score')} onClick={() => scoreLead(lead.id)} disabled={sc === 'loading'} style={{ width: 22, height: 22 }}>
                             <SparkleIcon size={12} />
-                          </button>
+                          </Button>
                           {canEdit && nextFrom(lead.status).map((to) => (
                             <Button variant="ghost" size="sm"
             key={to}  onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 11 }}>

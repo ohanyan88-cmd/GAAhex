@@ -188,9 +188,10 @@ export function DataBinding({ token }: { token?: string } = {}) {
                       </select>
                     </td>
                     <td className="actions-col">
-                      <button className="btn btn-ghost btn-sm btn-icon" type="button" onClick={() => del(b.id)}>
+                      <Button variant="ghost" size="sm" iconOnly
+            type="button" onClick={() => del(b.id)}>
                         <X size={14} />
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 )

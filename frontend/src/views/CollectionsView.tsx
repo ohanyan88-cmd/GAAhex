@@ -511,15 +511,17 @@ function CasesTab({
             </span>
             <span className="spacer" />
             <div style={{ display: 'flex', gap: 4 }}>
-              <button className="btn btn-ghost btn-sm btn-icon" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              <Button variant="ghost" size="sm" iconOnly
+            disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 <ChevronLeft size={15} />
-              </button>
+              </Button>
               {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map((p) => (
                 <button key={p} className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')} onClick={() => setPage(p)}>{p}</button>
               ))}
-              <button className="btn btn-ghost btn-sm btn-icon" disabled={page >= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
+              <Button variant="ghost" size="sm" iconOnly
+            disabled={page>= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
                 <ChevronRight size={15} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

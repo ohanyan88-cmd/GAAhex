@@ -1055,14 +1055,13 @@ function FindingsTab(props: {
             </span>
             <span className="spacer" />
             <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                className="btn btn-ghost btn-sm btn-icon"
-                disabled={page <= 1}
+              <Button variant="ghost" size="sm" iconOnly
+            disabled={page <= 1}
                 onClick={() => onPage(Math.max(1, page - 1))}
                 aria-label="Previous page"
               >
                 <ChevronLeft size={15} />
-              </button>
+              </Button>
               {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map((p) => (
                 <button
                   key={p}
@@ -1070,14 +1069,13 @@ function FindingsTab(props: {
                   onClick={() => onPage(p)}
                 >{p}</button>
               ))}
-              <button
-                className="btn btn-ghost btn-sm btn-icon"
-                disabled={page >= pageCount}
+              <Button variant="ghost" size="sm" iconOnly
+            disabled={page>= pageCount}
                 onClick={() => onPage(Math.min(pageCount, page + 1))}
                 aria-label="Next page"
               >
                 <ChevronRight size={15} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

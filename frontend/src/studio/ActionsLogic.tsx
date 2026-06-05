@@ -193,9 +193,10 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
               >
                 <span className="knob" />
               </button>
-              <button className="btn btn-ghost btn-sm btn-icon" type="button" onClick={() => del(r.id)}>
+              <Button variant="ghost" size="sm" iconOnly
+            type="button" onClick={() => del(r.id)}>
                 <X size={13} />
-              </button>
+              </Button>
             </div>
           ))}
         </div>

@@ -416,14 +416,14 @@ export default function AuditLogPane({ token }: { token: string }) {
                             : <span className="hint" style={{ fontSize: 12 }}>—</span>}
                         </td>
                         <td className="actions-col">
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm btn-icon"
+                          <Button variant="ghost" size="sm" iconOnly
+            type="button"
+                            
                             onClick={(e) => { e.stopPropagation(); toggleExpanded(ev.id) }}
                             aria-label={isOpen ? 'Collapse payload' : 'Expand payload'}
                           >
                             {isOpen ? <ChevronUp size={14} /> : <ChevronDownIcon size={14} />}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                       {isOpen && (

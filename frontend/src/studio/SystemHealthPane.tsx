@@ -145,16 +145,15 @@ function ProbePanel({
             {endpoint}
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost btn-sm btn-icon"
+        <Button variant="ghost" size="sm" iconOnly
+            type="button"
+          
           onClick={onRefresh}
           disabled={probe.loading}
           aria-label={`Refresh ${title}`}
-          title="Refresh now"
-        >
+          title="Refresh now">
           <RefreshIcon size={13} />
-        </button>
+        </Button>
       </div>
 
       {probe.netError && (
