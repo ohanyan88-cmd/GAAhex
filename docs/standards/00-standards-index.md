@@ -117,6 +117,7 @@ These standards are LOCKED but live as named files rather than in the numbered 1
 | OpenAPI Codegen | LOCKED | `OPENAPI_CODEGEN_STANDARD.md` | Generated client conventions |
 | Governance | LOCKED | `GOVERNANCE_STANDARD.md` | Drift rules, ratchet philosophy, standards-doc lifecycle |
 | **RLS Exemption Policy** | **LOCKED** (2026-06-05) | `RLS_EXEMPTION_POLICY.md` | What an engineer does when an RLS gap surfaces (Fix Forward default; exemption rare, gated by sealed-baseline signoff). Companion: `RLS_EXEMPTION_REGISTRY.md`. |
+| **Feature Gating Policy** | **LOCKED** (2026-06-05) | `FEATURE_GATING_POLICY.md` | Locks the two-system distinction: deploy-shape gates (`feature_gate.py`) are platform-wide for technical availability; tenant feature flags (`FeatureFlag` table) are per-tenant for business preferences. Each tenant decides its business features independently. |
 
 ## Reference prefix registry (S5 + D8 — complete)
 ```
