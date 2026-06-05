@@ -101,6 +101,22 @@ QUEUE`. Per-context subsets in file 03. `USER` (ActorType) ≠ `EMPLOYEE` (Princ
 ## Registries
 - File 14 — `14-enum-registry.md`: every enum with owner department + values (Enum Standard r6/r8).
 - File 15 — `15-permission-registry.md`: all `object.action` permission keys (lowercase, dot-separated; RBAC Standard, D2).
+- `RLS_EXEMPTION_REGISTRY.md` — append-only RLS exemption registry. Governed by `RLS_EXEMPTION_POLICY.md`. Initialized empty 2026-06-05.
+
+## Operational standards (named, alongside the numbered 1–70)
+
+These standards are LOCKED but live as named files rather than in the numbered 1–70 sequence (which is fixed by the original architecture). New operational standards land here when they need standards-level discoverability without disturbing the numbered sequence.
+
+| Standard | Status | Source file | Governs |
+|---|---|---|---|
+| API Client | LOCKED | `API_CLIENT_STANDARD.md` | `bget` / `bpost` wrappers, 401 handling, `authH` single export |
+| Auth Context | LOCKED | `AUTH_CONTEXT_STANDARD.md` | `AuthContext` usage, token persistence |
+| Server State | LOCKED | `SERVER_STATE_STANDARD.md` | `useFetch` / react-query pattern, deprecated `alive` guard |
+| UI Primitives | LOCKED | `UI_PRIMITIVES_STANDARD.md` | Which primitives exist, when to use each |
+| Token Migration | LOCKED | `TOKEN_MIGRATION_STANDARD.md` | Token adoption checklist for new views and components |
+| OpenAPI Codegen | LOCKED | `OPENAPI_CODEGEN_STANDARD.md` | Generated client conventions |
+| Governance | LOCKED | `GOVERNANCE_STANDARD.md` | Drift rules, ratchet philosophy, standards-doc lifecycle |
+| **RLS Exemption Policy** | **LOCKED** (2026-06-05) | `RLS_EXEMPTION_POLICY.md` | What an engineer does when an RLS gap surfaces (Fix Forward default; exemption rare, gated by sealed-baseline signoff). Companion: `RLS_EXEMPTION_REGISTRY.md`. |
 
 ## Reference prefix registry (S5 + D8 — complete)
 ```
