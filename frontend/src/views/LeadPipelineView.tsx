@@ -179,9 +179,9 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
       {/* Configure gear — shown only when canConfigure is active */}
       {canConfigure && onConfigure && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button className="btn btn-ghost btn-sm hide-sm" onClick={onConfigure} title="Configure this page">
+          <Button variant="ghost" size="sm" className="hide-sm" onClick={onConfigure} title="Configure this page">
             <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
-          </button>
+          </Button>
         </div>
       )}
 

@@ -268,23 +268,23 @@ export function PublishSettings({ token }: { token?: string } = {}) {
 
       {/* Action buttons */}
       <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-        <button
-          className="btn btn-secondary"
+        <Button
+          variant="secondary"
           type="button"
           disabled={!selectedId || savingDraft}
           onClick={saveDraft}
         >
           <Save size={14} />{savingDraft ? 'Saving…' : 'Save draft'}
-        </button>
-        <button
-          className="btn btn-primary"
+        </Button>
+        <Button
+          variant="primary"
           type="button"
           disabled={!canPublish || publishing}
           onClick={publish}
           title={!canPublish ? 'No unpublished draft to promote' : 'Publish this draft'}
         >
           <Rocket size={14} />{publishing ? 'Publishing…' : 'Publish now'}
-        </button>
+        </Button>
       </div>
     </div>
   )

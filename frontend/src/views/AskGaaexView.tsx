@@ -186,9 +186,9 @@ export default function AskGaaexView({ token }: { token: string }) {
               autoFocus
               style={{ flex: 1 }}
             />
-            <button type="submit" className="btn btn-primary btn-icon" disabled={busy || !q.trim()} aria-label={t('ask.send', 'Send')}>
+            <Button variant="primary" iconOnly type="submit" disabled={busy || !q.trim()} aria-label={t('ask.send', 'Send')}>
               <SendHorizontalIcon size={16} />
-            </button>
+            </Button>
           </form>
         </div>
 

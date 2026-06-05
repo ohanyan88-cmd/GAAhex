@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { timeAgo } from '../lib/time'
 import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
+import { Button } from '../primitives'  // T-P3-7
 import {
   COMMUNICATION_CHANNELS,
   COMMUNICATION_CHANNEL_LABELS,
@@ -437,14 +438,15 @@ export default function MessagesView({
                   style={{ flex: 1 }}
                   disabled={sending}
                 />
-                <button
-                  className="btn btn-primary btn-icon"
+                <Button
+                  variant="primary"
+                  iconOnly
                   onClick={handleSend}
                   aria-label="Send"
                   disabled={sending || !draft.trim()}
                 >
                   <SendHorizontalIcon size={16} />
-                </button>
+                </Button>
               </div>
             </>
           )}

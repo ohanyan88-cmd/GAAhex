@@ -328,7 +328,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
           <div className="sub comms-sub">Email · SMS · push · webhook · transactional</div>
         </div>
         <span className="spacer" />
-        <button className="btn btn-secondary btn-sm hide-sm" onClick={load}><RefreshIcon size={14} />Sync</button>
+        <Button variant="secondary" size="sm" className="hide-sm" onClick={load}><RefreshIcon size={14} />Sync</Button>
         <Button variant="primary" size="sm" onClick={() => openCompose()}><PlusIcon size={14} />Compose</Button>
       </div>
 
