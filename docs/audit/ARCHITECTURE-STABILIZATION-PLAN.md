@@ -347,3 +347,16 @@ pnpm typecheck
 ---
 
 *Next step: run `pytest` to confirm baseline is green, then start Phase 1 with BL-1 (balance_due canonical rollout — highest customer impact).*
+
+---
+
+## Post-stabilization closures (2026-06-05)
+
+| ID | Item | Status | Reference |
+|---|---|---|---|
+| **D19 / TD11** | Token registry double-definition (gaahex-tokens.css ↔ color-tokens.css) | ✅ CLOSED via Path A — `46f25d0` | `docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md` · sealed baseline §"Resolved technical debt" |
+| **Tenant-filter CI gate** | 6 safe-by-RLS sites annotated with `# noqa: tenant-filter` rationales | ✅ CLOSED — `87bb42c` | sealed baseline §"Resolved technical debt" |
+| **Main-branch CI** | First green run since 2026-06-04 (`backend`, `frontend`, `secret-scan` all success) | ✅ GREEN — run `27031511102` (2026-06-05, 4m 58s) | `docs/audit/POST-D19-STABILIZATION-COMPLETE-2026-06-05.md` |
+| **TD13** | `backend-rls` dual-role enforcement gate (currently `continue-on-error: true`) | 🟡 OPEN — **non-blocking**, scoped for **M1** per sealed baseline §9 | M1 plan §S5 |
+
+**Stabilization work is stopped here.** Forward focus shifts to: manual staging walkthrough · first-tenant decision · Q1/Q5/Q8 implementation · M1 planning.

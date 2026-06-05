@@ -1,4 +1,4 @@
-# SESSION HANDOFF — GAAhex, 2026-06-01 (audit P0/P1 cleared + 5 new advanced charts)
+# SESSION HANDOFF — GAAhex
 
 > Owner = Gev (calls me Ընգեր).
 > Repo: `ohanyan88-cmd/GAAhex` — THE ACTIVE PRODUCT.
@@ -9,6 +9,67 @@
 - **No fake / mock / hardcoded data** — every chart fetches from a real backend endpoint
 - DELETE old code, don't layer
 - Stage 8 Control Gate is THE only gate
+
+---
+
+## Current state (2026-06-05) — Post-D19 Stabilization Complete
+
+| | |
+|---|---|
+| HEAD | `87bb42c` on `main` (pushed) |
+| Working tree | clean |
+| Main-branch CI | ✅ **GREEN** (run `27031511102` — first green run since 2026-06-04) |
+| M0 staging readiness | ✅ GO (one watch-item: manual frontend smoke) |
+| Full pytest suite | ✅ 1768/0/0 (commit `b977db8`) |
+| Drift checker | ✅ 12 HARD + 8 RATCHET rules pass |
+| M0 killer test | ✅ in CI (`test_m0_killer_2nd_entity_config_only`) |
+| Architecture stabilization | ✅ 105/107 closed (T-P3-9 + T-P2-4 explicitly non-blocking) |
+
+### Closed in this stabilization cycle
+
+- **D19 / TD11 — token registry double-definition** → CLOSED via Path A — commit `46f25d0`. `color-tokens.css` absorbed into `gaahex-tokens.css`; new HARD drift rule prevents recurrence; zero pixel change.
+- **Tenant-filter CI gate** → CLOSED — commit `87bb42c`. Six safe-by-RLS sites annotated with `# noqa: tenant-filter` rationales; comment-only diff.
+
+### Open (intentionally — non-blocking)
+
+- **TD13** — `backend-rls` dual-role enforcement gate runs with `continue-on-error: true`. Tracked in sealed baseline §9 for **M1**. Not a release blocker.
+- **T-P3-9** — ~1,100 layout one-offs → `<Stack>/<Inline>/<Grid>` consolidation. Drift checker prevents new instances; per-PR migration as files are touched.
+- **T-P2-4** — `<ConversationRow>` primitive scope-flagged (only n=2 sites with divergent shapes). Revisit when a 3rd surface lands.
+
+### Forward focus (next priorities)
+
+1. **Manual staging walkthrough** — steps 1–12 from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3 against a live staging URL.
+2. **First-tenant decision** — pick the actual ISP to onboard. Unblocks M1 §S1 seeding work.
+3. **Q1 — GXL business-condition workflow guards** → finalize the DRAFT successor baseline at `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` (Phase 1.5 design review).
+4. **Q5 — Per-tenant feature flags** (M1 scope per Q5 lock-in).
+5. **Q8 — RLS exemption policy ("Fix Forward" default)** — formalize the policy document; exemptions only in rare cases.
+6. **M1 implementation planning** — execute `docs/roadmap/M1-PLATFORM-EXPANSION-PLAN.md`.
+
+### Sealed baselines
+
+- `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md` — current sealed baseline (post-M0-staging).
+- `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` — DRAFT SHELL (Phase 1.5 GXL widening).
+
+### Reference commits
+
+```
+87bb42c  ci(tenant-filter): annotate 6 safe-by-RLS query sites with noqa rationales
+46f25d0  fix(D19 Path A): single token registry — color-tokens.css absorbed into gaahex-tokens.css
+6c3336d  docs+i18n: autonomous session — forward-link, ru bundle, D19 analysis, Phase 1.5 runbook
+8d84d02  docs(arch): DRAFT shell — GXL extension successor sealed baseline
+8a09206  docs(roadmap): M1 plan — lock in Q1/Q5/Q8 resolutions
+66c3b24  docs(roadmap): M1 platform expansion plan
+82c3e39  docs(arch): sealed architecture baseline 2026-06-05
+78636a1  docs(m0): staging readiness pass — GO with watch-item
+b977db8  test(infra): full pytest suite now green — 1768/0/0
+0559916  test(m0): killer test — 2nd entity from config alone, all 5 engines
+```
+
+---
+
+## Legacy session log (pre-2026-06-05 — preserved for context)
+
+# SESSION HANDOFF — GAAhex, 2026-06-01 (audit P0/P1 cleared + 5 new advanced charts)
 
 ---
 
