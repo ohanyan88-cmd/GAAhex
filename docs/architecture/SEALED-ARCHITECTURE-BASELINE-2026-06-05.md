@@ -742,3 +742,13 @@ The platform thesis is proven. The 5 engines are wired. The audit trail is seale
 Postgres. The killer test runs on every push. Keep it that way.
 
 — Ընգեր, 2026-06-05
+
+---
+
+## Successor baselines
+
+Per I10, the architecture trail is append-only. As successor sealed baselines are
+authored, they're linked here. This is the **one** edit channel this file accepts
+after the seal — every other change opens a new file.
+
+- **`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`** *(DRAFT SHELL — pending Phase 1.5 design review)* — addendum widening the WorkItem-movement engine's GXL vocabulary to support one-hop cross-record workflow guards. Status flips to SEALED when its §10 acceptance checklist completes.
