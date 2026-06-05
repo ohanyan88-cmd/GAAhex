@@ -110,7 +110,7 @@ async def revoke_all_refresh_tokens_for_user(s: AsyncSession, user_id: uuid.UUID
     /api/users/{id} DELETE (soft-deactivation) so a password reset / lockout truly kills every
     still-live session for that principal — not just the access token's short window."""
     result = await s.execute(
-        update(RefreshToken)
+        update(RefreshToken)  # noqa: tenant-filter — RLS-bound `s` enforces tenant via RefreshToken.tenant_id; user_id provenance is tenant-scoped (callers: /api/me/password, /api/users/{id} DELETE).
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=_utcnow())
     )
@@ -127,7 +127,7 @@ async def revoke_session_family(s: AsyncSession, session_id: uuid.UUID) -> int:
     re-authenticate. The trade-off (forced re-login on false positives) is the right default for
     a security event."""
     result = await s.execute(
-        update(RefreshToken)
+        update(RefreshToken)  # noqa: tenant-filter — RLS-bound `s` enforces tenant; session_id provenance is tenant-scoped (T2 replay-detection call site).
         .where(RefreshToken.session_id == session_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=_utcnow())
     )

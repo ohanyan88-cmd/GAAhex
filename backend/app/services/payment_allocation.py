@@ -97,7 +97,7 @@ async def invoice_balance_components(
     # for that Payment. When an allocation appears, ledger ownership shifts to the
     # allocation rows so we DON'T double-count the legacy attribution.
     has_alloc = (
-        select(PaymentAllocation.id)
+        select(PaymentAllocation.id)  # noqa: tenant-filter — correlated EXISTS subquery; outer query (below) is RLS-bound on Payment, invoice_id is tenant-validated by caller.
         .where(PaymentAllocation.payment_id == Payment.id)
         .exists()
     )

@@ -279,8 +279,8 @@ async def portal_logout(
     detached owner session and can't be UPDATEd through `s` directly without a reload.
     """
     row = (await s.execute(
-        select(CustomerUser).where(CustomerUser.id == cu.id)
-    )).scalar_one_or_none()  # noqa: tenant-filter — RLS-scoped self-row reload, tenant GUC set by current_customer
+        select(CustomerUser).where(CustomerUser.id == cu.id)  # noqa: tenant-filter — RLS-scoped self-row reload, tenant GUC set by current_customer
+    )).scalar_one_or_none()
 
     # Clear the cookie regardless — browser must drop its copy even if the DB row vanished.
     if _portal_auth_mode() in {"cookie", "both"}:

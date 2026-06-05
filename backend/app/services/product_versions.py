@@ -56,7 +56,7 @@ async def current_version_for(
     the first version or no version exists for the product.
     """
     rows = (await session.execute(
-        select(ProductVersion).where(ProductVersion.product_id == product_id)
+        select(ProductVersion).where(ProductVersion.product_id == product_id)  # noqa: tenant-filter — internal service; caller passes RLS-bound `session` and tenant-validated product_id; ProductVersion.tenant_id enforced by RLS.
         .order_by(ProductVersion.version_no)
     )).scalars().all()
     for v in rows:
