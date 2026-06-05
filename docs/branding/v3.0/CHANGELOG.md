@@ -1,5 +1,13 @@
 # GAAhex Brand — Changelog
 
+## v3.0 — Added: dark/light transparent lockup set (10 SVG + 18+12 PNG) — 2026-06-05
+- Added plate-free transparent lockups for runtime use (e.g. app dark header #0A1322 with no baked plate).
+- SVG (10): horizontal/stacked/vertical/icon/secondary × dark+light, in `01-logo/<type>/...-transparent.svg`. Each = the existing glyph set with the demo plate `<rect>` removed; geometry/spacing/typography/colors unchanged. stacked/vertical/secondary -light derived from -dark via the established dark→light delta (#4E7FC4→#1C3B68), proven byte-equal to the horizontal dark→light delta.
+- PNG (30): all five types × dark+light at 256/512/1024 in `07-exports/png-transparent/`, RGBA, alpha=0 background, square.
+- Existing deliverables untouched; `_archive/` untouched; wallpapers/merch/social/apple-touch/PWA-maskable remain opaque by design.
+- Manifest supplement: `MANIFEST.dark-transparent.sha256` (original `MANIFEST.sha256` preserved).
+
+
 ## v3.0 — Permanent-freeze remediation (D-1…D-7) — 2026-06-05
 - D-1: genuine print-ready CMYK PDF (DeviceCMYK) replacing the RGB-duplicate gaahex-print-cmyk.pdf.
 - D-2: email signatures differentiated — Gmail (inline), Outlook (MSO/VML-safe), generic template (variables); no byte-identical copies.

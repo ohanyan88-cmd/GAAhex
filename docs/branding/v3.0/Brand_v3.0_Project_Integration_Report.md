@@ -327,3 +327,60 @@ docs/branding/AUDIT.md, LOGO_BRIEF.md, PROPOSAL.md, VOICE_GUIDE.md,
 D19 Path A respected. D18 architecture preserved. No redesign performed. No backend behavior changed. The execution queue (Q1.A) remains paused per the prior directive.
 
 — Ընգեր, 2026-06-06
+
+---
+
+## Same-day addendum — Dark/Light transparent lockup set integrated
+
+**Date:** 2026-06-06 (same day as PART 1–7 above)
+**Trigger:** when the runtime `frontend/public/logo/GAAhex-logo-reversed.svg` was rotated to the brand `gaahex-logo-horizontal-dark.svg` source in PART 3 of this integration, Gev caught that the brand source had a baked-in dark plate (`<rect fill="#0B0B0C">`) — the SVG is the "ON PLATE" showcase variant, not meant for runtime use where the surface is already dark. The runtime header on `#0A1322` would render the plate as a visible black box.
+
+**Resolution path taken:** rather than strip the plate at the runtime layer or use `-color.svg` / `-white.svg` (which would either lose dark-surface contrast or lose brand color richness), we requested a brand-certified additive deliverable: a transparent-background lockup set in the brand-spec dark-mode color treatment (cobalt-lift `#4E7FC4` + azure `#0EA5E9` + gold `#C5A059`) and the symmetric light-mode treatment (cobalt `#1C3B68` + azure + gold). Brand owner authored, audited, and re-certified the addition.
+
+### What was added to the package
+
+- **10 new SVGs** at `01-logo/{horizontal,stacked,vertical,icon,secondary}/…-{dark,light}-transparent.svg`. Each = the existing glyph set with the demo plate `<rect>` removed; geometry/spacing/typography/colors unchanged. The three light variants for `stacked/vertical/secondary` (which had no `-light` source in the original package) were derived from `-dark` by applying the existing `#4E7FC4 → #1C3B68` rule — proven byte-equal to the package's own `horizontal-dark → horizontal-light` delta.
+- **30 new PNGs** at `07-exports/png-transparent/…-{dark,light}-transparent-{256,512,1024}.png`. RGBA, exact square dimensions, corner-alpha = 0.
+- **`Brand_v3.0_Dark_Light_Transparent_Audit.md`** — brand-team-run 7-check certification, all 🟢.
+- **`MANIFEST.dark-transparent.sha256`** — 40-entry hash manifest. Original `MANIFEST.sha256` preserved byte-identical (separate file, not mutated).
+- **CHANGELOG entry** — additive only.
+
+Total package size now: **382 files / 3.55 MB** (up from 340 / 3.04 MB).
+
+### Independent verification on the project side
+
+| Check | Result |
+|---|---|
+| Original 340 files byte-identical to first-integration package | ✅ 339/340 + 1 authorized (`CHANGELOG.md` purely additive — 8 lines inserted after the header) |
+| 10 new SVGs present + no plate | ✅ 10/10 (plate count = 0 each) |
+| Light variants use cobalt `#1C3B68`, zero cobalt-lift contamination | ✅ 5/5 |
+| Dark variants use cobalt-lift `#4E7FC4`, zero cobalt contamination | ✅ 5/5 |
+| 30 new PNGs RGBA + correct dimensions + corner-alpha = 0 | ✅ 30/30 |
+| `MANIFEST.dark-transparent.sha256` covers all 40 with correct hashes | ✅ 40/40 verify |
+| Original `MANIFEST.sha256` byte-preserved | ✅ |
+| Brand-team audit report ships in package | ✅ 7/7 green |
+
+### Runtime change
+
+`frontend/public/logo/GAAhex-logo-reversed.svg` re-rotated:
+
+```
+v3.0/01-logo/horizontal/gaahex-logo-horizontal-dark-transparent.svg
+  → frontend/public/logo/GAAhex-logo-reversed.svg
+```
+
+Filename preserved (existing code references in `App.tsx:338`, `App.tsx:488`, `_login.css:12` still resolve). The runtime SVG now contains no plate, cobalt-lift `#4E7FC4` structural hexagons, azure `#0EA5E9` signal hexagons, gold `#C5A059` destination hexagon. The dark header renders cleanly.
+
+### What was retired
+
+- The previous runtime `GAAhex-logo-reversed.svg` (plate-bearing) is at `frontend/public/_archive-pre-v3.0/logo/` for rollback only.
+- The intermediate ChatGPT-generated transparent zip was a workaround that became obsolete — **not** integrated (would have caused iOS+Android spec violations on adaptive-icon assets).
+
+### Constraints honored (re-confirmed for the addendum)
+
+- ✅ No brand redesign — the recolor delta is the locked D18 system rule applied symmetrically
+- ✅ No glyph geometry / D18 architecture / D19 Path A changes
+- ✅ No backend behavior changed
+- ✅ Execution queue (Q1.A) remains paused
+
+— Ընգեր, 2026-06-06 (addendum)

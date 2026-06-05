@@ -7,6 +7,20 @@ Treat that directory as read-only canonical. Every brand-touching decision in th
 project — logos, color, typography, voice, naming, brand architecture — reads from
 there.
 
+**Addendum (same day):** the v3.0 package now includes a brand-certified
+**dark/light transparent lockup set** (10 SVG + 30 PNG = 40 new files) for
+runtime surfaces where the existing `-dark.svg` / `-light.svg` "ON PLATE"
+showcase variants would render their demo `<rect>` plate as a visible box.
+Total package: **382 files**. See:
+
+- [`v3.0/Brand_v3.0_Dark_Light_Transparent_Audit.md`](./v3.0/Brand_v3.0_Dark_Light_Transparent_Audit.md) — the brand-team-run 7-check certification (all 🟢)
+- [`v3.0/MANIFEST.dark-transparent.sha256`](./v3.0/MANIFEST.dark-transparent.sha256) — hashes for the 40 new files (original `MANIFEST.sha256` preserved byte-identical)
+- [`v3.0/CHANGELOG.md`](./v3.0/CHANGELOG.md) — dated entry describing the addition
+
+Runtime use: `frontend/public/logo/GAAhex-logo-reversed.svg` is the new
+`gaahex-logo-horizontal-dark-transparent.svg` (cobalt-lift `#4E7FC4` +
+azure `#0EA5E9` + gold `#C5A059`, no plate).
+
 ### Quick links
 
 - **Entry point:** [`v3.0/README.md`](./v3.0/README.md)
@@ -78,7 +92,7 @@ What the frontend actually uses, and where the v3.0 source comes from:
 | Frontend runtime path | v3.0 canonical source |
 |---|---|
 | `frontend/public/logo/GAAhex-logo-cobalt-gold.svg` | `v3.0/01-logo/horizontal/gaahex-logo-horizontal-color.svg` |
-| `frontend/public/logo/GAAhex-logo-reversed.svg` | `v3.0/01-logo/horizontal/gaahex-logo-horizontal-dark.svg` |
+| `frontend/public/logo/GAAhex-logo-reversed.svg` | `v3.0/01-logo/horizontal/gaahex-logo-horizontal-dark-transparent.svg` (updated 2026-06-06 — was previously `-dark.svg` which had a demo plate baked in) |
 | `frontend/public/logo/GAAhex-mark.svg` | `v3.0/01-logo/icon/gaahex-icon-color.svg` |
 | `frontend/public/favicon/favicon.svg` | `v3.0/03-favicon/favicon.svg` |
 | `frontend/public/favicon/favicon.ico` | `v3.0/03-favicon/favicon.ico` |
