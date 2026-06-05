@@ -120,7 +120,27 @@
 
 ---
 
-# Q5 — Per-tenant feature flags
+# Q5 — Per-tenant feature flags  ✅ LOCKED 2026-06-05
+
+**Status:** IMPLEMENTED + LOCKED via commit `9662ea5`, verified green in CI run [`27036230536`](https://github.com/ohanyan88-cmd/GAAhex/actions/runs/27036230536).
+
+**Locked policy:** [`docs/standards/FEATURE_GATING_POLICY.md`](../standards/FEATURE_GATING_POLICY.md) — the two-system rule that defines this Q's correct shape.
+
+**Implementation surface:**
+- `backend/app/services/tenant_flag.py` — server-side reader `is_flag_enabled_for_tenant(s, tenant_id, key, *, default=False)`.
+- `backend/app/seed.py::seed_business_flags_if_empty()` — idempotent per-tenant default-OFF seed, wired into `apply_test_seeds()`.
+- `backend/app/scheduler.py::_TENANT_FLAG_GATED_JOBS` map + `_resolve_tenant_gates()` — per-tenant flag check inside the tenant loop (policy §5.4). `billing.run_dunning` skips for tenants whose flag is OFF.
+- `backend/app/services/feature_gate.py` — docstring updated with the two-system distinction; signature unchanged per policy §5.6.
+
+**Killer test:** `backend/tests/test_feature_flags.py::test_m1_per_tenant_feature_flag_isolation` (KT-M1-5) + 3 helper unit tests.
+
+**Net change:** +465 LOC across 5 files. Full backend smoke: 1,772 passed (was 1,768 pre-Q5; +4 new tests = exact match).
+
+**Important:** the original "extend `is_enabled()` to accept `tenant_id`" sketch in §Q5.3 below was **superseded** by the locked Feature Gating Policy. The as-built implementation uses a separate `tenant_flag.py` helper; `feature_gate.is_enabled()` signature is unchanged. Future readers should treat §Q5.3 as historical decision-trail context, not the as-built shape.
+
+The rest of this Q5 section is preserved as the decision trail.
+
+---
 
 ## Q5.1 Current state
 

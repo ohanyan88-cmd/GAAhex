@@ -700,7 +700,9 @@ The forbidden pattern §4 lists "no new entity-specific routes" as **implicit do
 - **Status:** resolved-in-plan. Phase 1 (Pre-flight + RLS hardening) closes with a new HARD drift rule: `@router\.(get|post|patch|delete)\("/api/(customers|invoices|services|...)/[^{]` outside the generic record router → fail. (The exact regex landed in the PR that adds it.)
 - **Not a successor-baseline candidate** because it *strengthens* the doctrine — adding a rule that enforces an already-stated invariant.
 
-### Q5. Per-tenant feature flags — **RESOLVED: in M1**
+### Q5. Per-tenant feature flags — **RESOLVED: in M1** · ✅ LOCKED 2026-06-05
+
+> **LOCKED 2026-06-05** — implemented in commit `9662ea5`; KT-M1-5 (`test_m1_per_tenant_feature_flag_isolation`) green in CI run [`27036230536`](https://github.com/ohanyan88-cmd/GAAhex/actions/runs/27036230536). Server-side reader at `backend/app/services/tenant_flag.py`; per-tenant gating wired in `scheduler.py::_run_for_tenant` via `_TENANT_FLAG_GATED_JOBS` map. The "extend `is_enabled(feature, tenant_id=None)`" wording in the design sketch below is **superseded** — the corrected shape is a separate `tenant_flag.py` helper per [`docs/standards/FEATURE_GATING_POLICY.md`](../standards/FEATURE_GATING_POLICY.md). The rest of this section is preserved as the design record.
 
 Today's feature gates are platform-wide (`FEATURE_RADIUS_REQUIRED`). Some M1 tenants might want a feature ON for tenant A but OFF for tenant B (e.g., dunning automation: M1 tenant wants it; future M2 tenants might not).
 

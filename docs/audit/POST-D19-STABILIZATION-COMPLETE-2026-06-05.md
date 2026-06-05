@@ -71,13 +71,13 @@ Stabilization work is **stopped here** unless a new blocker appears. The goal of
 ### Active (in order)
 
 1. **Q1 — GXL business-condition workflow guards** — flip `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` from DRAFT SHELL to SEALED via Phase 1.5 design review.
-2. **Q5 — Per-tenant feature flags** — implement per the M1 plan (Gev's lock-in: in M1, not later).
-3. **Q8 — RLS exemption policy** — formalize the "Fix Forward" default policy as a standalone doc; exemptions only in rare, documented cases.
-4. **Manual staging walkthrough** — DEFERRED. 12-step manual smoke from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3 against a live staging URL. Stays open as the M0 watch-item; does not block Q1/Q5/Q8.
+2. **Manual staging walkthrough** — DEFERRED. 12-step manual smoke from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3 against a live staging URL. Stays open as the M0 watch-item; does not block Q1.
 
 ### Resolved (locked in)
 
 - **First tenant selected: real ISP pilot participant.** ✅ RESOLVED 2026-06-05 — LOCKED. The pilot ISP that already agreed to participate is the locked first-tenant target. **Scope of this resolution:** strategic decision only. **Do not begin onboarding. Do not start production cutover.** Operational onboarding planning remains part of M1 execution.
+- **Q8 — RLS exemption policy.** ✅ LOCKED 2026-06-05 via commit `7e17707`. Standard at `docs/standards/RLS_EXEMPTION_POLICY.md` + append-only `docs/standards/RLS_EXEMPTION_REGISTRY.md` (initialized empty). No drift rule implemented (deferred per ratchet philosophy; recommended post-TD13).
+- **Q5 — Per-tenant feature flags.** ✅ IMPLEMENTED + LOCKED 2026-06-05 via commit `9662ea5`. CI run [`27036230536`](https://github.com/ohanyan88-cmd/GAAhex/actions/runs/27036230536) green — Backend / Frontend / Secret scan all `success`; TD13 RLS subset red as expected per `continue-on-error` grandfathering. Server-side reader: `backend/app/services/tenant_flag.py`. Seed: `dunning_automation` per-tenant default OFF via `seed_business_flags_if_empty()`. Scheduler gate: `_TENANT_FLAG_GATED_JOBS` map + `_resolve_tenant_gates()`; `billing.run_dunning` skips for tenants whose flag is OFF. KT-M1-5: `test_m1_per_tenant_feature_flag_isolation`. `feature_gate.is_enabled()` signature preserved per `docs/standards/FEATURE_GATING_POLICY.md`.
 
 ### After Q1/Q5/Q8 lock in
 

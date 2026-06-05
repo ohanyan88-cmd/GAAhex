@@ -38,16 +38,16 @@
 
 ### Forward focus (active priorities)
 
-**Goal: convert the remaining open architecture decisions (Q1/Q5/Q8) into locked decisions before broader M1 execution.** Manual staging walkthrough is intentionally deferred — it stays open as the M0 watch-item, but does not gate the next architectural lock-in pass. Onboarding the pilot ISP and any production cutover work are explicitly OUT OF SCOPE here.
+**Goal: seal Q1 (the last open architecture decision) before broader M1 execution.** Manual staging walkthrough is intentionally deferred — it stays open as the M0 watch-item, but does not gate Q1. Onboarding the pilot ISP and any production cutover work are explicitly OUT OF SCOPE here.
 
 1. **Q1 — GXL business-condition workflow guards** → finalize the DRAFT successor baseline at `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` (Phase 1.5 design review).
-2. **Q5 — Per-tenant feature flags** — implement per the M1 plan (Gev's lock-in: in M1, not later).
-3. **Q8 — RLS exemption policy ("Fix Forward" default)** — formalize the policy document; exemptions only in rare, documented cases.
-4. **Manual staging walkthrough** — DEFERRED. Steps 1–12 from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3; remains the M0 watch-item but does not block Q1/Q5/Q8 work.
+2. **Manual staging walkthrough** — DEFERRED. Steps 1–12 from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3; remains the M0 watch-item but does not block Q1.
 
 ### Resolved (locked in)
 
 - **First tenant selected: real ISP pilot participant.** ✅ RESOLVED 2026-06-05 — LOCKED. Strategic decision only — operational onboarding planning lives inside M1 execution. **Do not begin onboarding or production cutover from this decision alone.**
+- **Q5 — Per-tenant feature flags.** ✅ IMPLEMENTED + LOCKED 2026-06-05 (commit `9662ea5`, CI run [`27036230536`](https://github.com/ohanyan88-cmd/GAAhex/actions/runs/27036230536) green). Server-side reader `backend/app/services/tenant_flag.py` + per-tenant `dunning_automation` seed + scheduler gate `_TENANT_FLAG_GATED_JOBS` + KT-M1-5 in CI. Each tenant decides `dunning_automation` independently; deploy-shape gates remain untouched per `docs/standards/FEATURE_GATING_POLICY.md`.
+- **Q8 — RLS exemption policy.** ✅ LOCKED 2026-06-05 (commit `7e17707`). Standards docs at `docs/standards/RLS_EXEMPTION_POLICY.md` + `docs/standards/RLS_EXEMPTION_REGISTRY.md` (append-only, initialized empty).
 
 ### After Q1/Q5/Q8 lock in
 
