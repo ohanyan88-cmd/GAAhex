@@ -69,7 +69,7 @@ Workflow URL: `https://github.com/ohanyan88-cmd/GAAhex/actions/runs/27031511102`
 Stabilization work is **stopped here** unless a new blocker appears. The next priorities are forward-development items:
 
 1. **Manual staging walkthrough** — execute the 12-step manual smoke from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3 against a live staging URL. CI proves the API surface; staging proves the wired UI.
-2. **First-tenant decision** — pick the actual ISP to onboard. Unblocks the M1 §S1 seeding work and gives the platform thesis a real-world target.
+2. **First tenant selected: real ISP pilot participant.** ✅ RESOLVED 2026-06-05 — LOCKED. The pilot ISP that already agreed to participate is the locked first-tenant target. Rationale: validates the platform against real operational workflows (not synthetic assumptions); produces real feedback; accelerates M1 validation; supports the long-term ISP OSS/BSS strategy; provides a concrete target for onboarding, workflows, billing, provisioning, and customer-lifecycle testing. **Scope of this resolution:** strategic decision only. **Do not begin onboarding. Do not start production cutover.** Operational onboarding planning remains part of M1 execution.
 3. **Q1 — GXL business-condition workflow guards** — flip `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` from DRAFT SHELL to SEALED via Phase 1.5 design review.
 4. **Q5 — Per-tenant feature flags** — implement per the M1 plan (Gev's lock-in: in M1, not later).
 5. **Q8 — RLS exemption policy** — formalize the "Fix Forward" default policy as a standalone doc; exemptions only in rare, documented cases.

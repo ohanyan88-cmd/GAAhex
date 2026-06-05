@@ -359,4 +359,4 @@ pnpm typecheck
 | **Main-branch CI** | First green run since 2026-06-04 (`backend`, `frontend`, `secret-scan` all success) | ✅ GREEN — run `27031511102` (2026-06-05, 4m 58s) | `docs/audit/POST-D19-STABILIZATION-COMPLETE-2026-06-05.md` |
 | **TD13** | `backend-rls` dual-role enforcement gate (currently `continue-on-error: true`) | 🟡 OPEN — **non-blocking**, scoped for **M1** per sealed baseline §9 | M1 plan §S5 |
 
-**Stabilization work is stopped here.** Forward focus shifts to: manual staging walkthrough · first-tenant decision · Q1/Q5/Q8 implementation · M1 planning.
+**Stabilization work is stopped here.** Forward focus shifts to: manual staging walkthrough · ~~first-tenant decision~~ (✅ RESOLVED 2026-06-05 — real ISP pilot participant locked) · Q1/Q5/Q8 implementation · M1 planning.

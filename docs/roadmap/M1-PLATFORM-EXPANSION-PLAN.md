@@ -123,7 +123,7 @@ exists as built-in models. M1 layers on top:
 
 ### S6. First real tenant cutover
 
-- Tenant: TBD by Gev. Likely the actual GAAhex pilot ISP.
+- Tenant: ✅ **LOCKED 2026-06-05** — the real ISP pilot participant that already agreed to participate. (Strategic decision only; operational onboarding planning happens inside this M1 execution. Do not begin onboarding or production cutover from the strategic lock alone.)
 - Migration of any pre-existing data into the platform's seed shape happens
   by **the platform's own `POST /api/{slug}` endpoints**, run as a one-shot
   Python script using the tenant's first super_admin's JWT. No bulk
