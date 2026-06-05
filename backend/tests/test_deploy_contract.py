@@ -50,7 +50,10 @@ def test_production_with_same_role_raises(monkeypatch):
 
 
 def test_production_with_separate_roles_passes(monkeypatch):
-    """The correct prod shape: app role differs from owner role; guard is silent."""
+    """The correct prod shape: app role differs from owner role; guard is silent.
+
+    The production deploy contract also forbids CORS_ORIGINS="*" (dev default),
+    so the test sets it to a concrete origin to validate the happy path."""
     monkeypatch.setattr(settings, "environment", "production")
     monkeypatch.setattr(
         settings, "database_url", "postgresql+asyncpg://gaahex_app:y@h:5432/a"
@@ -58,4 +61,12 @@ def test_production_with_separate_roles_passes(monkeypatch):
     monkeypatch.setattr(
         settings, "owner_database_url", "postgresql+asyncpg://gaahex:y@h:5432/a"
     )
+    monkeypatch.setattr(settings, "cors_origins", "https://app.example.com")
+    # The contract also forbids mock providers in production; set them all to
+    # a real-looking value so this happy-path test isolates the role check.
+    monkeypatch.setattr(settings, "payment_gateway_provider", "stripe")
+    monkeypatch.setattr(settings, "email_gateway_provider", "sendgrid")
+    monkeypatch.setattr(settings, "sms_gateway_provider", "twilio")
+    monkeypatch.setattr(settings, "radius_backend_provider", "freeradius")
+    monkeypatch.setattr(settings, "portal_auth_mode", "cookie")
     _assert_production_deploy_contract()  # must not raise

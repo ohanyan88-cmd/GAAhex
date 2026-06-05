@@ -237,12 +237,22 @@ async def test_import_validate_draft_to_ready(client, alice):
 
 
 async def test_import_start_ready_to_importing(client, alice):
+    """READY_TO_IMPORT -> IMPORTING transition.
+
+    The import engine is intentionally fail-closed (FEATURE_IMPORT_ENGINE_ENABLED
+    default False + IMPORT_ENGINE_IMPLEMENTED=False). /start returns 503 with a
+    structured `feature_disabled` body until a real engine lands. This test
+    documents that current correct behavior; once the engine ships, the assertions
+    will need to flip to 200 + status IMPORTING (and the test name then matches).
+    """
     c = await client.post("/api/imports", headers=alice, json=_imp_body())
     iid = c.json()["id"]
     await client.post(f"/api/imports/{iid}/validate", headers=alice)
     r = await client.post(f"/api/imports/{iid}/start", headers=alice)
-    assert r.status_code == 200
-    assert r.json()["status"] == "IMPORTING"
+    assert r.status_code == 503
+    body = r.json()
+    assert body["detail"]["error"] == "feature_disabled"
+    assert body["detail"]["feature"] == "import_engine"
 
 
 async def test_import_cancel_from_draft(client, alice):
@@ -253,11 +263,19 @@ async def test_import_cancel_from_draft(client, alice):
 
 
 async def test_import_cannot_start_from_draft_422(client, alice):
-    """Must validate before starting — direct DRAFT->IMPORTING is rejected."""
+    """Must validate before starting — direct DRAFT->IMPORTING is rejected.
+
+    Currently the fail-closed feature gate triggers BEFORE the status check, so
+    a DRAFT/start hits 503 (feature_disabled) before we'd hit the 422 (wrong
+    status). Once the import engine lands and the gate flips on, this test
+    will need to be revisited to verify the status guard still bites first.
+    """
     c = await client.post("/api/imports", headers=alice, json=_imp_body())
     iid = c.json()["id"]
     r = await client.post(f"/api/imports/{iid}/start", headers=alice)
-    assert r.status_code == 422
+    assert r.status_code == 503
+    body = r.json()
+    assert body["detail"]["error"] == "feature_disabled"
 
 
 async def test_import_create_missing_field_422(client, alice):

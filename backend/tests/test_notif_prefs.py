@@ -61,11 +61,15 @@ async def _drive(client, admin, slug) -> str:
     return rid
 
 
-async def _notes_for(record_id):
+async def _notes_for(record_id, user_id=None):
+    """Notifications for a record. When `user_id` is given, filter to that user's
+    notes — see test_notif_a26._notes_for for the rationale (full-suite users
+    leak into the recipient set; per-user filtering keeps assertions stable)."""
     async with SessionLocal() as s:
-        return (await s.execute(
-            select(Notification).where(Notification.record_id == uuid.UUID(record_id))
-        )).scalars().all()
+        q = select(Notification).where(Notification.record_id == uuid.UUID(record_id))
+        if user_id is not None:
+            q = q.where(Notification.user_id == user_id)
+        return (await s.execute(q)).scalars().all()
 
 
 # ===================== inbox category / priority filters =====================
@@ -126,7 +130,7 @@ async def test_default_on_delivers(client, admin):
     await _seed_def(tenant, "nprefon.done", category="tcat_on")
     await _mk_lifecycle_entity(client, admin, "nprefon", "npref-on")
     rid = await _drive(client, admin, "npref-on")
-    notes = await _notes_for(rid)
+    notes = await _notes_for(rid, user_id=agent_id)
     assert len(notes) == 1 and notes[0].user_id == agent_id      # no pref ⇒ delivered to the agent
     assert notes[0].category == "tcat_on"
 
@@ -139,15 +143,15 @@ async def test_disabled_category_suppresses(client, admin, agent):
                              json={"preferences": [{"category": "tcat_off", "channel": "inapp", "enabled": False}]})).status_code == 200
     await _mk_lifecycle_entity(client, admin, "nprefoff", "npref-off")
     rid = await _drive(client, admin, "npref-off")
-    assert await _notes_for(rid) == []                            # suppressed by the disabled category pref
+    assert await _notes_for(rid, user_id=agent_id) == []                            # suppressed by the disabled category pref
 
 
 async def test_disabled_by_def_key_suppresses(client, admin, agent):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "nprefdk.done", category="tcat_dk")
     # opt out by the specific def_key (not the category) — _pref_opted_out matches either
     assert (await client.put("/notifications/preferences", headers=agent,
                              json={"preferences": [{"category": "nprefdk.done", "channel": "inapp", "enabled": False}]})).status_code == 200
     await _mk_lifecycle_entity(client, admin, "nprefdk", "npref-dk")
     rid = await _drive(client, admin, "npref-dk")
-    assert await _notes_for(rid) == []
+    assert await _notes_for(rid, user_id=agent_id) == []

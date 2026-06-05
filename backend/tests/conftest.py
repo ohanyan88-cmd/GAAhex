@@ -143,10 +143,19 @@ async def delete_tenant_cleanly(s, tenant_id):
     suite run.
 
     This helper finds every tenant_id-bearing table in the live schema and
-    deletes rows for the given tenant before the final tenant DELETE. The
-    schema introspection (information_schema.columns) keeps this helper
-    forward-compatible: new tenant-scoped tables shipped by migrations get
-    cleaned automatically without code changes here.
+    deletes rows for the given tenant. The schema introspection
+    (information_schema.columns) keeps this helper forward-compatible: new
+    tenant-scoped tables shipped by migrations get cleaned automatically
+    without code changes here.
+
+    Append-only tables (event, audit_log per SPEC §0.4) are SKIPPED — DELETE
+    against them is rejected by the kernel constraint
+    (`RestrictViolationError: event (audit log) is append-only … no DELETE
+    allowed by any role including Admin`). Because event.tenant_id has a NOT
+    NULL FK to tenant.id, the final `DELETE FROM tenant` would then violate
+    that FK; we skip the tenant row deletion too. Leaving the 2nd tenant
+    around between tests is harmless — each fixture creates its own unique
+    tenant uuid and the test DB is dropped+recreated at session start.
     """
     from sqlalchemy import text
     # Discover every table that has a tenant_id column in the live schema —
@@ -158,14 +167,16 @@ async def delete_tenant_cleanly(s, tenant_id):
           FROM information_schema.columns
          WHERE table_schema = 'public'
            AND column_name = 'tenant_id'
-           AND table_name != 'tenant'
+           AND table_name NOT IN ('tenant', 'event', 'audit_log')
         """
     ))).scalars().all()
     for tbl in tenant_tables:
         # Quote the identifier so reserved-word table names (e.g. "user") work.
         await s.execute(text(f'DELETE FROM "{tbl}" WHERE tenant_id = :tid'), {"tid": tenant_id})
-    from app.models.tenant import Tenant
-    await s.execute(Tenant.__table__.delete().where(Tenant.id == tenant_id))
+    # NOTE: we deliberately do NOT delete from tenant itself. The append-only
+    # event/audit_log rows still reference this tenant_id, and the FK isn't
+    # ON DELETE CASCADE (by SPEC §0.4 — audit lineage can't be tombstoned).
+    # The orphan tenant row is benign across the rest of the suite.
 
 
 async def ensure_user(s, *, tenant_id, node_id, email: str, role_id, password: str = "test-123"):

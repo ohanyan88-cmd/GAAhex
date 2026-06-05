@@ -243,18 +243,11 @@ async def test_service_activation_emits_audit_when_radius_blocked(
         f"got status={svc_after['status']}"
     )
 
-    # ── teardown: clean the audit row so subsequent runs of this test in the
-    # same session-scoped DB don't accumulate. Use audit_tenant_filter bypass
-    # since Event is RLS-filtered by tenant for normal sessions.
-    async with OwnerSessionLocal() as s:
-        await s.connection(execution_options={"audit_tenant_filter": False})
-        await s.execute(
-            delete(Event).where(
-                Event.type == "RADIUS_UNAVAILABLE_BLOCKED",
-                Event.record_id == uuid.UUID(svc_id),
-            )
-        )
-        await s.commit()
+    # No teardown DELETE: the event table is append-only per SPEC §0.4 (the
+    # owner role can't DELETE from event either — the constraint fires
+    # RestrictViolationError). Accumulating audit rows across test runs is
+    # fine because the assertion above uses `len(rows) >= 1` keyed on the
+    # per-test unique service uuid, so prior test runs' rows can't false-pass.
 
 
 @pytest.mark.asyncio

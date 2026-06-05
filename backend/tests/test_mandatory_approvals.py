@@ -232,9 +232,11 @@ async def test_spec_4_5_customer_delete_gate(client, admin):
     assert body["action_type"] == "customer_delete"
     aid = body["approval_id"]
 
-    # Customer is still listed (no deletion happened).
-    listed = (await client.get("/api/customers", headers=admin)).json()
-    assert cid in {c["id"] for c in listed}
+    # Customer is still there (no deletion happened). Use a direct GET rather
+    # than the list endpoint — the full suite leaves hundreds of customers, so
+    # pagination would push DoomedCo off the first page of /api/customers.
+    detail = await client.get(f"/api/customers/{cid}", headers=admin)
+    assert detail.status_code == 200
 
     # 2. Approve.
     decided = await client.patch(f"/api/mandatory-approvals/{aid}/decide", headers=admin,
@@ -245,9 +247,10 @@ async def test_spec_4_5_customer_delete_gate(client, admin):
     final_del = await client.delete(f"/api/customers/{cid}", headers=admin)
     assert final_del.status_code == 204
 
-    # Customer is gone.
-    listed_after = (await client.get("/api/customers", headers=admin)).json()
-    assert cid not in {c["id"] for c in listed_after}
+    # Customer is gone. Direct GET should 404 now (same rationale as the
+    # listing check above — pagination would mask the deletion).
+    after = await client.get(f"/api/customers/{cid}", headers=admin)
+    assert after.status_code == 404
 
     # The approval row is now EXECUTED.
     final = (await client.get(f"/api/mandatory-approvals/{aid}", headers=admin)).json()

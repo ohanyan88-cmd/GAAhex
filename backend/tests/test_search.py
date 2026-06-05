@@ -41,10 +41,23 @@ async def test_q_substring_case_insensitive(client, admin):
 
 
 async def test_blank_q_is_unchanged(client, admin):
+    """`?q=` (empty value) must be treated identically to no `q` at all.
+
+    The invariant under test is: `blank == no_q`. The leaked-row check
+    (`"zzblank token" in no_q`) used to bake in an additional assumption — that
+    the new lead appears in the default first-page response. In a clean DB
+    that's fine, but the full suite leaves hundreds of leads, and pagination
+    pushes the just-created row off the first page. Filter the search to the
+    new lead's substring so the existence check is robust to suite ordering.
+    """
     assert (await client.post("/api/leads", headers=admin, json={"name": "zzblank token"})).status_code == 201
     no_q = await _names(client, admin, "")
     blank = await _names(client, admin, "?q=")
-    assert "zzblank token" in no_q and blank == no_q             # empty q ⇒ no filtering
+    # core invariant: blank q behaves identically to no q
+    assert blank == no_q
+    # the new lead is reachable via a substring filter, regardless of pagination
+    found = await _names(client, admin, "?q=zzblank")
+    assert "zzblank token" in found
 
 
 # ===================== filter (GXL) =====================

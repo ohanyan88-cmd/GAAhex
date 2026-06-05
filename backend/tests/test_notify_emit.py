@@ -38,11 +38,15 @@ async def _seed_def(tenant_id, key, *, enabled=True, gxl_condition=None,
         await s.commit()
 
 
-async def _notes_for(record_id):
+async def _notes_for(record_id, user_id=None):
+    """Notifications for a record. When `user_id` is given, filter to that user's
+    notes — see test_notif_a26._notes_for for the rationale (full-suite users
+    leak into the recipient set; per-user filtering keeps assertions stable)."""
     async with SessionLocal() as s:
-        return (await s.execute(
-            select(Notification).where(Notification.record_id == uuid.UUID(record_id))
-        )).scalars().all()
+        q = select(Notification).where(Notification.record_id == uuid.UUID(record_id))
+        if user_id is not None:
+            q = q.where(Notification.user_id == user_id)
+        return (await s.execute(q)).scalars().all()
 
 
 async def _lifecycle_entity(client, admin, key, slug):
@@ -77,7 +81,7 @@ async def test_recipient_gets_notification_actor_excluded(client, admin, agent):
     assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "CONTACTED"})).status_code == 200
     assert (await client.post(f"/api/leads/{lid}/transition", headers=admin, json={"to": "QUALIFIED"})).status_code == 200
 
-    notes = await _notes_for(lid)
+    notes = await _notes_for(lid, user_id=agent_id)
     # exactly one — to the agent (recipient), not the admin (actor); only lead.qualified has a def
     assert len(notes) == 1
     n = notes[0]
@@ -96,23 +100,23 @@ async def test_recipient_gets_notification_actor_excluded(client, admin, agent):
 # ---- gating: enabled flag ----
 
 async def test_disabled_def_emits_nothing(client, admin):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "ntfa.done", enabled=False)
     await _lifecycle_entity(client, admin, "ntfa", "ntf-a")
     rid, code = await _create_and_advance(client, admin, "ntf-a")
     assert code == 200
-    assert await _notes_for(rid) == []
+    assert await _notes_for(rid, user_id=agent_id) == []
 
 
 # ---- gating: GXL condition ----
 
 async def test_gxl_condition_false_emits_nothing(client, admin):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "ntfb.done", gxl_condition="to == 'NEVER'")
     await _lifecycle_entity(client, admin, "ntfb", "ntf-b")
     rid, code = await _create_and_advance(client, admin, "ntf-b")
     assert code == 200
-    assert await _notes_for(rid) == []
+    assert await _notes_for(rid, user_id=agent_id) == []
 
 
 async def test_gxl_condition_true_emits(client, admin):
@@ -121,14 +125,15 @@ async def test_gxl_condition_true_emits(client, admin):
     await _lifecycle_entity(client, admin, "ntfc", "ntf-c")
     rid, code = await _create_and_advance(client, admin, "ntf-c")
     assert code == 200
-    notes = await _notes_for(rid)
+    notes = await _notes_for(rid, user_id=agent_id)
     assert len(notes) == 1 and notes[0].user_id == agent_id
 
 
 # ---- gating: no matching def ----
 
 async def test_no_matching_def_emits_nothing(client, admin):
-    # never seed a def for this entity
+    # never seed a def for this entity — no def_key match means no notes emitted at all
+    # (no need to filter by user_id; the assertion is "zero notes anywhere for this record")
     await _lifecycle_entity(client, admin, "ntfd", "ntf-d")
     rid, code = await _create_and_advance(client, admin, "ntf-d")
     assert code == 200
@@ -138,11 +143,11 @@ async def test_no_matching_def_emits_nothing(client, admin):
 # ---- fail-soft: a bad template never breaks the transition ----
 
 async def test_bad_template_is_failsoft(client, admin):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     # an unbalanced brace makes str.format_map raise; _render swallows it and returns the template verbatim
     await _seed_def(tenant, "ntfe.done", title="{", body="ok")
     await _lifecycle_entity(client, admin, "ntfe", "ntf-e")
     rid, code = await _create_and_advance(client, admin, "ntf-e")
     assert code == 200                       # transition still succeeds — notification problems never break it
-    notes = await _notes_for(rid)
+    notes = await _notes_for(rid, user_id=agent_id)
     assert len(notes) == 1 and notes[0].title == "{"   # rendered verbatim, not crashed

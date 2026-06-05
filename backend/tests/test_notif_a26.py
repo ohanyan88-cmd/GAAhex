@@ -52,18 +52,34 @@ async def _drive(client, admin, slug):
     return rid
 
 
-async def _notes_for(record_id):
+async def _notes_for(record_id, user_id=None):
+    """Notifications for a record. When `user_id` is given, filter to that user's
+    notes — needed because the full suite may have other tenant users with
+    primary_node_id at/under the record's owner_node, who also become
+    recipients (the kernel correctly notifies all covering users). The
+    A26 invariants are per-user; pass user_id to make assertions stable."""
     async with SessionLocal() as s:
-        return (await s.execute(
-            select(Notification).where(Notification.record_id == uuid.UUID(record_id))
-        )).scalars().all()
+        q = select(Notification).where(Notification.record_id == uuid.UUID(record_id))
+        if user_id is not None:
+            q = q.where(Notification.user_id == user_id)
+        return (await s.execute(q)).scalars().all()
 
 
-async def _outbound_for(def_key):
+async def _outbound_for(def_key, user_id=None):
+    """OutboundMessages for a def_key. When `user_id` is given, filter to that
+    user's outbound rows — same rationale as `_notes_for`: full-suite users
+    leak into the recipient set, so per-user filtering keeps the count-based
+    assertions stable.
+
+    For tests asserting `== []` (no external delivery), filtering by user_id
+    is still correct — if the recipient under test was suppressed, the list
+    for THEIR rows should be empty regardless of how many other recipients
+    might exist."""
     async with SessionLocal() as s:
-        return (await s.execute(
-            select(OutboundMessage).where(OutboundMessage.def_key == def_key)
-        )).scalars().all()
+        q = select(OutboundMessage).where(OutboundMessage.def_key == def_key)
+        if user_id is not None:
+            q = q.where(OutboundMessage.user_id == user_id)
+        return (await s.execute(q)).scalars().all()
 
 
 # ===================== A26 prefs CRUD =====================
@@ -108,10 +124,10 @@ async def test_default_user_inbox_and_external_unchanged(client, admin):
     await _mk_entity(client, admin, "a26def", "a26-def")
     rid = await _drive(client, admin, "a26-def")
 
-    notes = await _notes_for(rid)
+    notes = await _notes_for(rid, user_id=agent_id)
     assert len(notes) == 1 and notes[0].user_id == agent_id        # inbox unchanged
     assert notes[0].digest_pending is False
-    assert len(await _outbound_for("a26def.done")) == 1            # external unchanged
+    assert len(await _outbound_for("a26def.done", user_id=agent_id)) == 1            # external unchanged
 
 
 async def test_mode_off_inbox_only_no_external(client, admin, agent):
@@ -124,10 +140,10 @@ async def test_mode_off_inbox_only_no_external(client, admin, agent):
     await _mk_entity(client, admin, "a26off", "a26-off")
     rid = await _drive(client, admin, "a26-off")
 
-    notes = await _notes_for(rid)
+    notes = await _notes_for(rid, user_id=agent_id)
     assert len(notes) == 1 and notes[0].user_id == agent_id        # INBOX STILL LANDS
     assert notes[0].digest_pending is False
-    assert await _outbound_for("a26off.done") == []               # NO external delivery
+    assert await _outbound_for("a26off.done", user_id=agent_id) == []               # NO external delivery
 
 
 async def test_mode_digest_inbox_plus_flag_no_external(client, admin, agent):
@@ -139,14 +155,14 @@ async def test_mode_digest_inbox_plus_flag_no_external(client, admin, agent):
     await _mk_entity(client, admin, "a26dig", "a26-dig")
     rid = await _drive(client, admin, "a26-dig")
 
-    notes = await _notes_for(rid)
+    notes = await _notes_for(rid, user_id=agent_id)
     assert len(notes) == 1 and notes[0].user_id == agent_id        # INBOX STILL LANDS
     assert notes[0].digest_pending is True                        # flagged for lane E
-    assert await _outbound_for("a26dig.done") == []               # NO external send now
+    assert await _outbound_for("a26dig.done", user_id=agent_id) == []               # NO external send now
 
 
 async def test_realtime_channel_excluded_no_external(client, admin, agent):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "a26chx.done", channel="email", category="a26_chx")
     # realtime, but email is NOT in the allowed channels list → no external email
     assert (await client.put("/api/notification-prefs", headers=agent, json={"preferences": [
@@ -155,12 +171,12 @@ async def test_realtime_channel_excluded_no_external(client, admin, agent):
     await _mk_entity(client, admin, "a26chx", "a26-chx")
     rid = await _drive(client, admin, "a26-chx")
 
-    assert len(await _notes_for(rid)) == 1                        # INBOX STILL LANDS
-    assert await _outbound_for("a26chx.done") == []              # channel excluded → no external
+    assert len(await _notes_for(rid, user_id=agent_id)) == 1                        # INBOX STILL LANDS
+    assert await _outbound_for("a26chx.done", user_id=agent_id) == []              # channel excluded → no external
 
 
 async def test_realtime_channel_allowed_delivers_external(client, admin, agent):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "a26ok.done", channel="email", category="a26_ok")
     assert (await client.put("/api/notification-prefs", headers=agent, json={"preferences": [
         {"category": "a26_ok", "mode": "realtime", "channels": ["inapp", "email"]},
@@ -168,12 +184,12 @@ async def test_realtime_channel_allowed_delivers_external(client, admin, agent):
     await _mk_entity(client, admin, "a26ok", "a26-ok")
     rid = await _drive(client, admin, "a26-ok")
 
-    assert len(await _notes_for(rid)) == 1                        # inbox lands
-    assert len(await _outbound_for("a26ok.done")) == 1           # realtime + allowed → external sent
+    assert len(await _notes_for(rid, user_id=agent_id)) == 1                        # inbox lands
+    assert len(await _outbound_for("a26ok.done", user_id=agent_id)) == 1           # realtime + allowed → external sent
 
 
 async def test_muted_suppresses_external_keeps_inbox(client, admin, agent):
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "a26mut.done", channel="email", category="a26_mut")
     assert (await client.put("/api/notification-prefs", headers=agent, json={"preferences": [
         {"category": "a26_mut", "mode": "realtime", "channels": ["inapp", "email"], "muted": True},
@@ -181,13 +197,13 @@ async def test_muted_suppresses_external_keeps_inbox(client, admin, agent):
     await _mk_entity(client, admin, "a26mut", "a26-mut")
     rid = await _drive(client, admin, "a26-mut")
 
-    assert len(await _notes_for(rid)) == 1                        # INBOX STILL LANDS
-    assert await _outbound_for("a26mut.done") == []             # muted → no external
+    assert len(await _notes_for(rid, user_id=agent_id)) == 1                        # INBOX STILL LANDS
+    assert await _outbound_for("a26mut.done", user_id=agent_id) == []             # muted → no external
 
 
 async def test_def_key_beats_category_in_resolution(client, admin, agent):
     """Most specific wins: a def_key=off pref overrides a category=realtime pref."""
-    tenant, _, _ = await _user_ids()
+    tenant, _, agent_id = await _user_ids()
     await _seed_def(tenant, "a26spec.done", channel="email", category="a26_spec")
     assert (await client.put("/api/notification-prefs", headers=agent, json={"preferences": [
         {"category": "a26_spec", "mode": "realtime", "channels": ["inapp", "email"]},
@@ -196,8 +212,8 @@ async def test_def_key_beats_category_in_resolution(client, admin, agent):
     await _mk_entity(client, admin, "a26spec", "a26-spec")
     rid = await _drive(client, admin, "a26-spec")
 
-    assert len(await _notes_for(rid)) == 1                        # inbox lands
-    assert await _outbound_for("a26spec.done") == []            # def_key=off wins → no external
+    assert len(await _notes_for(rid, user_id=agent_id)) == 1                        # inbox lands
+    assert await _outbound_for("a26spec.done", user_id=agent_id) == []            # def_key=off wins → no external
 
 
 # ===================== inbox state: snooze / archive =====================
