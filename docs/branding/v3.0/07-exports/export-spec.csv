@@ -1,0 +1,81 @@
+source_svg,export_file,width_px,height_px,background,scales,notes
+02-web-app/gaahex-header-color.svg,gaahex-header-color.png,220,64,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-header-sticky-color.svg,gaahex-header-sticky-color.png,160,48,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-header-mobile-color.svg,gaahex-header-mobile-color.png,40,40,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-footer-white.svg,gaahex-footer-white.png,200,58,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-menu-mobile-color.svg,gaahex-menu-mobile-color.png,180,120,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-loading-color.svg,gaahex-loading-color.png,320,340,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-error-color.svg,gaahex-error-color.png,200,200,transparent,"1x,2x,3x",UI placement (mesh-free)
+02-web-app/gaahex-emptystate.svg,gaahex-emptystate.png,120,120,transparent,"1x,2x,3x",UI placement (mesh-free)
+01-logo/horizontal/gaahex-logo-horizontal-color.svg,gaahex-logo-horizontal-color.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-color.svg,gaahex-logo-horizontal-color.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-light.svg,gaahex-logo-horizontal-light.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-light.svg,gaahex-logo-horizontal-light.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-dark.svg,gaahex-logo-horizontal-dark.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-dark.svg,gaahex-logo-horizontal-dark.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-white.svg,gaahex-logo-horizontal-white.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-white.svg,gaahex-logo-horizontal-white.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-black.svg,gaahex-logo-horizontal-black.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-black.svg,gaahex-logo-horizontal-black.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-grayscale.svg,gaahex-logo-horizontal-grayscale.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-grayscale.svg,gaahex-logo-horizontal-grayscale.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-mono-cobalt.svg,gaahex-logo-horizontal-mono-cobalt.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-mono-cobalt.svg,gaahex-logo-horizontal-mono-cobalt.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/horizontal/gaahex-logo-horizontal-mono-gold.svg,gaahex-logo-horizontal-mono-gold.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/horizontal/gaahex-logo-horizontal-mono-gold.svg,gaahex-logo-horizontal-mono-gold.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/secondary/gaahex-logo-secondary-color.svg,gaahex-logo-secondary-color.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/secondary/gaahex-logo-secondary-color.svg,gaahex-logo-secondary-color.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/secondary/gaahex-logo-secondary-dark.svg,gaahex-logo-secondary-dark.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/secondary/gaahex-logo-secondary-dark.svg,gaahex-logo-secondary-dark.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/secondary/gaahex-logo-secondary-white.svg,gaahex-logo-secondary-white.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/secondary/gaahex-logo-secondary-white.svg,gaahex-logo-secondary-white.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/secondary/gaahex-logo-secondary-black.svg,gaahex-logo-secondary-black.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/secondary/gaahex-logo-secondary-black.svg,gaahex-logo-secondary-black.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/stacked/gaahex-logo-stacked-color.svg,gaahex-logo-stacked-color.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/stacked/gaahex-logo-stacked-color.svg,gaahex-logo-stacked-color.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/stacked/gaahex-logo-stacked-dark.svg,gaahex-logo-stacked-dark.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/stacked/gaahex-logo-stacked-dark.svg,gaahex-logo-stacked-dark.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/stacked/gaahex-logo-stacked-white.svg,gaahex-logo-stacked-white.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/stacked/gaahex-logo-stacked-white.svg,gaahex-logo-stacked-white.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/stacked/gaahex-logo-stacked-black.svg,gaahex-logo-stacked-black.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/stacked/gaahex-logo-stacked-black.svg,gaahex-logo-stacked-black.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/vertical/gaahex-logo-vertical-color.svg,gaahex-logo-vertical-color.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/vertical/gaahex-logo-vertical-color.svg,gaahex-logo-vertical-color.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/vertical/gaahex-logo-vertical-dark.svg,gaahex-logo-vertical-dark.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/vertical/gaahex-logo-vertical-dark.svg,gaahex-logo-vertical-dark.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/vertical/gaahex-logo-vertical-white.svg,gaahex-logo-vertical-white.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/vertical/gaahex-logo-vertical-white.svg,gaahex-logo-vertical-white.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/vertical/gaahex-logo-vertical-black.svg,gaahex-logo-vertical-black.png,master,master,transparent,"1x,2x,3x,4096",mesh-free
+01-logo/vertical/gaahex-logo-vertical-black.svg,gaahex-logo-vertical-black.jpg,2400,auto,cloud/ink per mode,-,q90
+01-logo/icon/gaahex-icon-color.svg,gaahex-icon-color.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-dark.svg,gaahex-icon-dark.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-white.svg,gaahex-icon-white.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-black.svg,gaahex-icon-black.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-grayscale.svg,gaahex-icon-grayscale.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-mono-cobalt.svg,gaahex-icon-mono-cobalt.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-mono-gold.svg,gaahex-icon-mono-gold.png,1024,1024,transparent,"256,512,1024",app/avatars
+01-logo/icon/gaahex-icon-light.svg,gaahex-icon-light.png,1024,1024,transparent,"256,512,1024",app/avatars
+favicon.svg,favicon-16.png,16,16,transparent,-,DONE compact glyph (line-free)
+favicon.svg,favicon-32.png,32,32,transparent,-,DONE compact glyph (line-free)
+favicon.svg,favicon-48.png,48,48,transparent,-,DONE compact glyph (line-free)
+favicon.svg,favicon.ico,16/32/48,-,transparent,-,DONE
+01-logo/icon/gaahex-icon-color.svg,pwa-72.png,72,72,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-96.png,96,96,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-128.png,128,128,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-144.png,144,144,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-152.png,152,152,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-192.png,192,192,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-384.png,384,384,cloud,-,DONE mesh-free
+01-logo/icon/gaahex-icon-color.svg,pwa-512.png,512,512,cloud,-,DONE mesh-free
+icon,pwa-512-maskable.png,512,512,cloud,-,DONE
+icon,apple-touch-icon.png,180,180,cloud solid,-,DONE
+icon,android-adaptive-fg.png,432,432,transparent,-,DONE
+solid,android-adaptive-bg.png,432,432,cloud,-,DONE
+composed,og-default.png,1200,630,ink/cloud,-,DONE mesh-free
+composed,twitter-card.png,1200,628,ink/cloud,-,DONE mesh-free
+composed,linkedin-share.png,1200,627,ink/cloud,-,DONE mesh-free
+composed,facebook-cover.png,851,315,ink/cloud,-,DONE mesh-free
+composed,youtube-banner.png,2560,1440,ink/cloud,-,DONE mesh-free
+composed,github-banner.png,1280,640,ink/cloud,-,DONE mesh-free
+composed,discord-icon.png,512,512,ink/cloud,-,DONE mesh-free
+composed,telegram-icon.png,512,512,ink/cloud,-,DONE mesh-free

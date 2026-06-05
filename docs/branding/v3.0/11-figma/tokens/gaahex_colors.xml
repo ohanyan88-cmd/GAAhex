@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GAAhex D18 Color Architecture — one family, one role -->
+<resources>
+  <!-- COBALT spine -->
+  <color name="gx_cobalt">#1C3B68</color>
+  <color name="gx_bg">#1C3B68</color>
+  <color name="gx_bg_subtle">#16314F</color>
+  <color name="gx_surface">#FFFFFF</color>
+  <color name="gx_surface_2">#F4F5F7</color>
+  <!-- GOLD signature -->
+  <color name="gx_gold">#C5A059</color>
+  <color name="gx_gold_light">#AC8847</color>
+  <color name="gx_gold_soft">#EFE3C7</color>
+  <!-- AZURE interactive -->
+  <color name="gx_interactive">#0EA5E9</color>
+  <color name="gx_interactive_hover">#0284C7</color>
+  <color name="gx_interactive_active">#0369A1</color>
+  <color name="gx_interactive_soft">#E0F2FE</color>
+  <color name="gx_link">#0EA5E9</color>
+  <color name="gx_selected">#0EA5E9</color>
+  <color name="gx_ring">#0EA5E9</color>
+  <!-- SLATE neutrals -->
+  <color name="gx_text_1">#0B0B0C</color>
+  <color name="gx_text_2">#334155</color>
+  <color name="gx_text_3">#64748B</color>
+  <color name="gx_border">#E2E5EA</color>
+  <color name="gx_border_strong">#CBD2DA</color>
+  <color name="gx_divider">#D8DCE0</color>
+  <color name="gx_neutral">#94A3B8</color>
+  <!-- SEMANTIC status -->
+  <color name="gx_success">#16A34A</color>
+  <color name="gx_warning">#D97706</color>
+  <color name="gx_danger">#DC2626</color>
+  <color name="gx_info">#2563EB</color>
+  <color name="gx_online">#16A34A</color>
+  <color name="gx_provisioned">#0EA5E9</color>
+  <color name="gx_quality_good">#16A34A</color>
+  <color name="gx_maintenance">#D97706</color>
+  <!-- deprecated pre-D18 -->
+  <color name="gx_cobalt_lift">#4E7FC4</color>
+  <color name="gx_ink">#0B0B0C</color>
+  <color name="gx_cloud">#F4F5F7</color>
+  <color name="gx_silver">#D8DCE0</color>
+</resources>

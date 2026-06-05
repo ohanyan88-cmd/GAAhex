@@ -102,6 +102,7 @@ QUEUE`. Per-context subsets in file 03. `USER` (ActorType) ≠ `EMPLOYEE` (Princ
 - File 14 — `14-enum-registry.md`: every enum with owner department + values (Enum Standard r6/r8).
 - File 15 — `15-permission-registry.md`: all `object.action` permission keys (lowercase, dot-separated; RBAC Standard, D2).
 - `RLS_EXEMPTION_REGISTRY.md` — append-only RLS exemption registry. Governed by `RLS_EXEMPTION_POLICY.md`. Initialized empty 2026-06-05.
+- `docs/branding/v3.0/` — **Brand v3.0 (LOCKED 2026-06-06)** — certified canonical brand package (logo · color · typography · voice · governance · trademark). D18 Color Architecture authoritative. Entry: `docs/branding/v3.0/README.md`. Pointer: `docs/branding/README.md`. Original zip: `D:\GAAhex-Brand-v3.0-Final (1).zip` (sha256 `fc06401997…d46f80dfa`).
 
 ## Operational standards (named, alongside the numbered 1–70)
 

@@ -1,0 +1,65 @@
+:root{
+  /* ===== GAAhex D18 Color Architecture — one family, one role ===== */
+  /* COBALT — brand spine / structural chrome (anchor #1C3B68) */
+  --gx-cobalt:#1C3B68;
+  --gx-bg:#1C3B68;
+  --gx-bg-subtle:#16314F;
+  --gx-surface:#FFFFFF;
+  --gx-surface-2:#F4F5F7;
+  /* GOLD — brand signature / peak moments only (never interactive/status) */
+  --gx-gold:#C5A059;              /* dark contexts */
+  --gx-gold-light:#AC8847;  /* light-background variant */
+  --gx-gold-soft:#EFE3C7;
+  /* AZURE — interactive / every clickable affordance (anchor #0EA5E9) */
+  --gx-interactive:#0EA5E9;
+  --gx-interactive-hover:#0284C7;
+  --gx-interactive-active:#0369A1;
+  --gx-interactive-soft:#E0F2FE;
+  --gx-link:#0EA5E9;
+  --gx-selected:#0EA5E9;
+  --gx-ring:#0EA5E9;
+  /* SLATE — neutrals / text, borders, dividers */
+  --gx-text-1:#0B0B0C;
+  --gx-text-2:#334155;
+  --gx-text-3:#64748B;
+  --gx-border:#E2E5EA;
+  --gx-border-strong:#CBD2DA;
+  --gx-divider:#D8DCE0;
+  --gx-neutral:#94A3B8;
+  /* SEMANTIC — status only (success/warning/danger/info + ISP operational states) */
+  --gx-success:#16A34A;
+  --gx-warning:#D97706;
+  --gx-danger:#DC2626;
+  --gx-info:#2563EB;
+  --gx-online:#16A34A;
+  --gx-provisioned:#0EA5E9;
+  --gx-quality-good:#16A34A;
+  --gx-maintenance:#D97706;
+  --gx-on-color:#FFFFFF;
+
+  /* ----- Deprecated pre-D18 aliases (do not use in new code) ----- */
+  --gx-color-cobalt:var(--gx-cobalt);
+  --gx-color-cobalt-lift:#4E7FC4;
+  --gx-color-gold:var(--gx-gold);
+  --gx-color-ink:var(--gx-text-1);
+  --gx-color-cloud:var(--gx-surface-2);
+  --gx-color-border:var(--gx-border);
+  --gx-color-silver:var(--gx-divider);
+
+  /* type / space / radius (unchanged) */
+  --gx-font-family:'Sora',system-ui,sans-serif;
+  --gx-font-weight-word:500;
+  --gx-radius-md:8px; --gx-radius-lg:12px; --gx-radius-xl:28px;
+  --gx-space-1:4px; --gx-space-2:8px; --gx-space-3:16px; --gx-space-4:24px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --gx-surface:#0B0B0C;
+    --gx-surface-2:#16181B;
+    --gx-text-1:#F4F5F7;
+    --gx-text-2:#D8DCE0;
+    --gx-cobalt:#4E7FC4;   /* cobalt tint reads on dark chrome */
+    --gx-gold:#C5A059;            /* gold-dark on dark */
+    --gx-interactive:#0EA5E9;
+  }
+}

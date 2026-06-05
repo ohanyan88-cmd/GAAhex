@@ -1,0 +1,14 @@
+// GAAhex D18 Color Architecture — one family, one role.
+// COBALT spine | GOLD signature | AZURE interactive | SLATE neutrals | SEMANTIC status
+$gx-cobalt:#1C3B68; $gx-bg:#1C3B68; $gx-bg-subtle:#16314F; $gx-surface:#FFFFFF; $gx-surface-2:#F4F5F7;
+$gx-gold:#C5A059; $gx-gold-light:#AC8847; $gx-gold-soft:#EFE3C7;
+$gx-interactive:#0EA5E9; $gx-interactive-hover:#0284C7; $gx-interactive-active:#0369A1; $gx-interactive-soft:#E0F2FE;
+$gx-link:#0EA5E9; $gx-selected:#0EA5E9; $gx-ring:#0EA5E9;
+$gx-text-1:#0B0B0C; $gx-text-2:#334155; $gx-text-3:#64748B; $gx-border:#E2E5EA; $gx-border-strong:#CBD2DA; $gx-divider:#D8DCE0; $gx-neutral:#94A3B8;
+$gx-success:#16A34A; $gx-warning:#D97706; $gx-danger:#DC2626; $gx-info:#2563EB;
+$gx-online:#16A34A; $gx-provisioned:#0EA5E9; $gx-quality-good:#16A34A; $gx-maintenance:#D97706;
+$gx-on-color:#FFFFFF;
+$gx-font-family:'Sora', system-ui, sans-serif;
+// deprecated pre-D18 aliases
+$gx-color-cobalt:$gx-cobalt; $gx-color-cobalt-lift:#4E7FC4; $gx-color-gold:$gx-gold;
+$gx-color-ink:$gx-text-1; $gx-color-cloud:$gx-surface-2; $gx-color-border:$gx-border; $gx-color-silver:$gx-divider;

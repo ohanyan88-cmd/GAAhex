@@ -1,0 +1,17 @@
+<!--
+GAAhex™ Email Signature — GENERIC TEMPLATE (client-agnostic).
+Replace variables, then deploy with the client-specific build:
+  Gmail  -> gaahex-signature-gmail.htm
+  Outlook-> gaahex-signature-outlook.htm
+Variables: {{FULL_NAME}} · {{JOB_TITLE}} · {{EMAIL}} · {{PHONE}} (optional)
+Image must be hosted at https://www.gaahex.com/email-header.png (permanent CDN URL). Keep table layout + inline CSS.
+-->
+<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;color:#1C3B68">
+<tr>
+<td style="padding-right:14px;vertical-align:middle"><a href="https://www.gaahex.com"><img src="https://www.gaahex.com/email-header.png" width="180" height="42" alt="GAAhex" style="display:block;border:0"></a></td>
+<td style="border-left:2px solid #C5A059;padding-left:14px;font-size:13px;line-height:1.5;color:#0B0B0C">
+<strong style="color:#1C3B68">{{FULL_NAME}}</strong><br>
+{{JOB_TITLE}}<br>
+<a href="mailto:{{EMAIL}}" style="color:#0B0B0C;text-decoration:none">{{EMAIL}}</a><br>
+<a href="https://www.gaahex.com" style="color:#1C3B68;text-decoration:none">www.gaahex.com</a>
+</td></tr></table>
