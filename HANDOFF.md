@@ -12,18 +12,36 @@
 
 ---
 
-## Current state (2026-06-05) — Post-D19 Stabilization Complete
+## Execution queue + command grammar (read this first when Gev says "next")
+
+The canonical "what's next" lives in the auto-memory: **`memory/project_next_work_queue.md`**. It enumerates every remaining task (active queue + low-priority TD queue), the binding priority rules, and the 4-verb grammar below. Future sessions should consult that file before responding to any of the four verbs.
+
+| Verb | Behavior |
+|---|---|
+| **`next`** | Begin the top in-progress/ready task in the queue. Propose the first concrete sub-action. Run verification. **Pause for explicit `go` before commit/push.** |
+| **`skip`** | Mark current top-of-queue task `deferred` with a brief reason; move it below the line; advance to the next. |
+| **`status`** | Show queue state (top, ready count, blocked count, deferred count, low-priority TD count). No file changes. |
+| **`pause`** | Stop immediately. No file changes. No new task. |
+
+**Default `next` action (as of 2026-06-06):** `Q1.A` — seal the GXL extension addendum at `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` (5 TBD placeholders to fill, D1–D7 acceptance boxes to check, then `DRAFT SHELL → SEALED`).
+
+**Three items are parallel-eligible** today: `Q1.A`, `TD13`, `Pilot.Discovery`. Use `next td13` or `next pilot` to pick one of the parallels instead.
+
+---
+
+## Current state (2026-06-06) — Q5 LOCKED · Q1 next
 
 | | |
 |---|---|
-| HEAD | `87bb42c` on `main` (pushed) |
+| HEAD | `6ea8277` on `main` (pushed) |
 | Working tree | clean |
-| Main-branch CI | ✅ **GREEN** (run `27031511102` — first green run since 2026-06-04) |
-| M0 staging readiness | ✅ GO (one watch-item: manual frontend smoke) |
-| Full pytest suite | ✅ 1768/0/0 (commit `b977db8`) |
+| Main-branch CI | ✅ **GREEN** (most recent: run `27036230536` — Q5 implementation) |
+| M0 staging readiness | ✅ GO (one watch-item: manual frontend smoke — DEFERRED) |
+| Full pytest suite | ✅ **1,772 passed** (was 1,768; +4 from Q5 unit tests + KT-M1-5) |
 | Drift checker | ✅ 12 HARD + 8 RATCHET rules pass |
 | M0 killer test | ✅ in CI (`test_m0_killer_2nd_entity_config_only`) |
 | Architecture stabilization | ✅ 105/107 closed (T-P3-9 + T-P2-4 explicitly non-blocking) |
+| **Open architecture decisions** | **Q1 only** (Q5 and Q8 LOCKED 2026-06-05) |
 
 ### Closed in this stabilization cycle
 
