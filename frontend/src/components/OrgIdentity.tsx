@@ -128,7 +128,7 @@ export default function OrgIdentity({ token }: { token: string }) {
           <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '2px 4px 10px' }}>
             Company identity
           </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 14 }}>
             {draftLogo
               ? <img src={draftLogo} alt="" style={{ width: 46, height: 46, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
               : <span style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
@@ -157,7 +157,7 @@ export default function OrgIdentity({ token }: { token: string }) {
               onKeyDown={(e) => { if (e.key === 'Enter') void save() }}
             />
           </label>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-3)', justifyContent: 'flex-end' }}>
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
             <Button variant="primary" size="sm" onClick={save} disabled={saving}>
               <CheckIcon size={13} />{saving ? 'Saving…' : 'Save'}

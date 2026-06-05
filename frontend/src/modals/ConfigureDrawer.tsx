@@ -248,7 +248,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         {isPageMode ? (
           <div
             style={{
-              display: 'flex', alignItems: 'center', gap: 8,
+              display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
               padding: '12px 18px', borderBottom: '1px solid var(--border)',
               flexShrink: 0, background: 'var(--surface-2)',
               fontSize: 12, color: 'var(--text-3)',

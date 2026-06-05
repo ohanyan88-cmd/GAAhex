@@ -52,7 +52,7 @@ export function PreviewMode({ token }: { token?: string } = {}) {
           </div>
         }
       />
-      <div className="card" style={{ padding: 16, background: 'var(--gx-bg-subtle)' }}>
+      <div className="card" style={{ padding: 'var(--gx-space-5)', background: 'var(--gx-bg-subtle)' }}>
         <div
           style={{
             width: W,
@@ -66,7 +66,7 @@ export function PreviewMode({ token }: { token?: string } = {}) {
           }}
         >
           {/* browser chrome */}
-          <div style={{ height: 38, borderBottom: '1px solid var(--gx-border-subtle)', display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px' }}>
+          <div style={{ height: 38, borderBottom: '1px solid var(--gx-border-subtle)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '0 12px' }}>
             <span style={{ display: 'flex', gap: 5 }}>
               {['var(--gx-danger)', 'var(--gx-warning)', 'var(--gx-success)'].map((c, i) => (
                 <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
@@ -76,7 +76,7 @@ export function PreviewMode({ token }: { token?: string } = {}) {
             <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>as {role}</span>
           </div>
           {/* empty preview body */}
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 13, gap: 8 }}>
+          <div style={{ padding: 'var(--gx-space-7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 13, gap: 8 }}>
             <Eye size={28} style={{ opacity: 0.3 }} />
             <span>No preview available — publish first</span>
           </div>

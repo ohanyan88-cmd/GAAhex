@@ -124,7 +124,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         </div>
       )}
       {error && (
-        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{error}</div>
         </div>
       )}
@@ -201,7 +201,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         </div>
       )}
       {!loading && !error && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 14 }}>
           <Button variant="secondary" size="sm"
             type="button"
             disabled={rules.every(r => !r.on || !r.act)}

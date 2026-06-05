@@ -256,12 +256,12 @@ export function PublishSettings({ token }: { token?: string } = {}) {
 
       {/* Feedback messages */}
       {actionErr && (
-        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{actionErr}</div>
         </div>
       )}
       {actionMsg && (
-        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-success-fg)' }}>{actionMsg}</div>
         </div>
       )}

@@ -67,7 +67,7 @@ function AddStatusForm({
   return (
     <form onSubmit={submit} style={{ marginTop: 12 }}>
       {err && <ErrorBanner message={err} />}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: '1 1 130px' }}>
           <span>Key (UPPER_SNAKE) *</span>
           <input className="inp inp-sm" value={key} onChange={(e) => setKey(e.target.value)} placeholder="OPEN" autoFocus />
@@ -205,7 +205,7 @@ function TransitionsEditor({
     <div>
       {err && <ErrorBanner message={err} />}
       {ok && (
-        <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+        <div className="error-banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
           <div style={{ color: 'var(--gx-success)', flexShrink: 0, marginTop: 1 }}><CheckIcon size={16} /></div>
           <div>
             <div className="error-banner-title" style={{ color: 'var(--gx-text-1)' }}>Transitions saved</div>

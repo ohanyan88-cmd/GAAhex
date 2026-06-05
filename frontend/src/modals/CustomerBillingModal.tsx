@@ -148,7 +148,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             const paidTotal = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0)
             const balance = Math.max(0, billedTotal - paidTotal)
             return (
-              <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-6)', flexWrap: 'wrap' }}>
                 {[
                   { label: 'Total billed', value: billedTotal },
                   { label: 'Total paid', value: paidTotal },
@@ -264,7 +264,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             </div>
           )}
           {payments.length === 0 && subs !== null && !unavailable && (
-            <p className="muted" style={{ marginTop: 16, fontSize: 13 }}>No payments recorded for this customer.</p>
+            <p className="muted" style={{ marginTop: 'var(--gx-space-5)', fontSize: 13 }}>No payments recorded for this customer.</p>
           )}
 
           <h3 style={{ marginTop: 18 }}>Services</h3>

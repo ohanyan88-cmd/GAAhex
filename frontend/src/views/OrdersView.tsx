@@ -556,7 +556,7 @@ function CreateOrderModal({
             autoFocus
           />
         </label>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 100 }}>
             <span>Quantity</span>
             <input
@@ -646,7 +646,7 @@ function OrderDetailModal({
     { key: 'items', label: 'Items', value: order.items && order.items.length > 0 ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {order.items.map((it) => (
-          <div key={it.id} style={{ display: 'flex', gap: 8, fontSize: 12 }}>
+          <div key={it.id} style={{ display: 'flex', gap: 'var(--gx-space-3)', fontSize: 12 }}>
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.description}</span>
             <span className="mono tnum" style={{ color: 'var(--gx-text-3)' }}>×{it.quantity}</span>
             <span className="mono tnum" style={{ minWidth: 64, textAlign: 'right' }}>{money(it.line_total)}</span>
@@ -848,7 +848,7 @@ function Stage8Modal({
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
             borderRadius: 8, border: '1px solid var(--gx-border-subtle)',
-            background: 'var(--gx-surface-2)', marginBottom: 12,
+            background: 'var(--gx-surface-2)', marginBottom: 'var(--gx-space-4)',
           }}>
             <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>Verdict</span>
             {loading

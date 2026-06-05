@@ -124,7 +124,7 @@ function DemoMainPanel({ tab, activeNav }: { tab: 'overview' | 'activity' | 'aud
       background: '#ffffff',
       border: '1px solid #e2e8f0',
       borderRadius: 10,
-      padding: 20,
+      padding: 'var(--gx-space-6)',
       boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
     }}>
       <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.06em', marginBottom: 12 }}>
@@ -204,7 +204,7 @@ function DemoSidecarPanel() {
       }}>
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Entity</div>
         <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>Demo Record</div>
-        <div style={{ fontSize: 12, color: '#475569', marginTop: 4, fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace' }}>
+        <div style={{ fontSize: 12, color: '#475569', marginTop: 'var(--gx-space-2)', fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace' }}>
           DEMO-001
         </div>
       </div>
@@ -224,7 +224,7 @@ function DemoSidecarPanel() {
         ))}
       </ul>
 
-      <p style={{ marginTop: 16, fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+      <p style={{ marginTop: 'var(--gx-space-5)', fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
         Try switching tabs in Zone 2 — this panel does NOT remount. Scroll position
         and any open inputs survive the tab change. That's the persistence contract.
       </p>

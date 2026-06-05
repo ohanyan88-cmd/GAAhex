@@ -178,10 +178,10 @@ export default function CollectionsView({
           aria-label="Collections views"
           style={{
             display: 'flex',
-            gap: 4,
+            gap: 'var(--gx-space-2)',
             borderBottom: '1px solid var(--gx-border)',
-            marginBottom: 16,
-            marginTop: 8,
+            marginBottom: 'var(--gx-space-5)',
+            marginTop: 'var(--gx-space-3)',
           }}
         >
           <TabButton
@@ -346,7 +346,7 @@ function CasesTab({
   return (
     <div>
       {/* Top action row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
         <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
           {policyCount > 0 ? `${policyCount} policy${policyCount === 1 ? '' : ' set'} configured` : ''}
         </div>
@@ -494,7 +494,7 @@ function CasesTab({
                 })}
                 {pageRows.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                       {t('collections.empty.filtered', 'No cases match the current filters.')}
                     </td>
                   </tr>
@@ -700,7 +700,7 @@ function PoliciesTab({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 12 }}>
         <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
           {policies.length} {policies.length === 1 ? t('collections.policy.one', 'policy') : t('collections.policy.many', 'policies')}
         </div>
@@ -730,7 +730,7 @@ function PoliciesTab({
         style={{
           display: 'grid',
           gridTemplateColumns: draft ? 'minmax(260px, 1fr) minmax(360px, 1.4fr)' : '1fr',
-          gap: 16,
+          gap: 'var(--gx-space-5)',
           alignItems: 'flex-start',
         }}
       >
@@ -740,7 +740,7 @@ function PoliciesTab({
             style={{
               display: 'grid',
               gridTemplateColumns: draft ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: 12,
+              gap: 'var(--gx-space-4)',
             }}
           >
             {policies.map((p) => {
@@ -779,7 +779,7 @@ function PoliciesTab({
                   {p.description && (
                     <div style={{ fontSize: 12, color: 'var(--gx-text-3)', lineHeight: 1.5 }}>{p.description}</div>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 'auto' }}>
                     <StatusPill variant={p.active ? 'active' : 'neutral'} label={p.active ? 'active' : 'inactive'} size="sm" />
                     <span style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>
                       {(p.steps_json?.length ?? 0)} {(p.steps_json?.length ?? 0) === 1 ? 'step' : 'steps'}
@@ -798,10 +798,10 @@ function PoliciesTab({
               background: 'var(--gx-surface)',
               border: '1px solid var(--gx-border)',
               borderRadius: 12,
-              padding: 16,
+              padding: 'var(--gx-space-5)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
+              gap: 'var(--gx-space-4)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -833,7 +833,7 @@ function PoliciesTab({
               />
             </label>
 
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-2)' }}>
                 <input
                   type="checkbox"
@@ -878,7 +878,7 @@ function PoliciesTab({
               </div>
             </label>
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-3)', justifyContent: 'flex-end', alignItems: 'center' }}>
               {draft.id && (
                 <Button variant="danger" size="md"
             onClick={() => {

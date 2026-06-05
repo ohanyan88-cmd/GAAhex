@@ -154,7 +154,7 @@ export function Permissions({ token }: { token?: string } = {}) {
       <div>
         <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ padding: 'var(--gx-space-5)', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[0, 1, 2, 3].map(i => (
               <div key={i} style={{ height: 22, background: 'var(--gx-surface-2)', borderRadius: 4, opacity: 0.6 }} />
             ))}
@@ -194,7 +194,7 @@ export function Permissions({ token }: { token?: string } = {}) {
     <div>
       <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
       {toast && (
-        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{toast}</div>
         </div>
       )}

@@ -473,7 +473,7 @@ function MyTaskDetailModal({
       title={item ? item.title : 'Work Item'}
       size="lg"
       footer={
-        <div style={{ display: 'flex', gap: 8, width: '100%', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-3)', width: '100%', alignItems: 'center' }}>
           <Button variant="ghost" size="sm"
             disabled={busy}
             onClick={handleDelete}
@@ -565,7 +565,7 @@ function MyTaskDetailModal({
               />
             </label>
 
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
               <label className="field" style={{ flex: 1, minWidth: 140 }}>
                 <span>Kind</span>
                 <select className="inp inp-md" value={kind} onChange={(e) => setKind(e.target.value as WorkItemKind | '')}>
@@ -602,7 +602,7 @@ function MyTaskDetailModal({
               />
             </label>
 
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
               <label className="field" style={{ flex: 1, minWidth: 160 }}>
                 <span>Due</span>
                 <input
@@ -738,7 +738,7 @@ function MyTaskCreateModal({
           />
         </label>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 140 }}>
             <span>Kind</span>
             <select className="inp inp-md" value={kind} onChange={(e) => setKind(e.target.value as WorkItemKind | '')}>
@@ -775,7 +775,7 @@ function MyTaskCreateModal({
           />
         </label>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 160 }}>
             <span>Due</span>
             <input

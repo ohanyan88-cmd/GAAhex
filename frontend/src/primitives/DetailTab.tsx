@@ -90,7 +90,7 @@ export function DetailTab({
       {typeof count === 'number' && count > 0 && (
         <span
           style={{
-            marginLeft: 4,
+            marginLeft: 'var(--gx-space-2)',
             padding: '1px 7px',
             borderRadius: 999,
             background: active ? 'var(--gx-interactive)' : 'var(--gx-surface-2)',

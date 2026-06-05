@@ -125,10 +125,10 @@ function ProbePanel({
     <div
       className="card"
       style={{
-        padding: 16,
+        padding: 'var(--gx-space-5)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 'var(--gx-space-3)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -160,7 +160,7 @@ function ProbePanel({
       {probe.netError && (
         <div
           style={{
-            padding: 8,
+            padding: 'var(--gx-space-3)',
             background: 'var(--gx-danger-soft, var(--gx-surface-2))',
             border: '1px solid var(--gx-border)',
             borderRadius: 'var(--gx-radius-md)',
@@ -185,7 +185,7 @@ function ProbePanel({
           gap: 6,
           color: 'var(--gx-text-3)',
           fontSize: 11.5,
-          marginTop: 4,
+          marginTop: 'var(--gx-space-2)',
         }}
       >
         <ClockIcon size={11} />
@@ -269,7 +269,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
   return (
     <div>
       {/* ---- header + headline ---- */}
-      <div className="row" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
             <h3 style={{ margin: 0 }}>System Health</h3>
@@ -334,7 +334,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: 12,
+          gap: 'var(--gx-space-4)',
         }}
       >
         <ProbePanel
@@ -345,7 +345,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           onRefresh={checkLiveness}
         >
           {liveness.status >= 200 && liveness.status < 300 && liveness.data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="hint">Reported status</span>
                 <span className="mono">{liveness.data.status}</span>
@@ -368,7 +368,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           onRefresh={checkReadiness}
         >
           {readiness.data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="hint">Database</span>
                 {dbProbeOk
@@ -378,7 +378,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
               {readiness.data.error && (
                 <div
                   style={{
-                    marginTop: 4,
+                    marginTop: 'var(--gx-space-2)',
                     padding: 6,
                     background: 'var(--gx-surface-2)',
                     border: '1px solid var(--gx-border-subtle)',
@@ -405,7 +405,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           {status.status === 401 || status.status === 403 ? (
             <ErrorBanner message="Sign-in required to read the operational status summary." />
           ) : status.data && statusOk ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="hint">Service</span>
                 <span className="mono">{status.data.service ?? '—'}</span>
@@ -421,7 +421,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
               {status.data.db_error && (
                 <div
                   style={{
-                    marginTop: 4,
+                    marginTop: 'var(--gx-space-2)',
                     padding: 6,
                     background: 'var(--gx-surface-2)',
                     border: '1px solid var(--gx-border-subtle)',

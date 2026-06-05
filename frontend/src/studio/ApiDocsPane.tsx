@@ -231,7 +231,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
   return (
     <div
       style={{
-        marginTop: 12, padding: 12,
+        marginTop: 'var(--gx-space-4)', padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)',
         borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
@@ -239,7 +239,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
     >
       <div className="row" style={{ alignItems: 'center', marginBottom: 8 }}>
         <strong style={{ fontSize: 13 }}>Try it</strong>
-        <span className="hint" style={{ marginLeft: 8, fontSize: 11 }}>
+        <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>
           Live request — your current session token is reused.
         </span>
         <span className="spacer" />
@@ -300,7 +300,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
       {result && (
         <div
           style={{
-            marginTop: 8, padding: 10,
+            marginTop: 'var(--gx-space-3)', padding: 10,
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
             borderRadius: 'var(--gx-radius-md)',
@@ -431,7 +431,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
             {reqBody?.required && (
               <span
                 style={{
-                  marginLeft: 8, fontSize: 10, padding: '1px 6px',
+                  marginLeft: 'var(--gx-space-3)', fontSize: 10, padding: '1px 6px',
                   background: 'var(--gx-warning-soft)',
                   color: 'var(--gx-warning-fg)',
                   borderRadius: 'var(--gx-radius-sm, 4px)',
@@ -464,7 +464,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
           <div className="section-head" style={{ marginTop: 4 }}>
             <RowsIcon size={14} className="section-icon" /> Responses
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', marginBottom: 8 }}>
             {Object.entries(responses).map(([code, resp]) => {
               const schema = resp.content?.['application/json']?.schema
               const codeNum = parseInt(code, 10)
@@ -588,7 +588,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         {endpoint.op.summary && (
           <span
             className="hint"
-            style={{ marginLeft: 8, fontSize: 12, color: 'var(--gx-text-3)' }}
+            style={{ marginLeft: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}
           >
             {endpoint.op.summary}
           </span>
@@ -738,7 +738,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
         )}
       </div>
 
-      <div style={{ marginBottom: 12, maxWidth: 360 }}>
+      <div style={{ marginBottom: 'var(--gx-space-4)', maxWidth: 360 }}>
         <input
           className="inp inp-md"
           placeholder="Filter by tag, path, or summary…"

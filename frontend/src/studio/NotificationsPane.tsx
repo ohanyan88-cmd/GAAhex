@@ -667,16 +667,16 @@ function DetailDrawer({
       {preview && (
         <div
           style={{
-            marginTop: 10, padding: 12,
+            marginTop: 10, padding: 'var(--gx-space-4)',
             border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
             background: 'var(--gx-surface-2)',
           }}
         >
-          <div className="hint" style={{ marginBottom: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered title
           </div>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>{preview.title}</div>
-          <div className="hint" style={{ marginBottom: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered body
           </div>
           <div style={{ whiteSpace: 'pre-wrap' }}>{preview.body}</div>
@@ -814,7 +814,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>{headingLabel}</h3>
           <p className="hint" style={{ margin: 0 }}>{headingHint}</p>
@@ -828,7 +828,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
         </Button>
       </div>
 
-      <div style={{ marginBottom: 12, maxWidth: 320 }}>
+      <div style={{ marginBottom: 'var(--gx-space-4)', maxWidth: 320 }}>
         <input
           className="inp inp-md"
           placeholder="Filter by key, label, or category…"
@@ -878,7 +878,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
                     {d.gxl_condition ? (
                       <span
                         style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)',
                           padding: '2px 6px',
                           border: '1px solid var(--gx-border)',
                           borderRadius: 'var(--gx-radius-sm, 4px)',

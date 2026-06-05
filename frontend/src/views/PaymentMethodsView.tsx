@@ -298,7 +298,7 @@ export default function PaymentMethodsView({
                       <td>
                         {p.is_default
                           ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--gx-warning)' }} title="Default card for this customer">
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-warning)' }} title="Default card for this customer">
                               <StarIcon size={14} />
                               <span style={{ fontSize: 11 }}>Default</span>
                             </span>
@@ -341,7 +341,7 @@ export default function PaymentMethodsView({
                   <tr>
                     <td
                       colSpan={canWrite ? 7 : 6}
-                      style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}
+                      style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}
                     >
                       No matching payment methods.
                     </td>
@@ -472,11 +472,11 @@ function VaultModal({
             inputMode="numeric"
             autoComplete="off"
           />
-          <span className="hint" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>
+          <span className="hint" style={{ fontSize: 11, marginTop: 'var(--gx-space-2)', display: 'block' }}>
             Raw card data not stored; opaque vault token returned.
           </span>
         </label>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 100 }}>
             <span>Exp month <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
             <select
@@ -521,7 +521,7 @@ function VaultModal({
             autoComplete="off"
           />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gx-text-2)' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 13, color: 'var(--gx-text-2)' }}>
           <input
             type="checkbox"
             checked={isDefault}

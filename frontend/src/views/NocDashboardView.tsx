@@ -565,7 +565,7 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 onClick={() => openDrawer({ kind: 'vendor', prefix: v.prefix, label: v.vendor })}
                 style={{
                   display: 'grid', gridTemplateColumns: '10px 1fr auto auto',
-                  gap: 8, alignItems: 'center',
+                  gap: 'var(--gx-space-3)', alignItems: 'center',
                   background: 'transparent', border: 'none', padding: '3px 6px',
                   cursor: 'pointer', color: 'inherit', textAlign: 'left',
                   borderRadius: 'var(--nms-radius-sm)',
@@ -630,7 +630,7 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
         display: 'grid',
         gridTemplateColumns: `repeat(${SAMPLE_TIER_MIX.length}, minmax(0, 1fr))`,
         gap: 'var(--nms-sp-2)', alignItems: 'end',
-        height: CHART_H + 40, paddingTop: 24, position: 'relative',
+        height: CHART_H + 40, paddingTop: 'var(--gx-space-7)', position: 'relative',
       }}>
         {SAMPLE_TIER_MIX.map(t => {
           const isLeader = t.tier === peak.tier
@@ -643,7 +643,7 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
                 position: 'relative', height: CHART_H + 40,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
-                gap: 4,
+                gap: 'var(--gx-space-2)',
               }}
             >
               {isLeader && (
@@ -797,7 +797,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
         gap: 'var(--nms-sp-3)', minHeight: 320,
       }}>
         {/* Column 1 — Regions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
           <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>Regions</div>
           {SAMPLE_HIERARCHY.regions.map(r => (
             <button key={r.id}
@@ -817,7 +817,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
           ))}
         </div>
         {/* Column 2 — OLTs + Ports */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
           <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>OLT · PON</div>
           {region.olts.map(o => (
             <div key={o.id}>
@@ -836,7 +836,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 {o.label}
               </button>
               {oltId === o.id && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 12, marginTop: 2 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-4)', marginTop: 2 }}>
                   {o.ports.map(p => (
                     <button key={p.id}
                       type="button"
@@ -859,14 +859,14 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
           ))}
         </div>
         {/* Column 3 — ONU rows for selected port */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', minHeight: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <div style={{ fontSize: 10, color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>
               {port ? `Port ${port.label}` : '—'} · {port?.onus.length ?? 0} ONUs
             </div>
           </div>
           <div style={{
-            display: 'flex', flexDirection: 'column', gap: 2,
+            display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)',
             background: 'var(--nms-surface-2)', borderRadius: 'var(--nms-radius-sm)',
             border: '1px solid var(--nms-border)', padding: 'var(--nms-sp-2)',
             maxHeight: 280, overflowY: 'auto',

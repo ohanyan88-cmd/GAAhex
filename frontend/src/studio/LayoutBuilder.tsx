@@ -95,12 +95,12 @@ export function LayoutBuilder() {
               </button>
             ))}
           </div>
-          <p className="hint" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.5 }}>
+          <p className="hint" style={{ fontSize: 11, marginTop: 'var(--gx-space-4)', lineHeight: 1.5 }}>
             Click a block to drop it on the canvas.
           </p>
         </div>
         {/* canvas */}
-        <div className="card" style={{ padding: 16, background: 'var(--gx-bg-subtle)', minHeight: 420 }}>
+        <div className="card" style={{ padding: 'var(--gx-space-5)', background: 'var(--gx-bg-subtle)', minHeight: 420 }}>
           <div
             style={{
               width: W,

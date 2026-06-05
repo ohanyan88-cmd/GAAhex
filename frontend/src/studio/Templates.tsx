@@ -39,7 +39,7 @@ export function Templates() {
             <div className="tpl-thumb">{ic}</div>
             <div style={{ padding: '12px 14px' }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
-              <div className="hint" style={{ fontSize: 11.5, marginTop: 2, lineHeight: 1.4 }}>{desc}</div>
+              <div className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>{desc}</div>
               {/* Instantiate wires to POST /api/templates/{id}/instantiate when that endpoint is built */}
               <Button variant="secondary" size="sm"
             style={{ width: '100%', marginTop: 10 }} type="button" disabled>

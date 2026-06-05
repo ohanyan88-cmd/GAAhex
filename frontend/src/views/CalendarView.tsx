@@ -396,7 +396,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
   const body = (
     <div className="gx-comms" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
-      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
         <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
           {rangeLabel}
           {loading ? ' · loading…' : ''}
@@ -556,7 +556,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
         title={editing ? 'Edit event' : 'New event'}
         size="md"
         footer={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', width: '100%' }}>
             {editing && (
               <Button variant="danger" size="sm"
             type="button"  onClick={handleDelete} disabled={fSaving}>
@@ -636,7 +636,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           )}
           <div className="field">
             <label>Color</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
               {SWATCH_COLORS.map(c => (
                 <button
                   key={c}

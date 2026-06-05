@@ -278,7 +278,7 @@ function PageVersionsTab({ token }: { token?: string }) {
                   {isOpen && (
                     <div
                       style={{
-                        marginTop: 8,
+                        marginTop: 'var(--gx-space-3)',
                         padding: 10,
                         background: 'var(--gx-surface-2)',
                         border: '1px solid var(--gx-border-subtle)',
@@ -291,7 +291,7 @@ function PageVersionsTab({ token }: { token?: string }) {
                       ) : diff === 'error' ? (
                         <span style={{ color: 'var(--gx-danger-fg)' }}>Failed to load diff.</span>
                       ) : diff ? (
-                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 'var(--gx-space-6)', flexWrap: 'wrap' }}>
                           {diff.added.length > 0 && (
                             <div>
                               <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-success)', marginBottom: 4 }}>Added</div>
@@ -420,7 +420,7 @@ function AuditLogTab({ token }: { token?: string }) {
   const filterBar = (
     <div
       className="card"
-      style={{ padding: 10, marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}
+      style={{ padding: 10, marginBottom: 'var(--gx-space-4)', display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}
     >
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
         <span style={{ fontSize: 11 }}>Event type</span>
@@ -499,7 +499,7 @@ function AuditLogTab({ token }: { token?: string }) {
                     {isOpen ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} /> : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
                   </button>
                   {isOpen && (
-                    <div style={{ marginTop: 8, padding: 10, background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border-subtle)', borderRadius: 'var(--gx-radius-md)' }}>
+                    <div style={{ marginTop: 'var(--gx-space-3)', padding: 10, background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border-subtle)', borderRadius: 'var(--gx-radius-md)' }}>
                       <DataDetail data={ev.data} />
                     </div>
                   )}

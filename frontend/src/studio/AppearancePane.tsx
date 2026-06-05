@@ -240,7 +240,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
                   type="button"
                   onClick={() => setAccent(a)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                    display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '8px 10px',
                     borderRadius: 'var(--gx-radius-md)',
                     border: '1px solid ' + (accent.name === a.name ? a.val : 'var(--gx-border)'),
                     background: accent.name === a.name ? 'var(--gx-surface-2)' : 'transparent',
@@ -253,7 +253,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 10, fontFamily: 'var(--gx-font-mono)', fontSize: 12, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 8, alignItems: 'center', color: 'var(--gx-text-1)' }}>
+            <div style={{ marginTop: 10, fontFamily: 'var(--gx-font-mono)', fontSize: 12, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
               <span style={{ width: 12, height: 12, borderRadius: 3, background: accent.val }} />
               {accent.val.toUpperCase()}
             </div>
@@ -318,7 +318,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, padding: '0 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
             <span className="pill pill-success">Online</span>
             <span className="pill pill-warning">Degraded</span>
@@ -334,7 +334,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
             />
           </label>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: radius, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', padding: '12px 14px', borderRadius: radius, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)' }}>
             <span style={{ width: 34, height: 34, borderRadius: radius > 20 ? '50%' : radius, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Globe size={17} />
             </span>
@@ -346,7 +346,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 20, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 'var(--gx-space-6)', alignItems: 'center' }}>
         <Button variant="primary" size="md"
             type="button"
           style={{ background: accent.val }}

@@ -516,10 +516,10 @@ export default function RevenueAssuranceView({
           aria-label="Revenue Assurance views"
           style={{
             display: 'flex',
-            gap: 4,
+            gap: 'var(--gx-space-2)',
             borderBottom: '1px solid var(--gx-border)',
-            marginBottom: 16,
-            marginTop: 8,
+            marginBottom: 'var(--gx-space-5)',
+            marginTop: 'var(--gx-space-3)',
             paddingBottom: 0,
           }}
         >
@@ -831,10 +831,10 @@ function FindingsTab(props: {
     <div>
       {/* Header row: filters + Run Scan + Last scan stamp */}
       <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center',
-        marginBottom: 16,
+        display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-4)', alignItems: 'center',
+        marginBottom: 'var(--gx-space-5)',
       }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', alignItems: 'center' }}>
           <FilterSelect
             label="Status"
             value={statusFilter}
@@ -1038,7 +1038,7 @@ function FindingsTab(props: {
                 })}
                 {pageRows.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                       No findings on this page.
                     </td>
                   </tr>
@@ -1243,7 +1243,7 @@ function FindingDrawer(props: {
         {/* Entity context card */}
         <section style={drawerCardStyle}>
           <div style={drawerSectionTitleStyle}>Entity context</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', fontSize: 13 }}>
             <div>
               <span style={drawerLabelStyle}>Entity</span>
               <span style={{ fontSize: 11, color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 6 }}>
@@ -1304,7 +1304,7 @@ function FindingDrawer(props: {
               )}
               {f.resolved_at && <span title={f.resolved_at}>{timeAgo(f.resolved_at) || fmtDate(f.resolved_at)}</span>}
               {f.resolution && (
-                <p style={{ marginTop: 8, marginBottom: 0, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                <p style={{ marginTop: 'var(--gx-space-3)', marginBottom: 0, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                   {f.resolution}
                 </p>
               )}
@@ -1373,7 +1373,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
           <span style={drawerLabelStyle}>Activated</span>
           <span title={activatedAt}>
             {timeAgo(activatedAt) || fmtDate(activatedAt)}
-            <span style={{ marginLeft: 8, color: 'var(--gx-text-3)', fontSize: 11 }}>{activatedAt}</span>
+            <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)', fontSize: 11 }}>{activatedAt}</span>
           </span>
         </div>
       )}
@@ -1390,7 +1390,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
           <div style={{ ...drawerLabelStyle, marginBottom: 4 }}>Other</div>
           <pre style={{
             margin: 0,
-            padding: 8,
+            padding: 'var(--gx-space-3)',
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border-subtle)',
             borderRadius: 6,

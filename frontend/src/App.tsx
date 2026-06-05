@@ -403,7 +403,7 @@ export default function App() {
                     transform: 'translateY(-50%)',
                     background: 'transparent',
                     border: 'none',
-                    padding: 4,
+                    padding: 'var(--gx-space-2)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -424,7 +424,7 @@ export default function App() {
             {error && <p className="err" style={{ marginTop: -10, marginBottom: 14, color: 'var(--gx-danger-fg)', fontSize: 12.5 }}>{error}</p>}
             <Button variant="primary" size="lg"
             style={{ width: '100%' }} type="submit"><LogIn size={16} />{t('auth.signin', 'Sign in')}</Button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', margin: '22px 0' }}>
               <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />
               <span className="hint" style={{ fontSize: 11 }}>or</span>
               <div style={{ flex: 1, height: 1, background: 'var(--gx-border)' }} />

@@ -46,7 +46,7 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 'var(--gx-space-3)',
             padding: '5px 14px',
             background: 'var(--gx-warning-soft)',
             color: 'var(--gx-warning-fg)',

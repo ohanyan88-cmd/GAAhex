@@ -178,7 +178,7 @@ export default function NotificationBell({
                       {isUnread && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gx-primary)', marginLeft: 'auto', flexShrink: 0 }} />}
                     </span>
                     {n.body && (
-                      <span style={{ display: 'block', fontSize: 12, color: 'var(--gx-text-2)', marginTop: 2, lineHeight: 1.4 }}>
+                      <span style={{ display: 'block', fontSize: 12, color: 'var(--gx-text-2)', marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>
                         {n.body}
                       </span>
                     )}

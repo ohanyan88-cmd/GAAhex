@@ -294,7 +294,7 @@ export default function MessagesView({
         {/* Chat pane */}
         <div className="chat">
           {!selected && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)', padding: 24, textAlign: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)', padding: 'var(--gx-space-7)', textAlign: 'center' }}>
               Select a conversation to begin.
             </div>
           )}
@@ -344,7 +344,7 @@ export default function MessagesView({
                       <div key={m.id} className={'bubble-row ' + dir}>
                         <div className="bubble-wrap">
                           {!out && m.author_name && (
-                            <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginBottom: 2, paddingLeft: 4 }}>
+                            <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-1)', paddingLeft: 4 }}>
                               {m.author_name}
                             </div>
                           )}

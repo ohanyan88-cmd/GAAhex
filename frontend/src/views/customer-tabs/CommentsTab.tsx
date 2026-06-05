@@ -52,9 +52,9 @@ export default function CommentsTab({ token, entity, id }: { token: string; enti
           <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border)' }}>
             <div style={{ fontSize: 13 }}>
               <strong>{r.author_name ?? r.author ?? 'Unknown'}</strong>
-              <span className="muted mono" style={{ marginLeft: 8, fontSize: 11 }}>{fmtDateTime(r.created_at)}</span>
+              <span className="muted mono" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>{fmtDateTime(r.created_at)}</span>
             </div>
-            <div style={{ fontSize: 13, marginTop: 4, whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontSize: 13, marginTop: 'var(--gx-space-2)', whiteSpace: 'pre-wrap' }}>
               {r.body ?? r.text ?? ''}
             </div>
           </li>

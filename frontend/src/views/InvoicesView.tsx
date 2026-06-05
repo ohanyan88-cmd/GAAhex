@@ -497,9 +497,9 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
             aria-label="Object Detail tabs"
             style={{
               display: 'flex',
-              gap: 4,
+              gap: 'var(--gx-space-2)',
               borderBottom: '1px solid var(--gx-border)',
-              marginBottom: 16,
+              marginBottom: 'var(--gx-space-5)',
               overflowX: 'auto',
             }}
           >
@@ -764,7 +764,7 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
 
   if (forbidden) {
     return (
-      <div className="card" style={{ marginTop: 24, padding: 16, borderColor: 'var(--gx-danger)' }}>
+      <div className="card" style={{ marginTop: 'var(--gx-space-7)', padding: 'var(--gx-space-5)', borderColor: 'var(--gx-danger)' }}>
         <strong>Allocations not available</strong>
         <p className="muted" style={{ margin: '6px 0 0' }}>
           You don't have permission to view allocation details for this invoice.
@@ -809,8 +809,8 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
         Outstanding &amp; allocations
       </div>
 
-      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, alignItems: 'end' }}>
+      <div className="card" style={{ padding: 'var(--gx-space-5)', marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--gx-space-5)', alignItems: 'end' }}>
           <div>
             <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Total</div>
             <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.total)}</div>
@@ -963,7 +963,7 @@ function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
           />
         </label>
         {error && (
-          <div style={{ marginTop: 8, color: 'var(--gx-danger)', fontSize: 13 }}>
+          <div style={{ marginTop: 'var(--gx-space-3)', color: 'var(--gx-danger)', fontSize: 13 }}>
             {error}
           </div>
         )}

@@ -151,7 +151,7 @@ export default function WorkItemsTable({
           ))}
           {items.length === 0 && (
             <tr>
-              <td colSpan={totalCols} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+              <td colSpan={totalCols} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                 No matching work items.
               </td>
             </tr>

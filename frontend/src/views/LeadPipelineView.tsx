@@ -285,7 +285,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                           {lead.name || t('leads.unnamed', 'Unnamed lead')}
                         </div>
                         {(lead.source || lead.phone || lead.email) && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
                             {lead.source && <span>{lead.source}</span>}
                             {lead.phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><PhoneIcon size={10} /><span className="mono">{lead.phone}</span></span>}
                             {lead.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><MailIcon size={10} /><span className="mono">{lead.email}</span></span>}
@@ -318,7 +318,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                     )
                   })}
                   {items.length === 0 && (
-                    <div style={{ padding: 16, textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 12, borderRadius: 6, border: '1px dashed var(--gx-border)' }}>
+                    <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 12, borderRadius: 6, border: '1px dashed var(--gx-border)' }}>
                       No leads in this stage
                     </div>
                   )}

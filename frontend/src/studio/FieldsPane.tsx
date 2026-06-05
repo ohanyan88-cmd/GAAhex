@@ -98,7 +98,7 @@ function AddFieldForm({
   return (
     <form onSubmit={submit} style={{ marginTop: 12 }}>
       {err && <ErrorBanner message={err} />}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: '1 1 120px' }}>
           <span>Key *</span>
           <input className="inp inp-sm" value={key} onChange={(e) => setKey(e.target.value)} placeholder="phone" />

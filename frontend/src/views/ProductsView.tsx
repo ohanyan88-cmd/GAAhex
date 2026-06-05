@@ -278,7 +278,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                         No matching products.
                       </td>
                     </tr>

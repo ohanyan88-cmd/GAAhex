@@ -77,7 +77,7 @@ export default function LoadingState({ kind = 'rows', label, rows = 4 }: Props) 
       aria-live="polite"
       aria-busy="true"
       aria-label={label ?? 'Loading…'}
-      style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 0' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', padding: '12px 0' }}
     >
       {Array.from({ length: n }, (_, i) => (
         <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

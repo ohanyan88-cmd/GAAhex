@@ -264,7 +264,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                         No matching orders.
                       </td>
                     </tr>

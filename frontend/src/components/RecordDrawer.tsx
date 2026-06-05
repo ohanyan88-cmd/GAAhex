@@ -191,7 +191,7 @@ export default function RecordDrawer({
               {subtitle && (
                 <div
                   className="hint"
-                  style={{ marginTop: 2, fontSize: 12 }}
+                  style={{ marginTop: 'var(--gx-space-1)', fontSize: 12 }}
                 >
                   {subtitle}
                 </div>
@@ -348,7 +348,7 @@ export default function RecordDrawer({
                     border: '1px solid var(--gx-border-subtle)',
                     borderRadius: 'var(--gx-radius-md)',
                     background: 'var(--gx-surface-2)',
-                    marginBottom: 8,
+                    marginBottom: 'var(--gx-space-3)',
                   }}
                 >
                   <div
@@ -388,7 +388,7 @@ export default function RecordDrawer({
                     style={{
                       display: 'flex',
                       justifyContent: 'flex-end',
-                      marginTop: 8,
+                      marginTop: 'var(--gx-space-3)',
                     }}
                   >
                     <Button variant="primary" size="sm"
@@ -415,7 +415,7 @@ export default function RecordDrawer({
             className="drawer-foot"
             style={{
               display: 'flex',
-              gap: 8,
+              gap: 'var(--gx-space-3)',
               justifyContent: 'flex-end',
               alignItems: 'center',
               padding: '12px 20px',

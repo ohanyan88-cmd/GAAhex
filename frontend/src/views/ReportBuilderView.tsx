@@ -140,7 +140,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                   <span>Name <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
                   <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Leads by status" />
                 </label>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
                   <label className="field" style={{ flex: 1, minWidth: 200 }}>
                     <span>Entity <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
                     <select className="inp inp-md" value={entity} onChange={(e) => { setEntity(e.target.value); setField(''); setGroupBy('') }}>
@@ -214,7 +214,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                     key={r.id}
                     className={'rb-item' + (run?.id === r.id ? ' on' : '')}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
+                      display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
                       padding: '8px 10px',
                       borderRadius: 'var(--gx-radius-md)',
                       background: run?.id === r.id ? 'var(--gx-surface-2)' : 'transparent',
@@ -227,7 +227,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                       onClick={() => doRun(r.id)}
                       style={{
                         flex: 1, textAlign: 'left',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--gx-space-3)',
                         background: 'transparent', border: 0, cursor: 'pointer', font: 'inherit', color: 'inherit',
                         padding: 0,
                       }}

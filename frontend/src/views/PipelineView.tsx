@@ -46,9 +46,9 @@ export default function PipelineView(props: PipelineViewProps) {
         aria-label="Pipeline views"
         style={{
           display: 'flex',
-          gap: 4,
+          gap: 'var(--gx-space-2)',
           borderBottom: '1px solid var(--gx-border)',
-          marginBottom: 16,
+          marginBottom: 'var(--gx-space-5)',
           paddingBottom: 0,
         }}
       >
@@ -100,7 +100,7 @@ function TabButton(props: { active: boolean; onClick: () => void; icon: React.Re
 function StageBoard({ title, owner, description, stages }: { title: string; owner: string; description: string; stages: LifecycleStage[] }) {
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--gx-space-5)', marginBottom: 6 }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 600 }}>{title}</h2>
           <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
@@ -116,8 +116,8 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${Math.min(stages.length, 5)}, minmax(180px, 1fr))`,
-          gap: 12,
-          marginBottom: 24,
+          gap: 'var(--gx-space-4)',
+          marginBottom: 'var(--gx-space-7)',
           overflowX: 'auto',
         }}
       >
@@ -130,7 +130,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
         background: 'var(--gx-bg-subtle)',
         border: '1px solid var(--gx-border)',
         borderRadius: 'var(--gx-radius-lg, 12px)',
-        padding: 16,
+        padding: 'var(--gx-space-5)',
       }}>
         <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 10 }}>
           Control gates referenced in this pipeline
@@ -140,7 +140,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
             <div key={gate} style={{
               background: 'var(--gx-surface)',
               border: '1px solid var(--gx-border)',
-              borderRadius: 8, padding: 12,
+              borderRadius: 8, padding: 'var(--gx-space-4)',
             }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 4 }}>{gate}</div>
               <div style={{ fontSize: 12, color: 'var(--gx-text-3)', lineHeight: 1.5 }}>
@@ -161,7 +161,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
         background: 'var(--gx-surface)',
         border: '1px solid var(--gx-border)',
         borderRadius: 10,
-        padding: 12,
+        padding: 'var(--gx-space-4)',
         minHeight: 140,
         position: 'relative',
         display: 'flex',

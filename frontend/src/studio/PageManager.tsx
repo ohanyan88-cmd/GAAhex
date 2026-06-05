@@ -83,7 +83,7 @@ export function PageManager() {
                 <td><span className={statusCls(pg.status)}>{pg.status}</span></td>
                 <td className="hint" style={{ fontSize: 11.5 }}>{pg.updated}</td>
                 <td className="actions-col">
-                  <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: 'var(--gx-space-1)', justifyContent: 'flex-end' }}>
                     <button className="btn btn-ghost btn-sm btn-icon" title="Rename" type="button" onClick={() => rename(pg)}>
                       <FilePen size={14} />
                     </button>

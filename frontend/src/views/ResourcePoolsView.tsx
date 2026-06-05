@@ -273,7 +273,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + cfg.customFields.length} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                         No matching pools.
                       </td>
                     </tr>
@@ -348,7 +348,7 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
       key: 'allocations',
       label: `Allocated values (${allocs.length})`,
       value: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', width: '100%' }}>
           <div>
             <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setAllocOpen(true)}>
               Allocate value

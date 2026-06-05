@@ -231,7 +231,7 @@ function CreateWebhookModal({
         <div className="section-head" style={{ marginTop: 16 }}>
           <CheckIcon size={15} className="section-icon" /> Status
         </div>
-        <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+        <label className="row" style={{ gap: 'var(--gx-space-3)', alignItems: 'center' }}>
           <input
             type="checkbox" checked={active}
             onChange={(e) => setActive(e.target.checked)}
@@ -481,7 +481,7 @@ function DetailDrawer({
           <div className="section-head" style={{ marginTop: 16 }}>
             <CheckIcon size={15} className="section-icon" /> Status
           </div>
-          <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+          <label className="row" style={{ gap: 'var(--gx-space-3)', alignItems: 'center' }}>
             <input
               type="checkbox" checked={active}
               onChange={(e) => setActive(e.target.checked)}
@@ -494,7 +494,7 @@ function DetailDrawer({
           {savedAt && (
             <div
               style={{
-                marginTop: 10, padding: 8,
+                marginTop: 10, padding: 'var(--gx-space-3)',
                 border: '1px solid var(--gx-border)',
                 borderRadius: 'var(--gx-radius-md)',
                 background: 'var(--gx-success-soft, var(--gx-surface-2))',
@@ -505,7 +505,7 @@ function DetailDrawer({
             </div>
           )}
 
-          <div className="row" style={{ marginTop: 12, gap: 8 }}>
+          <div className="row" style={{ marginTop: 'var(--gx-space-4)', gap: 8 }}>
             <span className="spacer" />
             <Button variant="primary" size="md"
             type="button" 
@@ -521,13 +521,13 @@ function DetailDrawer({
           </div>
           <div
             style={{
-              padding: 12,
+              padding: 'var(--gx-space-4)',
               border: '1px solid var(--gx-border)',
               borderRadius: 'var(--gx-radius-md)',
               background: 'var(--gx-surface-2)',
             }}
           >
-            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginBottom: 'var(--gx-space-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <strong>Current state</strong>
               {hook.has_secret
                 ? <StatusPill variant="active" label="signed" size="sm" />
@@ -575,7 +575,7 @@ function DetailDrawer({
                 fontSize: 12,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 4 }}>
                 <strong>Test result</strong>
                 <StatusPill {...mapDeliveryStatus(testResult.status)} size="sm" />
                 {testResult.status_code != null && (
@@ -741,7 +741,7 @@ export default function WebhooksPane({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Webhooks</h3>
           <p className="hint" style={{ margin: 0 }}>
@@ -783,7 +783,7 @@ export default function WebhooksPane({ token }: { token: string }) {
         </div>
       )}
 
-      <div style={{ marginBottom: 12, maxWidth: 320 }}>
+      <div style={{ marginBottom: 'var(--gx-space-4)', maxWidth: 320 }}>
         <input
           className="inp inp-md"
           placeholder="Filter by name, URL, or event…"

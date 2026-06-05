@@ -141,7 +141,7 @@ export default function AskGaaexView({ token }: { token: string }) {
                           </div>
                           <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>
                           {m.state === 'pending' ? (
-                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                            <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 10 }}>
                               <Button variant="primary" size="sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</Button>
                               <Button variant="ghost" size="sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</Button>
                             </div>

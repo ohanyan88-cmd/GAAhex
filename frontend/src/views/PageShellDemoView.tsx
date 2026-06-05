@@ -226,13 +226,13 @@ function CommunicationDemo() {
       kpis={ZERO_KPIS.slice(0, 3)}
       primaryAction={{ label: 'Compose', onClick: () => {} }}
     >
-      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 16, color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 12 }}>
         Thread list (no data yet)
       </div>
-      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 16, color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 12 }}>
         Selected thread (none)
       </div>
-      <div style={{ padding: 16, color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <div style={{ padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 12 }}>
         Context (no record selected)
       </div>
     </PageShell>
@@ -252,7 +252,7 @@ function ConfigurationDemo() {
       primaryAction={{ label: 'Save changes', onClick: () => {} }}
       secondaryActions={[{ label: 'Discard', onClick: () => {} }]}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 720 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-5)', maxWidth: 720 }}>
         <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: 16 }}>
           <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 14, color: 'var(--gx-text-1)' }}>Section A</h3>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>

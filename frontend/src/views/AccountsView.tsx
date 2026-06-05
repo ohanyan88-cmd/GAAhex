@@ -392,7 +392,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={cfg.columns.length + cfg.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={cfg.columns.length + cfg.customFields.length} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                         No matching accounts.
                       </td>
                     </tr>
@@ -516,9 +516,9 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
               aria-label={t('acct.standardTabs', 'Object Detail tabs')}
               style={{
                 display: 'flex',
-                gap: 4,
+                gap: 'var(--gx-space-2)',
                 borderBottom: '1px solid var(--gx-border)',
-                marginBottom: 16,
+                marginBottom: 'var(--gx-space-5)',
                 overflowX: 'auto',
               }}
             >

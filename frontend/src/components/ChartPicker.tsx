@@ -79,7 +79,7 @@ export default function ChartPicker({
               <div key={cat} style={{ marginBottom: 18 }}>
                 <div style={{
                   fontSize: 11, fontWeight: 700, color: 'var(--gx-text-2)',
-                  textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
+                  textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-3)',
                   padding: '0 4px',
                 }}>{cat}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>

@@ -126,7 +126,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
         </div>
       )}
       {error && (
-        <div className="banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{error}</div>
         </div>
       )}

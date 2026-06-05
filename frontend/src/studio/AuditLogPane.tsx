@@ -214,7 +214,7 @@ export default function AuditLogPane({ token }: { token: string }) {
 
   // ---- header ----
   const header = (
-    <div className="row" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+    <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
       <div>
         <h3 style={{ margin: '0 0 4px' }}>Audit Logs</h3>
         <p className="hint" style={{ margin: 0 }}>
@@ -237,11 +237,11 @@ export default function AuditLogPane({ token }: { token: string }) {
     <div
       className="card"
       style={{
-        padding: 10, marginBottom: 12,
-        display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end',
+        padding: 10, marginBottom: 'var(--gx-space-4)',
+        display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 4, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 'var(--gx-space-2)', color: 'var(--gx-text-3)' }}>
         <FilterIcon size={13} />
         <span className="hint" style={{ fontSize: 11.5 }}>Filters</span>
       </div>
@@ -431,7 +431,7 @@ export default function AuditLogPane({ token }: { token: string }) {
                           <td colSpan={6} style={{
                             background: 'var(--gx-surface-2)',
                             borderTop: '1px solid var(--gx-border-subtle)',
-                            padding: 12,
+                            padding: 'var(--gx-space-4)',
                           }}>
                             <PayloadDetail data={ev.data} />
                           </td>

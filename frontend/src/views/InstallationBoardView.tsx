@@ -274,7 +274,7 @@ export default function InstallationBoardView({
                   {items.length === 0 && (
                     <div
                       style={{
-                        padding: 16,
+                        padding: 'var(--gx-space-5)',
                         textAlign: 'center',
                         color: 'var(--gx-text-3)',
                         fontSize: 12,
@@ -396,7 +396,7 @@ function OrderCard({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: 'var(--gx-space-2)',
               fontSize: 11,
               color: 'var(--gx-success-fg, var(--gx-success))',
             }}
@@ -658,13 +658,13 @@ function SummarySection({
         display: 'flex', alignItems: 'center', gap: 6,
         fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
         letterSpacing: '0.06em', color: 'var(--gx-text-3)',
-        marginBottom: 8,
+        marginBottom: 'var(--gx-space-3)',
       }}>
         {icon}<span>{title}</span>
       </div>
       {empty ? (
         <div style={{
-          padding: 12,
+          padding: 'var(--gx-space-4)',
           fontSize: 12.5,
           color: 'var(--gx-text-3)',
           background: 'var(--gx-surface-2)',
@@ -678,7 +678,7 @@ function SummarySection({
           display: 'grid',
           gridTemplateColumns: '140px 1fr',
           rowGap: 6,
-          columnGap: 12,
+          columnGap: 'var(--gx-space-4)',
           fontSize: 12.5,
         }}>
           {rows.map(([k, v], i) => (

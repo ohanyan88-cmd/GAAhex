@@ -177,7 +177,7 @@ export default function PageSettingsPane({
                 <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{col.key}</span>
 
                 {/* reorder */}
-                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: 'var(--gx-space-1)', flexShrink: 0 }}>
                   <button type="button" className="iconbtn" aria-label={`Move ${col.label} up`} disabled={i === 0} onClick={() => move(i, -1)}>
                     <ArrowUpIcon size={14} />
                   </button>
@@ -202,7 +202,7 @@ export default function PageSettingsPane({
       />
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', alignItems: 'center', paddingTop: 4 }}>
         <Button variant="primary" size="md"
             type="button"  disabled={saving || !dirty} onClick={save}>
           {saving ? 'Saving…' : 'Save page settings'}
@@ -303,7 +303,7 @@ function CustomFieldsSection({
               <span style={{ fontSize: 11, color: 'var(--text-3)', flexShrink: 0 }}>{(f.options ?? []).join(', ') || '—'}</span>
             )}
             <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{f.key}</span>
-            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-1)', flexShrink: 0 }}>
               <button type="button" className="iconbtn" aria-label={`Edit field ${f.label}`} onClick={() => startEdit(i)}>
                 <EditIcon size={14} />
               </button>
@@ -317,7 +317,7 @@ function CustomFieldsSection({
 
       {formOpen && (
         <div style={{ marginTop: 10, padding: '12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <label className="field" style={{ flex: '1 1 160px' }}>
               <span>Label *</span>
               <input className="inp inp-sm" value={label} autoFocus onChange={(e) => setLabel(e.target.value)} placeholder="Notes" />
@@ -335,7 +335,7 @@ function CustomFieldsSection({
                 <input className="inp inp-sm" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Low, High" />
               </label>
             )}
-            <div style={{ display: 'flex', gap: 4, paddingBottom: 2 }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-2)', paddingBottom: 2 }}>
               <Button variant="gold" size="sm"
             type="button"  onClick={commit}>
                 <CheckIcon size={13} /> {editing != null ? 'Save' : 'Add'}

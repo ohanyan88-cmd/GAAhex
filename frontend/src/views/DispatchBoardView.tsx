@@ -82,7 +82,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
                         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: PRIORITY_DOT[item.priority] ?? 'var(--gx-text-3)', marginTop: 5, flexShrink: 0 }} />
                         <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{item.title}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                      <div style={{ display: 'flex', gap: 'var(--gx-space-2)', marginTop: 4 }}>
                         <span className="badge badge-neutral" style={{ fontSize: 11 }}>{item.kind}</span>
                         {!item.assigned_user_id && <span className="badge badge-warning" style={{ fontSize: 11 }}>unassigned</span>}
                       </div>

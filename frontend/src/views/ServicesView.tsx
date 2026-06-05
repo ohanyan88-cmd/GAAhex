@@ -248,7 +248,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                   ))}
                   {pageRows.length === 0 && (
                     <tr>
-                      <td colSpan={page.columns.length + page.customFields.length} style={{ textAlign: 'center', padding: 40, color: 'var(--gx-text-3)' }}>
+                      <td colSpan={page.columns.length + page.customFields.length} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                         No matching services.
                       </td>
                     </tr>
@@ -406,7 +406,7 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
       key: 'resources',
       label: `Resources (${resources.length})`,
       value: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', width: '100%' }}>
           {status !== 'TERMINATED' && canEdit && (
             <div>
               <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setAllocOpen(true)}>

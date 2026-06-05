@@ -402,7 +402,7 @@ export default function InteractionsView({
         <div className="chat">
           {/* No-selection placeholder */}
           {!selected && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)', padding: 24, textAlign: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)', padding: 'var(--gx-space-7)', textAlign: 'center' }}>
               Select an interaction to view details.
             </div>
           )}
@@ -485,7 +485,7 @@ function InteractionDetail({
               {it.body}
             </div>
           ) : (
-            <div style={{ color: 'var(--gx-text-3)', fontSize: 13, marginBottom: 20, fontStyle: 'italic' }}>
+            <div style={{ color: 'var(--gx-text-3)', fontSize: 13, marginBottom: 'var(--gx-space-6)', fontStyle: 'italic' }}>
               No notes recorded for this interaction.
             </div>
           )}

@@ -332,7 +332,7 @@ export default function UsersPane({ token }: { token: string }) {
             border: '1px solid var(--gx-border)',
             borderRadius: 6,
             padding: '14px 16px',
-            marginBottom: 16,
+            marginBottom: 'var(--gx-space-5)',
           }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
@@ -447,7 +447,7 @@ export default function UsersPane({ token }: { token: string }) {
                   </td>
                   <td><code className="mono">{u.email}</code></td>
                   <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--gx-text-2)', fontSize: 13 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-text-2)', fontSize: 13 }}>
                       <BuildingIcon size={12} />
                       {nodeLabel(u.primary_node_id)}
                     </span>
@@ -536,7 +536,7 @@ export default function UsersPane({ token }: { token: string }) {
             border: '1px solid var(--gx-border)',
             borderRadius: 6,
             padding: '16px 18px',
-            marginTop: 8,
+            marginTop: 'var(--gx-space-3)',
           }}
         >
           <div className="section-head">
@@ -552,7 +552,7 @@ export default function UsersPane({ token }: { token: string }) {
           </div>
 
           {/* Identity card */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)', marginBottom: 16 }}>
             <div style={{ fontSize: 13 }}>
               <div style={{ color: 'var(--gx-text-3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -577,7 +577,7 @@ export default function UsersPane({ token }: { token: string }) {
                 border: '1px solid var(--gx-border)',
                 borderRadius: 6,
                 padding: '12px 14px',
-                marginBottom: 16,
+                marginBottom: 'var(--gx-space-5)',
               }}
             >
               {editErr && <ErrorBanner message={editErr} />}
@@ -643,7 +643,7 @@ export default function UsersPane({ token }: { token: string }) {
             onClick={() => setEditing(true)}>
                 <EditIcon size={13} /> Edit user
               </Button>
-              {editMsg && <span style={{ marginLeft: 8, color: 'var(--gx-success)', fontSize: 12 }}>{editMsg}</span>}
+              {editMsg && <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-success)', fontSize: 12 }}>{editMsg}</span>}
             </div>
           )}
 
@@ -676,7 +676,7 @@ export default function UsersPane({ token }: { token: string }) {
                 border: '1px solid var(--gx-border)',
                 borderRadius: 6,
                 padding: '12px 14px',
-                marginBottom: 12,
+                marginBottom: 'var(--gx-space-4)',
               }}
             >
               {addRoleErr && <ErrorBanner message={addRoleErr} />}
@@ -740,7 +740,7 @@ export default function UsersPane({ token }: { token: string }) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
+                    gap: 'var(--gx-space-3)',
                     border: '1px solid var(--gx-border)',
                     background: 'var(--gx-surface-2)',
                     borderRadius: 6,
@@ -751,7 +751,7 @@ export default function UsersPane({ token }: { token: string }) {
                   <strong style={{ fontSize: 13 }}>{a.role_label}</strong>
                   <code className="mono" style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>{a.role_key}</code>
                   <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>at</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', fontSize: 13 }}>
                     <BuildingIcon size={12} style={{ color: 'var(--gx-text-3)' }} />
                     {a.node_name}
                     <code className="mono" style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>{a.node_path}</code>

@@ -997,13 +997,13 @@ function AddFieldInline({
     <form
       onSubmit={save}
       style={{
-        marginTop: 10, padding: 12,
+        marginTop: 10, padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
       }}
     >
       {err && <ErrorBanner message={err} />}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr) auto', gap: 8, alignItems: 'flex-end' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr) auto', gap: 'var(--gx-space-3)', alignItems: 'flex-end' }}>
         <label className="field"><span>Key *</span>
           <input className="inp inp-sm mono" value={k} onChange={(e) => setK(e.target.value)} autoFocus />
         </label>
@@ -1145,13 +1145,13 @@ function AddStatusInline({
     <form
       onSubmit={save}
       style={{
-        marginTop: 10, padding: 12,
+        marginTop: 10, padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
       }}
     >
       {err && <ErrorBanner message={err} />}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: '1 1 140px' }}>
           <span>Key (UPPER_SNAKE) *</span>
           <input className="inp inp-sm mono" value={k} onChange={(e) => setK(e.target.value)} autoFocus />
@@ -1198,12 +1198,12 @@ function AddTransitionInline({
     <form
       onSubmit={save}
       style={{
-        marginTop: 10, padding: 12,
+        marginTop: 10, padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
       }}
     >
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: '1 1 160px' }}>
           <span>From</span>
           <select className="inp inp-sm" value={from} onChange={(e) => setFrom(e.target.value)}>
@@ -1278,7 +1278,7 @@ export default function EntitiesPane({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 16, alignItems: 'flex-end' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Entities</h3>
           <p className="hint" style={{ margin: 0 }}>
@@ -1295,7 +1295,7 @@ export default function EntitiesPane({ token }: { token: string }) {
         </Button>
       </div>
 
-      <div style={{ marginBottom: 12, maxWidth: 320 }}>
+      <div style={{ marginBottom: 'var(--gx-space-4)', maxWidth: 320 }}>
         <input
           className="inp inp-md"
           placeholder="Filter by label, key, or slug…"

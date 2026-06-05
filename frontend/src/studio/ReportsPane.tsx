@@ -368,7 +368,7 @@ function ReportForm({
   }
 
   return (
-    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
+    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
       <div className="row" style={{ marginBottom: 12 }}>
         <strong>{isEdit ? 'Edit report' : 'New report'}</strong>
         <span className="spacer" />
@@ -478,7 +478,7 @@ function ReportForm({
           )}
         </div>
 
-        <div className="row" style={{ marginTop: 16, gap: 8 }}>
+        <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
           <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {isEdit ? 'Save changes' : 'Create report'}
@@ -689,7 +689,7 @@ function ScheduleForm({
   }
 
   return (
-    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
+    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
       <div className="row" style={{ marginBottom: 12 }}>
         <strong>New schedule</strong>
         <span className="spacer" />
@@ -743,7 +743,7 @@ function ScheduleForm({
             </label>
           </div>
 
-          <div className="row" style={{ marginTop: 16, gap: 8 }}>
+          <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
             <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
               <CheckIcon size={13} /> Create schedule

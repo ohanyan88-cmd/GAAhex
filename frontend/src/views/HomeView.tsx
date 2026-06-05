@@ -436,7 +436,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <button
             onClick={() => setPickerOpen(!pickerOpen)}
             className="card card-hover"
-            style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit' }}
+            style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit' }}
             title="Change role view"
           >
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[role] }} />
@@ -454,7 +454,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
                     else { setOverride(r); localStorage.setItem(ROLE_OVERRIDE_KEY, r) }
                     setPickerOpen(false)
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer', borderRadius: 4, background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '8px 12px', cursor: 'pointer', borderRadius: 4, background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
                 >
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[r] }} />
                   <span style={{ fontSize: 13, flex: 1 }}>{ROLE_LABEL[r]}</span>
@@ -474,7 +474,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             onClick={() => onAction(target)}
             className="card card-hover"
             style={{
-              padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
               cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit',
               background: 'var(--gx-surface)',
               borderLeft: `3px solid ${color}`,
@@ -488,7 +488,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
       {/* Urgent alerts band */}
       {urgentItems.length > 0 && (
-        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ marginBottom: 'var(--gx-space-6)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {urgentItems.map((u, i) => (
             <div
               key={i}
@@ -633,7 +633,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
         {activity.state === 'loading' && <Skel rows={5} />}
         {activity.state === 'hide' && <Empty msg="No recent activity" />}
         {activity.state === 'ok' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8, padding: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--gx-space-3)', padding: 12 }}>
             {activity.value.slice(0, 8).map(a => (
               <div key={a.id} className="card card-hover" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Activity size={11} color="var(--gx-text-3)" />

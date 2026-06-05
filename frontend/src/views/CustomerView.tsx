@@ -495,10 +495,10 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               aria-label={t('cust.relatedTabs', 'Related records')}
               style={{
                 display: 'flex',
-                gap: 4,
+                gap: 'var(--gx-space-2)',
                 borderBottom: '1px solid var(--gx-border)',
                 marginTop: 22,
-                marginBottom: 16,
+                marginBottom: 'var(--gx-space-5)',
                 paddingBottom: 0,
                 overflowX: 'auto',
               }}
@@ -972,7 +972,7 @@ function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
     return (
       <div className="card" style={{ padding: 14 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+          <div key={i} style={{ display: 'flex', gap: 'var(--gx-space-4)', marginBottom: 10 }}>
             <div className="kpi-tile-skeleton" style={{ height: 12, flex: 2 }} />
             <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
             <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />

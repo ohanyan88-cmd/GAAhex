@@ -317,7 +317,7 @@ export default function RolesPane({ token }: { token: string }) {
 
           {saveErr && <ErrorBanner message={saveErr} />}
           {saveMsg && (
-            <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+            <div className="error-banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
               <CheckIcon size={14} style={{ color: 'var(--gx-success)', flexShrink: 0 }} />
               <span className="error-banner-msg">{saveMsg}</span>
             </div>
@@ -348,7 +348,7 @@ export default function RolesPane({ token }: { token: string }) {
             ))
           )}
 
-          <div className="error-banner" style={{ marginTop: 8, marginBottom: 4, borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+          <div className="error-banner" style={{ marginTop: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-2)', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
             <InfoIcon size={14} style={{ color: 'var(--gx-info)', flexShrink: 0 }} />
             <span className="error-banner-msg">
               Changes take effect on next login. Users with this role will see updated capabilities immediately after re-authenticating.

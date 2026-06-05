@@ -170,7 +170,7 @@ export default function UserMenu({
                 </button>
                 <span style={{ fontWeight: 600, fontSize: 13 }}>{t('profile.title', 'My profile')}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '8px 0 14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '8px 0 14px' }}>
                 <span className="avatar" style={{ width: 56, height: 56, fontSize: 20 }}>
                   {user.avatar_url
                     ? <img src={user.avatar_url} alt="" className="avatar-img" />

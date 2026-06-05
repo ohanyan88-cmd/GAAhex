@@ -333,10 +333,10 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
         aria-label="Inventory views"
         style={{
           display: 'flex',
-          gap: 4,
+          gap: 'var(--gx-space-2)',
           borderBottom: '1px solid var(--gx-border)',
-          marginBottom: 16,
-          marginTop: 8,
+          marginBottom: 'var(--gx-space-5)',
+          marginTop: 'var(--gx-space-3)',
           paddingBottom: 0,
         }}
       >
@@ -459,10 +459,10 @@ function FilterSelect({ label, value, onChange, options }: {
 function TabToolbar({ left, right }: { left: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div style={{
-      display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center',
-      marginBottom: 16,
+      display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-4)', alignItems: 'center',
+      marginBottom: 'var(--gx-space-5)',
     }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>{left}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', alignItems: 'center' }}>{left}</div>
       <span style={{ flex: 1 }} />
       {right}
     </div>
@@ -723,7 +723,7 @@ function FiberDetailDrawer({ token, id, onClose }: {
             <SectionLabel>Geo path (WKT)</SectionLabel>
             {route.geo_path
               ? <pre style={{
-                  margin: 0, padding: 12,
+                  margin: 0, padding: 'var(--gx-space-4)',
                   background: 'var(--gx-bg-subtle)',
                   border: '1px solid var(--gx-border-subtle)',
                   borderRadius: 8,
@@ -1185,14 +1185,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <div style={{
       fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
       color: 'var(--gx-text-3)', letterSpacing: '0.06em',
-      marginBottom: 8,
+      marginBottom: 'var(--gx-space-3)',
     }}>{children}</div>
   )
 }
 
 function KvGrid({ rows }: { rows: [string, React.ReactNode][] }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 8, columnGap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 'var(--gx-space-3)', columnGap: 16 }}>
       {rows.map(([k, v], i) => (
         <span key={i} style={{ display: 'contents' }}>
           <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{k}</span>

@@ -130,7 +130,7 @@ function LineChart({ data, series1Label = 'Series 1', series2Label = 'Series 2' 
         <polyline points={pts1} fill="none" stroke="var(--gx-chart-active)" strokeWidth="2" strokeLinejoin="round" />
         <polyline points={pts2} fill="none" stroke="var(--gx-gold)" strokeWidth="2" strokeLinejoin="round" strokeDasharray="4 3" />
       </svg>
-      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 12, height: 2, background: 'var(--gx-chart-active)', display: 'inline-block', borderRadius: 1 }} />{series1Label}
         </span>
@@ -170,7 +170,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
       </svg>
       <div style={{ flex: 1, minWidth: 120 }}>
         {slices.map((sl, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 8 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: sl.color, flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 12 }}>{sl.label}</span>
             <span style={{ fontSize: 12, fontWeight: 600 }}>{sl.value}</span>
@@ -189,7 +189,7 @@ function HorizontalBarChart({ buckets }: { buckets: { label: string; value: numb
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {buckets.map(b => (
         <div key={b.label}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)', fontSize: 12 }}>
             <span>{b.label}</span>
             <span style={{ fontWeight: 600, color: b.color }}>{money(b.value)}</span>
           </div>
@@ -320,7 +320,7 @@ function GanttChart({ projects }: { projects: { id: string; name: string; start_
         const leftPct  = ((s - minT) / span) * 100
         const widthPct = Math.max(2, ((e - s) / span) * 100)
         return (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 11 }}>
             <span style={{ width: 110, textAlign: 'right', color: 'var(--gx-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</span>
             <div style={{ flex: 1, position: 'relative', height: 16, background: 'var(--gx-surface-2)', borderRadius: 3 }}>
               <div title={`${p.start_date} to ${p.due_date} - ${p.status}`}
@@ -343,7 +343,7 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
   const maxCount = Math.max(...data.map(d => d.count), 1)
   return (
     <div>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 4, height: 160 }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-2)', height: 160 }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', position: 'relative' }} title={`${d.category}: ${d.count} (${d.cum_pct}% cum)`}>
             {/* D18: Pareto top-3 = highlighted drillable bars → --gx-chart-active; rest = passive slate → --gx-chart-default. */}
@@ -365,7 +365,7 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
           <line x1="0" y1="20" x2={data.length} y2="20" stroke="var(--gx-warning)" strokeDasharray="2 2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
         </svg>
       </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-4)', marginTop: 'var(--gx-space-3)', fontSize: 10, color: 'var(--gx-text-3)' }}>
         <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--gx-chart-active)', borderRadius: 2, marginRight: 4 }} />Top 3</span>
         <span><span style={{ display: 'inline-block', width: 9, height: 2, background: 'var(--gx-gold)', verticalAlign: 'middle', marginRight: 4 }} />Cumulative %</span>
         <span style={{ marginLeft: 'auto' }}>80% target line</span>
@@ -391,7 +391,7 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontWeight: 700, fontSize: 13,
                 }}>{n.value}</div>
-                <div style={{ fontSize: 11, marginTop: 4, fontWeight: 600 }}>{n.name}</div>
+                <div style={{ fontSize: 11, marginTop: 'var(--gx-space-2)', fontWeight: 600 }}>{n.name}</div>
                 {conv !== null && (
                   <div style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>{conv}% conv</div>
                 )}
@@ -466,7 +466,7 @@ function GeoMap({ points }: { points: { id: string; kind: string; name: string; 
           })}
         </svg>
       </div>
-      <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-4)', marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
         {Object.entries(points.reduce((acc, p) => { acc[p.kind] = (acc[p.kind] || 0) + 1; return acc }, {} as Record<string, number>)).map(([k, n]) => (
           <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: kindColor(k) }} />
@@ -552,8 +552,8 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160, padding: '4px 0' }}>
         {data.map(d => (
-          <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 4, height: '100%' }} title={`${d.label}: this ${d.thisVal} vs last ${d.lastVal}`}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 2, height: '85%' }}>
+          <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 'var(--gx-space-2)', height: '100%' }} title={`${d.label}: this ${d.thisVal} vs last ${d.lastVal}`}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 'var(--gx-space-1)', height: '85%' }}>
               {/* D18: "this period" = the active drillable series → gradient routed via --gx-interactive-hover/-active. "Last period" stays as faded slate text-3 (passive prior-period reference). */}
               <div style={{ width: '40%', height: `${d.thisVal / max * 100}%`,
                 background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))',
@@ -566,7 +566,7 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', gap: 14, marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />This period
         </span>
@@ -595,7 +595,7 @@ function MultiLineChart({ labels, series }: {
           return <polyline key={si} points={pts} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" />
         })}
       </svg>
-      <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 14, marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
         {series.map((s, i) => (
           <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 12, height: 2, background: s.color, borderRadius: 1 }} />{s.name}
@@ -650,7 +650,7 @@ function StackedBarChart({ buckets }: {
   const max = Math.max(...totals, 1)
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 160 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: 160 }}>
         {buckets.map((b, bi) => {
           const total = totals[bi]
           return (
@@ -844,7 +844,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     <BarChart data={revTrend.value.map(b => ({
                       label: b.month, primary: b.collected, secondary: b.churn ?? 0
                     }))} />
-                    <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: 'var(--gx-text-3)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 10, fontSize: 11, color: 'var(--gx-text-3)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {/* D18: legend swatch matches BarChart primary fill → --gx-chart-active. */}
                         <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />Collected
@@ -1284,7 +1284,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* Empty state */}
         {selected.size === 0 && (
           <div style={{ padding: 60, textAlign: 'center', color: 'var(--gx-text-3)' }}>
-            <Settings size={40} style={{ marginBottom: 16, opacity: 0.4 }} />
+            <Settings size={40} style={{ marginBottom: 'var(--gx-space-5)', opacity: 0.4 }} />
             <p style={{ fontSize: 14 }}>No charts selected. Click <strong>Customize</strong> above to choose what to display.</p>
           </div>
         )}

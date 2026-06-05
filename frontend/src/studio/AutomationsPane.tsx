@@ -382,7 +382,7 @@ export default function AutomationsPane({ token }: { token: string }) {
 
           {formErr && <ErrorBanner message={formErr} />}
           {formOk && (
-            <div className="error-banner" style={{ marginBottom: 12, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+            <div className="error-banner" style={{ marginBottom: 'var(--gx-space-4)', borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
               <CheckIcon size={14} />
               <span className="error-banner-msg">{formOk}</span>
             </div>
