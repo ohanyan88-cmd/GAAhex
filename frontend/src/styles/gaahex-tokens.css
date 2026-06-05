@@ -182,8 +182,9 @@
   --viz-5:#E0901A; --viz-6:#2A9DB5; --viz-7:#E5484D; --viz-8:#82A1CC;
 
   /* ── SPACING — 4px base unit ─────────────────────────── */
-  --gx-space-0:  0px;
-  --gx-space-1:  2px;
+  /* T-P3-6 — removed orphan space endpoints --gx-space-0 (0px is the implicit
+     default) and --gx-space-1 (2px — too tight for visible spacing; -2 covers
+     the same use). --gx-space-2 through -9 are the consumed scale. */
   --gx-space-2:  4px;
   --gx-space-3:  8px;
   --gx-space-4:  12px;
@@ -192,8 +193,8 @@
   --gx-space-7:  24px;
   --gx-space-8:  32px;
   --gx-space-9:  40px;
-  --gx-space-10: 48px;
-  --gx-space-11: 64px;
+  /* T-P3-6 — removed --gx-space-10/-11 (orphan high-end aliases; -9 = 40px
+     covers section spacing, -12 = 80px is the documented hero spacing). */
   --gx-space-12: 80px;
 
   /* ── RADIUS ── */
@@ -207,7 +208,6 @@
   --gx-radius-full: 9999px;
 
   /* ── BORDER widths ── */
-  --gx-border-1: 1px;
   --gx-border-2: 2px;
   --gx-border-3: 3px;
 
@@ -247,36 +247,32 @@
   --gx-tracking-wider:    0.08em;
   --gx-tracking-widest:   0.16em;
 
-  /* ── MOTION ── */
-  --gx-dur-instant: 0ms;
+  /* ── MOTION ──
+     T-P3-6 — removed orphan motion aliases: --gx-dur-instant/-slow/-slower
+     (only -fast/-quick/-base/-moderate consumed), --gx-ease-in/-out (only
+     -standard/-emphasis consumed). */
   --gx-dur-fast:    100ms;
   --gx-dur-quick:   150ms;
   --gx-dur-base:    200ms;
   --gx-dur-moderate:300ms;
-  --gx-dur-slow:    400ms;
-  --gx-dur-slower:  600ms;
   --gx-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --gx-ease-emphasis: cubic-bezier(0.3, 0, 0, 1);
-  --gx-ease-out:      cubic-bezier(0, 0, 0.2, 1);
-  --gx-ease-in:       cubic-bezier(0.4, 0, 1, 1);
 
-  /* ── Z-INDEX ── */
-  --gx-z-base:     0;
-  --gx-z-dropdown: 1000;
+  /* ── Z-INDEX ──
+     T-P3-6 — removed orphan z aliases: --gx-z-base/-dropdown/-tooltip (canon
+     is -sticky/-overlay/-modal/-popover/-toast). */
   --gx-z-sticky:   1100;
   --gx-z-overlay:  1300;
   --gx-z-modal:    1400;
   --gx-z-popover:  1500;
   --gx-z-toast:    1600;
-  --gx-z-tooltip:  1700;
 
-  /* ── SIZING — component heights & chrome ── */
+  /* ── SIZING — component heights & chrome ──
+     T-P3-6 — removed orphan row-density aliases: --gx-row-compact/-default/
+     -comfortable. Canon is --gx-control-sm/-md/-lg for control heights. */
   --gx-control-sm: 28px;
   --gx-control-md: 34px;
   --gx-control-lg: 42px;
-  --gx-row-compact:     34px;
-  --gx-row-default:     44px;
-  --gx-row-comfortable: 56px;
   --gx-header-h:  56px;
   --gx-sidebar-w: 264px;
   --gx-sidebar-collapsed-w: 64px;
@@ -292,10 +288,9 @@
   --gx-bp-tablet:   768px;   /* portrait tablets — collapse multi-column → 2 */
   --gx-bp-desktop:  1024px;  /* tablet landscape and up — full grid */
 
-  /* ── BLUR / OPACITY ── */
-  --gx-blur-sm: 4px;
-  --gx-blur-md: 10px;
-  --gx-blur-lg: 20px;
+  /* ── BLUR / OPACITY ──
+     T-P3-6 — removed orphan blur ladder --gx-blur-sm/-md/-lg (only
+     --gx-backdrop-blur is consumed). */
   --gx-backdrop-blur: 8px;
 }
 
@@ -316,7 +311,6 @@
   --gx-sidebar:     #0C1626;
   --gx-topbar:      rgba(12, 22, 38, 0.82);
   --gx-code-bg:     #0C1424;
-  --gx-inverse-surface: #EDF1F5;
 
   /* Text */
   --gx-text-1: #F4F7FB;   /* primary  */
@@ -324,8 +318,6 @@
   /* T-P1-3 — lifted from #6E7F96 (~3.4:1 contrast on --gx-surface-2 #182943,
      failed WCAG AA) to #8EA0B8 (~6:1 contrast, passes AA 4.5:1 for normal text). */
   --gx-text-3: #8EA0B8;   /* tertiary / muted */
-  --gx-text-disabled: #44546B;
-  --gx-text-inverse: #0F172A;
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #5A6B82;
@@ -333,7 +325,6 @@
      Previous legacy cobalt-azure hexes (#5293F2 / #7FB0FF) overloaded the cobalt
      spine for an interactive role; aliasing collapses the duplicate token family. */
   --gx-link:       var(--gx-interactive);
-  --gx-link-hover: var(--gx-interactive-hover);
 
   /* Borders */
   --gx-border:        rgba(130, 161, 204, 0.16);
@@ -357,8 +348,6 @@
 
   /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
   --gx-primary:        #3B7BE0;
-  --gx-primary-hover:  #5293F2;
-  --gx-primary-active: #2C63BC;
   --gx-primary-soft:   rgba(59, 123, 224, 0.16);
   --gx-on-primary:     #FFFFFF;
 
@@ -372,7 +361,6 @@
 
   /* Interaction overlays */
   --gx-hover:    rgba(174, 189, 208, 0.06);
-  --gx-pressed:  rgba(174, 189, 208, 0.12);
   /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
   --gx-selected: var(--gx-interactive-soft);
   --gx-ring:     var(--gx-interactive-ring);
@@ -415,13 +403,10 @@
   --gx-shadow-md: 0 6px 18px rgba(0,0,0,0.42);
   --gx-shadow-lg: 0 16px 40px rgba(0,0,0,0.50);
   --gx-shadow-xl: 0 28px 70px rgba(0,0,0,0.58);
-  --gx-shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
-  --gx-glow-primary: 0 0 0 1px rgba(59,123,224,0.40), 0 6px 24px rgba(59,123,224,0.28);
   --gx-glow-gold:    0 0 0 1px rgba(197,160,89,0.40), 0 6px 24px rgba(197,160,89,0.22);
 
   /* Skeleton */
   --gx-skeleton:        rgba(174, 189, 208, 0.07);
-  --gx-skeleton-shine:  rgba(174, 189, 208, 0.14);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -439,15 +424,12 @@
   --gx-sidebar:     #0F2138;   /* keep brand-dark sidebar in light mode */
   --gx-topbar:      rgba(255, 255, 255, 0.85);
   --gx-code-bg:     #0C1424;
-  --gx-inverse-surface: #13203A;
 
   --gx-text-1: #0F2138;
   --gx-text-2: #475569;
   /* T-P1-3 — lifted from #74849A (~3.6:1 contrast on --gx-surface-2 #F7F9FB,
      failed WCAG AA) to #5C6B82 (~5.5:1 contrast, passes AA 4.5:1 for normal text). */
   --gx-text-3: #5C6B82;
-  --gx-text-disabled: #AEBACA;
-  --gx-text-inverse: #F4F7FB;
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #94A3B8;
@@ -455,7 +437,6 @@
      Previous legacy cobalt hexes (#2C63BC / #224E96) overloaded the cobalt spine
      for an interactive role; aliasing collapses the duplicate token family. */
   --gx-link:       var(--gx-interactive);
-  --gx-link-hover: var(--gx-interactive-hover);
 
   --gx-border:        #DCE3EB;
   --gx-border-subtle: #EDF1F5;
@@ -468,8 +449,6 @@
 
   /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
   --gx-primary:        #2C63BC;
-  --gx-primary-hover:  #3B7BE0;
-  --gx-primary-active: #224E96;
   --gx-primary-soft:   rgba(59, 123, 224, 0.12);
   --gx-on-primary:     #FFFFFF;
 
@@ -481,7 +460,6 @@
   --gx-interactive-ring:   rgba(2, 132, 199, 0.45);   /* focus ring */
 
   --gx-hover:    rgba(15, 33, 56, 0.04);
-  --gx-pressed:  rgba(15, 33, 56, 0.08);
   /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
   --gx-selected: var(--gx-interactive-soft);
   --gx-ring:     var(--gx-interactive-ring);
@@ -519,12 +497,9 @@
   --gx-shadow-md: 0 8px 24px rgba(15,33,56,0.10);
   --gx-shadow-lg: 0 16px 40px rgba(15,33,56,0.14);
   --gx-shadow-xl: 0 28px 70px rgba(15,33,56,0.18);
-  --gx-shadow-inset: inset 0 1px 0 rgba(255,255,255,0.6);
-  --gx-glow-primary: 0 0 0 1px rgba(59,123,224,0.30), 0 6px 24px rgba(59,123,224,0.18);
   --gx-glow-gold:    0 0 0 1px rgba(172,136,71,0.30), 0 6px 24px rgba(172,136,71,0.16);
 
   --gx-skeleton:        rgba(15, 33, 56, 0.06);
-  --gx-skeleton-shine:  rgba(15, 33, 56, 0.03);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
