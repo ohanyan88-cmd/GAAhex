@@ -36,14 +36,22 @@
 - **T-P3-9** — ~1,100 layout one-offs → `<Stack>/<Inline>/<Grid>` consolidation. Drift checker prevents new instances; per-PR migration as files are touched.
 - **T-P2-4** — `<ConversationRow>` primitive scope-flagged (only n=2 sites with divergent shapes). Revisit when a 3rd surface lands.
 
-### Forward focus (next priorities)
+### Forward focus (active priorities)
 
-1. **Manual staging walkthrough** — steps 1–12 from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3 against a live staging URL.
-2. **First tenant selected: real ISP pilot participant.** ✅ RESOLVED 2026-06-05. The pilot ISP that already agreed to participate is the locked first-tenant target. Validates the platform against real operational workflows (not synthetic assumptions), accelerates M1 validation, and gives a concrete onboarding / workflows / billing / provisioning / customer-lifecycle target. **Operational onboarding planning lives inside M1 execution — do not begin onboarding or production cutover from this decision alone.**
-3. **Q1 — GXL business-condition workflow guards** → finalize the DRAFT successor baseline at `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` (Phase 1.5 design review).
-4. **Q5 — Per-tenant feature flags** (M1 scope per Q5 lock-in).
-5. **Q8 — RLS exemption policy ("Fix Forward" default)** — formalize the policy document; exemptions only in rare cases.
-6. **M1 implementation planning** — execute `docs/roadmap/M1-PLATFORM-EXPANSION-PLAN.md`.
+**Goal: convert the remaining open architecture decisions (Q1/Q5/Q8) into locked decisions before broader M1 execution.** Manual staging walkthrough is intentionally deferred — it stays open as the M0 watch-item, but does not gate the next architectural lock-in pass. Onboarding the pilot ISP and any production cutover work are explicitly OUT OF SCOPE here.
+
+1. **Q1 — GXL business-condition workflow guards** → finalize the DRAFT successor baseline at `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md` (Phase 1.5 design review).
+2. **Q5 — Per-tenant feature flags** — implement per the M1 plan (Gev's lock-in: in M1, not later).
+3. **Q8 — RLS exemption policy ("Fix Forward" default)** — formalize the policy document; exemptions only in rare, documented cases.
+4. **Manual staging walkthrough** — DEFERRED. Steps 1–12 from `docs/audit/M0-STAGING-READINESS-2026-06-05.md` §3; remains the M0 watch-item but does not block Q1/Q5/Q8 work.
+
+### Resolved (locked in)
+
+- **First tenant selected: real ISP pilot participant.** ✅ RESOLVED 2026-06-05 — LOCKED. Strategic decision only — operational onboarding planning lives inside M1 execution. **Do not begin onboarding or production cutover from this decision alone.**
+
+### After Q1/Q5/Q8 lock in
+
+- **M1 implementation** — execute `docs/roadmap/M1-PLATFORM-EXPANSION-PLAN.md` (S1 → S9) against the locked pilot tenant.
 
 ### Sealed baselines
 
