@@ -280,7 +280,9 @@ out in the description.
 | R7 | Production deploy contract weakened to ship faster | L | C — production deployed without RLS engaging | Sealed baseline I8 makes this an automatic NO. PR review must catch any edit to `_assert_production_deploy_contract`. |
 | R8 | First tenant's data shape requires an entity field type the platform doesn't have, and the time pressure pushes a workaround | M | M | The right path: add the field type cleanly (E2) in a 1-day PR. The wrong path: encode it as JSON-in-`config`. Plan reserves 5 working days in the schedule for at most 2 new field types. |
 | R9 | Performance baseline (S3) reveals a query path with no `tenant_id` filter — tenant-filter static analyzer missed it | L | C — cross-tenant read | The runtime audit (`backend/app/tenant_query_audit.py`) is the second line; M1 will log + alert on any query that the static analyzer didn't flag. |
-| R10 | A custom entity in S1 needs a workflow guard that depends on data the engine doesn't see (e.g., "can only transition to ACTIVE if billing account is current") | M | M — guard either weakened or implemented outside the engine | The guard goes in `WorkflowDef.config.transitions[].guard` as a GXL expression evaluated by the existing engine. If GXL can't express it, that's a successor-baseline conversation (extend GXL), not a code workaround. |
+| R10 | A custom entity in S1 needs a workflow guard that depends on data the engine doesn't see (e.g., "can only transition to ACTIVE if billing account is current") | **CONFIRMED (Q1)** | M — without resolution, guards either weakened or implemented outside the engine | **Phase 1.5 lands the GXL cross-record extension** (Q1 resolved). Successor sealed baseline drafted as Phase 1.5's first artifact, locking in the new GXL surface (cross-record fields, single-record cardinality, super_admin-only authorship) + killer test KT-GXL-1. Until Phase 1.5 ships, any custom entity that *requires* a cross-record guard is held out of Phase 3. |
+| R13 | Per-tenant feature flag override is bypassed by a call site that forgets to pass `tenant_id` (Q5 resolution introduces this risk) | M | M — flag effectively platform-wide for that call site | Lint rule (ratchet) on `is_enabled(...)` calls inside request handlers — the `tenant_id` kwarg becomes required when the call site has `user` or `request` in scope. Killer test KT-M1-5 exercises the per-tenant isolation. |
+| R14 | The GXL extension's cross-record resolution triggers N+1 in transition handlers | M | M — slow transitions; possible time-out under load | Cardinality contract in the successor baseline pins "single record" (no aggregates over collections). Resolver pre-fetches the referenced rows in one query before evaluation. KT-GXL-1 timing assertion gates this. |
 | R11 | New killer test makes the suite take noticeably longer | L | L — CI slower but not blocking | Budget: total CI wall time stays ≤ 10 min for `backend` job. New killer tests are scoped tight (one-shot fixtures, no broad seeding). |
 | R12 | Tenant onboarding runbook (S5) drifts from actual code paths | M | M — admins get stuck | Runbook updated in the same PR as any code change that affects the onboarding surface. Linked from `docs/standards/00-standards-index.md`. |
 
@@ -321,6 +323,38 @@ gaps **before** we put real tenant data in front of them.
 
 **Exit gate:** `backend-rls` job is green and hard; M0 killer test passes
 under both roles.
+
+### Phase 1.5 — GXL extension + per-tenant feature flags (target: 2 weeks)
+
+Inserted by the 2026-06-05 resolution of Q1 and Q5. Two parallel tracks in
+one phase because they share a review window (both touch the security /
+feature-gate surface; reviewers can batch the conversation).
+
+**Track A — GXL cross-record extension (Q1):**
+
+| Task | Owner | Exit |
+|---|---|---|
+| **P1.5A.0** Draft `docs/architecture/SEALED-ARCHITECTURE-BASELINE-<date>-GXL-EXTENSION.md` covering the four bullets from Q1's resolution (resolution surface, cardinality, authz, KT-GXL-1). | Engineer + Gev review | Successor baseline merged. **No GXL code lands before this.** |
+| **P1.5A.1** Implement the cross-record resolver inside `app/gxl.py` (or wherever GXL lives today). Single-record-only cardinality enforced at parse time. | Engineer | All existing GXL guards parse + evaluate unchanged (compatibility window in the successor baseline §X). |
+| **P1.5A.2** Add the resolver's pre-fetch pass so transition evaluation issues at most one extra query per guard (no N+1 — R14 mitigation). | Engineer | Killer test KT-GXL-1 timing assertion passes. |
+| **P1.5A.3** Land KT-GXL-1: tenant defines guard `account.balance_due == 0` for `service.activate`; engine refuses when unpaid, allows when paid. Lives at `backend/tests/test_workflow_engine.py`. | Engineer | Test passes in `backend` AND `backend-rls` jobs. |
+| **P1.5A.4** Gate: a deliberately-malformed guard expression that *would* enable an out-of-bound query (e.g., aggregate over a collection) fails parse with a clear error. | Engineer | Test passes; the parse-error message is the one the runbook will quote. |
+
+**Track B — Per-tenant feature flags (Q5):**
+
+| Task | Owner | Exit |
+|---|---|---|
+| **P1.5B.1** Migration adds `tenant_feature_flag` table (`tenant_id` + `flag_key` + `enabled` + `updated_at` + `updated_by`) with `tenant_isolation` RLS policy in the SAME migration ([I3](#i3-tenant-isolation)). | Engineer | Migration reversible; RLS policy verified by `backend-rls` job. |
+| **P1.5B.2** Extend `app/services/feature_gate.py:is_enabled(feature, tenant_id=None)` per the Q5 design sketch. Tenant override only applies when `tenant_id` is provided. The 4 existing deploy-shape flags stay env-var-only. | Engineer | All existing call sites continue to work; new tenant-aware call sites pass `tenant_id` explicitly. |
+| **P1.5B.3** Add the `tenant_feature_flag` CRUD endpoints — gated by `tenant.settings.manage` permission (auto-generated; no new key needed). Every CRUD operation emits `workflow.emit` for the audit trail. | Engineer | A super_admin can flip a flag via API; the flip lands in audit. |
+| **P1.5B.4** Land KT-M1-5: tenant A enables `dunning_automation`, tenant B doesn't; an automation pass affects only A. | Engineer | Test passes. |
+| **P1.5B.5** Lint rule (RATCHET) on `is_enabled(...)` inside request handlers: if `user` or `request` is in scope, `tenant_id` MUST be passed. Initial baseline = 0; any new violation fails CI. | Engineer | Rule lands in `tools/check_drift.py`; baseline auto-populates. |
+
+**Exit gate:**
+1. The successor sealed baseline for GXL is merged.
+2. KT-GXL-1 + KT-M1-5 both pass in both `backend` and `backend-rls` jobs.
+3. The new RATCHET rule for `is_enabled(... tenant_id)` lands and stays at baseline.
+4. The M0 killer test still passes unchanged.
 
 ### Phase 2 — Real provider wiring (staging only) (target: 1–2 weeks)
 
@@ -462,6 +496,22 @@ generic record router would otherwise pass CI silently.
 > It's added to `pytest.ini` in the same PR as the test. Other markers
 > (skip / xfail / flaky) are still forbidden on killer tests.
 
+### KT-M1-5. `test_m1_per_tenant_feature_flag_isolation` *(added 2026-06-05 by Q5 resolution)*
+
+**Lives at:** `backend/tests/test_feature_gate.py` (new or extending an existing file).
+
+**Proves:** tenant A enables `dunning_automation` via `PATCH /api/tenants/{A}/feature-flags`; tenant B doesn't touch the flag. A platform-wide automation pass affects only A's overdue invoices, never B's. The fallback semantics work: a tenant that has never set the flag inherits the env-var default.
+
+**Why required:** Q5's "per-tenant feature flags in M1" decision introduces a new gating axis. Without this test, a future PR that silently treats all flags as platform-wide could regress per-tenant behavior and we'd find out from a tenant complaint, not from CI.
+
+### KT-GXL-1. `test_gxl_cross_record_guard_evaluation` *(added 2026-06-05 by Q1 resolution)*
+
+**Lives at:** `backend/tests/test_workflow_engine.py`.
+
+**Proves:** the new GXL cross-record resolver — landed in Phase 1.5 — works end-to-end. A `service.activate` transition guarded by `account.balance_due == 0` evaluates against the linked customer's account row; the transition is refused when the account has unpaid balance and allowed when paid. Also asserts the timing constraint (R14): the guard issues at most one extra query per evaluation (no N+1).
+
+**Why required:** Q1 committed M1 to extending GXL with cross-record reach. The successor sealed baseline (`SEALED-ARCHITECTURE-BASELINE-<date>-GXL-EXTENSION.md`) defines the new surface; this test is the surface's mechanical proof. **Phase 1.5's exit gate.**
+
 ### Killer test inventory after M1
 
 | Test | M0 | M1 |
@@ -473,6 +523,8 @@ generic record router would otherwise pass CI silently.
 | `test_m1_provisioning_workflow_through_workflow_engine` | — | ✓ NEW (KT-M1-2) |
 | `test_m1_deploy_contract_real_providers_boot` | — | ✓ NEW (KT-M1-3) |
 | `test_m1_killer_under_realistic_data_shape` | — | ✓ NEW (KT-M1-4, perf-marked) |
+| `test_m1_per_tenant_feature_flag_isolation` | — | ✓ NEW (KT-M1-5, from Q5) |
+| `test_gxl_cross_record_guard_evaluation` | — | ✓ NEW (KT-GXL-1, from Q1, Phase 1.5 gate) |
 
 ---
 
@@ -568,6 +620,8 @@ M1 ships when ALL of the following are true. Partial completion is not "M1 shipp
 - KT-M1-2: `test_m1_provisioning_workflow_through_workflow_engine` — passes.
 - KT-M1-3: `test_m1_deploy_contract_real_providers_boot` — passes.
 - KT-M1-4: `test_m1_killer_under_realistic_data_shape` — passes (under `@pytest.mark.perf`, runs in nightly CI).
+- KT-M1-5: `test_m1_per_tenant_feature_flag_isolation` — passes (Q5 resolution).
+- KT-GXL-1: `test_gxl_cross_record_guard_evaluation` — passes in both `backend` and `backend-rls` jobs (Q1 resolution, Phase 1.5 gate).
 
 ### A3. M0 thesis still proven
 
@@ -598,7 +652,8 @@ M1 ships when ALL of the following are true. Partial completion is not "M1 shipp
 
 - `docs/runbooks/M1-TENANT-ONBOARDING.md` exists, is reviewed, and has been successfully executed end-to-end by someone other than the author against a fresh staging tenant.
 - This M1 plan (this file) has been amended with an `M1 SHIPPED` status block once A1–A6 are all green.
-- No invariant in `SEALED-ARCHITECTURE-BASELINE-2026-06-05.md` was weakened. If any was relaxed, the successor file `SEALED-ARCHITECTURE-BASELINE-<post-m1-date>.md` exists, links back to 2026-06-05, and justifies the relaxation.
+- The GXL successor sealed baseline `docs/architecture/SEALED-ARCHITECTURE-BASELINE-<phase-1.5-date>-GXL-EXTENSION.md` exists, was reviewed before any GXL code landed, links back to the 2026-06-05 baseline, and locks in the cross-record GXL surface (Q1 resolution).
+- No OTHER invariant in `SEALED-ARCHITECTURE-BASELINE-2026-06-05.md` was weakened. If any was relaxed beyond the documented GXL extension, an additional successor file exists and justifies that relaxation.
 
 ---
 
@@ -606,14 +661,26 @@ M1 ships when ALL of the following are true. Partial completion is not "M1 shipp
 
 These are decisions M1 will need to make. Each is tagged with how the decision lands: **resolved-in-plan** (decided here; no successor baseline needed), **needs-review** (needs Gev's input before P1 starts), or **successor-candidate** (if the decision relaxes a §3 invariant, it becomes a new sealed-baseline file).
 
-### Q1. GXL expressiveness for workflow guards (R10)
+> **Resolution log — 2026-06-05.** Gev resolved Q1, Q5, Q8. See each
+> question below for the decision. The implementation sequence ([§7](#7-implementation-sequence))
+> is updated accordingly: Phase 1.5 (GXL extension + per-tenant feature flags)
+> is inserted between Phase 1 (backend-rls hardening) and Phase 2 (real
+> provider wiring). Phase 1.5's first artifact is the successor sealed
+> baseline `SEALED-ARCHITECTURE-BASELINE-<post-Q1-decision-date>.md`
+> that locks in the new GXL surface.
+
+### Q1. GXL expressiveness for workflow guards (R10) — **RESOLVED: yes**
 
 Some tenant workflows want guards like "can transition to ACTIVE only if billing account is current". Today's `WorkflowDef.config.transitions[].guard` uses GXL. **Does GXL cover this?**
 
-- **Status:** needs-review.
-- **If yes:** resolved-in-plan.
-- **If no:** successor-candidate. The fix is to extend GXL to access cross-record state (e.g., the customer's `account.balance_due`), which is a kernel-adjacent change. The successor baseline would lock in GXL's new surface as a stable contract.
-
+- **Status:** RESOLVED. Gev: **"Yes, GXL must support business-condition workflow guards."**
+- **Implication:** GXL must reach cross-record state (e.g., the customer's `account.balance_due`, an SLA's status, an open approval). That's an extension of the language surface consumed by the WorkItem-movement engine. Under [A2](#a2-five-engines-fixed) the engine stays one of the 5 — but its *vocabulary* widens.
+- **Decision:** **successor-candidate confirmed.** Phase 1.5 of M1 ([§7](#7-implementation-sequence)) lands the GXL extension. Its first task — before any code lands — is to draft `docs/architecture/SEALED-ARCHITECTURE-BASELINE-<post-Q1-decision-date>.md` defining:
+  1. The new GXL identifier-resolution surface (what cross-record references are reachable: same-entity fields, owner-account fields, parent-entity fields).
+  2. The cardinality contract (single record only — no aggregates over a collection, to avoid hidden N+1 in transition).
+  3. Authorization model: who can write a guard that reaches across records (super_admin only at first, expanding only by explicit grant in a future successor baseline).
+  4. Killer test KT-GXL-1: a tenant defines a guard `account.balance_due == 0` for the `service.activate` transition; the engine refuses the transition when the linked account has unpaid balance and allows it when paid. Lives at `backend/tests/test_workflow_engine.py`.
+- **What this does NOT change:** [I1](#i1-kernel) (engine count stays 5), [I2](#i2-audit-append-only) (every guarded transition still emits one event), [I5](#i5-config-only-entities) (the guard itself is config, not code).
 ### Q2. New field types beyond the 12 in `ALLOWED_TYPES`
 
 A real ISP might want: `cidr` (network range), `mac_address` (RADIUS), `gps_point` (site survey), `signed_url` (file uploads to S3). Each is an E2 extension.
@@ -633,12 +700,19 @@ The forbidden pattern §4 lists "no new entity-specific routes" as **implicit do
 - **Status:** resolved-in-plan. Phase 1 (Pre-flight + RLS hardening) closes with a new HARD drift rule: `@router\.(get|post|patch|delete)\("/api/(customers|invoices|services|...)/[^{]` outside the generic record router → fail. (The exact regex landed in the PR that adds it.)
 - **Not a successor-baseline candidate** because it *strengthens* the doctrine — adding a rule that enforces an already-stated invariant.
 
-### Q5. Per-tenant feature flags
+### Q5. Per-tenant feature flags — **RESOLVED: in M1**
 
 Today's feature gates are platform-wide (`FEATURE_RADIUS_REQUIRED`). Some M1 tenants might want a feature ON for tenant A but OFF for tenant B (e.g., dunning automation: M1 tenant wants it; future M2 tenants might not).
 
-- **Status:** needs-review. Cleanest path: extend the feature-gate to read from a `tenant_setting` table when present, falling back to env vars. That's an E9 extension (new feature gate semantics), not a §3 invariant relaxation.
-- **Verdict:** likely resolved-in-plan once the design is sketched. If the design requires touching `app/services/feature_gate.py:is_enabled` signature, that's a public API change and goes through E10 (new CI gate to enforce nothing imports the old signature) — not a successor-baseline candidate.
+- **Status:** RESOLVED. Gev: **"Per-tenant feature flags already in M1."**
+- **Decision:** **resolved-in-plan.** Phase 1.5 of M1 ([§7](#7-implementation-sequence)) lands the per-tenant feature-flag layer alongside the GXL extension.
+- **Design sketch (refined during Phase 1.5):**
+  1. A new `tenant_feature_flag` table (`tenant_id` + `flag_key` + `enabled` + `updated_at` + `updated_by`) — tenant-scoped with the standard `tenant_isolation` RLS policy ([E6](#extension-points-used)).
+  2. `app/services/feature_gate.py:is_enabled(feature, tenant_id=None)` grows an optional `tenant_id` parameter. When provided, the lookup checks `tenant_feature_flag` first, then falls back to the env-var default. When omitted (boot-time / non-request-scoped), behaves identically to today.
+  3. The existing 4 features (`radius`, `olt_provisioning`, `import_engine`, `warehouse`) stay env-var-only — they're deploy-shape concerns, not tenant preferences. New M1 features (`dunning_automation`, `self_serve_signup`, etc.) opt into per-tenant by passing `tenant_id` at the call site.
+  4. The deploy contract still gates env-var defaults; per-tenant overrides can only be set by a tenant's own super_admin (audit-logged via `workflow.emit`).
+- **Killer test KT-M1-5** (added to the inventory in [§8](#8-killer-tests-required) below as a sibling to KT-M1-1..4): tenant A enables `dunning_automation`, tenant B doesn't; an automation pass affects only tenant A's overdue invoices. Proves per-tenant isolation of feature flags AND that the gate falls back correctly for non-overridden tenants.
+- **What this does NOT change:** [I1](#i1-kernel) (still no 6th engine — this lives in `app/services/`, beside the security engine). [I3](#i3-tenant-isolation) (the new table is tenant-scoped + RLS-protected from migration #1). [I8](#i8-deploy-contract) (env-var contract still enforced for deploy-shape gates). No successor baseline needed — this is a pure E6 + E9 extension.
 
 ### Q6. Tenant-onboarded entities — pre-seed vs. runbook-driven
 
@@ -652,11 +726,25 @@ KT-M1-4 needs concrete numbers. Today's M0 killer is ~8s isolated. What's the ri
 
 - **Status:** resolved-in-plan. 1.5× ≈ 12s as the M1 upper bound. The budget is **per environment**: CI may differ from local; both are documented in the test docstring. A budget breach is a regression; the PR owes a performance fix, not a budget increase. The budget itself can be revised in a successor sealed baseline if the real data shape ends up much larger than S3 assumed.
 
-### Q8. `backend-rls` job — what if a real RLS gap can't be fixed in M1?
+### Q8. `backend-rls` job — what if a real RLS gap can't be fixed in M1? — **RESOLVED: Fix Forward by default**
 
 The phase 1 exit requires the dual-role job to be hard-green. If P1 surfaces a gap that needs an architectural fix (e.g., a query that genuinely needs the owner role to be correct), what happens?
 
-- **Status:** successor-candidate. If a query path *requires* the owner role, the platform's RLS posture is incomplete, and that needs to be sealed into a new baseline that explicitly enumerates the "owner-role-only" exemptions. M1 doesn't ship until either every gap is fixed or every gap is sealed in a successor baseline as an enumerated exemption with a remediation roadmap.
+- **Status:** RESOLVED. Gev: **"Fix Forward default policy. Exemption only in exceptional cases."**
+- **Decision:** **resolved-in-plan, default Fix Forward.** Every RLS gap surfaced by Phase 1 is fixed before Phase 1's exit gate. The fix path:
+  1. Query that genuinely needs the owner role → audit whether it's actually a pre-auth / no-tenant code path (login lookup, `/org-tree`, seed). If yes, it's already in the documented exception list ([sealed baseline §3 I3](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i3-tenant-isolation-engages)). If no, it's a bug — refactor the query to bind `tenant_id` correctly.
+  2. Query that filters by tenant but the static analyzer / runtime audit missed → add the explicit `tenant_id` filter; promote the missing pattern to the static analyzer's catch list.
+  3. Query that uses raw SQL bypassing SQLAlchemy → rewrite via SQLAlchemy or add a new tenant-scoped query helper in `app/services/`.
+- **Exemption channel (last resort):** if and only if a query is provably correct under the owner role and has no tenant-scoped equivalent (e.g., a system-wide health check that legitimately reads across tenants), it lands in a successor sealed baseline as an **enumerated exemption** with: the exact query, the justification, the migration path back to RLS-clean, and a regression test that confirms the query continues to need owner-role and isn't a leak vector. Each exemption is its own line in the successor baseline; no batch exemptions.
+- **Default expectation:** Phase 1 surfaces 0–2 real gaps, both fixable in-line. The exemption path is build-paranoid scaffolding; if M1 needs to use it more than twice, that's a signal the platform's RLS posture itself needs a re-think, not more exemptions.
+
+### Q9. Successor sealed baseline trigger (added 2026-06-05 by Q1's resolution)
+
+Q1's resolution committed M1 to extending GXL. **When does the successor sealed baseline get drafted?**
+
+- **Status:** resolved-in-plan. The successor baseline is drafted as the **first artifact of Phase 1.5**, before any GXL implementation code lands. The file name is `docs/architecture/SEALED-ARCHITECTURE-BASELINE-<implementation-start-date>-GXL-EXTENSION.md`. It links back to the 2026-06-05 baseline; it does not supersede it — it sits beside it as a sealed addendum that locks in the GXL extension surface.
+- **What goes in it:** the four bullet points from Q1's decision (resolution surface, cardinality contract, authz model, KT-GXL-1 killer test) plus a "compatibility window" section that confirms every existing GXL guard still parses and evaluates identically (no semantics drift).
+- **Review process:** drafted by the engineer, reviewed by Gev for product-shape, reviewed by anyone else with `code-reviewer` role for invariant impact. Merge of the successor baseline is the gate for starting GXL implementation.
 
 ---
 
