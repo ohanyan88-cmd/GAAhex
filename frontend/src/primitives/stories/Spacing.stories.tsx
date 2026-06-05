@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { withTheme } from './_decorator'
 
-// Real --gx-space-* tokens from src/color-tokens.css, with their px values.
+// Real --gx-space-* tokens from src/styles/gaahex-tokens.css, with their px values.
 const spaces: { token: string; px: number }[] = [
   { token: '--gx-space-1', px: 2 },
   { token: '--gx-space-2', px: 4 },

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { withTheme } from './_decorator'
 
-// Real --gx-* color tokens from src/color-tokens.css, grouped by category.
+// Real --gx-* color tokens from src/styles/gaahex-tokens.css, grouped by category.
 const groups: { title: string; tokens: string[] }[] = [
   {
     title: 'Surfaces',

@@ -5,10 +5,12 @@ import { AuthProvider } from './context/AuthContext'
 import { ToastHost } from './components/Toast'
 import { ConfirmHost } from './components/Modal'
 import 'leaflet/dist/leaflet.css'
+// D19 Path A (2026-06-05): color-tokens.css was deleted. gaahex-tokens.css is
+// now the single source of truth for every `--gx-*` token. Enforced by the
+// `D19 single token registry` HARD drift rule in tools/check_drift.py.
 import './styles/gaahex-tokens.css'
 import './styles/primitives.css'
 import './styles/tailwind.css'
-import './styles/color-tokens.css'
 import './styles/styles.css'
 import './styles/studio.css'
 import './styles/nms-tokens.css'

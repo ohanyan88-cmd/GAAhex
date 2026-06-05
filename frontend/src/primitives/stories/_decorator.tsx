@@ -2,10 +2,11 @@ import React, { useEffect } from 'react'
 import type { Decorator } from '@storybook/react'
 
 // The app loads these globally in main.tsx; Storybook's preview does not, so we
-// import them here. `color-tokens.css` defines the --gx-* palette and
-// `styles.css` defines the unprefixed semantic tokens (--primary, --surface,
-// --text, …) that every primitive consumes.
-import '../../styles/color-tokens.css'
+// import them here. `gaahex-tokens.css` defines the `--gx-*` palette (D19
+// Path A consolidated 2026-06-05 — single registry) and `styles.css` defines
+// the unprefixed semantic tokens (--primary, --surface, --text, …) that every
+// primitive consumes.
+import '../../styles/gaahex-tokens.css'
 import '../../styles/styles.css'
 
 /**

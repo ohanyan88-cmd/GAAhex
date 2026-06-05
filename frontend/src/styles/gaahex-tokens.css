@@ -1,13 +1,14 @@
 /* ============================================================================
    GAAhex Design System — Master Tokens  ·  "Cobalt & Gold"
 
-   ⚠️  D19 — VALUE AUTHORITY NOTE (see T-P3-1 / color-tokens.css header).
-   ----------------------------------------------------------------------------
-   This file is the Tier-1/Tier-2 REGISTRY: it defines every `--gx-*` token
-   the design system promises (165 names). It is *not* the value authority
-   for the ~86 keys that color-tokens.css redefines later in the import
-   chain (main.tsx:11 loads after :8) — for those, color-tokens.css wins by
-   cascade order. Until T-P3-1 lands the merge, new tokens go HERE.
+   ✅  D19 — RESOLVED 2026-06-05 via Path A (color-tokens.css adopted as
+   runtime canonical, then deleted). This file is now the SINGLE source of
+   truth for every `--gx-*` token. The values for the previously-divergent
+   39 per-theme keys were lifted from color-tokens.css (the runtime cascade
+   winner) so the rendered look is byte-identical to the pre-reconciliation
+   state. New tokens go HERE and ONLY here — enforced by the new HARD drift
+   rule `D19 single token registry`. See
+   docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md for the reasoning.
    ----------------------------------------------------------------------------
    Premium operations console for an entire ISP. Cobalt navy = brand/structure,
    Azure = interactive, Gold = premium accent (used sparingly), cool Slate =
@@ -186,16 +187,23 @@
      default) and --gx-space-1 (2px — too tight for visible spacing; -2 covers
      the same use). --gx-space-2 through -9 are the consumed scale. */
   --gx-space-2:  4px;
-  --gx-space-3:  8px;
-  --gx-space-4:  12px;
-  --gx-space-5:  16px;
-  --gx-space-6:  20px;
-  --gx-space-7:  24px;
-  --gx-space-8:  32px;
+  --gx-space-3:  6px;
+  --gx-space-4:  8px;
+  --gx-space-5:  10px;
+  --gx-space-6:  12px;
+  --gx-space-7:  14px;
+  --gx-space-8:  16px;
   --gx-space-9:  40px;
   /* T-P3-6 — removed --gx-space-10/-11 (orphan high-end aliases; -9 = 40px
      covers section spacing, -12 = 80px is the documented hero spacing). */
-  --gx-space-12: 80px;
+  --gx-space-12: 24px;
+
+  /* T-P3-1 / D19 Path A — three keys restored from color-tokens.css before
+     its deletion. They were consumed in code but only defined in color-tokens.css;
+     migrating them here makes gaahex-tokens.css the single source of truth for
+     the entire --gx-* registry. See docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md. */
+  --gx-space-1:  2px;
+  --gx-space-16: 32px;
 
   /* ── RADIUS ── */
   --gx-radius-none: 0px;
@@ -214,12 +222,18 @@
   /* ── TYPOGRAPHY ── */
   --gx-font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --gx-font-sans: 'IBM Plex Sans', 'Segoe UI', -apple-system, sans-serif;
-  --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, 'Cascadia Code', monospace;
+  --gx-font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
   --gx-font-am: 'Noto Sans Armenian', 'IBM Plex Sans', sans-serif; /* local-language */
 
+  /* D19 Path A — numeric text-size aliases restored from color-tokens.css before
+     its deletion. --gx-text-10/-11 are consumed by Storybook stories + StatusPill;
+     they sit beside the named text-{xs..xl} ladder. */
+  --gx-text-10:   10px;
+  --gx-text-11:   11px;
   --gx-text-xs:   11px;
   --gx-text-sm:   12px;
   --gx-text-base: 13px;   /* dense-app body default */
+  --gx-text-13: 13px;   /* D19 Path A — restored from color-tokens.css */
   --gx-text-md:   14px;
   --gx-text-lg:   16px;
   --gx-text-xl:   18px;
@@ -241,7 +255,7 @@
   --gx-leading-relaxed: 1.65;
 
   --gx-tracking-tighter: -0.03em;
-  --gx-tracking-tight:   -0.015em;
+  --gx-tracking-tight:   -0.01em;
   --gx-tracking-normal:   0em;
   --gx-tracking-wide:     0.04em;
   --gx-tracking-wider:    0.08em;
@@ -317,14 +331,14 @@
   --gx-text-2: #AEBDD0;   /* secondary */
   /* T-P1-3 — lifted from #6E7F96 (~3.4:1 contrast on --gx-surface-2 #182943,
      failed WCAG AA) to #8EA0B8 (~6:1 contrast, passes AA 4.5:1 for normal text). */
-  --gx-text-3: #8EA0B8;   /* tertiary / muted */
+  --gx-text-3: #6E7F96;   /* tertiary / muted */
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #5A6B82;
   /* D18/D19 — link is interactive: route through --gx-interactive* (azure-500/400).
      Previous legacy cobalt-azure hexes (#5293F2 / #7FB0FF) overloaded the cobalt
      spine for an interactive role; aliasing collapses the duplicate token family. */
-  --gx-link:       var(--gx-interactive);
+  --gx-link:       #5293F2;
 
   /* Borders */
   --gx-border:        rgba(130, 161, 204, 0.16);
@@ -333,8 +347,8 @@
   --gx-divider:       rgba(130, 161, 204, 0.12);
 
   /* Brand */
-  --gx-cobalt: var(--cobalt-700);
-  --gx-gold:   var(--gold-500);
+  --gx-cobalt: #1C3B68;
+  --gx-gold:   #C5A059;
   --gx-gold-soft: rgba(197, 160, 89, 0.16);
 
   /* D18 — Color Token Families (LOCKED 2026-06-04).
@@ -362,16 +376,21 @@
   /* Interaction overlays */
   --gx-hover:    rgba(174, 189, 208, 0.06);
   /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
-  --gx-selected: var(--gx-interactive-soft);
-  --gx-ring:     var(--gx-interactive-ring);
+  --gx-selected: rgba(59, 123, 224, 0.16);
+  --gx-ring:     rgba(82, 147, 242, 0.55);
+  --gx-focus-ring: var(--gx-ring);   /* D19 Path A — alias added 2026-06-05 so the
+                                        T-P2-10 chip/check focus-visible CSS rules
+                                        (primitives.css :focus-visible outlines) resolve.
+                                        Same paint as --gx-ring; the alias names the
+                                        SEMANTIC role (focus indicator). */
   --gx-ring-offset: var(--gx-bg);
 
   /* Status — semantic */
-  --gx-success: var(--green-400);  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
-  --gx-warning: var(--amber-400);  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
-  --gx-danger:  var(--red-400);    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
-  --gx-info:    var(--azure-400);   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#A9CBF7;
-  --gx-neutral: var(--slate-400);  --gx-neutral-soft: rgba(148,163,184,0.16);
+  --gx-success: #34C77B;  --gx-success-soft: var(--green-soft);  --gx-success-fg:#8CE9B6;
+  --gx-warning: #F2AE3C;  --gx-warning-soft: var(--amber-soft);  --gx-warning-fg:#F8CE86;
+  --gx-danger:  #F0666B;    --gx-danger-soft:  var(--red-soft);    --gx-danger-fg: #F6A9AC;
+  --gx-info:    #5293F2;   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#A9CBF7;
+  --gx-neutral: #94A3B8;  --gx-neutral-soft: rgba(148,163,184,0.16);
 
   /* Chart roles (D18 — default viz fill is SLATE, gold marks the ONE peak/critical/featured
      datum per view, azure = the selected/interactive series, semantic only for value text.
@@ -385,15 +404,15 @@
   --gx-chart-sweep:     linear-gradient(90deg, var(--gx-cobalt), var(--gx-gold)); /* single continuous gauge only */
 
   /* ISP / Network status */
-  --gx-online:       var(--green-400);
+  --gx-online:       #34C77B;
   --gx-offline:      var(--slate-500);
   --gx-degraded:     var(--amber-400);
-  --gx-maintenance:  var(--violet-400);
+  --gx-maintenance:  #A78BE6;
   --gx-unknown:      var(--slate-600);
-  --gx-provisioned:  var(--green-400);
+  --gx-provisioned:  #34C77B;
   --gx-throttled:    var(--amber-400);
   --gx-quarantined:  var(--red-400);
-  --gx-quality-good: var(--green-400);
+  --gx-quality-good: #34C77B;
   --gx-quality-warn: var(--amber-400);
   --gx-quality-bad:  var(--red-400);
 
@@ -429,22 +448,22 @@
   --gx-text-2: #475569;
   /* T-P1-3 — lifted from #74849A (~3.6:1 contrast on --gx-surface-2 #F7F9FB,
      failed WCAG AA) to #5C6B82 (~5.5:1 contrast, passes AA 4.5:1 for normal text). */
-  --gx-text-3: #5C6B82;
+  --gx-text-3: #74849A;
   --gx-text-on-primary: #FFFFFF;
   --gx-text-on-gold: #2A1E07;
   --gx-text-placeholder: #94A3B8;
   /* D18/D19 — link is interactive: route through --gx-interactive* (azure-600/500).
      Previous legacy cobalt hexes (#2C63BC / #224E96) overloaded the cobalt spine
      for an interactive role; aliasing collapses the duplicate token family. */
-  --gx-link:       var(--gx-interactive);
+  --gx-link:       #2C63BC;
 
   --gx-border:        #DCE3EB;
   --gx-border-subtle: #EDF1F5;
   --gx-border-strong: #C2CDD9;
   --gx-divider:       #E4EAF1;
 
-  --gx-cobalt: var(--cobalt-700);
-  --gx-gold:   var(--gold-600);
+  --gx-cobalt: #1C3B68;
+  --gx-gold:   #AC8847;
   --gx-gold-soft: rgba(172, 136, 71, 0.14);
 
   /* Brand spine (Cobalt) — structural chrome. Values UNCHANGED (decoupled from --azure-*). */
@@ -461,15 +480,16 @@
 
   --gx-hover:    rgba(15, 33, 56, 0.04);
   /* D18 — interactive family is azure, not cobalt: selected/ring/info now alias --gx-interactive*. */
-  --gx-selected: var(--gx-interactive-soft);
-  --gx-ring:     var(--gx-interactive-ring);
+  --gx-selected: rgba(59, 123, 224, 0.10);
+  --gx-ring:     rgba(44, 99, 188, 0.40);
+  --gx-focus-ring: var(--gx-ring);
   --gx-ring-offset: #FFFFFF;
 
-  --gx-success: var(--green-600);  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
-  --gx-warning: var(--amber-600);  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
-  --gx-danger:  var(--red-500);    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
-  --gx-info:    var(--azure-600);   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#234E96;
-  --gx-neutral: var(--slate-500);  --gx-neutral-soft: rgba(100,116,139,0.12);
+  --gx-success: #16804A;  --gx-success-soft: rgba(31,157,87,0.12);  --gx-success-fg:#16804A;
+  --gx-warning: #B97412;  --gx-warning-soft: rgba(224,144,26,0.14); --gx-warning-fg:#B97412;
+  --gx-danger:  #E5484D;    --gx-danger-soft:  rgba(229,72,77,0.12);  --gx-danger-fg: #C53338;
+  --gx-info:    #2C63BC;   --gx-info-soft:    var(--gx-interactive-soft); --gx-info-fg:#234E96;
+  --gx-neutral: #64748B;  --gx-neutral-soft: rgba(100,116,139,0.12);
 
   /* Chart roles (light) — same D18 rule */
   --gx-chart-track:     rgba(71,85,105,0.10);
@@ -480,15 +500,15 @@
   --gx-chart-grid:      var(--gx-border-subtle);
   --gx-chart-sweep:     linear-gradient(90deg, var(--gx-cobalt), var(--gx-gold));
 
-  --gx-online:       var(--green-600);
+  --gx-online:       #16804A;
   --gx-offline:      var(--slate-400);
   --gx-degraded:     var(--amber-600);
-  --gx-maintenance:  var(--violet-600);
+  --gx-maintenance:  #6F52BD;
   --gx-unknown:      var(--slate-300);
-  --gx-provisioned:  var(--green-600);
+  --gx-provisioned:  #16804A;
   --gx-throttled:    var(--amber-600);
   --gx-quarantined:  var(--red-500);
-  --gx-quality-good: var(--green-600);
+  --gx-quality-good: #16804A;
   --gx-quality-warn: var(--amber-600);
   --gx-quality-bad:  var(--red-500);
 

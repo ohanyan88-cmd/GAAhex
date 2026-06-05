@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { withTheme } from './_decorator'
 
-// Real --gx-text-* size tokens from src/color-tokens.css.
+// Real --gx-text-* size tokens from src/styles/gaahex-tokens.css.
 const sizes: { token: string; px: number }[] = [
   { token: '--gx-text-9', px: 9 },
   { token: '--gx-text-10', px: 10 },

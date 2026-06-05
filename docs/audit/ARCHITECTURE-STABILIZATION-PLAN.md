@@ -264,7 +264,7 @@ pnpm typecheck
 
 | ID | Action | Count | Status |
 |---|---|---|---|
-| **T-P3-1** | Reconcile `gaahex-tokens.css` vs `color-tokens.css` — delete or alias the parallel file | D19 violation | ⬜ TODO |
+| **T-P3-1** | Reconcile `gaahex-tokens.css` vs `color-tokens.css` — delete or alias the parallel file | D19 violation | ✅ DONE 2026-06-05 (Path A: color-tokens.css deleted, values lifted into gaahex-tokens.css, 12th HARD drift rule added — see `docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md`) |
 | **T-P3-2** | Add `--gx-bp-mobile/tablet/desktop` tokens; consolidate 11 ad-hoc breakpoints to 3 | 11 → 3 | ⬜ TODO |
 | **T-P3-3** | Wire `--gx-tap-min: 44px` into Button/Input/IconButton at ≤768px | WCAG 2.5.5 | ⬜ TODO |
 | **T-P3-4** | Drop ~65 defensive `var(--gx-x, #hex)` fallbacks | ~65 sites | ⬜ TODO |

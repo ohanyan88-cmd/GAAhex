@@ -752,3 +752,9 @@ authored, they're linked here. This is the **one** edit channel this file accept
 after the seal — every other change opens a new file.
 
 - **`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`** *(DRAFT SHELL — pending Phase 1.5 design review)* — addendum widening the WorkItem-movement engine's GXL vocabulary to support one-hop cross-record workflow guards. Status flips to SEALED when its §10 acceptance checklist completes.
+
+## Resolved technical debt
+
+The TD entries listed in §9 of this file are the original M0-staged TD inventory. As specific entries are resolved, they're noted here (cross-reference fix per I10 — the §9 list itself is not edited).
+
+- **TD11 (D19 token registry double-definition)** — RESOLVED 2026-06-05 via Path A. `color-tokens.css` was adopted as the runtime-canonical source (all 39 per-theme divergent keys lifted into `gaahex-tokens.css`), then `color-tokens.css` was deleted. New HARD drift rule `D19 single token registry` prevents recurrence — `--gx-*` definitions outside `gaahex-tokens.css` fail CI. See `docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md`. Rendered look is byte-identical to pre-reconciliation; no visual change.

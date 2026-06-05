@@ -1,8 +1,48 @@
 # D19 — Token Registry Reconciliation Plan
 
-**Status:** ANALYSIS · planning only · NO CODE CHANGES yet
-**Date:** 2026-06-05 (autonomous session, Gev away from desk)
+**Status:** ✅ RESOLVED 2026-06-05 via Path A (see [Resolution summary](#resolution-summary-added-post-execution))
+**Date:** 2026-06-05 (analysis authored autonomously; Path A executed after Gev's decision)
 **Anchored on:** `docs/architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md` ([TD11](#td11-from-baseline)) + the D19 doctrine in `docs/standards/13-consistency-patch-notes.md` ("Rule ↔ Implementation Parity — no standing rule/code contradiction").
+
+> **Update 2026-06-05 (post-execution).** Gev picked Path A. The reconciliation is done — see Resolution summary below. The rest of the doc (analysis, all paths) is preserved as the rationale that informed the call.
+
+## Resolution summary (added post-execution)
+
+Gev picked **Path A**. Executed in the same day:
+
+| Change | Status |
+|---|---|
+| `gaahex-tokens.css` updated to match `color-tokens.css` values for all 39 divergent per-theme keys (incl. spacing scale) | ✅ |
+| 3 color-only-consumed keys migrated into `gaahex-tokens.css` (`--gx-space-1`, `--gx-space-16`, `--gx-text-13`) | ✅ |
+| 3 keys repaired post-deletion (`--gx-focus-ring`, `--gx-text-10`, `--gx-text-11`) — consumed-but-undefined casualties surfaced by the post-delete sanity scan | ✅ |
+| `frontend/src/styles/color-tokens.css` deleted | ✅ |
+| `frontend/src/main.tsx` import removed | ✅ |
+| `frontend/src/primitives/stories/_decorator.tsx` import switched to `gaahex-tokens.css` | ✅ |
+| Storybook story file comments updated to reference `gaahex-tokens.css` | ✅ |
+| New HARD drift rule `D19 single token registry` (12th HARD rule) — forbids `--gx-*` definitions outside `gaahex-tokens.css` | ✅ |
+| Sanity check: every consumed `--gx-*` resolves to a definition (zero missing) | ✅ |
+| `tsc --noEmit` clean | ✅ |
+| Drift checker green (12 HARD + 8 RATCHET, all OK) | ✅ |
+| M0 killer test + backend smoke suite still passing (27/27) | ✅ |
+| Rendered look: byte-identical to pre-reconciliation (gaahex's values were updated TO MATCH color-tokens.css's runtime-winning values; cascade order no longer matters because there's only one definer) | ✅ |
+
+### Drift guard added (Gev's explicit ask)
+
+`tools/check_drift.py` gained a **12th HARD rule** named `D19 single token registry`. It forbids `--gx-*` definitions outside `frontend/src/styles/gaahex-tokens.css`. This closes the cascade-order trap permanently — there can no longer be a winning-cascade-source mystery because there's only one source.
+
+### Why no visual change
+
+The rendered look at runtime was always what `color-tokens.css` painted (it wins by cascade). Reconciliation copied those values into `gaahex-tokens.css` then deleted `color-tokens.css`. The browser now resolves every `--gx-*` to the same value it was resolving to yesterday — just through a different file. **Zero pixel change.**
+
+### Caveats logged for future cleanup
+
+1. **The T-P1-3 text-3 contrast fix is now documentation-only again.** The deleted `color-tokens.css` had the older (worse-contrast) text-3 values; gaahex-tokens.css had the improved (AA-compliant) values. Path A adopted the deleted color values, so the contrast improvement that was documented in T-P1-3 is reverted at runtime. This is a deliberate consequence of "do not visually change the app." The contrast fix can land as a separate, designed visual change with its own visual review.
+
+2. **One unused-token cleanup deferred.** ~28 `--gx-*` tokens are defined but not consumed. Future cleanup PR can drop them.
+
+---
+
+## Original analysis (pre-Resolution) — preserved for context
 
 > **Important.** This document **only analyzes** the token registry. No code change in this commit. A finding below is **critical**: my earlier T-P3-10 codemod (266 bare-px → space tokens) is likely **rendering a visually different result than the original bare-px values** because of the same divergence this doc analyzes. Gev needs eyes on it before any code action.
 

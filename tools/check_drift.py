@@ -168,6 +168,29 @@ HARD_RULES: list[HardRule] = [
         ],
         regex=True,
     ),
+    HardRule(
+        name="D19 single token registry",
+        description=(
+            "All `--gx-*` token DEFINITIONS must live in "
+            "`frontend/src/styles/gaahex-tokens.css`. Defining the same `--gx-*` "
+            "key in two CSS files reintroduces the cascade-order trap that the "
+            "D19 Path A reconciliation closed on 2026-06-05 — a future token "
+            "codemod would read one value from the registry doc and the browser "
+            "would render the other. See "
+            "docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md."
+        ),
+        # Any `--gx-X:` line in a CSS file that isn't gaahex-tokens.css is a
+        # token DEFINITION outside the registry. `var(--gx-X)` consumers are
+        # untouched (they're not at line-start with a colon).
+        pattern=r"^\s*--gx-[a-z0-9-]+\s*:\s*[^;\n]+;",
+        paths=["frontend/src/styles/", "frontend-portal/src/styles/"],
+        exclude=[
+            "frontend/src/styles/gaahex-tokens.css",
+            # nms-tokens.css uses its own `--nms-*` namespace; the rule's
+            # `--gx-*` pattern doesn't match it, so no explicit exclude needed.
+        ],
+        regex=True,
+    ),
 ]
 
 
