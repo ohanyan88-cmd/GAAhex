@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, CloseIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -666,12 +666,11 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   // PageShell page props — slug-driven breadcrumb + type
   const pp = pagePropsForSlug(slug, def)
 
-  // PageShell: primaryAction (New / Close form)
-  const shellPrimary = formOpen
-    ? { label: t('common.close', 'Close'), icon: <CloseIcon size={13} aria-hidden />, onClick: closeForm }
-    : canCreate
-      ? { label: `${t('common.new', 'New')} ${def.label}`, icon: <PlusIcon size={13} aria-hidden />, onClick: openCreate }
-      : undefined
+  // PageShell: primaryAction — always "New {entity}" (opens the create modal); the modal
+  // carries its own close, so the header button never toggles to Close.
+  const shellPrimary = canCreate
+    ? { label: `${t('common.new', 'New')} ${def.label}`, icon: <PlusIcon size={13} aria-hidden />, onClick: openCreate }
+    : undefined
 
   // PageShell: secondaryActions — one Download button (asks for format on click) + configure
   const shellSecondary: SecondaryAction[] = []
@@ -810,35 +809,47 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
         </>
       )}
 
-      {/* ── Create / edit form ────────────────────────────────────── */}
+      {/* ── Create / edit form — opens in a modal over the list ─────── */}
       {formOpen && (
-        <form className="rec-form" onSubmit={submit}>
-          {def.fields.map((f) => (
-            <FieldInput
-              key={f.key}
-              field={f}
-              token={token}
-              mode={mode}
-              currentStatus={editingStatus}
-              errorField={errorField}
-              errorMsg={error}
-              value={form[f.key]}
-              onChange={(v) => setForm({ ...form, [f.key]: v })}
-            />
-          ))}
-          <div className="rec-form-actions">
-            <span className="spacer" />
-            <Button variant="ghost" size="md"
-            type="button"  onClick={closeForm}>
-              {t('common.cancel', 'Cancel')}
-            </Button>
-            <Button variant="primary" size="md"
-            type="submit">
-              <CheckIcon size={14} aria-hidden />
-              {mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}
-            </Button>
-          </div>
-        </form>
+        <Modal
+          open
+          onClose={closeForm}
+          size="lg"
+          title={mode === 'editing'
+            ? `${t('common.edit', 'Edit')} ${def.label}`
+            : `${t('common.new', 'New')} ${def.label}`}
+          subtitle={mode === 'editing'
+            ? undefined
+            : t('form.fillBelow', `Fill in the information below to create a new ${def.label.toLowerCase()}`)}
+        >
+          <form className="rec-form" onSubmit={submit}>
+            {def.fields.map((f) => (
+              <FieldInput
+                key={f.key}
+                field={f}
+                token={token}
+                mode={mode}
+                currentStatus={editingStatus}
+                errorField={errorField}
+                errorMsg={error}
+                value={form[f.key]}
+                onChange={(v) => setForm({ ...form, [f.key]: v })}
+              />
+            ))}
+            <div className="rec-form-actions">
+              <span className="spacer" />
+              <Button variant="ghost" size="md"
+              type="button"  onClick={closeForm}>
+                {t('common.cancel', 'Cancel')}
+              </Button>
+              <Button variant="primary" size="md"
+              type="submit">
+                <CheckIcon size={14} aria-hidden />
+                {mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {rows.length === 0 && !loading && !formOpen ? (

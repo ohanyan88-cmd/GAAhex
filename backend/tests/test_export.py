@@ -5,15 +5,21 @@ leaks beyond what's on screen. Columns = data FieldDefs (status-type folded into
 then Status, ID, Created At, Created By. The shared DB accumulates, so every test scopes rows with a unique
 name-token via `q` to make counts deterministic.
 
-Lead data fields (seed order): name, phone, email, address, source → header labels Name,
-Phone, Email, Address, Source.
+Lead data fields are defined in seed.py build_crm_entities (name, patronymic, date_of_birth,
+phone, secondary_phone, whatsapp, telegram, email, region, city, address, document_type,
+document_number, source, priority, notes) → the header labels below, then Status/ID/Created
+At/Created By.
 """
 
 import csv
 import io
 import json
 
-LEAD_HEADER = ["Name", "Phone", "Email", "Address", "Source", "Status", "ID", "Created At", "Created By"]
+LEAD_HEADER = [
+    "Type", "Name", "Patronymic", "Date of Birth", "Phone", "Second Phone", "WhatsApp",
+    "Telegram", "Email", "Region", "City", "Address", "Document Type", "Document Number",
+    "Source", "Priority", "Notes", "Status", "ID", "Created At", "Created By",
+]
 
 
 def _csv_rows(text):
@@ -41,7 +47,8 @@ async def test_csv_export_header_and_rows(client, admin):
     assert rows[0] == LEAD_HEADER
     data = rows[1:]
     assert len(data) == 2
-    assert {row[0] for row in data} == {f"{tok} 0", f"{tok} 1"}     # Name column
+    name_col = LEAD_HEADER.index("Name")
+    assert {row[name_col] for row in data} == {f"{tok} 0", f"{tok} 1"}     # Name column
 
 
 # ---- json shape mirrors csv rows ----

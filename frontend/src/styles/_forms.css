@@ -55,3 +55,38 @@
 .search-clear { color: var(--gx-text-3); background: transparent; border: 0; cursor: pointer; padding: 4px; border-radius: 4px; }
 .search-clear:hover { color: var(--gx-text-1); background: var(--gx-surface-2); }
 .search-filter { color: var(--gx-gold); background: transparent; border: 0; cursor: pointer; padding: 4px; }
+
+/* ── Custom Select / MultiSelect (components/Select.tsx) ──────────────────────
+   The control reuses the .inp look; the popup is positioned `fixed` (anchored in JS)
+   so it floats above any scrolling ancestor (e.g. a modal body) instead of clipping. */
+.sel { position: relative; }
+.sel-control { display: flex; align-items: center; justify-content: space-between; gap: var(--gx-space-3); cursor: pointer; }
+.sel-ph { color: var(--gx-text-3); }
+.sel-caret { color: var(--gx-text-3); flex-shrink: 0; }
+.sel-backdrop { position: fixed; inset: 0; z-index: 60; }
+.sel-pop {
+  z-index: 61;
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-lg);
+  max-height: 260px; overflow-y: auto;
+  padding: var(--gx-space-3);
+}
+.sel-search { margin-bottom: var(--gx-space-3); }
+.sel-list { display: flex; flex-direction: column; gap: var(--gx-space-1); }
+.sel-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--gx-space-4);
+  width: 100%; text-align: left; background: transparent; border: 0; cursor: pointer;
+  color: var(--gx-text-1); font-size: var(--gx-text-sm);
+  padding: var(--gx-space-4) var(--gx-space-5); border-radius: var(--gx-radius-sm);
+}
+.sel-opt:hover { background: var(--gx-surface-2); }
+.sel-opt.on { color: var(--gx-interactive); }
+.sel-empty { padding: var(--gx-space-5); font-size: var(--gx-text-sm); }
+/* MultiSelect chips + checkboxes */
+.ms-chips { display: flex; flex-wrap: wrap; gap: var(--gx-space-2); }
+.ms-chip { display: inline-flex; align-items: center; gap: var(--gx-space-2); background: var(--gx-surface-2); border-radius: var(--gx-radius-sm); padding: 0 var(--gx-space-3); font-size: var(--gx-text-xs); }
+.ms-x { cursor: pointer; display: inline-flex; color: var(--gx-text-3); }
+.ms-check { width: 14px; height: 14px; border: 1px solid var(--gx-border-strong); border-radius: var(--gx-radius-sm); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--gx-on-primary); }
+.ms-check.on { background: var(--gx-interactive); border-color: var(--gx-interactive); }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ChevronDownIcon, CheckIcon, CloseIcon, SearchIcon } from './icons'
 
 const SEARCH_THRESHOLD = 8   // show the in-popover search once options get long
@@ -10,6 +10,14 @@ function useFiltered(options: string[], q: string) {
   }, [options, q])
 }
 
+// The dropdown popup is positioned `fixed` (anchored to the control's rect) so it escapes
+// any scrolling/overflow ancestor — e.g. a modal body — instead of being clipped by it.
+function anchorRect(el: HTMLElement | null): CSSProperties | undefined {
+  if (!el) return undefined
+  const r = el.getBoundingClientRect()
+  return { position: 'fixed', top: r.bottom + 4, left: r.left, width: r.width }
+}
+
 // Single Select — a themed dropdown (styled with the .inp look) replacing the bare <select>.
 export function Select({ value, options, onChange, placeholder = 'Select…' }: {
   value: string
@@ -19,20 +27,24 @@ export function Select({ value, options, onChange, placeholder = 'Select…' }: 
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
+  const [pos, setPos] = useState<CSSProperties | undefined>(undefined)
+  const ctrlRef = useRef<HTMLDivElement>(null)
   const searchable = options.length > SEARCH_THRESHOLD
   const filtered = useFiltered(options, q)
 
+  function toggle() { setPos(anchorRect(ctrlRef.current)); setOpen((o) => !o) }
   function close() { setOpen(false); setQ('') }
   function pick(o: string) { onChange(o); close() }
 
   return (
     <div className="sel">
       <div
+        ref={ctrlRef}
         className="inp inp-md sel-control"
         role="button"
         tabIndex={0}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o) } }}
+        onClick={toggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle() } }}
       >
         <span className={value ? '' : 'sel-ph'}>{value || placeholder}</span>
         <ChevronDownIcon size={15} className="sel-caret" />
@@ -40,7 +52,7 @@ export function Select({ value, options, onChange, placeholder = 'Select…' }: 
       {open && (
         <>
           <div className="sel-backdrop" onClick={close} />
-          <div className="sel-pop">
+          <div className="sel-pop" style={pos}>
             {searchable && (
               <div className="sel-search">
                 <div className="search search-sm">
@@ -75,20 +87,24 @@ export function MultiSelect({ value, options, onChange, placeholder = 'Select…
   const arr: string[] = Array.isArray(value) ? value : (value ? [value] : [])
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
+  const [pos, setPos] = useState<CSSProperties | undefined>(undefined)
+  const ctrlRef = useRef<HTMLDivElement>(null)
   const searchable = options.length > SEARCH_THRESHOLD
   const filtered = useFiltered(options, q)
 
+  function openToggle() { setPos(anchorRect(ctrlRef.current)); setOpen((o) => !o) }
   function toggle(o: string) { onChange(arr.includes(o) ? arr.filter((x) => x !== o) : [...arr, o]) }
   function remove(o: string) { onChange(arr.filter((x) => x !== o)) }
 
   return (
     <div className="sel">
       <div
+        ref={ctrlRef}
         className="inp inp-md sel-control sel-multi"
         role="button"
         tabIndex={0}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o) } }}
+        onClick={openToggle}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openToggle() } }}
       >
         {arr.length === 0
           ? <span className="sel-ph">{placeholder}</span>
@@ -109,7 +125,7 @@ export function MultiSelect({ value, options, onChange, placeholder = 'Select…
       {open && (
         <>
           <div className="sel-backdrop" onClick={() => { setOpen(false); setQ('') }} />
-          <div className="sel-pop">
+          <div className="sel-pop" style={pos}>
             {searchable && (
               <div className="sel-search">
                 <div className="search search-sm">
