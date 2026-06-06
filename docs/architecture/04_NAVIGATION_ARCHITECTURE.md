@@ -524,6 +524,10 @@ A page implementing its own sidebar — forbidden. The chrome is centralized.
 | `14_TENANT_ARCHITECTURE.md`                | Tenant context in session, not URL.|
 | `22_MOBILE_OFFLINE_ARCHITECTURE.md`        | Mobile navigation surface.        |
 
+| External implementation references | Reason |
+|------------------------------------|--------|
+| `../specs/SEARCH.md` | Search Core subsystem design — global cross-entity search + saved/recent/pinned + command palette + RLS scoping. Referenced from §7.4 (Command palette). |
+
 ## 15. Implementation Requirements
 
 ### 15.1 Page registry

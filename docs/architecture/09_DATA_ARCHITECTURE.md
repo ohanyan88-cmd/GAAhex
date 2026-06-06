@@ -619,6 +619,8 @@ data JSONB  -- used to store unstructured business attributes
 | `11_EVENT_ARCHITECTURE.md` | Event schema and publish/subscribe patterns. |
 | `14_TENANT_ARCHITECTURE.md` | RLS policy enforcement and tenant scoping. |
 | Standards 12, 14, 20 | Data quality, PII, validation rules. |
+| `../standards/08-reporting-import-export-tenant-localization-config-feature-standards.md` | LOCKED — Import/Export Core obligations: validation preview, batch, scheduled exports, audit. |
+| `../specs/REPORTING-DELIVERY.md` | Scheduled-report + record-export implementation surface (Import/Export Core). |
 
 | Documents that depend on this one |
 |---|

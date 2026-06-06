@@ -9,6 +9,7 @@ dist/
 .DS_Store
 brand/
 TASKS/
+.claude/
 
 # Build / log artifacts
 *storybook.log

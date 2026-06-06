@@ -105,6 +105,25 @@ Legend — Status: `LOCKED` = full text present and patched. `LOCKED / SOURCE NO
 | 69 | Data Retention | LOCKED | 12 | Audit, Deletion, Attachment |
 | 70 | Webhook | LOCKED | 12 | Event System, API, Background Job |
 
+## Named operational standards (non-numbered)
+
+These standards govern implementation-level operational concerns and are
+referenced by name, not number. Each is LOCKED at adoption.
+
+| Standard | File | Purview |
+|---|---|---|
+| API Client Standard | `API_CLIENT_STANDARD.md` | Canonical API client conventions (auth, retry, error model). |
+| Auth Context Standard | `AUTH_CONTEXT_STANDARD.md` | Identity context propagation through API surface. |
+| Content & Voice Standard | `CONTENT_VOICE_STANDARD.md` | Project-wide UI copy / voice / tone / error taxonomy / empty states / i18n parity (EN + hy). Promoted from `specs/CONTENT-VOICE.md` 2026-06-06 per Documentation Categorization Audit. |
+| Feature Gating Policy | `FEATURE_GATING_POLICY.md` | Plan / tenant / role-gated feature deployment. |
+| Governance Standard | `GOVERNANCE_STANDARD.md` | Governance-domain implementation rules. |
+| OpenAPI Codegen Standard | `OPENAPI_CODEGEN_STANDARD.md` | OpenAPI spec + frontend client codegen. |
+| RLS Exemption Policy | `RLS_EXEMPTION_POLICY.md` | When/how a query may bypass RLS (rare; audited). |
+| RLS Exemption Registry | `RLS_EXEMPTION_REGISTRY.md` | List of code paths registered as RLS-exempt. |
+| Server State Standard | `SERVER_STATE_STANDARD.md` | Frontend server-state cache + invalidation rules. |
+| Token Migration Standard | `TOKEN_MIGRATION_STANDARD.md` | Design-token migration discipline (legacy → `--gx-*`). |
+| UI Primitives Standard | `UI_PRIMITIVES_STANDARD.md` | Stack / Inline / Grid / Card / SectionHeading primitives. |
+
 ## Collision resolutions (S1)
 
 - Former `17 / 17` collision (Event System vs Notification) resolved: Notification = 18,

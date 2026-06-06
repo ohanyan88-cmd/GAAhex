@@ -28,7 +28,28 @@ classified as:
 
 **ZERO CRITICAL GAPS.** The Architecture Layer is ready to ratify.
 
-Five minor gaps are identified for follow-up; none blocks the Catalog Layer.
+Originally five "minor gaps" were identified. After the Documentation
+Categorization Audit (2026-06-06), **four of the five close by linking
+existing content** that was already authored in `docs/specs/` or
+`docs/standards/`:
+
+| Original "gap" | Now closed by |
+|---|---|
+| Search Core | Linked from `04_NAVIGATION` §14 → `docs/specs/SEARCH.md` |
+| Developer Platform Core | Linked from `10_API` §14 → `OPENAPI_CODEGEN_STANDARD` + `API_CLIENT_STANDARD` + `AUTH_CONTEXT_STANDARD` |
+| Import/Export Core | Linked from `09_DATA` §14 → Standard 08 + `docs/specs/REPORTING-DELIVERY.md` |
+| Template Core | Linked from `15_REPORTING` §14 → Standard 08 + `docs/specs/BILLING.md` + `docs/specs/NOTIFICATIONS-DEPTH.md` |
+| Browser support / a11y / motion | Linked from `19_INFRASTRUCTURE` §14 → `docs/catalogs/SYSTEM_CAPABILITY_CATALOG.md` (the relocated `SYSTEM-INVENTORY.md`) |
+
+**True residual minor gaps after categorization:** **4**, all genuine
+future-amendment candidates (not closures-by-link):
+
+1. **Knowledge Core** — PRM status WEAK; no existing spec; M1 doesn't require it.
+2. **Decision Support Core** — PRM status PARTIAL but only cross-doc references; downstream of AI (WEAK).
+3. **OSS licensing policy** — no explicit posture document.
+4. **AI acceptable-use policy** — `21_AI` covers boundaries but no explicit acceptable-use document.
+
+All four are LAW-GV1 amendment candidates; none blocks the Catalog Layer.
 
 ## 3. PROJECT_CONSTITUTION.md — coverage of the 30 LAW-XX laws
 

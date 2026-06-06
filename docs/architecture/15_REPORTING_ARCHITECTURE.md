@@ -578,6 +578,9 @@ Once a ReportSchedule references a ReportDefinition version, that version is imm
 | `13_SECURITY_ARCHITECTURE.md` | Field masking, signed URLs, encryption. |
 | `14_TENANT_ARCHITECTURE.md` | Tenant scoping, multi-tenant boundaries. |
 | `standards/08-reporting-import-export-...md` | LOCKED: Reporting & Analytics, Localization, Multi-Tenant, Configuration. |
+| `../specs/REPORTING-DELIVERY.md` | Scheduled reports + record export formats + delivery chain implementation contract. |
+| `../specs/BILLING.md` | Invoice template rendering (Template Core integration). |
+| `../specs/NOTIFICATIONS-DEPTH.md` | Notification templates + delivery (Template Core integration). |
 
 | Documents that depend on this one |
 |---|

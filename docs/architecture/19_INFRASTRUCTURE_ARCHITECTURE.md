@@ -484,6 +484,14 @@ The `event` and `audit_log` tables are append-only. No UPDATE, DELETE, or TRUNCA
 | `12_INTEGRATION_ARCHITECTURE.md` (integrations are async; depend on background processing). |
 | `18_OBSERVABILITY_ARCHITECTURE.md` (metrics, logs, traces collected from infrastructure layer). |
 
+| External implementation references | Reason |
+|------------------------------------|--------|
+| `../catalogs/SYSTEM_CAPABILITY_CATALOG.md` | ~110 non-UI system capabilities (motion / accessibility / WCAG / browser support / data-state / i18n / permission / observability) tier-by-tier with current build status. Single source for "do we have X yet?" infra-adjacent questions. |
+| `../runbooks/M1A-DEPLOY-CONTRACT.md` | Production deploy contract for the two-role Postgres setup (RLS engagement). |
+| `../runbooks/PRE-LAUNCH-CHECKLIST.md` | Pre-prod operational checklist (security, correctness, vendor configuration). |
+| `../runbooks/LAUNCH-HARDENING.md` | Production deployment hardening guide. |
+| `../runbooks/M1-C-ENV.md` | Production env-var shape for vendor integrations. |
+
 ---
 
 ## 15. Implementation Requirements

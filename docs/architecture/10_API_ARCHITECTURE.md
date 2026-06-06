@@ -553,6 +553,9 @@ An endpoint that reads from Billing without checking `can(grants, "invoice", "vi
 | `13_SECURITY_ARCHITECTURE.md` | upstream | Defines authentication and secrets. |
 | `14_TENANT_ARCHITECTURE.md` | upstream | Defines multi-tenancy and RLS. |
 | Standards files (14-22) | cross-layer | Each core's API respects standards (enums, IDs, status values, etc.). |
+| `../standards/OPENAPI_CODEGEN_STANDARD.md` | cross-layer | OpenAPI spec generation + frontend client codegen contract. |
+| `../standards/API_CLIENT_STANDARD.md` | cross-layer | Canonical API client conventions (auth, retry, error model). |
+| `../standards/AUTH_CONTEXT_STANDARD.md` | cross-layer | Auth/identity context propagation through the API surface. Together with the two above, these standards constitute the Developer Platform Core surface. |
 
 ## 15. Implementation Requirements
 
