@@ -10,6 +10,7 @@ import {
 } from '../components/icons'
 import { t } from '../lib/i18n'
 import { Button, StatusPill } from '../primitives'
+import { PageShell } from '../page-shell'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -248,28 +249,22 @@ export default function InteractionsView({
   // ─── Standalone — Messenger/comms pattern ─────────────────────────────────
 
   return (
-    <div
-      className="gx-comms comms-shell fade"
-      style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden' }}
+    <PageShell
+      type="COMMUNICATION"
+      breadcrumb={['Communications', t('interactions.title', 'Interactions')]}
+      icon={<MessageIcon size={18} />}
+      title={t('interactions.title', 'Interactions')}
+      subtitle={t('interactions.sub', 'Contact log · calls · emails · chats · notes')}
+      primaryAction={{
+        label: 'Log interaction',
+        icon: <PlusIcon size={13} />,
+        onClick: () => { setFollowUpFor(null); setLogOpen(true) },
+      }}
     >
-      {/* Header */}
-      <div className="comms-head">
-        <div className="vh-ic"><MessageIcon size={20} /></div>
-        <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
-            {t('interactions.title', 'Interactions')}
-          </h1>
-          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
-            {t('interactions.sub', 'Contact log · calls · emails · chats · notes')}
-          </div>
-        </div>
-        <span className="spacer" />
-        <Button variant="primary" size="sm"
-            onClick={() => { setFollowUpFor(null); setLogOpen(true) }}>
-          <PlusIcon size={13} /> Log interaction
-        </Button>
-      </div>
-
+    <div
+      className="gx-comms fade"
+      style={{ gridColumn: '1 / -1', height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 'var(--gx-space-8) var(--gx-space-20)' }}
+    >
       {/* Body: left rail + right pane */}
       <div className="msgr">
         {/* ── Left rail ─────────────────────────────────── */}
@@ -429,6 +424,7 @@ export default function InteractionsView({
         />
       )}
     </div>
+    </PageShell>
   )
 }
 

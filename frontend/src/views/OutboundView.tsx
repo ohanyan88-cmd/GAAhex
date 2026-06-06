@@ -320,18 +320,18 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
   if (denied) return <PermissionDenied message="Outbound delivery is admin-only." />
 
   return (
-    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 'var(--gx-space-7)' }}>
-      <div className="comms-head">
-        <div className="vh-ic"><MailIcon size={20} /></div>
-        <div>
-          <h1 className="comms-title">{cfg.title}</h1>
-          <div className="sub comms-sub">Email · SMS · push · webhook · transactional</div>
-        </div>
-        <span className="spacer" />
-        <Button variant="secondary" size="sm" className="hide-sm" onClick={load}><RefreshIcon size={14} />Sync</Button>
-        <Button variant="primary" size="sm" onClick={() => openCompose()}><PlusIcon size={14} />Compose</Button>
-      </div>
-
+    <PageShell
+      type="COMMUNICATION"
+      breadcrumb={['Communications', cfg.title]}
+      icon={<MailIcon size={18} />}
+      title={cfg.title}
+      subtitle="Email · SMS · push · webhook · transactional"
+      primaryAction={{ label: 'Compose', icon: <PlusIcon size={14} />, onClick: () => openCompose() }}
+      secondaryActions={[
+        { label: 'Sync', icon: <RefreshIcon size={14} />, onClick: load },
+      ]}
+    >
+    <div className="gx-comms fade" style={{ gridColumn: '1 / -1', height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 'var(--gx-space-8) var(--gx-space-20)', gap: 'var(--gx-space-7)' }}>
       <div className="mail">
         {/* ── Folder rail ── */}
         <div className="mail-folders">
@@ -473,5 +473,6 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
         onSent={load}
       />
     </div>
+    </PageShell>
   )
 }

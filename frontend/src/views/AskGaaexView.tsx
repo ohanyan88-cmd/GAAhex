@@ -4,6 +4,7 @@ import { bget, bpost } from '../lib/billing'
 import { PermissionDenied } from '../components/States'
 import { SparkleIcon, SendHorizontalIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
+import { PageShell } from '../page-shell'
 // Ask GAAhex (AI Copilot — §6 Analytics & AI). Real wiring:
 //   GET  /api/ai/status  → which brain is live; 403 ⇒ PermissionDenied (rule 6)
 //   POST /api/ai/chat    → answer | proposal (rule 5: real source, no mock)
@@ -99,23 +100,18 @@ export default function AskGaaexView({ token }: { token: string }) {
     : t('ask.brainLocal', 'Built-in (no external AI configured)')
 
   return (
-    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 'var(--gx-space-7)' }}>
-      <div className="comms-head">
-        <div className="vh-ic"><SparkleIcon size={20} /></div>
-        <div>
-          <h1 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 21, fontWeight: 600, margin: 0, letterSpacing: '-.02em' }}>
-            {t('ask.title', 'Ask GAAhex')}
-          </h1>
-          <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
-            {status?.live ? `${t('ask.brain', 'AI')} · ${status.provider}` : brain}
-          </div>
-        </div>
-        <span className="spacer" />
-        <span className="badge" title={t('ask.brainHint', 'Which AI brain is answering. Set AI_PROVIDER in backend/.env to upgrade.')}>
-          {status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain}
-        </span>
-      </div>
-
+    <PageShell
+      type="COMMUNICATION"
+      breadcrumb={['Analytics & AI', t('ask.title', 'Ask GAAhex')]}
+      icon={<SparkleIcon size={18} />}
+      title={t('ask.title', 'Ask GAAhex')}
+      subtitle={status?.live ? `${t('ask.brain', 'AI')} · ${status.provider}` : brain}
+      statusSummary={{
+        label: status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain,
+        variant: status?.live ? 'success' : 'neutral',
+      }}
+    >
+    <div className="gx-comms fade" style={{ gridColumn: '1 / -1', height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 'var(--gx-space-8) var(--gx-space-20)', gap: 'var(--gx-space-7)' }}>
       <div className="msgr" style={{ gridTemplateColumns: '1fr 244px' }}>
         {/* ── Chat pane ───────────────────────────────────────────── */}
         <div className="chat">
@@ -224,5 +220,6 @@ export default function AskGaaexView({ token }: { token: string }) {
         </aside>
       </div>
     </div>
+    </PageShell>
   )
 }
