@@ -183,6 +183,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
   // role: auto-detected from caps
   const role: Role = capsLoaded ? detectRole(caps) : 'general'
+  // Super-admin / owner sees every role's My Day widgets, not just their own slice.
+  const isAdmin = role === 'admin' || role === 'general'
 
   // raw data state
   const [tasks, setTasks]         = useState<Fetched<any[]>>({ state: 'loading' })
@@ -410,7 +412,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       {/* Role-specific widgets */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
 
-        {role === 'support' && (
+        {(role === 'support' || isAdmin) && (
           <>
             <Widget icon={Inbox} title="My Open Tickets" count={myTickets.filter(t => !['RESOLVED','CLOSED'].includes(t.status)).length}>
               {tickets.state === 'loading' && <Skel />}
@@ -434,7 +436,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           </>
         )}
 
-        {role === 'sales' && (
+        {(role === 'sales' || isAdmin) && (
           <>
             <Widget icon={Users} title="My Pipeline" count={myLeads.length}>
               {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
@@ -456,7 +458,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           </>
         )}
 
-        {role === 'tech' && (
+        {(role === 'tech' || isAdmin) && (
           <>
             <Widget icon={MapPin} title="Today's Dispatches" count={myTodaySlots.length}>
               {myTodaySlots.length === 0 ? <Empty msg="No dispatches scheduled today" /> : myTodaySlots.slice(0, 6).map(s => (
@@ -479,7 +481,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           </>
         )}
 
-        {role === 'finance' && (
+        {(role === 'finance' || isAdmin) && (
           <>
             <Widget icon={Banknote} title="Issued Invoices" count={invoiceArr.length}>
               {invoiceArr.length === 0 ? <Empty msg="No outstanding invoices" /> : invoiceArr.slice(0, 6).map(i => (
@@ -501,27 +503,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           </>
         )}
 
-        {(role === 'admin' || role === 'general') && (
-          <>
-            <Widget icon={CheckSquare} title="My Tasks" count={tasksOpen.length}>
-              {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 6).map(t => (
-                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('workitems')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('workitems'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
-                </div>
-              ))}
-            </Widget>
-
-            <Widget icon={Shield} title="Approvals Waiting" count={approvalArr.length}>
-              {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
-                <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('my-approvals'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                  <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{relTime(a.created_at)}</span>
-                </div>
-              ))}
-            </Widget>
-          </>
-        )}
+        {/* No separate admin block — `isAdmin` (above) makes the super-admin/owner see
+            every role's widgets (support · sales · tech · finance) on one My Day. */}
       </div>
 
     </PageShell>
