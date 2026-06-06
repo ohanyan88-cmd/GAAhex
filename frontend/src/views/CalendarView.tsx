@@ -38,7 +38,13 @@ function buildGrid(year: number, month: number): (Date | null)[][] {
 }
 
 function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  // LOCAL date (not UTC). toISOString() converts to UTC, which in positive-offset
+  // zones (e.g. Armenia UTC+4) shifts local-midnight cell dates back a day — that
+  // made "today" highlight the wrong cell and created events on the previous day.
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 function todayStr(): string {
