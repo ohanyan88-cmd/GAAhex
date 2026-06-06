@@ -112,6 +112,7 @@ Forbidden Patterns `FP1+`.
 | File | Role |
 |---|---|
 | [`PRM-MIGRATION-AUDIT-2026-06-06.md`](PRM-MIGRATION-AUDIT-2026-06-06.md) | The classification audit that adopted PRM (2026-06-06). |
+| [`CONSTITUTION_CONSISTENCY_AUDIT.md`](CONSTITUTION_CONSISTENCY_AUDIT.md) | Cross-doc consistency & normalization audit of the 22 constitution documents (2026-06-06). Documents structural variance without altering architectural decisions. |
 | [`SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`](SEALED-ARCHITECTURE-BASELINE-2026-06-05.md) | Kernel-level engineering invariants (5 engines). Implementation contract under Foundation cores. |
 | [`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`](SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md) | DRAFT-SHELL addendum for GXL business-condition workflow guards (M1 Phase 1.5). |
 | [`Q1-Q5-Q8-DECISION-PACKAGE-2026-06-05.md`](Q1-Q5-Q8-DECISION-PACKAGE-2026-06-05.md) | Three open architecture Q's resolution package. |
