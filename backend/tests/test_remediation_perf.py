@@ -147,11 +147,12 @@ async def test_csv_export_endpoint_neutralizes_formula_injection(client, admin):
     # We can't `q=` for the leading '=' easily (URL-encoded), so just dump and find the row.
     r = await client.get(f"/api/leads/export?format=csv&q={tok}", headers=admin)
     assert r.status_code == 200, r.text
-    rows = list(csv.reader(io.StringIO(r.text)))
+    rows = list(csv.reader(io.StringIO(r.text.lstrip("﻿"))))   # strip the UTF-8 BOM
+    name_idx = rows[0].index("Name")                           # Name is no longer column 0
     # Find the data row whose Name column contains our token; assert it's defanged.
-    data_rows = [row for row in rows[1:] if tok in row[0]]
+    data_rows = [row for row in rows[1:] if tok in row[name_idx]]
     assert data_rows, "exported CSV must contain our planted row"
-    name_cell = data_rows[0][0]
+    name_cell = data_rows[0][name_idx]
     assert name_cell.startswith("'="), (
         f"formula-injection cell was not neutralized — got {name_cell!r}; "
         "expected leading apostrophe per OWASP CSV-Injection mitigation"
