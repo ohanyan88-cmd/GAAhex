@@ -165,7 +165,7 @@ function deriveLeadsWeeklyKPIs(rows: Row[]): KPISpec[] {
 
   return [
     { label: 'New', value: newN, ...wow(newN, cnt(lastWk, 'NEW')),
-      chart: <Spark values={daySeries((r) => r.status === 'NEW')} color="var(--gx-text-2)" height={18} strokeWidth={1} /> },
+      chart: <Spark values={daySeries((r) => r.status === 'NEW')} color="var(--gx-primary)" height={18} strokeWidth={1} /> },
     { label: 'Qualified', value: qualN, ...wow(qualN, cnt(lastWk, 'QUALIFIED')),
       progress: rate(qualN), progressVariant: 'gold', progressLabel: `${rate(qualN)}%` },
     { label: 'Contract Signed', value: signN, ...wow(signN, cnt(lastWk, 'CONVERTED')),
@@ -492,6 +492,11 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   const readOnly = !canCreate && !canEdit && !canDelete
 
   const cols = def.fields.filter((f) => f.type !== 'status')
+  // Leads render a dedicated flat grid — Lead ID · Full Name · Address · Phone · Email ·
+  // Stage — with no checkbox column (see the records grid below).
+  const isLeads = slug === 'leads'
+  const leadRef = (id: unknown) => 'LED-' + String(id).replace(/-/g, '').slice(-6).toUpperCase()
+  const leadCell = (v: unknown) => (v == null || v === '' ? <span className="muted">—</span> : String(v))
   const hasWorkflow = (def.transitions ?? []).length > 0
   const nextFrom = (status: string | null) => (def.transitions ?? []).filter((t) => t.from === status).map((t) => t.to)
   const formOpen = mode !== 'idle'
@@ -642,7 +647,8 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   // The old workflow "Move to" column is gone (transitions now live in the row-actions menu),
   // so colSpan no longer needs a conditional for it.
   const dataCellCount = cols.length >= 2 ? cols.length - 1 : cols.length
-  const colSpan = 1 /* checkbox */ + dataCellCount + 1 /* status */ + 1 /* actions */
+  // Leads: 5 data cols (ID · Name · Address · Phone · Email) + Stage + Actions, no checkbox.
+  const colSpan = isLeads ? 5 + 1 + 1 : 1 /* checkbox */ + dataCellCount + 1 /* status */ + 1 /* actions */
 
   // Derive a sub-headline: show total count when known, else record count in view
   const countLabel = total !== null
@@ -894,22 +900,33 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
             <table className="grid">
               <thead>
                 <tr>
-                  <th className="sel-col" scope="col">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
-                      onChange={toggleAll}
-                      aria-label="Select all"
-                    />
-                  </th>
-                  {/* Header skips cols[1] because the body folds it into a cell-meta subtitle
-                      under cols[0]. Header + body cell counts therefore match exactly:
-                      checkbox · cols[0] · cols[2..] · Status · (Move to) · Actions. */}
-                  {cols.map((c, ci) => (
-                    ci === 1 ? null : <th key={c.key} scope="col">{c.label}</th>
-                  ))}
-                  <th scope="col">Status</th>
+                  {!isLeads && (
+                    <th className="sel-col" scope="col">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
+                        onChange={toggleAll}
+                        aria-label="Select all"
+                      />
+                    </th>
+                  )}
+                  {isLeads ? (
+                    <>
+                      <th scope="col">Lead ID</th>
+                      <th scope="col">Full Name</th>
+                      <th scope="col">Address</th>
+                      <th scope="col">Phone</th>
+                      <th scope="col">Email</th>
+                    </>
+                  ) : (
+                    /* Header skips cols[1] because the body folds it into a cell-meta subtitle
+                       under cols[0], so header + body cell counts match exactly. */
+                    cols.map((c, ci) => (
+                      ci === 1 ? null : <th key={c.key} scope="col">{c.label}</th>
+                    ))
+                  )}
+                  <th scope="col">{isLeads ? 'Stage' : 'Status'}</th>
                   {/* Workflow "Move to" transitions used to live in their own column with a
                       button-stack — they now collapse into the row-actions menu so they don't
                       compete with the inline icons. */}
@@ -919,36 +936,52 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
               <tbody>
                 {visibleRows.map((r) => (
                   <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
-                    <td className="sel-col">
-                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" />
-                    </td>
-                    {cols.map((c, ci) => (
-                      ci === 1 ? null : (
-                        <td key={c.key}>
-                          {ci === 0 ? (
-                            /* First data column gets the row-link + cell-meta treatment */
-                            <>
-                              <button
-                                className="row-link"
-                                onClick={() => openEdit(r)}
-                                disabled={!canEdit}
-                                style={canEdit ? undefined : { cursor: 'default', pointerEvents: 'none' }}
-                              >
-                                {renderCell(c, r) || <span className="muted">—</span>}
-                              </button>
-                              {/* Show second non-status field as cell-meta if it exists */}
-                              {cols[1] && (
-                                <div className="cell-meta">
-                                  {String(cellValue(cols[1], r) ?? '')}
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            renderCell(c, r)
-                          )}
+                    {!isLeads && (
+                      <td className="sel-col">
+                        <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleRow(r.id)} aria-label="Select row" />
+                      </td>
+                    )}
+                    {isLeads ? (
+                      <>
+                        <td><span className="lead-id">{r.ref ? String(r.ref) : leadRef(r.id)}</span></td>
+                        <td>
+                          <button className="row-link" onClick={() => openEdit(r)} disabled={!canEdit}>
+                            {r.name ? String(r.name) : <span className="muted">—</span>}
+                          </button>
                         </td>
-                      )
-                    ))}
+                        <td>{leadCell(r.address)}</td>
+                        <td>{leadCell(r.phone)}</td>
+                        <td>{leadCell(r.email)}</td>
+                      </>
+                    ) : (
+                      cols.map((c, ci) => (
+                        ci === 1 ? null : (
+                          <td key={c.key}>
+                            {ci === 0 ? (
+                              /* First data column gets the row-link + cell-meta treatment */
+                              <>
+                                <button
+                                  className="row-link"
+                                  onClick={() => openEdit(r)}
+                                  disabled={!canEdit}
+                                  style={canEdit ? undefined : { cursor: 'default', pointerEvents: 'none' }}
+                                >
+                                  {renderCell(c, r) || <span className="muted">—</span>}
+                                </button>
+                                {/* Show second non-status field as cell-meta if it exists */}
+                                {cols[1] && (
+                                  <div className="cell-meta">
+                                    {String(cellValue(cols[1], r) ?? '')}
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              renderCell(c, r)
+                            )}
+                          </td>
+                        )
+                      ))
+                    )}
                     <td>
                       {r.status ? (
                         <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" />

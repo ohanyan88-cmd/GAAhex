@@ -190,10 +190,12 @@ button.kpi-tile, a.kpi-tile {
    / pass-rate, never a bucket count. The live gate uses the .on accent (azure dot +
    surface fill); gates awaiting upstream data sink into the page (muted fill). The thin
    strip-gap between segments shows the angled chevron cut. */
-.gate-strip { display:flex; align-items:stretch; gap:var(--gx-space-1); margin-bottom:var(--gx-space-12); }
-.gate-card { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gx-space-6);
+/* Top gap reads ~10px larger than the raw margin (the KPI zone adds its own
+   padding-bottom), so the bottom margin is bumped to keep both gaps visually equal. */
+.gate-strip { display:flex; align-items:stretch; gap:var(--gx-space-1); margin:var(--gx-space-16) 0 var(--gx-space-9); }
+.gate-card { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gx-space-5);
   background:var(--gx-surface);
-  padding:var(--gx-space-8) var(--gx-space-12) var(--gx-space-8) var(--gx-space-9);
+  padding:var(--gx-space-5) var(--gx-space-12) var(--gx-space-5) var(--gx-space-9);
   clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%, 28px 50%); }
 .gate-card.first { padding-left:var(--gx-space-12);
   clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%); }
@@ -207,7 +209,11 @@ button.kpi-tile, a.kpi-tile {
 .gate-card-name { display:flex; align-items:center; gap:var(--gx-space-4); font-family:var(--gx-font-mono);
   font-size:var(--gx-text-xs); font-weight:var(--gx-weight-bold); letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-1); }
 .gate-dot { width:var(--gx-space-5); height:var(--gx-space-5); border-radius:999px; background:var(--gx-border-strong); flex:0 0 auto; }
-.gate-card.on .gate-dot { background:var(--gx-interactive); }
+/* Per-gate brand identity dot (shows lit or dormant — the dot is the gate's badge). */
+.gate-card[data-gate="commercial"]  .gate-dot { background:var(--gx-gold); }
+.gate-card[data-gate="technical"]   .gate-dot { background:var(--gx-primary); }
+.gate-card[data-gate="service"]     .gate-dot { background:var(--gx-interactive); }
+.gate-card[data-gate="operational"] .gate-dot { background:var(--gx-success-fg); }
 .gate-card-scope { font-size:var(--gx-text-xs); color:var(--gx-text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .gate-card-metrics { display:flex; align-items:baseline; gap:var(--gx-space-8); flex-wrap:wrap; }
 .gate-metric { font-size:var(--gx-text-sm); color:var(--gx-text-2); }
@@ -215,6 +221,10 @@ button.kpi-tile, a.kpi-tile {
 .gate-metric-block b { color:var(--gx-danger-fg); }
 .gate-metric-pass { font-family:var(--gx-font-mono); font-size:var(--gx-text-sm); font-weight:var(--gx-weight-semibold); color:var(--gx-success-fg); }
 .gate-card-awaiting { font-size:var(--gx-text-sm); color:var(--gx-text-3); font-style:italic; }
+
+/* Leads grid — monospace reference id + disabled name-link (no inline style). */
+.lead-id { font-family:var(--gx-font-mono); font-size:var(--gx-text-sm); color:var(--gx-text-3); letter-spacing:.02em; }
+.row-link:disabled { cursor:default; pointer-events:none; }
 
 /* KPI Tile Standard (D17) — hover-revealed info popover.
    Every tile that defines `tooltip` shows a popover above the tile on hover or

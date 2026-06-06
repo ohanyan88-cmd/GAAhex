@@ -87,13 +87,14 @@ export function LeadGatesStrip({ rows, onOpenGate }: { rows: GateRow[]; onOpenGa
             type="button"
             className={cls + ' gate-card-link'}
             key={g.key}
+            data-gate={g.key}
             onClick={onOpenGate}
             aria-label={`${g.name} — open the pipeline`}
           >
             {inner}
           </button>
         ) : (
-          <div className={cls} key={g.key}>{inner}</div>
+          <div className={cls} key={g.key} data-gate={g.key}>{inner}</div>
         )
       })}
     </div>

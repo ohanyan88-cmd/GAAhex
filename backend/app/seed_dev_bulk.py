@@ -988,6 +988,27 @@ _LEADS_PRIOR = [
     ("Tigran Auto — 2 sites",             "CONVERTED", "Demo Admin", "OUTBOUND", 180000),
     ("Վահե Գրիգորյան",                    "CONTACTED", "Demo Agent", "WEBSITE",  8000),
 ]
+# Yerevan demo addresses, cycled per lead so the Address column reads real.
+_ADDR = [
+    "Mashtots Ave 12, Yerevan", "Komitas Ave 45, Yerevan", "Baghramyan Ave 8, Yerevan",
+    "Tumanyan St 23, Yerevan", "Abovyan St 7, Yerevan", "Saryan St 14, Yerevan",
+    "Nalbandyan St 31, Yerevan", "Teryan St 56, Yerevan", "Pushkin St 19, Yerevan",
+    "Arshakunyats Ave 102, Yerevan", "Kievyan St 4, Yerevan", "Vardanants St 18, Yerevan",
+]
+
+
+def _lead_contact(idx: int) -> dict:
+    """Deterministic demo contact fields (phone / email / address) for a lead by index —
+    so the Leads grid columns are populated without hand-editing every row."""
+    op = 10 + idx % 89
+    num = (100000 + idx * 7919) % 1000000
+    return {
+        "phone": f"+374 {op:02d} {num:06d}",
+        "email": f"lead{idx + 1:03d}@housenet.am",
+        "address": _ADDR[idx % len(_ADDR)],
+    }
+
+
 # (number, quote-status, amount_minor (luma = AMD×100), customer)
 _QUOTES = [
     ("QUO-000101", "SENT",     4500000,  "Արամ Հակոբյան"),
@@ -1065,7 +1086,8 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
             rec = Record(
                 tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
                 created_at=created,
-                data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est}),
+                data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est,
+                           "ref": f"LED-{len(_LEADS_PRIOR) + idx + 1:06d}", **_lead_contact(idx)}),
             )
             s.add(rec)
             await s.flush()
@@ -1078,7 +1100,8 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
             rec = Record(
                 tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
                 created_at=prior_monday + timedelta(days=idx % 7, hours=(idx * 3) % 8),
-                data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est}),
+                data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est,
+                           "ref": f"LED-{idx + 1:06d}", **_lead_contact(idx + len(_LEADS))}),
             )
             s.add(rec)
             await s.flush()

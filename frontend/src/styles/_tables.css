@@ -45,7 +45,7 @@ table.grid th.num { text-align: right; }
 .row-link {
   background: transparent; border: 0; color: var(--gx-text-1);
   font-weight: var(--gx-weight-semibold); padding: 0; cursor: pointer;
-  font-size: 13px;
+  font-size: 13px; text-align: left;
 }
 .row-link:hover { color: var(--gx-gold); }
 .cell-meta { color: var(--gx-text-3); font-size: 11px; font-family: var(--gx-font-mono); margin-top: 1px; }
