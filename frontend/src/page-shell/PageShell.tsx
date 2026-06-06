@@ -119,7 +119,7 @@ export function PageShell({
       )}
       {showFilters && <FilterBar filters={filters!} />}
       <div className="ps-body">
-        <div className={wrapperCls} data-page-type={type}>
+        <div className={wrapperCls} data-page-type={cssPageType}>
           {body}
         </div>
       </div>
