@@ -556,6 +556,29 @@ The canonical brand inventory is:
 
 Any change to runtime brand assets requires reconciliation with the source at `docs/branding/v3.0/`.
 
+### 15.10 Quality bar and PR gates
+
+UI features are considered complete when:
+- PageShell is consumed (not reimplemented)
+- Shared components are reused (not duplicated)
+- All color and spacing comes from tokens (no hardcoding)
+- Object detail page follows the canonical nine-tab pattern (if applicable)
+- Drawer vs. dedicated page vs. modal selection is intentional and justified
+- Mobile is usable and intentional (responsive patterns documented, not shrunk)
+- Accessibility passes checklist (keyboard, focus, aria, color + label, loading states)
+- Permission checks are frontend-only (backend enforces)
+- The PR description names the core(s) responsible (primary and supporting)
+
+A UI PR is blocked until:
+- [ ] Consumed PageShell or justified local layout
+- [ ] Reused design system components or justified exception
+- [ ] All color/spacing from tokens or identified drift violations
+- [ ] Object detail tabs follow canonical pattern or amendment approved
+- [ ] Mobile patterns are intentional (responsive, not shrunk)
+- [ ] Accessibility checklist is complete
+- [ ] Backend permission enforcement is verified (frontend is courtesy)
+- [ ] Brand authority has reviewed if brand assets changed
+
 ## 16. Future Expansion Rules
 
 ### 16.1 Adding a new page type
@@ -603,33 +626,6 @@ Color families and roles are locked per P8 and L7. Adding a 6th family or reassi
 6. Accessibility review (contrast, colorblind-safe, semantic clarity)
 7. Constitution amendment
 8. Brand authority approval
-
-## 17. Implementation Quality Standards
-
-### Quality bar: 400–800 lines per feature
-
-UI features are considered complete when:
-- PageShell is consumed (not reimplemented)
-- Shared components are reused (not duplicated)
-- All color and spacing comes from tokens (no hardcoding)
-- Object detail page follows the canonical nine-tab pattern (if applicable)
-- Drawer vs. dedicated page vs. modal selection is intentional and justified
-- Mobile is usable and intentional (responsive patterns documented, not shrunk)
-- Accessibility passes checklist (keyboard, focus, aria, color + label, loading states)
-- Permission checks are frontend-only (backend enforces)
-- The PR description names the core(s) responsible (primary and supporting)
-
-### Code review gates
-
-A UI PR is blocked until:
-- [ ] Consumed PageShell or justified local layout
-- [ ] Reused design system components or justified exception
-- [ ] All color/spacing from tokens or identified drift violations
-- [ ] Object detail tabs follow canonical pattern or amendment approved
-- [ ] Mobile patterns are intentional (responsive, not shrunk)
-- [ ] Accessibility checklist is complete
-- [ ] Backend permission enforcement is verified (frontend is courtesy)
-- [ ] Brand authority has reviewed if brand assets changed
 
 ---
 

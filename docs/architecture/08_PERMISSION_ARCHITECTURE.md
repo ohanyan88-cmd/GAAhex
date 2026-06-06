@@ -173,7 +173,7 @@ A binding between a user and a role within a specific scope. An assignment recor
 - **`department`** (optional) — if set, the role applies only in this department.
 - **`region_scope ∈ home_only | subtree | any`** — how far the role reaches across the region partition (NULL is `home_only`).
 - **`valid_from`, `valid_until`** (optional) — tenure constraints (Super Admin roles may have time bounds).
-- **`granter_id`**, **`granted_at`** — who granted this role and when (audit).
+- **`granter_id`, `granted_at`** — who granted this role and when (audit).
 
 An assignment is the unit of permission grant. Users may hold multiple assignments.
 
@@ -512,9 +512,7 @@ Future enhancements to field-level security:
 - **Export controls** — fields with export restrictions cannot appear in CSV/Excel downloads for users without explicit export_roles.
 - **Report-level controls** — reports themselves may have permission keys (e.g., `revenue_report.view`), separate from field-level controls.
 
-## 17. Future Expansion Rules (Extended)
-
-### 17.1 Scope enhancements
+### 16.6 Scope enhancements
 
 Future scope types may include:
 
@@ -524,7 +522,7 @@ Future scope types may include:
 
 Each new scope type is added as a separate filter layer in the `can(...)` function and documented in this architecture.
 
-### 17.2 Approval-chain enhancements
+### 16.7 Approval-chain enhancements
 
 Approval permissions may evolve to support:
 
@@ -534,7 +532,7 @@ Approval permissions may evolve to support:
 
 These are implemented in the Approval Core (not Permission Core), but they depend on permission keys like `ticket.approve` existing.
 
-### 17.3 Integration with policy engines
+### 16.8 Integration with policy engines
 
 Policy Core may evolve to offer:
 

@@ -3,10 +3,11 @@
 > **Position in the project hierarchy (locked 2026-06-06):** these standards
 > live three layers below the project meta-law:
 >
-> 1. **`docs/CONSTITUTION.md`** — GAAhex Project Constitution v1.0 (meta-law).
->    Authoritative for *all* concerns: architecture, standards, infrastructure,
->    AI, mobile, docs, naming, engineering, governance. LAW-ST1 defines the
->    source-of-truth hierarchy.
+> 1. **`docs/governance/PROJECT_CONSTITUTION.md`** — GAAhex Project Constitution v1.0
+>    (highest governance authority in the repository — permanent). Authoritative
+>    for *all* concerns: architecture, standards, infrastructure, AI, mobile,
+>    docs, naming, engineering, governance. LAW-ST1 defines the source-of-truth
+>    hierarchy. Amendments only via LAW-GV1.
 > 2. **`docs/architecture/PLATFORM_REFERENCE_MODEL.md`** — the constitutional
 >    definition of the 51 cores and 7 platform tiers.
 > 3. **The 22 Architecture Constitution documents** at

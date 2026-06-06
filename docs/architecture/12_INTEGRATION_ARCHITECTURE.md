@@ -1,14 +1,20 @@
 # 12 — Integration Architecture
 
-**Position in hierarchy:** Constitutional document under `PLATFORM_REFERENCE_MODEL.md`, sibling to `01_PLATFORM_CORE_ARCHITECTURE.md`. All integration development must remain consistent with this document and the locked Integration Standard (`standards/19-integration-standard.md`).
+**Constitutional document.** Position in the hierarchy: directly under
+`PLATFORM_REFERENCE_MODEL.md`; sibling to `01_PLATFORM_CORE_ARCHITECTURE.md`.
+All integration development must remain consistent with this document and the
+locked Integration Standard (`standards/19-integration-standard.md`).
 
 ---
 
 ## 1. Purpose
 
-Define how external systems connect to GAAhex: the connector framework, authentication postures, inbound and outbound patterns, mapping rules, credential handling, idempotency enforcement, failure strategies, and audit trails. Ensure every external integration is declarative, observable, secure, compliant with Standards D1 and M1, and governed by Integration Core with support from Security, Event, Audit, and Tenant Cores.
-
----
+Define how external systems connect to GAAhex: the connector framework,
+authentication postures, inbound and outbound patterns, mapping rules,
+credential handling, idempotency enforcement, failure strategies, and audit
+trails. Ensure every external integration is declarative, observable, secure,
+compliant with Standards D1 and M1, and governed by Integration Core with
+support from Security, Event, Audit, and Tenant Cores.
 
 ## 2. Scope
 
@@ -35,47 +41,179 @@ Out of scope:
 - Background Processing queue infrastructure (see `19_INFRASTRUCTURE_ARCHITECTURE.md`).
 - Tenant branding and white-label rules (see `14_TENANT_ARCHITECTURE.md`).
 
----
+## 3. Goals
 
-## 3. Architecture Principles
+- **G1** Every external system (vendor, API, file-based service) connects via a
+  declarative `Connector` entity, never via hardcoded SDK or custom code.
+- **G2** All integration data flows through a mapping/transformation layer
+  (`MappingRule`), tenant-configurable in Studio, no raw data stored.
+- **G3** Every integration run is fully observable: logged, auditable,
+  retryable, and replayable with idempotency guarantees.
+- **G4** Inbound and outbound integrations are composable patterns: webhooks,
+  polling, file-drop, direct API calls, each with consistent retry/failure
+  semantics.
+- **G5** Credentials are encrypted and versioned; integration code never
+  embeds or logs plaintext secrets.
+- **G6** No integration operation fails silently; all failures route to
+  dead-letter queues and trigger alerts.
+
+## 4. Non-Goals
+
+- **NG1** This document does NOT define the Event Core (see `11_EVENT_ARCHITECTURE.md`).
+- **NG2** This document does NOT define Secret storage mechanics (see `13_SECURITY_ARCHITECTURE.md`).
+- **NG3** This document does NOT define the Background Processing queue (see `19_INFRASTRUCTURE_ARCHITECTURE.md`).
+- **NG4** This document does NOT prescribe whether connectors are implemented as
+  microservices or monolithic modules (see `02_DOMAIN_ARCHITECTURE.md`).
+- **NG5** This document does NOT govern the Developer Portal UI (see `05_OPERATIONAL_ARCHITECTURE.md`).
+
+## 5. Architecture Principles
 
 ### P1 — Integrations are event-driven, not table-driven.
 
-External systems consume GAAhex events via webhooks or polling for updates; they do not query internal tables directly. Integration code never bypasses the Event Core publish path or writes directly to business-core database tables.
+External systems consume GAAhex events via webhooks or polling for updates;
+they do not query internal tables directly. Integration code never bypasses
+the Event Core publish path or writes directly to business-core database
+tables.
 
 ### P2 — Integrations are tenant-scoped by default.
 
-Every connector instance carries `tenantId`. Multi-tenant isolation is enforced: a Stripe connector for Tenant A cannot access Tenant B's configuration, credentials, or payment data. Global connectors (rare) are explicitly flagged.
+Every connector instance carries `tenantId`. Multi-tenant isolation is enforced:
+a Stripe connector for Tenant A cannot access Tenant B's configuration,
+credentials, or payment data. Global connectors (rare) are explicitly flagged.
 
 ### P3 — Credentials are secrets, not configuration.
 
-API keys, OAuth tokens, secrets, and mTLS certs are stored via Security Core's `Secret` entity (encrypted at rest). Integration code references secrets by `secretRef` ID only; it never embeds, retrieves, or logs plaintext credentials. Credential rotation is managed via Secret Core versioning.
+API keys, OAuth tokens, secrets, and mTLS certs are stored via Security Core's
+`Secret` entity (encrypted at rest). Integration code references secrets by
+`secretRef` ID only; it never embeds, retrieves, or logs plaintext credentials.
+Credential rotation is managed via Secret Core versioning.
 
 ### P4 — Every integration write is idempotent.
 
-Inbound webhook handlers deduplicate via `idempotencyKey` (from vendor or assigned by platform). Replayed callbacks are no-ops. Outbound API calls are idempotent by design or retried safely. Financial transactions and state mutations use idempotency strictly.
+Inbound webhook handlers deduplicate via `idempotencyKey` (from vendor or
+assigned by platform). Replayed callbacks are no-ops. Outbound API calls are
+idempotent by design or retried safely. Financial transactions and state
+mutations use idempotency strictly.
 
 ### P5 — Mapping is declarative and pluggable.
 
-Field mapping (source → canonical) is authored in Studio domain as a `MappingRule` entity. Tenant admins configure mappings without code changes. Mapping rules version with the integration, and old rules remain readable for historical sync jobs.
+Field mapping (source → canonical) is authored in Studio domain as a
+`MappingRule` entity. Tenant admins configure mappings without code changes.
+Mapping rules version with the integration, and old rules remain readable for
+historical sync jobs.
 
 ### P6 — Integration runs are fully auditable.
 
-Every external call produces an `IntegrationRun` record with status, payload, result, error, and a link to the published event (if state-changing). All traces feed Audit Core, Observability Core, and timeline feeds.
+Every external call produces an `IntegrationRun` record with status, payload,
+result, error, and a link to the published event (if state-changing). All
+traces feed Audit Core, Observability Core, and timeline feeds.
 
 ### P7 — Failures are terminal → dead-letter or handled explicitly.
 
-If an integration fails, it routes to a dead-letter queue and triggers an alert. No silent failures. Replay is manual or governed by a retry policy declared in the `Connector` or `IntegrationRun` entity.
+If an integration fails, it routes to a dead-letter queue and triggers an
+alert. No silent failures. Replay is manual or governed by a retry policy
+declared in the `Connector` or `IntegrationRun` entity.
 
 ### P8 — Integrations own only the framework; target cores own domain connectors.
 
-Integration Core governs the connector framework, idempotency keys, and webhook delivery infrastructure. A Stripe connector is owned and hardened by Financial Core; a ServiceNow connector by Case Core. Target cores define validation, transformation, and business logic.
+Integration Core governs the connector framework, idempotency keys, and webhook
+delivery infrastructure. A Stripe connector is owned and hardened by Financial
+Core; a ServiceNow connector by Case Core. Target cores define validation,
+transformation, and business logic.
 
----
+## 6. Architecture Laws
 
-## 4. Core Governed
+### L1 — All credentials via `secretRef` only; no plaintext in code or logs
 
-**Primary:** Integration (PLATFORM SERVICES tier)
+> Integration code must retrieve credentials by `Secret` ID reference. No
+> credentials are hardcoded, environment-variabled, or logged. Violations are
+> detected by code scanning and rejected at review.
+
+### L2 — Every integration run is idempotent
+
+> Inbound webhook handlers deduplicate within a 5-minute window via
+> `idempotencyKey`. Outbound webhook payloads include `idempotencyKey` headers.
+> Retried operations use the same key. Non-idempotent operations are forbidden.
+
+### L3 — All external calls are audited and observable
+
+> Every `Connector` call (inbound, outbound, polling, file-drop) creates an
+> `IntegrationRun` record before or immediately after execution. The run record
+> includes payload, status, error detail, duration, and linkage to the emitted
+> event (if state-changing). Failure to record an integration run is an L4
+> violation (see `01_PLATFORM_CORE_ARCHITECTURE.md` § L4 Audit Universality).
+
+### L4 — Failures route to dead-letter or are handled explicitly
+
+> On permanent failure (validation error, auth failure, max retries exhausted),
+> an integration run transitions to DEAD_LETTER status and creates an
+> `IntegrationAlert`. The run is never silently dropped. Manual replay via the
+> dead-letter endpoint is the only recovery path until the underlying issue is
+> fixed.
+
+### L5 — Every connector is assigned to exactly one owning core
+
+> Integration Core owns the framework; the target business core (Financial,
+> Party, Case, etc.) owns the connector semantics. A Stripe connector is owned
+> by Financial Core; ownership is recorded in the Core Ownership Matrix
+> (`09_DATA_ARCHITECTURE.md`).
+
+## 7. Core Concepts
+
+### 7.1 Connector Framework
+
+A **Connector** is a declarative descriptor of an external system connection:
+name, type (webhook, polling, API, file-drop), target core, schema, credentials,
+retry policy, and rate limits. Connectors are *not* code; they are *configuration*,
+immutable on critical fields (name, type, targetCore), mutable on operational
+fields (active, secretRef, retryPolicy).
+
+### 7.2 Integration Patterns
+
+Four canonical patterns by which external systems connect to GAAhex:
+
+1. **Inbound Webhooks** — external system POSTs signed callbacks to
+   `/webhooks/{connectorSlug}` (e.g., Stripe charge events).
+2. **Polling Sync** — background job periodically queries external system and
+   pulls changes (e.g., Salesforce contact sync).
+3. **File-Drop Import** — bulk file (CSV, JSON, Excel) uploaded or SFTP-dropped;
+   parsed, mapped, and written in batch.
+4. **Outbound Webhooks** — GAAhex publishes domain events; external subscribers
+   receive signed POST callbacks. Also includes direct synchronous API calls to
+   external systems (e.g., tax calculation on invoice emit).
+
+### 7.3 Mapping Rule
+
+A declarative transformation applied to inbound or outbound data, authored in
+Studio domain, versioned, and tenant-configurable. Maps source fields (from
+external system) to target fields (canonical GAAhex shape) via named transformer
+functions (stripPrefix, dateFormat, lookupTable, etc.). Rules are immutable
+post-creation; new versions are created for changes.
+
+### 7.4 Idempotency Key
+
+A unique token (UUIDv7 or vendor-provided) assigned to each integration
+operation. For inbound: extracted from vendor event ID or custom header. For
+outbound: generated by platform. Deduplication window: 5 minutes (configurable).
+Idempotency key must be unique per connector per time window.
+
+### 7.5 Integration Run
+
+An immutable log record of one integration execution: inbound webhook received,
+outbound call made, polling sync executed, or file import processed. Carries
+direction, connector ID, payload, status, error detail, duration, and linkage
+to emitted event. The stream of IntegrationRuns is the authoritative audit trail.
+
+### 7.6 Dead-Letter Queue
+
+A holding area for integration runs that have failed permanently (after max
+retries or due to validation error). Operator reviews the run, fixes the
+underlying issue (e.g., credential rotation, payload correction), and replays
+via the replay endpoint. No automatic recovery.
+
+### 7.7 Core Governed
+
+**Primary:** Integration Core (PLATFORM SERVICES tier)
 
 **Supporting:**
 - **Security Core** — credential storage, rate limiting, token validation.
@@ -84,13 +222,12 @@ Integration Core governs the connector framework, idempotency keys, and webhook 
 - **Tenant Core** — multi-tenant isolation, credential binding.
 - **Background Processing Core** — async job execution, retry queues.
 - **Identity Core** — API client authentication.
-- **Target business cores** (Financial, Party, Case, etc.) — domain validation and state mutation.
+- **Target business cores** (Financial, Party, Case, etc.) — domain validation
+  and state mutation.
 
----
+## 8. Canonical Entities
 
-## 5. Canonical Entities & Data Model
-
-### 5.1 `Connector`
+### 8.1 `Connector`
 
 Declarative connector descriptor; represents a potential integration.
 
@@ -119,15 +256,17 @@ Connector
 ```
 
 **Immutability & mutation:**
-- `name`, `type`, `targetCore` are immutable post-creation (breaking changes require connector versioning, e.g., "Stripe v2").
-- `active`, `secretRef`, `retryPolicy`, `rateLimit` are mutable by Integration Admins.
-- Mutations logged as `IntegrationRun` status-change events; no silent config edits.
+- `name`, `type`, `targetCore` are immutable post-creation (breaking changes
+  require connector versioning, e.g., "Stripe v2").
+- `active`, `secretRef`, `retryPolicy`, `rateLimit` are mutable by Integration
+  Admins.
+- Mutations logged as `IntegrationRun` status-change events; no silent config
+  edits.
 
----
+### 8.2 `IntegrationRun`
 
-### 5.2 `IntegrationRun`
-
-One row per integration execution (inbound webhook received, outbound API call made, polling sync executed).
+One row per integration execution (inbound webhook received, outbound API call
+made, polling sync executed).
 
 ```
 IntegrationRun
@@ -158,11 +297,11 @@ IntegrationRun
 └─ notes (optional; operator/alert annotation)
 ```
 
-**Immutability:** `IntegrationRun` is immutable post-creation. Corrections (retries, manual fixes) create new rows. The stream of runs is the authoritative history.
+**Immutability:** `IntegrationRun` is immutable post-creation. Corrections
+(retries, manual fixes) create new rows. The stream of runs is the authoritative
+history.
 
----
-
-### 5.3 `MappingRule`
+### 8.3 `MappingRule`
 
 Declarative field transformation; Studio domain (tenant-configurable).
 
@@ -202,11 +341,11 @@ MappingRule
 └─ audit (immutable log of rule changes)
 ```
 
-**Tenant-configurable:** Mapping rules are **never** hardcoded. Every tenant can author rules for their integrations. Rules version independently of connectors, enabling A/B testing different mappings with feature flags.
+**Tenant-configurable:** Mapping rules are **never** hardcoded. Every tenant can
+author rules for their integrations. Rules version independently of connectors,
+enabling A/B testing different mappings with feature flags.
 
----
-
-### 5.4 `WebhookDef` (Outbound)
+### 8.4 `WebhookDef` (Outbound)
 
 Outbound subscription model (platform emits, external system receives).
 
@@ -223,11 +362,11 @@ WebhookDef
 └─ audit (immutable event log)
 ```
 
-**Signature verification:** Every outbound webhook payload includes an `X-Signature` header (HMAC-SHA256). Receivers verify before processing. Replayed payloads use the same `idempotencyKey` and must be no-ops.
+**Signature verification:** Every outbound webhook payload includes an
+`X-Signature` header (HMAC-SHA256). Receivers verify before processing.
+Replayed payloads use the same `idempotencyKey` and must be no-ops.
 
----
-
-### 5.5 `WebhookDelivery` (Outbound Log)
+### 8.5 `WebhookDelivery` (Outbound Log)
 
 Observable record of each outbound webhook delivery attempt.
 
@@ -252,11 +391,11 @@ WebhookDelivery
 └─ signature (HMAC-SHA256 value sent; for audit trail only)
 ```
 
-**Delivery guarantee:** Every `WebhookDelivery` is observable. If a delivery is FAILED after max retries, it routes to dead-letter and triggers an alert. No silent drops.
+**Delivery guarantee:** Every `WebhookDelivery` is observable. If a delivery is
+FAILED after max retries, it routes to dead-letter and triggers an alert. No
+silent drops.
 
----
-
-### 5.6 `OutboundMessage` (Multi-Channel Log)
+### 8.6 `OutboundMessage` (Multi-Channel Log)
 
 Observable record of all external-channel sends (email, SMS, webhook, console).
 
@@ -276,11 +415,11 @@ OutboundMessage
 └─ notes (operator annotation)
 ```
 
-**Note:** In-app notifications (channel = INAPP) are **not** logged here; the `Notification` inbox row is itself the delivery record (file 05, Notification Standard).
+**Note:** In-app notifications (channel = INAPP) are **not** logged here; the
+`Notification` inbox row is itself the delivery record (file 05, Notification
+Standard).
 
----
-
-### 5.7 `IntegrationAlert`
+### 8.7 `IntegrationAlert`
 
 Alert trigger for integration failures and anomalies.
 
@@ -299,727 +438,21 @@ IntegrationAlert
 └─ resolution (text note on remediation)
 ```
 
----
+## 9. Ownership Boundaries
 
-## 6. Connector Framework
-
-### 6.1 Declarative Connector Descriptor
-
-Every connector is registered via a `Connector` entity:
-
-```
-POST /api/v1/integrations/connectors
-{
-  "tenantId": "TENANT-000001",
-  "name": "Stripe",
-  "type": "INBOUND_WEBHOOK",
-  "targetCore": "Financial",
-  "description": "Inbound payment callbacks from Stripe; handles charge.completed, charge.refunded.",
-  "schema": {
-    "type": "object",
-    "properties": {
-      "id": { "type": "string" },
-      "object": { "type": "string", "enum": ["charge", "refund"] },
-      "amount": { "type": "integer" },
-      "customer": { "type": "string" },
-      "metadata": { "type": "object" }
-    }
-  },
-  "secretRef": "SECRET-000042",
-  "rateLimit": { "perMinute": 1000, "perHour": 10000 },
-  "retryPolicy": {
-    "maxAttempts": 5,
-    "backoffMs": 5000,
-    "backoffMultiplier": 2,
-    "deadLetterThreshold": 3
-  },
-  "circuitBreakerThreshold": 10
-}
-```
-
-The API response includes the endpoint URL to register with the external provider:
-
-```
-{
-  "id": "INTC-000001",
-  "webhookUrl": "https://gaahex-prod.example.com/webhooks/stripe",
-  "createdAt": "2026-06-06T14:32:00Z"
-}
-```
-
----
-
-### 6.2 Authentication Methods
-
-Integration Core supports four native authentication postures:
-
-#### 6.2.1 **OAuth 2.0** (Authorization Code Flow)
-
-For integrations requiring user delegation (e.g., Salesforce, HubSpot CRM).
-
-```
-Connector.secretRef -> Secret (stores encrypted OAuth client ID, client secret, redirect URI)
-```
-
-Flow:
-1. Tenant admin clicks "Connect [provider]" in Studio.
-2. Platform redirects to provider's `/authorize` endpoint with `client_id, redirect_uri, scopes`.
-3. User authenticates and grants permission.
-4. Provider redirects to `POST /api/v1/integrations/oauth/callback?code=...&state=...`.
-5. Platform exchanges code for access token + refresh token.
-6. Platform stores access token + refresh token in `Secret`, encrypted.
-7. Future runs use `Secret` to retrieve current access token (refresh if expired).
-
-**Tenant isolation:** Every tenant's OAuth token is stored in a separate `Secret` with `tenantId`. No cross-tenant leakage.
-
----
-
-#### 6.2.2 **API Key**
-
-For integrations with static authentication (e.g., Stripe API key, custom REST API).
-
-```
-Connector.secretRef -> Secret (stores encrypted API key)
-```
-
-Example:
-```
-Connector:
-  name: "Stripe API"
-  type: "API_CALL"
-  secretRef: SECRET-000042
-
-Secret (SECRET-000042):
-  name: "Stripe API key"
-  value: "<encrypted: sk_live_...>"
-  algorithm: "AES-256-GCM"
-  rotationSchedule: "90d"
-```
-
-**Key rotation:** When an API key is rotated (security incident or scheduled), a new `Secret` version is created with `version: 2`. Old versions remain readable for historical replay; the connector points to the latest.
-
----
-
-#### 6.2.3 **mTLS (Mutual TLS)**
-
-For integrations requiring certificate-based authentication (e.g., proprietary ISP integrations).
-
-```
-Connector.secretRef -> Secret (stores encrypted client cert + key + CA cert chain)
-```
-
----
-
-#### 6.2.4 **Bearer Token (Custom)**
-
-For proprietary or OIDC-style integrations.
-
-```
-Connector.secretRef -> Secret (stores encrypted bearer token)
-```
-
----
-
-### 6.3 Rate Limiting & Backpressure
-
-Rate limits are declared on the `Connector` and enforced by Security Core:
-
-```
-Connector.rateLimit:
-  perMinute: 1000
-  perHour: 10000
-  perDay: 100000
-```
-
-**Enforcement:**
-1. IntegrationRun checks Connector.rateLimit before queuing.
-2. If limit exceeded, status = QUEUED; nextRetryAt set to next available window.
-3. If persistent overload (backpressure), circuit breaker opens: Connector.status = CIRCUIT_OPEN.
-4. Receiver (external system) sends `429 Too Many Requests`; platform backs off exponentially.
-
----
-
-### 6.4 Retry Logic & Circuit Breaker
-
-Retry policy on `Connector`:
-
-```
-Connector.retryPolicy:
-  maxAttempts: 5
-  backoffMs: 5000              # initial backoff
-  backoffMultiplier: 2          # exponential: 5s, 10s, 20s, 40s, 80s
-  deadLetterThreshold: 3        # fail after 3 attempts; route to dead-letter on attempt 4+
-```
-
-Circuit breaker on `Connector`:
-
-```
-Connector.circuitBreakerThreshold: 10
-# If 10 consecutive failures occur, set Connector.status = CIRCUIT_OPEN
-# Incoming runs are rejected (status = CIRCUIT_OPEN) until circuit recovers
-# (manual acknowledgment + 5 successful runs, or time-decay window expires)
-```
-
----
-
-## 7. Inbound Integrations
-
-### 7.1 Webhook Handlers (Vendor Callbacks)
-
-External systems (Stripe, Twilio, SendGrid, etc.) POST signed callbacks to:
-
-```
-POST /api/v1/integrations/webhooks/{connectorSlug}
-```
-
-**Handler flow:**
-
-1. **Signature verification.** Verify webhook signature matches `Secret.value` (HMAC-SHA256).
-   - If invalid: reject with 403 Forbidden; log security event.
-
-2. **Deduplication.** Extract idempotency token from vendor event ID or `Idempotency-Key` header.
-   - Query `IntegrationRun` for existing run with same `idempotencyKey + connectorId + 5min window`.
-   - If found: return 200 OK (idempotent no-op); skip processing.
-
-3. **Schema validation.** Validate inbound payload against `Connector.schema`.
-   - If invalid: log validation error; route to dead-letter; return 202 Accepted (ack receipt).
-
-4. **Tenant routing.** Extract tenant identifier from payload (e.g., Stripe: `stripe_account` header).
-   - Map external account ID → GAAhex `tenantId` via `ExternalTenantMapping` (per-core responsibility).
-   - If mapping fails: reject with 400 Bad Request.
-
-5. **Mapping rule application.** Load `MappingRule` for this connector.
-   - Transform source fields → canonical fields.
-   - Apply fallback values for missing fields.
-   - If transformation fails: log error; route to dead-letter.
-
-6. **Canonical write.** Call the target business core's API (e.g., Financial Core's `POST /api/v1/financial/payments`).
-   - Write goes through kernel invariants (permission, tenant scope, audit).
-   - Target core emits domain event (e.g., `Payment.Received`).
-
-7. **Event linkage.** Record `IntegrationRun`:
-   ```
-   {
-     connectorId: INTC-000001,
-     direction: INBOUND,
-     externalId: "evt_1234...",
-     idempotencyKey: "evt_1234...",
-     payload: { ... },
-     status: SUCCESS,
-     relatedEventId: EVT-000042,  # the Payment.Received event
-     completedAt: now
-   }
-   ```
-
-8. **Response.** Return 200 OK with acknowledgment.
-
----
-
-### 7.2 Polling Sync
-
-For integrations without push webhooks (e.g., legacy APIs, file-based sync).
-
-**Trigger:** Background job (`SyncJob` in Background Processing Core).
-
-```
-SyncJob:
-  name: "Salesforce contacts → Party sync"
-  connectorId: INTC-000002
-  schedule: "every 30min"
-  cursor: { lastSyncAt: "2026-06-06T14:00:00Z", lastId: "PARTY-000999" }
-```
-
-**Flow:**
-
-1. **Query external system.** Use connector's API credentials to fetch changes since `cursor.lastSyncAt`.
-   ```
-   GET https://salesforce.example.com/api/v1/contacts?updatedSince=2026-06-06T14:00:00Z
-   ```
-
-2. **Deduplication.** For each record, check `IntegrationRun` for existing sync of `externalId` within `checkpointWindow` (e.g., 24h).
-   - If found: skip record.
-
-3. **Mapping & validation.** Apply `MappingRule` to each record.
-
-4. **Write.** Call target core API for each transformed record.
-   - Batch writes if possible (e.g., `POST /api/v1/parties/batch`).
-
-5. **Checkpoint.** Update `SyncJob.cursor` with latest `lastSyncAt` and `lastId`.
-   - Record `IntegrationRun` for the entire batch:
-   ```
-   {
-     connectorId: INTC-000002,
-     direction: INBOUND,
-     status: SUCCESS,
-     sourceFieldCounts: { total_fields: 150, mapped_fields: 148, skipped_fields: 2 },
-     completedAt: now
-   }
-   ```
-
-6. **Alert on partial failure.** If some records fail:
-   - Mark `status: PARTIAL_FAILURE`.
-   - Log individual failures in notes.
-   - Retry failed records in next sync run.
-
----
-
-### 7.3 File-Drop Import
-
-For integrations relying on bulk file upload (CSV, JSON, Excel).
-
-**Trigger:** Manual upload via Studio or scheduled SFTP/S3 poll.
-
-**Flow:**
-
-1. **Upload to Storage Core.** File stored in secure bucket; virus scan on receipt.
-
-2. **Parse.** Detect format (CSV, JSON, Excel); parse to JSON records.
-
-3. **Schema validation.** Validate against `Connector.schema`; report mismatches.
-
-4. **Mapping & write.** Apply `MappingRule` per record (same as polling sync).
-
-5. **Rollback on critical failure.** If more than `rollbackThreshold` (e.g., 10%) of records fail:
-   - Mark import `status: FAILED`.
-   - Rollback all writes (via transaction or event-compensation).
-   - Notify tenant admin; request manual review.
-
----
-
-## 8. Outbound Integrations
-
-### 8.1 Webhook Subscriptions
-
-Outbound webhooks (platform emits, external system receives) are governed by `WebhookDef` entities.
-
-**Creation:**
-```
-POST /api/v1/integrations/webhooks
-{
-  "tenantId": "TENANT-000001",
-  "url": "https://external-app.example.com/webhooks/gaahex",
-  "events": ["Payment.Received", "Invoice.Generated"],
-  "secret": "<HMAC-SHA256 key to sign payloads>"
-}
-```
-
-**Event publishing:** When `Payment.Received` event is emitted by Financial Core:
-
-1. **Query subscriptions.** Find all `WebhookDef` with `events = ["*"]` or `events = ["Payment.Received"]`.
-
-2. **Dispatch.** For each subscription:
-   - Create `IntegrationRun` (direction: OUTBOUND).
-   - Sign payload: `X-Signature: sha256=<HMAC-SHA256(payload, secret)>`.
-   - Queue POST to webhook URL.
-
-3. **Delivery.** Background worker picks up queue:
-   - POST to receiver URL with timeout (e.g., 10s).
-   - Record `WebhookDelivery` with status, HTTP code, response.
-   - If 2xx: mark SUCCESS.
-   - If 4xx (client error): mark FAILED (no retry).
-   - If 5xx or timeout: mark FAILED; enqueue for retry (exponential backoff, max 5 attempts).
-   - If all retries exhausted: mark DEAD_LETTER; alert operator.
-
-4. **Idempotency.** Include `idempotencyKey` in payload (UUIDv7, unique per webhook per event).
-   - Receiver uses key to deduplicate replayed payloads (same event emitted twice = same key).
-
----
-
-### 8.2 Direct API Calls
-
-For integrations requiring synchronous writes to external systems (e.g., real-time charge capture, compliance reporting).
-
-**Example:** When a `Invoice.Generated` event fires, post to tax integration API (TaxJar).
-
-**Flow:**
-
-1. **Event trigger.** Automation or workflow rule subscribes to `Invoice.Generated`.
-   ```
-   EventSubscription:
-     event: "Invoice.Generated"
-     targetConnector: INTC-000003 (TaxJar)
-     action: "POST_TAX_CALCULATION"
-   ```
-
-2. **Fetch connector secrets.** Load `Connector.secretRef` and retrieve API credentials.
-
-3. **Build payload.** Transform domain event → external API format via `MappingRule`.
-
-4. **Call external API.**
-   ```
-   POST https://api.taxjar.com/v2/transactions
-   Authorization: Bearer <API_KEY>
-   {
-     "transaction_id": "INV-000042",
-     "amount": 100.00,
-     ...
-   }
-   ```
-
-5. **Handle response.**
-   - 2xx: Record `IntegrationRun` (status: SUCCESS); emit `TaxCalculation.Completed` event.
-   - 4xx: Log validation error; may retry (idempotent check) or mark FAILED.
-   - 5xx or timeout: Enqueue for retry (exponential backoff, deadletter after max attempts).
-   - Error: Record `IntegrationRun` (status: FAILED, error: "connection timeout"); alert.
-
-6. **Timeout & circuit breaker.** If API is slow (> 10s) or repeatedly failing:
-   - Connector circuit breaker opens.
-   - Fall back to async: queue the call for background retry (async path).
-   - Alert on SLA breach.
-
----
-
-## 9. Mapping Rules & Transformation
-
-### 9.1 Declarative Mapping
-
-Mapping rules are authored in the Studio domain by tenant admins; no hardcoding.
-
-```
-MappingRule:
-  connectorId: INTC-000001 (Stripe)
-  direction: INBOUND
-  name: "Stripe event → Financial payment"
-  
-  mappings: [
-    {
-      "sourcePath": "$.id",
-      "targetPath": "$.externalPaymentId",
-      "transformer": "identity",
-      "required": true
-    },
-    {
-      "sourcePath": "$.amount",
-      "targetPath": "$.amountCents",
-      "transformer": "multiplyByHundred",
-      "fallback": null,
-      "required": true
-    },
-    {
-      "sourcePath": "$.customer",
-      "targetPath": "$.customerId",
-      "transformer": "stripPrefix('cus_')",
-      "fallback": "UNKNOWN",
-      "required": false
-    },
-    {
-      "sourcePath": "$.metadata.invoice_id",
-      "targetPath": "$.invoiceId",
-      "transformer": "uppercase",
-      "required": false
-    }
-  ]
-```
-
-### 9.2 Transformer Plugins
-
-Standard transformers (extensible per target core):
-
-- `identity` — pass through unchanged.
-- `stripPrefix(prefix)` — remove leading string.
-- `stripSuffix(suffix)` — remove trailing string.
-- `uppercase` / `lowercase` — case conversion.
-- `dateFormat(fromFormat, toFormat)` — parse and reformat dates.
-- `multiplyBy(factor)` — numeric scaling (e.g., cents → dollars).
-- `dividedBy(factor)` — numeric division.
-- `lookupTable(map)` — enum mapping (e.g., `"pending" -> "PENDING"`).
-- `jsonPath(path)` — extract nested value.
-- `default(value)` — use value if source is null.
-- Custom transformers per target core (Financial, Party, etc.).
-
-### 9.3 Tenant-Scoped Override
-
-Tenants can override rules:
-
-```
-TenantMappingOverride:
-  tenantId: TENANT-000001
-  mappingRuleId: MAP-000001
-  overrideField: "$.amount"
-  transformer: "multiplyBy(1000)"  # for this tenant, multiply by 1000 instead of 100
-```
-
-Overrides are applied at runtime, preserving the base rule for other tenants.
-
----
-
-## 10. Credential & Secret Handling
-
-### 10.1 Credential Storage
-
-All credentials are stored via Security Core's `Secret` entity:
-
-```
-Secret:
-  id: SECRET-000042
-  name: "Stripe API key for Tenant A"
-  type: "API_KEY"
-  value: "<encrypted: sk_live_...>"  # encrypted at rest via AES-256-GCM
-  algorithm: "AES-256-GCM"
-  encryptionKeyId: KEY-000001
-  tenantId: TENANT-000001
-  expiresAt: "2026-09-06T00:00:00Z"  # optional rotation date
-  rotationSchedule: "90d"
-  lastRotatedAt: "2026-03-06T00:00:00Z"
-  createdAt, createdBy, updatedAt, updatedBy
-  audit: [...]
-```
-
-**Immutability:** `Secret.value` is **never** readable via API after creation (write-only). Only the integration worker can decrypt secrets at runtime using its own key material.
-
-### 10.2 Credential Rotation
-
-When an API key expires or is compromised:
-
-1. **New secret created.** A new `Secret` row with `version: 2` is inserted.
-2. **Connector updated.** `Connector.secretRef` points to the latest secret version.
-3. **Old secret preserved.** Version 1 remains readable for historical audit (e.g., replay old integration runs with the key they used).
-4. **Immediate effect.** Future runs use the new secret; old secrets are logged as "retired" in audit.
-
-### 10.3 Secrets in Code
-
-**Forbidden patterns:**
-- Hardcoded API keys in source.
-- Environment variables with plaintext secrets.
-- Secrets in commit history or logs.
-
-**Required pattern:**
-```python
-# ❌ WRONG
-stripe_key = "sk_live_abc123"
-
-# ✅ CORRECT
-secret = security_core.get_secret(secret_ref_id)
-stripe_key = secret.decrypt()  # only integration worker can decrypt
-```
-
----
-
-## 11. Idempotency & Deduplication
-
-### 11.1 Inbound Idempotency
-
-Every inbound webhook must be idempotent. Duplication can occur:
-- Network retry (webhook resent by provider).
-- Platform failure during processing (partial write, then crash).
-- Clock skew (provider replays old events).
-
-**Mechanism:**
-
-1. **Extract idempotency token** from vendor's event ID or custom `Idempotency-Key` header.
-   ```
-   Stripe: use evt_1234... as idempotencyKey
-   Custom: use X-Idempotency-Key header or payload field
-   ```
-
-2. **Check for duplicate.** Query `IntegrationRun`:
-   ```sql
-   SELECT * FROM IntegrationRun
-   WHERE connectorId = ? 
-     AND idempotencyKey = ?
-     AND createdAt > now() - interval '5 minutes'
-   LIMIT 1
-   ```
-
-3. **If found:** Return 200 OK (no processing). Webhook is deduplicated.
-
-4. **If not found:** Proceed with processing. Record `IntegrationRun` with `idempotencyKey` before writing state.
-
-**Token format:** UUIDv7 or vendor-provided opaque string. Must be unique per connector per 5-minute window (or longer if configured).
-
-### 11.2 Outbound Idempotency
-
-Outbound webhooks include `idempotencyKey` in the payload and headers:
-
-```json
-{
-  "eventId": "EVT-000042",
-  "eventName": "Payment.Received",
-  "idempotencyKey": "idp-2026-06-06-abc123xyz",
-  "payload": { ... }
-}
-
-// Also in header:
-X-Idempotency-Key: idp-2026-06-06-abc123xyz
-```
-
-Receiver is expected to deduplicate on the receiver's side. Platform tracks delivery attempts; if a webhook is replayed, the same `idempotencyKey` is used.
-
----
-
-## 12. Failure Handling & Dead-Letter Queues
-
-### 12.1 Failure Classification
-
-Integration failures are categorized:
-
-- **Transient:** Timeout, 5xx, temporary network error → retry with backoff.
-- **Permanent:** 4xx validation error, auth failure, schema mismatch → dead-letter immediately.
-- **Rate-limited:** 429 Too Many Requests → back off; may recover.
-- **Circuit open:** Repeated consecutive failures → circuit breaker opens; reject new attempts.
-
-### 12.2 Dead-Letter Queue
-
-When a run fails permanently (after max retries):
-
-1. **Create `DeadLetter` record:**
-   ```
-   DeadLetter:
-     id: DLQ-000001
-     tenantId: TENANT-000001
-     connectorId: INTC-000001
-     relatedRunId: INTRUN-000042
-     reason: "MAX_RETRIES_EXCEEDED"
-     originalPayload: { ... }
-     createdAt: now
-     status: PENDING_REVIEW
-   ```
-
-2. **Alert operator.**
-   - Create `IntegrationAlert` (severity: CRITICAL).
-   - Notify Integration Admin via Notification Core.
-
-3. **Operator review.** Admin reviews payload in dead-letter UI:
-   - Inspect error details.
-   - Optionally fix payload and retry.
-   - Or create manual workaround (e.g., direct API call).
-
-4. **Replay.** Once fixed, operator can replay:
-   ```
-   POST /api/v1/integrations/dead-letters/{id}/replay
-   ```
-   - Platform reprocesses the original payload with the same `idempotencyKey`.
-   - New `IntegrationRun` created; old run remains in history.
-
----
-
-### 12.3 Circuit Breaker Recovery
-
-When a circuit opens (e.g., 10 consecutive failures):
-
-1. **Incoming requests rejected.** Status = CIRCUIT_OPEN.
-2. **Alert.** Integration Admin notified.
-3. **Manual acknowledgment.** Admin reviews error logs and fixes root cause (e.g., credential rotation, external API change).
-4. **Reset.** Admin calls:
-   ```
-   PATCH /api/v1/integrations/connectors/{id}/reset-circuit
-   ```
-   - Connector status → ACTIVE.
-   - Failure counter reset to 0.
-5. **Verification.** Next 5 successful runs automatically recover; if failure reoccurs, circuit opens again.
-
----
-
-## 13. Observability & Audit
-
-### 13.1 Integration Run Observability
-
-Every `IntegrationRun` is observable via:
-
-- **Dashboard:** Query `IntegrationRun` by connector, status, date range.
-  ```
-  GET /api/v1/integrations/runs?connectorId=...&status=FAILED&fromDate=...&toDate=...
-  ```
-
-- **Timeline:** `IntegrationRun` events appear in audit timelines and activity feeds.
-
-- **Metrics:** Observability Core tracks:
-  - Delivery rate (% SUCCESS / total attempts).
-  - Latency histogram (p50, p95, p99 of `durationMs`).
-  - Error rate by error code.
-  - Retry rate.
-
-- **Alerts:** Integration Core emits alerts for:
-  - Dead-letter threshold (e.g., > 5 dead-letter runs in 1h).
-  - Circuit breaker open.
-  - Rate limiting / backpressure.
-  - Timeout spike (avg latency > 30s).
-
-### 13.2 Audit Trail
-
-Every integration mutation is auditable:
-
-- **Connector creation/update:** Logged as `IntegrationAlert` or audit event.
-- **Secret rotation:** Logged in Security Core audit.
-- **Mapping rule change:** Logged as audit event; old version preserved.
-- **Webhook subscription add/remove:** Logged as audit event.
-- **Dead-letter replay:** Logged with operator name and original run ID.
-- **Circuit breaker reset:** Logged with operator and reason.
-
----
-
-## 14. Schema Registry & Versioning
-
-### 14.1 Schema Versioning
-
-Every `Connector` and `MappingRule` carries `schemaVersion`:
-
-```
-Connector:
-  schemaVersion: "1.0"
-  schema: {
-    type: "object",
-    properties: {
-      id: { type: "string" },
-      amount: { type: "integer" }
-    }
-  }
-
-// Later, provider adds new fields:
-
-Connector (updated):
-  schemaVersion: "1.1"
-  schema: {
-    type: "object",
-    properties: {
-      id: { type: "string" },
-      amount: { type: "integer" },
-      currency: { type: "string" }  // NEW
-    }
-  }
-```
-
-### 14.2 Backward Compatibility
-
-Old mapping rules remain valid for new schema versions (as long as old fields exist). New mappings can opt into new fields:
-
-```
-MappingRule (v1.0):
-  schemaVersion: "1.0"
-  mappings: [
-    { sourcePath: "$.id", targetPath: "$.externalId" },
-    { sourcePath: "$.amount", targetPath: "$.amount" }
-  ]
-
-MappingRule (v1.1, NEW):
-  schemaVersion: "1.1"
-  mappings: [
-    { sourcePath: "$.id", targetPath: "$.externalId" },
-    { sourcePath: "$.amount", targetPath: "$.amount" },
-    { sourcePath: "$.currency", targetPath: "$.currency" }  // NEW
-  ]
-```
-
-### 14.3 Historical Replay
-
-When debugging a past integration run, the original schema and mapping rule are retrieved from history (immutable audit trail). Replay uses the same rule version that processed the original payload.
-
----
-
-## 15. Connector Ownership & Governance
-
-### 15.1 Framework Ownership
+### 9.1 Integration Core owns the framework
 
 **Integration Core** owns:
-- Connector framework (`Connector` entity, registry).
-- Webhook delivery infrastructure (`WebhookDelivery`, queues, retries).
-- Rate limiting, circuit breaker, idempotency mechanics.
-- Credential reference model (`secretRef`, no hardcoding).
-- Outbound webhook subscriptions (`WebhookDef`).
+- Connector entity, registry, and lifecycle (create/update/delete).
+- Webhook delivery infrastructure (inbound handlers, outbound dispatchers).
+- Retry mechanics, circuit breaker, rate limiting (delegated to Security Core).
+- Idempotency enforcement (deduplication logic, key validation).
+- Dead-letter queue and replay endpoints.
+- Integration run audit trail (immutable log).
 
-### 15.2 Domain Connector Ownership
+### 9.2 Target cores own domain connectors
 
-Each connector is owned by its **target business core:**
+Each connector is owned by its **target business core**:
 
 - **Stripe connector** → Financial Core (payment processing is financial business logic).
 - **Salesforce connector** → Party Core / Service Core (CRM data is customer/service data).
@@ -1030,19 +463,165 @@ Target core responsibility:
 - Validate inbound data (schema, business rules).
 - Define mapping rules for their domain.
 - Emit or consume domain events.
-- Hardening checklist (8-item list per §15 in `01_PLATFORM_CORE_ARCHITECTURE.md`).
+- Hardening checklist (8-item list per § in `01_PLATFORM_CORE_ARCHITECTURE.md`).
 
----
+### 9.3 Security Core owns credential storage
 
-## 16. Forbidden Patterns
+Security Core owns:
+- `Secret` entity and encryption at rest.
+- Credential rotation versioning.
+- Rate limiting policies.
+- Token validation and refresh.
+
+### 9.4 Audit Core owns audit trail
+
+Audit Core owns:
+- Audit records for connector mutations.
+- Access logs on secret retrieval.
+- Timeline projections of integration runs.
+
+## 10. Relationships
+
+### 10.1 Dependency direction
+
+Integration Core is in PLATFORM SERVICES tier. It depends on:
+- **FOUNDATION:** Security (credential storage), Audit (run logging), Identity
+  (API client auth), Tenant (scoping).
+- **BUSINESS OBJECTS & COMMERCE:** Target cores (Financial, Party, Case, etc.);
+  Integration Core calls their APIs to write data.
+- **PLATFORM SERVICES:** Event Core (publishes event on state change), Background
+  Processing Core (retry queues), Storage Core (file upload).
+
+### 10.2 Cross-core integration via events
+
+Integration Core publishes:
+- `Integration.RunCompleted` — emitted on every integration run completion
+  (success or failure).
+- `Integration.ConnectorStatusChanged` — emitted on circuit breaker state change.
+- `Integration.AlertGenerated` — emitted on failure/anomaly alert.
+
+Target cores subscribe to integration events and react (e.g., Financial Core
+subscribes to `Integration.RunCompleted` to confirm payment write is audited).
+
+### 10.3 Supporting cores
+
+**Event Core:** Integration publishes events via Event Core's `publish()` method.
+Integration also *consumes* domain events to trigger outbound webhooks
+(subscription pattern in Outbound Webhooks § 8.1 above).
+
+**Background Processing Core:** Integration uses BPC's queue for:
+- Webhook delivery retries.
+- Polling sync jobs.
+- File-drop processing.
+
+## 11. Responsibilities
+
+### 11.1 Integration Core team
+
+- Owns the connector framework, idempotency mechanics, and retry infrastructure.
+- Maintains the Connector, IntegrationRun, WebhookDef, WebhookDelivery entities.
+- Hardening checklist: entity, API, events, permissions, audit, UI, tests, docs.
+
+### 11.2 Target business core teams
+
+- Own the domain connectors (Stripe for Financial, Salesforce for Party, etc.).
+- Define mapping rules and validation rules for their domain.
+- Hardening checklist per core (8-item list in `01_PLATFORM_CORE_ARCHITECTURE.md`).
+
+### 11.3 Security Core team
+
+- Owns Secret storage and encryption.
+- Owns rate limiting and circuit breaker policies.
+
+### 11.4 Audit Core team
+
+- Owns audit trail projection for integration runs.
+- Surfaces audit records in timeline feeds.
+
+## 12. Allowed Patterns
+
+### AP1 — Declarative connector via registration API
+
+A connector is created via `POST /api/v1/integrations/connectors` with a full
+descriptor (name, type, schema, secretRef, retryPolicy, etc.). No hardcoded
+SDK, no custom code per integration. Response includes the webhook URL to
+register with the external provider.
+
+### AP2 — Inbound webhook with signature verification
+
+External system POSTs to `/api/v1/integrations/webhooks/{connectorSlug}` with
+an `X-Signature` header (HMAC-SHA256). Handler verifies signature against
+Connector.secretRef, deduplicates on idempotency key, maps payload via
+MappingRule, and writes to target core API.
+
+### AP3 — Idempotent deduplication within 5-minute window
+
+Handler checks `IntegrationRun` table: `WHERE connectorId = ? AND
+idempotencyKey = ? AND createdAt > now() - 5min LIMIT 1`. If found, return
+200 OK (no processing). If not found, proceed with processing and record the
+run.
+
+### AP4 — Outbound webhook subscription with event filter
+
+Tenant admin creates `WebhookDef` with `events = ["Payment.Received",
+"Invoice.Generated"]`. When an event is published by a business core, Event
+Core publishes; Integration Core's dispatcher queries matching WebhookDefs and
+enqueues POST operations.
+
+### AP5 — Polling sync via background job
+
+Background Processing Core runs a `SyncJob` per schedule. Job calls target
+external API with a cursor (lastSyncAt, lastId). For each record, deduplicates
+on externalId, maps via MappingRule, writes to target core API. Updates cursor
+and records IntegrationRun.
+
+### AP6 — File-drop import with rollback on threshold
+
+Tenant uploads CSV/JSON file. Handler parses, validates against
+Connector.schema, maps each record, writes to target core. If > 10% fail, mark
+import as FAILED; no writes committed (or event-compensation rollback).
+
+### AP7 — Direct API call with timeout and fallback
+
+Workflow rule subscribes to `Invoice.Generated`. On event, Integration Core
+synchronously calls TaxJar API (tax calculation). If timeout or 5xx: enqueue
+for async retry. If 4xx: log validation error, dead-letter. If 2xx: emit
+`TaxCalculation.Completed` event.
+
+### AP8 — Mapping rule with transformer plugins
+
+A `MappingRule` defines transformations: identity, stripPrefix, stripSuffix,
+uppercase, lowercase, dateFormat, multiplyBy, dividedBy, lookupTable, jsonPath,
+default, custom per target core. Transformations are applied per field per
+mapping rule.
+
+### AP9 — Credential rotation via Secret versioning
+
+When an API key is compromised, Security Core creates a new `Secret` version
+(v2). Connector.secretRef points to latest. Old version remains readable for
+historical replay. Future runs use new key; audit logs the rotation event.
+
+### AP10 — Dead-letter replay endpoint
+
+Operator reviews a DEAD_LETTER run in the UI. After fixing underlying issue
+(credential rotation, external API change), calls `POST
+/api/v1/integrations/dead-letters/{id}/replay`. Platform reprocesses original
+payload with same idempotencyKey; new IntegrationRun created.
+
+## 13. Forbidden Patterns
 
 ### FP1 — Hardcoded credentials in code
-Credentials must be stored in `Secret` and referenced by ID only.
+
+Credentials must be stored in `Secret` and referenced by ID only. No API keys
+in source, environment variables, or logs.
 
 ### FP2 — Direct database writes from integration code
-Integrations must call target core APIs or publish events; they never bypass invariants.
+
+Integrations must call target core APIs or publish events; they never bypass
+invariants. No integration code writes directly to business-core tables.
 
 ### FP3 — Ungoverned cross-system sync
+
 Every external sync must:
 - Go through Integration Core's idempotency and retry mechanics.
 - Be auditable (logged in `IntegrationRun`).
@@ -1050,40 +629,263 @@ Every external sync must:
 - Have a declared mapping rule.
 
 ### FP4 — Silent failures
-No integration operation is silent. Failures are logged, alerted, and dead-lettered.
+
+No integration operation is silent. Failures are logged, alerted, and
+dead-lettered.
 
 ### FP5 — Cross-tenant credential leakage
-Secrets are tenant-scoped. No tenant can access another's credentials via Connector or IntegrationRun queries (enforced via RLS on both tables).
+
+Secrets are tenant-scoped. No tenant can access another's credentials via
+Connector or IntegrationRun queries (enforced via RLS on both tables).
 
 ### FP6 — Unmapped external data
-All inbound data must be mapped to canonical fields via `MappingRule` before storage. No raw "other" JSON blobs.
 
----
+All inbound data must be mapped to canonical fields via `MappingRule` before
+storage. No raw "other" JSON blobs.
 
-## 17. Implementation Checklist
+## 14. Cross-Architecture Dependencies
 
-- [ ] Connector entity, API (create/read/update/delete/list), and RLS enforcement.
-- [ ] IntegrationRun entity, immutable-append audit log, observability queries.
-- [ ] MappingRule entity, Studio UI for authoring rules, tenant-scoped overrides.
-- [ ] WebhookDef and WebhookDelivery entities; outbound subscription API.
-- [ ] OutboundMessage entity; multi-channel logging.
-- [ ] Webhook handler (`/webhooks/{connectorSlug}`): signature verification, deduplication, mapping, tenant routing.
-- [ ] Polling sync framework (SyncJob in Background Processing Core).
-- [ ] File-drop handler (upload, parse, validate, map, write).
-- [ ] Outbound webhook dispatcher (Background Processing Core worker).
-- [ ] Direct API call handler (synchronous with timeout/fallback).
-- [ ] Retry logic, exponential backoff, circuit breaker (Security Core support).
-- [ ] Dead-letter queue, operator UI, replay endpoint.
-- [ ] Secret storage via Security Core; integration worker decryption.
-- [ ] Credential rotation mechanism.
-- [ ] Idempotency key validation and deduplication.
-- [ ] OAuth 2.0 flow (callback endpoint, token refresh, secure storage).
-- [ ] Alert mechanism (IntegrationAlert entity, Notification Core integration).
-- [ ] Audit trail (immutable logs in Audit Core, timeline projections).
-- [ ] Schema registry and versioning.
-- [ ] Observability (metrics, traces, logs per `18_OBSERVABILITY_ARCHITECTURE.md`).
-- [ ] Tenant isolation (RLS, secretRef scoping, external account mapping).
-- [ ] Documentation: Connector author guide, SDK, webhook signing spec.
+| This document depends on | For |
+|---|---|
+| `PLATFORM_REFERENCE_MODEL.md` | Core definitions and ownership. |
+| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core lifecycle, ownership laws, audit universality. |
+| `09_DATA_ARCHITECTURE.md` | Canonical entities, referenceNumber formats (S5). |
+| `11_EVENT_ARCHITECTURE.md` | Event publishing, schema registry, replay checkpoints. |
+| `13_SECURITY_ARCHITECTURE.md` | Secret storage, credential management, rate limiting. |
+| `14_TENANT_ARCHITECTURE.md` | Tenant scoping, multi-tenant isolation, RLS. |
+| `19_INFRASTRUCTURE_ARCHITECTURE.md` | Background Processing Core, queue infrastructure, storage. |
+
+| Documents that depend on this one |
+|---|
+| `02_DOMAIN_ARCHITECTURE.md` (integrations assembled by domain). |
+| `05_OPERATIONAL_ARCHITECTURE.md` (Developer Portal, connector UI). |
+| `10_API_ARCHITECTURE.md` (Integration Core REST surface). |
+| `18_OBSERVABILITY_ARCHITECTURE.md` (metrics, traces, logs for integration runs). |
+
+## 15. Implementation Requirements
+
+### 15.1 Connector entity and framework
+
+- [ ] `Connector` entity (UUIDv7, referenceNumber S5, tenant-scoped, immutable
+      critical fields).
+- [ ] Connector registration API: `POST /api/v1/integrations/connectors`.
+- [ ] Connector CRUD endpoints (read, update active/secretRef/retryPolicy/rateLimit,
+      list, delete).
+- [ ] RLS enforcement: connectorId scoped to tenantId.
+
+### 15.2 IntegrationRun entity and immutable audit log
+
+- [ ] `IntegrationRun` entity (UUIDv7, referenceNumber S5, tenant-scoped,
+      immutable post-creation).
+- [ ] Immutable append-only log; no updates after creation (corrections create
+      new rows).
+- [ ] Indexing: by connectorId, status, createdAt (for queries, filtering).
+- [ ] Observability queries: `GET /api/v1/integrations/runs?connectorId=...&status=...&fromDate=...`.
+
+### 15.3 MappingRule entity
+
+- [ ] `MappingRule` entity (UUIDv7, referenceNumber S5, tenant-scoped, versioned).
+- [ ] Studio domain UI for authoring rules (tenant-configurable).
+- [ ] Transformer plugin registry (identity, stripPrefix, dateFormat, multiplyBy,
+      etc.).
+- [ ] Tenant-scoped overrides for rule fields.
+
+### 15.4 WebhookDef and WebhookDelivery entities
+
+- [ ] `WebhookDef` entity (outbound subscription model, HMAC-SHA256 secret,
+      event filter).
+- [ ] `WebhookDelivery` entity (immutable delivery log, status, attempts,
+      response).
+- [ ] Outbound subscription API: `POST /api/v1/integrations/webhooks`.
+- [ ] Event dispatch logic: on event publish, query matching WebhookDefs and
+      enqueue deliveries.
+
+### 15.5 Webhook handler (inbound)
+
+- [ ] Handler at `POST /api/v1/integrations/webhooks/{connectorSlug}`.
+- [ ] Signature verification (HMAC-SHA256 against Connector.secretRef).
+- [ ] Deduplication: 5-minute window on idempotencyKey.
+- [ ] Schema validation against Connector.schema.
+- [ ] Tenant routing (extract tenant from payload/header; map to tenantId).
+- [ ] Mapping rule application (load MappingRule, transform source → canonical).
+- [ ] Target core API call (call Financial Core, Party Core, etc.).
+- [ ] Event linkage: record IntegrationRun with relatedEventId.
+- [ ] Dead-letter on permanent failure.
+
+### 15.6 Polling sync framework
+
+- [ ] `SyncJob` entity (Background Processing Core).
+- [ ] Job handler: query external system with cursor, dedup on externalId,
+      apply MappingRule, batch-write to target core, update cursor.
+- [ ] IntegrationRun recording per batch.
+- [ ] Partial failure handling (mark PARTIAL_FAILURE, log individual errors).
+
+### 15.7 File-drop handler
+
+- [ ] Upload to Storage Core; virus scan on receipt.
+- [ ] Parse (CSV, JSON, Excel to JSON records).
+- [ ] Schema validation.
+- [ ] Mapping rule application per record.
+- [ ] Rollback on threshold (e.g., > 10% fail).
+- [ ] IntegrationRun recording.
+
+### 15.8 Outbound webhook dispatcher
+
+- [ ] Background Processing Core worker.
+- [ ] Pick up queued WebhookDelivery.
+- [ ] POST to receiver URL (timeout: 10s).
+- [ ] Record response: status, httpStatus, responseBody.
+- [ ] Retry logic: exponential backoff, max 5 attempts.
+- [ ] Dead-letter on exhaustion; alert operator.
+
+### 15.9 Direct API call handler
+
+- [ ] Synchronous handler on event trigger (e.g., Invoice.Generated).
+- [ ] Fetch Connector.secretRef, retrieve API credentials.
+- [ ] Apply MappingRule; build external API payload.
+- [ ] Call external API with timeout (10s).
+- [ ] On 2xx: emit domain event (e.g., TaxCalculation.Completed).
+- [ ] On 4xx: log validation error, dead-letter.
+- [ ] On 5xx/timeout: enqueue for async retry.
+
+### 15.10 Retry logic and circuit breaker
+
+- [ ] Retry policy on Connector: maxAttempts, backoffMs, backoffMultiplier,
+      deadLetterThreshold.
+- [ ] Circuit breaker: open after circuitBreakerThreshold consecutive failures.
+- [ ] Circuit breaker recovery: manual reset + 5 successful runs to recover.
+- [ ] Exponential backoff: 5s, 10s, 20s, 40s, 80s (configurable multiplier).
+
+### 15.11 Dead-letter queue and replay
+
+- [ ] `DeadLetter` record: tenantId, connectorId, relatedRunId, reason,
+      originalPayload, status (PENDING_REVIEW).
+- [ ] Operator UI to review and replay.
+- [ ] Replay endpoint: `POST /api/v1/integrations/dead-letters/{id}/replay`.
+- [ ] Reprocess with same idempotencyKey; create new IntegrationRun.
+
+### 15.12 Secret storage via Security Core
+
+- [ ] Secret entity: encrypted at rest, versioned.
+- [ ] Integration worker: decrypt at runtime (only integration worker can
+      decrypt).
+- [ ] Credential rotation: new version created, old version preserved for
+      historical replay.
+- [ ] No plaintext in logs or API responses.
+
+### 15.13 Idempotency key validation
+
+- [ ] Check IntegrationRun for duplicate (connectorId, idempotencyKey,
+      createdAt within 5min).
+- [ ] Token format: UUIDv7 or vendor-provided opaque string.
+- [ ] Outbound payloads include idempotencyKey header and payload field.
+
+### 15.14 OAuth 2.0 flow (if applicable)
+
+- [ ] Callback endpoint: `POST /api/v1/integrations/oauth/callback`.
+- [ ] Exchange code for access token + refresh token.
+- [ ] Store tokens in Secret (encrypted).
+- [ ] Tenant isolation: OAuth token scoped to tenantId.
+- [ ] Token refresh on expiry.
+
+### 15.15 Alert mechanism
+
+- [ ] `IntegrationAlert` entity: alertType (CIRCUIT_OPEN, DEAD_LETTER_THRESHOLD,
+      etc.), severity, description, createdAt, acknowledgedAt.
+- [ ] Alert triggers: circuit open, dead-letter threshold breached, timeout
+      spike, auth failure, rate limited, schema mismatch.
+- [ ] Notification Core integration: emit Notification on alert creation.
+
+### 15.16 Audit trail
+
+- [ ] Connector mutation audit: immutable log of create, update, delete.
+- [ ] Secret rotation audit: logged in Security Core.
+- [ ] MappingRule change audit: immutable log, old version preserved.
+- [ ] WebhookDef add/remove audit.
+- [ ] Dead-letter replay audit: logged with operator name and original run ID.
+- [ ] Circuit breaker reset audit: logged with operator and reason.
+- [ ] All traces feed Audit Core and timeline feeds.
+
+### 15.17 Schema registry and versioning
+
+- [ ] Connector.schemaVersion and schema (JSON schema).
+- [ ] MappingRule.schemaVersion; new versions for schema evolution.
+- [ ] Backward compatibility: old rules valid for new schemas (if old fields
+      exist).
+- [ ] Historical replay: retrieve original schema + mapping rule version used.
+
+### 15.18 Observability
+
+- [ ] Dashboard: query IntegrationRun by connector, status, date range.
+- [ ] Timeline: IntegrationRun events appear in audit timelines and activity
+      feeds.
+- [ ] Metrics: delivery rate (% SUCCESS / total), latency histogram (p50, p95,
+      p99), error rate by code, retry rate.
+- [ ] Logs: all integration operations logged to observability platform per
+      `18_OBSERVABILITY_ARCHITECTURE.md`.
+
+### 15.19 Tenant isolation
+
+- [ ] RLS enforcement: connectorId, IntegrationRunId scoped to tenantId.
+- [ ] secretRef scoping: credentials only accessible by runs in same tenant.
+- [ ] External account mapping: map vendor account ID → GAAhex tenantId
+      (per-core responsibility).
+- [ ] Cross-tenant isolation check: no tenant can access another's credentials,
+      runs, or configurations.
+
+### 15.20 Documentation
+
+- [ ] Connector author guide: how to register, test, monitor a connector.
+- [ ] SDK (if applicable): helper library for common integration patterns.
+- [ ] Webhook signing spec: HMAC-SHA256 signature verification.
+- [ ] API documentation: Connector CRUD, IntegrationRun queries, dead-letter
+      replay.
+- [ ] Troubleshooting guide: common failure modes, dead-letter recovery.
+
+## 16. Future Expansion Rules
+
+### 16.1 Adding a new connector type
+
+If a new integration pattern emerges (beyond webhook, polling, file-drop, direct
+API call), it must:
+1. Define the new pattern in a proposal.
+2. Register as a new Connector.type enum value.
+3. Implement handler logic following the same structure as existing patterns
+   (signature verification, deduplication, mapping, error handling).
+4. Update this document with the new pattern.
+
+### 16.2 Splitting Integration Core
+
+If Integration Core grows large enough that two distinct ownership boundaries
+are visible (e.g., framework vs. domain-specific connectors):
+1. Document the split candidate.
+2. Identify which connectors move to which side.
+3. Migrate in a single amendment, preserving event-name continuity and FK
+   continuity.
+4. Requires constitution amendment.
+
+### 16.3 Merging with another core
+
+If Integration Core discovers it should merge with (e.g.) Event Core:
+1. Document the merge candidate.
+2. Identify which side absorbs which entities.
+3. Migrate on documented timeline.
+4. Requires constitution amendment.
+
+### 16.4 Extending transformation language
+
+The transformer plugin system is extensible. New transformers (per target core
+or globally) can be added without amending this document, as long as:
+1. Transformer is registered in MappingRule.transformerRegistry.
+2. Transformer is documented in the Connector author guide.
+3. Transformer is tested.
+
+### 16.5 Adding new authentication methods
+
+New auth postures (SAML, OAuth PKCE, WebAuthn, etc.) can be added by:
+1. Registering a new Secret.type enum value.
+2. Implementing the auth flow (callback, token exchange, refresh).
+3. Documenting in the Connector author guide.
 
 ---
 

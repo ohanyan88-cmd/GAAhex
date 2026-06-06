@@ -363,292 +363,118 @@ Analytics Core references:
 
 ---
 
-## 10. API Surface
+## 10. Relationships
 
-### 10.1 KPI Definition CRUD
+### 10.1 Relationships to other cores
 
-```
-POST /api/v1/analytics/kpi-definitions
-  Create a new KPI definition. Requires analytics.define_kpi permission.
-  Payload: name, description, formula, computedFrom, sourceEntity, aggregationType, 
-           aggregationField, owner, ownerDepartment, permissionFilter, dimensions, 
-           refreshCadence, refreshWindowMinutes, dataFreshnessSlaMinutes, timeAttributionKey,
-           excludedStatuses, includedStatuses.
-  Response: KpiDefinition (full entity).
-  Events: Analytics.KpiDefinitionCreated.
+Analytics Core coordinates with:
 
-GET /api/v1/analytics/kpi-definitions
-  List all KPI definitions (tenant-scoped). Pagination, filtering by status/tags.
+- **Event Core**: receives domain events (Service.Activated, Financial.InvoiceCreated, etc.) as primary data sources for KPI computation.
+- **Background Processing Core**: schedules and executes aggregation jobs; Analytics Core enqueues jobs, BPC coordinates execution and handles retries.
+- **Permission/Security Core**: applies row-level filters at aggregation time; a user can only see aggregates matching their permission scope.
+- **Audit Core**: all KPI changes and cross-tenant queries are audit-logged.
+- **Workspace Core**: owns dashboard page layout; Analytics provides pre-computed datasets for dashboard rendering.
+- **Business cores** (Service, Financial, Work, Case, etc.): provide operational data and events for aggregations.
 
-GET /api/v1/analytics/kpi-definitions/{id}
-  Fetch one KPI definition by ID.
+### 10.2 KPI definition relationships
 
-PUT /api/v1/analytics/kpi-definitions/{id}
-  Update a KPI definition. Requires analytics.manage_kpi permission.
-  Only the definition itself (name, formula, permissions, dimensions) may be changed.
-  Changing computedFrom or sourceEntity is a "breaking change" — requires explicit approval.
-  Events: Analytics.KpiDefinitionUpdated (includes before/after snapshot).
+- Each `KpiDefinition` references one or more `MetricModel`s (one per time resolution needed).
+- Each `MetricModel` produces `MetricTimeSeries` data points.
+- Each `DashboardDataset` aggregates data from multiple `MetricModel`s (and thus multiple `KpiDefinition`s).
+- Each `AnalyticalDimension` belongs to one `KpiDefinition`.
 
-DELETE /api/v1/analytics/kpi-definitions/{id}
-  Soft-delete (set status = ARCHIVED). Hard delete forbidden (audit trail must be preserved).
-  Events: Analytics.KpiDefinitionArchived.
-```
+### 10.3 Event subscriptions
 
-### 10.2 Metric Model CRUD
-
-```
-POST /api/v1/analytics/metric-models
-  Define a time-series aggregation rule. Requires analytics.configure_metrics permission.
-  Payload: kpiDefinitionId, timeResolution, aggregationWindow, retentionDays.
-  Response: MetricModel.
-  Events: Analytics.MetricModelCreated.
-
-GET /api/v1/analytics/metric-models?kpiDefinitionId={id}
-  List metric models for a KPI.
-
-PUT /api/v1/analytics/metric-models/{id}
-  Update timeResolution, retentionDays. Does NOT recompute history.
-  Events: Analytics.MetricModelUpdated.
-
-POST /api/v1/analytics/metric-models/{id}:trigger-refresh
-  Manually trigger a refresh of a MetricModel. Requires analytics.trigger_refresh permission.
-  Response: AggregationJob (the triggered job).
-  Events: Analytics.RefreshTriggered.
-```
-
-### 10.3 Metric Query
-
-```
-GET /api/v1/analytics/metrics/{kpiDefinitionId}/time-series
-  Fetch time-series data points for a KPI.
-  Query params: timeResolution, fromTime, toTime, dimension (optional), dimensionValue (optional).
-  Response: MetricTimeSeries[].
-  Applies permission filter and tenant isolation automatically.
-  Example: /api/v1/analytics/metrics/{id}/time-series?fromTime=2026-06-01&toTime=2026-06-06&dimension=DEPARTMENT&dimensionValue=OPS
-```
-
-### 10.4 Dashboard Dataset Refresh
-
-```
-POST /api/v1/analytics/dashboard-datasets/{id}:refresh
-  Manually trigger a refresh of a DashboardDataset. Requires analytics.refresh_dashboards permission.
-  Response: AggregationJob.
-  Events: Analytics.DashboardRefreshTriggered.
-
-GET /api/v1/analytics/dashboard-datasets/{id}/data
-  Fetch the current data for a dashboard dataset.
-  Query params: dimensionFilters (optional JSON; e.g., {"department": "OPS", "status": "ACTIVE"}).
-  Response: rows array (low-latency, O(1) lookup).
-  Applies permission filters automatically.
-```
-
-### 10.5 Cross-Tenant Query (Super-Admin only)
-
-```
-GET /api/v1/analytics/kpi/{id}?scope=CROSS_TENANT
-  Fetch aggregation across all tenants. Requires analytics.view_cross_tenant permission.
-  Logged and event-recorded as Analytics.CrossTenantQueryRequested.
-  Response: aggregated data (all tenants, labeled with tenantId).
-  NEVER returns unlabeled cross-tenant data.
-```
-
-### 10.6 Aggregation Job Status
-
-```
-GET /api/v1/analytics/jobs/{jobId}
-  Poll the status of an aggregation job (QUEUED, RUNNING, SUCCEEDED, FAILED, etc.).
-  Response: AggregationJob.
-```
-
-All endpoints enforce tenant isolation and permission checks. Responses include audit context (who requested, when, correlationId).
+Analytics Core subscribes to business core events to trigger aggregation updates. Subscription is declared in `KpiDefinition.eventTopic`. When an event matching the topic is published, any aggregation job in-flight or scheduled is coordinated with Background Processing Core.
 
 ---
 
-## 11. Event Contracts
+## 11. Responsibilities
 
-### 11.1 Events published by Analytics Core
+### 11.1 Analytics Core responsibilities
 
-```
-Analytics.KpiDefinitionCreated
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    kpiDefinitionId: UUIDv7,
-    kpiName: string,
-    actorId: UUIDv7,
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
+Analytics Core is responsible for:
 
-Analytics.KpiDefinitionUpdated
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    kpiDefinitionId: UUIDv7,
-    changes: { field: string, oldValue: any, newValue: any }[],
-    actorId: UUIDv7,
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
+1. **KPI Definition governance**: maintaining the canonical source of truth for every metric; preventing duplicates or hardcoded logic in application code.
+2. **Metric aggregation**: computing KPIs according to declared formulas, on declared schedules, respecting declared dimensions and permission filters.
+3. **Data freshness**: monitoring refresh SLAs; alerting on misses; retaining last-known-good values marked STALE when refreshes miss windows.
+4. **Permission enforcement**: applying both KPI-level filters (from `KpiDefinition.permissionFilter`) and user-level filters (from request actor's permission scope) at aggregation time.
+5. **Tenant isolation**: ensuring every aggregation includes `tenantId`; rejecting cross-tenant queries except for Super-Admin with explicit `analytics.view_cross_tenant` permission (audit-logged).
+6. **Pre-computed dataset management**: defining and refreshing `DashboardDataset` materialized views so dashboards render in O(1) time.
+7. **Observability and audit**: logging all aggregation jobs, KPI changes, cross-tenant queries, and refresh events; making job status queryable and failures debuggable.
+8. **Event subscription and processing**: consuming business core events as data sources; coordinating with Background Processing Core to recompute metrics when events arrive.
 
-Analytics.MetricComputed
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    metricModelId: UUIDv7,
-    kpiDefinitionId: UUIDv7,
-    timeResolution: string,
-    timeBucket: ISO8601,
-    value: numeric,
-    rowsProcessed: integer,
-    computationTimeMs: integer,
-    timestamp: ISO8601
-  }
+### 11.2 KPI owner responsibilities
 
-Analytics.AggregationCompleted
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    jobId: UUIDv7,
-    jobType: string (COMPUTE_KPI, REFRESH_METRIC_MODEL, REFRESH_DASHBOARD_DATASET),
-    targetId: UUIDv7,
-    rowsProcessed: integer,
-    rowsAggregated: integer,
-    computationTimeMs: integer,
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
+Each `KpiDefinition` has an assigned owner (department or user). The owner is responsible for:
 
-Analytics.AggregationFailed
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    jobId: UUIDv7,
-    errorMessage: string,
-    retryCount: integer,
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
+1. **Definition accuracy**: ensuring the formula is correct, reflects business intent, and is tested against production data.
+2. **Dimension maintenance**: keeping declared dimensions current; adding new dimensions when needed; removing stale dimensions.
+3. **SLA governance**: confirming the refresh cadence and latency targets match operational needs; responding to SLA misses.
+4. **Permission filter validation**: ensuring the `permissionFilter` rule correctly gates access per business requirements.
+5. **Audit and documentation**: maintaining notes on the KPI's purpose, data sources, and any known limitations.
 
-Analytics.AggregationDeadLettered
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    jobId: UUIDv7,
-    errorMessage: string,
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
+### 11.3 Background Processing Core responsibilities
 
-Analytics.RefreshTriggered
-  {
-    id: UUIDv7,
-    tenantId: UUIDv7,
-    targetId: UUIDv7 (KPI, MetricModel, or DashboardDataset ID),
-    actorId: UUIDv7 (who triggered),
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
+Background Processing Core is responsible for:
 
-Analytics.CrossTenantQueryRequested
-  {
-    id: UUIDv7,
-    actorId: UUIDv7 (Super-Admin),
-    kpiDefinitionId: UUIDv7 | null,
-    filterCriteria: jsonb (what was queried),
-    rowsReturned: integer,
-    timestamp: ISO8601,
-    correlationId: UUIDv7
-  }
-```
+1. **Job orchestration**: scheduling aggregation jobs based on `MetricModel.nextScheduledAt` and `DashboardDataset.nextRefreshAt`.
+2. **Job execution**: running aggregation queries in workers; updating job status; handling transient failures with exponential backoff.
+3. **Dead-letter queuing**: moving jobs to dead-letter after max retries; notifying operators for manual intervention.
+4. **Idempotency**: ensuring duplicate job runs produce identical results (via idempotencyKey from `(kpiDefinitionId, timeResolution, timeBucket)`).
 
-All Analytics events include `tenantId` (except cross-tenant queries, which include all tenant IDs in the result set) and are appended to the event store (audit-logged immutably).
+### 11.4 UI and Dashboard responsibilities
 
-### 11.2 Events Analytics Core subscribes to
+Dashboard and UI layers are responsible for:
 
-Analytics Core subscribes to business core events to populate KPI data:
-
-- **Service.Activated**, **Service.Cancelled**, **Service.Suspended** → triggers KPI recomputation if a KPI consumes `Service.Activated` event.
-- **Financial.InvoiceCreated**, **Financial.PaymentProcessed** → for revenue/payment KPIs.
-- **Work.Created**, **Work.Completed** → for task completion KPIs.
-- **Case.Escalated**, **Case.Resolved** → for case-resolution KPIs.
-- Any domain event listed in a `KpiDefinition.eventTopic` field.
-
-Analytics Core handlers are idempotent: receiving the same event twice (or via replay) produces the same aggregation result.
+1. **KPI tile rendering**: using D17 (uniform chrome, colored value text only, optional tooltip) and D18 (Cobalt spine, Gold hover, Azure interactive, Slate neutrals, Semantic status).
+2. **Dimension drill-down UI**: exposing only declared dimensions (from `KpiDefinition.dimensions`) to the user; not allowing ad-hoc drill-down.
+3. **Stale data indication**: if a KPI is STALE, showing a visual indicator (muted border, reduced opacity) and tooltip ("Data last updated X minutes ago").
+4. **Tooltip content**: rendering 1–2 sentence tooltips (from `KpiDefinition` or dashboard config) explaining what the metric counts and how it's computed.
 
 ---
 
-## 12. Permission Enforcement
+## 12. Allowed Patterns
 
-### 12.1 KPI definition and ownership
+### AP1 — Pre-computed aggregations on known schedules
 
-- **Create KPI**: requires `analytics.define_kpi` permission (Super-Admin, dedicated Analytics team).
-- **Update KPI**: requires `analytics.manage_kpi` permission + the user must be the KPI owner or a Super-Admin.
-- **View KPI definition**: any user with `analytics.view_kpi` permission. Definition includes the formula, so access is gated by permission.
-- **Trigger refresh**: requires `analytics.trigger_refresh` permission.
+Define a `MetricModel` with a `timeResolution` (e.g., HOUR_1, DAY_1) and `refreshCadence` (e.g., HOURLY, DAILY). Background Processing Core runs an aggregation job at each scheduled interval. On-request dashboards fetch the latest pre-computed result from `MetricTimeSeries` or `DashboardDataset` — O(1) time, no computation.
 
-### 12.2 Row-level filtering at aggregation time
+**When to use:** all KPIs on production dashboards; any metric displayed to end users.
 
-When a KPI is queried, the aggregation applies both:
+### AP2 — Permission-filtered aggregations
 
-1. **KPI-level filter** (from `KpiDefinition.permissionFilter`): e.g., "exclude CANCELLED statuses".
-2. **User-level filter** (from the requesting actor's permission scope): e.g., "this user can only see department X".
+When computing an aggregation, apply both the `KpiDefinition.permissionFilter` rule (e.g., "exclude CANCELLED statuses") AND the requesting actor's permission scope (e.g., "this user can only see department X"). Store or return only the result that satisfies both filters.
 
-The final result is AND'd: a user sees only rows that match BOTH the KPI definition AND their permission scope.
+**When to use:** every aggregation that is user-facing or permission-aware.
 
-Example:
-- KPI: "Active Subscribers" (formula: `status = ACTIVE`).
-- User: has `subscription.view` permission scoped to department "Northeast".
-- Query result: count of subscriptions where `status = ACTIVE` AND `owningDepartment = Northeast`.
+### AP3 — Event-driven metric refreshes
 
-### 12.3 Cross-tenant visibility
+A `KpiDefinition` declares an `eventTopic` (e.g., "Service.Activated"). When that event is published, Analytics Core coordinates with Background Processing Core to trigger a metric refresh. The refresh updates `MetricTimeSeries` and alerts if needed.
 
-- Normal users: see only their tenant's data. A query for KPI data without matching tenantId in the token is rejected (403 Forbidden).
-- Super-Admin: may request `?scope=CROSS_TENANT` to see all tenants' data. This requires `analytics.view_cross_tenant` permission and is audit-logged as a separate event (`Analytics.CrossTenantQueryRequested`).
+**When to use:** KPIs that respond to real-time business events (orders, activations, cancellations).
 
-### 12.4 Dimension-scoped viewing
+### AP4 — Dimension drill-down with declared axes
 
-If a KPI declares a dimension (e.g., "sliced by Department"), the user's permission scope may restrict which dimension values are visible:
+A `KpiDefinition` declares supported `dimensions` (e.g., DEPARTMENT, LOCATION, STATUS). A dashboard or query can request the KPI sliced by one of those dimensions. Analytics Core recomputes the aggregation scoped to the dimension value; stores the result in `MetricTimeSeries` with `dimensionSlice` metadata.
 
-- KPI: "Churn Rate by Department".
-- User: has `analytics.view_metric` permission scoped to departments ["Northeast", "Southeast"].
-- Query: `GET /api/v1/analytics/metrics/{kpiId}/time-series?dimension=DEPARTMENT&dimensionValue=Southwest` → 403 Forbidden (user not permitted to see Southwest).
+**When to use:** any KPI that needs drill-down analysis by business categories.
 
----
+### AP5 — Cross-tenant query with explicit permission and audit
 
-## 13. Data Freshness SLA
+A Super-Admin with `analytics.view_cross_tenant` permission may request `/api/v1/analytics/kpi/{id}?scope=CROSS_TENANT` to see aggregates across all tenants. The request is logged, the permission is checked, and an `Analytics.CrossTenantQueryRequested` event is emitted with full context (actor, timestamp, filter criteria).
 
-### 13.1 SLA definition
+**When to use:** platform-wide reporting by Super-Admin only; never for end-user-facing dashboards.
 
-Every `KpiDefinition` declares:
+### AP6 — Stale data retention on SLA miss
 
-- **`refreshCadence`**: enum { REAL_TIME, NEAR_REAL_TIME_1MIN, NEAR_REAL_TIME_5MIN, HOURLY, DAILY, WEEKLY }.
-- **`dataFreshnessSlaMinutes`**: target latency (e.g., 5 for NEAR_REAL_TIME_5MIN).
-- **`refreshWindowMinutes`**: grace window before alert (e.g., 2 for a 5-minute cadence, so alert fires at 7 minutes).
+If a refresh job misses its SLA window (exceeds `refreshWindowMinutes`), the job is marked as STALE. The last-known-good metric value is retained in `MetricTimeSeries` and displayed to users with a visual indicator (muted or gray styling per D18 Semantic) and tooltip ("Data last updated X minutes ago").
 
-### 13.2 SLA monitoring and alerting
-
-A background job monitors each KPI's refresh schedule:
-
-- If a refresh completes before the SLA target, the metric is marked FRESH.
-- If a refresh misses the target but completes within the grace window, the metric is marked STALE (but the previous snapshot is retained for display).
-- If a refresh exceeds the grace window, an alert fires to the KPI owner: "KPI {name} refresh SLA missed".
-
-The refresh job status is observable via `/api/v1/analytics/jobs/{jobId}` and events are emitted on miss.
-
-### 13.3 Stale data display
-
-If a KPI is STALE (refresh missed SLA but data exists), the dashboard displays:
-
-- The last known value.
-- A visual indicator: border tint or muted color (per D18 Semantic family).
-- A tooltip: "Data last updated X minutes ago. Refresh in progress." (per D17 tooltip rule).
-
-**Never silently show stale data without indication.**
+**When to use:** ensuring dashboards remain operational even when refresh infrastructure is degraded.
 
 ---
 
-## 14. Forbidden Patterns
+## 13. Forbidden Patterns
 
 ### FP1 — Hardcoded KPI logic in application code
 
@@ -759,18 +585,291 @@ def summarize_kpi(kpi_id):
 
 ---
 
-## 15. KPI Tile Visual Standard (D17 + D18)
+## 14. Cross-Architecture Dependencies
 
-### 15.1 D17 — KPI Tile Standard
+| This document depends on | For |
+|---|---|
+| `PLATFORM_REFERENCE_MODEL.md` | Analytics Core definition, purpose, and boundaries. |
+| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core ownership law, permission framework. |
+| `09_DATA_ARCHITECTURE.md` | Data schemas, canonical entity definitions. |
+| `08_PERMISSION_ARCHITECTURE.md` | Permission keys and enforcement rules. |
+| `15_REPORTING_ARCHITECTURE.md` | Separation between Analytics and Reporting; Reporting consumes KPI definitions. |
+| `06_UI_EXPERIENCE_ARCHITECTURE.md` | Dashboard page composition, KPI tile rendering, color tokens (D17, D18). |
+| `13_CONSISTENCY_PATCH_NOTES.md` | D17 KPI Tile Standard, D18 Color Token Families, D19 Rule ↔ Implementation Parity. |
+
+| Documents that depend on this one |
+|---|
+| `04_NAVIGATION_ARCHITECTURE.md` (Analytics pages and their placement). |
+| `10_API_ARCHITECTURE.md` (Analytics Core API contracts). |
+| `11_EVENT_ARCHITECTURE.md` (Analytics events and subscriptions). |
+| `15_REPORTING_ARCHITECTURE.md` (Reporting consumes KPI definitions). |
+| `06_UI_EXPERIENCE_ARCHITECTURE.md` (Dashboard and KPI tile visuals). |
+| `19_BACKGROUND_PROCESSING_ARCHITECTURE.md` (aggregation job execution). |
+
+---
+
+## 15. Implementation Requirements
+
+### 15.1 KPI Definition CRUD API
+
+```
+POST /api/v1/analytics/kpi-definitions
+  Create a new KPI definition. Requires analytics.define_kpi permission.
+  Payload: name, description, formula, computedFrom, sourceEntity, aggregationType, 
+           aggregationField, owner, ownerDepartment, permissionFilter, dimensions, 
+           refreshCadence, refreshWindowMinutes, dataFreshnessSlaMinutes, timeAttributionKey,
+           excludedStatuses, includedStatuses.
+  Response: KpiDefinition (full entity).
+  Events: Analytics.KpiDefinitionCreated.
+
+GET /api/v1/analytics/kpi-definitions
+  List all KPI definitions (tenant-scoped). Pagination, filtering by status/tags.
+
+GET /api/v1/analytics/kpi-definitions/{id}
+  Fetch one KPI definition by ID.
+
+PUT /api/v1/analytics/kpi-definitions/{id}
+  Update a KPI definition. Requires analytics.manage_kpi permission.
+  Only the definition itself (name, formula, permissions, dimensions) may be changed.
+  Changing computedFrom or sourceEntity is a "breaking change" — requires explicit approval.
+  Events: Analytics.KpiDefinitionUpdated (includes before/after snapshot).
+
+DELETE /api/v1/analytics/kpi-definitions/{id}
+  Soft-delete (set status = ARCHIVED). Hard delete forbidden (audit trail must be preserved).
+  Events: Analytics.KpiDefinitionArchived.
+```
+
+### 15.2 Metric Model CRUD API
+
+```
+POST /api/v1/analytics/metric-models
+  Define a time-series aggregation rule. Requires analytics.configure_metrics permission.
+  Payload: kpiDefinitionId, timeResolution, aggregationWindow, retentionDays.
+  Response: MetricModel.
+  Events: Analytics.MetricModelCreated.
+
+GET /api/v1/analytics/metric-models?kpiDefinitionId={id}
+  List metric models for a KPI.
+
+PUT /api/v1/analytics/metric-models/{id}
+  Update timeResolution, retentionDays. Does NOT recompute history.
+  Events: Analytics.MetricModelUpdated.
+
+POST /api/v1/analytics/metric-models/{id}:trigger-refresh
+  Manually trigger a refresh of a MetricModel. Requires analytics.trigger_refresh permission.
+  Response: AggregationJob (the triggered job).
+  Events: Analytics.RefreshTriggered.
+```
+
+### 15.3 Metric Query API
+
+```
+GET /api/v1/analytics/metrics/{kpiDefinitionId}/time-series
+  Fetch time-series data points for a KPI.
+  Query params: timeResolution, fromTime, toTime, dimension (optional), dimensionValue (optional).
+  Response: MetricTimeSeries[].
+  Applies permission filter and tenant isolation automatically.
+  Example: /api/v1/analytics/metrics/{id}/time-series?fromTime=2026-06-01&toTime=2026-06-06&dimension=DEPARTMENT&dimensionValue=OPS
+```
+
+### 15.4 Dashboard Dataset Refresh API
+
+```
+POST /api/v1/analytics/dashboard-datasets/{id}:refresh
+  Manually trigger a refresh of a DashboardDataset. Requires analytics.refresh_dashboards permission.
+  Response: AggregationJob.
+  Events: Analytics.DashboardRefreshTriggered.
+
+GET /api/v1/analytics/dashboard-datasets/{id}/data
+  Fetch the current data for a dashboard dataset.
+  Query params: dimensionFilters (optional JSON; e.g., {"department": "OPS", "status": "ACTIVE"}).
+  Response: rows array (low-latency, O(1) lookup).
+  Applies permission filters automatically.
+```
+
+### 15.5 Cross-Tenant Query API (Super-Admin only)
+
+```
+GET /api/v1/analytics/kpi/{id}?scope=CROSS_TENANT
+  Fetch aggregation across all tenants. Requires analytics.view_cross_tenant permission.
+  Logged and event-recorded as Analytics.CrossTenantQueryRequested.
+  Response: aggregated data (all tenants, labeled with tenantId).
+  NEVER returns unlabeled cross-tenant data.
+```
+
+### 15.6 Aggregation Job Status API
+
+```
+GET /api/v1/analytics/jobs/{jobId}
+  Poll the status of an aggregation job (QUEUED, RUNNING, SUCCEEDED, FAILED, etc.).
+  Response: AggregationJob.
+```
+
+All endpoints enforce tenant isolation and permission checks. Responses include audit context (who requested, when, correlationId).
+
+### 15.7 Event contracts published by Analytics Core
+
+```
+Analytics.KpiDefinitionCreated
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    kpiDefinitionId: UUIDv7,
+    kpiName: string,
+    actorId: UUIDv7,
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+
+Analytics.KpiDefinitionUpdated
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    kpiDefinitionId: UUIDv7,
+    changes: { field: string, oldValue: any, newValue: any }[],
+    actorId: UUIDv7,
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+
+Analytics.MetricComputed
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    metricModelId: UUIDv7,
+    kpiDefinitionId: UUIDv7,
+    timeResolution: string,
+    timeBucket: ISO8601,
+    value: numeric,
+    rowsProcessed: integer,
+    computationTimeMs: integer,
+    timestamp: ISO8601
+  }
+
+Analytics.AggregationCompleted
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    jobId: UUIDv7,
+    jobType: string (COMPUTE_KPI, REFRESH_METRIC_MODEL, REFRESH_DASHBOARD_DATASET),
+    targetId: UUIDv7,
+    rowsProcessed: integer,
+    rowsAggregated: integer,
+    computationTimeMs: integer,
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+
+Analytics.AggregationFailed
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    jobId: UUIDv7,
+    errorMessage: string,
+    retryCount: integer,
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+
+Analytics.AggregationDeadLettered
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    jobId: UUIDv7,
+    errorMessage: string,
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+
+Analytics.RefreshTriggered
+  {
+    id: UUIDv7,
+    tenantId: UUIDv7,
+    targetId: UUIDv7 (KPI, MetricModel, or DashboardDataset ID),
+    actorId: UUIDv7 (who triggered),
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+
+Analytics.CrossTenantQueryRequested
+  {
+    id: UUIDv7,
+    actorId: UUIDv7 (Super-Admin),
+    kpiDefinitionId: UUIDv7 | null,
+    filterCriteria: jsonb (what was queried),
+    rowsReturned: integer,
+    timestamp: ISO8601,
+    correlationId: UUIDv7
+  }
+```
+
+All Analytics events include `tenantId` (except cross-tenant queries, which include all tenant IDs in the result set) and are appended to the event store (audit-logged immutably).
+
+### 15.8 Events Analytics Core subscribes to
+
+Analytics Core subscribes to business core events to populate KPI data:
+
+- **Service.Activated**, **Service.Cancelled**, **Service.Suspended** → triggers KPI recomputation if a KPI consumes `Service.Activated` event.
+- **Financial.InvoiceCreated**, **Financial.PaymentProcessed** → for revenue/payment KPIs.
+- **Work.Created**, **Work.Completed** → for task completion KPIs.
+- **Case.Escalated**, **Case.Resolved** → for case-resolution KPIs.
+- Any domain event listed in a `KpiDefinition.eventTopic` field.
+
+Analytics Core handlers are idempotent: receiving the same event twice (or via replay) produces the same aggregation result.
+
+### 15.9 KPI definition registry
+
+`docs/analytics/kpi-registry.md` catalogs all live KPIs (one row per KPI definition):
+
+| KPI Name | Owner | Cadence | Dimensions | Source |
+|---|---|---|---|---|
+| Active Subscribers | Operations | HOURLY | DEPARTMENT, LOCATION | `Service.Activated` event |
+| Service Cancellations (30d) | Finance | DAILY | DEPARTMENT, REASON | Service table, status = CANCELLED |
+| Revenue (MTD) | Finance | HOURLY | DEPARTMENT, PRODUCT | Invoice table, createdAt >= start of month |
+
+Updated whenever a KPI definition is created or archived.
+
+### 15.10 Per-KPI deployment checklist
+
+Before a new KPI goes live:
+
+- [ ] `KpiDefinition` entity created in database.
+- [ ] Formula tested against production data (SQL validated, results spot-checked).
+- [ ] Dimensions declared and tested (drill-down works correctly).
+- [ ] Permission filter defined and tested (user sees only permitted rows).
+- [ ] Refresh cadence and SLA targets agreed (refreshes on schedule, latency monitored).
+- [ ] Aggregation job runs successfully (first 3 jobs audited).
+- [ ] Dashboard dataset pre-computed and dashboard page linked.
+- [ ] Tooltip written (1–2 sentences, references data source).
+- [ ] KPI tile visual tested (matches D17 + D18 colors).
+- [ ] Audit and event emission verified (KPI changes logged, refresh events emitted).
+- [ ] KPI registered in kpi-registry.md.
+- [ ] Owner assigned (accountable for ongoing maintenance).
+
+### 15.11 Monitoring and observability
+
+Every aggregation job exposes metrics and logs:
+
+- **Latency**: from job start to completion (per KPI, per time resolution).
+- **Success rate**: % of jobs completing without error.
+- **Data freshness**: time since last successful refresh (per KPI).
+- **SLA compliance**: % of KPIs meeting their refresh SLA target.
+
+Alerts fire on:
+
+- **SLA miss**: refresh exceeds grace window.
+- **Job failure**: aggregation job dead-lettered after max retries.
+- **Dimension misconfiguration**: drill-down request for undeclared dimension.
+
+### 15.12 KPI tile rendering (D17 + D18)
 
 All KPI tiles on the platform render identically — no "premium", "headline", or "spotlight" variants.
 
-#### 1. Uniform tile chrome
+#### Uniform tile chrome
 
 - All tiles use the same border, shadow, padding, and background.
 - No tile is visually distinguished by gold rimming, accent backgrounds, or elevation.
 
-**Implementation:**
 ```css
 .kpi-tile {
   border: 1px solid var(--gx-border);
@@ -781,14 +880,13 @@ All KPI tiles on the platform render identically — no "premium", "headline", o
 }
 ```
 
-#### 2. State communicated by colored value text only
+#### State communicated by colored value text only
 
 - `danger: true` → value rendered in `--gx-danger-fg` (red).
 - `warning: true` → value in `--gx-warning-fg` (amber).
 - `muted: true` → value in `--gx-text-3` (gray).
 - (no flag) → value in `--gx-text-1` (black).
 
-**Example:**
 ```jsx
 <div className="kpi-tile">
   <label>{kpi.label}</label>
@@ -798,13 +896,12 @@ All KPI tiles on the platform render identically — no "premium", "headline", o
 </div>
 ```
 
-#### 3. Hover reveals tooltip (optional, every tile)
+#### Hover reveals tooltip (optional, every tile)
 
 - If `KPISpec.tooltip` is provided, a popover appears above the tile on hover or focus.
 - Motion: **fade-in + subtle scale only** (no slide, no element transform).
 - Border tint (for containers, per D18): **gold border** (not blue).
 
-**CSS:**
 ```css
 .kpi-tile:hover {
   border-color: var(--gx-accent-gold);
@@ -830,7 +927,7 @@ All KPI tiles on the platform render identically — no "premium", "headline", o
 - If clickable: what clicking does (e.g., "Filter customers to ACTIVE").
 - Reference real data sources where not obvious (e.g., "last sweep, 60s old").
 
-### 15.2 D18 — Color Token Families
+#### D18 Color Token Families
 
 KPI tiles use D18 color tokens for hover affordance:
 
@@ -848,11 +945,9 @@ KPI tiles use D18 color tokens for hover affordance:
 - Hover border: Gold (`--gx-accent-gold`) — containers use gold on hover, not blue.
 - Tooltip background: Slate (neutral surface).
 
----
+### 15.13 Background aggregation job architecture
 
-## 16. Background Aggregation Job Architecture
-
-### 16.1 Job orchestration
+#### Job orchestration
 
 Analytics Core coordinates with Background Processing Core to schedule and execute aggregation jobs:
 
@@ -861,7 +956,7 @@ Analytics Core coordinates with Background Processing Core to schedule and execu
 3. **Job execution**: BPC worker pulls the job, executes the aggregation SQL/query, and updates `MetricTimeSeries` and `DashboardDataset` with results.
 4. **Job completion**: on success or failure, the job status is updated and an event is emitted (`Analytics.AggregationCompleted` or `Analytics.AggregationFailed`).
 
-### 16.2 Idempotency and replay
+#### Idempotency and replay
 
 Every aggregation job includes an `idempotencyKey` derived from `(kpiDefinitionId, timeResolution, timeBucket)`. If the same job is enqueued twice (e.g., via retry or requeue), the second run produces the same result without duplication:
 
@@ -871,7 +966,7 @@ Every aggregation job includes an `idempotencyKey` derived from `(kpiDefinitionI
 
 Result: no duplicate data in `MetricTimeSeries`.
 
-### 16.3 Failure handling
+#### Failure handling
 
 On aggregation failure:
 
@@ -881,76 +976,38 @@ On aggregation failure:
 
 The last known good metric value remains available for dashboard display (marked STALE) until the refresh succeeds.
 
----
+#### SLA monitoring and alerting
 
-## 17. Cross-Architecture Dependencies
+A background job monitors each KPI's refresh schedule:
 
-| This document depends on | For |
-|---|---|
-| `PLATFORM_REFERENCE_MODEL.md` | Analytics Core definition, purpose, and boundaries. |
-| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core ownership law, permission framework. |
-| `09_DATA_ARCHITECTURE.md` | Data schemas, canonical entity definitions. |
-| `08_PERMISSION_ARCHITECTURE.md` | Permission keys and enforcement rules. |
-| `15_REPORTING_ARCHITECTURE.md` | Separation between Analytics and Reporting; Reporting consumes KPI definitions. |
-| `06_UI_EXPERIENCE_ARCHITECTURE.md` | Dashboard page composition, KPI tile rendering, color tokens (D17, D18). |
-| `13_CONSISTENCY_PATCH_NOTES.md` | D17 KPI Tile Standard, D18 Color Token Families, D19 Rule ↔ Implementation Parity. |
+- If a refresh completes before the SLA target, the metric is marked FRESH.
+- If a refresh misses the target but completes within the grace window, the metric is marked STALE (but the previous snapshot is retained for display).
+- If a refresh exceeds the grace window, an alert fires to the KPI owner: "KPI {name} refresh SLA missed".
 
-| Documents that depend on this one |
-|---|
-| `04_NAVIGATION_ARCHITECTURE.md` (Analytics pages and their placement). |
-| `10_API_ARCHITECTURE.md` (Analytics Core API contracts). |
-| `11_EVENT_ARCHITECTURE.md` (Analytics events and subscriptions). |
-| `15_REPORTING_ARCHITECTURE.md` (Reporting consumes KPI definitions). |
-| `06_UI_EXPERIENCE_ARCHITECTURE.md` (Dashboard and KPI tile visuals). |
-| `19_BACKGROUND_PROCESSING_ARCHITECTURE.md` (aggregation job execution). |
+The refresh job status is observable via `/api/v1/analytics/jobs/{jobId}` and events are emitted on miss.
+
+#### Stale data display
+
+If a KPI is STALE (refresh missed SLA but data exists), the dashboard displays:
+
+- The last known value.
+- A visual indicator: border tint or muted color (per D18 Semantic family).
+- A tooltip: "Data last updated X minutes ago. Refresh in progress." (per D17 tooltip rule).
+
+**Never silently show stale data without indication.**
 
 ---
 
-## 18. Implementation Requirements
+## 16. Future Expansion Rules
 
-### 18.1 KPI definition registry
+The Analytics Core is designed to scale to new entity types and business domains without architectural change:
 
-`docs/analytics/kpi-registry.md` catalogs all live KPIs (one row per KPI definition):
-
-| KPI Name | Owner | Cadence | Dimensions | Source |
-|---|---|---|---|---|
-| Active Subscribers | Operations | HOURLY | DEPARTMENT, LOCATION | `Service.Activated` event |
-| Service Cancellations (30d) | Finance | DAILY | DEPARTMENT, REASON | Service table, status = CANCELLED |
-| Revenue (MTD) | Finance | HOURLY | DEPARTMENT, PRODUCT | Invoice table, createdAt >= start of month |
-
-Updated whenever a KPI definition is created or archived.
-
-### 18.2 Per-KPI checklist before deployment
-
-Before a new KPI goes live:
-
-- [ ] `KpiDefinition` entity created in database.
-- [ ] Formula tested against production data (SQL validated, results spot-checked).
-- [ ] Dimensions declared and tested (drill-down works correctly).
-- [ ] Permission filter defined and tested (user sees only permitted rows).
-- [ ] Refresh cadence and SLA targets agreed (refreshes on schedule, latency monitored).
-- [ ] Aggregation job runs successfully (first 3 jobs audited).
-- [ ] Dashboard dataset pre-computed and dashboard page linked.
-- [ ] Tooltip written (1–2 sentences, references data source).
-- [ ] KPI tile visual tested (matches D17 + D18 colors).
-- [ ] Audit and event emission verified (KPI changes logged, refresh events emitted).
-- [ ] KPI registered in kpi-registry.md.
-- [ ] Owner assigned (accountable for ongoing maintenance).
-
-### 18.3 Monitoring and observability
-
-Every aggregation job exposes metrics and logs:
-
-- **Latency**: from job start to completion (per KPI, per time resolution).
-- **Success rate**: % of jobs completing without error.
-- **Data freshness**: time since last successful refresh (per KPI).
-- **SLA compliance**: % of KPIs meeting their refresh SLA target.
-
-Alerts fire on:
-
-- **SLA miss**: refresh exceeds grace window.
-- **Job failure**: aggregation job dead-lettered after max retries.
-- **Dimension misconfiguration**: drill-down request for undeclared dimension.
+1. **New KPI types** can be added by creating new `KpiDefinition` rows and new `MetricModel` entries — no code changes needed.
+2. **New dimensions** can be added to existing KPIs by amending `KpiDefinition.dimensions` and re-triggering aggregation jobs.
+3. **New event sources** can be subscribed to by updating `KpiDefinition.eventTopic` — no background processing infrastructure changes needed.
+4. **New dashboard layouts** can consume KPI data via the stable APIs (e.g., `/api/v1/analytics/metrics/{kpiDefinitionId}/time-series`) — no Analytics Core changes needed.
+5. **Multi-tenant expansion** is already baked in: every entity is `tenantId`-scoped; new tenants inherit all KPI definitions and refresh schedules.
+6. **Performance optimization** (caching, materialization, partitioning) is additive: the APIs and entity structure remain stable.
 
 ---
 

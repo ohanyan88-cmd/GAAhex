@@ -186,7 +186,7 @@ A change to the Platform Reference Model or any of the 22 architecture constitut
 - Updating a standard's version and content (version is within the standard's scope).
 - Filing an exception (exceptional; not constitutional).
 
-## 8. The 22 Architecture Constitution Documents
+### 7.6 The 22 Architecture Constitution Documents
 
 The Platform Reference Model and 22 constitution documents form the platform's architectural law:
 
@@ -218,11 +218,9 @@ The Platform Reference Model and 22 constitution documents form the platform's a
 
 All 22 documents are constitutional. Changes to them require amendment review and are recorded in `docs/architecture/CONSTITUTION_AMENDMENT_LOG.md`.
 
-## 9. The Standards Registry
+### 7.7 Standards Registry Structure
 
 The canonical registry of the 70 numbered standards plus 7 named operational standards lives in `docs/standards/00-standards-index.md` and companion files.
-
-### 9.1 Registry structure
 
 **Primary file:** `docs/standards/00-standards-index.md`
 - Table listing all 70 numbered standards (name, status, source file, key dependencies).
@@ -237,7 +235,7 @@ The canonical registry of the 70 numbered standards plus 7 named operational sta
 - `docs/standards/GOVERNANCE_STANDARD.md` — drift rules, ratchet philosophy, standard-doc lifecycle.
 - `docs/standards/RLS_EXEMPTION_POLICY.md` — when an RLS gap surfaces, default is Fix Forward; exemption rare.
 
-### 9.2 Standard attributes (in each standard's source file)
+**Standard attributes (in each standard's source file):**
 
 Every standard file begins with frontmatter:
 
@@ -252,7 +250,7 @@ Every standard file begins with frontmatter:
 **Drift rules protecting this**: <Rule name(s)>
 ```
 
-### 9.3 Standard lifecycle
+**Standard lifecycle:**
 
 ```
         ┌──────────────────────────────────────┐
@@ -267,7 +265,7 @@ PROPOSED ── register ──> PROVISIONAL ── lock ─┴─> LOCKED
 - **LOCKED:** Sealed by platform owner; immutable name and core content; version changes only via amendment.
 - **DEPRECATED:** Being phased out; no new usage; existing uses migrate to replacement(s).
 
-### 9.4 Versioning
+**Versioning:**
 
 A LOCKED standard has semantic versioning:
 - **Major** — constitutional amendment (rare; usually retires old standard and introduces new one).
@@ -275,9 +273,172 @@ A LOCKED standard has semantic versioning:
 
 Example: "Token Migration Standard v1.2" means major version 1, minor version 2.
 
-## 10. Exception Process
+## 8. Canonical Entities
 
-### 10.1 When to file an exception
+The Governance Core owns four canonical entities:
+
+### 8.1 Standard
+
+```sql
+CREATE TABLE standard (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenant(id),
+    name TEXT NOT NULL,                    -- Immutable identity (e.g., "Token Migration Standard")
+    number INT,                             -- Display order (1–70 for numbered; NULL for named)
+    status TEXT NOT NULL CHECK (status IN ('LOCKED', 'PROVISIONAL')),
+    owner TEXT NOT NULL,                    -- Department / role
+    version TEXT NOT NULL,                  -- Semantic version (major.minor)
+    source_file TEXT,                       -- Path to source document (e.g., docs/standards/05.md)
+    summary TEXT,                           -- One sentence
+    dependencies JSONB,                     -- Array of other standard names this depends on
+    drift_rules JSONB,                      -- Array of rule names protecting this standard
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_amended_at TIMESTAMPTZ,
+    locked_at TIMESTAMPTZ,                  -- When status became LOCKED
+    audit_id UUID REFERENCES audit_log(id),
+    UNIQUE (tenant_id, name)
+);
+```
+
+### 8.2 Exception
+
+```sql
+CREATE TABLE exception (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenant(id),
+    exception_id TEXT UNIQUE,               -- Human-readable ID (EXC-2026-001)
+    standard_id UUID NOT NULL REFERENCES standard(id),
+    rationale TEXT NOT NULL,
+    scope TEXT NOT NULL,                    -- Which modules/functions affected
+    status TEXT NOT NULL CHECK (status IN ('FILED', 'APPROVED', 'IN_REMEDIATION', 'RESOLVED', 'CLOSED')),
+    time_bound DATE,                        -- Remediation target, or NULL for standing
+    approved_by UUID REFERENCES user_identity(id),
+    approved_at TIMESTAMPTZ,
+    remediation_plan TEXT,
+    filed_by UUID NOT NULL REFERENCES user_identity(id),
+    filed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    audit_id UUID REFERENCES audit_log(id),
+    CONSTRAINT exception_time_bound_future CHECK (time_bound > filed_at::date)
+);
+```
+
+### 8.3 GovernanceBoard
+
+```sql
+CREATE TABLE governance_board (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenant(id),
+    name TEXT NOT NULL,                     -- E.g., "Architecture Board"
+    member_ids JSONB NOT NULL,              -- Array of user_identity.id UUIDs
+    responsibilities TEXT,                  -- Text description of charter
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    audit_id UUID REFERENCES audit_log(id),
+    UNIQUE (tenant_id, name)
+);
+```
+
+### 8.4 ArchitectureLawRecord
+
+```sql
+CREATE TABLE architecture_law_record (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenant(id),
+    type TEXT NOT NULL CHECK (type IN ('AMENDMENT', 'EXCEPTION_APPROVAL', 'CONSTITUTION_AMENDMENT', 'DRIFT_RULE_ADDITION')),
+    artifact_type TEXT,                     -- 'standard' | 'core' | 'constitution' | etc.
+    artifact_id UUID,                       -- Ref to standard.id, exception.id, or NULL if document-level
+    artifact_name TEXT,                     -- For searches; e.g., "Token Migration Standard"
+    decision TEXT CHECK (decision IN ('APPROVED', 'REJECTED', 'PENDING')),
+    decision_detail TEXT,                   -- Comments, rationale
+    approved_by UUID REFERENCES user_identity(id),
+    approved_at TIMESTAMPTZ,
+    commit_hash TEXT,                       -- Git commit if code-level
+    audit_id UUID REFERENCES audit_log(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+All Governance Core entities are tenant-scoped and audited.
+
+## 9. Ownership Boundaries
+
+Governance Core owns:
+
+### 9.1 Standards registry
+
+Every standard's definition, versioning, status, and dependency relationships are owned by Governance Core. Standard *content* is owned by the core responsible for the subject matter (Token Migration Standard is owned by Frontend Core; RBAC Standard is owned by Identity Core); Governance Core owns the *form* (status, version, conflict resolution).
+
+### 9.2 Exception records
+
+Every exception filed against a standard, its approval chain, time-bounds, and audit trail belong to Governance Core. The originating team proposes; the governance board approves; Governance Core records.
+
+### 9.3 Amendment log and constitution records
+
+The Platform Reference Model, 22 constitution documents, and amendment log are owned by Governance Core. Constitution changes are rare and gated; all are recorded.
+
+### 9.4 Drift rules and baselines
+
+The `tools/check_drift.py` rules, `check_drift_baseline.json`, and operational CI integration for drift checking are owned by Governance Core. Individual standard owners name which rules protect their standard; Governance Core maintains enforcement.
+
+## 10. Relationships
+
+### 10.1 Governance ← Identity
+
+- Governance boards reference users (approvers).
+- Exception approval records track who approved.
+- Amendment approval is recorded in ArchitectureLawRecord.
+
+### 10.2 Governance ← Audit
+
+- Every standard change, exception approval, and amendment is audited.
+- Every drift rule violation creates an audit record (CI/CD audit).
+
+### 10.3 Governance ← Policy
+
+- Policy rules may reference standards (e.g., "follow the RBAC Standard").
+- Policy does NOT override Governance; violations are flagged.
+
+### 10.4 Governance ← Security
+
+- Governance records are immutable once created (append-only ledgers).
+- Access to amendment and exception approval is permission-gated (`governance.manage`).
+
+### 10.5 Governance → All Cores
+
+- Governance is a constitutional layer; every core must comply with its standards.
+- A core's maturity is tracked in the Platform Reference Model via the Core Maturity Ledger.
+
+## 11. Responsibilities
+
+### 11.1 Platform Owner (Gev / Ընգեր)
+
+- Approves all constitution amendments (§11.2 process).
+- Final authority on exception approval.
+- Sets standards-registry policy (when to LOCK a standard, when to propose deprecation).
+- Approves new cores, core splits/merges, core retirements.
+
+### 11.2 Architecture Lead (Phase 0–1)
+
+- Reviews exceptions and amendments on behalf of platform owner (pre-filters for Gev's attention).
+- Maintains the 22 constitution documents.
+- Keeps the Platform Reference Model up to date with core maturity.
+- Chairs the quarterly governance audit (§11.3).
+
+### 11.3 Core Owners (Future: M2+)
+
+- Owns the hardening checklist for their core (PRM 8-item list).
+- Reviews exceptions that touch their core.
+- Proposes standards that affect their core.
+- Reports core maturity at milestone boundaries.
+
+### 11.4 Domain Leads (Future: M2+)
+
+- Reviews cross-core decisions that affect their domain.
+- Ensures domain configuration is aligned with core governance.
+- Proposes domain-level standards.
+
+### 11.5 Exception Process
+
+**When to file an exception:**
 
 An exception is filed when:
 1. A feature or fix requires deviating from a locked standard.
@@ -289,7 +450,7 @@ An exception is filed when:
 - Standards that haven't been released yet.
 - Cases where the standard is wrong (amend the standard instead).
 
-### 10.2 Filing an exception
+**Filing an exception:**
 
 1. **Create an issue** (GitHub) or **Exception record** (future: Governance Core database) with:
    - `id` — auto-generated or human-readable (e.g., `EXC-2026-001`).
@@ -305,7 +466,7 @@ An exception is filed when:
 
 4. **Link to the PR** that introduces the deviation.
 
-### 10.3 Approval
+**Approval:**
 
 The governance board reviews the exception:
 - **Approve** — rationale is sound; time-bound is reasonable; remediation plan is credible. Exception is recorded.
@@ -314,7 +475,7 @@ The governance board reviews the exception:
 
 Decision is recorded in the exception record with approver name(s) and date.
 
-### 10.4 Auditing and reporting
+**Auditing and reporting:**
 
 At each quarterly review, governance audits:
 - **In-remediation exceptions** — are they on track? Do time-bounds need adjustment?
@@ -323,9 +484,9 @@ At each quarterly review, governance audits:
 
 Report published in `docs/governance/EXCEPTION_AUDIT_<YYYY-QQ>.md`.
 
-## 11. Amendment Process
+### 11.6 Amendment Process
 
-### 11.1 What requires an amendment
+**What requires an amendment:**
 
 - Adding a 52nd core (or later cores).
 - Splitting or merging cores.
@@ -334,7 +495,7 @@ Report published in `docs/governance/EXCEPTION_AUDIT_<YYYY-QQ>.md`.
 - Restructuring the 22 documents (renumbering, renaming).
 - Changing the fundamental meaning of a Governance Law (§6 of this document).
 
-### 11.2 Amendment process
+**Amendment process:**
 
 1. **Write a proposal** — 2–3 paragraphs explaining the change, why it is necessary, which artifact(s) it affects, and the plan to implement it.
 
@@ -359,7 +520,7 @@ Report published in `docs/governance/EXCEPTION_AUDIT_<YYYY-QQ>.md`.
    | 2026-06-07 | Add 52nd core: Forecasting | docs(amendment): ... | gev | Approved |
    ```
 
-### 11.3 Amendment log
+**Amendment log:**
 
 File: `docs/architecture/CONSTITUTION_AMENDMENT_LOG.md`
 
@@ -371,9 +532,9 @@ File: `docs/architecture/CONSTITUTION_AMENDMENT_LOG.md`
 | 2026-06-07 | <Description> | <short-hash> | Gev | Approved |
 ```
 
-## 12. Drift Enforcement: `tools/check_drift.py`
+### 11.7 Drift Enforcement
 
-### 12.1 Two kinds of rules
+**Two kinds of rules:**
 
 **HARD rules** — pattern anywhere in scope → immediate CI fail (exit 1). Used for canonicals fully rolled out with zero exceptions.
 
@@ -403,7 +564,7 @@ RatchetRule(
 
 When a count DECREASES, the script auto-updates the baseline. The ratchet only goes down.
 
-### 12.2 How to add a rule
+**How to add a rule:**
 
 1. **Identify the pattern** — regex or literal string that uniquely matches the anti-pattern.
 2. **Write the rule** — add `HardRule(...)` or `RatchetRule(...)` to `tools/check_drift.py`.
@@ -417,7 +578,7 @@ When a count DECREASES, the script auto-updates the baseline. The ratchet only g
 5. **If many pre-existing violations, use RATCHET instead of HARD** — establish baseline, commit alongside rule.
 6. **Document the rule** in the related standard (e.g., "Token Migration Standard" for token rules).
 
-### 12.3 Baseline management
+**Baseline management:**
 
 File: `tools/check_drift_baseline.json`
 
@@ -432,7 +593,7 @@ File: `tools/check_drift_baseline.json`
 
 When a count DECREASES (code was migrated), the script auto-updates the baseline. Commit the new baseline in the same PR as the migration.
 
-### 12.4 The escape hatch: `--update`
+**The escape hatch: `--update`:**
 
 `python tools/check_drift.py --update` forces a baseline rewrite at current counts.
 
@@ -442,7 +603,7 @@ Use ONLY when:
 
 A PR that calls `--update` without one of those reasons is a regression in disguise. Reviewers should reject it.
 
-### 12.5 CI integration
+**CI integration:**
 
 `.github/workflows/ci.yml` runs `tools/check_drift.py` in the backend job. Failure modes:
 
@@ -450,7 +611,20 @@ A PR that calls `--update` without one of those reasons is a regression in disgu
 - **Ratchet regression** → exit 2, CI red, PR blocked.
 - **Pass** → exit 0, auto-update baseline for lowered counters; commit the new `check_drift_baseline.json` alongside the migration.
 
-## 13. Per-PR Governance Metadata
+### 11.8 Operational Standards Governance
+
+The 70 numbered standards are locked in the numbered 1–70 sequence (established 2026-06-06 and sealed in `docs/standards/00-standards-index.md`). New operational standards land as *named* files (e.g., `API_CLIENT_STANDARD.md`) in `docs/standards/` without disturbing the fixed sequence.
+
+**Process for proposing a new operational standard:**
+
+1. Write the standard in isolation (draft).
+2. File a governance issue with the proposal.
+3. Get platform owner approval.
+4. Commit to `docs/standards/<STANDARD_NAME>.md` with initial status PROVISIONAL.
+5. Add to the operational-standards table in `00-standards-index.md`.
+6. Lock when consensus is reached.
+
+### 11.9 Per-PR Governance Metadata
 
 Every PR touching core logic, entities, APIs, or standards declares in its description:
 
@@ -476,164 +650,211 @@ CI checks that this block is present on PRs touching `backend/`, `frontend/`, `a
 
 PRs flagged **Medium** or **High** require governance board review before merge.
 
-## 14. Governance Board Structure
-
-The governance board is an async decision-making group. Members and their responsibilities:
-
-### 14.1 Platform Owner
-**Role:** Gev / Ընգեր (on Gev's behalf)
-- Approves all constitution amendments (§11).
-- Final authority on exception approval.
-- Sets standards-registry policy (when to LOCK a standard, when to propose deprecation).
-- Approves new cores, core splits/merges, core retirements.
-
-### 14.2 Architecture Lead (Phase 0–1)
-**Role:** Ընգեր (as Gev's delegate)
-- Reviews exceptions and amendments on behalf of platform owner (pre-filters for Gev's attention).
-- Maintains the 22 constitution documents.
-- Keeps the Platform Reference Model up to date with core maturity.
-- Chairs the quarterly governance audit (§10.4).
-
-### 14.3 Core Owners (Future: M2+)
-**Roles:** One per major core as org grows (Identity Lead, Audit Lead, Workflow Lead, etc.)
-- Owns the hardening checklist for their core (PRM 8-item list).
-- Reviews exceptions that touch their core.
-- Proposes standards that affect their core.
-- Reports core maturity at milestone boundaries.
-
-### 14.4 Domain Leads (Future: M2+)
-**Roles:** One per domain (CRM Lead, OSS Lead, BSS Lead, etc.)
-- Reviews cross-core decisions that affect their domain.
-- Ensures domain configuration is aligned with core governance.
-- Proposes domain-level standards.
-
-### 14.5 Decision Mechanism (Async)
+### 11.10 Governance Board Decision Mechanism
 
 1. **Exception filing** — author tags the board in the issue.
 2. **Board review** — members comment async with approval / feedback.
 3. **Decision recorded** — once consensus (or Gev's decision) is clear, it is recorded in the exception/amendment record with date and approver names.
 4. **Quarterly audit** — governance audit confirms compliance and tracks standing exceptions.
 
-## 15. Governance Core Entities
+## 12. Allowed Patterns
 
-The Governance Core owns four canonical entities:
+### AP1 — File an exception with clear rationale and time-bound
 
-### 15.1 Standard
+A team may deviate from a LOCKED standard by filing an Exception record with explicit rationale, scope, and target remediation date. The exception is reviewed and approved by the governance board before merging.
 
-```sql
-CREATE TABLE standard (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenant(id),
-    name TEXT NOT NULL,                    -- Immutable identity (e.g., "Token Migration Standard")
-    number INT,                             -- Display order (1–70 for numbered; NULL for named)
-    status TEXT NOT NULL CHECK (status IN ('LOCKED', 'PROVISIONAL')),
-    owner TEXT NOT NULL,                    -- Department / role
-    version TEXT NOT NULL,                  -- Semantic version (major.minor)
-    source_file TEXT,                       -- Path to source document (e.g., docs/standards/05.md)
-    summary TEXT,                           -- One sentence
-    dependencies JSONB,                     -- Array of other standard names this depends on
-    drift_rules JSONB,                      -- Array of rule names protecting this standard
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_amended_at TIMESTAMPTZ,
-    locked_at TIMESTAMPTZ,                  -- When status became LOCKED
-    audit_id UUID REFERENCES audit_log(id),
-    UNIQUE (tenant_id, name)
-);
-```
+### AP2 — Use RATCHET rules for migration tails
 
-### 15.2 Exception
+For migration-phase items with many pre-existing violations, a RATCHET rule (instead of HARD) allows the count to decrease over time without blocking PRs that improve the situation.
 
-```sql
-CREATE TABLE exception (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenant(id),
-    exception_id TEXT UNIQUE,               -- Human-readable ID (EXC-2026-001)
-    standard_id UUID NOT NULL REFERENCES standard(id),
-    rationale TEXT NOT NULL,
-    scope TEXT NOT NULL,                    -- Which modules/functions affected
-    status TEXT NOT NULL CHECK (status IN ('FILED', 'APPROVED', 'IN_REMEDIATION', 'RESOLVED', 'CLOSED')),
-    time_bound DATE,                        -- Remediation target, or NULL for standing
-    approved_by UUID REFERENCES user_identity(id),
-    approved_at TIMESTAMPTZ,
-    remediation_plan TEXT,
-    filed_by UUID NOT NULL REFERENCES user_identity(id),
-    filed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    audit_id UUID REFERENCES audit_log(id),
-    CONSTRAINT exception_time_bound_future CHECK (time_bound > filed_at::date)
-);
-```
+### AP3 — Propose an operational standard without disturbing the 1–70 sequence
 
-### 15.3 GovernanceBoard
+New governance standards may land as named files (e.g., `FORECASTING_STANDARD.md`) in `docs/standards/` without requiring amendment to the fixed 1–70 numbered sequence.
 
-```sql
-CREATE TABLE governance_board (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenant(id),
-    name TEXT NOT NULL,                     -- E.g., "Architecture Board"
-    member_ids JSONB NOT NULL,              -- Array of user_identity.id UUIDs
-    responsibilities TEXT,                  -- Text description of charter
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    audit_id UUID REFERENCES audit_log(id),
-    UNIQUE (tenant_id, name)
-);
-```
+### AP4 — Amend a constitution document with explicit approval and amendment log record
 
-### 15.4 ArchitectureLawRecord
+Any change to the Platform Reference Model or 22 architecture documents is a constitution amendment. The change is committed with `(amendment: ...)` suffix and recorded in `CONSTITUTION_AMENDMENT_LOG.md`.
 
-```sql
-CREATE TABLE architecture_law_record (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenant(id),
-    type TEXT NOT NULL CHECK (type IN ('AMENDMENT', 'EXCEPTION_APPROVAL', 'CONSTITUTION_AMENDMENT', 'DRIFT_RULE_ADDITION')),
-    artifact_type TEXT,                     -- 'standard' | 'core' | 'constitution' | etc.
-    artifact_id UUID,                       -- Ref to standard.id, exception.id, or NULL if document-level
-    artifact_name TEXT,                     -- For searches; e.g., "Token Migration Standard"
-    decision TEXT CHECK (decision IN ('APPROVED', 'REJECTED', 'PENDING')),
-    decision_detail TEXT,                   -- Comments, rationale
-    approved_by UUID REFERENCES user_identity(id),
-    approved_at TIMESTAMPTZ,
-    commit_hash TEXT,                       -- Git commit if code-level
-    audit_id UUID REFERENCES audit_log(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
+### AP5 — Reference standards in code comments when an exception is filed
 
-All Governance Core entities are tenant-scoped and audited.
+Code that deviates from a locked standard MUST cite the approved Exception record (e.g., `# Exception: EXC-2026-001`) in an inline comment to justify the deviation.
 
-## 16. Relationship to Other Cores
+## 13. Forbidden Patterns
 
-### 16.1 Governance ← Identity
-- Governance boards reference users (approvers).
-- Exception approval records track who approved.
-- Amendment approval is recorded in ArchitectureLawRecord.
+### FP1 — Code deviation without an exception record
 
-### 16.2 Governance ← Audit
-- Every standard change, exception approval, and amendment is audited.
-- Every drift rule violation creates an audit record (CI/CD audit).
+Deviating from a LOCKED standard without filing and approving an Exception record. If reviewers find unapproved deviation, the PR is rejected.
 
-### 16.3 Governance ← Policy
-- Policy rules may reference standards (e.g., "follow the RBAC Standard").
-- Policy does NOT override Governance; violations are flagged.
+### FP2 — Renaming or restructuring a LOCKED standard without amendment
 
-### 16.4 Governance ← Security
-- Governance records are immutable once created (append-only ledgers).
-- Access to amendment and exception approval is permission-gated (`governance.manage`).
+Changing a LOCKED standard's name or core meaning requires a constitution amendment. Changing only the standard's version or content (not its identity) is within-standard scope.
 
-### 16.5 Governance → All Cores
-- Governance is a constitutional layer; every core must comply with its standards.
-- A core's maturity is tracked in the Platform Reference Model via the Core Maturity Ledger.
+### FP3 — Calling `check_drift.py --update` without justification
 
-## 17. Operational Standards Governance
+Forcing a baseline rewrite without a pre-existing RATCHET rule addition or regex-tightening rationale is a hidden regression. Reviewers reject.
 
-The 70 numbered standards are locked in the numbered 1–70 sequence (established 2026-06-06 and sealed in `docs/standards/00-standards-index.md`). New operational standards land as *named* files (e.g., `API_CLIENT_STANDARD.md`) in `docs/standards/` without disturbing the fixed sequence.
+### FP4 — Merging a PR with unaddressed "Medium" or "High" governance impact without board review
 
-Process for proposing a new operational standard:
-1. Write the standard in isolation (draft).
-2. File a governance issue with the proposal.
-3. Get platform owner approval.
-4. Commit to `docs/standards/<STANDARD_NAME>.md` with initial status PROVISIONAL.
-5. Add to the operational-standards table in `00-standards-index.md`.
-6. Lock when consensus is reached.
+PRs flagged Medium or High in Governance Declaration require governance board approval before merge. Bypassing this is a constitution violation.
+
+### FP5 — Amending a constitution document without the `(amendment: ...)` suffix and log entry
+
+All amendments to PRM and the 22 documents must be committed with explicit suffix and recorded in CONSTITUTION_AMENDMENT_LOG.md. Unmarked constitution changes are a regression.
+
+### FP6 — Filing an exception against a PROVISIONAL standard
+
+PROVISIONAL standards are still evolving; exceptions against them are premature. Wait for LOCKED status or work with the standard owner to evolve the standard.
+
+### FP7 — Standing exception without permanent approval
+
+Exceptions without a time-bound must be explicitly approved as "permanent" by the governance board. "Temporary" deviations with no documented remediation plan are rejects.
+
+### FP8 — Missing amendment log entry for a constitution change
+
+Any change to PRM or the 22 documents requires a corresponding entry in `CONSTITUTION_AMENDMENT_LOG.md`. Missing entries make auditability impossible.
+
+## 14. Cross-Architecture Dependencies
+
+| This document depends on | For |
+|---|---|
+| `PLATFORM_REFERENCE_MODEL.md` | Authoritative core definitions, status, amendment policy. |
+| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core ownership, hard boundary rules (L1–L8), core lifecycle. |
+
+| Documents that depend on this one |
+|---|
+| `02_DOMAIN_ARCHITECTURE.md` (domains comply with standards) |
+| `03_INFORMATION_ARCHITECTURE.md` (entities governed by standards) |
+| `04_NAVIGATION_ARCHITECTURE.md` (navigation standards compliance) |
+| `05_OPERATIONAL_ARCHITECTURE.md` (operational standards compliance) |
+| `06_UI_EXPERIENCE_ARCHITECTURE.md` (UI standards compliance) |
+| `07_WORKFLOW_PROCESS_ARCHITECTURE.md` (Workflow Core standards) |
+| `08_PERMISSION_ARCHITECTURE.md` (Permission governance) |
+| `09_DATA_ARCHITECTURE.md` (data standards compliance) |
+| `10_API_ARCHITECTURE.md` (API standards compliance) |
+| `11_EVENT_ARCHITECTURE.md` (event standards compliance) |
+| `12_INTEGRATION_ARCHITECTURE.md` (integration standards compliance) |
+| `13_SECURITY_ARCHITECTURE.md` (security standards compliance) |
+| `14_TENANT_ARCHITECTURE.md` (tenant standards compliance) |
+| `15_REPORTING_ARCHITECTURE.md` (reporting standards compliance) |
+| `16_ANALYTICS_ARCHITECTURE.md` (analytics standards compliance) |
+| `18_OBSERVABILITY_ARCHITECTURE.md` (observability standards compliance) |
+| `19_INFRASTRUCTURE_ARCHITECTURE.md` (infrastructure standards compliance) |
+| `20_MARKETPLACE_ARCHITECTURE.md` (marketplace standards compliance) |
+| `21_AI_ARCHITECTURE.md` (AI standards compliance) |
+| `22_MOBILE_OFFLINE_ARCHITECTURE.md` (mobile standards compliance) |
+
+## 15. Implementation Requirements
+
+### 15.1 Governance Core registration
+
+The Governance Core is registered in PRM with the canonical entities listed in §8.
+
+### 15.2 Standards index and companion files
+
+Standards registry must be maintained in:
+- `docs/standards/00-standards-index.md` — master index of all 70 numbered + 7 named standards.
+- `docs/standards/14-enum-registry.md` — enum catalog.
+- `docs/standards/15-permission-registry.md` — permission key registry (immutable once released).
+- `docs/standards/RLS_EXEMPTION_REGISTRY.md` — append-only exemption log.
+- `docs/standards/FEATURE_GATING_POLICY.md` — feature gate definitions.
+- `docs/standards/GOVERNANCE_STANDARD.md` — drift rules and philosophy.
+- `docs/standards/RLS_EXEMPTION_POLICY.md` — RLS gap resolution policy.
+
+### 15.3 Drift rule documentation
+
+Every drift rule (HARD or RATCHET) must be:
+1. Defined in `tools/check_drift.py`.
+2. Referenced in the related standard's documentation (e.g., "protected by: phantom-token-usage rule").
+3. Baselined in `tools/check_drift_baseline.json` (for RATCHET rules on first run).
+
+### 15.4 Amendment log maintenance
+
+File: `docs/architecture/CONSTITUTION_AMENDMENT_LOG.md` tracks every amendment to PRM and the 22 documents. Every constitution commit includes a corresponding log entry.
+
+### 15.5 Exception tracking and auditing
+
+Exception records are stored in the `exception` table (§8.2) or tracked via GitHub issues with `exception` label. Quarterly audits publish results to `docs/governance/EXCEPTION_AUDIT_<YYYY-QQ>.md`.
+
+### 15.6 Per-PR CI enforcement
+
+CI must validate:
+- Presence of Governance Declaration block (§11.9) on PRs touching `backend/`, `frontend/`, `alembic/`, `docs/architecture/`.
+- Drift rules pass (§11.7).
+- No unapproved exceptions in code comments.
+
+### 15.7 Constitution baseline
+
+The canonical constitution baseline is:
+- **PRM** — the master reference model of 51 cores, 7 tiers, 12 separation rules.
+- **22 architecture documents** (01–22) — the hard boundaries and design laws.
+- **Amendment log** — the record of all changes to PRM and constitution docs.
+
+Deviations from this baseline require explicit amendment.
+
+## 16. Future Expansion Rules
+
+### 16.1 Adding a standard
+
+A new standard (numbered 1–70) requires:
+
+1. **Proposal.** Rationale: what behavior or constraint does it enforce? What existing standard does it overlap with, if any?
+2. **Owner assignment.** Identify the department / role responsible.
+3. **Status decision.** Start as PROVISIONAL or LOCKED based on consensus.
+4. **Registration.** Add to `docs/standards/00-standards-index.md`.
+5. **Drift rules.** If LOCKED, identify which drift rules protect it; add rules to `tools/check_drift.py`.
+
+Adding a 71st numbered standard requires a constitution amendment (see §11.6). Operational standards (named files) do not require amendment; they land in `docs/standards/` as new files.
+
+### 16.2 Locking a PROVISIONAL standard
+
+When a PROVISIONAL standard reaches consensus:
+
+1. **Document consensus** — issue or meeting notes confirming agreement.
+2. **Update status** in the standard file and index.
+3. **Add drift rules** — if LOCKED status triggers new CI enforcement, add the rules to `tools/check_drift.py` and commit alongside the status change.
+4. **Announce the lock** — publish notice to stakeholders.
+
+No amendment required; status change is within-standard scope.
+
+### 16.3 Deprecating a standard
+
+A LOCKED standard that is being phased out:
+
+1. **Announce deprecation** — mark status as DEPRECATED in the index.
+2. **Name the replacement(s)** — which new standard(s) supersede this one?
+3. **Migration timeline** — when must existing uses migrate?
+4. **Enforcement relaxation** — drift rules for the deprecated standard may soften (from HARD to RATCHET) to allow gradual migration.
+
+Deprecation does not require amendment if the replacement standard(s) already exist.
+
+### 16.4 Retiring a standard
+
+A DEPRECATED standard is fully retired (removed from active registry) when:
+
+1. All existing uses have migrated to replacement(s).
+2. Final audit confirms zero active violations.
+3. Retirement recorded in amendment log as a note (minor overhead; not a full amendment unless the retirement affects core decisions).
+
+### 16.5 Amending the 22 constitution documents
+
+Any change to the Platform Reference Model or the 22 architecture documents is an amendment. The change:
+
+1. **Requires explicit approval** from the platform owner.
+2. **Is committed with the `(amendment: ...)` suffix.**
+3. **Is recorded in CONSTITUTION_AMENDMENT_LOG.md.**
+4. **Includes a rationale** in the commit message explaining the change.
+
+No amendment to a constitution document may be made via PR without this ceremony.
+
+### 16.6 Expanding to more than 22 constitution documents
+
+If the platform grows such that the 22 documents no longer suffice (e.g., a new core tier, new cross-cutting concern), adding a 23rd document requires:
+
+1. **Proposal** explaining the new document's scope and relationship to existing ones.
+2. **Constitution amendment** to PRM and `01_PLATFORM_CORE_ARCHITECTURE.md` (and potentially `17_GOVERNANCE_ARCHITECTURE.md` itself).
+3. **Explicit approval** from the platform owner.
+
+This is a rare, high-ceremony event, not a feature.
 
 ---
 

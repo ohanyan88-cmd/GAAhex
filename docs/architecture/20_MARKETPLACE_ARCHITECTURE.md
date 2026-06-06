@@ -38,7 +38,7 @@ Out of scope (handled by other cores):
 - **G4** App review gates security, policy, branding compliance before publish.
 - **G5** Apps run under declared permissions; permission scope creep requires re-review.
 - **G6** Silent install is forbidden; every install is logged, auditable, and reversible.
-- **G7** App and Integration and Extension are distinct concepts (see §6).
+- **G7** App and Integration and Extension are distinct concepts (see §7).
 - **G8** Sandbox: APIs rate-limited, audit enabled, tenant-scoped, secrets not exposed.
 - **G9** Cross-tenant app data is forbidden unless explicitly tenant-approved.
 - **G10** Entitlements link Apps to plan features, quotas, and usage limits.
@@ -95,9 +95,35 @@ Every app action — install, update, permission change, suspension, uninstall, 
 
 An uninstall removes all Extensions, revokes all permissions, and cleans up state (configuration, data, tokens) within the tenant's data boundary. (Data created *by* the app, e.g., synced tickets, is handled per integration semantics, typically via a data retention policy.)
 
-## 6. Core Concepts
+## 6. Architecture Laws
 
-### 6.1 App
+### L1 — Sandbox enforcement is mandatory.
+
+App code runs under OAuth token with limited scopes (approved permissions only), rate-limit middleware (quota per plan), timeout enforcement (long operations killed after N seconds), and no direct DB access; all data via public APIs.
+
+### L2 — App permissions must be reviewable and approvable.
+
+At install time, tenant admins see the full list of requested permissions and explicitly approve each. Permission scope creep requires re-review and re-approval before new permissions are granted.
+
+### L3 — Tenant isolation is inviolable.
+
+An app token is always scoped to a single tenant. API calls from app code can only access resources within that tenant (enforced via RLS policy `tenant_isolation`). Cross-tenant app data access is forbidden.
+
+### L4 — Install requires explicit tenant approval.
+
+Every app install goes through Marketplace review → tenant admin approval → platform activation. Silent installs are forbidden; every install is logged, auditable, and reversible.
+
+### L5 — Secrets are never embedded in apps.
+
+Apps do not ship API keys, encryption keys, or other secrets. External credentials are managed via Developer Platform's Secret Store. Any hardcoded secrets in code or manifest are grounds for rejection at review.
+
+### L6 — Audit trail is mandatory for all app actions.
+
+Every app API call, extension invocation, install state change, permission grant, suspension, and uninstall is logged in Audit Core and linked to the acting user and reason. Silent mutations are forbidden.
+
+## 7. Core Concepts
+
+### 7.1 App
 
 A package containing:
 - **Manifest** (app.yaml): name, version, publisher, description, Extensions, Permissions, Entitlements, icon, screenshots, terms of service, privacy policy.
@@ -107,12 +133,7 @@ A package containing:
 - **Code**: (if applicable) backend or webhook handlers for Extensions. Published as a versioned artifact (npm package, container image, or zip).
 - **Security**: signed manifest, no embedded secrets, external secrets managed via Developer Platform.
 
-**Canonical entities:**
-- `App`: name, publisherId, currentVersion, status, createdAt, publishedAt, retiredAt.
-- `AppVersion`: appId, semanticVersion, manifest (YAML), codeUrl, signatureHash, status, createdAt.
-- `AppPublisher`: name, email, verifiedAt, suspendedAt, policies (e.g., data retention, support SLA).
-
-### 6.2 Extension
+### 7.2 Extension
 
 A runtime contribution provided by an App. Types (not exhaustive):
 - **UI Tab**: appears on an entity (Case, Service, Contact) detail page. Configuration: entity type, tab label, entry point URL, icon.
@@ -122,30 +143,7 @@ A runtime contribution provided by an App. Types (not exhaustive):
 - **AI Tool**: a tool callable by AI Core (see `21_AI_ARCHITECTURE.md`). Configuration: name, description, input schema, output schema, rate limit, execution timeout.
 - **Webhook Listener**: listens to platform events (Event Core) and performs actions (fire external webhook, transform, log).
 
-**Canonical entities:**
-- `Extension`: appVersionId, type, name, status, configuration (JSON), entryPointUrl, sandbox (true/false, if API calls required).
-- `ExtensionInstance`: extensionId, tenantId, configuration (tenant-specific overrides), status (enabled, disabled, suspendedByReview).
-- `ExtensionInvocation`: extensionInstanceId, invokedAt, invokedBy, duration, resultStatus, auditLogId.
-
-### 6.3 AppPermission
-
-A permission record for what an app is allowed to do. At install time, the app's manifest lists permissions; tenant admins review and approve. Each permission is a `coreEntity.action` key from `08_PERMISSION_ARCHITECTURE.md`.
-
-**Key property: install-time approval.** If an app later requests new permissions (new version), the permission is not automatically granted; it requires re-review and tenant re-approval.
-
-**Canonical entities:**
-- `AppPermission`: appVersionId, permissionKey, requestedAt, approvedAt, approvedBy, status (requested, approved, denied, revoked).
-- `AppPermissionChange`: appVersionId, addedPermissions[], removedPermissions[], reviewedAt, reviewedBy, decision (approved, denied).
-
-### 6.4 AppEntitlement
-
-Links an App to Entitlement Core quotas, features, and limits. If a tenant's plan does not include the required entitlement, the app cannot be installed.
-
-**Canonical entities:**
-- `AppEntitlement`: appVersionId, entitlementKey (e.g., `quota.apiCalls`, `feature.advancedReporting`), minimumValue, status.
-- `AppEntitlementGrant`: appInstallId, entitlementKey, grantedValue, remainingValue, resetAt (for quotas with reset windows).
-
-### 6.5 Install Lifecycle
+### 7.3 Install Lifecycle
 
 **State machine:**
 
@@ -181,7 +179,7 @@ UNINSTALLED (final; app data subject to retention policy)
 - SUSPENDED → ACTIVE requires admin action; no auto-resume.
 - UNINSTALLED is final; reinstall creates a new install record (not a revert).
 
-### 6.6 App Review
+### 7.4 App Review
 
 Apps must pass review before publish. Review gates:
 
@@ -204,22 +202,7 @@ Apps must pass review before publish. Review gates:
 - No dark patterns (misleading buttons, hidden upsells).
 - Localization: supported languages are declared.
 
-**Canonical entities:**
-- `AppReview`: appVersionId, submittedAt, submittedBy, status (inReview, approved, rejected, appealed).
-- `AppReviewGate`: appReviewId, gateType (security, policy, branding), gateStatus (passed, failed, review), comment, reviewedAt, reviewedBy.
-- `AppReviewAppeal`: appReviewId, appealedAt, appealedBy, reason, decision.
-
-### 6.7 MarketplaceListing
-
-Discoverability, ratings, metadata, version history.
-
-**Canonical entities:**
-- `MarketplaceListing`: appId, publisherName, title, description, longDescription, icon, bannerImage, category (category_enum), tags[], status (published, draft, archived, discontinued).
-- `MarketplaceVersion`: appVersionId, listing summary, releaseNotes, compatibility (minPlatformVersion, maxPlatformVersion).
-- `MarketplaceRating`: appId, ratedBy, tenantId, rating (1–5), comment, installedVersionId, ratedAt.
-- `MarketplaceInstall`: appInstallId, tenantId, appId, installRequestedAt, installedAt, installs (counter), uninstalls (counter), activeUsers (counter).
-
-### 6.8 Sandbox & API Rate Limiting
+### 7.5 Sandbox & API Rate Limiting
 
 Apps execute within a sandbox:
 - **Token isolation:** each app has one or more OAuth tokens scoped to the app and tenant.
@@ -229,25 +212,46 @@ Apps execute within a sandbox:
 - **Timeout:** long-running operations (Extensions, webhooks) have execution timeouts; runaway code is killed.
 - **Logging:** all Extension invocations are logged with duration, error, result status.
 
-**Canonical entities:**
-- `AppToken`: appId, tenantId, tokenHash, createdAt, expiresAt, revokedAt, scopes (permission list).
-- `AppApiCall`: appId, tenantId, timestamp, method, resourcePath, statusCode, durationMs, quotaUsed, auditLogId.
-- `AppQuotaReset`: appInstallId, quotaKey, resetAt, currentUsage, limit.
+## 8. Canonical Entities
 
-## 7. Ownership Boundaries
+Marketplace Core owns the following canonical entities:
 
-### 7.1 Entities owned by Marketplace Core
+- **App**: name, publisherId, currentVersion, status, createdAt, publishedAt, retiredAt.
+- **AppVersion**: appId, semanticVersion, manifest (YAML), codeUrl, signatureHash, status, createdAt.
+- **AppPublisher**: name, email, verifiedAt, suspendedAt, policies (e.g., data retention, support SLA).
+- **Extension**: appVersionId, type, name, status, configuration (JSON), entryPointUrl, sandbox (true/false, if API calls required).
+- **ExtensionInstance**: extensionId, tenantId, configuration (tenant-specific overrides), status (enabled, disabled, suspendedByReview).
+- **ExtensionInvocation**: extensionInstanceId, invokedAt, invokedBy, duration, resultStatus, auditLogId.
+- **AppPermission**: appVersionId, permissionKey, requestedAt, approvedAt, approvedBy, status (requested, approved, denied, revoked).
+- **AppPermissionChange**: appVersionId, addedPermissions[], removedPermissions[], reviewedAt, reviewedBy, decision (approved, denied).
+- **AppEntitlement**: appVersionId, entitlementKey (e.g., `quota.apiCalls`, `feature.advancedReporting`), minimumValue, status.
+- **AppEntitlementGrant**: appInstallId, entitlementKey, grantedValue, remainingValue, resetAt (for quotas with reset windows).
+- **AppInstall**: appId, tenantId, status (state machine per §7.3), requestedAt, requestedBy, reviewedAt, reviewedBy, installedAt, suspendedAt, uninstalledAt.
+- **AppReview**: appVersionId, submittedAt, submittedBy, status (inReview, approved, rejected, appealed).
+- **AppReviewGate**: appReviewId, gateType (security, policy, branding), gateStatus (passed, failed, review), comment, reviewedAt, reviewedBy.
+- **AppReviewAppeal**: appReviewId, appealedAt, appealedBy, reason, decision.
+- **MarketplaceListing**: appId, publisherName, title, description, longDescription, icon, bannerImage, category (category_enum), tags[], status (published, draft, archived, discontinued).
+- **MarketplaceVersion**: appVersionId, listing summary, releaseNotes, compatibility (minPlatformVersion, maxPlatformVersion).
+- **MarketplaceRating**: appId, ratedBy, tenantId, rating (1–5), comment, installedVersionId, ratedAt.
+- **MarketplaceInstall**: appInstallId, tenantId, appId, installRequestedAt, installedAt, installs (counter), uninstalls (counter), activeUsers (counter).
+- **AppToken**: appId, tenantId, tokenHash, createdAt, expiresAt, revokedAt, scopes (permission list).
+- **AppApiCall**: appId, tenantId, timestamp, method, resourcePath, statusCode, durationMs, quotaUsed, auditLogId.
+- **AppQuotaReset**: appInstallId, quotaKey, resetAt, currentUsage, limit.
+
+## 9. Ownership Boundaries
+
+### 9.1 Entities owned by Marketplace Core
 
 - `App`, `AppVersion`, `AppPublisher`
 - `Extension`, `ExtensionInstance`, `ExtensionInvocation`
 - `AppPermission`, `AppPermissionChange`
 - `AppEntitlement`, `AppEntitlementGrant`
+- `AppInstall`
 - `AppReview`, `AppReviewGate`, `AppReviewAppeal`
 - `MarketplaceListing`, `MarketplaceVersion`, `MarketplaceRating`, `MarketplaceInstall`
 - `AppToken`, `AppApiCall`, `AppQuotaReset`
-- `AppInstall` (see §6.5 lifecycle)
 
-### 7.2 Entities referenced but NOT owned
+### 9.2 Entities referenced but NOT owned
 
 - `Permission` (from Permission Core; listed in `08_PERMISSION_ARCHITECTURE.md`).
 - `Entitlement`, `Plan`, `Feature`, `Quota` (from Entitlement Core).
@@ -255,7 +259,7 @@ Apps execute within a sandbox:
 - `User` (from Identity Core, for Publisher profile and install approver).
 - `AuditLog` (from Audit Core; Marketplace logs to it, does not own it).
 
-### 7.3 Cross-core references
+### 9.3 Cross-core references
 
 - **AppPermission.permissionKey** → Permission Core's canonical keys (immutable, registered in `08_PERMISSION_ARCHITECTURE.md`).
 - **AppEntitlement.entitlementKey** → Entitlement Core's quotas and features.
@@ -264,31 +268,24 @@ Apps execute within a sandbox:
 - **AppReview.reviewedBy** → Identity Core (admin user).
 - **AppToken scopes** → Permission Core's canonical keys.
 
-## 8. APIs
+## 10. Relationships
 
-(Summary; full detail in `10_API_ARCHITECTURE.md`.)
+### 10.1 Dependency direction
 
-**Publisher APIs:**
-- `POST /api/v1/marketplace/apps` — create app (draft).
-- `PUT /api/v1/marketplace/apps/{appId}` — update app manifest (before publish).
-- `POST /api/v1/marketplace/apps/{appId}/publish` — submit for review.
-- `GET /api/v1/marketplace/apps/{appId}/review-status` — check review progress.
-- `GET /api/v1/marketplace/publishers/{publisherId}/apps` — list my apps.
+Marketplace Core (EXPERIENCE tier) depends on:
+- **Permission Core** (FOUNDATION): apps request permission keys; tenant admins approve; app tokens are scoped to approved permissions.
+- **Entitlement Core** (FOUNDATION): apps declare required plan features and quotas; install is blocked if tenant plan lacks entitlements.
+- **Tenant Core** (FOUNDATION): apps are installed per-tenant; app data and tokens are tenant-scoped.
+- **Identity Core** (FOUNDATION): publishers and reviewers are Identity Core users; app tokens are OAuth credentials.
+- **Security Core** (FOUNDATION): app tokens use OAuth; secrets stored in Secret Store; sandbox enforces isolation.
+- **Audit Core** (FOUNDATION): every install, permission change, API call, suspension is audited.
+- **Developer Platform Core** (PLATFORM SERVICES): publishers use Developer Platform to register apps, manage OAuth, access Secret Store.
+- **Event Core** (PLATFORM SERVICES): Marketplace publishes events on install, review, suspension, uninstall.
+- **AI Core** (INTELLIGENCE, future): apps may provide AI Tools as Extensions.
+- **Automation Core** (BUSINESS EXECUTION, future): apps may provide Automation Actions as Extensions.
+- **Integration Core** (PLATFORM SERVICES): apps may wrap or extend built-in integrations via Connector Extensions.
 
-**Admin/Install APIs:**
-- `GET /api/v1/marketplace/listings` — list published apps (public).
-- `GET /api/v1/marketplace/listings/{appId}` — get app details.
-- `POST /api/v1/marketplace/tenants/{tenantId}/installs` — request install.
-- `GET /api/v1/marketplace/tenants/{tenantId}/installs` — list installs.
-- `GET /api/v1/marketplace/tenants/{tenantId}/installs/{installId}` — get install status.
-- `PATCH /api/v1/marketplace/tenants/{tenantId}/installs/{installId}/approve` — approve install.
-- `PATCH /api/v1/marketplace/tenants/{tenantId}/installs/{installId}/suspend` — suspend app.
-- `DELETE /api/v1/marketplace/tenants/{tenantId}/installs/{installId}` — uninstall.
-
-**Token APIs:**
-- `POST /api/v1/marketplace/tokens/{appId}/tenant/{tenantId}/refresh` — renew app token (OAuth).
-
-## 9. Events
+### 10.2 Events published by Marketplace Core
 
 (Owned by Marketplace Core; published to Event Core topic namespace `marketplace.*`.)
 
@@ -306,167 +303,59 @@ Apps execute within a sandbox:
 - `Marketplace.AppTokenCreated` (appId, tenantId, tokenHash, createdAt).
 - `Marketplace.AppTokenRevoked` (appId, tenantId, revokedAt).
 
-## 10. Permissions
+## 11. Responsibilities
 
-(Defined in `08_PERMISSION_ARCHITECTURE.md`; summary here.)
+### 11.1 Marketplace Core responsibilities
 
-**Marketplace-specific permissions:**
-- `marketplace.app.publish` — create and submit apps for review (Publisher role).
-- `marketplace.app.review.approve` — approve/reject app reviews (Admin role, Marketplace review team).
-- `marketplace.app.install.request` — request app install (Tenant Admin).
-- `marketplace.app.install.approve` — approve/deny install requests (Tenant Admin).
-- `marketplace.app.install.suspend` — suspend or uninstall apps (Tenant Admin).
-- `marketplace.app.list` — list public marketplace (all authenticated users).
-- `marketplace.extension.view` — view installed extensions (Tenant Admin, end-users per extension-specific rules).
+- Manage the complete lifecycle of Apps: publish, review, install, suspend, uninstall.
+- Enforce install-time review gates (security, policy, branding compliance).
+- Manage AppPermission records and tenant approval workflows.
+- Enforce permission scope creep detection and re-review requirements.
+- Manage AppEntitlement checks at install time; block install if tenant plan lacks required features.
+- Create and revoke AppTokens; enforce rate limits on API calls.
+- Log all app actions to Audit Core.
+- Publish marketplace lifecycle events to Event Core.
+- Manage sandbox enforcement: token isolation, rate limiting, timeout, RLS tenant boundary.
 
-**Delegated permissions:**
-- Apps request permissions in manifest (e.g., `case.read`, `automation.create`).
-- At install time, tenant admins *approve* which permissions the app gets.
-- App tokens are scoped to those approved permissions only.
+### 11.2 App publisher responsibilities
 
-## 11. Entitlements
+- Declare Extensions, Permissions, and Entitlements in a valid app.yaml manifest.
+- Ensure app code does not embed secrets; use Developer Platform Secret Store.
+- Respond to app review findings; appeal rejections if appropriate.
+- Monitor app health, quota usage, and ratings via Marketplace dashboards.
+- Provide support and data retention policies per publisher profile.
 
-(Defined in `09_ENTITLEMENT_ARCHITECTURE.md` § Marketplace; summary here.)
+### 11.3 Tenant admin responsibilities
 
-Apps declare required entitlements in their manifest:
+- Request app installs via Marketplace browsing.
+- Review and approve app permissions at install time; reject if permissions are excessive.
+- Check entitlement requirements; ensure plan supports required features (or arrange upgrade).
+- Monitor installed app health, quota usage, and API call patterns.
+- Suspend or uninstall apps if abuse or quota overrun is detected.
 
-```yaml
-entitlements:
-  required:
-    - quota.apiCalls: 100000  # 100k API calls per month
-    - feature.advancedReporting: true
-    - feature.customExtensions: true
-```
+## 12. Allowed Patterns
 
-At install time:
-- Platform checks tenant's plan against required entitlements.
-- If tenant's plan lacks `feature.advancedReporting`, app cannot be installed.
-- Tenant admins see which plan upgrades are needed.
-- No silent failures; no hidden upsells.
+### AP1 — Reference across cores via canonical IDs
 
-**Quota reset window:** Entitlement Core defines whether quotas reset daily, monthly, or at custom windows. Marketplace consumes those rules via AppQuotaReset entity.
+An `AppInstall` entity carries `tenantId` (Tenant Core), `appId` (App entity), and references Permission and Entitlement keys. The reference is by canonical ID; the referenced entities remain owned by their canonical cores.
 
-## 12. Tenant Isolation & Data Security
+### AP2 — Subscribe to another core's events
 
-### 12.1 Cross-tenant data access is forbidden.
+Event Core handlers may subscribe to `Marketplace.AppInstalled` and trigger downstream workflows (e.g., send welcome email, auto-enable related extensions). The subscription is declarative; Marketplace does not know about downstream subscribers.
 
-An app token is always scoped to a single tenant. API calls from app code can only access resources within that tenant (enforced via RLS policy `tenant_isolation`).
+### AP3 — Use another core's APIs for read and permission validation
 
-### 12.2 Secrets are never embedded.
+Marketplace API endpoints read from Permission Core and Entitlement Core APIs to validate requested permissions and plan features. Reads do not require ownership transfer.
 
-Apps do not ship API keys, encryption keys, or other secrets. External credentials are managed via Developer Platform's Secret Store (see `10_API_ARCHITECTURE.md` § Developer Platform).
+### AP4 — Publish events to Event Core topic namespace
 
-### 12.3 Audit trail is mandatory.
+Marketplace Core publishes all lifecycle events (install, review, suspend, uninstall) to the `marketplace.*` Event Core namespace. Event Core broker forwards these to all subscribed consumers.
 
-Every app API call, extension invocation, and install action is logged:
-- `AppApiCall` table: appId, tenantId, timestamp, resource, result, durationMs.
-- Linked to `AuditLog` via `auditLogId`.
-- Searchable by tenant admin, platform operator.
+### AP5 — Log to Audit Core
 
-### 12.4 Sandbox enforcement.
+Every app API call, extension invocation, install state change, and permission change is logged via Audit Core API. Audit Core owns the `AuditLog` entity; Marketplace supplies the event payload.
 
-App code runs under:
-- OAuth token with limited scopes (approved permissions only).
-- Rate-limit middleware (quota per plan).
-- Timeout enforcement (long operations killed after N seconds).
-- No direct DB access; all data via public APIs.
-
-## 13. Install Lifecycle Deep Dive
-
-### 13.1 REQUESTED state
-
-Tenant admin visits Marketplace, finds "Zendesk Support Hub" app, clicks "Request Install".
-
-**Action:** Create `AppInstall` record with status = REQUESTED.
-- Stores appId, tenantId, requestedAt, requestedBy (admin user).
-- Creates `AppPermissionChange` for the app's manifest permissions.
-- Sends event: `Marketplace.AppInstallRequested`.
-
-**Audit:** Record in AuditLog: "Zendesk Support Hub install requested by john@tenant.example.com".
-
-### 13.2 REVIEWED state
-
-Marketplace Core review team (or automation) inspects the `AppInstall`:
-- Checks `AppPermission` entries: does the app request only sensible permissions?
-- Checks `AppEntitlement`: does the tenant's plan support required features?
-- Checks compliance: has the app's `AppReview` been approved?
-- Checks tenant: is the tenant in good standing (not suspended)?
-
-If all pass: transition to APPROVED. If any fail: transition to REJECTED.
-
-**Audit:** Record in AuditLog: "Zendesk Support Hub install reviewed by marketplace-reviewer@gaahex.io; result: approved".
-
-### 13.3 APPROVED state
-
-Tenant admin sees: "Install approved! Click below to confirm."
-
-Tenant admin clicks "Confirm Install".
-
-**Action:** Platform transitions `AppInstall.status` to INSTALLED and:
-1. Creates `AppToken` (OAuth token for the app).
-2. Creates `ExtensionInstance` records for each Extension in the app.
-3. Sets each ExtensionInstance.status = enabled.
-4. Sets AppInstall.status = ACTIVE.
-5. Sends event: `Marketplace.AppInstalled` with extensionsActivated list.
-
-**Audit:** Record in AuditLog: "Zendesk Support Hub installed; extensions activated: [sync_tickets, automation_handler]".
-
-### 13.4 ACTIVE state
-
-App is running. Tenant users interact with Extensions:
-- Open a Case detail page; the "Zendesk History" tab appears (UI Extension).
-- Create an automation rule with a "Sync to Zendesk" action (Automation Extension).
-
-Every invocation logs:
-- `ExtensionInvocation`: extensionInstanceId, invokedAt, invokedBy, duration, resultStatus.
-- `AppApiCall`: appId, tenantId, resource, statusCode, duration, quotaUsed.
-- Both linked to `AuditLog`.
-
-**Audit:** "app=Zendesk, tenantId=abc123, resource=/api/v1/cases/xyz, statusCode=200, quotaUsed=1, timestamp=2026-06-06T14:32:15Z".
-
-### 13.5 SUSPENDED state
-
-Tenant admin discovers app is making excessive API calls (quota overrun) or sending data outside tenant scope.
-
-**Action:** Admin clicks "Suspend App".
-1. Transition AppInstall.status to SUSPENDED.
-2. Revoke AppToken (mark as revoked).
-3. Disable all ExtensionInstance records (status = disabled).
-4. Send event: `Marketplace.AppSuspended`.
-5. Notify app publisher: "Your app in tenant XYZ has been suspended due to quota overrun."
-
-**Audit:** "Zendesk Support Hub suspended by john@tenant.example.com; reason: quota overrun; resume: manual only".
-
-**Resume:** Admin clicks "Resume". Transition back to ACTIVE, recreate AppToken, re-enable Extensions.
-
-### 13.6 UNINSTALLED state
-
-Tenant admin clicks "Uninstall App".
-
-**Action:**
-1. Transition AppInstall.status to UNINSTALLED.
-2. Revoke AppToken.
-3. Disable and mark for cleanup all ExtensionInstance records.
-4. Follow AppPublisher.dataRetentionPolicy (e.g., delete synced data after 30 days, or export to CSV).
-5. Send event: `Marketplace.AppUninstalled` with dataRetentionPolicy.
-6. Record uninstallAt timestamp.
-
-**Audit:** "Zendesk Support Hub uninstalled by john@tenant.example.com; data retention policy: delete-after-30-days".
-
-**Final:** AppInstall record is archived (not deleted); history is preserved for compliance.
-
-## 14. Hardening Artifacts (8-item checklist per Platform Core definition)
-
-1. **Canonical entities and state model** ✓ (§6, §7, §13).
-2. **Ownership and anti-overlap rules** ✓ (§7).
-3. **API surface and service boundary** ✓ (§8, `10_API_ARCHITECTURE.md`).
-4. **Event contracts and audit records** ✓ (§9, Audit Core).
-5. **Permission, policy, entitlement, and tenant rules** ✓ (§10, §11, §12).
-6. **UI / navigation placement rules** → Deferred to `06_UI_EXPERIENCE_ARCHITECTURE.md` (Marketplace is Experience tier; specific page layouts are experience concerns).
-7. **Reporting / analytics exposure rules** → Deferred to `15_REPORTING_ARCHITECTURE.md`, `16_ANALYTICS_ARCHITECTURE.md` (Marketplace admin dashboards report on app usage, ratings, review queue).
-8. **Test and migration requirements** → Deferred to Phase M2+ implementation runbook (TBD).
-
-## 15. Forbidden Patterns
+## 13. Forbidden Patterns
 
 ### FP1 — Silent install
 
@@ -492,23 +381,154 @@ App makes API calls that are not logged in AppApiCall and AuditLog. Rejected. Ev
 
 App code executes eval(), exec(), or direct SQL. Forbidden. App code runs via public APIs only; no runtime code execution.
 
-## 16. Integration with Other Cores
+## 14. Cross-Architecture Dependencies
 
-| Core | How Marketplace depends on it |
+| This document depends on | For |
 |---|---|
-| **Permission Core** | Marketplace apps request permission keys; tenant admins approve; app tokens are scoped to approved permissions. |
-| **Entitlement Core** | Apps declare required plan features and quotas; install is blocked if tenant plan lacks entitlements. |
-| **Tenant Core** | Apps are installed per-tenant; app data and tokens are tenant-scoped. |
-| **Identity Core** | Publishers and reviewers are Identity Core users; app tokens are OAuth credentials. |
-| **Security Core** | App tokens use OAuth; secrets stored in Secret Store; sandbox enforces isolation. |
-| **Audit Core** | Every install, permission change, API call, suspension is audited. |
-| **Developer Platform Core** | Publishers use Developer Platform to register apps, manage OAuth, access Secret Store. |
-| **Event Core** | Marketplace publishes events on install, review, suspension, uninstall. |
-| **AI Core** (future) | Apps may provide AI Tools as Extensions. |
-| **Automation Core** (future) | Apps may provide Automation Actions as Extensions. |
-| **Integration Core** | Apps may wrap or extend built-in integrations via Connector Extensions. |
+| `PLATFORM_REFERENCE_MODEL.md` | Authoritative Marketplace Core definition and status. |
+| `08_PERMISSION_ARCHITECTURE.md` | Permission key registry (`object.action` keys). |
+| `09_ENTITLEMENT_ARCHITECTURE.md` | Plan, Feature, Quota, Limit canonical entities and semantics. |
+| `10_API_ARCHITECTURE.md` | API surface design for Marketplace publishers and admins. |
+| `11_EVENT_ARCHITECTURE.md` | Event topic naming and contracts for `marketplace.*` namespace. |
+| `13_SECURITY_ARCHITECTURE.md` | OAuth, Secret Store, RLS enforcement. |
+| `14_TENANT_ARCHITECTURE.md` | Tenant isolation and `tenant_isolation` RLS policy. |
+| `17_GOVERNANCE_ARCHITECTURE.md` | App review standards and governance gates. |
+| `21_AI_ARCHITECTURE.md` | AI Tool extension contract (future). |
+| `07_WORKFLOW_PROCESS_ARCHITECTURE.md` | Automation Action extension contract. |
 
-## 17. Success Criteria (Reserved for M2+ Implementation)
+| Documents that depend on this one |
+|---|
+| `06_UI_EXPERIENCE_ARCHITECTURE.md` (Marketplace UI surface, admin install flow, publisher portal). |
+| `15_REPORTING_ARCHITECTURE.md` (Marketplace app admin dashboards, rating rollups). |
+| `16_ANALYTICS_ARCHITECTURE.md` (App usage, install, quota telemetry). |
+
+## 15. Implementation Requirements
+
+### 15.1 Canonical entities and schema
+
+All 22 canonical entities (§8) are registered in `09_DATA_ARCHITECTURE.md` with:
+- Table name (e.g., `marketplace_app`, `marketplace_app_install`).
+- Column schema (id, timestamps, foreign keys, status enums).
+- Tenant scoping: all business entities carry `tenantId` and are subject to `tenant_isolation` RLS.
+- Audit linkage: state-changing entities link to `AuditLog` via `auditLogId`.
+
+### 15.2 API surface
+
+Marketplace Core exposes APIs in three categories (details in `10_API_ARCHITECTURE.md`):
+
+**Publisher APIs:**
+- `POST /api/v1/marketplace/apps` — create app (draft).
+- `PUT /api/v1/marketplace/apps/{appId}` — update app manifest (before publish).
+- `POST /api/v1/marketplace/apps/{appId}/publish` — submit for review.
+- `GET /api/v1/marketplace/apps/{appId}/review-status` — check review progress.
+- `GET /api/v1/marketplace/publishers/{publisherId}/apps` — list my apps.
+
+**Admin/Install APIs:**
+- `GET /api/v1/marketplace/listings` — list published apps (public).
+- `GET /api/v1/marketplace/listings/{appId}` — get app details.
+- `POST /api/v1/marketplace/tenants/{tenantId}/installs` — request install.
+- `GET /api/v1/marketplace/tenants/{tenantId}/installs` — list installs.
+- `GET /api/v1/marketplace/tenants/{tenantId}/installs/{installId}` — get install status.
+- `PATCH /api/v1/marketplace/tenants/{tenantId}/installs/{installId}/approve` — approve install.
+- `PATCH /api/v1/marketplace/tenants/{tenantId}/installs/{installId}/suspend` — suspend app.
+- `DELETE /api/v1/marketplace/tenants/{tenantId}/installs/{installId}` — uninstall.
+
+**Token APIs:**
+- `POST /api/v1/marketplace/tokens/{appId}/tenant/{tenantId}/refresh` — renew app token (OAuth).
+
+### 15.3 Permission registry entries
+
+All Marketplace-specific permissions (defined in `08_PERMISSION_ARCHITECTURE.md`):
+- `marketplace.app.publish` — create and submit apps for review (Publisher role).
+- `marketplace.app.review.approve` — approve/reject app reviews (Admin role, Marketplace review team).
+- `marketplace.app.install.request` — request app install (Tenant Admin).
+- `marketplace.app.install.approve` — approve/deny install requests (Tenant Admin).
+- `marketplace.app.install.suspend` — suspend or uninstall apps (Tenant Admin).
+- `marketplace.app.list` — list public marketplace (all authenticated users).
+- `marketplace.extension.view` — view installed extensions (Tenant Admin, end-users per extension-specific rules).
+
+### 15.4 Entitlement rules
+
+Apps declare required entitlements in manifest; Entitlement Core defines feature and quota semantics:
+
+```yaml
+entitlements:
+  required:
+    - quota.apiCalls: 100000  # 100k API calls per month
+    - feature.advancedReporting: true
+    - feature.customExtensions: true
+```
+
+At install time, Marketplace Core checks tenant's plan against required entitlements. If tenant lacks required features, install is blocked.
+
+### 15.5 Event contracts
+
+All lifecycle events are published to Event Core `marketplace.*` namespace with:
+- Full audit trail (actor, timestamp, reason).
+- Tenant-scoped records (event includes `tenantId` where applicable).
+- Idempotency keys to support replay safety.
+
+### 15.6 Audit trail integration
+
+Every state-changing action in Marketplace Core produces:
+1. State change in canonical entity (e.g., `AppInstall.status` = ACTIVE).
+2. AuditLog record via Audit Core API (who, what, when, why).
+3. Domain event published to Event Core (for downstream subscribers).
+
+Examples:
+- Install request: log to `AuditLog` with action="install_requested", actor=adminUserId, appId, tenantId.
+- Permission approval: log to `AuditLog` with action="permission_approved", actor=adminUserId, permissionKey[].
+- Sandbox violation detected: log to `AuditLog` with action="app_suspended", reason="quota_overrun", appId, tenantId.
+
+### 15.7 Sandbox enforcement implementation
+
+- **Token scoping:** Each app gets one or more OAuth tokens scoped to the app + tenant. Token validation happens before every API call.
+- **Rate limit middleware:** Every app API call is intercepted by rate-limit middleware. If quota exceeded, call is rejected with 429; quota usage is logged to `AppApiCall`.
+- **Timeout enforcement:** App webhook handlers and extension invocations have configurable timeout (e.g., 30s). Runaway operations are killed; failure logged.
+- **RLS policy:** All business queries from app tokens apply `WHERE tenant_id = :appTenant AND ...`. Cross-tenant query attempts are blocked at the DB layer.
+- **API logging:** Every app API call creates an `AppApiCall` record: resource, method, statusCode, durationMs, quotaUsed. Linked to AuditLog via `auditLogId`.
+
+### 15.8 Review gate implementation
+
+App review before publish validates:
+
+**Security gate:**
+- Manifest is signed; signature valid.
+- No hardcoded secrets (API keys, tokens) in code or manifest.
+- No direct DB access; all platform access via public APIs.
+- No code escape vectors (eval, exec, SQL injection).
+
+**Policy gate:**
+- Publisher provides privacy policy, data retention policy, support SLA, terms of service.
+- Policies are clear and verifiable.
+- Data retention policy specifies action on uninstall (delete, archive, export).
+
+**Branding compliance gate:**
+- App icon and screenshots do not impersonate platform or misrepresent functionality.
+- Marketplace listing copy is clear and honest.
+- No dark patterns (misleading buttons, hidden upsells, forced upgrades).
+
+### 15.9 Install lifecycle state transitions
+
+All transitions are logged and require explicit actions:
+
+| From | To | Actor | Prerequisite | Event |
+|---|---|---|---|---|
+| REQUESTED | REVIEWED | System | App review gates passed or failed. | `AppReviewCompleted` |
+| REVIEWED | APPROVED | System | Review passed & tenant plan supports entitlements & tenant in good standing. | N/A (state not yet visible to admin) |
+| APPROVED | INSTALLED | Tenant Admin | Admin clicks "Confirm Install" | `AppInstalled` |
+| INSTALLED | ACTIVE | System | App init completed (if any). | N/A |
+| ACTIVE | SUSPENDED | Tenant Admin | Admin clicks "Suspend App". | `AppSuspended` |
+| SUSPENDED | ACTIVE | Tenant Admin | Admin clicks "Resume App". | N/A |
+| SUSPENDED or ACTIVE | UNINSTALLED | Tenant Admin | Admin clicks "Uninstall App". | `AppUninstalled` |
+
+### 15.10 Test and migration requirements
+
+(Deferred to Phase M2+ implementation runbook; documented at implementation time.)
+
+## 16. Future Expansion Rules
+
+### 16.1 M2/M3 implementation checklist
 
 At implementation time, the following must hold:
 
@@ -523,16 +543,15 @@ At implementation time, the following must hold:
 - [ ] Ratings and reviews are tenant-scoped: Tenant A cannot see Tenant B's feedback.
 - [ ] App publisher receives telemetry: installs, uninstalls, errors, quota usage.
 
-## 18. Future Extension Points
+### 16.2 Beyond M3 expansion points
 
-**M2/M3 Implementation:**
-- [ ] App monetization: Marketplace takes a percentage; publishers set pricing.
-- [ ] Private Marketplace: tenant admins hide public apps, curate internal-only apps.
-- [ ] Entitlement override: admins can override plan entitlements on a per-app basis (e.g., grant a free trial).
-- [ ] Extension auto-discovery: UI discovers installed Extensions at runtime; schema-driven rendering.
-- [ ] Dependency management: App A depends on App B; install order is enforced.
-- [ ] Version compatibility matrix: app version X is compatible with platform version Y.
-- [ ] Staged rollout: publish app to 1% of tenants first; ramp up if stable.
+- **App monetization:** Marketplace takes a percentage; publishers set pricing.
+- **Private Marketplace:** tenant admins hide public apps, curate internal-only apps.
+- **Entitlement override:** admins can override plan entitlements on a per-app basis (e.g., grant a free trial).
+- **Extension auto-discovery:** UI discovers installed Extensions at runtime; schema-driven rendering.
+- **Dependency management:** App A depends on App B; install order is enforced.
+- **Version compatibility matrix:** app version X is compatible with platform version Y.
+- **Staged rollout:** publish app to 1% of tenants first; ramp up if stable.
 
 ---
 

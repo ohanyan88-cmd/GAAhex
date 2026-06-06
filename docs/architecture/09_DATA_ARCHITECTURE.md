@@ -149,7 +149,7 @@ Exception: internal technical records (webhook delivery attempts, trace spans) m
 Exceptions (explicit global reference data):
 - `country`, `region`, `city`, `currency`, `locale`, `timezone`, `calendar`, `business_hours`.
 
-These are NOT tenant-scoped; they are created by Super-Admin and visible to all tenants. They must be explicitly listed in §8.2 (Global Reference Data) below.
+These are NOT tenant-scoped; they are created by Super-Admin and visible to all tenants. They must be explicitly listed in §8 (Canonical Entities) below.
 
 ### L3 — Append-only audit is enforced
 
@@ -194,7 +194,7 @@ Every entity is owned by exactly one core. Ownership is declared in schema metad
 ```python
 class Service(Base):
     __tablename__ = "service"
-    __owner_core__ = "Service"  # Platform Services tier
+    __owner_core__ = "Service"  # BUSINESS OBJECTS tier
     # ... columns ...
 ```
 
@@ -206,7 +206,7 @@ Every business entity table carries:
 
 | Field | Type | Nullable | Default | Notes |
 |-------|------|----------|---------|-------|
-| `id` | UUID | NO | `gen_random_uuid()` | UUIDv7 primary key. |
+| `id` | UUID | NO | `uuid7()` | UUIDv7 primary key. |
 | `tenant_id` | UUID | NO | — | Foreign key to `tenant`. Indexed. |
 | `reference_prefix` | String(10) | YES | — | e.g. `SVC`, `INV`. |
 | `reference_sequence` | Integer | YES | — | e.g. `2026000417`. Tenant-scoped. |
@@ -244,7 +244,7 @@ Polymorphic owner tables (Notification, Comment, Attachment, AuditLog) also have
 |-------|---------|
 | INDEX (`tenant_id`, `owner_entity_type`, `owner_entity_id`) | Polymorphic owner lookups. |
 
-**No partial/conditional indexes.** All indexes are unconditional; WHERE clauses in queries are evaluated after index lookup.
+All indexes are unconditional; WHERE clauses in queries are evaluated after index lookup.
 
 ### 7.4 Reference-number generation
 
@@ -306,362 +306,45 @@ The `event` table (Event Core) stores all domain events:
 
 Append-only: once created, never modified. Handlers subscribe and process asynchronously.
 
-## 8. Reference Data and Master Data
+## 8. Canonical Entities
+
+The platform's data model is organized into tiers by ownership core. This section lists all canonical entities (tables) by tier, declaring their owner, visibility scope, and standard fields.
 
 ### 8.1 Global reference data (exempt from RLS)
 
 These entities are **global** (cross-tenant, not RLS-fenced):
 
-| Entity | Prefix | Owner Core | Example Values |
-|--------|--------|-----------|-----------------|
-| Country | — | Location | `US`, `ARM`, `RU`, `DE` |
-| Region | — | Location | `CA`, `TX`, `NY` (per country) |
-| City | — | Location | `Yerevan`, `Los Angeles`, `Berlin` |
-| Currency | — | Financial | `USD`, `AMD`, `EUR` |
-| Locale | — | Localization | `en-US`, `hy-AM`, `ru-RU` |
-| Timezone | — | Time | `America/Los_Angeles`, `Asia/Yerevan`, `Europe/Berlin` |
-| Calendar | — | Time | Holidays, business hours (e.g. ISP maintenance windows). |
-| BusinessHours | — | Time | Operating hours per location / timezone. |
+| Entity | Owner Core | Example Values | Scope |
+|--------|-----------|-----------------|-------|
+| Country | Location | `US`, `ARM`, `RU`, `DE` | Global |
+| Region | Location | `CA`, `TX`, `NY` (per country) | Global |
+| City | Location | `Yerevan`, `Los Angeles`, `Berlin` | Global |
+| Currency | Financial | `USD`, `AMD`, `EUR` | Global |
+| Locale | Localization | `en-US`, `hy-AM`, `ru-RU` | Global |
+| Timezone | Time | `America/Los_Angeles`, `Asia/Yerevan`, `Europe/Berlin` | Global |
+| Calendar | Time | Holidays, business hours (e.g. ISP maintenance windows). | Global |
+| BusinessHours | Time | Operating hours per location / timezone. | Global |
 
-These tables have **no** `tenant_id` column; they are created by Super-Admin; all tenants can reference them.
-
-**RLS rule:** `tenant_isolation` policy exempts these tables explicitly (via a FALSE trigger that always allows the read).
+These tables have **no** `tenant_id` column; they are created by Super-Admin; all tenants can reference them. The `tenant_isolation` RLS policy exempts these tables explicitly via a FALSE trigger.
 
 ### 8.2 Master data (tenant-scoped)
 
 Master data are core reference entities that a tenant configures once and reference extensively:
 
-| Entity | Owner Core | Notes |
-|--------|-----------|-------|
-| DepartmentCatalog | Organization | Tenant's internal departments (e.g. Sales, Support, Ops). |
-| ServiceArea | Location | Geographical areas the tenant serves. |
-| Product | Product | ISP's service offerings (Internet, IPTV, Combo). |
-| Plan | Product | Pricing plans (1Mbps, 10Mbps, etc.). |
-| Tariff | Financial | Rating / billing rules. |
-| Queue | Case | Support queues (L1, L2, Escalations). |
-| Role | Security | Permission role (Admin, Agent, Manager). |
-| SlaDefinition | SLA | Response / resolution time commitments. |
+| Entity | Owner Core | Scope | Usage |
+|--------|-----------|-------|-------|
+| DepartmentCatalog | Organization | Tenant | Tenant's internal departments (e.g. Sales, Support, Ops). |
+| ServiceArea | Location | Tenant | Geographical areas the tenant serves. |
+| Product | Product | Tenant | ISP's service offerings (Internet, IPTV, Combo). |
+| Plan | Product | Tenant | Pricing plans (1Mbps, 10Mbps, etc.). |
+| Tariff | Financial | Tenant | Rating / billing rules. |
+| Queue | Case | Tenant | Support queues (L1, L2, Escalations). |
+| Role | Security | Tenant | Permission role (Admin, Agent, Manager). |
+| SlaDefinition | SLA | Tenant | Response / resolution time commitments. |
 
 Master data are **tenant-scoped** (carry `tenantId`); they are **read-heavy** (rarely updated), so they are often cached. Updates emit events that invalidate caches.
 
-## 9. Data Quality Rules
-
-Every entity type can have associated `DataQualityRule` records:
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | UUID | Primary key. |
-| `tenant_id` | UUID | Scope. |
-| `entity_type` | String | Which entity this rule governs (ObjectType enum, standard 14). |
-| `field_name` | String | Specific field (or NULL for entity-level rules). |
-| `rule_key` | String | Identifier (e.g. `phone_valid_format`, `age_positive`). |
-| `rule_logic` | String | The rule (regex, SQL expression, custom function). |
-| `severity` | String | `WARNING \| ERROR \| CRITICAL`. |
-| `auto_remediation_action` | String | Optional (e.g. `TRIM_WHITESPACE`, `NULLIFY`, `ESCALATE_TO_QUEUE`). |
-| `last_violation_count` | Integer | Running tally. |
-| `status` | String | `ACTIVE \| DEPRECATED`. |
-| `created_at` | DateTime | — |
-
-Validation happens at write time (see standard 20); violations are logged to `audit_log` with `action_type=DATA_QUALITY_VIOLATION`. Auto-remediation actions (if enabled) run on insert/update before the record is persisted.
-
-## 10. Data Lineage
-
-`LineageEdge` records track how data derives across cores:
-
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | UUID | Primary key. |
-| `tenant_id` | UUID | Scope. |
-| `source_entity_type` | String | ObjectType enum (standard 14). |
-| `source_entity_id` | UUID | Source entity's ID. |
-| `target_entity_type` | String | ObjectType enum. |
-| `target_entity_id` | UUID | Target entity's ID. |
-| `transformation_type` | String | `DIRECT \| COMPUTED \| IMPORTED \| DERIVED`. |
-| `transformation_core` | String | Which core performed the transformation (e.g. `Financial`, `Analytics`). |
-| `transformation_formula` | String | The formula or logic (if any). |
-| `dependency_type` | String | `HARD \| SOFT \| OPTIONAL` (if the target's integrity depends on the source). |
-| `created_at` | DateTime | — |
-
-Lineage enables impact analysis: "if I delete this customer, which invoices / services are affected?" Queries join lineage edges to traverse the graph.
-
-## 11. Retention and Purging (Standard 12 D14)
-
-Every business entity has a `deletionState` field with 5 values:
-
-| State | Meaning | Retention | Audit Trail |
-|-------|---------|-----------|------------|
-| `ACTIVE` | Live, normal usage. | Forever. | Logged. |
-| `ARCHIVED` | Logically hidden, retained for compliance. | Configurable (default 7 years). | Logged. |
-| `SOFT_DELETED` | Marked for deletion; not searchable. | Configurable (default 90 days before purge). | Logged. |
-| `PENDING_PURGE` | Scheduled for purge; awaiting compliance hold clearance. | Until purge_scheduled_at + hold_period. | Logged. |
-| `PURGED` | Hard-deleted; only metadata stub remains (for audit continuity). | 0 days (physically removed). | Audit record preserved. |
-
-**Retention policy per entity type** (configurable by tenant):
-
-| Entity | Archived | Soft-Deleted | Purge Eligible |
-|--------|----------|--------------|----------------|
-| Customer | 7 years | 90 days | After purge period. |
-| Invoice | Permanent | 7 years | Never (financial). |
-| Ticket | 2 years | 30 days | After purge period. |
-| Log (non-audit) | 90 days | 7 days | Automatically. |
-
-**Compliance holds** (Compliance Core): a retention policy or compliance hold can prevent purge even after the soft-delete window.
-
-**Purge workflow:**
-1. User soft-deletes entity → `deletionState=SOFT_DELETED`, emit `Entity.SoftDeleted` event.
-2. After retention window → `deletionState=PENDING_PURGE`, `purgeScheduledAt=now()`.
-3. If no compliance hold → run purge job → hard-delete row, `deletionState=PURGED`, emit `Entity.Purged` event.
-4. Audit log is **preserved forever** (immutable).
-
-## 12. PII Classification and Redaction
-
-Every field that contains personally identifiable information (PII) is tagged:
-
-| PII Class | Examples | Redaction Rule |
-|-----------|----------|----------------|
-| `PII_NAME` | firstName, lastName, fullName | Replace with `[REDACTED]`. |
-| `PII_EMAIL` | email, secondaryEmail | Mask: `****@domain.com`. |
-| `PII_PHONE` | phone, mobilePhone | Mask: `+1-***-****`. |
-| `PII_ADDRESS` | address, city, zipcode | Replace with `[REDACTED]`. |
-| `PII_ID` | taxId, ssn, passportNumber | Replace with `[REDACTED]`. |
-| `PII_FINANCIAL` | bankAccount, creditCard | Replace with `[REDACTED]`. |
-| `SENSITIVE_AUTH` | passwordHash, mfaSecret, apiKey | Never exposed in any output (logs, exports, audit trails). |
-
-**Egress redaction** (Compliance Core): when data leaves the system (export, API response, report), PII fields are redacted according to the caller's permissions and the entity's confidentiality rules.
-
-**Audit trail:** audit logs preserve actual values (for compliance); they are themselves considered sensitive and only viewable by authorized roles (Audit, Compliance).
-
-## 13. Migrations
-
-### 13.1 Alembic structure
-
-Migrations live in `backend/alembic/versions/`. Each migration is named:
-```
-NNNNNNNNNNNN_clear_description.py
-```
-
-Example: `1278af39f621_initial_schema.py`.
-
-### 13.2 One domain per migration (or closely related set)
-
-- Migration 1: Foundation tables (Tenant, User, Session, Identity).
-- Migration 2: Party Core tables (Customer, Contact, Employee, Vendor).
-- Migration 3: Organization Core tables (Department, Team, OrgNode).
-- Migration 4: Location Core tables (Site, Building, ServiceArea).
-- … and so on.
-
-Large migrations that add 10+ tables are acceptable if they belong to a single core or tightly coupled cores.
-
-### 13.3 Reversibility is mandatory
-
-Every migration has a working `downgrade()`:
-
-```python
-def upgrade() -> None:
-    """Create tenant and related tables."""
-    op.create_table('tenant', ...)
-    op.create_index(...)
-
-def downgrade() -> None:
-    """Drop tenant and related tables."""
-    op.drop_index(...)
-    op.drop_table('tenant')
-```
-
-**Irreversible operations** (data loss, destructive renames) must be explicitly approved and documented:
-```python
-def downgrade() -> None:
-    raise NotImplementedError(
-        "Irreversible data transformation. Downgrade requires manual intervention. "
-        "Approved by: <approval ref>. Reason: <reason>."
-    )
-```
-
-### 13.4 No code generation artifacts in migrations
-
-Migrations are authored manually. Auto-generated Alembic migrations (via `alembic revision --autogenerate`) are reviewed and edited before commit to ensure clarity and reversibility.
-
-### 13.5 Migration testing
-
-Every migration is tested:
-1. Upgrade on a fresh database → schema is correct.
-2. Downgrade → schema reverts cleanly.
-3. Upgrade again → idempotent (no errors on re-run).
-
-Tests live in `backend/tests/test_migrations.py` or similar; CI enforces them before PR merge.
-
-## 14. Standard Indexes
-
-Every business entity table includes these indexes:
-
-### Primary key (implicit)
-```sql
-PRIMARY KEY (id)
-```
-
-### Tenant scope (mandatory for list operations)
-```sql
-INDEX (tenant_id, status, deletion_state)
-```
-
-This covering index enables fast:
-- "fetch all ACTIVE, non-deleted records for this tenant"
-- Pagination (with LIMIT/OFFSET).
-
-### Audit / timeline (mandatory)
-```sql
-INDEX (tenant_id, created_at DESC)
-```
-
-Enables "activity for this tenant" queries in reverse chronological order.
-
-### Actor references (recommended)
-```sql
-INDEX (created_by)
-INDEX (updated_by)
-```
-
-For "records I created" / "records I modified" queries.
-
-### Polymorphic owner (for polymorphic tables)
-```sql
-INDEX (tenant_id, owner_entity_type, owner_entity_id)
-```
-
-For Notification, Comment, Attachment, AuditLog: fast "all comments on this ticket" lookups.
-
-### Foreign keys (implicit)
-```sql
-FOREIGN KEY (tenant_id) REFERENCES tenant(id)
-FOREIGN KEY (created_by) REFERENCES app_user(id)
-```
-
-Indexes are created implicitly on referenced columns in most databases.
-
-### No partial / conditional indexes
-
-All indexes are unconditional. Queries with WHERE clauses leverage the unconditional indexes; the WHERE is evaluated after the index lookup.
-
-## 15. Forbidden Patterns
-
-### FP1 — Sequential integer PKs
-
-```python
-# FORBIDDEN
-id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-
-# REQUIRED
-id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
-```
-
-### FP2 — gen_random_uuid() (UUIDv4)
-
-UUIDv4 is non-sortable and leaks randomness. Use UUIDv7:
-
-```python
-# FORBIDDEN
-id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4)
-
-# REQUIRED
-from app.utils.ids import uuid7
-id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid7)
-```
-
-### FP3 — Reference numbers as PKs or FKs
-
-```python
-# FORBIDDEN
-PRIMARY KEY (reference_number)
-FOREIGN KEY (service_reference) REFERENCES service(reference_number)
-
-# REQUIRED
-PRIMARY KEY (id)
-FOREIGN KEY (service_id) REFERENCES service(id)
--- Display reference_number separately; resolve via ID in queries.
-```
-
-### FP4 — Cross-tenant joins (outside Super-Admin)
-
-```python
-# FORBIDDEN
-SELECT s.* FROM service s
-JOIN service s2 ON s.id = s2.related_service_id
-WHERE s.tenant_id = 'tenant-A' AND s2.tenant_id = 'tenant-B'
-
-# REQUIRED (if needed)
--- Single tenant at a time
-SELECT s.* FROM service s
-WHERE s.tenant_id = 'tenant-A'
--- Cross-tenant only in Super-Admin paths with explicit audit
-```
-
-### FP5 — Business logic in database (UDFs, stored procedures)
-
-Business logic lives in the application layer:
-
-```python
-# FORBIDDEN
-CREATE FUNCTION calculate_overage() AS ...  -- in migration
-
-# REQUIRED
-# app/services/billing.py
-def calculate_overage(subscription: Subscription) -> Money:
-    ...
-```
-
-Exception: Postgres BEFORE triggers that enforce append-only audit (raising exceptions on UPDATE/DELETE) are acceptable.
-
-### FP6 — Denormalized / derived fields on business entities
-
-```python
-# FORBIDDEN
-CREATE TABLE service (
-    id UUID,
-    customer_name VARCHAR(200),  -- denormalized from customer table
-    service_count INT,           -- derived; breaks on updates
-    ...
-)
-
-# REQUIRED
--- Use joins in queries; maintain derived data in Analytics shadow tables
-CREATE TABLE service (
-    id UUID,
-    customer_id UUID REFERENCES customer(id),
-    ...
-)
-```
-
-### FP7 — Arbitrary JSON fields for business logic
-
-```python
-# FORBIDDEN
-data JSONB  -- used to store unstructured business attributes
-
-# REQUIRED
--- If temporary or experimental: use metadata Core (Dynamic Schema).
--- If canonical: author a migration and add proper columns.
-```
-
-## 16. Owned Core Metadata
-
-Every table in the database declares its owning core in comments or a schema registry. Example:
-
-```python
-class Service(Base):
-    __tablename__ = "service"
-    __owner_core__ = "Service"  # BUSINESS OBJECTS tier, primary core.
-    __supported_cores__ = ["Location", "Product", "Contract", "Communication", "Financial"]
-    # ^ List of cores that reference this entity.
-```
-
-This metadata is:
-- Documented in `09_DATA_ARCHITECTURE.md` canonical entity matrix (§8 below).
-- Enforced by drift check CI (tool: `tools/check_drift.py`).
-- Queryable for dependency analysis.
-
-## 17. Canonical Entity Matrix
-
-### FOUNDATION tier
+### 8.3 Foundation tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
@@ -674,7 +357,7 @@ This metadata is:
 | `pending_approval` | Approval | — | id, tenant_id, entity_key, record_id, from_status, to_status, status, created_at | YES |
 | `approval` | Approval | APR | id, tenant_id, action_type, target_entity_key, target_record_id, status, requested_at | YES |
 
-### BUSINESS OBJECTS tier
+### 8.4 Business Objects tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
@@ -691,7 +374,7 @@ This metadata is:
 | `contract` | Contract | CTR | id, tenant_id, customer_id, status, deletion_state, created_at | YES |
 | `article` | Knowledge | KBA | id, tenant_id, title, body, status, created_at | YES |
 
-### BUSINESS COMMERCE tier
+### 8.5 Business Commerce tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
@@ -699,7 +382,7 @@ This metadata is:
 | `payment` | Financial | PAY | id, tenant_id, customer_id, invoice_id, amount, status, created_at | YES |
 | `quote` | Financial | QUO | id, tenant_id, customer_id, plan_id, amount, status, created_at | YES |
 
-### BUSINESS EXECUTION tier
+### 8.6 Business Execution tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
@@ -710,7 +393,7 @@ This metadata is:
 | `notification` | Notification | NTF | id, tenant_id, recipient_id, owner_entity_type, owner_entity_id, channel, status, created_at | YES |
 | `document` | Document | DOC | id, tenant_id, owner_entity_type, owner_entity_id, title, status, created_at | YES |
 
-### PLATFORM SERVICES tier
+### 8.7 Platform Services tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
@@ -719,27 +402,287 @@ This metadata is:
 | `entity_relationship` | Relationship | REL | id, tenant_id, source_entity_type, source_entity_id, target_entity_type, target_entity_id, relationship_type, status, created_at | YES |
 | `search_index` | Search | — | id, tenant_id, entity_type, entity_id, searchable_text, created_at | YES |
 
-### INTELLIGENCE tier
+### 8.8 Intelligence tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
 | `kpi_definition` | Analytics | — | id, tenant_id, name, metric_expression, status, created_at | YES |
 | `report_definition` | Reporting | RPT | id, tenant_id, name, query, status, created_at | YES |
 
-### EXPERIENCE tier
+### 8.9 Experience tier canonical entities
 
 | Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
 |-------|-----------|-----------------|--------|----------------|
 | `nav_entry` | Workspace | — | id, tenant_id, label, route, icon, order, status, created_at | YES |
 
-### Global reference data (NOT tenant-scoped)
+## 9. Ownership Boundaries
 
-| Table | Owner Core | Reference Prefix | Fields | Tenant-Scoped |
-|-------|-----------|-----------------|--------|----------------|
-| `country` | Location | — | code, name, region | NO |
-| `currency` | Financial | — | code, name, symbol | NO |
-| `locale` | Localization | — | code, language, region | NO |
-| `timezone` | Time | — | code, name, offset | NO |
+Every table in the database declares its owning core in schema metadata. Example:
+
+```python
+class Service(Base):
+    __tablename__ = "service"
+    __owner_core__ = "Service"  # BUSINESS OBJECTS tier, primary owner.
+    __supported_cores__ = ["Location", "Product", "Contract", "Communication", "Financial"]
+```
+
+This metadata is:
+- Documented in §8 canonical entity matrix above.
+- Enforced by drift check CI (tool: `tools/check_drift.py`).
+- Queryable for dependency analysis via core ownership registry.
+
+## 10. Relationships
+
+Cross-table foreign keys reference canonical entities via their `id` field (UUIDv7). The following relationship patterns are standard:
+
+- **Parent–child relationships** use direct `parent_id` foreign keys within the same tenant scope.
+- **Cross-core relationships** use direct `entity_id` foreign keys (e.g., `service` table carries `customer_id` referencing `customer`).
+- **Polymorphic relationships** (Comments, Notifications, Attachments) use `(owner_entity_type, owner_entity_id)` pairs to reference any entity type.
+- **Data lineage relationships** are tracked in `lineage_edge` table (not direct FKs) to enable queryable impact analysis.
+
+All relationships stay within a single tenant scope except for global reference data, which all tenants can reference.
+
+## 11. Responsibilities
+
+Core ownership determines responsibility for:
+- Creating and mutating canonical entities via APIs.
+- Publishing domain events on state change.
+- Writing audit records for compliance.
+- Defining data quality rules.
+- Managing retention and purge policies.
+- Declaring lineage edges when deriving data.
+- Handling PII classification and redaction.
+
+The owning core is accountable for schema correctness, backward compatibility in migrations, and conformance to the standard field set (§7.2).
+
+## 12. Allowed Patterns
+
+### AP1 — Use UUIDv7 for all business entity PKs
+
+Every canonical entity's primary key is a UUIDv7 generated at insertion time. UUIDv7 is time-ordered, lexicographically sortable, and distributed-safe. Use `from app.utils.ids import uuid7` as the default factory.
+
+### AP2 — Use append-only audit triggers with RAISE EXCEPTION
+
+Postgres BEFORE UPDATE / BEFORE DELETE triggers on business tables enforce immutability:
+
+```sql
+CREATE TRIGGER service_append_only BEFORE UPDATE ON service
+  FOR EACH ROW EXECUTE FUNCTION raise_append_only_exception();
+```
+
+This is the approved mechanism for enforcing L3 (Append-only audit).
+
+### AP3 — Use UUIDv7-lex cursor pagination
+
+For large result sets, paginate using UUIDv7 lexicographic ordering:
+
+```sql
+SELECT * FROM service WHERE tenant_id = $1 AND id > $2 ORDER BY id LIMIT 50
+```
+
+This avoids OFFSET (which re-scans rows) and uses the index naturally.
+
+### AP4 — Use tenant_isolation RLS policy
+
+Every tenant-scoped table has the RLS policy enabled:
+
+```sql
+ALTER TABLE service ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON service 
+  FOR ALL TO authenticated USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
+```
+
+This is enforced at the database level; no application-layer filtering is necessary.
+
+### AP5 — Use monotonic reference-number counters with tenant scope
+
+Reference numbers are generated via atomic counter increments (in Redis or a counter table):
+
+```python
+counter = increment_counter(f"refnum:{prefix}:{tenant_id}:{year}")
+reference_number = f"{prefix}-{year}{counter:06d}"
+```
+
+Counters are tenant-scoped and immutable once issued; they never wrap or repeat.
+
+## 13. Forbidden Patterns
+
+### FP1 — Sequential integer PKs
+
+Sequential integer primary keys leak temporal order and are unsuitable for multi-tenant systems. Forbidden across all business entities.
+
+```python
+# FORBIDDEN
+id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+# REQUIRED
+id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
+```
+
+### FP2 — gen_random_uuid() (UUIDv4)
+
+UUIDv4 is non-sortable, lexicographically unsafe, and leaks randomness. Use UUIDv7 exclusively.
+
+```python
+# FORBIDDEN
+id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid.uuid4)
+
+# REQUIRED
+from app.utils.ids import uuid7
+id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), default=uuid7)
+```
+
+### FP3 — Reference numbers as PKs or FKs
+
+Reference numbers are display-only identifiers. Joins, primary keys, and foreign keys use UUIDs exclusively.
+
+```python
+# FORBIDDEN
+PRIMARY KEY (reference_number)
+FOREIGN KEY (service_reference) REFERENCES service(reference_number)
+
+# REQUIRED
+PRIMARY KEY (id)
+FOREIGN KEY (service_id) REFERENCES service(id)
+```
+
+### FP4 — Cross-tenant joins (outside Super-Admin)
+
+No query may join rows from different tenants except in explicit Super-Admin audit paths.
+
+```python
+# FORBIDDEN
+SELECT s.* FROM service s
+WHERE s.tenant_id = 'tenant-A' AND s.related_service_id IN (
+  SELECT id FROM service WHERE tenant_id = 'tenant-B'
+)
+
+# REQUIRED
+-- Single tenant at a time
+SELECT s.* FROM service s WHERE s.tenant_id = 'tenant-A'
+```
+
+### FP5 — Business logic in database (UDFs, stored procedures)
+
+Business rules live in the application layer, not in the database. Exception: Postgres BEFORE triggers that enforce append-only audit (L3) are acceptable.
+
+```python
+# FORBIDDEN
+CREATE FUNCTION calculate_overage() AS ...  -- in migration
+
+# REQUIRED
+# backend/app/services/billing.py
+def calculate_overage(subscription: Subscription) -> Money:
+    ...
+```
+
+### FP6 — Denormalized / derived fields on business entities
+
+Business entities are normalized. Derived data (counts, aggregates) belongs in Analytics shadow tables, not on the canonical entity.
+
+```python
+# FORBIDDEN
+CREATE TABLE service (
+    id UUID,
+    customer_name VARCHAR(200),  -- denormalized
+    service_count INT,           -- derived
+    ...
+)
+
+# REQUIRED
+CREATE TABLE service (
+    id UUID,
+    customer_id UUID REFERENCES customer(id),
+    ...
+)
+```
+
+### FP7 — Arbitrary JSON fields for business logic
+
+Unstructured JSON blobs bypass data governance. Use the Metadata Core (Dynamic Schema) for experimental fields; migrate to proper columns in canonical entities once validated.
+
+```python
+# FORBIDDEN
+data JSONB  -- used to store unstructured business attributes
+
+# REQUIRED
+-- Temporary: use metadata Core
+-- Production: add proper columns via Alembic migration
+```
+
+## 14. Cross-Architecture Dependencies
+
+| This document depends on | For |
+|---|---|
+| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core ownership and tier discipline. |
+| `03_INFORMATION_ARCHITECTURE.md` | Entity definitions and relationships. |
+| `11_EVENT_ARCHITECTURE.md` | Event schema and publish/subscribe patterns. |
+| `14_TENANT_ARCHITECTURE.md` | RLS policy enforcement and tenant scoping. |
+| Standards 12, 14, 20 | Data quality, PII, validation rules. |
+
+| Documents that depend on this one |
+|---|
+| `02_DOMAIN_ARCHITECTURE.md` (maps cores to implementation domains) |
+| `10_API_ARCHITECTURE.md` (REST surface for canonical entities) |
+| `08_PERMISSION_ARCHITECTURE.md` (permission keys per entity) |
+| `15_REPORTING_ARCHITECTURE.md` (read-only canonical data) |
+| `16_ANALYTICS_ARCHITECTURE.md` (shadow tables derived from canonical) |
+
+## 15. Implementation Requirements
+
+### 15.1 Standard fields on all business entities
+
+All canonical entities must include the standard field set per §7.2: `id`, `tenant_id`, `status`, `deletion_state`, `created_at`, `created_by`, `updated_at`, `updated_by`, and (optionally) archive/delete/restore timestamps.
+
+### 15.2 Indexes on all business entities
+
+All canonical entities must have the standard index set per §7.3: PRIMARY KEY on `id`; a covering index on `(tenant_id, status, deletion_state)`; a timeline index on `(tenant_id, created_at DESC)`; and actor indexes on `created_by` / `updated_by`.
+
+### 15.3 RLS policy enforcement
+
+All tenant-scoped tables must have the `tenant_isolation` RLS policy enabled in production. The policy is enforced at the database level via Postgres RLS, not at the application layer.
+
+### 15.4 Append-only audit triggers
+
+All business entity tables must have BEFORE UPDATE / BEFORE DELETE triggers that RAISE EXCEPTION to prevent direct SQL mutation. Mutations go through the application layer via events and audit records.
+
+### 15.5 Data quality rule registration
+
+For entities with data validation rules, register `DataQualityRule` records at tenant setup time. Violations are logged to `audit_log` with action_type `DATA_QUALITY_VIOLATION`.
+
+### 15.6 Retention policy configuration
+
+Every entity type must have a configurable retention policy (per tenant) defining archive, soft-delete, and purge windows. Compliance holds can extend retention indefinitely.
+
+### 15.7 PII tagging and redaction
+
+Every column that contains PII must be tagged with its PII class (§13 in the current doc on PII). Egress redaction is enforced by the Compliance Core at export / API response / report time.
+
+## 16. Future Expansion Rules
+
+### 16.1 Adding a new business entity
+
+When a new canonical entity is proposed:
+
+1. Declare the owning core (per `01_PLATFORM_CORE_ARCHITECTURE.md`).
+2. Add the entity to the canonical matrix in §8.
+3. Author an Alembic migration per §13 to create the table with standard fields.
+4. Declare events and APIs in `11_EVENT_ARCHITECTURE.md` and `10_API_ARCHITECTURE.md`.
+5. Add permission keys in `08_PERMISSION_ARCHITECTURE.md`.
+6. Register data quality rules if validation is required.
+
+### 16.2 Modifying entity schema
+
+Schema modifications are done via reversible Alembic migrations, never by direct SQL. Migrations are committed separately before feature PRs.
+
+### 16.3 Retiring an entity
+
+When an entity is no longer used:
+
+1. Deprecate it in schema metadata.
+2. Migrate existing records to successor entity(ies) via a data migration.
+3. Update all references (FKs, events, APIs) to point to the successor.
+4. Remove the entity from the canonical matrix after all data is migrated.
 
 ---
 

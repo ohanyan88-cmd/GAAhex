@@ -524,163 +524,110 @@ AI respects Entitlement Core quotas. Token limits are checked before model calls
 
 AI assistants are created, prompts are versioned, approvals are made, audit logs are recorded — all published as domain events for compliance, cost accounting, and downstream analytics.
 
-## 11. Failure Modes & Mitigation
+## 11. Responsibilities
 
-### FM1 — Model timeout or unavailability
+### 11.1 Tenant administrators and domain users
 
-**Symptom:** Primary model provider is slow or returns 5xx error.
+- **Approve high-impact AI actions** — review and approve/reject mutations, deletions, sensitive field changes before AI executes them.
+- **Monitor AI usage and costs** — view tenant AI consumption reports; set quota limits via Entitlement Core.
+- **Review AI assistant behavior** — audit AiAuditLog for unexpected tool calls, output quality, cost anomalies.
 
-**Mitigation:** ModelConfig fallback chain. Try next model in sequence within timeout window. If all fallbacks fail, deny the request and return user-facing error (not a system error). Notify user; do not retry automatically.
+### 11.2 Prompt engineers and product teams
 
-**Audit:** Log the failure, fallback sequence, and final outcome in AiAuditLog.
+- **Author and maintain prompts** — write, test, review, version, and retire prompts; translate into multiple locales.
+- **Validate prompt quality** — ensure prompts are injection-resistant, produce accurate outputs, conform to brand voice.
+- **Monitor prompt performance** — track token usage, success rates, user feedback; deprecate underperforming versions.
 
-### FM2 — Cost overrun
+### 11.3 AI Core platform owners
 
-**Symptom:** Token consumption exceeds plan quota mid-month.
+- **Manage assistants and tools** — register assistants, assign roles, declare tool APIs, configure knowledge sources.
+- **Enforce approval gates** — define high-impact criteria, assign approver roles, configure timeouts.
+- **Cost metering and quota enforcement** — monitor tenant budgets, configure ModelConfigs, coordinate with Entitlement Core.
+- **Audit and compliance** — maintain AiAuditLog integrity, respond to security incidents, provide audit trails for disputes.
 
-**Mitigation:** Pre-request cost estimate checks quota; if insufficient, deny with HTTP 429 (Too Many Requests) or 402 (Payment Required). User is informed; no partial billing.
+### 11.4 Security and compliance teams
 
-**Audit:** Log the denial reason and remaining quota.
+- **Review AI governance** — ensure AI respects tenant boundaries, permission gates, audit requirements; validate injection defenses.
+- **Incident response** — investigate AI-related security events (unauthorized tool calls, data leaks, approval bypasses).
+- **Regulatory support** — provide audit evidence for compliance audits; redact PII in audit logs for disclosures.
 
-### FM3 — Prompt injection attack
+## 12. Allowed Patterns
 
-**Symptom:** User input in a prompt variable contains instructions to override system prompt.
+### AP1 — Multi-locale prompt versioning
 
-**Mitigation:** Prompts are parameterized (user input never interpolates into system message). Output is validated against schema before action. Tool parameter validation rejects malformed payloads.
+A prompt can be authored in `en_US`, then translated to `hy_AM`, `es_ES`, etc., each as a separate version with the same `key` but different `locale`. Users are served the locale matching their profile or tenant region.
 
-**Audit:** Log suspected injection attempts; flag for security review if patterns emerge.
+### AP2 — Fallback chain for model selection
 
-### FM4 — Unauthorized tool invocation
+A ModelConfig can name multiple fallback models. If the primary model times out or returns an error, the system tries the next in the chain within the timeout window, ensuring graceful degradation.
 
-**Symptom:** AI tries to call a tool it doesn't have permission for.
+### AP3 — Knowledge source composition
 
-**Mitigation:** Permission check fails before API call. AI is informed (in-context) that the action is not permitted; request fails gracefully. User sees an error.
+An assistant can reference multiple KnowledgeSources (e.g., troubleshooting articles + customer data). AI retrieves from all sources according to their indexing strategies and refresh cadences.
 
-**Audit:** Log the attempted tool, permission denial, and assistant role.
+### AP4 — Cost-aware approval gates
 
-### FM5 — Cross-tenant data leak
+An approval gate can be triggered when estimated cost exceeds a threshold (e.g., >$5 per request) or when a specific high-impact action is detected. The same gate rules apply to all assistants in the tenant; configuration is centralized in Entitlement Core.
 
-**Symptom:** Knowledge source or API response leaks another tenant's data.
+### AP5 — Field-level output redaction
 
-**Mitigation:** All data access is tenant-scoped at the RLS layer. KnowledgeSource queries include `tenantId` filter. API responses are validated for tenant match. Violations are caught in testing and code review.
+An AiTool's output schema can declare a redaction list (e.g., "AI may not see password_hash, social_security_number"). API responses are filtered before being returned to the model, ensuring sensitive fields never leak.
 
-**Audit:** Violations trigger security incidents; audit logs are reviewed.
+### AP6 — Audit-driven cost reconciliation
 
-### FM6 — High-impact action without approval
+AiAuditLog stores estimated tokens (pre-call) and actual tokens (post-call). Billing disputes are resolved by comparing audit records with provider invoices; discrepancies trigger alerts.
 
-**Symptom:** AI tries to delete 1000 records without approval.
+### AP7 — Human-in-loop approval workflows
 
-**Mitigation:** HumanApprovalGate blocks the action. AI waits for approval state = APPROVED before executing. If approval times out, action is canceled.
+For high-impact actions, the AI request blocks and waits for a human approver to review the AI's proposed action (tool call, parameters, context). Approver confirms, rejects, or requests clarification; AI continues only on approval.
 
-**Audit:** All approval decisions are logged with approver, timestamp, and rationale.
+### AP8 — Permission inheritance from assistant role
 
-### FM7 — Unfunded assistant
+An AiAssistant inherits all permissions assigned to its `roleId`. A tool invocation checks if the assistant's role has the required permission for the API endpoint. No tool is "always allowed"; every invocation is gated.
 
-**Symptom:** AI assistant's quota is exhausted; user requests AI help.
+## 13. Forbidden Patterns
 
-**Mitigation:** Request is denied pre-emptively. User is shown remaining budget and advised to contact admin.
+### FP1 — Ungoverned LLM calls in code
 
-**Audit:** Log the denial; issue appears in tenant usage reports and billing alerts.
+Inline calls to LLM APIs without registering a Prompt entity first. Example: `ai_client.call("summarize this customer", context)` without a corresponding `Prompt` row.
 
-## 12. Approval Gate Rules
+### FP2 — AI bypasses permission gates
 
-### When approval is required
+An AI assistant calling an API endpoint without checking `can(assistant_role, action, record_path)`. Example: AI calling `/api/v1/customers/{id}/delete` even though the assistant's role does not have `customer.delete`.
 
-- **Entity mutations** — any Create, Update, or Delete on entities owned by Financial, Compliance, Contract, Service, or Case cores (high-business-value entities).
-- **Cost threshold** — individual request estimated cost > $5 USD (configurable per tenant).
-- **Sensitive field writes** — modifying fields marked `requires_approval` (e.g., billing account, SSN, password).
-- **Bulk operations** — >100 records affected in a single action.
-- **Compliance-sensitive actions** — anything touching tax records, audit logs, or data-subject-access requests.
+### FP3 — Ungoverned cross-tenant data access
 
-### Approval process
+AI reading from or writing to another tenant's data. Example: Knowledge source query "all articles" without a `tenantId` filter, or an assistant registered in Tenant A calling an API that returns Tenant B's data.
 
-1. **AI decides** to call a tool (model inference).
-2. **Pre-execution check** — does this action require approval? (HumanApprovalGate lookup by entity + action).
-3. **If yes:** Create HumanApprovalGate entry; set state = PENDING; notify approvers.
-4. **Wait** — AI request blocks; user sees "Awaiting approval" message.
-5. **Approval decision** — approver reviews, approves or rejects, records rationale.
-6. **If approved** — execute the tool API call; log success in AiAuditLog.
-7. **If rejected** — notify user; log rejection reason.
-8. **Timeout** — if no decision in timeout_hours, cancel the action; notify user.
+### FP4 — Prompt injection via interpolation
 
-### Approval scopes
+User input directly concatenated into system prompts. Example: `system_prompt = "You are a support agent. " + user_input` instead of using parameterized prompts with validation.
 
-Approver role can be:
+### FP5 — Skipped approval for high-impact actions
 
-- A fixed role (e.g., `finance_director` always approves financial mutations).
-- Record-owner (the owner of the entity being modified approves).
-- Team lead (manager of the assistant's creator approves).
-- Dynamic (Policy Core may assign approvers based on conditions).
+AI executing a mutation (create/update/delete) or cost-exceeding request without waiting for HumanApprovalGate to approve first. Example: AI deleting >100 records without approval.
 
-## 13. Prompt Governance
+### FP6 — Silent model failures without fallback
 
-### Authorship
+Model timeout or error with no fallback; request is retried automatically or silently fails. Instead, fallback chain must be configured, and user must be notified if all fallbacks fail.
 
-Prompts are authored by:
+### FP7 — Unaudited tool invocations
 
-- **Prompt engineers** — AI Core team, trained in prompt design.
-- **Product managers** — domain experts (e.g., Sales manager authors Sales Assistant prompts).
-- **Security/compliance** — reviewers for sensitive prompts (e.g., those reading PII).
+An AI tool call is made without logging the invocation in AiAuditLog. Every tool call must be immutably recorded with timestamp, actor, assistant, tool name, parameters, response status.
 
-### Review checklist (before release)
+### FP8 — Dynamically generated knowledge source queries
 
-- [ ] Prompt achieves intended goal (tested with multiple inputs).
-- [ ] No prompt injection vulnerabilities (input is parameterized; model output is validated).
-- [ ] Field-level security is respected (no restricted fields leaked in responses).
-- [ ] Tone and accuracy (meets brand voice; factually correct).
-- [ ] Localization (translations reviewed for context/nuance).
-- [ ] Cost estimate (token count acceptable for typical use).
-- [ ] Fallback behavior (handles out-of-scope questions gracefully).
+A knowledge source query constructed at request time from user input. Example: `query = "articles tagged #" + user_input` instead of a static, pre-defined query.
 
-### Version management
+### FP9 — Cost-unaware token consumption
 
-- **Semantic versioning** — major.minor (e.g., customer_summary_v2.1).
-- **Immutability** — once released (major version), the prompt is frozen. Changes create a new version.
-- **Deprecation** — old versions transition to DEPRECATED; sunset after 2 releases.
-- **Changelog** — each version documents what changed and why.
+Model calls without pre-request cost estimation or quota checking. Example: AI invoking a model without checking `remaining_quota < estimated_cost`.
 
-## 14. Knowledge Source Declaration
+### FP10 — Redacted PII in AI output without validation
 
-A knowledge source must declare:
+AI output returned to user without validating that sensitive fields (SSN, password, credit card) are absent. Output must be typed and validated against the prompt's output schema.
 
-1. **Which data?** — specific articles, data table, external index.
-2. **Query scope** — filters (e.g., "articles tagged #sales AND published = true").
-3. **Access gate** — permission required to read (e.g., `knowledge.view`, `customer.view`).
-4. **Refresh cadence** — real-time, hourly, daily.
-5. **Indexing method** — vector embedding (for semantic search), full-text, or SQL.
-
-A knowledge source is *static* — scope is defined once, not dynamically generated per request.
-
-## 15. Cost Metering
-
-### Token counting
-
-Before calling a model, estimate token count using:
-
-- **Token counter library** — official library per provider (e.g., `tiktoken` for OpenAI).
-- **Prior call data** — historical average tokens for this prompt + input type.
-
-Estimate is stored in AiAuditLog; actual token count is stored after response.
-
-### Cost calculation
-
-Cost = (input_tokens × input_cost_per_mtok + output_tokens × output_cost_per_mtok) / 1_000_000 USD.
-
-Updated daily from AiModel registry.
-
-### Quota enforcement
-
-- **Plan quota** — Entitlement Core specifies monthly token budget (e.g., 10M tokens/month).
-- **Pre-request check** — if estimated cost + consumed cost > remaining quota, deny.
-- **Over-quota handling** — deny further requests; notify tenant; issue billing alert.
-
-### Reporting
-
-- **Daily usage report** — tokens consumed, cost, by assistant + model.
-- **Monthly invoice** — total cost included in tenant bill.
-- **Audit trail** — AiAuditLog is the source of truth for cost dispute resolution.
-
-## 16. Cross-Architecture Dependencies
+## 14. Cross-Architecture Dependencies
 
 | This document depends on | For |
 |---|---|
@@ -705,9 +652,9 @@ Updated daily from AiModel registry.
 | `16_ANALYTICS_ARCHITECTURE.md` (AI model performance analytics). |
 | `18_OBSERVABILITY_ARCHITECTURE.md` (AI request latency, cost, error rates). |
 
-## 17. Implementation Requirements
+## 15. Implementation Requirements
 
-### 17.1 Entity schemas
+### 15.1 Entity schemas
 
 Add to `09_DATA_ARCHITECTURE.md`:
 
@@ -721,7 +668,7 @@ ai_audit_log: id, tenant_id, actor_id, assistant_id, prompt_id, prompt_version, 
 human_approval_gate: id, key, criteria, approver_role, timeout_hours, audit_log_id, state, approver_id, approved_at, rationale, created_at
 ```
 
-### 17.2 API endpoints
+### 15.2 API endpoints
 
 Register in `10_API_ARCHITECTURE.md`:
 
@@ -741,7 +688,7 @@ POST   /api/v1/ai/approvals/{id}/approve   → approve high-impact action
 POST   /api/v1/ai/approvals/{id}/reject    → reject high-impact action
 ```
 
-### 17.3 Permission keys
+### 15.3 Permission keys
 
 Register in `docs/standards/15-permission-registry.md`:
 
@@ -752,7 +699,7 @@ ai.manage_prompts            — CRUD prompts
 ai.approve_high_impact_action — approve AI-initiated mutations
 ```
 
-### 17.4 Events
+### 15.4 Events
 
 Register in `11_EVENT_ARCHITECTURE.md`:
 
@@ -767,20 +714,88 @@ ai.ApprovalDecided            — approval was granted/rejected
 ai.TokenQuotaExceeded         — tenant exceeded monthly quota
 ```
 
-### 17.5 Tests
+### 15.5 Tests
 
 - **Unit tests** — prompt parameterization, token counting, cost calculation, permission checks.
 - **Integration tests** — full AI request flow (invoke → permission check → tool call → audit → response).
 - **Security tests** — prompt injection attempts, cross-tenant data access, approval bypass.
 - **Failure tests** — model timeout, fallback chain, quota exhaustion, approval timeout.
 
-### 17.6 Documentation
+### 15.6 Documentation
 
 - **Prompt authorship guide** — how to write and review prompts.
 - **Assistant setup guide** — how to register an assistant, assign role, set knowledge sources.
 - **Tool registration guide** — how to declare API endpoints as tools.
 - **Cost estimation** — model pricing, token counting, quota planning.
 - **Troubleshooting** — common failures and mitigation.
+
+## 16. Future Expansion Rules
+
+### 16.1 Evolving the prompt registry
+
+When a prompt needs updating:
+
+1. Create a new version (major.minor increment).
+2. Set old version to DEPRECATED.
+3. Update ModelConfigs that reference the old version to point to the new one.
+4. Retire old version after one release cycle.
+
+### 16.2 Adding new AI models
+
+When a new LLM provider or model becomes available:
+
+1. Add to `ai_model_registry` (provider, model_name, context_window, cost per mtok, deprecation_date).
+2. Create ModelConfig(s) that reference it (with fallback chains).
+3. Test with existing prompts before enabling in production.
+4. Document cost implications; notify tenants of new options.
+
+### 16.3 Expanding knowledge sources
+
+When new knowledge or data becomes available for AI to read:
+
+1. Create a new KnowledgeSource entity with explicit query, access gate, indexing strategy.
+2. Add to assistants that should have access via their `knowledge_source_ids` list.
+3. Test retrieval quality; audit access patterns.
+
+### 16.4 Adding new high-impact approval criteria
+
+When a new approval criterion is discovered (e.g., "all Compliance Core mutations"):
+
+1. Document the business reason (audit trail).
+2. Add or update HumanApprovalGate entries.
+3. Notify affected assistant owners; update documentation.
+4. Monitor approval SLA; ensure approvers are available.
+
+### 16.5 Model deprecation
+
+When a provider deprecates a model:
+
+1. Update `ai_model_registry` with deprecation_date.
+2. Update all ModelConfigs that reference it; add fallback chain if missing.
+3. Provide migration path for affected tenants (e.g., cost incentive to move to new model).
+4. Retire after deprecation_date; remove from active ModelConfigs.
+
+## 17. Implementation Requirements (continued)
+
+### 17.1 Validation and testing
+
+- **Schema validation** — AiAuditLog entries are parsed and validated for completeness before writing.
+- **Permission validation** — every tool invocation is pre-checked for permission; failures are logged but not exposed to model.
+- **Cost pre-estimation** — token count is estimated via token counter or prior model call data; request is rejected if cost > quota.
+- **Locale fallback** — if a prompt is not available in the requested locale, fallback to `en_US`.
+
+### 17.2 Monitoring and observability
+
+- **AI request metrics** — latency, success rate, error rate per assistant, per model, per knowledge source.
+- **Cost tracking** — token consumption trend, daily spend, quota usage per tenant.
+- **Approval SLA** — time-to-approval for high-impact actions; escalations if SLA breached.
+- **Fallback frequency** — how often fallback chain is triggered; indicates primary model reliability.
+
+### 17.3 Lifecycle management
+
+- **Soft-delete** — assistants, prompts, tools, knowledge sources have an `enabled` / `status` field; no hard deletes.
+- **Audit immutability** — AiAuditLog entries are append-only; never updated or deleted (even for compliance reasons; PII is redacted at disclosure time, not at storage).
+- **Configuration deployment** — assistants, prompts, tools, knowledge sources are deployed via configuration management (not code); changes are audited.
 
 ---
 

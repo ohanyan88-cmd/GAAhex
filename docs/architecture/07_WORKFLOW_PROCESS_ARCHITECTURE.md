@@ -110,6 +110,38 @@ Every stage in a workflow has exactly one accountable Owner Department (per Stan
 
 An Approval created by a workflow has an SLA (via Approval Core + SLA Core). A breach emits an escalation event. Approval SLA is tracked separately from the main object's SLA (a ticket may have a 24h resolution SLA; its approval may have a 2h approval SLA).
 
+### P9 — Configuration over Code (inherited from platform thesis).
+
+Workflows are data (WorkflowDefinition rows), not code. The killer test is that a second entity can use a configuration-only workflow and achieve end-to-end lifecycle.
+
+### P10 — Event-Driven Integration.
+
+Workflow Core does not call Automation, Approval, or SLA cores directly. Instead, transitions emit events; downstream cores subscribe. Decoupling allows independent evolution.
+
+### P11 — Server-Side Authority.
+
+All gates, guards, and transitions are enforced server-side. The UI is a presentation layer; the engine is the source of truth.
+
+### P12 — Immutable History.
+
+State is mutable; Events are immutable. The state table holds the current snapshot; the Event table holds the permanent history.
+
+### P13 — Audit Everything.
+
+Every transition, approval decision, SLA pause, and automation action is recorded as an immutable Event and is auditable.
+
+### P14 — Tenant Isolation.
+
+All workflow, automation, approval, and SLA operations are tenant-scoped. Cross-tenant workflows are impossible; RLS engages on all cross-record reads.
+
+### P15 — One Accountable Owner.
+
+Every stage has exactly one owning Department (per B5 rule). Supporting departments contribute; only one is accountable. This clarity flows through SLA, assignments, and escalations.
+
+### P16 — Time Authoritatively.
+
+No module does its own date math. All SLA clocks, business-hours calculations, and recurrence rules are delegated to Time Core.
+
 ---
 
 ## 6. Architecture Laws
@@ -255,7 +287,7 @@ Transition structure (per WorkflowDefinition.transitions list):
 
 ### 7.4 Gate Types
 
-A **Gate** is a pre-condition enforcement point. Six types are canonical:
+A **Gate** is a pre-condition enforcement point. Seven types are canonical:
 
 1. **COMMERCIAL_GATE**: financial, pricing, compliance, budget, approval prerequisites. Example: "May not activate a Service without a signed Contract."
 2. **TECHNICAL_GATE**: feasibility, capacity, infrastructure readiness, network availability. Example: "OLT must have available capacity."
@@ -951,28 +983,6 @@ If SLA durations should vary based on object state (e.g., premium vs. standard c
 ### 16.6 Bulk workflow operations
 
 If you need to transition many objects at once (e.g., bulk approval of 100 Leads), that's a Background Processing Core job that calls the transition endpoint for each object in a controlled batch. No special bulk-workflow engine.
-
----
-
-## 17. Architecture Principles (Synthesis)
-
-The Workflow / Process Architecture rests on these principles, inherited from the platform thesis:
-
-1. **Configuration over Code**: Workflows are data (WorkflowDefinition rows), not code. The killer test is that a second entity can use a configuration-only workflow and achieve end-to-end lifecycle.
-
-2. **Event-Driven Integration**: Workflow Core does not call Automation, Approval, or SLA cores directly. Instead, transitions emit events; downstream cores subscribe. Decoupling allows independent evolution.
-
-3. **Server-Side Authority**: All gates, guards, and transitions are enforced server-side. The UI is a presentation layer; the engine is the source of truth.
-
-4. **Immutable History**: State is mutable; Events are immutable. The state table holds the current snapshot; the Event table holds the permanent history.
-
-5. **Audit Everything**: Every transition, approval decision, SLA pause, and automation action is recorded as an immutable Event and is auditable.
-
-6. **Tenant Isolation**: All workflow, automation, approval, and SLA operations are tenant-scoped. Cross-tenant workflows are impossible; RLS engages on all cross-record reads.
-
-7. **One Accountable Owner**: Every stage has exactly one owning Department (per B5 rule). Supporting departments contribute; only one is accountable. This clarity flows through SLA, assignments, and escalations.
-
-8. **Time Authoritatively**: No module does its own date math. All SLA clocks, business-hours calculations, and recurrence rules are delegated to Time Core.
 
 ---
 

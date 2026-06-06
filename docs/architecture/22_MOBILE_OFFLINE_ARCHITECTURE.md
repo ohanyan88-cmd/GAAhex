@@ -586,6 +586,34 @@ Storing passwords, OAuth tokens, or PII in plaintext files. Forbidden. All sensi
 
 A revoked device continuing to sync as if still trusted. Forbidden. Next API contact must result in immediate wipe.
 
+### FP10 — Approval-Gated Transitions Written Offline
+
+No approval-gated transitions can be written offline. If a mobile write requires approval, the OSR status must be PENDING_APPROVAL_OFFLINE; on sync, the approval chain is evaluated by the backend. Attempting to transition without backend approval validation is forbidden.
+
+### FP11 — Silent Offline Writes
+
+All offline writes must be queued and visible to the user. Every OSR must appear in Offline Status; user must see what is pending and what failed. Silent or invisible sync operations are forbidden.
+
+### FP12 — Mobile Client Overwrites Server State
+
+Mobile client cannot force-overwrite server state without explicit user instruction on the next online session. Server is authoritative on conflicts; client accepts server win by default.
+
+### FP13 — Delayed Device Revocation
+
+A revoked device continuing to sync as if still trusted is forbidden. On next network contact, a revoked device must be immediately wiped and locked out without exception.
+
+### FP14 — Incomplete Offline Write Audit
+
+Every OSR must carry userId, deviceId, timestamp, payload, and context for audit. On sync, the full trail must be recorded in Audit Core. Offline writes without complete audit context are forbidden.
+
+### FP15 — Mobile Users Bypass Permissions
+
+Mobile users cannot fake OS-level permissions. Location, camera, biometric, and push permissions are explicit grants; app cannot simulate consent or work around OS denial.
+
+### FP16 — Polling Loops in Mobile App
+
+Backend publishing APIs with polling requirements violates battery and bandwidth budgets. Mobile app must not implement polling loops; sync must be push-driven or interval-based with respect for device state (connectivity, battery, Do Not Disturb).
+
 ## 14. Cross-Architecture Dependencies
 
 | Upstream (required reading)                              |
@@ -660,6 +688,34 @@ Mobile metrics (Observability Core):
 - All OSRs must have userId + deviceId + tenantId.
 - All DeviceTrustRecords must have revocationStatus before sync is accepted.
 
+### 15.8 Quality gate: Approval-Gated Transitions
+
+Backend validation pipeline must reject any OfflineSyncRecord with action = STATE_TRANSITION for approval-gated workflows unless OSR.status = PENDING_APPROVAL_OFFLINE. The approval chain must be evaluated server-side; denied approvals must surface to user with explanation.
+
+### 15.9 Quality gate: Offline Write Visibility
+
+Every OfflineSyncRecord must be queryable and displayable in the Offline Status UI. Mobile app must provide status query endpoint returning all pending, synced, conflicted, and failed OSRs. User must have visibility into sync queue at all times.
+
+### 15.10 Quality gate: Server Authoritative Conflict Resolution
+
+Backend must implement deterministic conflict resolution: safe-field merges (CRDT-style) succeed silently; unsafe-field conflicts result in server-wins with ConflictRecord audit and user notification. Mobile app must not override server decisions without explicit online-session user action.
+
+### 15.11 Quality gate: Immediate Device Revocation
+
+Any DeviceTrustRecord with revocationStatus = REVOKED must trigger immediate cache clear and app lockout on next API contact. Backend must return HTTP 403 + "DEVICE_REVOKED" code; mobile must interpret and execute remote wipe without delay or prompting.
+
+### 15.12 Quality gate: Complete Audit Context
+
+Every OfflineSyncRecord must be created with userId, deviceId, tenantId, timestamp (UTC), payload, and auditContext (user agent, IP-at-sync, GPS-approx, WiFi-SSID-hash). Signing hash (HMAC-SHA256 of payload + deviceTrustKey) must be computed and stored. OSRs missing any required context are rejected at creation.
+
+### 15.13 Quality gate: OS Permission Enforcement
+
+Mobile app must honor OS-level permission grants at all times. Location data must not be sent if location permission is NEVER or DENIED. Camera capture must fail if camera permission is DENIED. App cannot simulate permission consent or work around OS denial. Permission violation results in app suspension.
+
+### 15.14 Quality gate: Battery and Bandwidth Budgets
+
+Backend must publish mobile-aware API contracts: no polling endpoints; sync intervals configurable per network state; payloads compressed; delta sync (changes since checkpoint); paginated responses. Mobile app must not implement polling loops. Violation results in platform rejection.
+
 ## 16. Future Expansion Rules
 
 ### 16.1 Multi-App Instances Per Device
@@ -685,16 +741,6 @@ Future: single mobile app instance switching between tenants (for partner techni
 ### 16.6 Integration with Inventory Core
 
 Current: mobile app reports consumption via manual input or barcode scan. Future: real-time inventory sync (warehouse updates push to device), auto-deduction on submission.
-
-## 17. Quality Gates & Non-Negotiables
-
-- **No approval-gated transitions can be written offline.** If a mobile write requires approval, the OSR status is PENDING_APPROVAL_OFFLINE; on sync, the approval chain is evaluated by the backend.
-- **All offline writes are queued, never silent.** Every OSR is visible in Offline Status; user can see what is pending and what failed.
-- **Server is authoritative on conflicts.** Mobile client cannot force-overwrite server state without explicit user instruction on next online session.
-- **Device revocation is immediate.** On next network contact, a revoked device is wiped and locked out.
-- **Audit is complete for offline writes.** Every OSR carries userId, deviceId, timestamp, payload, and context; on sync, the full trail is recorded in Audit Core.
-- **Mobile users cannot bypass permissions.** Location, camera, biometric, and push permissions are OS-level grants; mobile app cannot fake them.
-- **Battery and bandwidth budgets are respected.** Backend publishes mobile-aware API contracts; no polling loops in mobile app.
 
 ---
 

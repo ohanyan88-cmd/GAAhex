@@ -1,36 +1,63 @@
 # 13 — Security Architecture
 
-**Status:** FOUNDATION tier — universal core across all platform activity.  
-**Locked:** Yes — consult `SEALED-ARCHITECTURE-BASELINE-2026-06-05.md` before changes.  
-**Owned by:** Security Core (Platform Engineering).
-
-> **One-line thesis:** GAAhex's security posture is **fail-closed by default**. Every authentication event, every authorization decision, every secret, every token, every credential, and every threat control is enforced at the platform boundary, at the database boundary, and in the kernel itself — never in application code or frontend logic alone.
+**Constitutional document.** Position in the hierarchy: foundational security governance; directly under `SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`.
 
 ---
 
-## Table of contents
+## 1. Purpose
 
-1. [Architecture principles](#1-architecture-principles)
-2. [Production deploy contract](#2-production-deploy-contract)
-3. [Role-based access control (RBAC) & tenant isolation](#3-role-based-access-control-rbac--tenant-isolation)
-4. [Encryption posture](#4-encryption-posture)
-5. [Secret management](#5-secret-management)
-6. [Token lifecycle & JWT security](#6-token-lifecycle--jwt-security)
-7. [Rate limiting](#7-rate-limiting)
-8. [Idempotency](#8-idempotency)
-9. [Input validation](#9-input-validation)
-10. [OWASP Top 10 posture](#10-owasp-top-10-posture)
-11. [Threat model & incident lifecycle](#11-threat-model--incident-lifecycle)
-12. [Audit & security events](#12-audit--security-events)
-13. [Fail-closed feature gating](#13-fail-closed-feature-gating)
-14. [Boot-time invariant checks](#14-boot-time-invariant-checks)
-15. [Security ≠ Compliance ≠ Audit (PRM separation)](#15-security--compliance--audit-prm-separation)
-16. [Cross-architecture dependencies](#16-cross-architecture-dependencies)
-17. [Implementation roadmap](#17-implementation-roadmap)
+Define GAAhex's security posture, governance model, and fail-closed enforcement mechanisms. Codify the architectural invariants that ensure authentication, authorization, secrets, tokens, encryption, rate-limiting, and audit are enforced uniformly at the platform boundary, database boundary, and kernel — never in application code or frontend logic alone.
 
----
+The thesis: **GAAhex's security posture is fail-closed by default.** Every security control is enforced at multiple layers; unknown flags default to OFF; unknown permissions default to DENIED; defense-in-depth is constitutional.
 
-## 1. Architecture principles
+## 2. Scope
+
+In scope:
+
+- The four-layer authorization decision stack (identity → tenant → role → record).
+- Role-based access control (RBAC) model and permission key semantics.
+- Row-Level Security (RLS) as the foundational tenant isolation mechanism.
+- Encryption at rest (database layer) and in transit (TLS).
+- Secret management, secret rotation, and access auditing.
+- JWT structure, token TTL, refresh rotation, and revocation.
+- API key / service account token semantics.
+- Rate limiting (sliding-window, burst protection, per-endpoint limits).
+- Idempotency keys and replay prevention.
+- Input validation (Pydantic, type coercion, canonicalization).
+- OWASP Top 10 threat vectors and GAAhex's controls.
+- Threat model, incident lifecycle, and post-mortem process.
+- Append-only audit logging at the database layer.
+- Security-sensitive event taxonomy.
+- Fail-closed feature gating (deploy-shape gates vs. tenant flags).
+- Boot-time invariant checks (deploy contract).
+- Separation of Security, Compliance, and Audit responsibilities.
+
+Out of scope (handled by other constitution documents):
+
+- Specific compliance frameworks (GDPR, HIPAA, SOC 2) — see `Compliance Core` docs.
+- Infrastructure-level TLS / certificate pinning details — see `19_INFRASTRUCTURE_ARCHITECTURE.md`.
+- Observability and alerting for anomalies — see `18_OBSERVABILITY_ARCHITECTURE.md`.
+- AI action audit and gating — see `21_AI_ARCHITECTURE.md`.
+
+## 3. Goals
+
+- **G1** No security decision is made in the frontend; the backend is the authority.
+- **G2** Every authentication event, authorization decision, secret access, and threat control is enforced at the platform boundary (API), database boundary (RLS), and kernel (constants) — never in application code alone.
+- **G3** RLS is the foundational tenant isolation mechanism; every tenant-scoped table carries the `tenant_isolation` policy bound to `gaahex.tenant_id`.
+- **G4** Every meaningful security action (login, permission grant, secret access, feature flag flip) is immutably recorded in the append-only audit log before the action completes.
+- **G5** Unknown flags default to OFF; unknown permissions default to DENIED; unknown features default to DISABLED. Fail-closed is mandatory.
+- **G6** The platform refuses to boot if the deploy contract is violated (role split, wildcard CORS, mock providers, invalid auth mode, feature flag inconsistencies, seed data integrity).
+- **G7** Every security-related data model, enum, permission key, and lifecycle behavior aligns with the 70 LOCKED standards (files 15, 17, 20, 21 and security-specific policies).
+
+## 4. Non-Goals
+
+- **NG1** This document does NOT define UI presentation of security controls. (See `06_UI_EXPERIENCE_ARCHITECTURE.md`.)
+- **NG2** This document does NOT define backend implementation modules or file layout. (See `02_DOMAIN_ARCHITECTURE.md`.)
+- **NG3** This document does NOT implement compliance workflows, regulatory evidence, or retention policies. (See Compliance Core.)
+- **NG4** This document does NOT design TLS certificates, key rotation infrastructure, or HSM integration. (See `19_INFRASTRUCTURE_ARCHITECTURE.md`.)
+- **NG5** This document does NOT replace the standards registry. (See `docs/standards/15-permission-registry.md`, `docs/standards/17-security-permission-standard.md`, etc.)
+
+## 5. Architecture Principles
 
 ### P1 — Fail-closed, not fail-open
 
@@ -66,20 +93,70 @@ Every security-related data model, enum, permission key, and lifecycle behavior 
 
 ---
 
-## 2. Production deploy contract
+## 6. Architecture Laws
+
+### L1 — Fail-closed as invariant
+
+> Unknown security state defaults to deny. No flag, permission, or feature gate is ever unknown; omission means OFF/DENIED/DISABLED.
+
+A feature not yet implemented is unavailable to all tenants. A permission not granted is unavailable. A flag not configured is off. The default state is always safe.
+
+### L2 — Role split is mandatory in production
+
+> In production (`ENVIRONMENT == "production"`), the application must run under an unprivileged Postgres role (`gaahex_app`). The table owner role (`gaahex`) is reserved for schema ownership only. The deploy contract enforces this separation; violation is a boot error.
+
+RLS applies only to non-owner roles. A single-role setup in production is a critical violation.
+
+### L3 — RLS is the foundation, not optional
+
+> Every tenant-scoped table carries a `tenant_isolation` RLS policy bound to `gaahex.tenant_id`. The policy is enforced by the database; it cannot be disabled by application code.
+
+RLS is the architectural foundation of tenant isolation. It is not a feature that can be toggled; it is the platform's invariant.
+
+### L4 — Audit is immutable and append-only
+
+> Every mutation to the `event` table is forbidden. A database trigger (per migration `b70ef3b98e27`) raises an exception on any UPDATE or DELETE, even by superusers. The constraint is unforgeable; audit is the source of truth.
+
+Audit records are created once, never modified, never deleted (except via compliance retention policies that mask rather than remove).
+
+### L5 — Authentication vs. authorization are separate
+
+> Authentication asks: "Who is the actor?" (JWT valid, session active, API key present and not revoked?) Authorization asks: "What can the actor do?" (permission grant, RBAC, role scope).  A JWT may be valid but a permission may be denied. The decisions are independent but sequential.
+
+Failed authentication is `401 Unauthorized`. Failed authorization is `403 Forbidden`. The distinction is preserved in all error responses.
+
+### L6 — Secrets are never plaintext
+
+> Secrets (signing keys, webhook HMAC keys, OAuth tokens, database passwords) are stored encrypted at rest via the `EncryptedString` model. The database never holds plaintext. Encryption key is external to the database.
+
+At-rest encryption is mandatory for all secrets. Plaintext in the database is a critical violation.
+
+### L7 — Token revocation is immediate
+
+> Revoked tokens and API keys are added to a **revocation list** cached in Redis (or in-process for dev). The list is checked on every request **before** the handler is invoked. Revocation is **immediate** — no eventual consistency.
+
+If Redis is unavailable in production, the platform **fails closed**: requests are rejected with `503 Service Unavailable` rather than allowing potentially-revoked tokens.
+
+### L8 — Deploy contract is non-negotiable
+
+> The startup check `_assert_production_deploy_contract()` runs in the FastAPI lifespan startup, before any request handler executes. If any check fails, the application exits with a non-zero code and a detailed error message. There is no "continue anyway" option.
+
+The deploy contract is the canonical authority for whether security controls are engaged. Violation is a boot error, not a runtime warning.
+
+---
+
+## 7. Core Concepts
+
+### 7.1 Production deploy contract
 
 The production deploy contract is the **canonical authority** for whether RLS actually engages. It lives in `app/config.py:_assert_production_deploy_contract()` and runs in the FastAPI lifespan startup, before any request handler executes.
 
-### Principle: role split is mandatory
-
-Postgres RLS has a hard rule: **the table owner bypasses RLS**. This means a connection running as the table owner sees every row in every table, regardless of the RLS policy.
-
-GAAhex prevents this by running the application under a **second, unprivileged role** (`gaahex_app`). RLS then applies to every query the app issues. The owner role (`gaahex`) is reserved for:
+**Principle: role split is mandatory.** Postgres RLS has a hard rule: the table owner bypasses RLS. GAAhex prevents this by running the application under a **second, unprivileged role** (`gaahex_app`). RLS then applies to every query the app issues. The owner role (`gaahex`) is reserved for:
 - Schema ownership (migrations via Alembic)
 - Pre-auth code paths (login email lookup, `/org-tree` boot read)
 - Seed code (initial data population)
 
-### Contract checks (in execution order)
+**Contract checks (in execution order):**
 
 | # | Check | Condition | Consequence if violated |
 |---|-------|-----------|------------------------|
@@ -92,7 +169,7 @@ GAAhex prevents this by running the application under a **second, unprivileged r
 
 If `ENVIRONMENT != "production"`, all checks are no-ops. Development, testing, staging, and CI default to a single role for convenience.
 
-### Roles and grants
+**Roles and grants:**
 
 ```sql
 -- Owner role (owns the schema; used by migrations)
@@ -110,46 +187,30 @@ GRANT SET ON PARAMETER gaahex.tenant_id TO gaahex_app;  -- RLS GUC control
 
 Once the role split is in place, RLS policies on tenant-scoped tables *actually work* — every query the app issues is filtered by the `tenant_isolation` policy.
 
----
+### 7.2 RBAC & tenant isolation
 
-## 3. Role-based access control (RBAC) & tenant isolation
+**RLS as foundation, not a feature.** Row-Level Security is the **architectural foundation** of tenant isolation. It is not a feature that can be toggled off, and it is not a feature that is "nice to have." Every tenant-scoped table carries a `tenant_isolation` RLS policy bound to the `gaahex.tenant_id` session GUC.
 
-### RLS as foundation, not a feature
-
-Row-Level Security is the **architectural foundation** of tenant isolation. It is not a feature that can be toggled off, and it is not a feature that is "nice to have." Every tenant-scoped table carries a `tenant_isolation` RLS policy bound to the `gaahex.tenant_id` session GUC.
-
-### The RBAC model (file 17 — Security & Permission Standard)
-
-The authorization system is a **four-layer decision stack**, evaluated in order:
+**The RBAC model (file 17 — Security & Permission Standard).** The authorization system is a **four-layer decision stack**, evaluated in order:
 
 1. **Identity layer:** Is the actor authenticated? (JWT valid, session active, API key present and not revoked?)
 2. **Tenant layer:** Which tenant is the actor? (decoded from JWT `tenant` claim, validated against `User.tenant_id` server-side.)
 3. **Role layer:** What permissions does the actor have? (role grants evaluated as a set of `permission_key` strings; wildcards allowed in grants: `*`, `object.*`, `object.action`.)
 4. **Record layer:** Can the actor reach this specific record? (org-node scope, department filter, region scope, field visibility, record status, workflow state.)
 
-### Permission keys are immutable and canonical
-
-Every permission is keyed as `{object}.{action}`, lowercase, dot-separated. Examples:
-- `customer.view`, `customer.create`, `customer.edit`, `customer.delete`
-- `service.activate`, `service.deactivate`, `service.transition`
-- `configuration.manage`, `permission.grant`, `permission.revoke`
-- `comment.view_internal`, `audit.export`
+**Permission keys are immutable and canonical.** Every permission is keyed as `{object}.{action}`, lowercase, dot-separated. Examples: `customer.view`, `customer.create`, `service.activate`, `configuration.manage`, `audit.export`.
 
 **Permission keys are immutable once released to a tenant.** Renaming `customer.view` to `customer.read` is a breaking change for every existing role grant. Renaming is forbidden unless paired with a backfill migration that maintains all grants.
 
 The canonical registry is `docs/standards/15-permission-registry.md`.
 
-### Default-deny is the rule
-
-No grant means no access. `can(entity_key, verb, record_path)` returns true **iff**:
+**Default-deny is the rule.** No grant means no access. `can(entity_key, verb, record_path)` returns true **iff**:
 1. Some grant carries the permission (as `*`, `entity_key.*`, or the literal `entity_key.verb`), **AND**
 2. The grant's scope covers the `record_path` (tenant, node, subtree, or region scope).
 
 Otherwise, the decision is **default-deny** and the HTTP response is `403 AccessDenied`. The error message is **generic** — it never echoes which layer (role, department, region, ownership, field) refused, so a hostile caller can't map the matrix.
 
-### Tenant isolation policy (RLS)
-
-Every tenant-scoped table (`customer`, `service`, `contract`, `task`, etc.) has:
+**Tenant isolation policy (RLS).** Every tenant-scoped table (`customer`, `service`, `contract`, `task`, etc.) has:
 
 ```sql
 CREATE POLICY tenant_isolation ON <table>
@@ -165,86 +226,40 @@ The per-request flow:
 
 The `NULLIF` guard handles the edge case of pre-auth code paths (login lookup, `/org-tree` startup read) that run as the owner role and have no tenant context — they explicitly set `gaahex.tenant_id` to `NULL` or don't set it at all, and the policy allows the bypass.
 
-### Role denials override grants
-
-A role may declare **explicit denials** (`role_def_deny`) that override positive permissions:
-
-```sql
--- Role grants permission
-INSERT INTO role_def (role_key, permissions)
-VALUES ('analyst', ARRAY['customer.*', 'service.view']);
-
--- But the denial says: not for financial workflows
-INSERT INTO role_def_deny (role_key, denied_entity_key, denied_action)
-VALUES ('analyst', 'financial', '*');
-```
+**Role denials override grants.** A role may declare **explicit denials** (`role_def_deny`) that override positive permissions.
 
 Denial always wins over grant. A matching denial raises `AccessDenied` even if the role's positive permissions would allow the action.
 
-### Field-level visibility
-
-A field may declare `view_roles` and `edit_roles` restrictions in its config:
-
-```json
-{
-  "view_roles": ["super_admin", "finance_lead"],
-  "edit_roles": ["finance_lead"]
-}
-```
-
-A field that a caller's roles may not view is **never** returned from the API, **never** included in search result snippets or highlights, **never** exported, **never** visible in reports, **never** exposed to AI views. This enforcement is identical across UI, API, exports, reports, and search — the security boundary is at the data layer, not the presentation layer.
+**Field-level visibility.** A field may declare `view_roles` and `edit_roles` restrictions in its config. A field that a caller's roles may not view is **never** returned from the API, **never** included in search result snippets or highlights, **never** exported, **never** visible in reports, **never** exposed to AI views. This enforcement is identical across UI, API, exports, reports, and search — the security boundary is at the data layer, not the presentation layer.
 
 Admins holding `configuration.manage` bypass field-level visibility.
 
----
+### 7.3 Encryption posture
 
-## 4. Encryption posture
-
-### Encryption at rest (database level)
-
-Sensitive data in the database is encrypted at rest:
+**Encryption at rest (database level).** Sensitive data in the database is encrypted at rest:
 
 - **Secrets** (signing keys, webhook HMAC keys, OAuth tokens): stored via `EncryptedString` model — encrypted transparently on write, decrypted transparently on read. The database **never holds plaintext**. Encryption key is external to the database.
 - **Credentials** in Integration/Developer Platform tables: encrypted at rest via the same pattern.
 - **Personally identifiable information (PII)** in Party tables: encrypted at the model level where subject to regulatory requirements (future; placeholder for GDPR, CCPA, etc.).
 
-### Encryption in transit (TLS)
+**Encryption in transit (TLS).** All connections use TLS:
 
 - **Database connections:** `postgresql://` is never acceptable in production. All connections use TLS: `postgresql+asyncpg://...` with certificate pinning where available.
 - **API connections:** All external APIs are reached over HTTPS with certificate validation. No `verify=False` in production code.
 - **Internal RPC:** Service-to-service calls within the platform default to HTTPS; plain HTTP is accepted only on loopback (`127.0.0.1:8099` in dev).
 - **WebSocket (future):** If introduced, must use WSS (encrypted WebSocket), never WS.
 
-### Encryption for blob storage
+**Encryption for blob storage.** Attachments, documents, and exports stored in object storage are encrypted at rest by the storage provider (S3-compatible, GCS, Azure Blob). Signed URLs enforce expiration and single-use constraints.
 
-Attachments, documents, and exports stored in object storage are encrypted at rest by the storage provider (S3-compatible, GCS, Azure Blob). Signed URLs enforce expiration and single-use constraints.
+### 7.4 Secret management
 
----
+**Never in plaintext environment variables.** The deploy contract forbids storing signing keys or credentials as plaintext in environment variables. At boot time, the application loads environment variables and immediately encrypts them for at-rest storage.
 
-## 5. Secret management
-
-### Never in plaintext environment variables
-
-The deploy contract forbids storing signing keys or credentials as plaintext in environment variables. At boot time, the application loads environment variables and immediately encrypts them for at-rest storage.
-
-### Secrets are referenced by `secretRef`, not inline
-
-Any configuration that needs a secret (webhook signing key, OAuth client secret, database password) stores a **reference** (`secretRef`) to a `Secret` table row, not the plaintext value.
-
-```json
-{
-  "webhookDef": {
-    "url": "https://external.api/webhook",
-    "secretRef": "secret-uuid-xxx"
-  }
-}
-```
+**Secrets are referenced by `secretRef`, not inline.** Any configuration that needs a secret (webhook signing key, OAuth client secret, database password) stores a **reference** (`secretRef`) to a `Secret` table row, not the plaintext value.
 
 The `Secret` table is gated by a tight RLS policy: only the service that owns the secret can read it. Reading a secret is an audit event.
 
-### Secret rotation policy
-
-Secrets are rotated on a schedule:
+**Secret rotation policy.** Secrets are rotated on a schedule:
 - **Short-lived** (OAuth tokens, API client secrets): 90 days.
 - **Medium-lived** (signing keys, webhook HMAC keys): 1 year.
 - **Long-lived** (database passwords): 1 year or on employee offboarding.
@@ -253,27 +268,13 @@ Rotation is **add-new-without-breaking-old**: a signing key is added, the next N
 
 Rotation events are audit-logged with the actor, timestamp, and old/new secret fingerprints (not the plaintext).
 
-### Access is always audited
-
-Every read of a secret (to sign a request, to decrypt stored data, to verify an incoming webhook) is recorded in the audit log:
-
-```
-event_type: SECRET_ACCESSED
-actor: <service_account_id>
-secret_fingerprint: <hash of secret value>
-purpose: webhook_signing | oauth_refresh | payment_gateway | ...
-timestamp: <utc>
-```
+**Access is always audited.** Every read of a secret (to sign a request, to decrypt stored data, to verify an incoming webhook) is recorded in the audit log as `SECRET_ACCESSED` with the service account, purpose, and timestamp.
 
 A secret read with no corresponding event is a **security incident**.
 
----
+### 7.5 Token lifecycle & JWT security
 
-## 6. Token lifecycle & JWT security
-
-### JWT structure and claims
-
-GAAhex JWTs carry:
+**JWT structure and claims.** GAAhex JWTs carry:
 
 ```json
 {
@@ -286,7 +287,6 @@ GAAhex JWTs carry:
 }
 ```
 
-Claims:
 - **`sub` (subject):** The user's UUID. Immutable for the lifetime of the token.
 - **`tenant`:** The user's tenant. **Validated server-side** against `User.tenant_id` — the user cannot claim a different tenant.
 - **`role`:** The user's primary role key. Used for display; actual permissions are resolved server-side from the `assignment` table.
@@ -294,15 +294,13 @@ Claims:
 - **`exp` (expiration):** Seconds since epoch. Tokens older than this are rejected.
 - **`jti` (JWT ID):** A unique identifier for this token instance. Used for revocation.
 
-### Token TTL and refresh rotation
+**Token TTL and refresh rotation.**
 
 - **Access token TTL:** 1 hour. Frequent rotation reduces the window a stolen token can be used.
 - **Refresh token TTL:** 7 days. Longer lived so users don't have to re-authenticate daily.
 - **Refresh rotation:** On every refresh, the old refresh token is **invalidated**. Only the new token is valid. This prevents a leaked refresh token from being used multiple times.
 
-### Token validation
-
-On every request:
+**Token validation.** On every request:
 
 1. **Extract the JWT** from the `Authorization: Bearer <jwt>` header.
 2. **Verify the signature** (constant-time comparison) against the platform's signing key.
@@ -314,9 +312,7 @@ On every request:
 
 Failure at any step results in `401 Unauthorized` (not `403 Forbidden`; the distinction matters).
 
-### Service account tokens
-
-Service accounts (integrations, background jobs, API clients) use **API keys** instead of JWTs:
+**Service account tokens.** Service accounts (integrations, background jobs, API clients) use **API keys** instead of JWTs:
 
 ```
 Authorization: Bearer gaahex_prod_key_12345abcdef...
@@ -324,24 +320,18 @@ Authorization: Bearer gaahex_prod_key_12345abcdef...
 
 API keys are:
 - **Scoped** to one service account and carry a list of permissions.
-- **Rate-limited** per key (see § 7).
+- **Rate-limited** per key (see § 7.6).
 - **Logged** on every use (audit event: `API_KEY_USED`).
 - **Rotatable** with the same add-new-keep-old pattern as secrets.
 - **Revocable** immediately (list is checked against a fast cache).
 
-### Revocation list
-
-Revoked tokens and keys are added to a **revocation list** cached in Redis (or in-process for dev). The list is checked on every request **before** the handler is invoked. Revocation is **immediate** — no eventual consistency.
+**Revocation list.** Revoked tokens and keys are added to a **revocation list** cached in Redis (or in-process for dev). The list is checked on every request **before** the handler is invoked. Revocation is **immediate** — no eventual consistency.
 
 If Redis is unavailable, the platform **fails closed**: requests are rejected with `503 Service Unavailable` rather than allowing potentially-revoked tokens.
 
----
+### 7.6 Rate limiting
 
-## 7. Rate limiting
-
-### Sliding-window algorithm
-
-Rate limits are enforced using a **sliding-window counter**. The window is 60 seconds; the limit is keyed by tenant + API key (or IP for unauthenticated endpoints).
+**Sliding-window algorithm.** Rate limits are enforced using a **sliding-window counter**. The window is 60 seconds; the limit is keyed by tenant + API key (or IP for unauthenticated endpoints).
 
 ```python
 # Pseudo-code
@@ -355,7 +345,7 @@ def is_rate_limited(tenant_id, api_key, limit_per_minute):
     return False
 ```
 
-### Limits by endpoint class
+**Limits by endpoint class:**
 
 | Endpoint | Limit | Scope | Consequence |
 |----------|-------|-------|-------------|
@@ -368,9 +358,7 @@ def is_rate_limited(tenant_id, api_key, limit_per_minute):
 
 Limits are **per-tenant** so one tenant's abuse doesn't affect others. A rogue API key can be rate-limited independently.
 
-### Response format
-
-When a request is rate-limited:
+**Response format.** When a request is rate-limited:
 
 ```json
 HTTP/1.1 429 Too Many Requests
@@ -387,17 +375,11 @@ HTTP/1.1 429 Too Many Requests
 
 The `Retry-After` header is also set (per RFC 7231).
 
-### Burst protection
+**Burst protection.** To prevent abuse of the sliding window (e.g., 999 requests in second 1, then pause, then 999 in second 2), the platform also enforces a **per-second hard cap** of 50% of the per-minute limit. This prevents bursting to the limit in a single second.
 
-To prevent abuse of the sliding window (e.g., 999 requests in second 1, then pause, then 999 in second 2), the platform also enforces a **per-second hard cap** of 50% of the per-minute limit. This prevents bursting to the limit in a single second.
+### 7.7 Idempotency
 
----
-
-## 8. Idempotency
-
-### Idempotency keys for write endpoints
-
-Every POST/PUT/PATCH that mutates a record must carry an **Idempotency-Key** header:
+**Idempotency keys for write endpoints.** Every POST/PUT/PATCH that mutates a record must carry an **Idempotency-Key** header:
 
 ```
 POST /api/customers HTTP/1.1
@@ -412,7 +394,7 @@ If the same Idempotency-Key is submitted twice within a **24-hour window**:
 2. The second request **skips processing** and returns the **same response** from the first request (cached).
 3. The operation is **never executed twice**, preventing double-charges, duplicate records, etc.
 
-### Implementation
+**Implementation:**
 
 ```python
 # In the router handler
@@ -432,195 +414,24 @@ if idempotency_key:
 return result
 ```
 
-### Audit trail
+**Audit trail.** Idempotent replays are **not re-audited**. The original event row in the audit log is the proof. A replay does not generate a second `CUSTOMER_CREATED` event.
 
-Idempotent replays are **not re-audited**. The original event row in the audit log is the proof. A replay does not generate a second `CUSTOMER_CREATED` event.
+### 7.8 Threat model & incident lifecycle
 
----
-
-## 9. Input validation
-
-### Validation is mandatory at every boundary
-
-Input validation happens at **four points**, and all four must pass:
-
-1. **API layer:** Request body is parsed and validated against a Pydantic schema before the handler is invoked.
-2. **Service layer:** Business logic validates constraints (e.g., "end date must be after start date").
-3. **Database layer:** Check constraints and foreign keys enforce invariants the application code didn't catch.
-4. **Integration layer:** Data from external systems (imports, webhooks) is validated before being stored.
-
-Failure at the API layer returns `422 Unprocessable Entity` with detailed field errors. Failure at the service layer returns `400 Bad Request` (or a domain-specific error). Failure at the database layer returns `500 Internal Server Error` (a bug in the application).
-
-### Canonical validation path (Standard 20)
-
-The validation rules for each field are defined once, in the `FieldDef` configuration. The same rules are applied:
-- By the frontend (for UX feedback)
-- By the backend API (before storing)
-- By imports/exports (before bulk write)
-- By automation (before executing actions)
-- By integrations (before accepting external data)
-
-No two validation paths are allowed; duplication is a source of bugs.
-
-### Type coercion and canonicalization
-
-Input values are **coerced to their canonical form** before validation:
-
-- **Dates:** parsed to ISO 8601 (`YYYY-MM-DD`); timezone-aware values are rejected unless the field is explicitly timezone-aware.
-- **Currency:** parsed to two decimal places; non-numeric characters are stripped.
-- **Enums:** normalized to `UPPER_SNAKE_CASE`; any other casing is rejected.
-- **Strings:** trimmed of leading/trailing whitespace; null bytes are rejected.
-- **Phone numbers:** normalized to E.164 format; invalid formats are rejected.
-- **Email:** lowercase; RFC 5321 format validation.
-
-Invalid input is never silently corrected. If the input doesn't parse, the error is returned immediately.
-
----
-
-## 10. OWASP Top 10 posture
-
-### A1 — Injection
-
-**Vector:** SQL injection, command injection, expression injection.
-
-**GAAhex controls:**
-- **SQLAlchemy ORM:** All database queries use parameterized ORM statements, never raw SQL string concatenation.
-- **Input validation:** Every user-supplied string is validated against a whitelist schema before use.
-- **No shell execution:** The platform never invokes shell commands with user input.
-- **No expression evaluation:** Dynamic expressions (e.g., filter conditions) are parsed into a safe AST; custom expressions are rejected.
-
-**Proof:** Static analysis via ruff (`check-sql` rule). Injection attempts are also rate-limited (see § 7) — repeated invalid queries trigger a 429.
-
-### A2 — Broken authentication
-
-**Vector:** Weak password policy, credential leakage, session hijacking, credential brute-force.
-
-**GAAhex controls:**
-- **PBKDF2 password hashing:** Passwords are hashed with PBKDF2-SHA256 (100,000 iterations), not stored plaintext.
-- **Brute-force protection:** Login attempts are rate-limited to 10 per minute per IP (see § 7).
-- **Session invalidation:** On logout or password change, all existing tokens for the user are revoked.
-- **Forced password change:** On first login (after admin password reset), the user must change their password.
-- **MFA support:** (future; framework in place) TOTP or SMS-based second factor.
-
-**Proof:** Test `test_deploy_contract.py` validates the auth separation. Test `test_rls.py` validates session isolation.
-
-### A3 — Sensitive data exposure
-
-**Vector:** Unencrypted PII, secrets in logs, credentials in error messages.
-
-**GAAhex controls:**
-- **Encryption at rest:** Secrets and sensitive PII are encrypted in the database (see § 4, § 5).
-- **Encryption in transit:** All external connections use TLS (see § 4).
-- **Generic error messages:** API errors never echo sensitive data. A 403 says "access denied", not "you don't have role admin".
-- **Audit log encryption:** Future — audit log backups are encrypted at rest.
-- **Secrets never in logs:** Application code never logs sensitive data. Secrets are logged only as fingerprints (hashes).
-
-**Proof:** CI step `pip-audit` scans for known CVEs in Python dependencies. Manual code review of error handling.
-
-### A4 — Broken access control
-
-**Vector:** User A reading/modifying User B's data, privilege escalation, permission bypass.
-
-**GAAhex controls:**
-- **RLS at the database layer:** Every tenant-scoped table has a `tenant_isolation` RLS policy. Cross-tenant reads are impossible, even if application code is buggy.
-- **RBAC at the API layer:** Every request is gated by permission checks before the handler is invoked.
-- **Field-level visibility:** Sensitive fields are hidden from unauthorized roles (see § 3).
-- **Audit on every change:** Permission grants and role assignments are audited.
-
-**Proof:** Test `test_rls.py` validates RLS. Test `test_rls_parametric.py` validates RLS across every tenant-scoped table. Test `test_cross_tenant_*` validates API-layer isolation. CI job `backend-rls` runs the full suite with the `gaahex_app` role (dual-role enforcement).
-
-### A5 — Security misconfiguration
-
-**Vector:** Debug mode in production, default credentials, overly permissive CORS, exposed endpoints.
-
-**GAAhex controls:**
-- **Deploy contract:** The startup check refuses to boot if configuration is incorrect (see § 2).
-- **Environment-based toggles:** Debug, tracing, and logging levels are set via `ENVIRONMENT` (dev/staging/production).
-- **No default credentials:** Admin users are created only via seed code with strong passwords.
-- **CORS policy:** Wildcard CORS is forbidden in production; origins must be explicitly whitelisted.
-- **Endpoint registration:** Hidden or internal endpoints (`/meta/`, `/admin/`) are not exposed in Swagger unless `ENVIRONMENT != "production"`.
-
-**Proof:** Test `test_deploy_contract.py::test_production_*` validates the startup checks.
-
-### A6 — Insecure deserialization
-
-**Vector:** Arbitrary code execution via deserialization of untrusted data.
-
-**GAAhex controls:**
-- **Pydantic validation:** All incoming JSON is parsed and validated by Pydantic models before deserialization. Unknown fields are rejected.
-- **Type hints:** Every request handler is type-hinted; mismatched types are caught at parse time.
-- **No pickle:** The platform never deserializes Python pickle or other code-execution formats from untrusted input.
-- **External data is typed:** Webhook payloads, CSV imports, and external API responses are parsed into strict Pydantic schemas.
-
-**Proof:** Integration tests validate webhook payload parsing. Import tests validate CSV schema validation.
-
-### A7 — Cross-site scripting (XSS)
-
-**Vector:** Malicious JavaScript injected into user-facing pages.
-
-**GAAhex controls:**
-- **React auto-escaping:** The frontend uses React, which auto-escapes HTML unless explicitly marked as unsafe (rare).
-- **Content Security Policy (CSP):** (future; placeholder) HTTP header restricts script sources.
-- **No `innerHTML`:** The frontend avoids `innerHTML` where possible; when necessary, content is sanitized via `DOMPurify`.
-- **CSRF tokens:** Forms include CSRF tokens that are validated on submission.
-
-**Proof:** Frontend integration tests validate escaping. Manual review of unsafe components.
-
-### A8 — Insecure deserialization (API responses)
-
-**Vector:** API responses contain user-controlled data that is used unsafely in the frontend.
-
-**GAAhex controls:**
-- **Response type hints:** All API responses are typed and validated by TypeScript on the frontend.
-- **No dynamic imports:** The frontend does not `import()` user-supplied code.
-- **Sandbox for user content:** User-generated content (comments, descriptions) is rendered as text, not HTML.
-
-**Proof:** Frontend TypeScript compilation validates type safety. Integration tests validate response shape.
-
-### A9 — Using components with known vulnerabilities
-
-**Vector:** Outdated libraries with known security flaws.
-
-**GAAhex controls:**
-- **Dependency audit (Python):** CI step `pip-audit -r requirements.txt` scans for CVEs. Warn-only on landing; blocking on release.
-- **Dependency audit (npm):** CI step `npm audit` scans for CVEs. Warn-only.
-- **Supply chain scanning:** `gitleaks` detects accidentally-committed credentials.
-- **Vulnerability patching:** CVEs in dependencies are patched within 24 hours (critical) or 7 days (high) of disclosure.
-
-**Proof:** CI jobs `pip-audit`, `npm audit`, `gitleaks` gate every push.
-
-### A10 — Insufficient logging & monitoring
-
-**Vector:** Security incidents go undetected because events are not logged.
-
-**GAAhex controls:**
-- **Append-only audit log:** Every mutation, permission grant, secret access, and feature flag change is recorded (see § 12).
-- **Authentication events:** Login, logout, token refresh, password change are logged.
-- **Permission denials:** Every `AccessDenied` (403) is logged with the actor, resource, and action.
-- **Anomaly detection:** (future) Automated alerting on suspicious patterns (brute-force, cross-tenant access attempts, bulk exports).
-
-**Proof:** Test `test_audit_append_only.py` validates audit logging. Integration tests validate event emission.
-
----
-
-## 11. Threat model & incident lifecycle
-
-### Threat vectors (highest priority first)
+**Threat vectors (highest priority first):**
 
 | Threat | Impact | Likelihood | Detection | Mitigation |
 |--------|--------|-----------|-----------|-----------|
 | **Cross-tenant data exposure** | Catastrophic — tenant data leaks to another tenant | Low (RLS + RBAC layered) | Automated: RLS test suite, tenant-filter analyzer | Fail-closed RLS; dual-role CI enforcement |
 | **Privilege escalation** | High — attacker gains admin access | Low (RBAC immutable post-release) | Manual: code review; automated: permission-registry drift check | RBAC lockdown; audit of permission grants |
 | **RCE via injection** | Catastrophic — arbitrary code execution | Low (no eval, SQLAlchemy ORM) | Automated: static analysis; manual: security review | Input validation; no dynamic code execution |
-| **Data exfiltration via export/report** | High — bulk data download with stolen credentials | Medium (API key compromise likely) | Audit log (user + timestamp); rate limit (see § 7) | API key rotation; audit alerts on large exports |
+| **Data exfiltration via export/report** | High — bulk data download with stolen credentials | Medium (API key compromise likely) | Audit log (user + timestamp); rate limit (see § 7.6) | API key rotation; audit alerts on large exports |
 | **Brute-force password attack** | Medium — attacker gains user access | High (automated attack) | Failed login rate limiting | 10/minute per IP; MFA (future) |
 | **Credential leakage (leaked API key)** | High — attacker uses key for 7 days (refresh rotation) | Medium (social engineering, accidental paste) | Audit on every API key use; automated scan (gitleaks) | Immediate revocation; short TTL; refresh rotation |
 | **DoS (rate limit exhaustion)** | Medium — service degradation | Medium (low barrier to entry) | Rate-limit metrics; anomaly detection | Sliding-window limits; burst protection |
 | **Misconfiguration (role split not enforced)** | Catastrophic — RLS silently bypassed | Low (deploy contract enforces) | CI test (`test_deploy_contract.py`) | Startup refusal if contract violated |
 
-### Incident lifecycle
-
-When a security incident is detected:
+**Incident lifecycle.** When a security incident is detected:
 
 1. **Detect** (automated or manual) — anomaly detection, rate-limit spiking, suspicious access patterns, customer report.
 2. **Classify** — severity (critical, high, medium, low) and category (injection, auth, exposure, etc.).
@@ -634,172 +445,156 @@ Every incident is **recorded** in an incident log (separate from the general aud
 
 ---
 
-## 12. Audit & security events
+## 8. Canonical Entities
 
-### Append-only audit at the database layer
+Security Core owns the following canonical entities (per `09_DATA_ARCHITECTURE.md`):
 
-Every mutation (create, update, delete, transition, permission grant, feature flag flip) is recorded in the `event` table via `workflow.emit(...)`. The schema:
+- **Secret** — encrypted plaintext for signing keys, OAuth tokens, webhook HMAC keys, credentials.
+- **EncryptionKey** — key material for at-rest encryption of secrets.
+- **RateLimitPolicy** — configuration for sliding-window limits per endpoint.
+- **IdempotencyKey** — cached response for replay prevention.
+- **ThreatRule** — configuration for threat detection and incident response.
 
-```sql
-CREATE TABLE event (
-  id UUID PRIMARY KEY,
-  tenant_id UUID NOT NULL REFERENCES tenant(id),
-  event_type VARCHAR NOT NULL,  -- e.g. CUSTOMER_CREATED, PERMISSION_GRANTED
-  entity_key VARCHAR NOT NULL,  -- e.g. customer, task, role_def
-  record_id UUID NOT NULL,
-  actor_id UUID NOT NULL REFERENCES user(id),
-  actor_ip VARCHAR,
-  actor_role VARCHAR,
-  data JSONB,  -- Event-specific payload
-  created_at TIMESTAMP NOT NULL DEFAULT now(),
-  CONSTRAINT event_append_only PRIMARY KEY (id)
-);
+Supporting entities referenced:
+- **User** (Identity Core) — bearer of authentication and role assignments.
+- **RoleDefinition** (Policy Core) — named bundles of permissions.
+- **Event** (Audit Core) — audit log records for all security actions.
 
--- DB trigger that enforces append-only
-CREATE TRIGGER event_no_update BEFORE UPDATE ON event
-  FOR EACH ROW EXECUTE FUNCTION prevent_update_delete();
+---
+
+## 9. Ownership Boundaries
+
+Security Core is accountable for:
+
+- **Positive surface (owns):** Authentication (JWT, API keys, sessions), RBAC (four-layer stack, permission evaluation, denials), encryption (at-rest, in-transit), secrets (storage, rotation, audit access), tokens (validation, revocation, TTL), rate-limiting, idempotency, threat model, incident response, deploy contract enforcement.
+- **Negative surface (does NOT own):** Compliance workflows (Compliance Core), specific auth providers (Identity Core), observability alerting (Observability Core), AI action audit (AI Core), UI presentation of security controls (Workspace Core).
+
+---
+
+## 10. Relationships
+
+### 10.1 Dependency direction
+
+Security Core is **FOUNDATION tier**. It is depended on by all other cores:
+
+```
+[All other cores depend on Security Core]
+           ↓
+[FOUNDATION tier]
 ```
 
-A Postgres trigger (per migration `b70ef3b98e27`) raises an exception on any UPDATE or DELETE, even by the table owner. The trigger fires for **every role**, including superusers, so the constraint is unforgeable.
+No core at any tier may bypass Security Core. Every request is evaluated for authentication and authorization by Security Core before the handler is invoked.
 
-### Audit events for security-sensitive actions
+### 10.2 Universal dependencies
 
-| Action | Event type | Payload |
-|--------|-----------|---------|
-| User login | `USER_LOGGED_IN` | `{ actor_id, ip, success: true/false, reason: "invalid_password" / "mfa_failed" / ... }` |
-| User logout | `USER_LOGGED_OUT` | `{ actor_id, ip, session_duration_seconds }` |
-| Password changed | `PASSWORD_CHANGED` | `{ actor_id, by_user_id, reason: "self" / "admin_reset" }` |
-| Permission granted | `PERMISSION_GRANTED` | `{ actor_id, target_user_id, permission_key, scope }` |
-| Permission revoked | `PERMISSION_REVOKED` | `{ actor_id, target_user_id, permission_key }` |
-| Role assigned | `ROLE_ASSIGNED` | `{ actor_id, target_user_id, role_key, org_node, reason }` |
-| API key created | `API_KEY_CREATED` | `{ actor_id, api_key_fingerprint, scopes, expires_at }` |
-| API key revoked | `API_KEY_REVOKED` | `{ actor_id, api_key_fingerprint, reason }` |
-| Secret accessed | `SECRET_ACCESSED` | `{ actor_id, secret_fingerprint, purpose, by_service }` |
-| Feature flag toggled | `FEATURE_FLAG_UPDATE` | `{ actor_id, flag_key, old_value, new_value }` |
-| Configuration changed | `CONFIG_CHANGED` | `{ actor_id, config_key, old_value, new_value }` |
-| Cross-tenant access attempt (denied) | `CROSS_TENANT_DENIED` | `{ actor_id, actor_tenant, target_tenant, resource, action }` |
-| Rate limit exceeded | `RATE_LIMIT_EXCEEDED` | `{ actor_id / ip, endpoint, limit, window }` |
-| Malformed request | `MALFORMED_REQUEST` | `{ actor_id / ip, endpoint, reason }` |
+Security Core depends on:
 
-### Audit retrieval and retention
+- **Tenant Core** — every security decision is tenant-scoped.
+- **Audit Core** — every security action is recorded.
+- **Identity Core** — Security validates identities via Identity Core's User/ServiceAccount entities.
+- **Time Core** — token TTL, token expiration, rate-limit windows.
 
-- **Retrieval:** `/api/audit?entity_key=&record_id=&actor_id=&event_type=&from_date=&to_date=` filters audit logs. Pagination (Standard 9).
-- **Access control:** Reading audit logs requires `audit.view` permission. Reading another tenant's audit logs is impossible (RLS).
-- **Retention:** Audit logs are **immutable and indefinite** (no automatic deletion). Compliance-driven retention policies (future) can mask records from view without deleting them.
-- **Export:** Audit exports are rate-limited (10 per hour per user). The export itself is an audit event.
+### 10.3 Event subscription
+
+Security Core emits events that other cores subscribe to:
+
+- `User.Authenticated` — subscribed by Audit Core, Notification Core.
+- `User.PermissionGranted` — subscribed by Audit Core, Notification Core.
+- `Secret.Accessed` — subscribed by Audit Core, Observability Core.
+- `ThreatDetected` — subscribed by Observability Core (alerting).
 
 ---
 
-## 13. Fail-closed feature gating
+## 11. Responsibilities
 
-### Deploy-shape gates vs. tenant business flags
+### 11.1 Platform owner
 
-The platform has **two independent feature-gating systems**, and they must never be collapsed (see `docs/standards/FEATURE_GATING_POLICY.md`):
+- Approves changes to the threat model, deploy contract, or RBAC model.
+- Reviews and approves all security-related PRs before merge.
+- Escalates incidents and conducts post-mortems.
 
-| System | Purpose | Scope | Failure mode |
-|--------|---------|-------|--------------|
-| **Deploy-shape gate** (`feature_gate.py`) | Technical availability in this deployment | Platform-wide | Feature is unavailable for **all tenants** |
-| **Tenant flag** (`FeatureFlag` table) | Business preference per tenant | Per-tenant | Feature is unavailable for **one tenant only** |
+### 11.2 Security Core team (Platform Engineering)
 
-### Deploy-shape gates (platform-wide)
+- Maintains the deploy contract (`app/config.py:_assert_production_deploy_contract()`).
+- Maintains RBAC evaluation logic (`app/kernel/authz.py`).
+- Maintains RLS policies (alembic migrations for tenant-scoped tables).
+- Maintains encryption/decryption helpers (`app/kernel/security.py`, `EncryptedString` model).
+- Ensures every security action is recorded in the audit log.
+- Runs the incident lifecycle on detected threats.
+- Maintains the threat model and security documentation.
 
-A deploy-shape gate answers: "Can the platform technically provide this subsystem in this deployment?"
+### 11.3 Code reviewers
 
-**Today's gates:**
-- `radius` — RADIUS authentication/accounting
-- `olt_provisioning` — OLT ONU provisioning
-- `import_engine` — Bulk CSV/XLSX import
-- `warehouse` — Inventory/asset warehouse
-
-If `ENVIRONMENT=production` and `feature_<key>_required=True`, the backend must construct the service cleanly at boot. If construction fails, the platform refuses to start with a clear error.
-
-### Tenant flags (per-tenant business choice)
-
-A tenant flag answers: "Should this tenant be able to use this optional feature?"
-
-**Examples** (future):
-- `dunning_automation` — automated overdue-invoice escalation.
-- `self_serve_signup` — customer portal self-signup.
-- `advanced_analytics` — premium reporting dashboard.
-
-Tenant flags are stored in the `FeatureFlag` table, which is tenant-scoped and RLS-protected. Each tenant controls its own flags via `/api/feature-flags` endpoints.
-
-### The decision tree
-
-For every feature:
-
-1. **Is the question "can the platform technically provide this in this deployment?"**
-   - Yes → use **deploy-shape gate**.
-   - No → continue.
-
-2. **Is the feature implemented in the platform code?**
-   - No → use **deploy-shape gate** (fail-closed until code lands).
-   - Yes → continue.
-
-3. **Should two reasonable tenants be free to make different choices?**
-   - Yes → use **tenant flag**.
-   - No → this is not a feature gate; it's platform behavior. Encode it as configuration, not a flag.
-
-### Forbidden patterns
-
-- Adding `tenant_id` parameter to `feature_gate.is_enabled()` → collapses the two systems.
-- Adding a tenant business preference to `feature_gate.py` keys → inverts tenant autonomy.
-- Adding a deploy-shape gate to the `FeatureFlag` table → allows a tenant to flip infrastructure off.
-- Collapsing both gates into one call → order matters; deploy-shape first (do we have a backend?), then tenant-flag (does this tenant want it?).
-- Frontend reading `feature_gate.py` env vars → deploy-shape gating is server-side; frontend must rely on backend responses (403, 404, `FeatureDisabledError`).
+- Confirm every permission check is present (no permission gaps).
+- Confirm every mutation is audit-logged.
+- Confirm no plaintext secrets in code.
+- Confirm no `verify=False` in production API calls.
+- Confirm no SQL string concatenation (SQLAlchemy ORM only).
+- Confirm no dynamic code evaluation (no `eval`, no `exec`).
 
 ---
 
-## 14. Boot-time invariant checks
+## 12. Allowed Patterns
 
-### The security kernel engine
+### AP1 — Layered permission checks
 
-The **Security Core** kernel engine runs at application startup and refuses to proceed if any invariant is violated. The checks are (in order):
+A handler may check permissions at multiple layers (role layer, record layer, field layer) and deny at any layer. The decision tree is: role? → record? → field? → allow. Missing at any layer is deny.
 
-1. **Role split check** (see § 2) — `DATABASE_URL` and `OWNER_DATABASE_URL` must use different Postgres roles.
-2. **CORS policy** — no wildcard; origins must be explicitly whitelisted.
-3. **Provider reality** — if a payment/email/SMS/RADIUS provider is marked ON, the real backend must construct cleanly.
-4. **Portal auth mode** — must be one of `cookie`, `both` (never `token`-only).
-5. **Feature flag consistency** — if a flag is ON, the feature must be implemented (not just stubbed).
-6. **Seed data integrity** — initial users and roles must exist and have consistent permissions.
+### AP2 — Secrets via `secretRef`
 
-If any check fails, the application **exits with a non-zero code and a detailed error message**. There is no "continue anyway" option.
+Configuration that requires a secret stores a reference to a `Secret` table row, not the plaintext. Access to the secret is gated by RLS and audited on every read.
 
-### Test coverage
+### AP3 — Token revocation via cache
 
-Test `test_deploy_contract.py` validates:
-- ✓ Dev mode (ENVIRONMENT != production) skips all checks.
-- ✓ Production with equal URLs fails immediately.
-- ✓ Production with same-role URLs fails immediately.
-- ✓ Production with wildcard CORS fails immediately.
-- ✓ Production with mock providers fails immediately.
-- ✓ Correct production config boots cleanly.
+A revoked token is added to the Redis revocation list immediately. The list is checked before the handler is invoked, so revocation is immediate even in distributed systems.
+
+### AP4 — Rate-limit keys nested (tenant → key → endpoint)
+
+A rate-limit counter is keyed by `f"ratelimit:{tenant}:{api_key}:{endpoint}"` so limits are enforced per tenant and per key independently. One tenant's abuse doesn't affect others.
+
+### AP5 — Audit events emitted in the transaction
+
+A mutation is wrapped in a transaction: (1) apply the change, (2) emit the audit event, (3) commit. If the audit fails, the transaction rolls back. Audit is always present.
 
 ---
 
-## 15. Security ≠ Compliance ≠ Audit (PRM separation)
+## 13. Forbidden Patterns
 
-### Three separate cores
+### FP1 — Frontend permission gates
 
-The Platform Reference Model separates three related but distinct responsibilities:
+The frontend must never make permission decisions. The frontend may reflect backend decisions (hide a button), but the button's disabling is a display choice, not the authorization. Authorization is backend-only.
 
-| Core | Owns | Does NOT own |
-|------|------|--------------|
-| **Security Core** | Authentication, RBAC, encryption, secrets, tokens, rate limits, deploy contract, threat controls | Compliance workflows, audit history, business permissions, entitlements |
-| **Audit Core** | Immutable audit log, access log, change history, event evidence, actor/context/IP/source metadata | Operational metrics, analytics facts, notification history (unless evidence-grade) |
-| **Compliance Core** | Privacy requests, retention policies, consent, regulatory evidence, data-subject operations | Raw audit log generation, general security controls, business approvals (unless compliance-specific) |
+### FP2 — Plaintext secrets in environment
 
-### How they interact
+Secrets (signing keys, API tokens, credentials) are never stored plaintext in environment variables. At boot, they are loaded and immediately encrypted for at-rest storage.
 
-- **Security** emits events via `workflow.emit()` when sensitive actions occur (password change, permission grant, API key creation).
-- **Audit** records those events in the append-only `event` table and exposes them via `/api/audit`.
-- **Compliance** consumes audit records to answer regulatory questions: "Which users accessed this customer's data in the past 30 days?" or "Prove we deleted all data for user X on request."
+### FP3 — Wildcard CORS in production
 
-A PR that blurs these boundaries (e.g., Compliance trying to delete an audit row for GDPR reasons, or Security trying to implement retention policies) is a boundary violation. Remediation: **escalate to architecture review**.
+`CORS_ORIGINS` must not contain `*` in production. Every origin must be explicitly whitelisted. Wildcard CORS is a theft vector.
+
+### FP4 — Single Postgres role in production
+
+The application must run under `gaahex_app` (unprivileged). The owner role `gaahex` is for schema ownership only. A single-role setup in production bypasses RLS.
+
+### FP5 — Permission checks only on the frontend
+
+A feature that's disabled on the frontend but enabled in the backend (via permission grant) is a security bug. The backend is the authority; the frontend is the presentation.
+
+### FP6 — Hardcoded permission checks in code
+
+Permission checks must be data-driven (from `docs/standards/15-permission-registry.md`) and evaluated at runtime from the role definition, not hardcoded as `if role == "admin"`. Hardcoding prevents dynamic role customization.
+
+### FP7 — Mutations without audit
+
+A state change that is not recorded in the `event` table is a silent mutation — forbidden. Every CREATE, UPDATE, DELETE must emit an audit event.
+
+### FP8 — Rate-limit bypass in code
+
+Rate-limiting is enforced in the middleware, before the handler. It is never bypassed for internal endpoints or background jobs. Background jobs have their own rate-limit policies; internal endpoints use the same limits as external ones.
 
 ---
 
-## 16. Cross-architecture dependencies
+## 14. Cross-Architecture Dependencies
 
 | This document depends on | For |
 |---|---|
@@ -830,36 +625,81 @@ A PR that blurs these boundaries (e.g., Compliance trying to delete an audit row
 
 ---
 
-## 17. Implementation roadmap
+## 15. Implementation Requirements
 
-### M0 (current) — Foundation complete
+### 15.1 Deploy contract enforcement
 
-- [x] Deploy contract (role split, CORS, provider reality)
-- [x] RBAC & tenant isolation (RLS policies, permission keys, assignment model)
-- [x] Audit append-only (DB triggers, immutability)
-- [x] Token lifecycle (JWT, refresh rotation, revocation cache)
-- [x] Input validation (Pydantic schemas, type coercion)
-- [x] Rate limiting (sliding-window, burst protection)
-- [x] Secrets at rest (EncryptedString model)
-- [x] Boot-time invariant checks (config validation, provider reality)
+The application MUST run `_assert_production_deploy_contract()` in the FastAPI lifespan startup. If any of the 6 checks fails in production, the application exits with a non-zero code. The check is a no-op in non-production environments.
 
-### M1 (Phase 1 RLS hardening) — Scoped
+### 15.2 RBAC evaluation
 
-- [ ] Dual-role CI enforcement (`backend-rls` job) — remove `continue-on-error: true` flag.
-- [ ] RLS exemption policy (Fix-Forward; sealed baseline governance).
-- [ ] Secrets rotation framework (90-day auth tokens, 1-year signing keys).
-- [ ] Field-level visibility enforcement across API, exports, reports, search.
-- [ ] Anomaly detection (automated alerting on suspicious patterns).
-- [ ] MFA support (TOTP or SMS-based; optional per tenant via feature flag).
+Every request handler MUST be wrapped in a permission check via `require_permission(actor, permission_key, resource)`. The check happens before the handler is invoked. Failure returns `403 AccessDenied` with a generic error message.
 
-### M2/M3 (future) — Intelligence & integration
+### 15.3 RLS policies
 
-- [ ] CSP header (X-Content-Security-Policy).
-- [ ] Webhook signing (HMAC-SHA256; retry with backoff).
-- [ ] Incident log (separate from audit; timeline + root cause + remediation).
-- [ ] Compliance module integration (privacy requests, retention policies, consent).
-- [ ] Encryption for audit log backups.
-- [ ] Credential rotation for external integrations (OAuth refresh, API keys).
+Every tenant-scoped table MUST have a `tenant_isolation` RLS policy:
+
+```sql
+CREATE POLICY tenant_isolation ON <table>
+  FOR ALL
+  USING (tenant_id = NULLIF(current_setting('gaahex.tenant_id'), ''));
+```
+
+### 15.4 Audit logging
+
+Every mutation MUST emit an audit event via `workflow.emit(event_type=..., entity_key=..., record_id=..., ...)`. The event is written to the `event` table in the same transaction as the mutation.
+
+### 15.5 Secret encryption
+
+Every secret (signing key, webhook HMAC key, OAuth token, credential) MUST be stored via the `EncryptedString` model. The model encrypts on write and decrypts on read; the database never holds plaintext.
+
+### 15.6 Token revocation
+
+Revoked tokens and API keys MUST be added to the Redis revocation list immediately. The revocation list MUST be checked on every request before the handler is invoked.
+
+### 15.7 Input validation
+
+Every request body MUST be validated against a Pydantic schema before the handler is invoked. Unknown fields MUST be rejected. Type coercion (dates to ISO 8601, enums to UPPER_SNAKE_CASE) MUST be applied.
+
+### 15.8 Rate limiting
+
+Every endpoint MUST be protected by a sliding-window rate limiter. The limit is per-tenant (for authenticated endpoints) or per-IP (for unauthenticated endpoints). Violation returns `429 Too Many Requests`.
+
+### 15.9 OWASP Top 10 coverage
+
+The implementation MUST address all 10 OWASP vectors: injection (SQLAlchemy ORM), broken auth (PBKDF2 + rate-limit), sensitive data (encryption), broken access (RLS + RBAC), misconfiguration (deploy contract), deserialization (Pydantic), XSS (React auto-escape), API response safety (type hints), vulnerable components (pip-audit), insufficient logging (append-only audit).
+
+---
+
+## 16. Future Expansion Rules
+
+### 16.1 MFA framework
+
+The platform reserves a future `MfaCredential` entity (Identity Core) and `MFA_REQUIRED` permission. MFA support (TOTP or SMS) will be optional per tenant via a feature flag.
+
+### 16.2 Anomaly detection
+
+Future: automated alerting on suspicious patterns (brute-force login attempts, cross-tenant access attempts, bulk exports, repeated rate-limit violations). Subscribes to audit events and emits `ThreatDetected` events.
+
+### 16.3 Incident log
+
+Future: a separate incident log (distinct from the general audit log) with timeline, root cause, and remediation. Incident records are created by the incident response team and marked as resolved/unresolved.
+
+### 16.4 Secrets rotation automation
+
+Future: automated rotation of signing keys, webhook HMAC keys, and API client secrets on schedule. Old and new secrets are valid during the rotation window; the old secret is retired after N requests are validated against both.
+
+### 16.5 CSP header
+
+Future: X-Content-Security-Policy header to restrict script sources, inline styles, and external resource loading on the frontend.
+
+### 16.6 Compliance integration
+
+Future: Privacy Core integration to support GDPR/CCPA data subject requests, retention policies, and consent auditing. Compliance requests are processed by Compliance Core; Security Core audits the processing.
+
+### 16.7 Field-level encryption
+
+Future: individual table columns (PII fields) encrypted at rest independent of the `EncryptedString` model. Decryption only by authorized roles (via field-level visibility configuration).
 
 ---
 

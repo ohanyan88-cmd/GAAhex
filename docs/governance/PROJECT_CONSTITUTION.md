@@ -1,10 +1,87 @@
 # GAAhex Project Constitution v1.0
 
-**Effective:** 2026-06-06. **Status:** LOCKED.
+**Effective:** 2026-06-06. **Status:** **PERMANENTLY LOCKED** by Constitutional
+Lock Directive (Gev, 2026-06-06).
 **Adopted by:** Gev (Gevorg), owner of GAAhex.
-**Position:** Meta-law of the project. Sits **above** all other governance
-layers, including the Platform Reference Model and the 22 Architecture
-Constitution documents.
+**Canonical location:** `docs/governance/PROJECT_CONSTITUTION.md`.
+**Position:** **Highest governance authority in the repository.** Sits above
+PRM, the 22 Architecture Constitution documents, the Standards, the
+Catalogs, and Implementation. No layer below may violate the laws defined
+here. Amendments only via LAW-GV1.
+
+---
+
+## Lock Status
+
+**The Constitution is not guidance. The Constitution is not recommendation.
+The Constitution is not documentation. The Constitution is project law.**
+
+All architecture, standards, code, modules, APIs, workflows, permissions,
+navigation, UI, AI, infrastructure, and future platform decisions **must**
+comply. Even project founders, architects, maintainers, and future
+contributors are subject to it.
+
+### Enforcement Protocol
+
+If any request, task, proposal, implementation, instruction, commit,
+standard, architecture change, or design decision violates constitutional
+law, the responding assistant or contributor MUST:
+
+```text
+1. STOP
+2. IDENTIFY the violation (which law, which section)
+3. EXPLAIN why it violates
+4. PROPOSE a compliant alternative
+5. REFUSE to treat the violating request as approved architecture
+```
+
+The correct behavior is:
+
+```text
+Protect the Constitution → then solve the problem
+```
+
+not
+
+```text
+Break the Constitution → then solve the problem
+```
+
+### Constitutional Review Requirement
+
+Before any major change is implemented (Feature / Module / Domain / Entity
+/ Workflow / Permission / Navigation / API / Event / Integration / UI
+Pattern / Infrastructure Change / AI Capability / Marketplace Capability),
+the responsible party must run:
+
+```text
+Constitution Check  → does it violate any LAW-XX?
+PRM Check           → does it violate any platform-core rule?
+Architecture Check  → does it violate any 01-22 doc?
+Standards Check     → does it violate any LOCKED standard?
+```
+
+If conflict exists: raise it, block implementation, require amendment
+process (LAW-GV1).
+
+### Future Session Requirement
+
+All future sessions MUST begin with the assumption that
+`PROJECT_CONSTITUTION.md`, `PLATFORM_REFERENCE_MODEL.md`, and the
+Architecture Constitution are already locked. Future sessions must NOT
+re-debate settled constitutional decisions, must NOT weaken them, and must
+NOT introduce contradictory architecture.
+
+### Scope of the Lock
+
+| Scope | Status |
+|---|---|
+| All future architecture | **LOCKED** |
+| All future standards | **LOCKED** |
+| All future implementation | **LOCKED** |
+| All future platform evolution | **LOCKED** |
+
+Effective: **immediately**.
 
 ## Constitutional Status
 
@@ -42,7 +119,7 @@ Violation of constitutional laws requires a formal amendment process
 Authoritative hierarchy:
 
 ```text
-docs/CONSTITUTION.md (this document)
+docs/governance/PROJECT_CONSTITUTION.md (this document — highest authority)
         ↓
 PLATFORM_REFERENCE_MODEL.md
         ↓
@@ -520,12 +597,12 @@ The layers governed by this Constitution at adoption:
 
 | Layer | Location | Status |
 |---|---|---|
-| Platform Reference Model (PRM) | [`architecture/PLATFORM_REFERENCE_MODEL.md`](architecture/PLATFORM_REFERENCE_MODEL.md) | LOCKED 2026-06-06 |
-| Architecture Constitution (22 docs) | [`architecture/00_ARCHITECTURE_INDEX.md`](architecture/00_ARCHITECTURE_INDEX.md) → `01_*.md` … `22_*.md` | LOCKED 2026-06-06 |
-| Architecture consistency audit | [`architecture/CONSTITUTION_CONSISTENCY_AUDIT.md`](architecture/CONSTITUTION_CONSISTENCY_AUDIT.md) | 2026-06-06 |
-| Standards (70 LOCKED + 7 named) | [`standards/00-standards-index.md`](standards/00-standards-index.md) | LOCKED |
-| Brand v3.0 | [`branding/v3.0/`](branding/v3.0/) | LOCKED 2026-06-06 |
-| Sealed engineering baselines | [`architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`](architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md) | SEALED 2026-06-05 |
+| Platform Reference Model (PRM) | [`../architecture/PLATFORM_REFERENCE_MODEL.md`](../architecture/PLATFORM_REFERENCE_MODEL.md) | LOCKED 2026-06-06 |
+| Architecture Constitution (22 docs) | [`../architecture/00_ARCHITECTURE_INDEX.md`](../architecture/00_ARCHITECTURE_INDEX.md) → `01_*.md` … `22_*.md` | LOCKED 2026-06-06 |
+| Architecture consistency audit | [`../architecture/CONSTITUTION_CONSISTENCY_AUDIT.md`](../architecture/CONSTITUTION_CONSISTENCY_AUDIT.md) | 2026-06-06 |
+| Standards (70 LOCKED + 7 named) | [`../standards/00-standards-index.md`](../standards/00-standards-index.md) | LOCKED |
+| Brand v3.0 | [`../branding/v3.0/`](../branding/v3.0/) | LOCKED 2026-06-06 |
+| Sealed engineering baselines | [`../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md) | SEALED 2026-06-05 |
 
 Any document, code path, or decision conflicting with the above is in
 violation of LAW-ST1.

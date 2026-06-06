@@ -57,34 +57,163 @@ Tenant is a Foundation-tier core — every business-scoped entity depends on it.
 
 ---
 
-## 4. Tenant Core Definition (from PRM)
+## 4. Non-Goals
 
-| Aspect | Statement |
-|---|---|
-| **Purpose** | Provides multi-tenant isolation, tenant lifecycle, white-label boundaries, and tenant-scoped defaults. |
-| **Owns** | Tenants, tenant profiles, tenant status, tenant hierarchy, tenant branding links, tenant data boundaries. |
-| **Does not own** | Identity credentials, subscriptions, application feature logic, domain-specific ownership. |
-| **Governed by** | Tenant / White-label, Security, Data, Experience HOW viewpoints. |
-| **Hard boundary rule** | All business data must be tenant-scoped unless explicitly global reference data. |
+- **NG1** This document does NOT define tenant-specific business logic or custom workflows per tenant. (Workflow definitions are global; configuration and feature flags express tenant variance.)
+- **NG2** This document does NOT manage subscriptions, licensing, or feature entitlements. (See Entitlement Core.)
+- **NG3** This document does NOT govern UI/UX beyond white-label configuration boundaries (branding, nav visibility, field toggles). (See UI Experience Architecture.)
+- **NG4** This document does NOT define Identity lifecycle or SSO tenancy modeling. (See Identity Core.)
 
 ---
 
-## 5. Tenant Entity Model
+## 5. Architecture Principles
 
-### 5.1 Canonical entities
+### P1 — Single database, row-level isolation
 
-| Entity | Owner | Purpose |
+GAAhex uses a **single shared Postgres database** for all tenants. There is no database-per-tenant, no schema-per-tenant, and no tenant-specific schema migrations. The isolation boundary is **row-level**: every tenant-scoped business row carries a `tenantId` column and is governed by Postgres RLS policy `tenant_isolation`.
+
+### P2 — Tenant provenance is server-assigned, never user-supplied
+
+Tenant context flows from the authenticated JWT `tenant` claim, server-validated against `User.tenant_id`. Tenant id is **never** accepted from frontend, query params, import files, integration payloads, local storage, or browser state. Frontend input always carries the risk of tenant-context manipulation; server assignment is the only secure path.
+
+### P3 — White-label is configuration-driven, never code-driven
+
+White-label support (branding overrides, navigation customizations, communications preferences, display settings) is entirely **configuration-driven** through TenantBrandingLink and ModuleSetting. No tenant-specific code branches (e.g., `if tenant.id == X`), schema forks, or hidden workflows. Every tenant sees the same application, shaped by configuration.
+
+### P4 — Tenant hierarchy enables reseller/delegation patterns without data exposure
+
+Parent/child tenant relationships support white-label resellers and managed accounts. Child tenants inherit parent branding and navigation unless overridden. **Critically**: child data remains **isolated** from parent data via RLS. Parent cannot see child rows unless an explicit Super Admin cross-tenant operation reads them (registered in RLS_EXEMPTION_REGISTRY).
+
+### P5 — Cross-tenant operations are explicit, audited, and gated by platform permissions
+
+Normal users are **completely isolated** by RLS. Cross-tenant access is **only** available to platform Super Admins via explicit operations (querying another tenant's data, migrating data, bulk platform updates), permission-gated (`platform.*` permissions, never `tenant.super_admin`), audited, and registered in an exemption ledger.
+
+---
+
+## 6. Architecture Laws
+
+### L1 — RLS enforcement is mandatory at the database layer
+
+Every tenant-scoped table has the `tenant_isolation` policy installed by migration:
+
+```sql
+CREATE POLICY tenant_isolation ON <table>
+  FOR ALL
+  USING (tenant_id = current_setting('gaahex.tenant_id')::uuid)
+  WITH CHECK (tenant_id = current_setting('gaahex.tenant_id')::uuid);
+```
+
+The `gaahex.tenant_id` GUC (Global User Config) is set **per request** by the backend, validated from the JWT `tenant` claim and cross-checked against `User.tenant_id` server-side. This policy is **not** a hint; it is a hard gate enforced at the database layer.
+
+### L2 — Role split: gaahex_app vs gaahex (NOSUPERUSER / BYPASSRLS boundary)
+
+- **gaahex_app:** the application role, NOSUPERUSER NOBYPASSRLS. Every production query runs as this role. RLS engages.
+- **gaahex:** the owner/admin role, has table ownership and BYPASSRLS. Used only by migrations and pre-auth code paths (e.g., login email lookup before tenant context).
+
+The production deploy contract refuses to boot if both roles resolve to the same Postgres role. (See `app/config.py:_assert_production_deploy_contract`.)
+
+### L3 — Tenant lifecycle states are independent of deletion
+
+A tenant's ability to be **deleted** is independent of its **lifecycle state**. A tenant in any state (CREATING, PROVISIONING, ACTIVE, SUSPENDED, ARCHIVED) can transition to PURGED via an explicit, audited deletion request (compliance / right-to-be-forgotten). The deletion is not automatic on state change; it is an explicit operation.
+
+### L4 — Tenant ≠ Organization; Organization ≠ Identity
+
+Three orthogonal axes:
+- **Tenant:** SaaS isolation boundary (who sees what data). Defined by RLS at the database layer.
+- **Organization:** Business structure inside the tenant (who reports to whom, who can create tasks). Defined by RBAC at the application layer (Tenant Core does not own Organization; see Organization Core).
+- **Identity:** The actor (User, service account, SSO principal). Authentication layer. (See Identity Core.)
+
+A user is authenticated (has an Identity) within a Tenant scope, assigned to Organizations within that Tenant.
+
+### L5 — Tenant configuration is centralized and immutable once referenced
+
+Tenant-level configuration (TenantSetting, ModuleSetting) is the **only** method for tenant-specific variance. No custom fields, metadata blobs, or convention-based settings. Once a configuration key is published (referenced by running code), the key name is immutable; new keys replace deprecated ones, never rename.
+
+---
+
+## 7. Core Concepts
+
+### 7.1 Tenant as SaaS isolation boundary
+
+A **Tenant** is the top-level SaaS isolation boundary. One tenant = one customer, one org, one isolated data scope. Every tenant-scoped business row carries `tenantId` and is fenced by RLS at the database layer. Tenants are independent; cross-tenant data access is forbidden for normal users.
+
+### 7.2 Tenant lifecycle: six states plus soft-deletion discipline
+
+| State | Meaning | Allowed transitions |
 |---|---|---|
-| **Tenant** | Tenant Core | The top-level SaaS isolation boundary. One tenant = one customer, one org, one isolated data scope. |
-| **TenantProfile** | Tenant Core | Tenant metadata (display name, industry, region, contact email, language, timezone). |
-| **TenantHierarchy** | Tenant Core | Parent/child relationships for white-label resellers (child tenant inherits parent's branding, permissions if not overridden). |
-| **TenantBrandingLink** | Tenant Core | Tenant's branding overrides (logo, domain, color scheme, sender email). Derives from Brand v3.0 LOCKED package. |
-| **TenantSetting** | Configuration Core | Tenant-level config key/value pairs (feature flags scoped to this tenant, display prefs, notification settings). |
-| **ModuleSetting** | Configuration Core | Module-level config scoped to a tenant (what sections appear in navigation, field visibility, workflow overrides). |
+| **CREATING** | Tenant is being provisioned (schema prep, initial config seeding). | → PROVISIONING |
+| **PROVISIONING** | Tenant setup in progress (user invites, org structure, initial data load). | → ACTIVE |
+| **ACTIVE** | Tenant is live and operational. | → SUSPENDED, ARCHIVED |
+| **SUSPENDED** | Tenant access is blocked (non-payment, compliance hold, operator action). Data is intact. | → ACTIVE |
+| **ARCHIVED** | Tenant is no longer operational but data is preserved for compliance. | (no further transitions; data is read-only in some views) |
+| **PURGED** | Tenant and all its data (except append-only audit) have been deleted per GDPR request. | (terminal) |
 
-### 5.2 Tenant entity schema (summary)
+Every lifecycle transition emits an event (Tenant.Created, Tenant.Provisioning, Tenant.Activated, Tenant.Suspended, Tenant.Archived, Tenant.Purged), audit-logged with actor, timestamp, previous state, new state.
 
-**Tenant table fields (camelCase — D2):**
+### 7.3 Tenant identifiers: three paths to a single tenant
+
+| Method | Use case | Format |
+|---|---|---|
+| **Subdomain** | Default public URL. | `{subdomain}.gaahex.com` (must be unique across platform). |
+| **Custom domain** | Tenant's own CNAME. | `{customDomain}` (optional, must be unique). |
+| **API key tenant scope** | Service account / integration. | API key carries `tenant_id` in its JWT payload. |
+
+Once a user authenticates, their JWT carries the `tenant` claim (their tenant id). The backend validates this against `User.tenant_id` and sets the RLS GUC for every request. Tenant id is **never** accepted from URL path, query params, or headers — it is derived from the authenticated session.
+
+### 7.4 Tenant hierarchy: parent/child for resellers and managed accounts
+
+A tenant can have a `parentTenantId`, making it a **child tenant** (reseller) of the parent. This enables white-label patterns:
+- **Branding:** Child inherits parent's TenantBrandingLink unless child has its own override.
+- **Navigation:** Child inherits parent's ModuleSetting navigation overrides unless overridden.
+- **Permissions:** Child has its own Role/Permission grants. There is no automatic permission inheritance (RBAC is tenant-scoped, not hierarchy-scoped).
+- **Data scope:** Child's data is **isolated** from parent's data (RLS enforces). Parent cannot see child's rows unless an explicit Super Admin cross-tenant operation reads them (registered in RLS_EXEMPTION_REGISTRY).
+
+### 7.5 White-label is configuration-driven: branding, theme, navigation, communications
+
+**Permitted customizations (from TenantBrandingLink and ModuleSetting):**
+- **Branding:** Logo (pointer to asset; Logo geometry / spacing immutable per Brand v3.0 LOCKED), Colors (only D18 Color Architecture overrides; no new color families), Domain (custom CNAME or tenant subdomain), Sender email / name (for notifications).
+- **Theme:** Light / dark / print palette selection from `gaahex-tokens.css`. No new theme design, no new token families.
+- **Navigation (via ModuleSetting):** Hide/show sections (e.g., hide "Marketplace" if not enabled), Reorder nav items, Field visibility toggles (which fields appear in forms, which in tables), Workflow status display names (translated labels only, never canonical values).
+- **Communications:** Notification preferences (which events send email, SMS, in-app), Escalation chains (which users get notified), Approved notification content customizations (tenant can provide email template overrides, within Brand v3.0 constraints).
+
+**Forbidden customizations:**
+- **Tenant-specific code branches.** No `if tenant.id == X` in application code.
+- **Schema forks.** No `ALTER TABLE foo ADD COLUMN bar` for tenant Y only.
+- **Custom enum/status meanings.** `ACTIVE` means the same for every tenant.
+- **Hidden workflows.** All statuses and transitions are defined in the same WorkflowDef, visible to all tenants.
+- **Validation bypass.** Permissions and data validation apply uniformly.
+- **Logo redesign.** Logo geometry is LOCKED per Brand v3.0 (2026-06-06 canonical package).
+
+### 7.6 Tenant configuration: TenantSetting and ModuleSetting
+
+**TenantSetting (Tenant-level configuration):**
+
+Fields: id (UUIDv7), tenantId (FK → Tenant.id), configurationKey, configurationValue, status (ACTIVE, INACTIVE, DEPRECATED), createdBy, createdAt, updatedBy, updatedAt.
+
+Approved keys: `display_language`, `timezone_default`, `notification_email_enabled`, `feature_flag_X` (scoped to tenant), `archive_retention_days`.
+
+Forbidden keys: Anything that redefines ACTIVE, SUSPENDED, or other canonical statuses. Anything that changes validation rules. Anything that creates a hidden workflow fork.
+
+**ModuleSetting (Module-level configuration per tenant):**
+
+Fields: id (UUIDv7), tenantId (FK → Tenant.id), moduleKey (e.g., "admin", "portal", "noc"), settingKey, settingValue, createdAt, updatedAt.
+
+Examples: `admin.sidebar.visible_sections` = `["customers", "services", "billing"]` (hide "Marketplace"), `portal.field_visibility.service` = `["id", "name", "status", "billingCycle"]` (what fields customers see), `noc.workflow_labels.ticket_status_OPEN` = custom translated label (canonical value stays `OPEN`).
+
+---
+
+## 8. Canonical Entities
+
+| Entity | Owner | Purpose | Status |
+|---|---|---|---|
+| **Tenant** | Tenant Core | The top-level SaaS isolation boundary. One tenant = one customer, one org, one isolated data scope. | STRONG |
+| **TenantProfile** | Tenant Core | Tenant metadata (display name, industry, region, contact email, language, timezone). | STRONG |
+| **TenantHierarchy** | Tenant Core | Parent/child relationships for white-label resellers (child tenant inherits parent's branding, permissions if not overridden). | STRONG |
+| **TenantBrandingLink** | Tenant Core | Tenant's branding overrides (logo, domain, color scheme, sender email). Derives from Brand v3.0 LOCKED package. | STRONG |
+| **TenantSetting** | Configuration Core | Tenant-level config key/value pairs (feature flags scoped to this tenant, display prefs, notification settings). | STRONG |
+| **ModuleSetting** | Configuration Core | Module-level config scoped to a tenant (what sections appear in navigation, field visibility, workflow overrides). | STRONG |
+
+### 8.1 Tenant table schema (camelCase — D2)
 
 ```
 id (UUIDv7)
@@ -105,7 +234,7 @@ region (deployment region)
 indexName (elasticsearch tenant index, if applicable)
 ```
 
-**TenantProfile fields:**
+### 8.2 TenantProfile schema
 
 ```
 id (UUIDv7)
@@ -120,7 +249,7 @@ logoUrl (pointer to stored asset, not the asset itself)
 createdAt, updatedAt
 ```
 
-**TenantBrandingLink fields:**
+### 8.3 TenantBrandingLink schema
 
 ```
 id (UUIDv7)
@@ -136,236 +265,193 @@ createdAt, updatedAt
 
 ---
 
-## 6. Multi-Tenant Isolation — The Core Principle
+## 9. Ownership Boundaries
 
-### 6.1 Single database, no schema forks
-
-GAAhex uses a **single shared Postgres database** for all tenants. There is no database-per-tenant, no schema-per-tenant, and no tenant-specific schema migrations.
-
-The isolation boundary is **row-level**: every tenant-scoped business row carries a `tenantId` column and is governed by Postgres RLS policy `tenant_isolation`.
-
-### 6.2 The RLS policy: tenant_isolation
-
-Every tenant-scoped table has this policy (installed by migration, enforced at the DB layer):
-
-```sql
-CREATE POLICY tenant_isolation ON <table>
-  FOR ALL
-  USING (tenant_id = current_setting('gaahex.tenant_id')::uuid)
-  WITH CHECK (tenant_id = current_setting('gaahex.tenant_id')::uuid);
-```
-
-The `gaahex.tenant_id` GUC (Global User Config) is set **per request** by the backend, validated from the JWT `tenant` claim and cross-checked against `User.tenant_id` server-side.
-
-### 6.3 Role split: gaahex_app vs gaahex
-
-- **gaahex_app:** the application role, NOSUPERUSER NOBYPASSRLS. Every production query runs as this role. RLS engages.
-- **gaahex:** the owner/admin role, has table ownership and BYPASSRLS. Used only by migrations and pre-auth code paths (e.g., login email lookup before tenant context).
-
-The production deploy contract refuses to boot if both roles resolve to the same Postgres role. (See `app/config.py:_assert_production_deploy_contract`.)
-
-### 6.4 Tenant provenance: who can set tenantId?
-
-- **Trusted server context:** tenantId is **server-assigned** from the JWT `tenant` claim, validated against `User.tenant_id`.
-- **Frontend input:** tenantId is **never** accepted from frontend, query params, import files, integration payloads, local storage, or browser state.
-- **RLS + audit listener:** The static analyzer (`backend/scripts/check_tenant_filter.py`) flags any SQLAlchemy query on a tenant-scoped table that lacks an explicit `WHERE tenant_id = ...` filter. Runtime audit listener (`backend/app/tenant_query_audit.py`) warns on detected violations.
+Tenant Core owns Tenant, TenantProfile, TenantHierarchy, and TenantBrandingLink entities. Configuration Core owns TenantSetting and ModuleSetting. All business-scoped entities in other cores carry `tenantId` as a foreign-key reference to Tenant but do not transfer ownership. (See `09_DATA_ARCHITECTURE.md` for the full canonical-entity matrix.)
 
 ---
 
-## 7. Tenant Lifecycle
+## 10. Relationships
 
-### 7.1 States (per Standard D14 — deletion state independent)
+### 10.1 Tenant Core dependencies
 
-| State | Meaning | Allowed transitions |
-|---|---|---|
-| **CREATING** | Tenant is being provisioned (schema prep, initial config seeding). | → PROVISIONING |
-| **PROVISIONING** | Tenant setup in progress (user invites, org structure, initial data load). | → ACTIVE |
-| **ACTIVE** | Tenant is live and operational. | → SUSPENDED, ARCHIVED |
-| **SUSPENDED** | Tenant access is blocked (non-payment, compliance hold, operator action). Data is intact. | → ACTIVE |
-| **ARCHIVED** | Tenant is no longer operational but data is preserved for compliance. | (no further transitions; data is read-only in some views) |
-| **PURGED** | Tenant and all its data (except append-only audit) have been deleted per GDPR request. | (terminal) |
+- **Identity Core:** Tenant users are authenticated identities; JWT tenant claim validated against User.tenant_id.
+- **Security Core:** RLS enforcement, role split, deploy contract.
+- **Audit Core:** Every tenant lifecycle transition emits an audit event.
+- **Configuration Core:** TenantSetting, ModuleSetting, feature flags scoped to tenant.
+- **Compliance Core:** Data purge (GDPR), retention policies, consent management.
 
-### 7.2 Deletion state independent (D14)
+### 10.2 Cores that depend on Tenant Core
 
-A tenant's ability to be **deleted** is independent of its **lifecycle state**. A tenant in any state can transition to PURGED via an explicit, audited deletion request (compliance / right-to-be-forgotten). The deletion is not automatic on state change; it is an explicit operation.
+- **All business-scoped cores** (Party, Organization, Location, Resource, Product, Service, Contract, Work, Knowledge, Financial, Case, Workflow, Automation, Approval, SLA, Scheduling, Communication, Notification, Document, etc.). Every business row carries `tenantId`.
+- **All platform-service cores** (Data, Metadata, Relationship, Search, Event, Integration, Developer Platform, Background Processing, Import/Export, Template, Storage). Multi-tenant awareness is universal.
+- **All intelligence cores** (Analytics, Reporting, AI, Forecasting, Decision Support). Query results are tenant-scoped.
+- **All experience cores** (Workspace, Portal, Mobile, Marketplace, Localization). UI is tenant-scoped.
 
-### 7.3 Audit and events
-
-Every lifecycle transition emits an event:
-
-- `Tenant.Created` (CREATING)
-- `Tenant.Provisioning` (PROVISIONING)
-- `Tenant.Activated` (ACTIVE)
-- `Tenant.Suspended` (SUSPENDED)
-- `Tenant.Archived` (ARCHIVED)
-- `Tenant.Purged` (PURGED)
-
-Each event is audit-logged and includes: event type, tenant id, actor user id, timestamp, previous state, new state.
+Tier discipline (L2 — no reverse dependencies): Tenant Core is in the FOUNDATION tier. No core above FOUNDATION may define what Tenant means or how it behaves. Higher tiers **consume** tenant context; they do not **create** or **redefine** it.
 
 ---
 
-## 8. Tenant Hierarchy — White-Label Resellers
+## 11. Responsibilities
 
-### 8.1 Parent/child relationships
+### 11.1 Tenant Core owner (Platform Engineering / Ընգեր on behalf)
 
-A tenant can have a `parentTenantId`, making it a **child tenant** (reseller) of the parent. This enables white-label patterns: a parent tenant (the ISP) can have child tenants (regional resellers or managed accounts) that inherit the parent's branding unless overridden.
+- Maintains Tenant Core documentation (this document, PRM entry).
+- Owns the Tenant entity schema and lifecycle machinery.
+- Ensures every tenant-scoped table has the `tenant_isolation` RLS policy installed and enforced in CI.
+- Maintains the static analyzer (`backend/scripts/check_tenant_filter.py`) and runtime audit listener (`backend/app/tenant_query_audit.py`).
+- Maintains the RLS_EXEMPTION_REGISTRY and approves new exemptions per `RLS_EXEMPTION_POLICY.md`.
+- Ensures the production deploy contract (`app/config.py:_assert_production_deploy_contract`) is enforced on boot.
 
-### 8.2 Inheritance rules
+### 11.2 Supporting cores (all business-scoped cores)
 
-- **Branding:** Child inherits parent's TenantBrandingLink unless child has its own override.
-- **Permissions:** Child has its own Role/Permission grants. There is no automatic permission inheritance (RBAC is tenant-scoped, not hierarchy-scoped).
-- **Navigation:** Child inherits parent's ModuleSetting navigation overrides unless overridden.
-- **Data scope:** Child's data is **isolated** from parent's data (RLS enforces). Parent cannot see child's rows unless an explicit Super Admin cross-tenant operation reads them (registered in RLS_EXEMPTION_REGISTRY).
+- Add `tenantId` to every entity schema.
+- Install the `tenant_isolation` RLS policy on every tenant-scoped table.
+- Ensure all queries include explicit `WHERE tenant_id = ...` filters; static analyzer catches violations at CI.
+- Never accept `tenantId` from untrusted input; server-assign from JWT.
 
-### 8.3 Flatten on export
+### 11.3 PR reviewer on Tenant Core changes
 
-When a child tenant's data is exported or a parent queries a child's data, the export/query respects the child's RLS isolation. There is no "view as parent" mode that bypasses the child's data fence.
-
----
-
-## 9. White-Label Support (Configuration-Driven)
-
-White-label is entirely **configuration-driven** — never code-driven or schema-driven.
-
-### 9.1 Permitted white-label customizations
-
-**Branding (from TenantBrandingLink):**
-- Logo (pointer to asset; Logo geometry / spacing immutable per Brand v3.0 LOCKED).
-- Colors (only D18 Color Architecture overrides; no new color families).
-- Domain (custom CNAME or tenant subdomain).
-- Sender email / name (for notifications).
-
-**Theme:**
-- Light / dark / print palette selection from `gaahex-tokens.css`.
-- No new theme design, no new token families.
-
-**Navigation (via ModuleSetting):**
-- Hide/show sections (e.g., hide "Marketplace" if not enabled).
-- Reorder nav items.
-- Field visibility toggles (which fields appear in forms, which in tables).
-- Workflow status display names (translated labels only, never canonical values).
-
-**Communications:**
-- Notification preferences (which events send email, SMS, in-app).
-- Escalation chains (which users get notified).
-- Approved notification content customizations (tenant can provide email template overrides, within Brand v3.0 constraints).
-
-### 9.2 Forbidden white-label customizations
-
-- **Tenant-specific code branches.** No `if tenant.id == X` in application code.
-- **Schema forks.** No `ALTER TABLE foo ADD COLUMN bar` for tenant Y only.
-- **Custom enum/status meanings.** `ACTIVE` means the same for every tenant.
-- **Hidden workflows.** All statuses and transitions are defined in the same WorkflowDef, visible to all tenants.
-- **Validation bypass.** Permissions and data validation apply uniformly.
-- **Logo redesign.** Logo geometry is LOCKED per Brand v3.0 (2026-06-06 canonical package).
+- Confirms every tenant-scoped table addition has the RLS policy.
+- Confirms no code branches on `tenant.id` are introduced.
+- Confirms configuration-driven variance is used instead of code forks.
+- Confirms white-label customizations derive from Brand v3.0 LOCKED package.
 
 ---
 
-## 10. Tenant Identifiers
+## 12. Allowed Patterns
 
-### 10.1 Three identification paths
+### AP1 — Tenant-scoped references from any business core
 
-| Method | Use case | Format |
-|---|---|---|
-| **Subdomain** | Default public URL. | `{subdomain}.gaahex.com` (must be unique across platform). |
-| **Custom domain** | Tenant's own CNAME. | `{customDomain}` (optional, must be unique). |
-| **API key tenant scope** | Service account / integration. | API key carries `tenant_id` in its JWT payload. |
+A Service Core entity may carry `tenantId` (to Tenant). A Case Core entity may carry `tenantId` and reference ServiceInstance via `serviceInstanceId`. Cross-core references use canonical IDs; tenant-scoped isolation is enforced via RLS on each table independently.
 
-### 10.2 Session tenant binding
+### AP2 — Tenant inheritance in the hierarchy
 
-Once a user authenticates, their JWT carries the `tenant` claim (their tenant id). The backend validates this against `User.tenant_id` and sets the RLS GUC for every request. Tenant id is **never** accepted from URL path, query params, or headers — it is derived from the authenticated session.
+A child tenant inherits branding and navigation from its parent unless overridden. This is implemented via conditional reads in the ModuleSetting and TenantBrandingLink layers, never by data duplication or code branches.
 
----
+### AP3 — Feature flags scoped to tenants
 
-## 11. Tenant Configuration — TenantSetting and ModuleSetting
+A TenantSetting with key `feature_flag_X` gates a feature for that tenant only. The code checks the tenant's feature-flag value at runtime; no code branches on tenant id, only on the flag value itself.
 
-### 11.1 TenantSetting (Tenant-level configuration)
+### AP4 — White-label customizations within Brand v3.0 constraints
 
-Fields (camelCase — D2):
+A tenant's TenantBrandingLink may override colors (D18 Color Architecture tokens only), domain (custom CNAME), sender email, or navigation visibility (ModuleSetting). The branding asset is derived from Brand v3.0 LOCKED package; geometry, spacing, and token families are never customized per tenant.
 
-```
-id (UUIDv7)
-tenantId (FK → Tenant.id)
-configurationKey
-configurationValue
-status (ACTIVE, INACTIVE, DEPRECATED)
-createdBy, createdAt, updatedBy, updatedAt
-```
+### AP5 — Super Admin cross-tenant operations with explicit permission gates
 
-**Approved TenantSetting keys:**
-- `display_language` (locale override)
-- `timezone_default` (for all users in tenant unless overridden per-user)
-- `notification_email_enabled` (true/false)
-- `feature_flag_X` (scoped to tenant; see Feature Flag Standard)
-- `archive_retention_days` (how long to keep archived records)
-
-**Forbidden TenantSetting keys:**
-- Anything that redefines `ACTIVE`, `SUSPENDED`, or other canonical statuses.
-- Anything that changes validation rules.
-- Anything that creates a hidden workflow fork.
-
-### 11.2 ModuleSetting (Module-level configuration per tenant)
-
-Fields:
-
-```
-id (UUIDv7)
-tenantId (FK → Tenant.id)
-moduleKey (e.g., "admin", "portal", "noc")
-settingKey
-settingValue
-createdAt, updatedAt
-```
-
-**Examples:**
-- `admin.sidebar.visible_sections` = `["customers", "services", "billing"]` (hide "Marketplace")
-- `portal.field_visibility.service` = `["id", "name", "status", "billingCycle"]` (what fields customers see on their services)
-- `noc.workflow_labels.ticket_status_OPEN` = custom translated label for display (canonical value stays `OPEN`)
+A platform Super Admin holding `platform.metrics.read` permission may query another tenant's data via an explicit API endpoint. The query is RLS-exempt (registered), audited, and immutable.
 
 ---
 
-## 12. Cross-Tenant Operations (Super Admin Only)
+## 13. Forbidden Patterns
 
-### 12.1 Policy: explicit, audited, time-limited, RLS-registered
+### FP1 — Accepting tenantId from untrusted input
 
-Normal users are **completely isolated** by RLS. Cross-tenant access is **only** available to platform Super Admins via explicit operations:
+No URL path `/tenants/{tenantId}` path parameters, no query `?tenantId=...`, no frontend local storage, no import file fields. Tenant context flows from authenticated JWT only.
 
-- **Querying another tenant's data** (platform metrics, health checks, compliance audits).
-- **Migrating data** between tenants (rare; requires consent + audit trail).
-- **Bulk updates** across tenants (e.g., version a platform-wide feature).
+### FP2 — Tenant-specific code branches
 
-### 12.2 Permission gates
+No `if tenant.id == "abc-def"` in production code. No tenant-specific validation logic, no hidden enum values, no conditional API responses based on tenant. All logic is tenant-generic; variance is configuration-driven.
 
-Cross-tenant operations require `platform.*` permissions (e.g., `platform.metrics.read`, `platform.tenant.migrate`), granted only to platform operators, never to any tenant's super_admin.
+### FP3 — Schema forks for tenant customization
 
-### 12.3 RLS exemption registry
+No `ALTER TABLE foo ADD COLUMN bar` that applies to one tenant only. No tenant-specific indexes, partitions, or table extensions. Single schema for all tenants.
 
-Every cross-tenant query is **registered** in `docs/standards/RLS_EXEMPTION_REGISTRY.md`. The exemption includes:
+### FP4 — RLS policy bypass outside the registry
 
-- The exact query or call site.
+RLS exemption is granted **only** to operations explicitly registered in RLS_EXEMPTION_REGISTRY. No ad-hoc `SET ROLE gaahex` in migrations, no middleware that resets `gaahex.tenant_id`, no "trust the caller" patterns.
+
+### FP5 — Cross-tenant data leakage via reporting / analytics / search
+
+A user from Tenant A querying for "all invoices" must not see counts, aggregates, or filtered results from Tenant B. Search indexes, analytics datasets, and reporting queries are tenant-scoped at query time via RLS, not via application-layer filtering.
+
+### FP6 — Tenant hierarchy with automatic permission inheritance
+
+Parent and child tenants have separate permission grants. A user in the parent does **not** automatically have permissions in the child; the parent's data is not visible to the child. Hierarchy is only for branding and navigation inheritance.
+
+### FP7 — Configuration keys that redefine canonical statuses
+
+No TenantSetting with key `status_ACTIVE_label` that redefines what ACTIVE means. Display labels are ModuleSetting translations, never overrides of canonical enum meanings.
+
+### FP8 — Tenant-scoped custom fields in place of configuration
+
+No `tenant.customMetadata` JSON blob for "flexible" tenant variance. All tenant-specific variance is declared in TenantSetting or ModuleSetting with immutable key names and governed status values.
+
+---
+
+## 14. Cross-Architecture Dependencies
+
+| This document depends on | For |
+|---|---|
+| `PLATFORM_REFERENCE_MODEL.md` | Authoritative definition of Tenant Core, separation rules (L3), and tenant/org/identity distinctions. |
+| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core ownership laws (L1), tier discipline (L2), audit universality (L4), tenant universality (L5). |
+| `03_INFORMATION_ARCHITECTURE.md` | Entity schemas and canonical entities owned by each core. |
+| `08_PERMISSION_ARCHITECTURE.md` | Permission keys for cross-tenant operations (`platform.*` vs. `tenant.super_admin`). |
+| `09_DATA_ARCHITECTURE.md` | RLS enforcement, foreign-key constraints, tenant-scoped references. |
+| `11_EVENT_ARCHITECTURE.md` | Tenant lifecycle events and event ownership. |
+| `13_SECURITY_ARCHITECTURE.md` | RLS policy syntax, role split, deploy contract, NOSUPERUSER / NOBYPASSRLS boundary. |
+| `docs/branding/v3.0/` | Brand v3.0 LOCKED package (D18 Color Architecture, token families, logo constraints). |
+
+| Documents that depend on this one |
+|---|
+| Every core document (all 50 other cores reference Tenant Core for tenant-scoped isolation). |
+| `15_REPORTING_ARCHITECTURE.md` (tenant-scoped report definitions and results). |
+| `16_ANALYTICS_ARCHITECTURE.md` (tenant-scoped analytics datasets and aggregations). |
+| `21_AI_ARCHITECTURE.md` (tenant-scoped AI models and knowledge sources). |
+
+---
+
+## 15. Implementation Requirements
+
+### 15.1 RLS enforcement machinery
+
+Every tenant-scoped table:
+1. Has the `tenant_isolation` policy installed at migration time.
+2. Is checked by the static analyzer (`backend/scripts/check_tenant_filter.py`) at CI; any query without explicit `tenant_id` filter is flagged.
+3. Is audited at runtime by `backend/app/tenant_query_audit.py`; violations emit warnings.
+
+Failure to add the RLS policy to a new tenant-scoped table is a blocker for PR merge.
+
+### 15.2 Role split enforcement
+
+The production deploy contract (in `app/config.py:_assert_production_deploy_contract`) enforces:
+- `DATABASE_URL` ≠ `OWNER_DATABASE_URL` (different Postgres users).
+- App role ≠ owner role (NOSUPERUSER NOBYPASSRLS vs BYPASSRLS).
+- If checks fail, the backend refuses to start.
+
+### 15.3 Tenant context propagation
+
+Every request:
+1. Authenticates via JWT (Identity Core).
+2. Extracts `tenant` claim from JWT.
+3. Validates `tenant` claim against `User.tenant_id` server-side.
+4. Sets `gaahex.tenant_id` GUC before executing queries.
+5. Fails with 403 Forbidden if tenant context is missing or mismatched.
+
+No default tenant, no fallback, no "skip RLS" mode.
+
+### 15.4 Tenant-scoped configuration
+
+TenantSetting and ModuleSetting are the **only** method for tenant-specific variance:
+- Keys are immutable once published (referenced by running code).
+- Replaced with new keys, never renamed.
+- Status values (ACTIVE, INACTIVE, DEPRECATED) control lifecycle.
+- No custom-field metadata blobs.
+
+### 15.5 RLS exemption registry
+
+Every cross-tenant query is registered in `docs/standards/RLS_EXEMPTION_REGISTRY.md`:
+- Exact query or call site.
 - Justification (why tenant-scoped equivalent is impossible).
 - Regression test proving the exemption is still needed.
 - Migration path to retire the exemption.
 - Owner and expiration shape (structural / date-bound / trigger-bound).
 
-See `RLS_EXEMPTION_POLICY.md` for full approval process and criteria.
+See `RLS_EXEMPTION_POLICY.md` for full approval process.
 
-### 12.4 Audit trail
+### 15.6 Tenant data export (compliance / portability)
 
-Every cross-tenant operation emits an event:
-- `SuperAdmin.CrossTenantRead`
-- `SuperAdmin.CrossTenantWrite`
-- `SuperAdmin.TenantMigration`
-
-These events are immutable (append-only at DB layer) and include actor, timestamp, scope, and result summary.
-
----
-
-## 13. Tenant Data Export (Compliance / Portability)
-
-### 13.1 Export job (per Standard 08 — Import/Export Standard)
-
-Fields (camelCase — D2):
+**ExportJob schema (camelCase — D2):**
 
 ```
 id (UUIDv7)
@@ -382,133 +468,58 @@ fileAttachmentId (FK → attachment)
 correlationId, eventId
 ```
 
-### 13.2 Export constraints
+**Export constraints:**
+- Tenant scope: export is always tenant-scoped; user must have export permission on that object type.
+- Filters preserved: export respects the same active filters (status, date range, custom filters) that generated the view.
+- Permission-filtered: a user may not export records they cannot read; aggregate leakage is forbidden (no counts of hidden rows).
+- Sensitive data: PII / payment tokens are masked or excluded unless the user has unrestricted access.
+- Canonical values: export uses canonical enum values (ACTIVE, not translated labels).
+- File retention: export files have controlled retention and expire; never permanently public.
 
-- **Tenant scope:** export is always tenant-scoped; user must have export permission on that object type.
-- **Filters preserved:** export respects the same active filters (status, date range, custom filters) that generated the view.
-- **Permission-filtered:** a user may not export records they cannot read; aggregate leakage is forbidden (no counts of hidden rows).
-- **Sensitive data:** PII / payment tokens are masked or excluded unless the user has unrestricted access.
-- **Canonical values:** export uses canonical enum values (ACTIVE, not translated labels).
-- **File retention:** export files have controlled retention and expire; never permanently public.
+**Export events:** Export.Requested, Export.Completed, Export.Failed.
 
-### 13.3 Export events
+### 15.7 Tenant data purge (GDPR right-to-be-forgotten)
 
-- `Export.Requested`
-- `Export.Completed`
-- `Export.Failed`
-
----
-
-## 14. Tenant Data Purge (GDPR Right-to-Be-Forgotten)
-
-### 14.1 Purge request
-
-A tenant (or its Compliance Officer) requests purge via:
+**Purge request:**
 
 ```
 DELETE /api/v1/tenants/{tenantId}
 Body: { reason: "GDPR_REQUEST", consent: true, confirmDeleteAllData: true }
 ```
 
-### 14.2 Purge process
-
+**Purge process:**
 1. **Soft-delete:** tenant.status transitions to PURGED; tenant.purgedAt is set to now.
 2. **Data deletion:** all rows (except audit) with `tenant_id = <purgedTenantId>` are deleted (cascade where defined, explicit deletes otherwise).
 3. **Audit trail remains:** the `event` and `audit_log` tables retain all records (FK to tenant.id is **not** ON DELETE CASCADE per SPEC §0.4).
 4. **Read-only:** the purged tenant becomes read-only; any attempt to write raises an error.
 5. **Compliance audit:** purge operation itself is an auditable, immutable event (`Tenant.Purged`).
 
-### 14.3 Right-to-be-forgotten exceptions
-
-Compliance Core may **exempt** certain data from purge if law requires retention (e.g., tax records, SLA evidence). These exemptions are **explicit** and **time-bounded** (with a retention deadline per Compliance Core). Audit trail always stays.
+**Right-to-be-forgotten exceptions:** Compliance Core may **exempt** certain data from purge if law requires retention (e.g., tax records, SLA evidence). These exemptions are **explicit** and **time-bounded** (with a retention deadline per Compliance Core). Audit trail always stays.
 
 ---
 
-## 15. Tenant ≠ Organization (PRM Separation Rule)
+## 16. Future Expansion Rules
 
-**Tenant** and **Organization** are distinct concepts:
+### 16.1 Tenant Core scope changes
 
-| Aspect | Tenant | Organization |
-|---|---|---|
-| **What it is** | SaaS isolation boundary. | Business structure inside the tenant. |
-| **Scope** | Platform-level. | Customer-level. |
-| **Multiple per...** | Multiple tenants per platform. | Multiple orgs per tenant. |
-| **Data fence** | RLS policy `tenant_isolation` at DB. | RBAC permission checks at app layer. |
-| **Ownership** | Platform owner. | Tenant admin. |
-| **Example** | Company A (one tenant), Company B (another tenant). | Within Company A: Sales Dept, Support Dept, Operations Dept. |
+Tenant Core's responsibility is **tenant isolation and lifecycle** only. Features like entitlements (which features a tenant can use) belong to Entitlement Core. Organization structures belong to Organization Core. Identity lifecycle belongs to Identity Core.
 
-Organization is modeled in the Organization Core (BUSINESS OBJECTS tier), not Tenant Core. Tenant Core does not own Organization; it only defines the isolation boundary within which Organizations live.
+If a feature touching "tenants" seems to belong in Tenant Core but is really about subscriptions, features, or business structure, it belongs in another core. Propose the re-assignment; do not expand Tenant Core.
 
----
+### 16.2 Adding a new tenant-scoped entity
 
-## 16. Tenant ≠ Identity (PRM Separation Rule)
+Any new entity that should be isolated per tenant:
+1. Add `tenantId (FK → Tenant.id)` to its schema.
+2. Install the `tenant_isolation` RLS policy.
+3. Ensure every query has explicit `tenant_id` filter.
+4. Declare the entity in the owning core's documentation.
 
-**Identity** and **Tenant** are orthogonal:
+### 16.3 Tenant hierarchy extensions
 
-- **Identity** is the actor (User, service account, API client, SSO identity). The question is: *who is authenticating?*
-- **Tenant** is the scope (which data is accessible). The question is: *which data does this actor have access to?*
-
-A User is authenticated (has an Identity) within a Tenant scope. A service account authenticates into one Tenant. An actor with cross-tenant capability carries a different set of permissions in each tenant.
-
----
-
-## 17. Security, Compliance, and Enforcement
-
-### 17.1 Tenant isolation is mandatory
-
-Every access path respects tenant isolation:
-- List/detail queries, create/update/delete.
-- Search, filters, autocomplete, counts.
-- Reports, dashboards, exports, imports.
-- APIs, automations, integrations, notifications.
-- Attachments, comments, timelines, audit logs.
-- Background jobs.
-- AI-readable views.
-
-### 17.2 RLS + static analyzer + runtime audit
-
-Three layers enforce isolation:
-
-1. **RLS policy:** database-layer gate on every tenant-scoped table.
-2. **Static analyzer** (`backend/scripts/check_tenant_filter.py`): CI job catches SQLAlchemy queries without explicit `tenant_id` filter.
-3. **Runtime audit listener** (`backend/app/tenant_query_audit.py`): emits warnings on runtime violations.
-
-### 17.3 Fail-closed tenant context
-
-If a request arrives without valid tenant context (JWT missing `tenant` claim, claim doesn't match `User.tenant_id`), the request **fails with 403 Forbidden**. There is no default tenant, no fallback, no "skip RLS" mode.
-
-### 17.4 Production deploy contract
-
-The production deploy contract (§ I8 in SEALED-ARCHITECTURE-BASELINE-2026-06-05.md) enforces:
-
-- `DATABASE_URL` ≠ `OWNER_DATABASE_URL` (different Postgres users)
-- App role ≠ owner role (NOSUPERUSER NOBYPASSRLS vs BYPASSRLS)
-- No wildcard CORS
-
-If these checks fail, the backend **refuses to start**. This contract is in `app/config.py:_assert_production_deploy_contract`.
-
----
-
-## 18. Tenant Architecture Dependencies and Relationships
-
-### 18.1 What Tenant Core depends on
-
-- **Identity Core:** tenant users are authenticated identities; JWT tenant claim validated against User.tenant_id.
-- **Security Core:** RLS enforcement, role split, deploy contract.
-- **Audit Core:** every tenant lifecycle transition emits an audit event.
-- **Configuration Core:** TenantSetting, ModuleSetting, feature flags scoped to tenant.
-- **Compliance Core:** data purge (GDPR), retention policies, consent management.
-
-### 18.2 What depends on Tenant Core
-
-- **All business-scoped cores** (Party, Organization, Location, Resource, Product, Service, Contract, Work, Knowledge, Financial, Case, Workflow, Automation, Approval, SLA, Scheduling, Communication, Notification, Document, etc.). Every business row carries `tenantId`.
-- **All platform-service cores** (Data, Metadata, Relationship, Search, Event, Integration, Developer Platform, Background Processing, Import/Export, Template, Storage). Multi-tenant awareness is universal.
-- **All intelligence cores** (Analytics, Reporting, AI, Forecasting, Decision Support). Query results are tenant-scoped.
-- **All experience cores** (Workspace, Portal, Mobile, Marketplace, Localization). UI is tenant-scoped.
-
-### 18.3 Tier discipline (L2 — no reverse dependencies)
-
-Tenant Core is in the FOUNDATION tier. No core above FOUNDATION may define what Tenant means or how it behaves. Higher tiers **consume** tenant context; they do not **create** or **redefine** it.
+The parent/child relationship is reserved for **reseller / managed account patterns**. Do not extend it for:
+- Permission inheritance (use RBAC instead).
+- Data visibility (use RLS instead).
+- Pricing / subscriptions (use Entitlement Core instead).
 
 ---
 

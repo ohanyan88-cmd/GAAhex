@@ -125,6 +125,14 @@ Every event except the first in a process knows its cause. `causationId` points 
 
 > A subscriber processing events from the store must be able to replay a year of events from scratch and arrive at the same state as the live system. Replay must be idempotent (same event + same actor + same context always produces the same result).
 
+### L8 — Idempotency enforced at subscriber
+
+> Every subscriber tracks `(subscriberId, eventId)` pairs to prevent duplicate work. Processing the same event twice MUST produce the same side effect.
+
+### L9 — Events ≠ Audit ≠ Notification
+
+> Events are facts; Audit is a compliance projection over events; Notification is a delivery artifact. Each serves a distinct purpose and must not conflate roles.
+
 ---
 
 ## 7. Core Concepts
@@ -175,38 +183,7 @@ visibility: enum (PUBLIC, INTERNAL, RESTRICTED, SYSTEM)
 
 **`actorId`** is the UUIDv7 of the user/account/system. May be NULL for SYSTEM events.
 
-### 7.5 Event example
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "tenantId": "50e8400-e29b-41d4-a716-446655440001",
-  "eventName": "Service.Activated",
-  "eventVersion": 1,
-  "category": "LIFECYCLE",
-  "correlationId": "550e8400-e29b-41d4-a716-446655440002",
-  "causationId": "550e8400-e29b-41d4-a716-446655440003",
-  "actorType": "USER",
-  "actorId": "550e8400-e29b-41d4-a716-446655440004",
-  "timestamp": "2026-06-06T14:30:45.123Z",
-  "payload": {
-    "serviceId": "svc-123",
-    "customerId": "cus-456",
-    "activatedReason": "manual_approval",
-    "previousStatus": "PENDING",
-    "newStatus": "ACTIVE"
-  },
-  "objectType": "SERVICE",
-  "objectId": "550e8400-e29b-41d4-a716-446655440000",
-  "visibility": "INTERNAL"
-}
-```
-
----
-
-## 8. Event Store
-
-### 8.1 Physical storage
+### 7.5 Event Store structure
 
 The **event store** is a single append-only table (`event`) in Postgres:
 
@@ -257,7 +234,7 @@ FOR EACH ROW
 EXECUTE FUNCTION prevent_event_mutation();
 ```
 
-### 8.2 Guarantees
+#### 7.5.1 Event Store guarantees
 
 - **Append-only** — only INSERT; no UPDATE, DELETE, TRUNCATE allowed.
 - **Immutable at all privilege levels** — triggers fire for all roles, including superuser/Admin, preventing any mutation.
@@ -265,11 +242,7 @@ EXECUTE FUNCTION prevent_event_mutation();
 - **Tenant-isolated** — every row carries `tenant_id`; queries always filter by tenant.
 - **Permanent** — archived events remain in the table with metadata; logical deletion never occurs.
 
----
-
-## 9. Event Publishing
-
-### 9.1 The single chokepoint: `workflow.emit(...)`
+### 7.6 Event Publishing chokepoint
 
 Located in `app.kernel.workflow_engine` or `app.workflow` (unified by M2):
 
@@ -297,41 +270,7 @@ async def emit(
     pass
 ```
 
-### 9.2 Naming convention for `eventName`
-
-- **Format**: `<Object>.<Action>` in PascalCase.
-- **Object**: singular, canonical entity name (e.g., `Service`, `Invoice`, `Customer`).
-- **Action**: past tense, idiomatic (e.g., `Created`, `Activated`, `Paid`, `Resolved`).
-- **Examples**: `Service.Activated`, `Invoice.Issued`, `Deal.Won`, `Ticket.Resolved`, `Payment.Received`, `Contract.Renewed`.
-
-Never: `ActivateService` (command), `ServiceActivation` (noun), `SERVICE_ACTIVATED` (enum style).
-
-### 9.3 When to emit
-
-**Emit an event when**:
-
-- An entity is created (first time).
-- Status or lifecycle state changes.
-- Ownership, assignment, or department changes.
-- An approval is requested, granted, or denied.
-- A financial transaction completes (invoice issued, payment received, credit applied).
-- A comment, note, or attachment is added.
-- An automation rule executes.
-- An integration syncs or pushes data.
-- A security-sensitive action occurs (role granted, secret rotated, permission changed).
-
-**Never emit**:
-
-- UI clicks or temporary UI state.
-- Planned future actions or scheduled-for-later mutations.
-- Intermediate states in a multi-step operation (emit once at the end).
-- Repeated fetches or reads (only state changes).
-
----
-
-## 10. Subscriber Registry
-
-### 10.1 Declarative subscription
+### 7.7 Subscriber Registry
 
 Every subscriber declares what it listens to. The registry is a configuration file or database table:
 
@@ -361,24 +300,16 @@ subscribers:
         handler: "emit_to_warehouse"
 ```
 
-### 10.2 No hidden subscriptions
-
-Every subscription is declared in the registry. Searching the codebase for event handlers should find the registry and confirm the relationship is documented.
-
-### 10.3 Handler contract
+#### 7.7.1 Handler contract
 
 A subscriber handler:
 
 - **Receives**: the Event row from the store.
 - **Returns**: nothing (or optional acknowledgment status).
-- **Idempotent**: processing the same event twice with the same actor and context produces the same side effect. (Idempotency is enforced via `(subscriberId, eventId)` tracking in the subscriber state; see §11.)
-- **Never fails silently**: unhandled exceptions are logged and re-raised (dead-letter handling is orthogonal; see §12).
+- **Idempotent**: processing the same event twice with the same actor and context produces the same side effect.
+- **Never fails silently**: unhandled exceptions are logged and re-raised (dead-letter handling is orthogonal; see §15).
 
----
-
-## 11. Idempotency
-
-### 11.1 Subscriber tracking
+### 7.8 Idempotency tracking
 
 Every subscriber tracks `(subscriberId, eventId)` pairs in a table:
 
@@ -391,7 +322,7 @@ CREATE TABLE event_subscriber_state (
 );
 ```
 
-### 11.2 Idempotent processing
+#### 7.8.1 Idempotent processing flow
 
 When a subscriber receives an event:
 
@@ -400,92 +331,63 @@ When a subscriber receives an event:
 3. If no, process the event and INSERT the `(subscriberId, eventId)` row.
 4. If processing fails before the INSERT, the next replay will retry.
 
-### 11.3 Replay safety
+### 7.9 Naming convention for `eventName`
 
-Because subscribers are idempotent, replaying events is safe:
+- **Format**: `<Object>.<Action>` in PascalCase.
+- **Object**: singular, canonical entity name (e.g., `Service`, `Invoice`, `Customer`).
+- **Action**: past tense, idiomatic (e.g., `Created`, `Activated`, `Paid`, `Resolved`).
+- **Examples**: `Service.Activated`, `Invoice.Issued`, `Deal.Won`, `Ticket.Resolved`, `Payment.Received`, `Contract.Renewed`.
 
-- A subscriber can be reset to a past state by deleting its rows from `event_subscriber_state`.
-- Replaying from that point forward will re-process all subsequent events.
-- The same event never produces duplicate side effects (e.g., duplicate notifications, duplicate automation executions).
+Never: `ActivateService` (command), `ServiceActivation` (noun), `SERVICE_ACTIVATED` (enum style).
 
----
+### 7.10 Event example
 
-## 12. Retry and Dead-Letter Handling
-
-### 12.1 Retry policy (M1 in-process)
-
-In M1, the event bus is in-process. A subscriber failure is immediate and synchronous:
-
-- **Immediate retry**: on exception, retry up to 3 times with exponential backoff (1s, 2s, 4s).
-- **Timeout**: if a handler takes >30s, log and skip (consider it failed).
-- **Dead-letter**: after 3 retries or timeout, log to dead-letter queue (a `dead_letter_event` table or file) and continue.
-
-### 12.2 Dead-letter queue (M1+)
-
-```sql
-CREATE TABLE dead_letter_event (
-  id uuid PRIMARY KEY,
-  subscriber_id varchar(255) NOT NULL,
-  event_id uuid NOT NULL,
-  failed_at timestamptz NOT NULL DEFAULT now(),
-  error_message text,
-  retry_count int DEFAULT 0,
-  last_retry_at timestamptz
-);
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "tenantId": "50e8400-e29b-41d4-a716-446655440001",
+  "eventName": "Service.Activated",
+  "eventVersion": 1,
+  "category": "LIFECYCLE",
+  "correlationId": "550e8400-e29b-41d4-a716-446655440002",
+  "causationId": "550e8400-e29b-41d4-a716-446655440003",
+  "actorType": "USER",
+  "actorId": "550e8400-e29b-41d4-a716-446655440004",
+  "timestamp": "2026-06-06T14:30:45.123Z",
+  "payload": {
+    "serviceId": "svc-123",
+    "customerId": "cus-456",
+    "activatedReason": "manual_approval",
+    "previousStatus": "PENDING",
+    "newStatus": "ACTIVE"
+  },
+  "objectType": "SERVICE",
+  "objectId": "550e8400-e29b-41d4-a716-446655440000",
+  "visibility": "INTERNAL"
+}
 ```
 
-Failed events land here so operators can inspect, fix the subscriber bug, and manually re-process.
+---
 
-### 12.3 M2+ broker retry policy
+## 8. Canonical Entities
 
-When an external broker (Kafka, NATS) is in use:
+The event system declares one canonical entity:
 
-- **Acknowledgment-based**: subscriber must acknowledge receipt within a timeout (e.g., 30s). No ack = requeue.
-- **Requeue with backoff**: failed events are requeued up to 5 times with exponential backoff.
-- **Dead-letter topic**: after 5 requeue attempts, the event lands in a dead-letter topic for operator inspection.
+| Entity | Owner | Purpose |
+|---|---|---|
+| `Event` | Event Core (PLATFORM SERVICES) | Immutable record of every state change; append-only physical store. |
+
+Cross-core references to Event rows occur via `eventId` in projections (Timeline, Analytics, Audit).
 
 ---
 
-## 13. Replay Policy
+## 9. Ownership Boundaries
 
-### 13.1 Time-travel semantics
+### 9.1 Event ownership
 
-A subscriber can be reset and replayed from any point in time:
+`Service.Activated` is published by Service Core. If Financial, Notification, and Audit subscribe to it, they are *subscribers*, not *publishers*. Service Core owns the event.
 
-```sql
--- Reset notification service to a past point.
-DELETE FROM event_subscriber_state
-WHERE subscriber_id = 'notification-service'
-AND processed_at > '2026-06-01 12:00:00Z';
-
--- On next boot, the subscriber will re-process all events after 2026-06-01 12:00:00Z.
-```
-
-### 13.2 Immutability requirement for replay
-
-Because events are immutable and append-only, replay always sees the same sequence:
-
-- Event order is fixed (by `timestamp`, then `id`).
-- Event content never changes.
-- Causation chains are stable.
-
-### 13.3 Replay performance
-
-For large-scale replays (e.g., resetting Analytics to recompute a year of KPIs):
-
-- Batch-fetch events in time-ordered chunks (e.g., 1000 events per query).
-- Process subscribers in parallel (different subscribers do not share state).
-- Track high-water mark in subscriber state so restarts resume, not restart from the beginning.
-
----
-
-## 14. Cross-Core Event Relationships
-
-### 14.1 Event ownership
-
-`Service.Activated` is published by Service Core. If Financial, Notification, and Integration subscribe to it, they are *subscribers*, not *publishers*. Service Core owns the event.
-
-### 14.2 Cross-core causation
+### 9.2 Cross-core causation
 
 A workflow that triggers multiple cores emits one `correlationId` and a causation chain:
 
@@ -501,68 +403,298 @@ Timeline projector listens, adds entries (correlation_id=COR-123 for traceabilit
 
 All events in the chain share `correlationId=COR-123`, forming a traceable process. `causationId` forms the direct parent-child link.
 
-### 14.3 Forbidden patterns
+---
 
-- **Cross-tenant events**: an event never spans multiple tenants.
-- **Inverted ownership**: Financial Core does NOT publish `Service.Activated` events; Service Core does.
-- **Multi-publish**: a single state change does not emit from multiple cores. One core publishes; others subscribe.
-- **Implicit subscriptions**: a core does NOT listen to another core's events via direct database queries. All cross-core communication is explicit event-based.
+## 10. Relationships
+
+### 10.1 Subscription relationships
+
+A subscriber declares what it listens to in the subscriber registry. The subscription is declarative; the publisher does not know about the subscriber. Every subscription is declared; no hidden subscriptions exist (searching the codebase for event handlers should find the registry and confirm the relationship is documented).
+
+### 10.2 Cross-core event consumption
+
+Event Core publishes events; all other cores may subscribe. Subscription creates a directed dependency: if Core A subscribes to events published by Core B, then Core A depends on Event Core (the infrastructure) and Core B (the event source), not directly on Core B's synchronous APIs (unless explicitly documented in `10_API_ARCHITECTURE.md`).
 
 ---
 
-## 15. Event ≠ Audit ≠ Notification (PRM Separation)
+## 11. Responsibilities
 
-### 15.1 Event
+### 11.1 Publisher core
 
-A **fact that happened**: immutable, append-only, owned by the changing core. Example: `Invoice.Paid` (the invoice is now paid). Payload includes business details (amount, method, reference).
+- Emits one event per state change via the `emit` chokepoint.
+- Names the event in `<Object>.<Action>` PascalCase format.
+- Declares the event's category, payload schema, and version in architecture docs.
+- Maintains event schema using additive-only versioning (L6).
+- Registers all events in the Drift Check rule.
 
-Purposes:
-- Audit trail source.
-- Timeline entries.
-- Automation triggers.
-- Integration webhooks.
-- Analytics input.
-- Replay/time-travel.
+### 11.2 Subscriber core
 
-### 15.2 Audit
+- Declares subscription in the subscriber registry.
+- Implements a handler that is idempotent and never fails silently.
+- Tracks `(subscriberId, eventId)` to prevent duplicate processing.
+- Handles both old and new event versions gracefully.
 
-A **compliance-relevant slice** of events. Derived from the event store, not independent. Audit entries reference the event `id` and include actor, context (IP, source), before/after snapshots, and timestamps.
+### 11.3 Event Core (Platform Services)
 
-Purposes:
-- Compliance evidence.
-- User-activity reports.
-- Regulatory proofs.
-- Security investigation.
+- Maintains the event store infrastructure (table, indices, immutability triggers).
+- Operates the subscriber registry.
+- Enforces the single `emit` chokepoint.
+- Manages the Event subscriber state table.
+- Provides replay APIs and dead-letter inspection tools.
 
-**Implementation**: The Audit Core reads events and projects them into audit records (or embeds audit context in the Event row itself). Audit is never the *source*; events are.
+### 11.4 Governance role
 
-### 15.3 Notification
-
-A **delivery artifact**. When an event occurs, Notification Core may react by sending email, SMS, or in-app notification. The Notification record stores who was notified, when, and delivery status.
-
-Purposes:
-- User communication.
-- Alert delivery.
-- Subscription preferences.
-
-**Implementation**: Notification Core subscribes to events and emits `Notification.Sent` events for audit. The notification itself is a by-product, not the source.
-
-### 15.4 Separation enforced
-
-- **Events are mandatory** for every state change.
-- **Audit is a projection** over events (derived, never primary).
-- **Notifications are optional** — a system can emit events and audit without notifying (e.g., internal-only changes).
-- **No silent mutations** — if there's no event, the mutation doesn't happen.
+- Reviews all new events at design time.
+- Ensures events are not confused with Audit or Notification (L9).
+- Audits for silent mutations (L4 from Platform Core Architecture).
 
 ---
 
-## 16. Event Schema Versioning
+## 12. Allowed Patterns
 
-### 16.1 Versioning scheme
+### AP1 — Use `workflow.emit()` as the single event publication point
 
-Every event carries `eventVersion` (int, default 1). The version increments when the payload schema changes.
+Every state-changing operation routes through `app.workflow.emit(...)`:
 
-### 16.2 Additive-only rule
+```python
+# ✅ Correct: route through the kernel chokepoint
+await emit(
+    session,
+    tenant_id=service.tenant_id,
+    type_="service.activated",
+    object_type="service",
+    object_id=service.id,
+    actor_id=user_id,
+    payload={"status_before": "PENDING", "status_after": "ACTIVE"},
+    event_name="Service.Activated",
+    category="LIFECYCLE",
+    correlation_id=workflow_run_id,
+    causation_id=previous_event_id,
+)
+```
+
+### AP2 — Use PascalCase event names in `<Object>.<Action>` format
+
+Events are named for clarity: `Service.Activated`, `Invoice.Issued`, `Ticket.Resolved`. The format is immutable after release and serves as the contract between publisher and subscribers.
+
+### AP3 — Include `correlationId` and `causationId` for traceability
+
+Every event carries a `correlationId` (connecting all events in a business process) and a `causationId` (pointing to the triggering event). This enables end-to-end audit trails and time-travel replay.
+
+### AP4 — Declare subscriptions in the registry, not in code
+
+Subscribers register their interest via the subscriber registry, not via hardcoded callbacks. This makes subscriptions discoverable and auditable.
+
+### AP5 — Emit once per state change, no more
+
+A state change from `DRAFT` → `ACTIVE` emits one event, not separate events for metadata, timestamps, or actor changes. Composite state changes emit multiple events from different cores, linked by `correlationId`.
+
+### AP6 — Replay events for subscriber recovery
+
+Reset a subscriber's state in `event_subscriber_state` and restart it. Replay is safe because events are immutable and subscribers are idempotent.
+
+---
+
+## 13. Forbidden Patterns
+
+### FP1 — Direct Event table writes
+
+No Event creation outside the `emit` chokepoint:
+
+```python
+# ❌ Wrong: direct Event creation
+event = Event(
+    type_="service.activated",
+    object_id=service.id,
+    ...
+)
+db.add(event)
+```
+
+Events are only created via `workflow.emit()`.
+
+### FP2 — Silent mutations
+
+If there is no event, the mutation does not happen. Every state change emits a fact; absence of an event is a sign the change was not properly recorded and must be audited.
+
+### FP3 — Multi-event for a single state change
+
+A single atomic state mutation produces exactly one event. If multiple events seem required, the state change is composite and should be decomposed into separate operations, each with its own event.
+
+### FP4 — Cross-tenant events
+
+An event never spans multiple tenants. Every event carries `tenantId` and references a single tenant. Cross-tenant operations emit separate tenant-scoped events per tenant.
+
+### FP5 — Removing, renaming, or retyping event fields
+
+Event payloads are versioned via `eventVersion`. Once released, a schema may only *add* optional fields. To break a schema, deprecate the old event and publish a new event with a new name. (See L6 and §15.)
+
+### FP6 — Cross-core publishing of "foreign" events
+
+A core does NOT publish events on behalf of another core. Service Core publishes `Service.Activated`; Financial Core does not. If Financial Core needs to react, it subscribes.
+
+### FP7 — Implicit subscriptions
+
+A core does NOT listen to another core's events via direct database queries or hardcoded polling. All cross-core communication is explicit event-based, declared in the subscriber registry.
+
+### FP8 — Confusing Event, Audit, and Notification
+
+- **Event** is the fact that something happened (immutable, append-only).
+- **Audit** is a compliance projection over events (derived, optional subscribers).
+- **Notification** is a delivery artifact (email, SMS, in-app message, optional).
+
+Each serves a different purpose; conflating them violates the PRM separation rule (L9).
+
+---
+
+## 14. Cross-Architecture Dependencies
+
+| This document depends on | For |
+|---|---|
+| `PLATFORM_REFERENCE_MODEL.md` | Core ownership definitions; separation rules (Event ≠ Audit ≠ Notification). |
+| `01_PLATFORM_CORE_ARCHITECTURE.md` | Core ownership; L1 single primary ownership rule; L4 audit universality. |
+| `09_DATA_ARCHITECTURE.md` | Entity ownership matrix; canonical entities. |
+| `10_API_ARCHITECTURE.md` | Event payload schemas declared per core; domain event specifications. |
+
+| Documents that depend on this one |
+|---|
+| `08_PERMISSION_ARCHITECTURE.md` (events reference audit-relevant operations). |
+| `11_AUDIT_CORE_RESPONSIBILITIES.md` (derives audit records from events). |
+| `12_INTEGRATION_ARCHITECTURE.md` (webhooks triggered by events). |
+| `15_REPORTING_ARCHITECTURE.md` (reports consume event streams). |
+| `16_ANALYTICS_ARCHITECTURE.md` (analytics projects from events). |
+| `18_OBSERVABILITY_ARCHITECTURE.md` (metrics and traces linked to events). |
+| `07_WORKFLOW_PROCESS_ARCHITECTURE.md` (workflows emit events on state transitions). |
+
+---
+
+## 15. Implementation Requirements
+
+### 15.1 Event emission from `workflow.emit(...)`
+
+Every module that performs a state-changing operation must route through the single `emit` function. No direct Event table writes are permitted.
+
+### 15.2 Declaring events in architecture docs
+
+Each core declares its events in this document (or a core-specific section) with:
+
+- Event name (e.g., `Service.Activated`).
+- Category (e.g., `LIFECYCLE`).
+- Payload schema (JSON schema or TypeScript interface).
+- `eventVersion` (start at 1).
+- Subscribers (by name, from the registry).
+- When it's emitted (what state change triggers it).
+
+Example:
+
+| Event Name | Category | Owner Core | Payload Schema | Subscribers | v |
+|---|---|---|---|---|---|
+| Service.Activated | LIFECYCLE | Service | `{status_before: enum, status_after: enum, activatedBy: uuid}` | Notification, Timeline, Analytics | 1 |
+| Invoice.Issued | FINANCIAL | Financial | `{invoiceId: uuid, customerId: uuid, amount: decimal, currency: string}` | Notification, Timeline, Accounting | 1 |
+
+### 15.3 Subscriber handler registration
+
+Subscribers register in `docs/architecture/EVENT_SUBSCRIBER_REGISTRY.md` (separate file, updated per core hardening). At boot, the platform loads the registry and confirms all handlers are present.
+
+```yaml
+subscribers:
+  - id: "notification-core"
+    handlers:
+      Service.Activated: "app.routers.notifications:handle_service_activated"
+      Invoice.Issued: "app.routers.notifications:handle_invoice_issued"
+  - id: "timeline-projector"
+    handlers:
+      ".*": "app.projections.timeline:project_event"
+```
+
+### 15.4 Drift check
+
+`tools/check_drift.py` adds a rule: every event emitted must be registered in the subscriber registry (or explicitly marked as "no subscribers"). Unknown events fail the check.
+
+### 15.5 Retry and dead-letter handling
+
+#### 15.5.1 Retry policy (M1 in-process)
+
+In M1, the event bus is in-process. A subscriber failure is immediate and synchronous:
+
+- **Immediate retry**: on exception, retry up to 3 times with exponential backoff (1s, 2s, 4s).
+- **Timeout**: if a handler takes >30s, log and skip (consider it failed).
+- **Dead-letter**: after 3 retries or timeout, log to dead-letter queue (a `dead_letter_event` table or file) and continue.
+
+#### 15.5.2 Dead-letter queue (M1+)
+
+```sql
+CREATE TABLE dead_letter_event (
+  id uuid PRIMARY KEY,
+  subscriber_id varchar(255) NOT NULL,
+  event_id uuid NOT NULL,
+  failed_at timestamptz NOT NULL DEFAULT now(),
+  error_message text,
+  retry_count int DEFAULT 0,
+  last_retry_at timestamptz
+);
+```
+
+Failed events land here so operators can inspect, fix the subscriber bug, and manually re-process.
+
+#### 15.5.3 M2+ broker retry policy
+
+When an external broker (Kafka, NATS) is in use:
+
+- **Acknowledgment-based**: subscriber must acknowledge receipt within a timeout (e.g., 30s). No ack = requeue.
+- **Requeue with backoff**: failed events are requeued up to 5 times with exponential backoff.
+- **Dead-letter topic**: after 5 requeue attempts, the event lands in a dead-letter topic for operator inspection.
+
+### 15.6 Replay and time-travel rules
+
+#### 15.6.1 Time-travel semantics
+
+A subscriber can be reset and replayed from any point in time:
+
+```sql
+-- Reset notification service to a past point.
+DELETE FROM event_subscriber_state
+WHERE subscriber_id = 'notification-service'
+AND processed_at > '2026-06-01 12:00:00Z';
+
+-- On next boot, the subscriber will re-process all events after 2026-06-01 12:00:00Z.
+```
+
+#### 15.6.2 Immutability requirement for replay
+
+Because events are immutable and append-only, replay always sees the same sequence:
+
+- Event order is fixed (by `timestamp`, then `id`).
+- Event content never changes.
+- Causation chains are stable.
+
+#### 15.6.3 Replay performance
+
+For large-scale replays (e.g., resetting Analytics to recompute a year of KPIs):
+
+- Batch-fetch events in time-ordered chunks (e.g., 1000 events per query).
+- Process subscribers in parallel (different subscribers do not share state).
+- Track high-water mark in subscriber state so restarts resume, not restart from the beginning.
+
+#### 15.6.4 Replay safety
+
+Because subscribers are idempotent, replaying events is safe:
+
+- A subscriber can be reset to a past state by deleting its rows from `event_subscriber_state`.
+- Replaying from that point forward will re-process all subsequent events.
+- The same event never produces duplicate side effects (e.g., duplicate notifications, duplicate automation executions).
+
+### 15.7 Testing events
+
+- **Unit tests**: mock `emit()` and verify the correct call is made with the right payload.
+- **Integration tests**: trigger a state change, query the event store, confirm the event is present and subscribers were notified.
+- **Replay tests**: delete subscriber state, replay events, verify idempotency (same state reached).
+
+---
+
+## 16. Future Expansion Rules
+
+### 16.1 Schema versioning and deprecation
 
 Once released, an event schema **may only ADD new optional fields**. Removing, renaming, or retyping fields is **forbidden**. Example:
 
@@ -581,7 +713,7 @@ Once released, an event schema **may only ADD new optional fields**. Removing, r
 // New event: Invoice.PaidWithCurrency (new event name, carries both old and new fields)
 ```
 
-### 16.3 Subscriber compatibility
+### 16.2 Subscriber compatibility
 
 A subscriber processing `eventVersion=1` and `eventVersion=2` of `Invoice.Paid` must handle both:
 
@@ -589,7 +721,7 @@ A subscriber processing `eventVersion=1` and `eventVersion=2` of `Invoice.Paid` 
 - Route to a handler that understands both versions.
 - New optional fields default to NULL or sensible defaults if missing.
 
-### 16.4 Deprecation path
+### 16.3 Deprecation path for breaking schema changes
 
 If a payload schema must break (impossible under additive-only):
 
@@ -599,87 +731,9 @@ If a payload schema must break (impossible under additive-only):
 4. Stop emitting the old event.
 5. Archive old events (retain for replay, but no longer published).
 
----
+### 16.4 Adding new event categories
 
-## 17. Implementation Requirements
-
-### 17.1 Event emission from `workflow.emit(...)`
-
-Every module that performs a state-changing operation must route through the single `emit` function:
-
-```python
-# ❌ Wrong: direct Event creation
-event = Event(
-    type_="service.activated",
-    object_id=service.id,
-    ...
-)
-db.add(event)
-
-# ✅ Correct: route through the kernel chokepoint
-await emit(
-    session,
-    tenant_id=service.tenant_id,
-    type_="service.activated",
-    object_type="service",
-    object_id=service.id,
-    actor_id=user_id,
-    payload={"status_before": "PENDING", "status_after": "ACTIVE"},
-    event_name="Service.Activated",
-    category="LIFECYCLE",
-    correlation_id=workflow_run_id,
-    causation_id=previous_event_id,
-)
-```
-
-### 17.2 Declaring events in architecture docs
-
-Each core declares its events in this document (or a core-specific section) with:
-
-- Event name (e.g., `Service.Activated`).
-- Category (e.g., `LIFECYCLE`).
-- Payload schema (JSON schema or TypeScript interface).
-- `eventVersion` (start at 1).
-- Subscribers (by name, from the registry).
-- When it's emitted (what state change triggers it).
-
-Example:
-
-| Event Name | Category | Owner Core | Payload Schema | Subscribers | v |
-|---|---|---|---|---|---|
-| Service.Activated | LIFECYCLE | Service | `{status_before: enum, status_after: enum, activatedBy: uuid}` | Notification, Timeline, Analytics | 1 |
-| Invoice.Issued | FINANCIAL | Financial | `{invoiceId: uuid, customerId: uuid, amount: decimal, currency: string}` | Notification, Timeline, Accounting | 1 |
-
-### 17.3 Subscriber handler registration
-
-Subscribers register in `docs/architecture/EVENT_SUBSCRIBER_REGISTRY.md` (separate file, updated per core hardening). At boot, the platform loads the registry and confirms all handlers are present.
-
-```yaml
-subscribers:
-  - id: "notification-core"
-    handlers:
-      Service.Activated: "app.routers.notifications:handle_service_activated"
-      Invoice.Issued: "app.routers.notifications:handle_invoice_issued"
-  - id: "timeline-projector"
-    handlers:
-      ".*": "app.projections.timeline:project_event"
-```
-
-### 17.4 Drift check
-
-`tools/check_drift.py` adds a rule: every event emitted must be registered in the subscriber registry (or explicitly marked as "no subscribers"). Unknown events fail the check.
-
-### 17.5 Testing events
-
-- **Unit tests**: mock `emit()` and verify the correct call is made with the right payload.
-- **Integration tests**: trigger a state change, query the event store, confirm the event is present and subscribers were notified.
-- **Replay tests**: delete subscriber state, replay events, verify idempotency (same state reached).
-
----
-
-## Summary
-
-The event system is GAAhex's audit trail, integration hub, and asynchronous backbone. Every meaningful state change produces exactly one immutable event via the single chokepoint `workflow.emit(...)`. Events are owned by their publishing core, subscribed to by other cores, and stored append-only in Postgres. Subscribers are idempotent and replayable. Events are distinguished from Audit (a compliance projection) and Notification (a delivery artifact). The architecture enforces that no mutation happens silently—every change is a recorded fact, forever discoverable, always replayable.
+New `EventCategory` enum values may be added as domain maturity grows. Add the value to the enum in `07_PLATFORM_CORE_ARCHITECTURE.md` (EventCategory definition) and update this document's §7.1 list.
 
 ---
 

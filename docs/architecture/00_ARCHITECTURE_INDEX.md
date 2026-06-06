@@ -6,17 +6,18 @@ the 22 Architecture Constitution documents and to the LOCKED Standards
 beneath them.
 
 **Above this layer** (per LAW-ST1 of the GAAhex Project Constitution v1.0):
-[`../CONSTITUTION.md`](../CONSTITUTION.md) — the project meta-law that
-governs Architecture, Standards, Domains, Modules, APIs, Events, Data,
-Workflows, Permissions, Navigation, UI, Infrastructure, Documentation, AI,
-Marketplace, Mobile, and Future Platform Expansion.
+[`../governance/PROJECT_CONSTITUTION.md`](../governance/PROJECT_CONSTITUTION.md)
+— the highest governance authority in the repository. It governs Architecture,
+Standards, Domains, Modules, APIs, Events, Data, Workflows, Permissions,
+Navigation, UI, Infrastructure, Documentation, AI, Marketplace, Mobile, and
+Future Platform Expansion. Amendments only via LAW-GV1.
 
 ---
 
 ## The Architecture Hierarchy
 
 ```
-docs/CONSTITUTION.md (Project Constitution v1.0 — meta-law)
+docs/governance/PROJECT_CONSTITUTION.md   (highest authority — permanent)
         │
         ▼
 PLATFORM_REFERENCE_MODEL.md
@@ -122,7 +123,8 @@ Forbidden Patterns `FP1+`.
 | File | Role |
 |---|---|
 | [`PRM-MIGRATION-AUDIT-2026-06-06.md`](PRM-MIGRATION-AUDIT-2026-06-06.md) | The classification audit that adopted PRM (2026-06-06). |
-| [`CONSTITUTION_CONSISTENCY_AUDIT.md`](CONSTITUTION_CONSISTENCY_AUDIT.md) | Cross-doc consistency & normalization audit of the 22 constitution documents (2026-06-06). Documents structural variance without altering architectural decisions. |
+| [`CONSTITUTION_CONSISTENCY_AUDIT.md`](CONSTITUTION_CONSISTENCY_AUDIT.md) | Pass-1 cross-doc consistency audit of the 22 constitution documents (2026-06-06). Documents structural variance pre-normalization. |
+| [`CONSTITUTION_CONSISTENCY_AUDIT_PASS2.md`](CONSTITUTION_CONSISTENCY_AUDIT_PASS2.md) | Pass-2 post-normalization audit (2026-06-06). All 22 docs now match the canonical 17-section template; **PASS**. |
 | [`SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`](SEALED-ARCHITECTURE-BASELINE-2026-06-05.md) | Kernel-level engineering invariants (5 engines). Implementation contract under Foundation cores. |
 | [`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`](SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md) | DRAFT-SHELL addendum for GXL business-condition workflow guards (M1 Phase 1.5). |
 | [`Q1-Q5-Q8-DECISION-PACKAGE-2026-06-05.md`](Q1-Q5-Q8-DECISION-PACKAGE-2026-06-05.md) | Three open architecture Q's resolution package. |
