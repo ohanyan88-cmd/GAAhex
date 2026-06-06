@@ -134,6 +134,13 @@
   background: var(--gx-bg);
 }
 
+/* ONE uniform KPI-card height across every page (D17). Without this the tile height
+   was content-driven — a tile with a delta/subtitle grew taller, so the same KPIBar
+   measured 87px on one page and 108–129px on another. Fixed height = identical cards
+   everywhere; label+value (+optional delta) sit top-aligned, the delta pins to the
+   bottom via its `margin-top:auto`. */
+.ps-kpis .kpi-tile { height: 88px; }
+
 /* If the page only has 3-5 tiles we don't want them stretched to absurd
    widths on ultra-wide monitors — cap at 5 columns. */
 .ps-kpis[data-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -217,7 +224,10 @@
   /* Horizontal padding locked at var(--gx-space-12) per the PageShell
      spacing law (see .ps-header comment). */
   padding: var(--gx-space-4) var(--gx-space-12);
-  background: var(--gx-bg-subtle);
+  /* Match the other shell zones (header / kpis / actions all use --gx-bg). Using
+     --gx-bg-subtle made the FilterBar a distinct bluish band flush against the nav,
+     reading as a panel "attached" to the sidebar. One bg → seamless, no band. */
+  background: var(--gx-bg);
   border-bottom: 1px solid var(--gx-border-subtle);
   flex-wrap: wrap;
 }
@@ -332,6 +342,9 @@
   grid-template-columns: 280px minmax(0, 1fr) 320px;
   height: 100%;
   overflow: hidden;
+  /* Standard body padding (matches every other page type) so the messenger/calendar
+     panel detaches from the left nav instead of reading as an extension of it. */
+  padding: var(--gx-space-5) var(--gx-space-12);
 }
 .ps-workspace[data-page-type="configuration"] {
   padding: var(--gx-space-5) var(--gx-space-12);

@@ -26,7 +26,9 @@ export function KPIBar({ kpis }: KPIBarProps) {
           unit={k.unit}
           delta={k.delta}
           deltaPositive={k.deltaPositive}
-          subtitle={k.subtitle}
+          /* subtitle intentionally NOT forwarded: the KPIBar (Zone B) is a compact,
+             uniform-height metric strip (D17). A free-text subtitle line made tiles
+             grow to different heights page-to-page. Detail belongs in `tooltip`. */
           onClick={k.onClick}
           danger={k.danger}
           warning={k.warning}
