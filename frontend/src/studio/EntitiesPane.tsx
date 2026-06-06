@@ -352,12 +352,12 @@ function CreateEntityModal({
                 key={s.key}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-                  padding: '4px 8px',
+                  padding: 'var(--gx-space-2) var(--gx-space-4)',
                   // D18: active "initial status" pill = azure-soft (interactive family)
                   background: s.is_initial ? 'var(--gx-interactive-soft)' : 'var(--gx-surface-2)',
                   border: '1px solid var(--gx-border)',
                   borderRadius: 'var(--gx-radius-md)',
-                  fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12,
+                  fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-sm)',
                 }}
               >
                 <button

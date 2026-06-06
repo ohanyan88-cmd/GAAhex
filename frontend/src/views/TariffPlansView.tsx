@@ -419,7 +419,7 @@ export default function TariffPlansView({
                 style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12 }}
               />
               {tiersError && (
-                <span style={{ color: 'var(--gx-danger-fg)', fontSize: 12, marginTop: 4 }}>
+                <span style={{ color: 'var(--gx-danger-fg)', fontSize: 'var(--gx-text-sm)', marginTop: 4 }}>
                   {tiersError}
                 </span>
               )}
@@ -514,7 +514,7 @@ export default function TariffPlansView({
                             borderRadius: 999,
                             background: 'var(--gx-bg-subtle)',
                             color: 'var(--gx-text-2)',
-                            fontSize: 11,
+                            fontSize: 'var(--gx-text-11)',
                             fontWeight: 600,
                           }}
                           title={(p.tiers_json ?? []).length === 0 ? 'No tiers' : `${(p.tiers_json ?? []).length} tier(s)`}

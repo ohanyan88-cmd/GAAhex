@@ -251,7 +251,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                         switch (c.key) {
                           case 'name': cell = <strong>{w.name ?? '—'}</strong>; break
                           case 'url': cell = <span className="mono" title={w.url} style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>{w.url ?? '—'}</span>; break
-                          case 'events': cell = <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span style={{ color: 'var(--gx-text-3)' }}>all</span>}</span>; break
+                          case 'events': cell = <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span style={{ color: 'var(--gx-text-3)' }}>all</span>}</span>; break
                           case 'secret': cell = w.has_secret
                             ? <StatusPill variant="active" label="signed" size="sm" />
                             : <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>none</span>
@@ -346,7 +346,7 @@ function DeliveriesModal({ token, webhook, onClose }: { token: string; webhook: 
                   <td>{d.event_type ?? '—'}</td>
                   <td>
                     <StatusPill variant={sp.variant} label={sp.label} size="sm" />
-                    {d.error && <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginTop: 2 }} title={d.error}>{d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}</div>}
+                    {d.error && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 2 }} title={d.error}>{d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}</div>}
                   </td>
                   <td className="mono">{d.status_code ?? '—'}</td>
                   <td className="tnum">{d.attempts ?? '—'}</td>

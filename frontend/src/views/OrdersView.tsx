@@ -579,7 +579,7 @@ function CreateOrderModal({
             />
           </label>
         </div>
-        <p className="hint" style={{ fontSize: 11, margin: 0 }}>
+        <p className="hint" style={{ fontSize: 'var(--gx-text-11)', margin: 0 }}>
           The order is created as a DRAFT. Use Submit, then Advance to provision it.
         </p>
       </div>
@@ -846,11 +846,11 @@ function Stage8Modal({
         <>
           {/* Overall verdict band */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: '10px 12px',
-            borderRadius: 8, border: '1px solid var(--gx-border-subtle)',
+            display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-5) var(--gx-space-6)',
+            borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border-subtle)',
             background: 'var(--gx-surface-2)', marginBottom: 'var(--gx-space-4)',
           }}>
-            <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>Verdict</span>
+            <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>Verdict</span>
             {loading
               ? <span className="muted" style={{ fontSize: 12 }}>Running…</span>
               : check
@@ -869,9 +869,9 @@ function Stage8Modal({
               return (
                 <div key={row.key} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', border: '1px solid var(--gx-border-subtle)', borderRadius: 6,
+                  padding: 'var(--gx-space-4) var(--gx-space-6)', border: '1px solid var(--gx-border-subtle)', borderRadius: 6,
                 }}>
-                  <span style={{ fontSize: 13, color: 'var(--gx-text-1)' }}>{row.label}</span>
+                  <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-1)' }}>{row.label}</span>
                   {loading && !check
                     ? <span className="muted" style={{ fontSize: 12 }}>…</span>
                     : <StatusPill variant={stage8CheckVariant(v)} label={humanizeStatus(v)} size="sm" />}
@@ -883,7 +883,7 @@ function Stage8Modal({
           {/* Blockers */}
           {check && check.blockers && check.blockers.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
                 Blockers
               </div>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
@@ -895,10 +895,10 @@ function Stage8Modal({
           {/* Deposit snapshot (only when the row has deposit data) */}
           {order && depositReq > 0 && (
             <div style={{
-              marginTop: 'var(--gx-space-7)', padding: '10px 12px', borderRadius: 8,
+              marginTop: 'var(--gx-space-7)', padding: 'var(--gx-space-5) var(--gx-space-6)', borderRadius: 'var(--gx-radius-md)',
               border: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)',
             }}>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
                 Deposit
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
@@ -910,7 +910,7 @@ function Stage8Modal({
                 <span className="mono tnum">{depositReq.toLocaleString()} ֏</span>
               </div>
               {depositShortfall && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gx-warning-fg)', marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-warning-fg)', marginTop: 4 }}>
                   <span>Shortfall</span>
                   <span className="mono tnum">{(depositReq - depositColl).toLocaleString()} ֏</span>
                 </div>
@@ -1005,7 +1005,7 @@ function CollectDepositModal({
             placeholder="UUID — leave blank for cash/transfer"
           />
         </label>
-        <p className="hint" style={{ fontSize: 11, margin: 0 }}>
+        <p className="hint" style={{ fontSize: 'var(--gx-text-11)', margin: 0 }}>
           When a payment method ID is provided the backend simulates a card charge.
           Otherwise the deposit is recorded without gateway activity.
         </p>

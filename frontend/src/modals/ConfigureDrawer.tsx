@@ -95,7 +95,7 @@ function PageSwitcher({
     <div id="cfg-page-switcher" style={{ position: 'relative' }}>
       <label
         htmlFor={inputId}
-        style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-3)', display: 'block', marginBottom: 5 }}
+        style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-3)', display: 'block', marginBottom: 5 }}
       >
         Switch page
       </label>
@@ -129,7 +129,7 @@ function PageSwitcher({
           }}
         >
           {filtered.length === 0 ? (
-            <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-3)' }}>No pages found</div>
+            <div style={{ padding: 'var(--gx-space-5) var(--gx-space-6)', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)' }}>No pages found</div>
           ) : (
             filtered.map((e) => (
               <button
@@ -140,15 +140,15 @@ function PageSwitcher({
                 className="btn btn-ghost"
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', padding: '8px 12px', borderRadius: 0, border: 0,
+                  width: '100%', padding: 'var(--gx-space-4) var(--gx-space-6)', borderRadius: 'var(--gx-radius-none)', border: 0,
                   borderBottom: '1px solid var(--border-soft)',
                   background: e.route_slug === currentSlug ? 'var(--accent-soft)' : 'transparent',
                   color: e.route_slug === currentSlug ? 'var(--accent)' : 'var(--text)',
                 }}
                 onClick={() => pick(e.route_slug)}
               >
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{e.label_plural}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{e.route_slug}</span>
+                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{e.label_plural}</span>
+                <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{e.route_slug}</span>
               </button>
             ))
           )}
@@ -251,7 +251,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
               display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
               padding: '12px 18px', borderBottom: '1px solid var(--border)',
               flexShrink: 0, background: 'var(--surface-2)',
-              fontSize: 12, color: 'var(--text-3)',
+              fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)',
             }}
           >
             <RowsIcon size={13} />

@@ -42,7 +42,7 @@ export default function LoadingState({ kind = 'rows', label, rows = 4 }: Props) 
           display: 'inline-flex',
           alignItems: 'center',
           gap: 'var(--gx-space-3)',
-          fontSize: 12,
+          fontSize: 'var(--gx-text-sm)',
           color: 'var(--text-3)',
         }}
       >
@@ -62,7 +62,7 @@ export default function LoadingState({ kind = 'rows', label, rows = 4 }: Props) 
         style={{ borderStyle: 'solid' }}
       >
         <SpinnerIcon size={24} />
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-2)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--gx-text-13)', color: 'var(--text-2)' }}>
           {label ?? 'Loading…'}
         </p>
       </div>

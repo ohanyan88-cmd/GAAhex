@@ -37,8 +37,8 @@ export function Templates() {
         {TEMPLATE_GALLERY.map(([ic, name, desc]) => (
           <div key={name as string} className="tpl-card">
             <div className="tpl-thumb">{ic}</div>
-            <div style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
+            <div style={{ padding: 'var(--gx-space-6) var(--gx-space-7)' }}>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>{name}</div>
               <div className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>{desc}</div>
               {/* Instantiate wires to POST /api/templates/{id}/instantiate when that endpoint is built */}
               <Button variant="secondary" size="sm"

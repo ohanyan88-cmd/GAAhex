@@ -252,7 +252,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
 
       {pathParams.length > 0 && (
         <div style={{ marginBottom: 8 }}>
-          <div className="hint" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
             Path parameters
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -273,7 +273,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
 
       {queryParams.length > 0 && (
         <div style={{ marginBottom: 8 }}>
-          <div className="hint" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
             Query parameters
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -292,7 +292,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
         </div>
       )}
 
-      <div className="hint mono" style={{ fontSize: 11, wordBreak: 'break-all', marginBottom: 4 }}>
+      <div className="hint mono" style={{ fontSize: 'var(--gx-text-11)', wordBreak: 'break-all', marginBottom: 4 }}>
         {endpoint.method} {buildUrl().replace(BASE, '')}
       </div>
 
@@ -312,8 +312,8 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
             <span
               className="mono"
               style={{
-                fontSize: 11,
-                padding: '2px 8px',
+                fontSize: 'var(--gx-text-11)',
+                padding: 'var(--gx-space-1) var(--gx-space-4)',
                 borderRadius: 'var(--gx-radius-sm, 4px)',
                 background: result.status >= 200 && result.status < 300
                   ? 'var(--gx-success-soft)'
@@ -366,13 +366,13 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
   return (
     <div
       style={{
-        padding: '12px 14px',
+        padding: 'var(--gx-space-6) var(--gx-space-7)',
         background: 'var(--gx-surface)',
         borderTop: '1px solid var(--gx-border)',
       }}
     >
       {endpoint.op.description && (
-        <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--gx-text-2)' }}>
+        <p style={{ margin: '0 0 10px', fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
           {endpoint.op.description}
         </p>
       )}
@@ -381,7 +381,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
         <div
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-            fontSize: 11, padding: '2px 8px',
+            fontSize: 'var(--gx-text-11)', padding: 'var(--gx-space-1) var(--gx-space-4)',
             background: 'var(--gx-warning-soft)',
             color: 'var(--gx-warning-fg)',
             borderRadius: 'var(--gx-radius-sm, 4px)',
@@ -431,7 +431,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
             {reqBody?.required && (
               <span
                 style={{
-                  marginLeft: 'var(--gx-space-3)', fontSize: 10, padding: '1px 6px',
+                  marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', padding: '1px 6px',
                   background: 'var(--gx-warning-soft)',
                   color: 'var(--gx-warning-fg)',
                   borderRadius: 'var(--gx-radius-sm, 4px)',
@@ -482,7 +482,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                   <div
                     className="row"
                     style={{
-                      alignItems: 'center', padding: '6px 10px',
+                      alignItems: 'center', padding: 'var(--gx-space-3) var(--gx-space-5)',
                       background: okish
                         ? 'var(--gx-success-soft)'
                         : errish ? 'var(--gx-danger-soft)' : 'var(--gx-surface-2)',
@@ -491,7 +491,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     <span
                       className="mono"
                       style={{
-                        fontWeight: 600, fontSize: 12,
+                        fontWeight: 600, fontSize: 'var(--gx-text-sm)',
                         color: okish ? 'var(--gx-success-fg)' : errish ? 'var(--gx-danger-fg)' : 'var(--gx-text-2)',
                       }}
                     >
@@ -554,7 +554,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         onClick={() => setOpen(o => !o)}
         style={{
           display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-          width: '100%', padding: '8px 10px',
+          width: '100%', padding: 'var(--gx-space-4) var(--gx-space-5)',
           background: 'transparent',
           border: 'none',
           textAlign: 'left',
@@ -567,9 +567,9 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         <span
           className="mono"
           style={{
-            padding: '2px 8px',
+            padding: 'var(--gx-space-1) var(--gx-space-4)',
             borderRadius: 'var(--gx-radius-sm, 4px)',
-            fontSize: 11,
+            fontSize: 'var(--gx-text-11)',
             fontWeight: 700,
             background: METHOD_BG[endpoint.method],
             color: METHOD_COLOR[endpoint.method],
@@ -588,7 +588,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         {endpoint.op.summary && (
           <span
             className="hint"
-            style={{ marginLeft: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}
+            style={{ marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}
           >
             {endpoint.op.summary}
           </span>
@@ -702,7 +702,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
           <span
             className="mono"
             style={{
-              padding: '4px 10px', fontSize: 12,
+              padding: 'var(--gx-space-2) var(--gx-space-5)', fontSize: 'var(--gx-text-sm)',
               background: 'var(--gx-surface-2)',
               border: '1px solid var(--gx-border)',
               borderRadius: 'var(--gx-radius-sm, 4px)',
@@ -717,7 +717,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
       <div
         style={{
           display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-          padding: '10px 12px',
+          padding: 'var(--gx-space-5) var(--gx-space-6)',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-md)',
           background: 'var(--gx-surface-2)',
@@ -726,13 +726,13 @@ export default function ApiDocsPane({ token }: { token: string }) {
       >
         <GlobeIcon size={15} style={{ color: 'var(--gx-text-3)' }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="hint" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Base URL
           </div>
           <code className="mono" style={{ fontSize: 12.5, wordBreak: 'break-all' }}>{baseUrl}</code>
         </div>
         {description && (
-          <div className="hint" style={{ fontSize: 12, maxWidth: 360 }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-sm)', maxWidth: 360 }}>
             {description}
           </div>
         )}

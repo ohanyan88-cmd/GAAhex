@@ -185,7 +185,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
         <form
           onSubmit={createPage}
           className="card"
-          style={{ padding: '12px 14px', marginBottom: 'var(--gx-space-7)', display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}
+          style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', marginBottom: 'var(--gx-space-7)', display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}
         >
           <label className="field" style={{ flex: '1 1 140px', margin: 0 }}>
             <span style={{ fontSize: 11 }}>Key *</span>
@@ -208,7 +208,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
             />
           </label>
           {createError && (
-            <span style={{ fontSize: 12, color: 'var(--gx-danger-fg)' }}>{createError}</span>
+            <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger-fg)' }}>{createError}</span>
           )}
           <div style={{ display: 'flex', gap: 6 }}>
             <Button variant="primary" size="sm"

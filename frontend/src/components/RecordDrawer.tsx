@@ -276,11 +276,11 @@ export default function RecordDrawer({
                     <>
                       <span
                         className="mono"
-                        style={{ fontSize: 12, color: 'var(--gx-link)' }}
+                        style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-link)' }}
                       >
                         {r.key}
                       </span>
-                      <span style={{ fontSize: 13, color: 'var(--gx-text-1)' }}>
+                      <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-1)' }}>
                         {r.label}
                       </span>
                       {r.meta && (
@@ -344,7 +344,7 @@ export default function RecordDrawer({
                 <div
                   key={i}
                   style={{
-                    padding: '10px 12px',
+                    padding: 'var(--gx-space-5) var(--gx-space-6)',
                     border: '1px solid var(--gx-border-subtle)',
                     borderRadius: 'var(--gx-radius-md)',
                     background: 'var(--gx-surface-2)',
@@ -355,7 +355,7 @@ export default function RecordDrawer({
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
-                      fontSize: 12,
+                      fontSize: 'var(--gx-text-sm)',
                       color: 'var(--gx-text-3)',
                     }}
                   >
@@ -365,7 +365,7 @@ export default function RecordDrawer({
                   <div
                     style={{
                       marginTop: 'var(--gx-space-3)',
-                      fontSize: 13,
+                      fontSize: 'var(--gx-text-13)',
                       color: 'var(--gx-text-1)',
                       lineHeight: 1.5,
                     }}

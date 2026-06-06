@@ -59,6 +59,50 @@ PX_TO_TOKEN: dict[int, str] = {
     40: "'var(--gx-space-9)'",
 }
 
+# Bare values (for CSS shorthand strings like 'Npx Mpx').
+PX_TO_TOKEN_BARE: dict[int, str] = {
+    2:  "var(--gx-space-1)",
+    4:  "var(--gx-space-2)",
+    6:  "var(--gx-space-3)",
+    8:  "var(--gx-space-4)",
+    10: "var(--gx-space-5)",
+    12: "var(--gx-space-6)",
+    14: "var(--gx-space-7)",
+    16: "var(--gx-space-8)",
+    24: "var(--gx-space-12)",
+    32: "var(--gx-space-16)",
+    40: "var(--gx-space-9)",
+}
+
+# borderRadius exact-token mapping (skip 4, 6, 10 — off-scale).
+RADIUS_TO_TOKEN: dict[int, str] = {
+    0:    "'var(--gx-radius-none)'",
+    3:    "'var(--gx-radius-xs)'",
+    5:    "'var(--gx-radius-sm)'",
+    8:    "'var(--gx-radius-md)'",
+    12:   "'var(--gx-radius-lg)'",
+    16:   "'var(--gx-radius-xl)'",
+    22:   "'var(--gx-radius-2xl)'",
+    9999: "'var(--gx-radius-full)'",
+}
+
+# fontSize exact-token mapping (canonical numeric aliases preferred over semantic
+# `xs/sm/md/lg` aliases — they're sharper at value-identity).
+FONTSIZE_TO_TOKEN: dict[int, str] = {
+    10: "'var(--gx-text-10)'",
+    11: "'var(--gx-text-11)'",
+    12: "'var(--gx-text-sm)'",
+    13: "'var(--gx-text-13)'",
+    14: "'var(--gx-text-md)'",
+    16: "'var(--gx-text-lg)'",
+    18: "'var(--gx-text-xl)'",
+    22: "'var(--gx-text-2xl)'",
+    28: "'var(--gx-text-3xl)'",
+    36: "'var(--gx-text-4xl)'",
+    48: "'var(--gx-text-5xl)'",
+    64: "'var(--gx-text-6xl)'",
+}
+
 # Spacing-context properties only. Width/height/fontSize/etc. NOT included.
 SPACING_PROPS = (
     "margin", "marginTop", "marginRight", "marginBottom", "marginLeft",
@@ -121,22 +165,40 @@ def make_value_pattern(prop: str) -> re.Pattern[str]:
 PROP_PATTERNS = [(prop, make_value_pattern(prop)) for prop in SPACING_PROPS]
 
 
+# Wave 2 — single-string form: `<prop>: 'Npx'` → `'var(--gx-space-N)'`
+SINGLE_STR_RE = re.compile(
+    r"\b(" + "|".join(re.escape(p) for p in SPACING_PROPS) + r")\s*:\s*'(\d+)px'"
+)
+
+# Wave 3 — two-value shorthand: `padding: 'Npx Mpx'` → 'var(--gx-space-N) var(--gx-space-M)'
+TWO_VAL_RE = re.compile(
+    r"\b(margin|padding)\s*:\s*'(\d+)px (\d+)px'"
+)
+
+# Wave 4 — borderRadius bare numbers (require comma/brace/newline after).
+BORDER_RADIUS_RE = re.compile(r"\bborderRadius\s*:\s*(\d+)(?=\s*[,}]|\s*\n)", re.MULTILINE)
+
+# Wave 5 — fontSize bare numbers (same strict lookahead).
+FONT_SIZE_RE = re.compile(r"\bfontSize\s*:\s*(\d+)(?=\s*[,}]|\s*\n)", re.MULTILINE)
+
+
 def process_style_content(content: str) -> tuple[str, int]:
     """Process the inside of a `style={{ ... }}` block. Returns (new_content,
-    num_swaps_made).
+    num_swaps_made). Runs Waves 1-5 (each independent, all value-identical).
     """
     swaps = 0
 
+    # Wave 1 — bare-px in spacing props
     def replace_in_prop(prop: str, pat: re.Pattern[str], text: str) -> tuple[str, int]:
         local_swaps = 0
         def _sub(m: re.Match[str]) -> str:
             nonlocal local_swaps
             n = int(m.group(1))
             if n == 0:
-                return m.group(0)  # don't touch zeros
+                return m.group(0)
             tok = PX_TO_TOKEN.get(n)
             if tok is None:
-                return m.group(0)  # off-scale value, skip
+                return m.group(0)
             local_swaps += 1
             return f"{prop}: {tok}"
         new_text = pat.sub(_sub, text)
@@ -145,6 +207,56 @@ def process_style_content(content: str) -> tuple[str, int]:
     for prop, pat in PROP_PATTERNS:
         content, n = replace_in_prop(prop, pat, content)
         swaps += n
+
+    # Wave 2 — single 'Npx' string form
+    def _sub_single(m: re.Match[str]) -> str:
+        nonlocal swaps
+        prop = m.group(1)
+        n = int(m.group(2))
+        if n == 0:
+            return m.group(0)
+        tok = PX_TO_TOKEN.get(n)
+        if tok is None:
+            return m.group(0)
+        swaps += 1
+        return f"{prop}: {tok}"
+    content = SINGLE_STR_RE.sub(_sub_single, content)
+
+    # Wave 3 — two-value shorthand 'Npx Mpx'
+    def _sub_two(m: re.Match[str]) -> str:
+        nonlocal swaps
+        prop = m.group(1)
+        a = int(m.group(2))
+        b = int(m.group(3))
+        ta = PX_TO_TOKEN_BARE.get(a)
+        tb = PX_TO_TOKEN_BARE.get(b)
+        if ta is None or tb is None:
+            return m.group(0)
+        swaps += 1
+        return f"{prop}: '{ta} {tb}'"
+    content = TWO_VAL_RE.sub(_sub_two, content)
+
+    # Wave 4 — borderRadius
+    def _sub_radius(m: re.Match[str]) -> str:
+        nonlocal swaps
+        n = int(m.group(1))
+        tok = RADIUS_TO_TOKEN.get(n)
+        if tok is None:
+            return m.group(0)
+        swaps += 1
+        return f"borderRadius: {tok}"
+    content = BORDER_RADIUS_RE.sub(_sub_radius, content)
+
+    # Wave 5 — fontSize
+    def _sub_font(m: re.Match[str]) -> str:
+        nonlocal swaps
+        n = int(m.group(1))
+        tok = FONTSIZE_TO_TOKEN.get(n)
+        if tok is None:
+            return m.group(0)
+        swaps += 1
+        return f"fontSize: {tok}"
+    content = FONT_SIZE_RE.sub(_sub_font, content)
 
     return content, swaps
 

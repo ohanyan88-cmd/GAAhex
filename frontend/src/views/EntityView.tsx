@@ -621,13 +621,13 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--gx-space-3)',
-            padding: '6px 12px',
+            padding: 'var(--gx-space-3) var(--gx-space-6)',
             marginBottom: 'var(--gx-space-5)',
             background: 'var(--gx-warning-soft)',
             border: '1px solid var(--gx-warning)',
             borderRadius: 'var(--gx-radius-md)',
             color: 'var(--gx-text-2)',
-            fontSize: 12,
+            fontSize: 'var(--gx-text-sm)',
           }}
         >
           <LockIcon size={14} aria-hidden />
@@ -785,7 +785,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           )}
 
           {/* ── List toolbar (search + saved views) ────────────────── */}
-          <div className="toolbar" style={{ padding: '12px 14px', margin: 0 }}>
+          <div className="toolbar" style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', margin: 0 }}>
             <div className="tb-search" style={{ width: 280 }}>
               <SearchIcon size={14} />
               <input

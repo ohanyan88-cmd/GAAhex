@@ -498,7 +498,7 @@ function DetailDrawer({
                 border: '1px solid var(--gx-border)',
                 borderRadius: 'var(--gx-radius-md)',
                 background: 'var(--gx-success-soft, var(--gx-surface-2))',
-                color: 'var(--gx-text-1)', fontSize: 12,
+                color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-sm)',
               }}
             >
               Saved {timeAgo(new Date(savedAt).toISOString())}.
@@ -572,7 +572,7 @@ function DetailDrawer({
                 border: '1px solid var(--gx-border)',
                 borderRadius: 'var(--gx-radius-md)',
                 background: 'var(--gx-surface-2)',
-                fontSize: 12,
+                fontSize: 'var(--gx-text-sm)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 4 }}>
@@ -623,7 +623,7 @@ function DetailDrawer({
                           <StatusPill variant={sp.variant} label={sp.label} size="sm" />
                           {d.error && (
                             <div
-                              style={{ fontSize: 11, color: 'var(--gx-text-3)', marginTop: 2 }}
+                              style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 2 }}
                               title={d.error}
                             >
                               {d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}
@@ -833,7 +833,7 @@ export default function WebhooksPane({ token }: { token: string }) {
                     </span>
                   </td>
                   <td>
-                    <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>
+                    <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>
                       {w.events && w.events.length
                         ? w.events.join(', ')
                         : <span style={{ color: 'var(--gx-text-3)' }}>all</span>}

@@ -49,12 +49,12 @@ export default function CommentsTab({ token, entity, id }: { token: string; enti
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {rows.map((r) => (
-          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border)' }}>
+          <li key={r.id} style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', borderBottom: '1px solid var(--gx-border)' }}>
             <div style={{ fontSize: 13 }}>
               <strong>{r.author_name ?? r.author ?? 'Unknown'}</strong>
               <span className="muted mono" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>{fmtDateTime(r.created_at)}</span>
             </div>
-            <div style={{ fontSize: 13, marginTop: 'var(--gx-space-2)', whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontSize: 'var(--gx-text-13)', marginTop: 'var(--gx-space-2)', whiteSpace: 'pre-wrap' }}>
               {r.body ?? r.text ?? ''}
             </div>
           </li>

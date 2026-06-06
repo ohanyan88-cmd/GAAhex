@@ -78,7 +78,7 @@ export default function ChartPicker({
             return (
               <div key={cat} style={{ marginBottom: 18 }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 700, color: 'var(--gx-text-2)',
+                  fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-text-2)',
                   textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-3)',
                   padding: '0 4px',
                 }}>{cat}</div>
@@ -91,7 +91,7 @@ export default function ChartPicker({
                         onClick={() => toggle(c.id, c.implemented)}
                         style={{
                           display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'flex-start',
-                          padding: '10px 12px',
+                          padding: 'var(--gx-space-5) var(--gx-space-6)',
                           borderRadius: 6,
                           border: '1px solid var(--gx-border)',
                           background: on ? 'var(--gx-primary-soft, rgba(59,130,246,0.08))' : 'var(--gx-surface-2)',
@@ -113,13 +113,13 @@ export default function ChartPicker({
                           {on && <Check size={12} color="#fff" />}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>
+                          <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
                             {c.title}
                             {!c.implemented && (
-                              <span style={{ fontSize: 10, marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)' }}>(coming soon)</span>
+                              <span style={{ fontSize: 'var(--gx-text-10)', marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)' }}>(coming soon)</span>
                             )}
                           </div>
-                          <div className="muted" style={{ fontSize: 11, lineHeight: 1.35, marginTop: 2 }}>
+                          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', lineHeight: 1.35, marginTop: 2 }}>
                             {c.description}
                           </div>
                         </div>

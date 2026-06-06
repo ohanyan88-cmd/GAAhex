@@ -63,7 +63,7 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
       <div style={panelStyle}>
         <div className="gx-dialog-head">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', minWidth: 0, flex: 1 }}>
-            <h3 id={titleId} style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--gx-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
+            <h3 id={titleId} style={{ margin: 0, fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
             {subtitle && (
               <div style={{ fontSize: 11.5, color: 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {subtitle}
@@ -191,7 +191,7 @@ export function ConfirmHost() {
         />
       }
     >
-      <p style={{ margin: 0, color: 'var(--gx-text-2)', fontSize: 13, lineHeight: 1.5 }}>{opts.message}</p>
+      <p style={{ margin: 0, color: 'var(--gx-text-2)', fontSize: 'var(--gx-text-13)', lineHeight: 1.5 }}>{opts.message}</p>
     </Modal>
   )
 }

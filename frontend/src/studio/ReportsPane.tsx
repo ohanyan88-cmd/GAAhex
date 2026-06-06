@@ -613,9 +613,9 @@ function SchedulesList({ token }: { token: string }) {
                       <td>
                         <span style={{
                           display: 'inline-block',
-                          padding: '2px 8px',
+                          padding: 'var(--gx-space-1) var(--gx-space-4)',
                           borderRadius: 4,
-                          fontSize: 11,
+                          fontSize: 'var(--gx-text-11)',
                           fontWeight: 600,
                           background: s.status === 'ACTIVE' ? 'var(--gx-success-soft)' : 'var(--gx-surface-2)',
                           color: s.status === 'ACTIVE' ? 'var(--gx-success)' : 'var(--gx-text-3)',
@@ -623,7 +623,7 @@ function SchedulesList({ token }: { token: string }) {
                           {s.status}
                         </span>
                       </td>
-                      <td style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>{fmtDt(s.next_run_at)}</td>
+                      <td style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>{fmtDt(s.next_run_at)}</td>
                       <td>
                         <div className="row-actions">
                           <Button variant="ghost" size="sm"

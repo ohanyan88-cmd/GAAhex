@@ -156,9 +156,9 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 ].map(({ label, value, highlight }) => (
                   <div key={label} style={{
                     flex: '1 1 120px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
-                    padding: '12px 16px', border: '1px solid var(--border)'
+                    padding: 'var(--gx-space-6) var(--gx-space-8)', border: '1px solid var(--border)'
                   }}>
-                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 6 }}>{label}</div>
                     <div style={{ fontSize: 24, fontWeight: 700, color: highlight ? 'var(--danger)' : 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
                       {money(value)}
                     </div>
@@ -235,7 +235,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
           {payments.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CreditCardIcon size={15} /> Recent payments
               </div>
               <table className="grid">
@@ -259,7 +259,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 </tbody>
               </table>
               {payments.length > 10 && (
-                <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>Showing 10 of {payments.length} payments</p>
+                <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 6 }}>Showing 10 of {payments.length} payments</p>
               )}
             </div>
           )}

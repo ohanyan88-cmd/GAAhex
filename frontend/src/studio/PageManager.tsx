@@ -106,7 +106,7 @@ export function PageManager() {
             ))}
             {pages.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--gx-text-3)' }}>
+                <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
                   No pages yet — click <strong>New page</strong> to get started.
                 </td>
               </tr>

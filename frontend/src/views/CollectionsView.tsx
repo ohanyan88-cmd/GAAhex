@@ -347,7 +347,7 @@ function CasesTab({
     <div>
       {/* Top action row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+        <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           {policyCount > 0 ? `${policyCount} policy${policyCount === 1 ? '' : ' set'} configured` : ''}
         </div>
         <span style={{ flex: 1 }} />
@@ -401,7 +401,7 @@ function CasesTab({
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           {t('collections.filter.status', 'Status')}
           <select
             className="inp inp-sm"
@@ -703,7 +703,7 @@ function PoliciesTab({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+        <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           {policies.length} {policies.length === 1 ? t('collections.policy.one', 'policy') : t('collections.policy.many', 'policies')}
         </div>
         <span style={{ flex: 1 }} />
@@ -766,10 +766,10 @@ function PoliciesTab({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--gx-text-1)', flex: 1 }}>{p.name}</div>
+                    <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)', flex: 1 }}>{p.name}</div>
                     {p.is_default && (
                       <span style={{
-                        fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                        fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                         padding: '2px 7px', borderRadius: 999,
                         background: 'var(--gx-bg-subtle)', color: 'var(--gx-text-2)',
                         border: '1px solid var(--gx-border)',
@@ -779,11 +779,11 @@ function PoliciesTab({
                     )}
                   </div>
                   {p.description && (
-                    <div style={{ fontSize: 12, color: 'var(--gx-text-3)', lineHeight: 1.5 }}>{p.description}</div>
+                    <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)', lineHeight: 1.5 }}>{p.description}</div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 'auto' }}>
                     <StatusPill variant={p.active ? 'active' : 'neutral'} label={p.active ? 'active' : 'inactive'} size="sm" />
-                    <span style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>
+                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
                       {(p.steps_json?.length ?? 0)} {(p.steps_json?.length ?? 0) === 1 ? 'step' : 'steps'}
                     </span>
                   </div>
@@ -799,7 +799,7 @@ function PoliciesTab({
             style={{
               background: 'var(--gx-surface)',
               border: '1px solid var(--gx-border)',
-              borderRadius: 12,
+              borderRadius: 'var(--gx-radius-lg)',
               padding: 'var(--gx-space-5)',
               display: 'flex',
               flexDirection: 'column',
@@ -807,7 +807,7 @@ function PoliciesTab({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--gx-text-1)' }}>
+              <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
                 {draft.id ? t('collections.policy.edit', 'Edit policy') : t('collections.policy.create', 'Create policy')}
               </div>
               <span style={{ flex: 1 }} />
@@ -836,7 +836,7 @@ function PoliciesTab({
             </label>
 
             <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>
                 <input
                   type="checkbox"
                   checked={draft.is_default}
@@ -844,7 +844,7 @@ function PoliciesTab({
                 />
                 {t('collections.policy.isDefault', 'Default policy')}
               </label>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>
                 <input
                   type="checkbox"
                   checked={draft.active}
@@ -864,18 +864,18 @@ function PoliciesTab({
                 spellCheck={false}
                 style={{
                   fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
-                  fontSize: 12,
+                  fontSize: 'var(--gx-text-sm)',
                   lineHeight: 1.5,
                   padding: 'var(--gx-space-5)',
                   resize: 'vertical',
                 }}
               />
               {stepsError && (
-                <div style={{ fontSize: 12, color: 'var(--gx-danger)', marginTop: 4 }}>
+                <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger)', marginTop: 4 }}>
                   {stepsError}
                 </div>
               )}
-              <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginTop: 4 }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 4 }}>
                 {t('collections.policy.stepsHint', 'Each step: integer day_offset, string action, object params.')}
               </div>
             </label>

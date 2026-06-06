@@ -86,7 +86,7 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '4px 6px 12px' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.tone }} />
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gx-text-1)' }}>{col.label}</span>
+              <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600, color: 'var(--gx-text-1)' }}>{col.label}</span>
               <span
                 className="badge"
                 style={{
@@ -109,7 +109,7 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
                 />
               ))}
               {colItems.length === 0 && (
-                <div className="hint" style={{ fontSize: 11, padding: '12px 6px', color: 'var(--gx-text-3)' }}>
+                <div className="hint" style={{ fontSize: 'var(--gx-text-11)', padding: 'var(--gx-space-6) var(--gx-space-3)', color: 'var(--gx-text-3)' }}>
                   No items.
                 </div>
               )}
@@ -154,7 +154,7 @@ function BoardCard({
       onClick={() => onRowClick(item)}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 8 }}>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--gx-link, var(--gx-primary))' }}>
+        <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link, var(--gx-primary))' }}>
           {item.id.slice(0, 8)}
         </span>
         <span style={{ marginLeft: 'auto' }}>{priorityPill(item.priority)}</span>
@@ -162,7 +162,7 @@ function BoardCard({
       <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 'var(--gx-space-5)', color: 'var(--gx-text-1)' }}>
         {item.title}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
         {item.assigned_user_id && <span title={assignee}>{assignee}</span>}
         {dueShort && <span style={{ marginLeft: 'auto' }} className="mono">{dueShort}</span>}
       </div>

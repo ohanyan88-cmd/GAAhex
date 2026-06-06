@@ -62,7 +62,7 @@ export function DetailTab({
         display: 'inline-flex',
         alignItems: subtitle ? 'flex-start' : 'center',
         gap: 'var(--gx-space-3)',
-        padding: '10px 14px',
+        padding: 'var(--gx-space-5) var(--gx-space-7)',
         background: 'transparent',
         border: 'none',
         // D18: active tab underline = azure (interactive selection).
@@ -70,7 +70,7 @@ export function DetailTab({
           ? '2px solid var(--gx-interactive)'
           : '2px solid transparent',
         color: active ? 'var(--gx-text-1)' : 'var(--gx-text-3)',
-        fontSize: 13,
+        fontSize: 'var(--gx-text-13)',
         fontWeight: active ? 600 : 500,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -82,7 +82,7 @@ export function DetailTab({
       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start' }}>
         <span>{children}</span>
         {subtitle && (
-          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--gx-text-3)' }}>
+          <span style={{ fontSize: 'var(--gx-text-11)', fontWeight: 400, color: 'var(--gx-text-3)' }}>
             {subtitle}
           </span>
         )}
@@ -95,7 +95,7 @@ export function DetailTab({
             borderRadius: 999,
             background: active ? 'var(--gx-interactive)' : 'var(--gx-surface-2)',
             color: active ? 'var(--gx-text-on-primary)' : 'var(--gx-text-2)',
-            fontSize: 11,
+            fontSize: 'var(--gx-text-11)',
             fontWeight: 600,
             lineHeight: '16px',
           }}

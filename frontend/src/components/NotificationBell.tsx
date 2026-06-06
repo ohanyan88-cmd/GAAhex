@@ -159,7 +159,7 @@ export default function NotificationBell({
                 <div className="si" style={{ width: 44, height: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
                   <BellOff size={20} />
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>You&rsquo;re all caught up</div>
+                <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>You&rsquo;re all caught up</div>
               </div>
             )}
             {items.map((n) => {
@@ -178,11 +178,11 @@ export default function NotificationBell({
                       {isUnread && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gx-primary)', marginLeft: 'auto', flexShrink: 0 }} />}
                     </span>
                     {n.body && (
-                      <span style={{ display: 'block', fontSize: 12, color: 'var(--gx-text-2)', marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>
+                      <span style={{ display: 'block', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>
                         {n.body}
                       </span>
                     )}
-                    <span style={{ display: 'block', fontSize: 11, color: 'var(--gx-text-3)', marginTop: 3 }}>
+                    <span style={{ display: 'block', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 3 }}>
                       {relTime(n.created_at)}
                     </span>
                   </span>

@@ -331,7 +331,7 @@ export default function UsersPane({ token }: { token: string }) {
             background: 'var(--gx-surface-2)',
             border: '1px solid var(--gx-border)',
             borderRadius: 6,
-            padding: '14px 16px',
+            padding: 'var(--gx-space-7) var(--gx-space-8)',
             marginBottom: 'var(--gx-space-5)',
           }}
         >
@@ -465,7 +465,7 @@ export default function UsersPane({ token }: { token: string }) {
                               border: '1px solid var(--gx-border)',
                               borderRadius: 4,
                               padding: '1px 6px',
-                              fontSize: 11,
+                              fontSize: 'var(--gx-text-11)',
                               color: 'var(--gx-text-2)',
                             }}
                             title={`${a.role_label} @ ${a.node_path}`}
@@ -478,7 +478,7 @@ export default function UsersPane({ token }: { token: string }) {
                   </td>
                   <td>
                     <span style={{
-                      fontSize: 11,
+                      fontSize: 'var(--gx-text-11)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       color: u.status === 'active' ? 'var(--gx-success)' : 'var(--gx-text-3)',
@@ -554,14 +554,14 @@ export default function UsersPane({ token }: { token: string }) {
           {/* Identity card */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)', marginBottom: 16 }}>
             <div style={{ fontSize: 13 }}>
-              <div style={{ color: 'var(--gx-text-3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</div>
+              <div style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <MailIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
                 <code className="mono">{selected.email}</code>
               </div>
             </div>
             <div style={{ fontSize: 13 }}>
-              <div style={{ color: 'var(--gx-text-3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Primary node</div>
+              <div style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Primary node</div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <BuildingIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
                 {nodeLabel(selected.primary_node_id)}
@@ -576,7 +576,7 @@ export default function UsersPane({ token }: { token: string }) {
                 background: 'var(--gx-surface-2)',
                 border: '1px solid var(--gx-border)',
                 borderRadius: 6,
-                padding: '12px 14px',
+                padding: 'var(--gx-space-6) var(--gx-space-7)',
                 marginBottom: 'var(--gx-space-5)',
               }}
             >
@@ -675,7 +675,7 @@ export default function UsersPane({ token }: { token: string }) {
                 background: 'var(--gx-surface-2)',
                 border: '1px solid var(--gx-border)',
                 borderRadius: 6,
-                padding: '12px 14px',
+                padding: 'var(--gx-space-6) var(--gx-space-7)',
                 marginBottom: 'var(--gx-space-4)',
               }}
             >
@@ -744,17 +744,17 @@ export default function UsersPane({ token }: { token: string }) {
                     border: '1px solid var(--gx-border)',
                     background: 'var(--gx-surface-2)',
                     borderRadius: 6,
-                    padding: '6px 10px',
+                    padding: 'var(--gx-space-3) var(--gx-space-5)',
                   }}
                 >
                   <ShieldIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
                   <strong style={{ fontSize: 13 }}>{a.role_label}</strong>
-                  <code className="mono" style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>{a.role_key}</code>
+                  <code className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{a.role_key}</code>
                   <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>at</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', fontSize: 13 }}>
                     <BuildingIcon size={12} style={{ color: 'var(--gx-text-3)' }} />
                     {a.node_name}
-                    <code className="mono" style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>{a.node_path}</code>
+                    <code className="mono" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{a.node_path}</code>
                   </span>
                   <span className="spacer" />
                   {removeAssignId === a.id ? (

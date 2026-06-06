@@ -215,7 +215,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
   return (
     <div>
       <div style={{ marginBottom: 18 }}>
-        <h3 style={{ margin: '0 0 4px', fontFamily: 'var(--gx-font-sans)', fontSize: 16, fontWeight: 600 }}>Appearance</h3>
+        <h3 style={{ margin: '0 0 4px', fontFamily: 'var(--gx-font-sans)', fontSize: 'var(--gx-text-lg)', fontWeight: 600 }}>Appearance</h3>
         <p className="hint" style={{ margin: 0 }}>
           Tenant branding. Set it once here — every rendered screen across all 18 modules updates. No code.
         </p>
@@ -240,7 +240,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
                   type="button"
                   onClick={() => setAccent(a)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '8px 10px',
+                    display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-4) var(--gx-space-5)',
                     borderRadius: 'var(--gx-radius-md)',
                     border: '1px solid ' + (accent.name === a.name ? a.val : 'var(--gx-border)'),
                     background: accent.name === a.name ? 'var(--gx-surface-2)' : 'transparent',
@@ -249,12 +249,12 @@ export function AppearancePane({ token }: { token?: string } = {}) {
                   }}
                 >
                   <span style={{ width: 18, height: 18, borderRadius: '50%', background: a.val, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: 'var(--gx-text-1)', fontWeight: accent.name === a.name ? 600 : 400 }}>{a.name}</span>
+                  <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-1)', fontWeight: accent.name === a.name ? 600 : 400 }}>{a.name}</span>
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 'var(--gx-space-5)', fontFamily: 'var(--gx-font-mono)', fontSize: 12, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
-              <span style={{ width: 12, height: 12, borderRadius: 3, background: accent.val }} />
+            <div style={{ marginTop: 'var(--gx-space-5)', fontFamily: 'var(--gx-font-mono)', fontSize: 'var(--gx-text-sm)', background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
+              <span style={{ width: 12, height: 12, borderRadius: 'var(--gx-radius-xs)', background: accent.val }} />
               {accent.val.toUpperCase()}
             </div>
           </div>
@@ -304,13 +304,13 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           <div className="lbl">Live preview · applies everywhere</div>
 
           <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button style={{ height: ht, padding: pad, borderRadius: radius, border: 'none', background: 'var(--gx-primary)', color: 'var(--gx-on-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }} type="button">
+            <button style={{ height: ht, padding: pad, borderRadius: radius, border: 'none', background: 'var(--gx-primary)', color: 'var(--gx-on-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 'var(--gx-text-13)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }} type="button">
               <Plus size={14} />Primary
             </button>
-            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-border-strong)', background: 'var(--gx-surface-2)', color: 'var(--gx-text-1)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }} type="button">
+            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-border-strong)', background: 'var(--gx-surface-2)', color: 'var(--gx-text-1)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 'var(--gx-text-13)', cursor: 'pointer' }} type="button">
               Secondary
             </button>
-            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-primary)', background: 'transparent', color: 'var(--gx-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }} type="button">
+            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-primary)', background: 'transparent', color: 'var(--gx-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 'var(--gx-text-13)', cursor: 'pointer' }} type="button">
               Outline
             </button>
             <button style={{ height: ht, width: ht, padding: 0, borderRadius: radius, border: 'none', background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} type="button">
@@ -319,7 +319,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 999, fontSize: 'var(--gx-text-11)', fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
             <span className="pill pill-success">Online</span>
             <span className="pill pill-warning">Degraded</span>
             <span className="pill pill-danger">SLA breached</span>
@@ -334,12 +334,12 @@ export function AppearancePane({ token }: { token?: string } = {}) {
             />
           </label>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', padding: '12px 14px', borderRadius: radius, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', padding: 'var(--gx-space-6) var(--gx-space-7)', borderRadius: radius, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)' }}>
             <span style={{ width: 34, height: 34, borderRadius: radius > 20 ? '50%' : radius, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Globe size={17} />
             </span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>Active subscribers</div>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Active subscribers</div>
               <div className="hint" style={{ fontSize: 11 }}>—</div>
             </div>
           </div>
@@ -361,10 +361,10 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           Reset
         </Button>
         {dirty && (
-          <span className="hint" style={{ fontSize: 12, color: 'var(--gx-warning)' }}>Unsaved changes</span>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-warning)' }}>Unsaved changes</span>
         )}
         {toast && (
-          <span className="hint" style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>{toast}</span>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>{toast}</span>
         )}
       </div>
     </div>

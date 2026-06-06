@@ -112,7 +112,7 @@ export default function GlobalSearchView({ token, onNavigate }: {
                   </div>
                   <div
                     className="muted"
-                    style={{ fontSize: 13, marginTop: 2 }}
+                    style={{ fontSize: 'var(--gx-text-13)', marginTop: 2 }}
                     dangerouslySetInnerHTML={{ __html: m.highlight || m.snippet }}
                   />
                 </div>

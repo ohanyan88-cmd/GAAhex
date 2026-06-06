@@ -391,7 +391,7 @@ export default function AuditLogPane({ token }: { token: string }) {
                             {timeAgo(ev.created_at)}
                           </span>
                         </td>
-                        <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>
+                        <td style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
                           {actorLabel(ev)}
                         </td>
                         <td>
@@ -408,7 +408,7 @@ export default function AuditLogPane({ token }: { token: string }) {
                               <span
                                 className="mono"
                                 title={ev.record_id}
-                                style={{ fontSize: 12, color: 'var(--gx-text-3)' }}
+                                style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}
                               >
                                 {ev.record_id.slice(0, 8)}
                               </span>

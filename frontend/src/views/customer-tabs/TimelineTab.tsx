@@ -57,13 +57,13 @@ export default function TimelineTab({ token, entity, id }: { token: string; enti
     <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {rows.map((r) => (
-          <li key={r.id} style={{ padding: '12px 14px', borderBottom: '1px solid var(--gx-border)' }}>
+          <li key={r.id} style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', borderBottom: '1px solid var(--gx-border)' }}>
             <div style={{ fontSize: 13 }}>
               <strong>{r.action ?? 'event'}</strong>
               {r.actor && <span className="muted" style={{ marginLeft: 6 }}>· {r.actor}</span>}
             </div>
-            {r.message && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{r.message}</div>}
-            <div className="muted mono" style={{ fontSize: 11, marginTop: 4 }}>{fmtDateTime(r.at ?? r.created_at)}</div>
+            {r.message && <div className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 2 }}>{r.message}</div>}
+            <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 4 }}>{fmtDateTime(r.at ?? r.created_at)}</div>
           </li>
         ))}
       </ul>

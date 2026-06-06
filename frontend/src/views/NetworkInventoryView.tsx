@@ -441,7 +441,7 @@ function FilterSelect({ label, value, onChange, options }: {
   options: [string, string][]
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
       <span>{label}</span>
       <select
         className="inp inp-sm"
@@ -726,9 +726,9 @@ function FiberDetailDrawer({ token, id, onClose }: {
                   margin: 0, padding: 'var(--gx-space-4)',
                   background: 'var(--gx-bg-subtle)',
                   border: '1px solid var(--gx-border-subtle)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--gx-radius-md)',
                   fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
-                  fontSize: 12,
+                  fontSize: 'var(--gx-text-sm)',
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-all',
                   color: 'var(--gx-text-2)',
@@ -1161,7 +1161,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
             placeholder='{ "region": "Yerevan", "service_status": "ACTIVE" }'
             style={{
               fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
-              fontSize: 12,
+              fontSize: 'var(--gx-text-sm)',
             }}
           />
         </Field>
@@ -1174,7 +1174,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--gx-text-2)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 500, color: 'var(--gx-text-2)' }}>{label}</span>
       {children}
     </label>
   )
@@ -1183,7 +1183,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+      fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase',
       color: 'var(--gx-text-3)', letterSpacing: '0.06em',
       marginBottom: 'var(--gx-space-3)',
     }}>{children}</div>
@@ -1195,8 +1195,8 @@ function KvGrid({ rows }: { rows: [string, React.ReactNode][] }) {
     <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 'var(--gx-space-3)', columnGap: 16 }}>
       {rows.map(([k, v], i) => (
         <span key={i} style={{ display: 'contents' }}>
-          <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{k}</span>
-          <span style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>{v}</span>
+          <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{k}</span>
+          <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>{v}</span>
         </span>
       ))}
     </div>

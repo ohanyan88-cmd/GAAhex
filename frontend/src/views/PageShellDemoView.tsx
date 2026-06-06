@@ -161,16 +161,16 @@ function OperationsDemo() {
       contextPanel={{
         title: 'Incident detail',
         content: (
-          <p style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+          <p style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
             Select an incident to see its detail here.
           </p>
         ),
       }}
     >
-      <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 8, minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
+      <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
         Map / queue panel
       </div>
-      <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 8, minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
+      <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
         Status panel
       </div>
     </PageShell>
@@ -197,13 +197,13 @@ function AnalyticsDemo() {
           style={{
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
-            borderRadius: 8,
+            borderRadius: 'var(--gx-radius-md)',
             minHeight: 160,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: 'var(--gx-text-3)',
-            fontSize: 12,
+            fontSize: 'var(--gx-text-sm)',
           }}
         >
           Chart card #{i + 1} (no data yet)
@@ -253,13 +253,13 @@ function ConfigurationDemo() {
       secondaryActions={[{ label: 'Discard', onClick: () => {} }]}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-5)', maxWidth: 720 }}>
-        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: 16 }}>
-          <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 14, color: 'var(--gx-text-1)' }}>Section A</h3>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>
+        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', padding: 16 }}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 'var(--gx-text-md)', color: 'var(--gx-text-1)' }}>Section A</h3>
+          <p style={{ margin: '4px 0 0', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>
         </div>
-        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 8, padding: 16 }}>
-          <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 14, color: 'var(--gx-text-1)' }}>Section B</h3>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>
+        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', padding: 16 }}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 'var(--gx-text-md)', color: 'var(--gx-text-1)' }}>Section B</h3>
+          <p style={{ margin: '4px 0 0', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>
         </div>
       </div>
     </PageShell>

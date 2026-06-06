@@ -164,7 +164,7 @@ function ProbePanel({
             border: '1px solid var(--gx-border)',
             borderRadius: 'var(--gx-radius-md)',
             color: 'var(--gx-danger-fg, var(--gx-text-1))',
-            fontSize: 12,
+            fontSize: 'var(--gx-text-sm)',
             display: 'flex',
             alignItems: 'center',
             gap: 'var(--gx-space-3)',
@@ -280,7 +280,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <label className="row" style={{ gap: 'var(--gx-space-3)', fontSize: 12, alignItems: 'center', marginRight: 8 }}>
+        <label className="row" style={{ gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', alignItems: 'center', marginRight: 8 }}>
           <input
             type="checkbox"
             checked={autoRefresh}

@@ -80,7 +80,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
                     <div key={item.id} className="card" style={{ padding: 'var(--sp-3)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: PRIORITY_DOT[item.priority] ?? 'var(--gx-text-3)', marginTop: 5, flexShrink: 0 }} />
-                        <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{item.title}</span>
+                        <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500, lineHeight: 1.4 }}>{item.title}</span>
                       </div>
                       <div style={{ display: 'flex', gap: 'var(--gx-space-2)', marginTop: 4 }}>
                         <span className="badge badge-neutral" style={{ fontSize: 11 }}>{item.kind}</span>
@@ -89,7 +89,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
                     </div>
                   ))}
                   {(byStatus[col] ?? []).length === 0 && (
-                    <p className="muted" style={{ fontSize: 12, padding: 'var(--sp-2) 0' }}>Empty</p>
+                    <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', padding: 'var(--sp-2) 0' }}>Empty</p>
                   )}
                 </div>
               </div>

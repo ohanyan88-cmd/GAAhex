@@ -875,7 +875,7 @@ function FindingsTab(props: {
         <span style={{ flex: 1 }} />
 
         {lastScan && (
-          <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>
+          <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
             Last scan: <strong style={{ color: 'var(--gx-text-2)' }} title={lastScan.started_at}>
               {timeAgo(lastScan.started_at) || 'just now'}
             </strong>
@@ -992,7 +992,7 @@ function FindingsTab(props: {
                       </td>
                       <td>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 11, color: 'var(--gx-text-3)', textTransform: 'uppercase' }}>
+                          <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase' }}>
                             {f.entity_type}
                           </span>
                           <span className="mono" style={{ fontSize: 12 }}>
@@ -1091,7 +1091,7 @@ function FilterSelect({ label, value, onChange, options }: {
   options: [string, string][]
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
       <span>{label}</span>
       <select
         className="inp inp-sm"
@@ -1115,11 +1115,11 @@ function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeve
   return (
     <span style={{
       display: 'inline-block',
-      padding: '2px 8px',
+      padding: 'var(--gx-space-1) var(--gx-space-4)',
       background: tone.bg,
       color: tone.fg,
       borderRadius: 999,
-      fontSize: 11,
+      fontSize: 'var(--gx-text-11)',
       fontWeight: 600,
       whiteSpace: 'nowrap',
     }}>
@@ -1201,14 +1201,14 @@ function FindingDrawer(props: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
           <StatusPill variant={severityToPill(f.severity)} label={f.severity} size="sm" />
           <StatusPill variant={statusToPill(f.status)} label={STATUS_LABEL[f.status]} size="sm" />
-          <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }} title={f.detected_at}>
+          <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }} title={f.detected_at}>
             Detected {timeAgo(f.detected_at) || fmtDate(f.detected_at)}
           </span>
           {detail.state === 'loading' && (
-            <span style={{ fontSize: 11, color: 'var(--gx-text-3)', marginLeft: 'auto' }}>Refreshing…</span>
+            <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginLeft: 'auto' }}>Refreshing…</span>
           )}
           {detail.state === 'error' && (
-            <span style={{ fontSize: 11, color: 'var(--gx-warning)', marginLeft: 'auto' }} title={detail.message}>
+            <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-warning)', marginLeft: 'auto' }} title={detail.message}>
               Using cached row
             </span>
           )}
@@ -1233,7 +1233,7 @@ function FindingDrawer(props: {
         {/* Summary text */}
         <section>
           <div style={drawerSectionTitleStyle}>Summary</div>
-          <p style={{ margin: 0, color: 'var(--gx-text-1)', fontSize: 13, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)', lineHeight: 1.5 }}>
             {f.summary || <span style={{ color: 'var(--gx-text-3)' }}>No summary recorded.</span>}
           </p>
         </section>
@@ -1244,7 +1244,7 @@ function FindingDrawer(props: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', fontSize: 13 }}>
             <div>
               <span style={drawerLabelStyle}>Entity</span>
-              <span style={{ fontSize: 11, color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 6 }}>
+              <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 6 }}>
                 {f.entity_type}
               </span>
               <span className="mono" style={{ fontSize: 12 }} title={f.entity_id}>
@@ -1275,7 +1275,7 @@ function FindingDrawer(props: {
         {f.ack_at && (
           <section style={drawerCardStyle}>
             <div style={drawerSectionTitleStyle}>Acknowledged</div>
-            <div style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>
+            <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
               {f.ack_by && (
                 <>
                   <span className="mono" style={{ fontSize: 12 }} title={f.ack_by}>{f.ack_by.slice(0, 8)}</span>
@@ -1293,7 +1293,7 @@ function FindingDrawer(props: {
             <div style={drawerSectionTitleStyle}>
               {f.status === 'false_positive' ? 'Marked false positive' : 'Resolved'}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--gx-text-2)' }}>
+            <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
               {f.resolved_by && (
                 <>
                   <span className="mono" style={{ fontSize: 12 }} title={f.resolved_by}>{f.resolved_by.slice(0, 8)}</span>
@@ -1342,7 +1342,7 @@ const drawerLabelStyle: React.CSSProperties = {
 function DetailJsonFields({ detail }: { detail: Record<string, any> | null | undefined }) {
   if (!detail || typeof detail !== 'object' || Object.keys(detail).length === 0) {
     return (
-      <div style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>No additional context.</div>
+      <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>No additional context.</div>
     )
   }
   // Known keys we render nicely; everything else goes into the catch-all <pre>.
@@ -1392,7 +1392,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border-subtle)',
             borderRadius: 6,
-            fontSize: 11,
+            fontSize: 'var(--gx-text-11)',
             lineHeight: 1.5,
             color: 'var(--gx-text-2)',
             overflowX: 'auto',
@@ -1432,9 +1432,9 @@ function StatusFlow({ current }: { current: FindingStatus }) {
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
-              padding: '4px 10px',
+              padding: 'var(--gx-space-2) var(--gx-space-5)',
               borderRadius: 999,
-              fontSize: 11,
+              fontSize: 'var(--gx-text-11)',
               fontWeight: isCurrent ? 600 : 500,
               background: isCurrent
                 ? (s.key === 'resolved'

@@ -271,9 +271,9 @@ export default function PaymentMethodsView({
                           <span
                             className="mono"
                             style={{
-                              fontSize: 10,
+                              fontSize: 'var(--gx-text-10)',
                               fontWeight: 600,
-                              padding: '2px 6px',
+                              padding: 'var(--gx-space-1) var(--gx-space-3)',
                               borderRadius: 4,
                               background: tone.bg,
                               color: tone.fg,
@@ -290,7 +290,7 @@ export default function PaymentMethodsView({
                       <td>
                         <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 1 }}>
                           <span>{customerLabel(p)}</span>
-                          <span className="mono" style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>
+                          <span className="mono" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
                             {p.customer_id.slice(0, 8)}
                           </span>
                         </span>
@@ -472,7 +472,7 @@ function VaultModal({
             inputMode="numeric"
             autoComplete="off"
           />
-          <span className="hint" style={{ fontSize: 11, marginTop: 'var(--gx-space-2)', display: 'block' }}>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)', display: 'block' }}>
             Raw card data not stored; opaque vault token returned.
           </span>
         </label>
@@ -521,7 +521,7 @@ function VaultModal({
             autoComplete="off"
           />
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 13, color: 'var(--gx-text-2)' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
           <input
             type="checkbox"
             checked={isDefault}

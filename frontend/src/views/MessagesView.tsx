@@ -234,7 +234,7 @@ export default function MessagesView({
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search conversations"
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
+              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)', fontFamily: 'var(--gx-font-sans)' }}
             />
             {query && (
               <button className="tb-icon" style={{ width: 22, height: 22 }} onClick={() => setQuery('')}>
@@ -275,12 +275,12 @@ export default function MessagesView({
                   </span>
                   <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-                      <span className="hint" style={{ marginLeft: 'auto', fontSize: 11, flexShrink: 0 }}>{timeAgo(c.created_at)}</span>
+                      <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                      <span className="hint" style={{ marginLeft: 'auto', fontSize: 'var(--gx-text-11)', flexShrink: 0 }}>{timeAgo(c.created_at)}</span>
                     </span>
                     {c.entity_key && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 2 }}>
-                        <span style={{ fontSize: 12, color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {c.entity_key}{c.record_id ? ` · ${c.record_id.slice(0, 8)}` : ''}
                         </span>
                       </span>
@@ -345,7 +345,7 @@ export default function MessagesView({
                       <div key={m.id} className={'bubble-row ' + dir}>
                         <div className="bubble-wrap">
                           {!out && m.author_name && (
-                            <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-1)', paddingLeft: 4 }}>
+                            <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-1)', paddingLeft: 4 }}>
                               {m.author_name}
                             </div>
                           )}
@@ -362,12 +362,12 @@ export default function MessagesView({
                 {showInfo && (
                   <aside className="chat-info">
                     <div style={{ textAlign: 'center', padding: '18px 0 12px' }}>
-                      <span className="avatar" style={{ width: 64, height: 64, fontSize: 22, margin: '0 auto' }}>
+                      <span className="avatar" style={{ width: 64, height: 64, fontSize: 'var(--gx-text-2xl)', margin: '0 auto' }}>
                         {initials(threadLabel(selectedThread))}
                       </span>
                       <div style={{ fontWeight: 600, fontSize: 15, marginTop: 10 }}>{threadLabel(selectedThread)}</div>
                     </div>
-                    <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>Thread</div>
+                    <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>Thread</div>
                     <div className="kv" style={{ padding: '8px 0' }}>
                       <span className="kv-k" style={{ width: 80 }}>ID</span>
                       <span className="kv-v mono" style={{ fontSize: 11.5 }}>{selectedThread.id.slice(0, 12)}</span>

@@ -133,7 +133,7 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
                 <Icon size={18} />
               </span>
               <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{name}</span>
+                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>{name}</span>
                 <span className="hint" style={{ fontSize: 11.5 }}>{sub}</span>
               </span>
               <ArrowRight size={14} style={{ color: 'var(--gx-text-3)' }} />

@@ -190,7 +190,7 @@ function PageVersionsTab({ token }: { token?: string }) {
         {loadingPages ? (
           <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
         ) : pagesErr ? (
-          <span style={{ fontSize: 12, color: 'var(--gx-danger-fg)' }}>{pagesErr}</span>
+          <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger-fg)' }}>{pagesErr}</span>
         ) : pages.length === 0 ? (
           <span className="hint" style={{ fontSize: 12 }}>No pages yet.</span>
         ) : (
@@ -251,7 +251,7 @@ function PageVersionsTab({ token }: { token?: string }) {
                       color: 'inherit',
                     }}
                   >
-                    <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)', minWidth: 36 }}>
+                    <span className="mono" style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', minWidth: 36 }}>
                       v{ver.version_no}
                     </span>
                     <span className={`pill ${ver.status === 'published' ? 'pill-success' : 'pill-neutral'}`}>
@@ -283,7 +283,7 @@ function PageVersionsTab({ token }: { token?: string }) {
                         background: 'var(--gx-surface-2)',
                         border: '1px solid var(--gx-border-subtle)',
                         borderRadius: 'var(--gx-radius-md)',
-                        fontSize: 12,
+                        fontSize: 'var(--gx-text-sm)',
                       }}
                     >
                       {diff === 'loading' ? (
@@ -294,19 +294,19 @@ function PageVersionsTab({ token }: { token?: string }) {
                         <div style={{ display: 'flex', gap: 'var(--gx-space-6)', flexWrap: 'wrap' }}>
                           {diff.added.length > 0 && (
                             <div>
-                              <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-success)', marginBottom: 4 }}>Added</div>
+                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-success)', marginBottom: 4 }}>Added</div>
                               {diff.added.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-success-fg)' }}>+ {k}</div>)}
                             </div>
                           )}
                           {diff.changed.length > 0 && (
                             <div>
-                              <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-warning)', marginBottom: 4 }}>Changed</div>
+                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-warning)', marginBottom: 4 }}>Changed</div>
                               {diff.changed.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-warning-fg)' }}>~ {k}</div>)}
                             </div>
                           )}
                           {diff.removed.length > 0 && (
                             <div>
-                              <div className="lbl" style={{ fontSize: 10, color: 'var(--gx-danger)', marginBottom: 4 }}>Removed</div>
+                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-danger)', marginBottom: 4 }}>Removed</div>
                               {diff.removed.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-danger-fg)' }}>- {k}</div>)}
                             </div>
                           )}
@@ -490,9 +490,9 @@ function AuditLogTab({ token }: { token?: string }) {
                     style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', width: '100%', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
                   >
                     <StatusPillLite variant={eventVariant(ev.type)} label={ev.type} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>{actorLabel(ev)}</span>
+                    <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>{actorLabel(ev)}</span>
                     {entitySuffix && (
-                      <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{entitySuffix}</span>
+                      <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{entitySuffix}</span>
                     )}
                     <span style={{ flex: 1 }} />
                     <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ev.created_at)}</span>

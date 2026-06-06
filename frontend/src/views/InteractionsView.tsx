@@ -281,7 +281,7 @@ export default function InteractionsView({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search interactions"
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
+              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)', fontFamily: 'var(--gx-font-sans)' }}
             />
             {query && (
               <button className="tb-icon" style={{ width: 22, height: 22 }} onClick={() => setQuery('')}>
@@ -374,20 +374,20 @@ export default function InteractionsView({
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {/* Direction arrow */}
                     {directionArrow(it.direction)}
-                    <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                       {interactionLabel(it)}
                     </span>
-                    <span className="hint" style={{ marginLeft: 'auto', fontSize: 11, flexShrink: 0 }}>
+                    <span className="hint" style={{ marginLeft: 'auto', fontSize: 'var(--gx-text-11)', flexShrink: 0 }}>
                       {timeAgo(it.occurred_at ?? it.created_at ?? null)}
                     </span>
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 2 }}>
-                    <span style={{ fontSize: 12, color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                       {it.channel ?? ''}
                       {it.customer_id ? ` · cust ${it.customer_id.slice(0, 8)}` : ''}
                     </span>
                     {it.ticket_id && (
-                      <span className="mono" style={{ fontSize: 11, color: 'var(--gx-link)', flexShrink: 0 }}>
+                      <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', flexShrink: 0 }}>
                         TK {it.ticket_id.slice(0, 8)}
                       </span>
                     )}
@@ -460,7 +460,7 @@ function InteractionDetail({
           <div style={{ fontWeight: 600, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
             {label}
           </div>
-          <div className="hint" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: channelColor(it.channel) }} />
             {it.channel ?? '—'}
             {it.direction && <>{' · '}{it.direction}</>}
@@ -485,7 +485,7 @@ function InteractionDetail({
               {it.body}
             </div>
           ) : (
-            <div style={{ color: 'var(--gx-text-3)', fontSize: 13, marginBottom: 'var(--gx-space-6)', fontStyle: 'italic' }}>
+            <div style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', marginBottom: 'var(--gx-space-6)', fontStyle: 'italic' }}>
               No notes recorded for this interaction.
             </div>
           )}
@@ -514,12 +514,12 @@ function InteractionDetail({
             } />
             {it.customer_id && (
               <KV label="Customer" value={
-                <span className="mono" style={{ fontSize: 12, color: 'var(--gx-link)' }}>{it.customer_id}</span>
+                <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-link)' }}>{it.customer_id}</span>
               } />
             )}
             {it.ticket_id && (
               <KV label="Ticket" value={
-                <span className="mono" style={{ fontSize: 12, color: 'var(--gx-link)' }}>{it.ticket_id}</span>
+                <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-link)' }}>{it.ticket_id}</span>
               } />
             )}
             {it.subject && (
@@ -535,7 +535,7 @@ function InteractionDetail({
               <span className="avatar" style={{ width: 56, height: 56, fontSize: 20, margin: '0 auto' }}>
                 {channelIcon(it.channel, 22)}
               </span>
-              <div style={{ fontWeight: 600, fontSize: 14, marginTop: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 'var(--gx-text-md)', marginTop: 10 }}>
                 {it.channel ? it.channel.charAt(0).toUpperCase() + it.channel.slice(1) : 'Interaction'}
               </div>
               <div className="hint" style={{ fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', marginTop: 3 }}>
@@ -543,7 +543,7 @@ function InteractionDetail({
               </div>
             </div>
 
-            <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>
+            <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>
               Details
             </div>
             {it.customer_id && (
@@ -571,7 +571,7 @@ function InteractionDetail({
       </div>
 
       {/* Action bar — "Log follow-up" is a real POST action */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center' }}>
+      <div style={{ padding: 'var(--gx-space-6) var(--gx-space-8)', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center' }}>
         <Button variant="primary" size="sm"
             onClick={onLogFollowUp}>
           <PlusIcon size={13} /> Log follow-up
@@ -593,7 +593,7 @@ function KV({ label, value }: { label: string; value: React.ReactNode }) {
       <div className="lbl" style={{ fontSize: 10.5, color: 'var(--gx-text-3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '.08em' }}>
         {label}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--gx-text-1)' }}>{value}</div>
+      <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-1)' }}>{value}</div>
     </div>
   )
 }

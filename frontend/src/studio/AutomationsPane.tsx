@@ -301,7 +301,7 @@ export default function AutomationsPane({ token }: { token: string }) {
                   <td>
                     <span style={{ fontWeight: 500 }}>{a.name}</span>
                     {a.condition && (
-                      <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginTop: 2 }}>
+                      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 2 }}>
                         if {a.condition}
                       </div>
                     )}
@@ -474,7 +474,7 @@ export default function AutomationsPane({ token }: { token: string }) {
               </span>
               <textarea
                 className="inp inp-md"
-                style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12, minHeight: 80, resize: 'vertical' }}
+                style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--gx-text-sm)', minHeight: 80, resize: 'vertical' }}
                 value={form.action_config}
                 onChange={(e) => patch('action_config', e.target.value)}
                 placeholder={getConfigPlaceholder(form.action_type)}

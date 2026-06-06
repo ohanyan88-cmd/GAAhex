@@ -785,7 +785,7 @@ function FinancialSummaryCard({
       {(accounts.length > 1 || consolidated) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap', marginBottom: 12 }}>
           {accounts.length > 1 && !showConsolidated && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>
               <span>{t('cust.account', 'Account')}</span>
               <select
                 className="inp inp-sm"
@@ -800,7 +800,7 @@ function FinancialSummaryCard({
             </label>
           )}
           {consolidated && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)', cursor: 'pointer' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={showConsolidated}
@@ -821,7 +821,7 @@ function FinancialSummaryCard({
       {/* Three-up money summary. Grid auto-wraps on narrow viewports. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
         <div>
-          <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
             {isConsolidated ? t('cust.consolidatedBalance', 'Consolidated balance') : t('cust.balance', 'Balance')}
           </div>
           <div className="mono tnum" style={{ fontSize: 20, fontWeight: 600, color: balanceTone(current) }}>
@@ -831,29 +831,29 @@ function FinancialSummaryCard({
             const n = decimalNum(current)
             if (n === 0) return null
             return (
-              <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+              <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 2 }}>
                 {n < 0 ? t('cust.owes', 'Owes') : t('cust.credit', 'Credit')}
               </div>
             )
           })()}
         </div>
         <div>
-          <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
             {t('cust.creditLimit', 'Credit limit')}
           </div>
-          <div className="mono tnum" style={{ fontSize: 16, color: 'var(--gx-text-2)' }}>
+          <div className="mono tnum" style={{ fontSize: 'var(--gx-text-lg)', color: 'var(--gx-text-2)' }}>
             {moneyDecimal(limit)}
           </div>
         </div>
         <div>
-          <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
             {t('cust.availableCredit', 'Available credit')}
           </div>
           <div className="mono tnum" style={{ fontSize: 16 }}>
             {moneyDecimal(available)}
           </div>
           {pct !== null && (
-            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 2 }}>
               {pct}% {t('cust.ofLimit', 'of limit')}
             </div>
           )}
@@ -862,7 +862,7 @@ function FinancialSummaryCard({
 
       {/* Last computed footer — muted, single line. Only shown for per-account snapshots; the
           consolidated endpoint doesn't carry a single updated_at. */}
-      <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 12 }}>
         {isConsolidated
           ? t('cust.consolidatedNote', 'Aggregated across subtree accounts.')
           : updatedAt

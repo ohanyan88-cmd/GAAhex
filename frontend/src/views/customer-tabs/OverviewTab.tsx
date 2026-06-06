@@ -21,7 +21,7 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   if (value === null || value === undefined || value === '' || value === '—') return null
   return (
     <div>
-      <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
         {label}
       </div>
       <div style={{ fontSize: 13 }}>{value}</div>
@@ -46,7 +46,7 @@ export default function OverviewTab({ customerId, profile }: { customerId: strin
     <div className="card" style={{ padding: 16 }}>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
-        <div className="muted mono" style={{ fontSize: 11, marginTop: 2 }}>{profile.id}</div>
+        <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 2 }}>{profile.id}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
         <Field label="Status" value={profile.status ?? '—'} />

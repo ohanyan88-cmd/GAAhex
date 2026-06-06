@@ -215,7 +215,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                     className={'rb-item' + (run?.id === r.id ? ' on' : '')}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-                      padding: '8px 10px',
+                      padding: 'var(--gx-space-4) var(--gx-space-5)',
                       borderRadius: 'var(--gx-radius-md)',
                       background: run?.id === r.id ? 'var(--gx-surface-2)' : 'transparent',
                       // D18: active run-row outline = azure (interactive selection)

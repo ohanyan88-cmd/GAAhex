@@ -268,7 +268,7 @@ export default function ViewsPane({ token }: { token: string }) {
                         <tr key={v.id}>
                           <td>{v.name}</td>
                           <td>
-                            <span style={{ fontSize: 11, opacity: 0.75 }}>
+                            <span style={{ fontSize: 'var(--gx-text-11)', opacity: 0.75 }}>
                               {v.shared ? 'Shared' : 'Personal'}
                             </span>
                           </td>
@@ -280,7 +280,7 @@ export default function ViewsPane({ token }: { token: string }) {
                               ? v.config.columns.join(', ')
                               : '—'}
                           </td>
-                          <td style={{ fontSize: 11, opacity: 0.65 }}>
+                          <td style={{ fontSize: 'var(--gx-text-11)', opacity: 0.65 }}>
                             {v.created_at ? new Date(v.created_at).toLocaleDateString() : '—'}
                           </td>
                           <td>

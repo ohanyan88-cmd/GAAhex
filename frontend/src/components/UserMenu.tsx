@@ -176,7 +176,7 @@ export default function UserMenu({
                     ? <img src={user.avatar_url} alt="" className="avatar-img" />
                     : initialsOf(user.name)}
                 </span>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{user.name || t('common.you', 'You')}</div>
+                <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600 }}>{user.name || t('common.you', 'You')}</div>
                 <span className="pill pill-gold">{role}</span>
               </div>
               <div className="kv" style={{ padding: '9px 0' }}>

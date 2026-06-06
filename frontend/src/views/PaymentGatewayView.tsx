@@ -284,7 +284,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
             disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 <ChevronLeftIcon size={13} /> Prev
               </Button>
-              <span style={{ fontSize: 12, color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
+              <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>Page {page} of {pageCount}</span>
               <Button variant="ghost" size="sm"
             disabled={page>= pageCount} onClick={() => setPage((p) => Math.min(pageCount, p + 1))}>
                 Next <ArrowRightIcon size={13} />

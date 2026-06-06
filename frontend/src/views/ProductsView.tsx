@@ -320,7 +320,7 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
           ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
           : 'var(--gx-border)'),
         borderRadius: 999,
-        fontSize: 12,
+        fontSize: 'var(--gx-text-sm)',
         fontWeight: active ? 600 : 500,
         cursor: 'pointer',
       }}
@@ -338,7 +338,7 @@ function CategoryGroup<T extends string>({ title, categories, active, onPick }: 
 }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '4px 10px 4px 12px', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 10 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 4 }}>
+      <span style={{ fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 4 }}>
         {title}
       </span>
       {categories.map((c) => (

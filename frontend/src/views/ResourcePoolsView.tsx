@@ -256,8 +256,8 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                         let cell: React.ReactNode
                         switch (c.key) {
                           case 'name': cell = <strong>{p.name ?? p.id.slice(0, 8)}</strong>; break
-                          case 'kind': cell = <span style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600, color: 'var(--gx-text-2)' }}>{p.kind ?? '—'}</span>; break
-                          case 'spec': cell = <span className="mono" style={{ fontSize: 12, color: 'var(--gx-text-3)' }}>{specSummary(p.spec)}</span>; break
+                          case 'kind': cell = <span style={{ textTransform: 'uppercase', fontSize: 'var(--gx-text-11)', fontWeight: 600, color: 'var(--gx-text-2)' }}>{p.kind ?? '—'}</span>; break
+                          case 'spec': cell = <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{specSummary(p.spec)}</span>; break
                           case 'allocations': cell = <span className="mono tnum">{allocCount(p)}</span>; break
                           case 'status': {
                             const sp = p.status ? mapPoolStatus(p.status) : null
@@ -341,7 +341,7 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
   })() : undefined
 
   const fields: RecordDrawerField[] = pool ? [
-    { key: 'kind', label: 'Kind', value: <span style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 600 }}>{pool.kind ?? '—'}</span> },
+    { key: 'kind', label: 'Kind', value: <span style={{ textTransform: 'uppercase', fontSize: 'var(--gx-text-11)', fontWeight: 600 }}>{pool.kind ?? '—'}</span> },
     { key: 'spec', label: 'Spec', value: <span className="mono">{specSummary(pool.spec)}</span> },
     { key: 'allocations_count', label: 'Allocations', value: <span className="mono">{allocCount(pool)}</span> },
     {

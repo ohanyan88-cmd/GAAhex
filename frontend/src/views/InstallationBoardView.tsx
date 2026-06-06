@@ -277,7 +277,7 @@ export default function InstallationBoardView({
                         padding: 'var(--gx-space-5)',
                         textAlign: 'center',
                         color: 'var(--gx-text-3)',
-                        fontSize: 12,
+                        fontSize: 'var(--gx-text-sm)',
                         borderRadius: 6,
                         border: '1px dashed var(--gx-border)',
                       }}
@@ -351,7 +351,7 @@ function OrderCard({
     >
       <div
         className="mono"
-        style={{ fontSize: 11, color: 'var(--gx-link)', marginBottom: 4 }}
+        style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 4 }}
         title={order.id}
       >
         {order.number ? order.number : `ord-${shortId(order.id)}`}
@@ -359,7 +359,7 @@ function OrderCard({
       <div style={{ fontSize: 11.5, color: 'var(--gx-text-3)', marginBottom: 8 }}>
         Customer <span className="mono" title={order.customer_id ?? ''}>{shortId(order.customer_id, 8)}</span>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--gx-text-3)', marginBottom: 10 }}>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 10 }}>
         {order.install_substage_at ? timeAgo(order.install_substage_at) : 'no timestamp'}
       </div>
 
@@ -397,7 +397,7 @@ function OrderCard({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 'var(--gx-space-2)',
-              fontSize: 11,
+              fontSize: 'var(--gx-text-11)',
               color: 'var(--gx-success-fg, var(--gx-success))',
             }}
           >
@@ -406,7 +406,7 @@ function OrderCard({
           </span>
         )}
         {!canEdit && column !== 'ACTIVATED' && (
-          <span style={{ fontSize: 11, color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+          <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
             Read-only
           </span>
         )}
@@ -656,7 +656,7 @@ function SummarySection({
     <section>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-        fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+        fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase',
         letterSpacing: '0.06em', color: 'var(--gx-text-3)',
         marginBottom: 'var(--gx-space-3)',
       }}>

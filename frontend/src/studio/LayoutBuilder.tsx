@@ -87,7 +87,7 @@ export function LayoutBuilder() {
                 key={label as string}
                 className="palette-block"
                 type="button"
-                style={{ flexDirection: 'column', gap: 'var(--gx-space-3)', padding: '10px 8px', fontSize: 11 }}
+                style={{ flexDirection: 'column', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-5) var(--gx-space-4)', fontSize: 11 }}
                 onClick={() => addBlock(label as string)}
               >
                 {ic}
@@ -95,7 +95,7 @@ export function LayoutBuilder() {
               </button>
             ))}
           </div>
-          <p className="hint" style={{ fontSize: 11, marginTop: 'var(--gx-space-4)', lineHeight: 1.5 }}>
+          <p className="hint" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)', lineHeight: 1.5 }}>
             Click a block to drop it on the canvas.
           </p>
         </div>
@@ -133,7 +133,7 @@ export function LayoutBuilder() {
                 border: '2px dashed var(--gx-border)',
                 borderRadius: 'var(--gx-radius-lg)',
                 color: 'var(--gx-text-3)',
-                fontSize: 13,
+                fontSize: 'var(--gx-text-13)',
                 flexDirection: 'column',
                 gap: 'var(--gx-space-5)',
               }}>

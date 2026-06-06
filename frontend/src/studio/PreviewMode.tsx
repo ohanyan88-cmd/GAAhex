@@ -72,11 +72,11 @@ export function PreviewMode({ token }: { token?: string } = {}) {
                 <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
               ))}
             </span>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--gx-text-3)' }}>gaahex.app</span>
+            <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>gaahex.app</span>
             <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>as {role}</span>
           </div>
           {/* empty preview body */}
-          <div style={{ padding: 'var(--gx-space-7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 13, gap: 8 }}>
+          <div style={{ padding: 'var(--gx-space-7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', gap: 8 }}>
             <Eye size={28} style={{ opacity: 0.3 }} />
             <span>No preview available — publish first</span>
           </div>

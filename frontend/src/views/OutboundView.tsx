@@ -354,8 +354,8 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
               </button>
             )
           })}
-          <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: '12px 4px', paddingTop: 12 }}>
-            <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 6px 8px' }}>Channels</div>
+          <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: 'var(--gx-space-6) var(--gx-space-2)', paddingTop: 12 }}>
+            <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 6px 8px' }}>Channels</div>
             {CHANNELS.map(c => {
               // D18: channel-tone palette is categorical (each channel = distinct identity).
               // Email = --viz-1 (matches its previous blue tone) so the rail still reads
@@ -366,7 +366,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
               const tone = c === 'email' ? 'var(--viz-1)' : c === 'sms' ? 'var(--gx-warning)' : c === 'push' ? 'var(--gx-success)' : c === 'webhook' ? 'var(--gx-gold)' : 'var(--gx-text-3)'
               return (
                 <button key={c} className={'mail-folder' + (channel === c ? ' on' : '')} onClick={() => setChannel(channel === c ? '' : c)}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: tone }} /><span>{CHANNEL_LABEL[c] ?? c}</span>
+                  <span style={{ width: 9, height: 9, borderRadius: 'var(--gx-radius-xs)', background: tone }} /><span>{CHANNEL_LABEL[c] ?? c}</span>
                 </button>
               )
             })}
@@ -381,7 +381,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
               placeholder="Search mail"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13, fontFamily: 'var(--gx-font-sans)' }}
+              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)', fontFamily: 'var(--gx-font-sans)' }}
             />
           </div>
           <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
@@ -432,7 +432,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginTop: 14 }}>
                   <span className="avatar" style={{ width: 36, height: 36 }}>{initials(current.to_addr)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>
                       to <span className="mono" style={{ color: 'var(--gx-text-3)', fontWeight: 400, fontSize: 12 }}>&lt;{current.to_addr || '—'}&gt;</span>
                     </div>
                     <div className="hint" style={{ fontSize: 11.5 }}>{current.channel || '—'} · {timeAgo(current.created_at ?? null)}</div>
@@ -443,11 +443,11 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', fontSize: 13.5, lineHeight: 1.7, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap' }}>
                 {current.error && (
-                  <div style={{ display: 'flex', gap: 11, padding: '12px 14px', borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border)', borderLeft: '3px solid var(--gx-danger)', background: 'var(--gx-surface-2)', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', gap: 11, padding: 'var(--gx-space-6) var(--gx-space-7)', borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border)', borderLeft: '3px solid var(--gx-danger)', background: 'var(--gx-surface-2)', marginBottom: 14 }}>
                     <WarningIcon size={16} style={{ color: 'var(--gx-danger)' }} />
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 12.5 }}>Delivery error</div>
-                      <div style={{ fontSize: 12, color: 'var(--gx-text-2)', marginTop: 2 }}>{current.error}</div>
+                      <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', marginTop: 2 }}>{current.error}</div>
                     </div>
                   </div>
                 )}

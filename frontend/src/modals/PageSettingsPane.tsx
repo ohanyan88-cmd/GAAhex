@@ -111,8 +111,8 @@ export default function PageSettingsPane({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       {/* Title override */}
       <section>
-        <h4 style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>Page heading</h4>
-        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-3)' }}>
+        <h4 style={{ margin: '0 0 4px', fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Page heading</h4>
+        <p style={{ margin: '0 0 10px', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)' }}>
           Override the title shown at the top of the page. Leave blank for the default
           (<span style={{ fontStyle: 'italic' }}>{spec.defaultTitle}</span>).
         </p>
@@ -129,8 +129,8 @@ export default function PageSettingsPane({
       {/* Column controls — only shown when the page has configurable columns */}
       {spec.defaultColumns.length > 0 && (
       <section>
-        <h4 style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 600 }}>Table columns</h4>
-        <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-3)' }}>
+        <h4 style={{ margin: '0 0 4px', fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Table columns</h4>
+        <p style={{ margin: '0 0 12px', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)' }}>
           Show or hide columns, rename their headers, and reorder them. The page's data and tools are unchanged.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -141,7 +141,7 @@ export default function PageSettingsPane({
                 key={col.key}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-                  padding: '8px 10px', border: '1px solid var(--border)',
+                  padding: 'var(--gx-space-4) var(--gx-space-5)', border: '1px solid var(--border)',
                   borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
                   opacity: col.visible ? 1 : 0.6,
                 }}
@@ -174,7 +174,7 @@ export default function PageSettingsPane({
                   onChange={(e) => patchColumn(i, { label: e.target.value })}
                   aria-label={`Label for column ${col.key}`}
                 />
-                <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{col.key}</span>
+                <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{col.key}</span>
 
                 {/* reorder */}
                 <div style={{ display: 'flex', gap: 'var(--gx-space-1)', flexShrink: 0 }}>
@@ -270,7 +270,7 @@ function CustomFieldsSection({
   return (
     <section>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
-        <h4 style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Custom fields</h4>
+        <h4 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Custom fields</h4>
         {!formOpen && (
           <Button variant="primary" size="sm"
             type="button"  onClick={startAdd}>
@@ -278,13 +278,13 @@ function CustomFieldsSection({
           </Button>
         )}
       </div>
-      <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--text-3)' }}>
+      <p style={{ margin: '0 0 12px', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)' }}>
         Add real data fields (text, number, date, select, boolean) shown as extra columns. Each row's
         value is edited directly in the table. The page's data and tools are unchanged.
       </p>
 
       {fields.length === 0 && !formOpen && (
-        <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-3)', fontStyle: 'italic' }}>No custom fields yet.</p>
+        <p style={{ margin: '0 0 8px', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)', fontStyle: 'italic' }}>No custom fields yet.</p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -293,16 +293,16 @@ function CustomFieldsSection({
             key={f.key}
             style={{
               display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-              padding: '8px 10px', border: '1px solid var(--border)',
+              padding: 'var(--gx-space-4) var(--gx-space-5)', border: '1px solid var(--border)',
               borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
             }}
           >
             <span style={{ flex: 1, minWidth: 0, fontSize: 13 }}>{f.label}</span>
             <span className="pill pill-muted" style={{ flexShrink: 0 }}>{f.type}</span>
             {f.type === 'select' && (
-              <span style={{ fontSize: 11, color: 'var(--text-3)', flexShrink: 0 }}>{(f.options ?? []).join(', ') || '—'}</span>
+              <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--text-3)', flexShrink: 0 }}>{(f.options ?? []).join(', ') || '—'}</span>
             )}
-            <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{f.key}</span>
+            <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{f.key}</span>
             <div style={{ display: 'flex', gap: 'var(--gx-space-1)', flexShrink: 0 }}>
               <button type="button" className="iconbtn" aria-label={`Edit field ${f.label}`} onClick={() => startEdit(i)}>
                 <EditIcon size={14} />
@@ -316,7 +316,7 @@ function CustomFieldsSection({
       </div>
 
       {formOpen && (
-        <div style={{ marginTop: 'var(--gx-space-5)', padding: '12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
+        <div style={{ marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-6) var(--gx-space-6)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <label className="field" style={{ flex: '1 1 160px' }}>
               <span>Label *</span>
@@ -347,7 +347,7 @@ function CustomFieldsSection({
             </div>
           </div>
           {editing != null && (
-            <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--text-3)' }}>
+            <p style={{ margin: '8px 0 0', fontSize: 'var(--gx-text-11)', color: 'var(--text-3)' }}>
               Key and type are immutable — changing them would orphan stored values.
             </p>
           )}

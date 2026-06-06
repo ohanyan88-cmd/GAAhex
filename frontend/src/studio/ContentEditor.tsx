@@ -34,7 +34,7 @@ export function ContentEditor() {
           <label className="field"><span>Button link</span><input className="inp inp-sm mono" /></label>
           <label className="field">
             <span>Image</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: '8px 10px', background: 'var(--gx-bg-subtle)', border: '1px dashed var(--gx-border-strong)', borderRadius: 'var(--gx-radius-md)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-4) var(--gx-space-5)', background: 'var(--gx-bg-subtle)', border: '1px dashed var(--gx-border-strong)', borderRadius: 'var(--gx-radius-md)' }}>
               <Image size={18} style={{ color: 'var(--gx-text-3)' }} />
               <span className="hint" style={{ fontSize: 12 }}>No image</span>
               <Button variant="ghost" size="sm"

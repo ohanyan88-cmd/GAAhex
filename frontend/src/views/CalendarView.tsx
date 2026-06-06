@@ -425,7 +425,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           {/* Calendar filters (toggle visibility) */}
           {cals.length > 0 && (
             <>
-              <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Calendars</div>
+              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Calendars</div>
               {cals.map(cal => {
                 const on = !hiddenCals.has(cal.id)
                 return (
@@ -451,7 +451,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
           {/* Upcoming list */}
           {upcoming.length > 0 && (
             <>
-              <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Upcoming</div>
+              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Upcoming</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {upcoming.map(e => {
                   const tone = calColor(e)
@@ -466,7 +466,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                       style={{ display: 'flex', gap: 9, alignItems: 'flex-start', cursor: 'pointer' }}
                     >
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: tone, marginTop: 5, flexShrink: 0 }} />
-                      <div style={{ fontSize: 12, minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 'var(--gx-text-sm)', minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
                         <div className="hint" style={{ fontSize: 11 }}>
                           {MONTH_NAMES[d.getMonth()].slice(0, 3)} {d.getDate()}
@@ -655,7 +655,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                 <Button variant="ghost" size="sm"
             type="button"
                   
-                  style={{ padding: '0 8px', height: 24, fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
+                  style={{ padding: '0 8px', height: 24, fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 4 }}
                   onClick={() => setFColor(null)}
                 >
                   <CloseIcon size={10} /> Clear

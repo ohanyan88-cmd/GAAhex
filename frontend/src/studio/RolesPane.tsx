@@ -187,7 +187,7 @@ export default function RolesPane({ token }: { token: string }) {
       {showCreate && (
         <form
           onSubmit={createRole}
-          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: '14px 16px', marginBottom: 16 }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: 'var(--gx-space-7) var(--gx-space-8)', marginBottom: 16 }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <PlusIcon size={14} className="section-icon" /> New role
@@ -328,7 +328,7 @@ export default function RolesPane({ token }: { token: string }) {
           ) : (
             Object.entries(grouped).map(([group, perms]) => (
               <div key={group} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 6 }}>
+                <div style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 6 }}>
                   {group}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px' }}>
@@ -340,7 +340,7 @@ export default function RolesPane({ token }: { token: string }) {
                         onChange={() => togglePerm(p.key)}
                       />
                       <span>{p.label}</span>
-                      <code className="mono" style={{ fontSize: 10, color: 'var(--gx-text-3)' }}>{p.key}</code>
+                      <code className="mono" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{p.key}</code>
                     </label>
                   ))}
                 </div>

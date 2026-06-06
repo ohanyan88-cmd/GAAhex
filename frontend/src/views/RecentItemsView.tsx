@@ -80,10 +80,10 @@ export default function RecentItemsView({ token, onNavigate }: {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 500, textTransform: 'capitalize' }}>{label(e)}</span>
-              <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', marginLeft: 'var(--sp-4)' }}>{timeAgo(e.created_at)}</span>
+              <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', whiteSpace: 'nowrap', marginLeft: 'var(--sp-4)' }}>{timeAgo(e.created_at)}</span>
             </div>
             {e.entity_key && (
-              <span className="badge badge-neutral" style={{ fontSize: 11, marginTop: 4 }}>
+              <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginTop: 4 }}>
                 {e.entity_key.replace(/_/g, ' ')}
               </span>
             )}

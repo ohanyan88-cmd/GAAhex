@@ -672,11 +672,11 @@ function DetailDrawer({
             background: 'var(--gx-surface-2)',
           }}
         >
-          <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered title
           </div>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>{preview.title}</div>
-          <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered body
           </div>
           <div style={{ whiteSpace: 'pre-wrap' }}>{preview.body}</div>
@@ -879,11 +879,11 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
                       <span
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)',
-                          padding: '2px 6px',
+                          padding: 'var(--gx-space-1) var(--gx-space-3)',
                           border: '1px solid var(--gx-border)',
                           borderRadius: 'var(--gx-radius-sm, 4px)',
                           background: 'var(--gx-surface-2)',
-                          fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11,
+                          fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)',
                           color: 'var(--gx-text-2)',
                         }}
                         title={d.gxl_condition}

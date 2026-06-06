@@ -136,10 +136,10 @@ export default function AskGaaexView({ token }: { token: string }) {
                     <div key={i} className="bubble-row in">
                       <div className="bubble-wrap" style={{ maxWidth: '78%' }}>
                         <div className="bubble in" style={{ maxWidth: '100%' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 11, fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
                             <SparkleIcon size={12} /> {t('ask.proposalTitle', 'Action proposed')}
                           </div>
-                          <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>
+                          <div style={{ fontSize: 'var(--gx-text-13)', lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>
                           {m.state === 'pending' ? (
                             <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 10 }}>
                               <Button variant="primary" size="sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</Button>
@@ -194,7 +194,7 @@ export default function AskGaaexView({ token }: { token: string }) {
 
         {/* ── Suggestions / context aside ─────────────────────────── */}
         <aside className="chat-info">
-          <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>
+          <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>
             {t('ask.suggestionsTitle', 'Try asking')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -210,7 +210,7 @@ export default function AskGaaexView({ token }: { token: string }) {
               </button>
             ))}
           </div>
-          <div className="lbl" style={{ fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '18px 0 8px' }}>
+          <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '18px 0 8px' }}>
             {t('ask.brainLabel', 'Brain')}
           </div>
           <div className="kv" style={{ padding: '6px 0' }}>

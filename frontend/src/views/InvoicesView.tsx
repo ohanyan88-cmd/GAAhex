@@ -805,33 +805,33 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
 
   return (
     <div style={{ marginTop: 24 }}>
-      <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
         Outstanding &amp; allocations
       </div>
 
       <div className="card" style={{ padding: 'var(--gx-space-5)', marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--gx-space-5)', alignItems: 'end' }}>
           <div>
-            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Total</div>
+            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Total</div>
             <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.total)}</div>
           </div>
           <div>
-            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Paid</div>
+            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Paid</div>
             <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.paid)}</div>
           </div>
           <div>
-            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Credited</div>
+            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Credited</div>
             <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.credited)}</div>
           </div>
           <div>
-            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase' }}>Outstanding</div>
+            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Outstanding</div>
             <div className="num mono" style={{ fontSize: 17, fontWeight: 700, color: outColor }}>
               {moneyDecToLumaFmt(out.outstanding)}
             </div>
           </div>
         </div>
         {out.computed_at && (
-          <div className="muted" style={{ fontSize: 11, marginTop: 10 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 10 }}>
             Last computed {timeAgo(out.computed_at)}
           </div>
         )}
@@ -967,7 +967,7 @@ function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
             {error}
           </div>
         )}
-        <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+        <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 4 }}>
           The backend will reject over-allocation; if amounts change while this dialog is open, the
           server response will explain — just retry after refreshing.
         </p>

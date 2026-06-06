@@ -64,7 +64,7 @@ export function SlideOutPanel({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <div id="nms-drawer-title" className="nms-drawer-title">{title}</div>
             {subtitle && (
-              <div style={{ fontSize: 11, color: 'var(--nms-text-3)' }}>{subtitle}</div>
+              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)' }}>{subtitle}</div>
             )}
           </div>
           <button
