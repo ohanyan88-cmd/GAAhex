@@ -218,7 +218,7 @@ function Empty({ msg }: { msg: string }) {
 }
 function Skel({ rows = 3 }: { rows?: number }) {
   return (
-    <div style={{ padding: '8px 0' }}>
+    <div style={{ padding: 'var(--gx-space-4) 0' }}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="skel-row"><div className="skel skel-cell" /></div>
       ))}
@@ -456,7 +456,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
                     else { setOverride(r); localStorage.setItem(ROLE_OVERRIDE_KEY, r) }
                     setPickerOpen(false)
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-4) var(--gx-space-6)', cursor: 'pointer', borderRadius: 4, background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-4) var(--gx-space-6)', cursor: 'pointer', borderRadius: 'var(--gx-radius-xs)', background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
                 >
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[r] }} />
                   <span style={{ fontSize: 'var(--gx-text-13)', flex: 1 }}>{ROLE_LABEL[r]}</span>
@@ -496,13 +496,13 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               key={i}
               onClick={u.onClick}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 16px',
-                borderRadius: 6,
+                display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
+                padding: 'var(--gx-space-5) var(--gx-space-8)',
+                borderRadius: 'var(--gx-radius-sm)',
                 background: u.severity === 'red'
-                  ? 'rgba(239,68,68,0.08)'
-                  : 'rgba(245,158,11,0.08)',
-                border: `1px solid ${u.severity === 'red' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                  ? 'var(--gx-danger-soft)'
+                  : 'var(--gx-warning-soft)',
+                border: `1px solid ${u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'}`,
                 cursor: u.onClick ? 'pointer' : 'default',
               }}
             >
