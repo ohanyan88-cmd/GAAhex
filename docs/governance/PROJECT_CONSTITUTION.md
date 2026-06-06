@@ -597,8 +597,8 @@ The layers governed by this Constitution at adoption:
 
 | Layer | Location | Status |
 |---|---|---|
-| Platform Reference Model (PRM) | [`../architecture/PLATFORM_REFERENCE_MODEL.md`](../architecture/PLATFORM_REFERENCE_MODEL.md) | LOCKED 2026-06-06 |
-| Architecture Constitution (22 docs) | [`../architecture/00_ARCHITECTURE_INDEX.md`](../architecture/00_ARCHITECTURE_INDEX.md) → `01_*.md` … `22_*.md` | LOCKED 2026-06-06 |
+| Platform Reference Model (PRM) | [`../architecture/PLATFORM_REFERENCE_MODEL.md`](../architecture/PLATFORM_REFERENCE_MODEL.md) | **LOCKED + RATIFIED + BASELINE** 2026-06-06 |
+| Architecture Constitution (22 docs) | [`../architecture/00_ARCHITECTURE_INDEX.md`](../architecture/00_ARCHITECTURE_INDEX.md) → `01_*.md` … `22_*.md` | **LOCKED + RATIFIED + BASELINE** 2026-06-06 |
 | Architecture consistency audit | [`../architecture/CONSTITUTION_CONSISTENCY_AUDIT.md`](../architecture/CONSTITUTION_CONSISTENCY_AUDIT.md) | 2026-06-06 |
 | Standards (70 LOCKED + 7 named) | [`../standards/00-standards-index.md`](../standards/00-standards-index.md) | LOCKED |
 | Brand v3.0 | [`../branding/v3.0/`](../branding/v3.0/) | LOCKED 2026-06-06 |

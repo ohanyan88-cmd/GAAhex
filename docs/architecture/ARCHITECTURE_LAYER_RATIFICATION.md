@@ -4,8 +4,14 @@
 **Authority:** Per LAW-GV4 (Lock Before Next Layer) and per Gev's directive
 following the Constitution Gap Analysis.
 **Author:** Ընգեր.
-**Decision (proposed):** **RATIFY** the Architecture Layer as fully
-complete.
+**Decision:** **RATIFIED 2026-06-06 by Gev.**
+**Architecture Layer status:** **LOCKED · RATIFIED · BASELINE ESTABLISHED.**
+**Effective:** immediately.
+**Amendments:** only via LAW-GV1 of `../governance/PROJECT_CONSTITUTION.md`.
+
+**Residual items tracked as future LAW-GV1 amendment candidates** (non-blocking):
+Knowledge Core · Decision Support Core · OSS Licensing Policy · AI
+Acceptable-Use Policy.
 
 ---
 
@@ -51,7 +57,7 @@ The directive requires this layer be: Complete + Audited + Normalized + Locked.
 | Platform Reference Model cores | 51 |
 | Cores with dedicated arch doc + supporting docs | **51** (100%) |
 | Cores with dedicated arch doc | 22 (the 22 constitution docs) + 29 covered by cross-doc references |
-| Cores with only thin coverage | 5 (Knowledge, Search, Developer Platform, Import/Export, Template, Decision Support) — minor gaps; not blocking |
+| Cores with only thin coverage | After Documentation Categorization Audit: 4 closed by linking to existing content (Search → specs/SEARCH.md; Developer Platform → 3 named standards; Import/Export → Standard 08 + specs/REPORTING-DELIVERY; Template → Standard 08 + specs/BILLING + specs/NOTIFICATIONS-DEPTH; browser/a11y → catalogs/SYSTEM_CAPABILITY_CATALOG). 4 true residuals: Knowledge, Decision Support, OSS licensing, AI acceptable-use — all LAW-GV1 amendment candidates, none blocking. |
 | Constitution documents | 22 |
 | Docs matching canonical 17-section template | **22 / 22** (100%) |
 | Docs with `### P<n>` markers | 22 / 22 |

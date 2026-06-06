@@ -1,5 +1,20 @@
 # 00 — Architecture Index
 
+> **Architecture Layer Status — 2026-06-06**
+>
+> | State | Value |
+> |---|---|
+> | **LOCKED** | ✅ 2026-06-06 |
+> | **RATIFIED** | ✅ 2026-06-06 by Gev |
+> | **BASELINE ESTABLISHED** | ✅ 2026-06-06 |
+>
+> All artifacts listed below are the **architectural baseline** of GAAhex.
+> Amendments only via LAW-GV1 of `../governance/PROJECT_CONSTITUTION.md`.
+>
+> **Residual items tracked as future LAW-GV1 amendment candidates** (do not
+> block layer progression): Knowledge Core · Decision Support Core · OSS
+> Licensing Policy · AI Acceptable-Use Policy.
+
 **Constitutional index.** This file is the entry point to the GAAhex
 Architecture Constitution. It binds the Platform Reference Model (PRM) to
 the 22 Architecture Constitution documents and to the LOCKED Standards
