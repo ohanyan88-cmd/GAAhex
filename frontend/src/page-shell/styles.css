@@ -88,6 +88,12 @@
   gap: var(--gx-space-4);
   flex-shrink: 0;
 }
+/* Search slot in the header, between the title and the action buttons. */
+.ps-header-search {
+  flex: 1 1 auto;
+  max-width: var(--gx-search-w);
+  align-self: center;
+}
 
 .ps-header-main {
   display: flex;

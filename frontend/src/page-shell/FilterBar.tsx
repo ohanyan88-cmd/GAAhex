@@ -9,7 +9,7 @@
 // reveal the node when clicked.
 import { useEffect, useRef, useState } from 'react'
 import { Filter, ChevronDown, Bookmark } from 'lucide-react'
-import { Button, Input } from '../primitives'
+import { Button } from '../primitives'
 import type { FiltersSpec } from './types'
 
 interface FilterBarProps {
@@ -33,8 +33,8 @@ export function FilterBar({ filters }: FilterBarProps) {
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [])
 
+  // search moved to the header (Zone A); FilterBar handles quick / advanced / saved views.
   const hasContent =
-    !!filters.search ||
     (filters.quick && filters.quick.length > 0) ||
     !!filters.advanced ||
     (filters.savedViews && filters.savedViews.length > 0)
@@ -42,17 +42,6 @@ export function FilterBar({ filters }: FilterBarProps) {
 
   return (
     <div className="ps-filters">
-      {filters.search && (
-        <div className="ps-filter-search">
-          <Input
-            variant="search"
-            size="sm"
-            value={filters.search.value}
-            onChange={(e) => filters.search!.onChange(e.target.value)}
-            placeholder={filters.search.placeholder ?? 'Search…'}
-          />
-        </div>
-      )}
       {filters.quick && filters.quick.length > 0 && (
         <div className="ps-filter-quicks">
           {filters.quick.map((q, i) => (

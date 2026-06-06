@@ -5,7 +5,7 @@
 // component matches the master spec: same spacing, same typography across
 // every page in the product.
 import type { ReactNode } from 'react'
-import { Button } from '../primitives'
+import { Button, Input } from '../primitives'
 import type { StatusSummary, PrimaryAction, SecondaryAction } from './types'
 
 interface PageHeaderProps {
@@ -17,6 +17,7 @@ interface PageHeaderProps {
   pageTabs?: ReactNode
   primaryAction?: PrimaryAction
   secondaryActions?: SecondaryAction[]
+  search?: { value: string; onChange: (v: string) => void; placeholder?: string }
 }
 
 function StatusChip({ summary }: { summary: string | StatusSummary }) {
@@ -40,6 +41,7 @@ export function PageHeader({
   pageTabs,
   primaryAction,
   secondaryActions,
+  search,
 }: PageHeaderProps) {
   const hasActions = !!primaryAction || (secondaryActions && secondaryActions.length > 0)
   return (
@@ -73,6 +75,17 @@ export function PageHeader({
             )}
           </div>
         </div>
+        {search && (
+          <div className="ps-header-search">
+            <Input
+              variant="search"
+              size="sm"
+              value={search.value}
+              onChange={(e) => search.onChange(e.target.value)}
+              placeholder={search.placeholder ?? 'Search…'}
+            />
+          </div>
+        )}
         {hasActions && (
           <div className="ps-header-actions">
             {secondaryActions?.map((a, i) => (

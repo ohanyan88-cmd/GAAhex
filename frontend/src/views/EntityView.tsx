@@ -193,6 +193,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   // B25: export format availability (probed per slug)
   const [exportFormats, setExportFormats] = useState<ExportFormats | null>(null)
   const [exporting, setExporting] = useState<string | null>(null)
+  const [downloadOpen, setDownloadOpen] = useState(false)
 
   // B22: pagination
   const [offset, setOffset] = useState(0)
@@ -585,12 +586,11 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       ? { label: `${t('common.new', 'New')} ${def.label}`, icon: <PlusIcon size={13} aria-hidden />, onClick: openCreate }
       : undefined
 
-  // PageShell: secondaryActions — export buttons + configure
+  // PageShell: secondaryActions — one Download button (asks for format on click) + configure
   const shellSecondary: SecondaryAction[] = []
-  if (exportFormats !== null) {
-    if (exportFormats.csv)  shellSecondary.push({ label: 'CSV',  icon: <DownloadIcon size={13} aria-hidden />, onClick: () => doExport('csv'),  disabled: exporting !== null })
-    if (exportFormats.xlsx) shellSecondary.push({ label: 'XLSX', icon: <DownloadIcon size={13} aria-hidden />, onClick: () => doExport('xlsx'), disabled: exporting !== null })
-    if (exportFormats.pdf)  shellSecondary.push({ label: 'PDF',  icon: <DownloadIcon size={13} aria-hidden />, onClick: () => doExport('pdf'),  disabled: exporting !== null })
+  const canExport = exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf)
+  if (canExport) {
+    shellSecondary.push({ label: t('common.download', 'Download'), icon: <DownloadIcon size={13} aria-hidden />, onClick: () => setDownloadOpen(true), disabled: exporting !== null })
   }
   if (canConfigure && onConfigure) {
     shellSecondary.push({ label: t('common.configurePageTitle', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure })
@@ -609,6 +609,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
       kpis={shellKpis}
       primaryAction={shellPrimary}
       secondaryActions={shellSecondary.length > 0 ? shellSecondary : undefined}
+      filters={{ search: { value: q, onChange: setQ, placeholder: `Search ${def.label_plural.toLowerCase()}` } }}
     >
 
       {/* B21: read-only hint */}
@@ -784,25 +785,10 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
             </div>
           )}
 
-          {/* ── List toolbar (search + saved views) ────────────────── */}
-          <div className="toolbar" style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', margin: 0 }}>
-            <div className="tb-search" style={{ width: 280 }}>
-              <SearchIcon size={14} />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={`Search ${def.label_plural.toLowerCase()}`}
-                aria-label={`Search ${def.label_plural}`}
-                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)' }}
-              />
-              {q && (
-                <button className="iconbtn" aria-label="Clear search" onClick={() => setQ('')} style={{ width: 22, height: 22 }}>
-                  <CloseIcon size={12} />
-                </button>
-              )}
-            </div>
-            <span className="spacer" />
-            {viewsAvailable && (
+          {/* ── List toolbar (saved views; search lives in the header now) ── */}
+          {viewsAvailable && (
+            <div className="toolbar" style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', margin: 0 }}>
+              <span className="spacer" />
               <div className="saved-views" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>View:</span>
                 <select
@@ -822,8 +808,8 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   Save view
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ── Records grid ──────────────────────────────────────── */}
           <div className="grid-wrap">
@@ -1022,6 +1008,30 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           label={aiRow.name ?? aiRow.title ?? aiRow.subject ?? String(aiRow.id).slice(0, 8)}
           onClose={() => setAiRow(null)}
         />
+      )}
+
+      {downloadOpen && (
+        <Modal open onClose={() => setDownloadOpen(false)} size="sm"
+          title={t('export.chooseFormat', 'Download')}
+          subtitle={t('export.chooseFormatSub', 'Choose a format to export the current list.')}>
+          <div className="gx-download-formats">
+            {exportFormats?.csv && (
+              <Button variant="secondary" size="md" onClick={() => { setDownloadOpen(false); doExport('csv') }}>
+                <DownloadIcon size={14} aria-hidden /> CSV
+              </Button>
+            )}
+            {exportFormats?.xlsx && (
+              <Button variant="secondary" size="md" onClick={() => { setDownloadOpen(false); doExport('xlsx') }}>
+                <DownloadIcon size={14} aria-hidden /> XLSX · Excel
+              </Button>
+            )}
+            {exportFormats?.pdf && (
+              <Button variant="secondary" size="md" onClick={() => { setDownloadOpen(false); doExport('pdf') }}>
+                <DownloadIcon size={14} aria-hidden /> PDF
+              </Button>
+            )}
+          </div>
+        </Modal>
       )}
     </PageShell>
   )

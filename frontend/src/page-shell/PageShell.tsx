@@ -75,10 +75,11 @@ export function PageShell({
   const showActions = !isPlaceholder && !!views
   const headerPrimary = isPlaceholder ? undefined : primaryAction
   const headerSecondary = isPlaceholder ? undefined : secondaryActions
+  // search now lives in the header (Zone A); the FilterBar (Zone D) is for quick /
+  // advanced / saved-view filters only.
   const showFilters =
     !!filters &&
-    (!!filters.search ||
-      (filters.quick && filters.quick.length > 0) ||
+    ((filters.quick && filters.quick.length > 0) ||
       !!filters.advanced ||
       (filters.savedViews && filters.savedViews.length > 0))
   const ctxSpec = normalizeContextPanel(contextPanel)
@@ -114,6 +115,7 @@ export function PageShell({
         pageTabs={pageTabs}
         primaryAction={headerPrimary}
         secondaryActions={headerSecondary}
+        search={filters?.search}
       />
       {showKPIs && <KPIBar kpis={kpis!} />}
       {showActions && <ActionBar views={views} />}

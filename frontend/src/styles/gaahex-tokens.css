@@ -308,6 +308,9 @@
   --gx-kpi-value-size:  30px;   /* the big cockpit metric value */
   --gx-kpi-bar-h:       6px;    /* progress/utilisation bar thickness */
 
+  /* In-header search box width cap (Zone A search slot, and reusable elsewhere). */
+  --gx-search-w:        360px;
+
   /* ── BREAKPOINTS (T-P3-2) — canonical viewport widths. CSS doesn't allow
      custom properties inside @media queries directly, so these are reference
      constants for documentation and JS readers (matchMedia). The hand-rolled

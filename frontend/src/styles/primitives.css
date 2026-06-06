@@ -87,6 +87,10 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .field-hint { font-size:11px; color:var(--gx-text-3); margin-top:2px; }
 .field-error { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--gx-danger-fg); margin-top:4px; }
 
+/* Download format picker (entity export modal): full-width format choices, stacked. */
+.gx-download-formats { display:flex; flex-direction:column; gap:var(--gx-space-4); }
+.gx-download-formats .btn { width:100%; justify-content:flex-start; gap:var(--gx-space-4); }
+
 /* extension: KPITile primitive — THE shared KPI card used across every dashboard
    and list view in GAAhex. Identical behavior everywhere — hover lift, click,
    focus-visible ring all centralized here. Tile can render as <div>, <button>, or
