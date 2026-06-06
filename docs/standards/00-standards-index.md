@@ -1,12 +1,20 @@
 # 00 — Canonical Standards Index
 
 > **Position in the architecture hierarchy (locked 2026-06-06):** these standards live *under*
-> `docs/architecture/PLATFORM_REFERENCE_MODEL.md` (the Platform Reference Model — the
-> constitutional definition of the 51 cores and 7 platform tiers). The PRM defines *what
-> cores exist and their ownership boundaries*; these 70 standards define *how each core's
-> entities, APIs, UI, lifecycle, and security behave*. The PRM does not override any locked
-> standard below — it sits above them as platform architecture law. See
-> `docs/architecture/PRM-MIGRATION-AUDIT-2026-06-06.md` for the full classification.
+> the **Architecture Constitution** at `docs/architecture/`:
+>
+> 1. `PLATFORM_REFERENCE_MODEL.md` — the constitutional definition of the 51 cores and 7 platform tiers.
+> 2. The **22 Architecture Constitution documents** at `docs/architecture/01_*.md` through `22_*.md`,
+>    indexed by `docs/architecture/00_ARCHITECTURE_INDEX.md`.
+>
+> The PRM defines *what cores exist and their ownership boundaries*. The 22 architecture documents
+> define *the laws that govern each architectural viewpoint*. These 70 standards below define
+> *how each core's entities, APIs, UI, lifecycle, and security behave at implementation level*.
+> Architecture overrides Standards; Standards override Modules; Modules override Pages; Pages override
+> Components; Components override Implementation. No implementation, no standard, and no module
+> design may contradict the Architecture Constitution. See
+> `docs/architecture/00_ARCHITECTURE_INDEX.md` for the constitution entry point and
+> `docs/architecture/PRM-MIGRATION-AUDIT-2026-06-06.md` for the full classification audit.
 
 LOCKED. Standard **name** is immutable identity. **Number** is display order only and
 is never used as a business value, key, or reference. No duplicate numbers exist.
