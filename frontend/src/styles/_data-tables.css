@@ -53,6 +53,22 @@ table.grid th.sel-col, table.grid td.sel-col { width:40px; padding-left:12px; pa
    (plus at most one primary inline icon), so a slimmer column is enough. */
 table.grid th.actions-col, table.grid td.actions-col { width:96px; overflow:visible; }
 table.grid td .row-actions-menu { justify-content:flex-end; }
+
+/* Leads grid — larger column headers, frozen (sticky) while the list scrolls inside
+   the card. The wrap owns the scroll + card chrome so the header can pin to its top. */
+.leads-wrap { max-height: 60vh; overflow-y: auto; border-radius: var(--gx-radius-md); }
+table.grid.leads-grid { overflow: visible; border-radius: 0; box-shadow: none; }
+table.grid.leads-grid thead { background: var(--gx-surface); }
+table.grid.leads-grid th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--gx-surface);
+  /* paint a surface band above the header so no row sliver peeks through on scroll */
+  box-shadow: 0 -10px 0 var(--gx-surface);
+  font-size: var(--gx-text-sm);
+  letter-spacing: .04em;
+  color: var(--gx-text-2);
+  padding-top: var(--gx-space-8); padding-bottom: var(--gx-space-8);
+}
 table.grid td .row-actions { justify-content:flex-end; }
 table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }
 table.grid tbody tr:hover { background:var(--gx-hover); }

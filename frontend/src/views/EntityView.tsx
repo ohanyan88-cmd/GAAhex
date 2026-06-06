@@ -268,7 +268,6 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   // B25: export format availability (probed per slug)
   const [exportFormats, setExportFormats] = useState<ExportFormats | null>(null)
   const [exporting, setExporting] = useState<string | null>(null)
-  const [downloadOpen, setDownloadOpen] = useState(false)
 
   // B22: pagination
   const [offset, setOffset] = useState(0)
@@ -671,7 +670,11 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   const shellSecondary: SecondaryAction[] = []
   const canExport = exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf)
   if (canExport) {
-    shellSecondary.push({ label: t('common.download', 'Download'), icon: <DownloadIcon size={13} aria-hidden />, onClick: () => setDownloadOpen(true), disabled: exporting !== null })
+    const fmts: { label: string; icon?: React.ReactNode; onClick: () => void }[] = []
+    if (exportFormats?.csv) fmts.push({ label: 'CSV', icon: <DownloadIcon size={14} aria-hidden />, onClick: () => doExport('csv') })
+    if (exportFormats?.xlsx) fmts.push({ label: 'XLSX · Excel', icon: <DownloadIcon size={14} aria-hidden />, onClick: () => doExport('xlsx') })
+    if (exportFormats?.pdf) fmts.push({ label: 'PDF', icon: <DownloadIcon size={14} aria-hidden />, onClick: () => doExport('pdf') })
+    shellSecondary.push({ label: t('common.download', 'Download'), icon: <DownloadIcon size={13} aria-hidden />, disabled: exporting !== null, menu: fmts })
   }
   if (canConfigure && onConfigure) {
     shellSecondary.push({ label: t('common.configurePageTitle', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure })
@@ -896,8 +899,8 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
           )}
 
           {/* ── Records grid ──────────────────────────────────────── */}
-          <div className="grid-wrap">
-            <table className="grid">
+          <div className={'grid-wrap' + (isLeads ? ' leads-wrap' : '')}>
+            <table className={'grid' + (isLeads ? ' leads-grid' : '')}>
               <thead>
                 <tr>
                   {!isLeads && (
@@ -1121,29 +1124,6 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
         />
       )}
 
-      {downloadOpen && (
-        <Modal open onClose={() => setDownloadOpen(false)} size="sm"
-          title={t('export.chooseFormat', 'Download')}
-          subtitle={t('export.chooseFormatSub', 'Choose a format to export the current list.')}>
-          <div className="gx-download-formats">
-            {exportFormats?.csv && (
-              <Button variant="secondary" size="md" onClick={() => { setDownloadOpen(false); doExport('csv') }}>
-                <DownloadIcon size={14} aria-hidden /> CSV
-              </Button>
-            )}
-            {exportFormats?.xlsx && (
-              <Button variant="secondary" size="md" onClick={() => { setDownloadOpen(false); doExport('xlsx') }}>
-                <DownloadIcon size={14} aria-hidden /> XLSX · Excel
-              </Button>
-            )}
-            {exportFormats?.pdf && (
-              <Button variant="secondary" size="md" onClick={() => { setDownloadOpen(false); doExport('pdf') }}>
-                <DownloadIcon size={14} aria-hidden /> PDF
-              </Button>
-            )}
-          </div>
-        </Modal>
-      )}
     </PageShell>
   )
 }

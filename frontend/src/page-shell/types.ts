@@ -88,9 +88,12 @@ export interface PrimaryAction {
 
 export interface SecondaryAction {
   label: string
-  onClick: () => void
+  onClick?: () => void
   icon?: ReactNode
   disabled?: boolean
+  /** When present, the button opens a small popover menu (anchored below it) instead
+   *  of firing onClick — e.g. the Download button's format picker. */
+  menu?: { label: string; icon?: ReactNode; onClick: () => void }[]
 }
 
 export type ViewKind = 'table' | 'board' | 'calendar' | 'map' | 'timeline' | 'gallery'

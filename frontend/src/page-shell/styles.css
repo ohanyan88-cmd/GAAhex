@@ -87,6 +87,39 @@
   gap: var(--gx-space-4);
   flex-shrink: 0;
 }
+/* Header action with a popover menu (e.g. Download → format picker) — a small card
+   anchored just below the button, not a centered modal. */
+.ps-header-menu-wrap { position: relative; }
+.ps-header-menu {
+  position: absolute;
+  top: calc(100% + var(--gx-space-3));
+  right: 0;
+  z-index: 30;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gx-space-1);
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-lg);
+  padding: var(--gx-space-3);
+}
+.ps-header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-4);
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--gx-text-1);
+  font-size: var(--gx-text-sm);
+  padding: var(--gx-space-4) var(--gx-space-5);
+  border-radius: var(--gx-radius-sm);
+}
+.ps-header-menu-item:hover { background: var(--gx-surface-2); }
 /* Search slot in the header — fixed width, grouped on the right next to the buttons. */
 .ps-header-search {
   flex: 0 0 auto;

@@ -268,6 +268,7 @@ async def build_crm_entities(s, t) -> None:
             ("name", "Name", "text", True, None),
             ("phone", "Phone", "phone", False, None),
             ("email", "Email", "email", False, None),
+            ("address", "Address", "text", False, None),
             ("source", "Source", "select", False, {"options": ["Website", "Referral", "Cold Call", "Ad"]}),
             ("status", "Status", "status", False, None),
         ],
