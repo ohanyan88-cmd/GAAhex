@@ -5,23 +5,19 @@
 //   • Role-aware widgets (Support / Sales / Tech / Finance / Admin / General)
 //   • Personal KPIs WITH TARGETS (X/Y progress format)
 //   • Personal urgent alerts (SLA breaches, upcoming dispatches, pending approvals)
-//   • Quick Action shortcut buttons (verb-first: New Ticket / Check Coverage / Add Lead)
 //
 // Real data only — every number comes from a backend endpoint. No mocks, no random.
 //
-// Role detection: derived from /api/me/capabilities. Manual override available via
-// the role selector chip (persisted in localStorage so a sales manager who wants
-// to see the support view can pin it).
+// Role detection: derived from /api/me/capabilities (auto-detected, no manual override).
 //
 // Migrated onto the PageShell framework (type=workspace): title / subtitle /
 // breadcrumb / icon / KPIs are now PageShell props; the body keeps the urgent
-// alerts band, quick-action shortcuts, role-specific widgets, and the role
-// override picker (its dropdown is non-trivial UI, not a static chip).
+// alerts band and role-specific widgets.
 import { useEffect, useState, useMemo } from 'react'
 import {
-  CheckSquare, Clock, Shield, Activity, Inbox, AlertCircle,
-  AlertTriangle, Users, Banknote, Plus, Search, MapPin,
-  Ticket, FileText, TrendingUp, ChevronDown,
+  CheckSquare, Clock, Shield, Inbox,
+  AlertTriangle, Users, Banknote, MapPin,
+  FileText,
   type LucideIcon,
 } from 'lucide-react'
 import { BASE } from '../lib/config'
@@ -67,18 +63,6 @@ const ROLE_SUBTITLE: Record<Role, string> = {
   general: 'Your workspace',
 }
 
-// D18: per-role identity palette uses the categorical --viz-N tokens.
-// One role = one --viz slot, matching the QUICK_ACTIONS_BY_ROLE color assignment
-// (sales = green/viz-3, tech = amber/viz-5, finance = violet/viz-4, admin =
-// magenta/viz-7, support = viz-1 primary, general = neutral text).
-const ROLE_COLOR: Record<Role, string> = {
-  support: 'var(--viz-1)',
-  sales:   'var(--viz-3)',
-  tech:    'var(--viz-5)',
-  finance: 'var(--viz-4)',
-  admin:   'var(--viz-7)',
-  general: 'var(--gx-text-3)',
-}
 
 // ── per-role daily targets (defaults; later configurable per user) ───────────
 type Target = { label: string; key: string; target: number; unit?: string }
@@ -121,47 +105,6 @@ const ROLE_KPIS: Record<Role, Target[]> = {
   ],
 }
 
-// ── quick action shortcuts per role ─────────────────────────────────────────
-type QuickAction = { label: string; icon: LucideIcon; target: string; color: string }
-const ROLE_ACTIONS: Record<Role, QuickAction[]> = {
-  support: [
-    // D18: primary action chip mirrors the support role identity (--viz-1)
-    { label: 'New Ticket',     icon: Ticket,   target: 'helpdesk',         color: 'var(--viz-1)' },
-    { label: 'Lookup Customer',icon: Search,   target: 'entity:customers', color: 'var(--gx-text-2)' },
-    { label: 'KB Article',     icon: FileText, target: 'entity:kb-articles',color:'var(--gx-text-2)' },
-  ],
-  sales: [
-    // D18: primary action chip uses --viz-3 (green for growth/conversion)
-    { label: 'Add Lead',       icon: Plus,     target: 'entity:leads',     color: 'var(--viz-3)' },
-    { label: 'New Quote',      icon: FileText, target: 'entity:quotes',    color: 'var(--gx-text-2)' },
-    { label: 'Check Coverage', icon: MapPin,   target: 'coverage-gis',     color: 'var(--gx-text-2)' },
-  ],
-  tech: [
-    // D18: primary action chip uses --viz-5 (amber for operational/dispatch)
-    { label: 'New Work Order', icon: Plus,     target: 'entity:work-orders',color: 'var(--viz-5)' },
-    { label: 'Check Coverage', icon: MapPin,   target: 'coverage-gis',     color: 'var(--gx-text-2)' },
-    { label: 'Dispatch Board', icon: Activity, target: 'dispatch-board',   color: 'var(--gx-text-2)' },
-  ],
-  finance: [
-    // D18: primary action chip uses --viz-4 (violet for financial/ledger)
-    { label: 'New Invoice',    icon: Plus,     target: 'invoices',         color: 'var(--viz-4)' },
-    { label: 'Record Payment', icon: Banknote, target: 'payments',         color: 'var(--gx-text-2)' },
-    { label: 'Collections',    icon: AlertCircle,target:'entity:collections',color:'var(--gx-text-2)' },
-  ],
-  admin: [
-    // D18: primary action chip uses --viz-7 (magenta for governance/identity)
-    { label: 'Add User',       icon: Plus,     target: 'entity:users',     color: 'var(--viz-7)' },
-    { label: 'System Health',  icon: Activity, target: 'studio',           color: 'var(--gx-text-2)' },
-    { label: 'Reports',        icon: TrendingUp,target:'reports',          color: 'var(--gx-text-2)' },
-  ],
-  general: [
-    // D18: primary action chip — distinct identity slot, --viz-1 matches the
-    // categorical role palette (avoids raw --azure-* per D18 family rules)
-    { label: 'Add Lead',       icon: Plus,     target: 'entity:leads',     color: 'var(--viz-1)' },
-    { label: 'New Ticket',     icon: Ticket,   target: 'helpdesk',         color: 'var(--gx-text-2)' },
-    { label: 'My Tasks',       icon: CheckSquare,target:'workitems',       color: 'var(--gx-text-2)' },
-  ],
-}
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 function relTime(iso: string | null | undefined): string {
@@ -227,8 +170,6 @@ function Skel({ rows = 3 }: { rows?: number }) {
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-const ROLE_OVERRIDE_KEY = 'gaahex.home.role.override.v1'
-
 export default function HomeView({ token, onNavigate, capabilities }: {
   token: string
   onNavigate?: (type: string, id?: string) => void
@@ -239,13 +180,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   const caps: Capabilities = capabilities ?? {}
   const capsLoaded = capabilities !== undefined
 
-  // role: auto-detected from caps, optionally overridden by user
-  const [override, setOverride] = useState<Role | null>(() => {
-    try { return (localStorage.getItem(ROLE_OVERRIDE_KEY) as Role) || null } catch { return null }
-  })
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const detectedRole = capsLoaded ? detectRole(caps) : 'general'
-  const role: Role = override ?? detectedRole
+  // role: auto-detected from caps
+  const role: Role = capsLoaded ? detectRole(caps) : 'general'
 
   // raw data state
   const [tasks, setTasks]         = useState<Fetched<any[]>>({ state: 'loading' })
@@ -413,13 +349,6 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   })
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const onAction = (target: string) => {
-    if (target.startsWith('entity:')) onNavigate?.('entity', target.slice(7))
-    else onNavigate?.(target)
-  }
-
-  const actions = ROLE_ACTIONS[role]
-
   return (
     <PageShell
       type="WORKSPACE"
@@ -430,88 +359,46 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       statusSummary={{ label: `You · ${ROLE_LABEL[role]}`, variant: 'info' }}
       kpis={kpiSpecs}
     >
-      {/* Role override picker — preserves the user's ability to pin a
-          different role's view (e.g. a sales manager wanting the support
-          dashboard). Auto-detected role is marked with an "auto" tag. */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--gx-space-8)' }}>
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setPickerOpen(!pickerOpen)}
-            className="card card-hover"
-            style={{ padding: 'var(--gx-space-4) var(--gx-space-7)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit' }}
-            title="Change role view"
-          >
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[role] }} />
-            <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{ROLE_LABEL[role]}</span>
-            {override && <span className="muted" style={{ fontSize: 'var(--gx-text-10)' }}>(override)</span>}
-            <ChevronDown size={12} />
-          </button>
-          {pickerOpen && (
-            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', minWidth: 200, zIndex: 100, padding: 'var(--gx-space-3)' }}>
-              {(['support','sales','tech','finance','admin','general'] as Role[]).map(r => (
-                <div
-                  key={r}
-                  onClick={() => {
-                    if (r === detectedRole) { setOverride(null); localStorage.removeItem(ROLE_OVERRIDE_KEY) }
-                    else { setOverride(r); localStorage.setItem(ROLE_OVERRIDE_KEY, r) }
-                    setPickerOpen(false)
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-4) var(--gx-space-6)', cursor: 'pointer', borderRadius: 'var(--gx-radius-xs)', background: r === role ? 'var(--gx-surface-2)' : 'transparent' }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[r] }} />
-                  <span style={{ fontSize: 'var(--gx-text-13)', flex: 1 }}>{ROLE_LABEL[r]}</span>
-                  {r === detectedRole && <span className="muted" style={{ fontSize: 'var(--gx-text-10)' }}>auto</span>}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Quick Action shortcuts */}
-      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', marginBottom: 'var(--gx-space-20)' }}>
-        {actions.map(({ label, icon: Icon, target, color }) => (
-          <button
-            key={label}
-            onClick={() => onAction(target)}
-            className="card card-hover"
-            style={{
-              padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-              cursor: 'pointer', border: 'none', font: 'inherit', color: 'inherit',
-              background: 'var(--gx-surface)',
-              borderLeft: `3px solid ${color}`,
-            }}
-          >
-            <Icon size={14} color={color} />
-            <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Urgent alerts band */}
-      {urgentItems.length > 0 && (
-        <div style={{ marginBottom: 'var(--gx-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
-          {urgentItems.map((u, i) => (
-            <div
-              key={i}
-              onClick={u.onClick}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-                padding: 'var(--gx-space-5) var(--gx-space-8)',
-                borderRadius: 'var(--gx-radius-sm)',
-                background: u.severity === 'red'
-                  ? 'var(--gx-danger-soft)'
-                  : 'var(--gx-warning-soft)',
-                border: `1px solid ${u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'}`,
-                cursor: u.onClick ? 'pointer' : 'default',
-              }}
-            >
-              <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'} />
-              <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{u.label}</span>
-            </div>
-          ))}
+      {/* Attention Center — the cockpit hero: what needs my action right now.
+          Always present; cascades to a positive "all clear" state when empty so
+          the page is never blank (the operational-cockpit rule). */}
+      <section aria-label="Requires your attention" style={{ marginBottom: 'var(--gx-space-8)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-5)' }}>
+          <AlertTriangle size={15} color={urgentItems.length > 0 ? 'var(--gx-warning)' : 'var(--gx-text-3)'} />
+          <h2 style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, margin: 0 }}>Requires your attention</h2>
+          {urgentItems.length > 0 && <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{urgentItems.length}</span>}
         </div>
-      )}
+        {urgentItems.length === 0 ? (
+          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-7) var(--gx-space-8)' }}>
+            <CheckSquare size={16} color="var(--gx-success-fg)" />
+            <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>You're clear — nothing needs your attention right now.</span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
+            {urgentItems.map((u, i) => (
+              <div
+                key={i}
+                role={u.onClick ? 'button' : undefined}
+                tabIndex={u.onClick ? 0 : undefined}
+                onClick={u.onClick}
+                onKeyDown={u.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); u.onClick?.() } } : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
+                  padding: 'var(--gx-space-5) var(--gx-space-8)',
+                  borderRadius: 'var(--gx-radius-sm)',
+                  background: u.severity === 'red' ? 'var(--gx-danger-soft)' : 'var(--gx-warning-soft)',
+                  border: `1px solid ${u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'}`,
+                  cursor: u.onClick ? 'pointer' : 'default',
+                }}
+              >
+                <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'} />
+                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{u.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Role-specific widgets */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
@@ -630,25 +517,6 @@ export default function HomeView({ token, onNavigate, capabilities }: {
         )}
       </div>
 
-      {/* Recent activity — common to all roles */}
-      <Widget icon={Activity} title="My Recent Activity">
-        {activity.state === 'loading' && <Skel rows={5} />}
-        {activity.state === 'hide' && <Empty msg="No recent activity" />}
-        {activity.state === 'ok' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-6)' }}>
-            {activity.value.slice(0, 8).map(a => (
-              <div key={a.id} className="card card-hover" style={{ padding: 'var(--gx-space-4) var(--gx-space-6)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
-                <Activity size={11} color="var(--gx-text-3)" />
-                <span style={{ flex: 1, fontSize: 'var(--gx-text-sm)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  <span style={{ color: 'var(--gx-text-2)' }}>{a.type}</span>
-                  {a.entity_key && <span style={{ color: 'var(--gx-link)' }}> {a.entity_key.replace(/_/g, ' ')}</span>}
-                </span>
-                <span className="muted" style={{ fontSize: 'var(--gx-text-11)', whiteSpace: 'nowrap' }}>{relTime(a.created_at)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Widget>
     </PageShell>
   )
 }
