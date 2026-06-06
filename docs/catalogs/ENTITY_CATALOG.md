@@ -4,8 +4,9 @@
 |---|---|
 | **Location** | `docs/catalogs/ENTITY_CATALOG.md` |
 | **Layer** | Catalog (between Standards and Implementation) |
-| **Status** | **PROVISIONAL — 2026-06-06.** Reverted from LOCKED at Gev's direction (LAW-GV6 push-back) pending the Prefix Registry Reconciliation pass. Lock is blocked until `PREFIX_RECONCILIATION_REPORT.md` is ratified and Std03 + IA8 §7.4 amended. |
-| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT · ✅ NORMALIZE · ⏸ LOCK BLOCKED (pending prefix reconciliation) |
+| **Status** | **LOCKED · RATIFIED · BASELINE ESTABLISHED — 2026-06-06.** Re-locked after LAW-GV1 amendment #3 (Prefix Registry Reconciliation) applied to Std03 + IA8 §7.4/§8 + this catalog + Matrix Part A. Zero remaining prefix conflicts (validated). |
+| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT (with reconciliation) · ✅ NORMALIZE · ✅ LOCK |
+| **Amendment #3 applied** | 2026-06-06 — CNX-/EPL-/SUB+SVC/SAC reconciliations + 14 backfills + ~46 prefix registrations expanded Std03 from 40 → 99 canonical prefixes. |
 | **Authority** | [`../governance/PROJECT_CONSTITUTION.md`](../governance/PROJECT_CONSTITUTION.md) → PRM → `03_INFORMATION_ARCHITECTURE.md` §8 → `09_DATA_ARCHITECTURE.md` §17 → Standards 03 + 14 |
 | **Amendments** | Only via LAW-GV1 of PROJECT_CONSTITUTION |
 
@@ -184,7 +185,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | EnvironmentConfig | Configuration | Administration | (none) | S | IA8.1, MtxA | (internal) | `Config.EnvironmentSet` | (none) | M1 |
 | EventEvidence | Audit | Administration | (none) | S | MtxA | (internal) | (immutable) | `/admin/audit-log` | M1 |
 | Exception | Governance | Administration | `EXC-` | P | IA8.1, MtxA | (governance API) | `Governance.ExceptionFiled` | `/admin/governance` | M1 |
-| **Event (DomainEvent)** | Event | Administration | `EVT-` | S | IA8.5 (no prefix), Std03 (EVT-) | `/api/v1/events/*` | (the event store itself) | `/admin/audit-log` | M1 · Std03 prefix EVT-; IA8.5 lists no prefix |
+| DomainEvent | Event | Administration | `EVT-` | S | IA8.5, MtxA, Std03 | `/api/v1/events/*` | (the event store itself) | `/admin/audit-log` | M1 · prefix harmonized in amendment #3 |
 | **Feature** | Entitlement | Administration | (none) | P | IA8.1, MtxA | `/api/v1/entitlements/*` | `Entitlement.FeatureToggled` | `/admin/plans-entitlements` | M1 |
 | **Feature Flag** | Entitlement | Administration | `FFL-` | P | Std03 (FFL-), model/feature_flag | `/api/v1/feature-flags/*` | `Feature.FlagCreated/Updated` | `/studio/feature-flags` | M1 · Std03 only — NEEDS IA8 row |
 | GovernanceBoard | Governance | Administration | (none) | P | MtxA | (governance API) | `Governance.BoardReviewed` | `/admin/governance` | M1 |
@@ -199,7 +200,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | MfaCredential | Identity | Administration | (none) | S | MtxA | `/api/v1/auth/*` | `Identity.MfaEnrolled` | `/admin/users` | M1 |
 | ModuleAccess | Entitlement | Administration | (none) | P | MtxA | `/api/v1/entitlements/*` | `Entitlement.ModuleAccessChanged` | `/admin/plans-entitlements` | M1 |
 | ModuleSetting | Configuration | Studio | (none) | S | IA8.1, MtxA | `/api/v1/config/*` | `Config.ModuleSettingChanged` | `/studio/...` | M1 |
-| **Plan** (Entitlement) | Entitlement | Administration | `PLN-` | P | IA8.1, MtxA, model/feature_flag | `/api/v1/plans/*` | `Entitlement.PlanCreated/Updated` | `/admin/plans-entitlements` | M1 · **CONFLICT**: same prefix as Product.Plan |
+| **EntitlementPlan** | Entitlement | Administration | `EPL-` | P | IA8.1, MtxA, Std03, model/feature_flag | `/api/v1/plans/*` | `Entitlement.PlanCreated/Updated` | `/admin/plans-entitlements` | M1 · resolved in amendment #3 (was Plan in PLN-; renamed for disambiguation) |
 | PolicyCondition | Policy | Studio | (none) | P | MtxA | (internal) | `Policy.ConditionUpdated` | `/studio/...` | M1 |
 | PolicyDefinition | Policy | Studio | (none) | P | IA8.1, MtxA | (internal) | `Policy.Defined` | `/studio/...` | M1 |
 | PolicyEvaluation | Policy | Studio | (none) | P | MtxA | (internal) | `Policy.Evaluated` | `/studio/...` | M1 |
@@ -211,11 +212,11 @@ Sorted by PRM tier, then alphabetically within tier.
 | RecurrenceRule | Time | Studio | (none) | P | IA8.1, MtxA | (config) | `Calendar.RecurrenceUpdated` | `/studio/...` | M1 |
 | ReferenceData | Data | (global) | (none) | P | MtxA | (internal) | (immutable mostly) | (n/a) | M1 · cross-tenant global |
 | RegulatoryEvidence | Compliance | Administration | (none) | P | MtxA | `/api/v1/compliance/*` | `Compliance.EvidenceRecorded` | `/admin/compliance` | M1 |
-| **Release** | Workflow / Change Mgmt | OSS | `RLE-` | P | Std03 (RLE-) | (change request flow) | `Change.ReleaseDeployed` | `/operations/changes` | **Std03 only — NEEDS IA8 row** |
+| Release | Workflow / Change Mgmt | OSS | `RLE-` | P | IA8.4, MtxA, Std03 | (change request flow) | `Change.ReleaseDeployed` | `/operations/changes` | M1 · backfilled into IA8.4 in amendment #3 |
 | RetentionPolicy | Compliance | Administration | `RTP-` | P | IA8.1, MtxA | `/api/v1/compliance/*` | `Compliance.RetentionUpdated` | `/admin/compliance` | M1 |
-| **Role** | Permission | Administration | `ROL-` | S | Std03 (ROL-), model/access | `/api/v1/roles/*` | `Permission.RoleAssigned` | `/admin/roles-permissions` | M1 · **Std03 only — NEEDS IA8 row** |
+| Role | Permission | Administration | `ROL-` | S | IA8.1, MtxA, Std03, model/access | `/api/v1/roles/*` | `Permission.RoleAssigned` | `/admin/roles-permissions` | M1 · backfilled into IA8.1 in amendment #3 |
 | Secret | Security | Administration | (none) | P | IA8.1, MtxA | (internal) | `Security.SecretAccessed` | `/admin/security` | M1 |
-| ServiceAccount | Identity | Administration | `SVA-` | S | IA8.1, MtxA | `/api/v1/users/*` | `Identity.ServiceAccountCreated` | `/admin/users` | M1 |
+| ServiceAccount | Identity | Administration | `SAC-` | S | IA8.1, MtxA, Std03 | `/api/v1/users/*` | `Identity.ServiceAccountCreated` | `/admin/users` | M1 · resolved in amendment #3 (was `SVA-`; ServiceArea keeps `SVA-`) |
 | ServiceStatus | Observability | Administration | (none) | P | MtxA | `/api/v1/health/*` | `Observability.StatusChanged` | `/admin/system-health` | M1 |
 | Session | Identity | Administration | (none) | S | IA8.1, MtxA, model/refresh_token | `/api/v1/auth/*` | `Identity.Session*` | (n/a) | M1 |
 | Shift | Time | Workforce | (none) | P | MtxA | (config / scheduling) | `Workforce.ShiftScheduled` | `/workforce/calendar` | M1 |
@@ -246,8 +247,8 @@ Sorted by PRM tier, then alphabetically within tier.
 | BusinessUnit | Organization | Workforce | (none) | S | IA8.2, MtxA | `/api/v1/org-nodes/*` | `Org.BusinessUnitUpdated` | `/workforce/team` | M1 |
 | City | Location | (global) | (none) | P | IA8.2, MtxA, model/region | (location API) | (immutable mostly) | `/network/sites` | M1 |
 | Contact | Party | CRM | `CON-` | P | IA8.2, MtxA, model/party | `/api/v1/contacts/*` | `Customer.ContactAdded` | `/customers/contacts` | M1 |
-| **Contract** | Contract | BSS | `CTR-` (IA8) / `CNT-` (Std03) | P | IA8.2, MtxA (CTR-), Std03 (CNT-) | `/api/v1/contracts/*` | `Contract.Signed/Amended/Renewed` | `/services/all`, `/admin/...` | **PREFIX CONFLICT**: IA8 CTR- collides with Contractor (CTR-) in same doc; Std03 says CNT- which collides with Connector |
-| **Contractor** | Party | Workforce | `CTR-` | P | IA8.2, MtxA, model/party | `/api/v1/employees/*` | `Party.ContractorAdded` | `/workforce/team` | **PREFIX CONFLICT**: same `CTR-` as Contract in IA8 |
+| **Contract** | Contract | BSS | `CNT-` | P | IA8.2, MtxA, Std03 | `/api/v1/contracts/*` | `Contract.Signed/Amended/Renewed` | `/services/all`, `/admin/...` | M1 · resolved in amendment #3 |
+| **Contractor** | Party | Workforce | `CTR-` | P | IA8.2, MtxA, model/party | `/api/v1/employees/*` | `Party.ContractorAdded` | `/workforce/team` | M1 · resolved in amendment #3 (Contract now CNT-) |
 | ContractTerm | Contract | BSS | (none) | P | IA8.2, MtxA | `/api/v1/contracts/*` | `Contract.TermAdded` | `/services/all` | M1 |
 | Country | Location | (global) | (none) | P | IA8.2, MtxA | (config) | (immutable) | (n/a) | M1 · global ref |
 | **Customer** | Party | CRM | `CUS-` | P | IA8.2, MtxA, model/party | `/api/v1/customers/*` | `Customer.Created/Updated/Archived` | `/customers/all`, `/portal/account` | M1 · STRONG |
@@ -259,7 +260,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | Floor | Location | Network | (none) | P | IA8.2, MtxA | (location API) | (rare) | `/network/sites` | M1 |
 | Household | Party | CRM | (none) | P | IA8.2, MtxA, model/party | `/api/v1/households/*` | `Customer.HouseholdLinked` | `/customers/households` | M1 |
 | IpPool | Resource | Network | `IPP-` | P | IA8.2, MtxA, model/ipam | `/api/v1/network/ip-pools/*` | `Resource.IpAllocated` | `/network/inventory` | M1 |
-| **Lead** | Party | CRM | `LED-` | P | Std03 (LED-), spec/DAILY-LOOP, routers/convert.py | `/api/v1/leads/*` | `Lead.Qualified`, `Lead.Converted` | `/customers/leads`, `/customers/pipeline` | M1 · **Std03 only — NEEDS IA8.2 row** |
+| Lead | Party | CRM | `LED-` | P | IA8.2, MtxA, Std03, spec/DAILY-LOOP, routers/convert.py | `/api/v1/leads/*` | `Lead.Qualified`, `Lead.Converted` | `/customers/leads`, `/customers/pipeline` | M1 · backfilled into IA8.2 in amendment #3 |
 | **Location (general)** | Location | (cross) | `LOC-` (Std03) / no prefix (IA8) | P | Std03 (LOC-), IA8.2 (split into sub-types only) | (location API) | `Location.Created` | `/network/sites` | **Std03 only as general — IA8 splits** |
 | MaintenanceJob | Work | Network | `MNT-` | S | IA8.2, MtxA | `/api/v1/work/*` | `Work.MaintenanceScheduled` | `/network/maintenance-windows` | M1 |
 | **Network Device (general)** | Resource | Network | `NDV-` (Std03) | P | Std03 (NDV-), IA8.2 splits into OLT/ONU/etc. | `/api/v1/network/resources/*` | `Resource.DeviceAdded` | `/network/inventory` | **PARENT CATEGORY** — IA8 uses sub-types |
@@ -267,7 +268,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | ONU | Resource | Network | `ONU-` | P | IA8.2, MtxA, model/cpe_binding | `/api/v1/network/onus/*` | `Resource.OnuProvisioned` | `/network/inventory` | M1 |
 | Partner | Party | CRM | `PRT-` | P | IA8.2, MtxA, model/party | `/api/v1/parties/*` | `Party.PartnerAdded` | `/customers/all` | M1 |
 | Person | Party | CRM | (none) | P | IA8.2, MtxA, model/party | `/api/v1/parties/*` | `Party.PersonAdded` | `/customers/all` | M1 |
-| Plan (Product) | Product | (cross) | `PLN-` | P | IA8.2, MtxA, model/product, spec/BILLING | `/api/v1/billing/products`, `/api/v1/tariff-plans` | `Product.PlanCreated/Priced` | `/services/catalog`, `/billing/pricing` | M1 · **CONFLICT** same prefix as Entitlement.Plan |
+| Plan (Product / Tariff) | Product | (cross) | `PLN-` | P | IA8.2, MtxA, model/product, spec/BILLING | `/api/v1/billing/products`, `/api/v1/tariff-plans` | `Product.PlanCreated/Priced` | `/services/catalog`, `/billing/pricing` | M1 · resolved in amendment #3 (Entitlement.Plan moved to EPL-) |
 | Product | Product | (cross) | `PRD-` | P | IA8.2, MtxA, model/product | `/api/v1/billing/products` | `Product.Created/Updated` | `/services/catalog` | M1 |
 | **Project** | Work | Workforce | `PRJ-` (Std03) | P | Std03 (PRJ-) | (work) | `Work.ProjectCreated` | `/workforce/...` | **Std03 only — NEEDS IA8 row** (IA8 has ProjectTask but not Project parent) |
 | ProjectTask | Work | Workforce | `PTK-` | S | IA8.2, MtxA, model/workitem | `/api/v1/tasks/*` | `Work.ProjectTask*` | `/workforce/field-jobs`, `/my-day/tasks` | M1 |
@@ -280,15 +281,15 @@ Sorted by PRM tier, then alphabetically within tier.
 | Resource (base) | Resource | Network | `RES-` | P | IA8.2, MtxA | `/api/v1/network/resources/*` | `Resource.Created/StatusChanged/Decommissioned` | `/network/inventory` | M1 |
 | Room | Location | Network | (none) | P | IA8.2, MtxA | (location API) | (rare) | `/network/inventory` | M1 |
 | Router | Resource | Network | `RTR-` | P | IA8.2, MtxA | `/api/v1/network/resources/*` | `Resource.RouterAdded` | `/network/inventory` | M1 |
-| ServiceArea | Location | Network | `SVA-` | P | IA8.2, MtxA | `/api/v1/service-areas/*` | `Location.ServiceAreaDefined` | `/network/sites` | M1 |
+| ServiceArea | Location | Network | `SVA-` | P | IA8.2, MtxA, Std03 | `/api/v1/service-areas/*` | `Location.ServiceAreaDefined` | `/network/sites` | M1 · preserved in amendment #3 (ServiceAccount moved to `SAC-`) |
 | ServiceInstance | Service | OSS | (subref) | P | IA8.2, MtxA, model/service | `/api/v1/services/*` | `Service.InstanceCreated/Updated` | `/services/all` | M1 |
 | ServiceTopology | Service | OSS | (none) | P | MtxA | `/api/v1/topology/*` | `Service.TopologyMapped` | `/services/topology` | M1 |
 | Site | Location | Network | `SIT-` | P | IA8.2, MtxA | `/api/v1/sites/*` | `Location.SiteCreated` | `/network/sites` | M1 |
 | SoftwareLicense | Resource | Administration | `LIC-` | P | IA8.2, MtxA | `/api/v1/inventory/licenses/*` | `Inventory.LicenseAssigned` | `/admin/...` | M1 |
 | Sop / Runbook | Knowledge | (cross) | `SOP-` | W | IA8.2, MtxA | `/api/v1/knowledge/*` | `Knowledge.SopPublished` | `/customers/knowledge` | FUTURE |
 | StockItem | Resource | Inventory | `STK-` | P | IA8.2, MtxA | `/api/v1/inventory/items/*` | `Inventory.StockLow` | `/inventory/items` | M1 |
-| **Subscription** | Service | OSS | `SUB-` (Std03) / `SVC-` (IA8 conflates) | P | IA8.2 (conflated with Service), Std03 (SUB- separate), MtxA, model/service | `/api/v1/subscriptions/*` | `Subscription.Started/Renewed/Cancelled` | `/services/subscriptions` | M1 · **ALIAS/SPLIT**: IA8 conflates with Service; Std03 separates |
-| **Subscription/Service** (IA8 single row) | Service | OSS | `SVC-` | P | IA8.2 (single row), MtxA | `/api/v1/services/*` | `Service.Activated/Suspended/Cancelled/Restored` | `/services/all` | M1 · **see also Subscription above** |
+| **Subscription** | Service | BSS | `SUB-` | P | IA8.2, MtxA, Std03, model/service | `/api/v1/subscriptions/*` | `Subscription.Started/Renewed/Cancelled` | `/services/subscriptions` | M1 · resolved in amendment #3 (split from ServiceInstance) |
+| **ServiceInstance** | Service | OSS | `SVC-` | P | IA8.2, MtxA, Std03 | `/api/v1/services/*` | `Service.Activated/Suspended/Cancelled/Restored` | `/services/all` | M1 · resolved in amendment #3 (split from Subscription) |
 | Switch | Resource | Network | `SWT-` | P | IA8.2, MtxA | `/api/v1/network/resources/*` | `Resource.SwitchAdded` | `/network/inventory` | M1 |
 | Task | Work | Workforce | `TSK-` | S | IA8.2, MtxA, model/task, Std14 | `/api/v1/tasks/*` | `Task.Created/Updated/Assigned/Completed` | `/my-day/tasks` | M1 · STRONG |
 | Team | Organization | Workforce | (none in IA8) / `TEM-` (Std03) | S | IA8.2 (no prefix), MtxA, Std03 (TEM-) | `/api/v1/teams/*` | `Org.TeamCreated` | `/workforce/team` | **PREFIX VARIANT** |
@@ -329,7 +330,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | CaseQueue | Case | OSS | (none in IA8) / `QUE-` (Std03) | P | IA8.4, MtxA, Std03 (QUE-) | `/api/v1/queues/*` | `Queue.AssignmentTriggered` | `/operations/cases` | **PREFIX VARIANT** |
 | ChangeRequest | Case | OSS | `CHG-` | P | IA8.4, MtxA, model/helpdesk | `/api/v1/changes/*` | `ChangeRequest.Proposed/Approved/Completed` | `/operations/changes`, `/network/changes` | M1 |
 | Comment | Communication | (cross) | `CMT-` | P | IA8.4, MtxA, model/comment, Std14 | `/api/v1/comments/*` | `Message.Posted`, `Communication.CommentAdded` | (per-entity tab) | M1 |
-| **Complaint** | Case | CRM | `CMP-` | P | IA8.4, MtxA | `/api/v1/cases/*` | `Complaint.Filed` | `/operations/cases` | M1 · **CONFLICT** with Std03 CMP=Campaign |
+| **Complaint** | Case | CRM | `CMP-` | P | IA8.4, MtxA, Std03 | `/api/v1/cases/*` | `Complaint.Filed` | `/operations/cases` | M1 · resolved in amendment #3 (Campaign now `CAM-`) |
 | Condition (Automation) | Automation | Studio | (none) | P | IA8.4, MtxA | (internal) | (per rule eval) | `/studio/automations` | M1 |
 | DeliveryStatus | Notification | (cross) | (none) | P | MtxA, model/notification | (internal) | `Notification.Delivered/Failed` | `/admin/...` | M1 |
 | DispatchSlot | Scheduling | Workforce | (none) | P | IA8.4, MtxA | `/api/v1/dispatch/*` | `Dispatch.SlotAssigned` | `/workforce/dispatch` | M1 |
@@ -370,7 +371,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | ApiLogEntry | Developer Platform | Administration | (none) | P | MtxA | (internal) | `Api.RequestLogged` | `/admin/developer-platform` | M1 |
 | AppRegistration | Developer Platform | Administration | (none) | P | MtxA | `/api/v1/developer/*` | `Developer.AppRegistered` | `/admin/developer-platform` | M1 |
 | BlobObject | Storage | Administration | (none) | P | IA8.5, MtxA | (storage internal) | `Storage.BlobUploaded` | (n/a) | M1 |
-| **Connector** | Integration | Automation | `CNT-` (IA8) | P | IA8.5, MtxA | `/api/v1/integrations/connectors/*` | `Integration.ConnectorCreated` | `/admin/integrations` | M1 · **CONFLICT** with Std03 CNT=Contract |
+| Connector | Integration | Automation | `CNX-` | P | IA8.5, MtxA, Std03 | `/api/v1/integrations/connectors/*` | `Integration.ConnectorCreated` | `/admin/integrations` | M1 · reassigned in amendment #3 (was `CNT-`; Contract now uses `CNT-`) |
 | CredentialReference | Integration | Automation | (none) | P | MtxA | (internal) | `Integration.CredentialBound` | `/admin/integrations` | M1 |
 | CustomField | Metadata | Studio | (none) | P | IA8.5, MtxA, model/meta | `/api/v1/meta/fields/*` | `Metadata.FieldCreated` | `/studio/entities-fields` | M1 |
 | DependencyGraph | Relationship | Network | (none) | P | IA8.5, MtxA | (internal) | `Relationship.GraphRebuilt` | `/network/topology` | M1 |
@@ -408,7 +409,7 @@ Sorted by PRM tier, then alphabetically within tier.
 | ValidationMetadata | Metadata | Studio | (none) | P | MtxA, model/meta | (internal) | `Metadata.ValidationDefined` | `/studio/...` | M1 |
 | ValidationPreview | Import/Export | Administration | (none) | P | MtxA | `/api/v1/admin/bulk/*` | `Import.PreviewRendered` | `/admin/imports-exports` | M1 |
 | VirusScanResult | Storage | Administration | (none) | P | MtxA | (internal) | `Storage.VirusScanCompleted` | (internal) | M1 |
-| **Webhook** | Integration | Automation | `WBH-` (IA8) / `WHK-` (Std03) | P | IA8.5, MtxA (WBH-), model/webhook, Std03 (WHK=) | `/api/v1/integrations/webhooks/*` | `Integration.WebhookReceived` | `/admin/integrations` | **PREFIX VARIANT** |
+| **Webhook** | Integration | Automation | `WHK-` | P | IA8.5, MtxA, model/webhook, Std03 | `/api/v1/integrations/webhooks/*` | `Integration.WebhookReceived` | `/admin/integrations` | M1 · resolved in amendment #3 (`WBH-` deprecated alias) |
 | Worker | Background Processing | Administration | (none) | P | MtxA | (internal) | `Worker.Started/Stopped` | `/admin/...` | M1 |
 
 ### 4.6 INTELLIGENCE tier
@@ -449,7 +450,7 @@ Sorted by PRM tier, then alphabetically within tier.
 
 | Entity | Core Owner | Domain | Prefix | Status | Canonical Source | Related APIs | Related Events | Related Pages | Notes |
 |---|---|---|---|---|---|---|---|---|---|
-| **App (Marketplace)** | Marketplace | Administration | `APP-` | M | IA8.7, MtxA | `/api/v1/marketplace/apps/*` | `Marketplace.AppInstalled` | `/admin/marketplace` | FUTURE · **CONFLICT** with Std03 APP=Approval |
+| **App (Marketplace)** | Marketplace | Administration | `APP-` | M | IA8.7, MtxA, Std03 | `/api/v1/marketplace/apps/*` | `Marketplace.AppInstalled` | `/admin/marketplace` | FUTURE · resolved in amendment #3 (Approval now `APR-`) |
 | AppEntitlement | Marketplace | Administration | (none) | M | MtxA | `/api/v1/marketplace/*` | `Marketplace.EntitlementGranted` | `/admin/marketplace` | FUTURE |
 | AppPermission | Marketplace | Administration | (none) | M | MtxA | `/api/v1/marketplace/*` | `Marketplace.PermissionDeclared` | `/admin/marketplace` | FUTURE |
 | AppReview | Marketplace | Administration | (none) | M | MtxA | `/api/v1/marketplace/*` | `Marketplace.ReviewCompleted` | `/admin/marketplace` | FUTURE |

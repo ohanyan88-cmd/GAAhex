@@ -42,18 +42,133 @@ Core principle: `ID ≠ Reference Number`. IDs are for systems; reference number
 10. Detail pages display Object Name + Reference Number.
 
 ### Prefix Registry (S5 + D8 — complete, no duplicates)
-```
-CUS=Customer        LED=Lead            EMP=Employee        ROL=Role
-DEP=Department      TEM=Team            QUE=Queue           TKT=Ticket
-TSK=Task            INV=Invoice         PAY=Payment         CNT=Contract
-ORD=Order           APP=Approval        PRJ=Project         AST=Asset
-SVC=Service         SUB=Subscription    NDV=Network Device  SIT=Site
-LOC=Location        VEN=Vendor          PUR=Purchase Order  KBA=Knowledge Article
-CHG=Change Request  INC=Incident        PRB=Problem         RLE=Release
-CMP=Campaign        COM=Communication   REL=Relationship    EVT=Event
-IMP=Import          EXP=Export          WFL=Workflow        SLA=SLA
-WHK=Webhook         CFG=Configuration   FFL=Feature Flag    JOB=Background Job
-```
+
+**Amended 2026-06-06 per LAW-GV1 amendment #3** (Prefix Registry Reconciliation;
+see `docs/catalogs/PREFIX_RECONCILIATION_REPORT.md`). The registry below is
+the **single authoritative source of truth** for reference-number prefixes.
+`03_INFORMATION_ARCHITECTURE.md` §7.4 mirrors this table; the catalogs derive
+from it.
+
+| Prefix | Entity | Owner Core | IA8 § |
+|---|---|---|---|
+| `ADD-` | AddOn | Product | §8.2 |
+| `AIA-` | AiAssistant | AI | §8.6 |
+| `AMD-` | Amendment | Contract | §8.2 |
+| `API-` | ApiClient | Identity | §8.1 |
+| `APP-` | App (Marketplace) | Marketplace | §8.7 |
+| `APR-` | ApprovalRequest | Approval | §8.4 |
+| `APT-` | Appointment | Scheduling | §8.4 |
+| `ATT-` | Attachment | Document | §8.4 |
+| `AUT-` | AutomationRule | Automation | §8.4 |
+| `BND-` | Bundle | Product | §8.2 |
+| `BRC-` | BreachRecord | SLA | §8.4 |
+| `CAM-` | Campaign | Party (Marketing — CRM) | §8.2 |
+| `CFG-` | Configuration | Configuration | §8.1 |
+| `CHG-` | ChangeRequest | Case | §8.4 |
+| `CMP-` | Complaint | Case | §8.4 |
+| `CMT-` | Comment | Communication | §8.4 |
+| `CNT-` | Contract | Contract | §8.2 |
+| `CNX-` | Connector | Integration | §8.5 |
+| `CON-` | Contact | Party | §8.2 |
+| `CRD-` | Credit | Financial | §8.3 |
+| `CTR-` | Contractor | Party | §8.2 |
+| `CUS-` | Customer | Party | §8.2 |
+| `DEP-` | Department | Organization | §8.2 |
+| `DNG-` | DunningRecord | Financial | §8.3 |
+| `DOC-` | Document | Document | §8.4 |
+| `EMP-` | Employee | Party | §8.2 |
+| `EPL-` | EntitlementPlan | Entitlement | §8.1 |
+| `EVT-` | DomainEvent | Event | §8.5 |
+| `EXC-` | Exception | Governance | §8.1 |
+| `EXE-` | Execution (Automation) | Automation | §8.4 |
+| `EXP-` | ExportJob | Import/Export | §8.5 |
+| `EXT-` | Extension | Marketplace | §8.7 |
+| `FAQ-` | Faq | Knowledge | §8.2 |
+| `FBR-` | Fiber | Resource | §8.2 |
+| `FFL-` | FeatureFlag | Entitlement | §8.1 |
+| `FJB-` | FieldJob | Work | §8.2 |
+| `FRC-` | ForecastRun | Forecasting | §8.6 |
+| `IMP-` | ImportJob | Import/Export | §8.5 |
+| `INC-` | Incident | Case | §8.4 |
+| `INV-` | Invoice | Financial | §8.3 |
+| `IPP-` | IpPool | Resource | §8.2 |
+| `JOB-` | ScheduledJob | Background Processing | §8.5 |
+| `KBA-` | Article (Knowledge) | Knowledge | §8.2 |
+| `LED-` | Lead | Party | §8.2 |
+| `LIC-` | SoftwareLicense | Resource | §8.2 |
+| `LOC-` | Location (parent) | Location | §8.2 |
+| `MNT-` | MaintenanceJob | Work | §8.2 |
+| `MSG-` | Message | Communication | §8.4 |
+| `NDV-` | NetworkDevice (parent) | Resource | §8.2 |
+| `NTF-` | NotificationRecord | Notification | §8.4 |
+| `OAP-` | OAuthApp | Developer Platform | §8.5 |
+| `OLT-` | OLT | Resource | §8.2 |
+| `ONU-` | ONU | Resource | §8.2 |
+| `ORD-` | Order | Financial | §8.3 |
+| `PAY-` | Payment | Financial | §8.3 |
+| `PLN-` | Plan (Product / Tariff) | Product | §8.2 |
+| `PRB-` | Problem | Case | §8.4 |
+| `PRD-` | Product | Product | §8.2 |
+| `PRJ-` | Project | Work | §8.2 |
+| `PRQ-` | PortalRequest | Portal | §8.7 |
+| `PRR-` | PrivacyRequest | Compliance | §8.1 |
+| `PRT-` | Partner | Party | §8.2 |
+| `PTK-` | ProjectTask | Work | §8.2 |
+| `PUR-` | PurchaseOrder | Resource / BSS | §8.2 |
+| `QUE-` | Queue (CaseQueue) | Case | §8.4 |
+| `QUO-` | Quote | Financial | §8.3 |
+| `REC-` | Recommendation | Decision Support | §8.6 |
+| `REL-` | EntityRelationship | Relationship | §8.5 |
+| `REN-` | Renewal | Contract | §8.2 |
+| `RES-` | Resource (base) | Resource | §8.2 |
+| `RLE-` | Release | Workflow / Change Mgmt | §8.4 |
+| `ROL-` | Role | Permission | §8.1 |
+| `RPS-` | ReportSchedule | Reporting | §8.6 |
+| `RPT-` | ReportDefinition | Reporting | §8.6 |
+| `RTP-` | RetentionPolicy | Compliance | §8.1 |
+| `RTR-` | Router | Resource | §8.2 |
+| `SAC-` | ServiceAccount | Identity | §8.1 |
+| `SCH-` | Schedule | Scheduling | §8.4 |
+| `SIT-` | Site | Location | §8.2 |
+| `SLA-` | SlaDefinition | SLA | §8.4 |
+| `SOP-` | Sop / Runbook | Knowledge | §8.2 |
+| `SRQ-` | ServiceRequest | Case | §8.4 |
+| `STK-` | StockItem | Resource | §8.2 |
+| `SUB-` | Subscription (commercial) | Service (BSS) | §8.2 |
+| `SVA-` | ServiceArea | Location | §8.2 |
+| `SVC-` | ServiceInstance (operational) | Service (OSS) | §8.2 |
+| `SWT-` | Switch | Resource | §8.2 |
+| `TEM-` | Team | Organization | §8.2 |
+| `THR-` | Thread | Communication | §8.4 |
+| `TKT-` | Ticket | Case | §8.4 |
+| `TLS-` | Tool | Resource | §8.2 |
+| `TNT-` | Tenant | Tenant | §8.1 |
+| `TPL-` | Template | Template | §8.5 |
+| `TSK-` | Task | Work | §8.2 |
+| `USR-` | User | Identity | §8.1 |
+| `VEN-` | Vendor | Party | §8.2 |
+| `VHC-` | Vehicle | Resource | §8.2 |
+| `WFI-` | WorkflowInstance | Workflow | §8.4 |
+| `WFL-` | WorkflowDefinition | Workflow | §8.4 |
+| `WHK-` | Webhook | Integration | §8.5 |
+| `WIT-` | WorkItem | Work | §8.2 |
+| `WO-`  | WorkOrder | Work | §8.2 |
+
+**Total: 99 active canonical prefixes.**
+
+#### Deprecated aliases (do not use for new entities)
+
+| Deprecated alias | Replaced by | Reason |
+|---|---|---|
+| `WBH-` | `WHK-` | Webhook prefix variant unified per amendment #3. Reference numbers already issued with `WBH-` (if any) remain immutable per Standard 03 rule 6; new issuance uses `WHK-`. |
+| `APP-` (was Approval) | `APR-` (Approval) + `APP-` (App/Marketplace) | Amendment #3 reassigned `APP-` to App (Marketplace per IA8 §8.7); Approval uses `APR-`. |
+| `CMP-` (was Campaign in Std03) | `CMP-` (Complaint) + `CAM-` (Campaign) | Amendment #3 reassigned `CMP-` to Complaint (IA8 §8.4); Campaign uses new `CAM-`. |
+| `CNT-` (was Connector in IA8 §8.5) | `CNT-` (Contract) + `CNX-` (Connector) | Amendment #3 reassigned `CNT-` to Contract (matches Std03); Connector uses new `CNX-`. |
+| `CTR-` (was Contract in IA8 §8.2) | `CNT-` (Contract) | Amendment #3 disambiguated intra-IA8 collision; Contractor keeps `CTR-`. |
+| `SVA-` (was ServiceAccount in IA8 §8.1) | `SAC-` (ServiceAccount) + `SVA-` (ServiceArea) | Amendment #3 disambiguated intra-IA8 collision; ServiceArea (user-facing) keeps `SVA-`; ServiceAccount uses new `SAC-`. |
+| `SVC-` (was Subscription/Service combined) | `SUB-` (Subscription, BSS) + `SVC-` (ServiceInstance, OSS) | Amendment #3 split per domain boundary. |
+| `PLN-` (was both Entitlement.Plan and Product.Plan) | `EPL-` (EntitlementPlan) + `PLN-` (Product Plan) | Amendment #3 disambiguated business concepts. |
+
 D8 note: `REL=Relationship` and `RLE=Release` are distinct; no prefix collision. Internal-only
 technical records (e.g. webhook delivery attempts, trace keys) may be UUID-only when not
 business-visible, stated explicitly per object.

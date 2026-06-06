@@ -4,7 +4,7 @@
 |---|---|
 | **Location** | `docs/catalogs/PREFIX_RECONCILIATION_REPORT.md` |
 | **Layer** | Catalog (reconciliation working document) |
-| **Status** | **PROPOSED — 2026-06-06.** Awaiting Gev's ratification of canonical prefixes per LAW-GV6 protocol. After ratification, amendments to `docs/standards/03-identity-reference-naming-enum-standards.md` and `docs/architecture/03_INFORMATION_ARCHITECTURE.md` §7.4 / §8 follow as LAW-GV1 amendment #3. |
+| **Status** | **APPLIED — 2026-06-06 as LAW-GV1 amendment #3.** Standard 03 prefix registry expanded from 40 → 99 entries; IA8 §7.4 mirrored; IA8 §8 entity rows updated; ENTITY_CATALOG.md re-locked with reconciled prefixes; CORE_OWNERSHIP_MATRIX.md Part A updated. Canonical: `CNX-` Connector / `EPL-` EntitlementPlan / `SUB-` Subscription / `SVC-` ServiceInstance / `SAC-` ServiceAccount / `SVA-` ServiceArea (per Gev's ratification). Zero remaining conflicts. |
 | **Authority chain** | `../governance/PROJECT_CONSTITUTION.md` → PRM → Std03 (LOCKED) + `03_INFORMATION_ARCHITECTURE.md` (LOCKED) |
 | **Trigger** | Conflicts surfaced during LAW-GV5 search for `ENTITY_CATALOG.md` (commit `5453651`). Gev directed (LAW-GV6) to halt Entity Catalog lock and run dedicated reconciliation before any downstream catalog work. |
 | **Blocks** | `ENTITY_CATALOG.md` final lock until this report is ratified and source docs amended. |

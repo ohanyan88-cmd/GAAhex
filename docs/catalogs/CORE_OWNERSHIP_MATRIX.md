@@ -136,7 +136,7 @@ MISSING · **R** = RESERVED.
 | Metric | Observability | Administration | (none) | P |
 | ModuleAccess | Entitlement | Administration | (none) | P |
 | ModuleSetting | Configuration | Studio | (none) | S |
-| Plan | Entitlement | Administration | `PLN-` | P |
+| EntitlementPlan | Entitlement | Administration | `EPL-` | P |
 | PolicyCondition | Policy | Studio | (none) | P |
 | PolicyDefinition | Policy | Studio | (none) | P |
 | PolicyEvaluation | Policy | Studio | (none) | P |
@@ -150,7 +150,7 @@ MISSING · **R** = RESERVED.
 | RegulatoryEvidence | Compliance | Administration | (none) | P |
 | RetentionPolicy | Compliance | Administration | `RTP-` | P |
 | Secret | Security | Administration | (none) | P |
-| ServiceAccount | Identity | Administration | `SVA-` | S |
+| ServiceAccount | Identity | Administration | `SAC-` | S |
 | ServiceStatus | Observability | Administration | (none) | P |
 | Session | Identity | Administration | (none) | S |
 | Shift | Time | Studio | (none) | P |
@@ -181,7 +181,7 @@ MISSING · **R** = RESERVED.
 | BusinessUnit | Organization | Workforce | (none) | S |
 | City | Location | (global) | (none) | P |
 | Contact | Party | CRM | `CON-` | P |
-| Contract | Contract | BSS | `CTR-` | P |
+| Contract | Contract | BSS | `CNT-` | P |
 | ContractTerm | Contract | BSS | (none) | P |
 | Contractor | Party | Workforce | `CTR-` | P |
 | Country | Location | (global) | (none) | P |
@@ -216,7 +216,8 @@ MISSING · **R** = RESERVED.
 | SoftwareLicense | Resource | Administration | `LIC-` | P |
 | Sop / Runbook | Knowledge | (cross) | `SOP-` | W |
 | StockItem | Resource | Inventory | `STK-` | P |
-| Subscription / Service | Service | OSS | `SVC-` | P |
+| Subscription | Service | BSS | `SUB-` | P |
+| ServiceInstance | Service | OSS | `SVC-` | P |
 | Switch | Resource | Network | `SWT-` | P |
 | Task | Work | Workforce | `TSK-` | S |
 | Team | Organization | Workforce | (none) | S |
@@ -298,7 +299,7 @@ MISSING · **R** = RESERVED.
 | ApiLogEntry | Developer Platform | Administration | (none) | P |
 | AppRegistration | Developer Platform | Administration | (none) | P |
 | BlobObject | Storage | Administration | (none) | P |
-| Connector | Integration | Automation | `CNT-` | P |
+| Connector | Integration | Automation | `CNX-` | P |
 | CredentialReference | Integration | Automation | (none) | P |
 | CustomField | Metadata | Studio | (none) | P |
 | DependencyGraph | Relationship | Network | (none) | P |
@@ -336,7 +337,7 @@ MISSING · **R** = RESERVED.
 | ValidationMetadata | Metadata | Studio | (none) | P |
 | ValidationPreview | Import/Export | Administration | (none) | P |
 | VirusScanResult | Storage | Administration | (none) | P |
-| Webhook | Integration | Automation | `WBH-` | P |
+| Webhook | Integration | Automation | `WHK-` | P |
 | Worker | Background Processing | Administration | (none) | P |
 
 ## A.6 INTELLIGENCE tier entities

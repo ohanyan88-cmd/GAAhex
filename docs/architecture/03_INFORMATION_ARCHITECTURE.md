@@ -291,62 +291,122 @@ collapse into one field.
 
 ### 7.4 Reference-number prefixes
 
-Canonical prefixes (extracted from standards 13 and 14 — extend in PRs that
-add cores):
+**Amended 2026-06-06 per LAW-GV1 amendment #3.** The canonical prefix
+registry lives at `docs/standards/03-identity-reference-naming-enum-standards.md`
+§ Prefix Registry — that document is now the **single authoritative source
+of truth**. This §7.4 mirrors it byte-for-byte; in the event of any drift,
+Standard 03 governs.
 
-| Entity                | Prefix  |
-|-----------------------|---------|
-| Tenant                | `TNT-`  |
-| User                  | `USR-`  |
-| Employee              | `EMP-`  |
-| Customer              | `CUS-`  |
-| Contact               | `CON-`  |
-| Vendor                | `VEN-`  |
-| Partner               | `PRT-`  |
-| Site                  | `SIT-`  |
-| ServiceArea           | `SVA-`  |
-| Resource              | `RES-`  |
-| OLT                   | `OLT-`  |
-| ONU                   | `ONU-`  |
-| Fiber                 | `FBR-`  |
-| IpPool                | `IPP-`  |
-| Vehicle               | `VHC-`  |
-| StockItem             | `STK-`  |
-| Product               | `PRD-`  |
-| Plan                  | `PLN-`  |
-| Service / Subscription| `SVC-`  |
-| Contract              | `CTR-`  |
-| Quote                 | `QUO-`  |
-| Order                 | `ORD-`  |
-| Invoice               | `INV-`  |
-| Payment               | `PAY-`  |
-| Credit                | `CRD-`  |
-| Ticket                | `TKT-`  |
-| Incident              | `INC-`  |
-| Problem               | `PRB-`  |
-| ChangeRequest         | `CHG-`  |
-| ServiceRequest        | `SRQ-`  |
-| Task                  | `TSK-`  |
-| WorkOrder             | `WO-`   |
-| FieldJob              | `FJB-`  |
-| Workflow Definition   | `WFL-`  |
-| Workflow Instance     | `WFI-`  |
-| Relationship          | `REL-`  |
-| Document              | `DOC-`  |
-| Attachment            | `ATT-`  |
-| AutomationRule        | `AUT-`  |
-| ApprovalRequest       | `APR-`  |
-| Notification          | `NTF-`  |
-| Report                | `RPT-`  |
-| ScheduledJob          | `JOB-`  |
-| Webhook               | `WBH-`  |
-| Article (Knowledge)   | `KBA-`  |
-| Template              | `TPL-`  |
-| App (Marketplace)     | `APP-`  |
-| Forecast              | `FRC-`  |
+| Prefix | Entity | Owner Core |
+|---|---|---|
+| `ADD-` | AddOn | Product |
+| `AIA-` | AiAssistant | AI |
+| `AMD-` | Amendment | Contract |
+| `API-` | ApiClient | Identity |
+| `APP-` | App (Marketplace) | Marketplace |
+| `APR-` | ApprovalRequest | Approval |
+| `APT-` | Appointment | Scheduling |
+| `ATT-` | Attachment | Document |
+| `AUT-` | AutomationRule | Automation |
+| `BND-` | Bundle | Product |
+| `BRC-` | BreachRecord | SLA |
+| `CAM-` | Campaign | Party (CRM Marketing) |
+| `CFG-` | Configuration | Configuration |
+| `CHG-` | ChangeRequest | Case |
+| `CMP-` | Complaint | Case |
+| `CMT-` | Comment | Communication |
+| `CNT-` | Contract | Contract |
+| `CNX-` | Connector | Integration |
+| `CON-` | Contact | Party |
+| `CRD-` | Credit | Financial |
+| `CTR-` | Contractor | Party |
+| `CUS-` | Customer | Party |
+| `DEP-` | Department | Organization |
+| `DNG-` | DunningRecord | Financial |
+| `DOC-` | Document | Document |
+| `EMP-` | Employee | Party |
+| `EPL-` | EntitlementPlan | Entitlement |
+| `EVT-` | DomainEvent | Event |
+| `EXC-` | Exception | Governance |
+| `EXE-` | Execution (Automation) | Automation |
+| `EXP-` | ExportJob | Import/Export |
+| `EXT-` | Extension | Marketplace |
+| `FAQ-` | Faq | Knowledge |
+| `FBR-` | Fiber | Resource |
+| `FFL-` | FeatureFlag | Entitlement |
+| `FJB-` | FieldJob | Work |
+| `FRC-` | ForecastRun | Forecasting |
+| `IMP-` | ImportJob | Import/Export |
+| `INC-` | Incident | Case |
+| `INV-` | Invoice | Financial |
+| `IPP-` | IpPool | Resource |
+| `JOB-` | ScheduledJob | Background Processing |
+| `KBA-` | Article (Knowledge) | Knowledge |
+| `LED-` | Lead | Party |
+| `LIC-` | SoftwareLicense | Resource |
+| `LOC-` | Location (parent) | Location |
+| `MNT-` | MaintenanceJob | Work |
+| `MSG-` | Message | Communication |
+| `NDV-` | NetworkDevice (parent) | Resource |
+| `NTF-` | NotificationRecord | Notification |
+| `OAP-` | OAuthApp | Developer Platform |
+| `OLT-` | OLT | Resource |
+| `ONU-` | ONU | Resource |
+| `ORD-` | Order | Financial |
+| `PAY-` | Payment | Financial |
+| `PLN-` | Plan (Product / Tariff) | Product |
+| `PRB-` | Problem | Case |
+| `PRD-` | Product | Product |
+| `PRJ-` | Project | Work |
+| `PRQ-` | PortalRequest | Portal |
+| `PRR-` | PrivacyRequest | Compliance |
+| `PRT-` | Partner | Party |
+| `PTK-` | ProjectTask | Work |
+| `PUR-` | PurchaseOrder | Resource / BSS |
+| `QUE-` | Queue (CaseQueue) | Case |
+| `QUO-` | Quote | Financial |
+| `REC-` | Recommendation | Decision Support |
+| `REL-` | EntityRelationship | Relationship |
+| `REN-` | Renewal | Contract |
+| `RES-` | Resource (base) | Resource |
+| `RLE-` | Release | Workflow / Change Mgmt |
+| `ROL-` | Role | Permission |
+| `RPS-` | ReportSchedule | Reporting |
+| `RPT-` | ReportDefinition | Reporting |
+| `RTP-` | RetentionPolicy | Compliance |
+| `RTR-` | Router | Resource |
+| `SAC-` | ServiceAccount | Identity |
+| `SCH-` | Schedule | Scheduling |
+| `SIT-` | Site | Location |
+| `SLA-` | SlaDefinition | SLA |
+| `SOP-` | Sop / Runbook | Knowledge |
+| `SRQ-` | ServiceRequest | Case |
+| `STK-` | StockItem | Resource |
+| `SUB-` | Subscription (commercial) | Service (BSS) |
+| `SVA-` | ServiceArea | Location |
+| `SVC-` | ServiceInstance (operational) | Service (OSS) |
+| `SWT-` | Switch | Resource |
+| `TEM-` | Team | Organization |
+| `THR-` | Thread | Communication |
+| `TKT-` | Ticket | Case |
+| `TLS-` | Tool | Resource |
+| `TNT-` | Tenant | Tenant |
+| `TPL-` | Template | Template |
+| `TSK-` | Task | Work |
+| `USR-` | User | Identity |
+| `VEN-` | Vendor | Party |
+| `VHC-` | Vehicle | Resource |
+| `WFI-` | WorkflowInstance | Workflow |
+| `WFL-` | WorkflowDefinition | Workflow |
+| `WHK-` | Webhook | Integration |
+| `WIT-` | WorkItem | Work |
+| `WO-`  | WorkOrder | Work |
 
-Adding an entity is a constitution-amendment-light: it adds a row here and a
-row in `09_DATA_ARCHITECTURE.md`.
+**Total: 99 canonical prefixes.** Deprecated aliases (`WBH-`, intra-doc
+collisions resolved in amendment #3) are recorded in Standard 03.
+
+Adding an entity is a LAW-GV1 amendment: it adds a row to Standard 03,
+mirrors here, and adds a canonical row in §8.
 
 ### 7.5 Cross-cutting enums
 
@@ -377,9 +437,10 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Tenant              | Tenant        | Admin   | `TNT-` |
 | TenantProfile       | Tenant        | Admin   | (none) |
 | User                | Identity      | Admin   | `USR-` |
-| ServiceAccount      | Identity      | Admin   | `SVA-` |
+| ServiceAccount      | Identity      | Admin   | `SAC-` |
 | ApiClient           | Identity      | Admin   | `API-` |
 | Session             | Identity      | Admin   | (none) |
+| Role                | Permission    | Admin   | `ROL-` |
 | Secret              | Security      | Admin   | (none) |
 | EncryptionKey       | Security      | Admin   | (none) |
 | RateLimitPolicy     | Security      | Admin   | (none) |
@@ -391,9 +452,11 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | TenantSetting       | Configuration | Studio  | (none) |
 | ModuleSetting       | Configuration | Studio  | (none) |
 | EnvironmentConfig   | Configuration | Admin   | (none) |
+| Configuration       | Configuration | Studio  | `CFG-` |
 | PolicyDefinition    | Policy        | Studio  | (none) |
-| Plan                | Entitlement   | Admin   | `PLN-` |
+| EntitlementPlan     | Entitlement   | Admin   | `EPL-` |
 | Feature             | Entitlement   | Admin   | (none) |
+| FeatureFlag         | Entitlement   | Admin   | `FFL-` |
 | Quota               | Entitlement   | Admin   | (none) |
 | HealthCheck         | Observability | Admin   | (none) |
 | Metric              | Observability | Admin   | (none) |
@@ -409,6 +472,8 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Entity              | Owner Core    | Domain  | Prefix |
 |---------------------|---------------|---------|--------|
 | Customer            | Party         | CRM     | `CUS-` |
+| Lead                | Party         | CRM     | `LED-` |
+| Campaign            | Party         | CRM     | `CAM-` |
 | Person              | Party         | CRM     | (none) |
 | Contact             | Party         | CRM     | `CON-` |
 | Employee            | Party         | WF      | `EMP-` |
@@ -416,12 +481,13 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Vendor              | Party         | (Inv)   | `VEN-` |
 | Contractor          | Party         | WF      | `CTR-` |
 | BusinessUnit        | Organization  | WF      | (none) |
-| Department          | Organization  | WF      | (none) |
-| Team                | Organization  | WF      | (none) |
+| Department          | Organization  | WF      | `DEP-` |
+| Team                | Organization  | WF      | `TEM-` |
 | Branch              | Organization  | WF      | (none) |
 | Country             | Location      | global  | (none) |
 | Region              | Location      | global  | (none) |
 | City                | Location      | global  | (none) |
+| Location (general)  | Location      | (cross) | `LOC-` |
 | Site                | Location      | Network | `SIT-` |
 | Building            | Location      | Network | (none) |
 | Floor               | Location      | Network | (none) |
@@ -429,6 +495,7 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Rack                | Location      | Network | (none) |
 | ServiceArea         | Location      | Network | `SVA-` |
 | Resource (base)     | Resource      | Network | `RES-` |
+| NetworkDevice (parent)| Resource    | Network | `NDV-` |
 | OLT                 | Resource      | Network | `OLT-` |
 | ONU                 | Resource      | Network | `ONU-` |
 | Router              | Resource      | Network | `RTR-` |
@@ -439,17 +506,19 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Vehicle             | Resource      | Inv     | `VHC-` |
 | Tool                | Resource      | Inv     | `TLS-` |
 | SoftwareLicense     | Resource      | Admin   | `LIC-` |
-| Product             | Product       | (catalog)| `PRD-`|
-| Plan                | Product       | (catalog)| `PLN-`|
-| Bundle              | Product       | (catalog)| `BND-`|
-| AddOn               | Product       | (catalog)| `ADD-`|
-| Subscription/Service| Service       | OSS     | `SVC-` |
-| ServiceInstance     | Service       | OSS     | (subref) |
+| PurchaseOrder       | Resource      | Inv/BSS | `PUR-` |
+| Product             | Product       | (cross) | `PRD-`|
+| Plan                | Product       | (cross) | `PLN-`|
+| Bundle              | Product       | (cross) | `BND-`|
+| AddOn               | Product       | (cross) | `ADD-`|
+| Subscription        | Service       | BSS     | `SUB-` |
+| ServiceInstance     | Service       | OSS     | `SVC-` |
 | ProvisioningState   | Service       | OSS     | (none) |
-| Contract            | Contract      | BSS     | `CTR-` |
+| Contract            | Contract      | BSS     | `CNT-` |
 | ContractTerm        | Contract      | BSS     | (none) |
 | Amendment           | Contract      | BSS     | `AMD-` |
 | Renewal             | Contract      | BSS     | `REN-` |
+| Project             | Work          | WF      | `PRJ-` |
 | Task                | Work          | WF      | `TSK-` |
 | WorkItem            | Work          | WF      | `WIT-` |
 | WorkOrder           | Work          | WF      | `WO-`  |
@@ -487,7 +556,8 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Complaint         | Case         | CRM      | `CMP-` |
 | Problem           | Case         | OSS      | `PRB-` |
 | ChangeRequest     | Case         | OSS      | `CHG-` |
-| CaseQueue         | Case         | OSS      | (none) |
+| CaseQueue         | Case         | OSS      | `QUE-` |
+| Release           | Workflow/Change | OSS    | `RLE-` |
 | WorkflowDefinition| Workflow     | Studio   | `WFL-` |
 | WorkflowInstance  | Workflow     | (any)    | `WFI-` |
 | State             | Workflow     | Studio   | (none) |
@@ -534,11 +604,11 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | SearchIndex             | Search               | Admin   | (none) |
 | SavedFilter             | Search               | (any)   | (none) |
 | SavedView               | Search               | (any)   | (none) |
-| DomainEvent             | Event                | (any)   | (none) |
+| DomainEvent             | Event                | (any)   | `EVT-` |
 | EventStoreEntry         | Event                | Admin   | (none) |
 | EventSchemaRegistration | Event                | Admin   | (none) |
-| Connector               | Integration          | Auto    | `CNT-` |
-| Webhook                 | Integration          | Auto    | `WBH-` |
+| Connector               | Integration          | Auto    | `CNX-` |
+| Webhook                 | Integration          | Auto    | `WHK-` |
 | SyncJob                 | Integration          | Auto    | (none) |
 | MappingRule             | Integration          | Studio  | (none) |
 | ApiKey                  | Developer Platform   | Admin   | (none) |
