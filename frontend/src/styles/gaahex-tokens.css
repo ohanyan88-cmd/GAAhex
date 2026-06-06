@@ -310,6 +310,8 @@
 
   /* In-header search box width cap (Zone A search slot, and reusable elsewhere). */
   --gx-search-w:        360px;
+  /* Glyph size inside the 36px header icon box (box itself unchanged). */
+  --gx-header-icon-size: 22px;
 
   /* ── BREAKPOINTS (T-P3-2) — canonical viewport widths. CSS doesn't allow
      custom properties inside @media queries directly, so these are reference

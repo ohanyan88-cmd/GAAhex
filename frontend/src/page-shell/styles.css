@@ -114,6 +114,8 @@
   border: 1px solid var(--gx-border);
   color: var(--gx-text-2);
 }
+/* Bigger glyph inside the (unchanged) icon box — overrides each view's icon size prop. */
+.ps-header-icon svg { width: var(--gx-header-icon-size); height: var(--gx-header-icon-size); }
 
 .ps-header-titles {
   display: flex;
