@@ -54,6 +54,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
 
   s('workspace', 'Workspace', HomeIcon, [
     i('ws-home',           'Home',             HomeIcon,     'home'),
+    i('ws-ask',            'Ask Me',           SparkleIcon,  'ask'),
     i('ws-my-work',        'My Work',          CheckIcon,    'mytasks'),
     i('ws-team',           'Team Workspace',   UsersIcon,    'team-workspace'),
     i('ws-communications', 'Communications',   MessageIcon,  'messages'),
@@ -90,6 +91,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('noc-incidents',           'Incidents & Outages',      ShieldIcon,   'entity', { slug: 'incidents' }),
     i('noc-infra-projects',      'Infrastructure Projects',  LayersIcon,   'coming-soon', { id: 'infrastructure-projects', title: 'Infrastructure Projects', parent: 'Tech & NOC' }),
     i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'network-inventory'),
+    i('noc-topology',            'Network Topology',         ServerIcon,   'network-topology'),
   ]),
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -142,10 +144,6 @@ export const NAV_SECTIONS: NavSectionDef[] = [
         i('sys-settings',             'Settings',              GearIcon,   'settings'),
         i('sys-integrations',         'Integrations',          LayersIcon, 'webhooks'),
         i('sys-notifications-config', 'Notifications Config',  MailIcon,   'entity', { slug: 'notification-rules' }),
-      ]),
-
-      s('dev_internals', 'Dev Internals', LayersIcon, [
-        i('dev-master-layout', 'Master Layout Demo', LayersIcon, 'master-demo'),
       ]),
 
       s('studio', 'Studio', SparkleIcon, [

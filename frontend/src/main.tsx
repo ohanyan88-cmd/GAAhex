@@ -14,7 +14,6 @@ import './styles/tailwind.css'
 import './styles/styles.css'
 import './styles/studio.css'
 import './styles/_nms.css'
-import './layout/master-layout.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

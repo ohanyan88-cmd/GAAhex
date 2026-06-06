@@ -104,7 +104,7 @@ export default function AskGaaexView({ token }: { token: string }) {
       type="COMMUNICATION"
       breadcrumb={['Analytics & AI', t('ask.title', 'Ask GAAhex')]}
       icon={<SparkleIcon size={18} />}
-      title={t('ask.title', 'Ask GAAhex')}
+      title={t('ask.titleShort', 'Ask Me')}
       subtitle={status?.live ? `${t('ask.brain', 'AI')} · ${status.provider}` : brain}
       statusSummary={{
         label: status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain,

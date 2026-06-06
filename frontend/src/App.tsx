@@ -17,13 +17,11 @@ import PaymentMethodsView from './views/PaymentMethodsView'
 import SubscriptionsView from './views/SubscriptionsView'
 import ProductsView from './views/ProductsView'
 import TariffPlansView from './views/TariffPlansView'
-import ReportBuilderView from './views/ReportBuilderView'
 import WebhooksView from './views/WebhooksView'
 import ServicesView from './views/ServicesView'
 import UsageView from './views/UsageView'
 import ResourcePoolsView from './views/ResourcePoolsView'
 import AccountsView from './views/AccountsView'
-import PartiesView from './views/PartiesView'
 import AnalyticsView from './views/AnalyticsView'
 import PipelineView from './views/PipelineView'
 import CustomerView from './views/CustomerView'
@@ -44,15 +42,11 @@ import OrdersView from './views/OrdersView'
 import RevenueAssuranceView from './views/RevenueAssuranceView'
 import CollectionsView from './views/CollectionsView'
 import HomeView from './views/HomeView'
-import MasterLayoutDemoView from './views/MasterLayoutDemoView'
 import ComingSoonView from './views/ComingSoonView'
-import GlobalSearchView from './views/GlobalSearchView'
-import RecentItemsView from './views/RecentItemsView'
 import TeamWorkspaceView from './views/TeamWorkspaceView'
 import NetworkTopologyView from './views/NetworkTopologyView'
 import NetworkInventoryView from './views/NetworkInventoryView'
 import ProvisioningView from './views/ProvisioningView'
-import SchedulingView from './views/SchedulingView'
 import DispatchBoardView from './views/DispatchBoardView'
 import InstallationBoardView from './views/InstallationBoardView'
 import CoverageView from './views/CoverageView'
@@ -90,12 +84,10 @@ type View =
   | { type: 'products' }
   | { type: 'tariff-plans' }
   | { type: 'usage' }
-  | { type: 'report-builder' }
   | { type: 'webhooks' }
   | { type: 'services' }
   | { type: 'resource-pools' }
   | { type: 'accounts' }
-  | { type: 'parties' }
   | { type: 'analytics' }
   | { type: 'lead-pipeline' }
   | { type: 'customer'; id: string }
@@ -110,18 +102,14 @@ type View =
   | { type: 'orders' }
   | { type: 'revenue-assurance' }
   | { type: 'collections' }
-  | { type: 'global-search' }
-  | { type: 'recent-items' }
   | { type: 'team-workspace' }
   | { type: 'network-topology' }
   | { type: 'network-inventory' }
   | { type: 'provisioning' }
-  | { type: 'scheduling' }
   | { type: 'dispatch-board' }
   | { type: 'installation-board' }
   | { type: 'coverage-gis' }
   | { type: 'noc-dashboard' }
-  | { type: 'master-demo' }
   | { type: 'coming-soon'; id: string; title: string; parent: string }
   | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
@@ -435,27 +423,6 @@ export default function App() {
     )
   }
 
-  // Master Layout demo: owns the whole viewport (its own Zone 0 replaces the legacy topbar
-  // and sidebar). Early-return before the legacy shell renders.
-  if (view.type === 'master-demo' && user) {
-    const initials = (user.name || user.email || '?')
-      .split(/\s+/)
-      .map((s) => s[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase()
-    return (
-      <MasterLayoutDemoView
-        tenantInitials="DI"
-        tenantName="Demo ISP"
-        userInitials={initials || 'U'}
-        userName={user.name || user.email}
-        userRole={user.can_configure ? 'Administrator' : 'Member'}
-        onExit={() => setView({ type: 'home' })}
-      />
-    )
-  }
 
   // Entities not covered by built-in nav items (Studio-created custom entities)
   const extraEntities = entities.filter((e) => !BUILTIN_ENTITY_SLUGS.has(e.route_slug))
@@ -672,10 +639,6 @@ export default function App() {
                   />
               : view.type === 'my-approvals'
                 ? <MyApprovalsView token={token} />
-              : view.type === 'global-search'
-                ? <GlobalSearchView token={token} onNavigate={(slug) => setView({ type: 'entity', slug })} />
-              : view.type === 'recent-items'
-                ? <RecentItemsView token={token} onNavigate={(entityKey) => setView({ type: 'entity', slug: entityKey.replace(/_/g, '-') + 's' })} />
               : view.type === 'team-workspace'
                 ? <TeamWorkspaceView token={token} />
               : view.type === 'network-topology'
@@ -684,8 +647,6 @@ export default function App() {
                 ? <NetworkInventoryView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'provisioning'
                 ? <ProvisioningView token={token} />
-              : view.type === 'scheduling'
-                ? <SchedulingView token={token} />
               : view.type === 'dispatch-board'
                 ? <DispatchBoardView token={token} />
               : view.type === 'installation-board'
@@ -710,8 +671,6 @@ export default function App() {
                 ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'tariff-plans'
                 ? <TariffPlansView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'report-builder'
-                ? <ReportBuilderView token={token} entities={entities} />
               : view.type === 'webhooks'
                 ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />
               : view.type === 'services'
@@ -722,8 +681,6 @@ export default function App() {
                 ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'accounts'
                 ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'parties'
-                ? <PartiesView token={token} canConfigure={!!user?.can_configure} />
               : view.type === 'helpdesk'
                 ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} capabilities={capabilities} initialStatus={view.initialStatus} openTicketId={view.initialOpenTicketId} />
               : view.type === 'workitems'

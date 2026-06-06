@@ -18,8 +18,8 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
   hy: {
     'nav.workspace': 'Աշխատանք', 'nav.org': 'Կազմ. ծառ', 'nav.dashboards': 'Վահանակներ',
     'nav.reports': 'Հաշվետվություններ', 'nav.messages': 'Հաղորդագրություններ', 'nav.activity': 'Ակտիվություն',
-    'nav.reportBuilder': 'Հաշվ. կառուցիչ', 'nav.customers': 'Հաճախորդներ', 'nav.accounts': 'Հաշիվներ',
-    'nav.parties': 'Կողմեր', 'nav.billing': 'Վճարումներ', 'nav.invoices': 'Ապրանքագրեր',
+    'nav.customers': 'Հաճախորդներ', 'nav.accounts': 'Հաշիվներ',
+    'nav.billing': 'Վճարումներ', 'nav.invoices': 'Ապրանքագրեր',
     'nav.subscriptions': 'Բաժանորդագրումներ', 'nav.products': 'Ապրանքներ', 'nav.usage': 'Օգտագործում',
     'nav.service': 'Ծառայություն', 'nav.services': 'Ծառայություններ',
     'nav.records': 'Գրառումներ', 'nav.admin': 'Կառավարում', 'nav.studio': 'Ստուդիա', 'nav.analytics': 'Անալիտիկա',
@@ -37,7 +37,6 @@ const BUNDLED: Record<Lang, Record<string, string>> = {
     'auth.signin': 'Մուտք', 'auth.email': 'էլ. փոստ', 'auth.password': 'գաղտնաբառ',
     'accounts.new': '+ Նոր հաշիվ', 'accounts.holder': 'Կրող կողմ', 'accounts.type': 'Տեսակ',
     'accounts.currency': 'Արժույթ', 'accounts.cycle': 'Ցիկլ', 'accounts.empty': 'Հաշիվներ չկան',
-    'parties.new': '+ Նոր կողմ', 'parties.type': 'Տեսակ', 'parties.parent': 'Ծնող', 'parties.empty': 'Կողմեր չկան',
     // B19 — settings
     'nav.settings': 'Կարգավորումներ',
     'common.next': 'Հաջորդ', 'common.back': 'Հետ', 'common.done': 'Պատրաստ է', 'common.saving': 'Պահպանվում է…',
