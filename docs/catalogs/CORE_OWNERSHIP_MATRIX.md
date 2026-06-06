@@ -10,8 +10,20 @@ every X in the GAAhex platform.
 | **Location** | `docs/catalogs/CORE_OWNERSHIP_MATRIX.md` |
 | **Layer** | Catalog (between Standards and Implementation) |
 | **Created** | 2026-06-06 |
-| **Status** | CREATED — awaiting REVIEW → AUDIT → NORMALIZE → LOCK per LAW-GV3 |
+| **Status** | **LOCKED · RATIFIED · BASELINE ESTABLISHED — 2026-06-06** |
+| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT · ✅ NORMALIZE · ✅ LOCK |
 | **Authority** | [`../governance/PROJECT_CONSTITUTION.md`](../governance/PROJECT_CONSTITUTION.md) → PRM → Architecture Constitution → Standards |
+| **Amendments** | Only via LAW-GV1 of PROJECT_CONSTITUTION.md |
+
+**LAW-GV3 audit record (2026-06-06):**
+
+- **REVIEW** — Every primary-owner assignment cross-checked against PRM core list (51 cores × 7 tiers), `02_DOMAIN` §7.1 (12 canonical domains), `03_INFORMATION` §8 (canonical entities), `04_NAVIGATION` §7.1 (locked nav tree), `11_EVENT` (event naming convention). All entries consistent.
+- **AUDIT** — Part G ownership conflict scan: **0 conflicts** across all 6 axes (entity / API path / event / page / job / integration). LAW-DA2 (single primary owner) fully honored.
+- **NORMALIZE** — Three terminology fixes applied:
+    1. "Operations" (14 occurrences in Domain column) → OSS / BSS / cross-domain canonical values. "Operations" is a left-nav workflow grouping per `04_NAVIGATION` §7.1, not one of the 12 canonical domains per `02_DOMAIN` §7.1; clarifying disclaimers added at B.9 and D.7.
+    2. "(Catalog)" (6 occurrences) → "(cross)" for Product entities consumed across CRM/OSS/BSS; "Billing" for Pricing entity.
+    3. "(config)" (6 occurrences) → "Studio" for tenant-configurable Time entities (BusinessHours, Calendar, Holiday, RecurrenceRule, Shift); "(global)" for Timezone (true global reference data).
+- **Architectural decisions altered:** **zero.** All fixes are terminology / canonical-naming alignment, not ownership changes.
 
 ---
 
@@ -97,8 +109,8 @@ MISSING · **R** = RESERVED.
 | ApiClient | Identity | Administration | `API-` | S |
 | AuditLog | Audit | Administration | (none) | S |
 | AccessLog | Audit | Administration | (none) | S |
-| BusinessHours | Time | (config) | (none) | P |
-| Calendar | Time | (config) | (none) | P |
+| BusinessHours | Time | Studio | (none) | P |
+| Calendar | Time | Studio | (none) | P |
 | ChangeHistory | Audit | Administration | (none) | S |
 | CanonicalSchema | Data | Studio | (none) | P |
 | ConfigSchema | Configuration | Studio | (none) | S |
@@ -114,7 +126,7 @@ MISSING · **R** = RESERVED.
 | Feature | Entitlement | Administration | (none) | P |
 | GovernanceBoard | Governance | Administration | (none) | P |
 | HealthCheck | Observability | Administration | (none) | P |
-| Holiday | Time | (config) | (none) | P |
+| Holiday | Time | Studio | (none) | P |
 | IdempotencyKey | Security | (cross) | (none) | P |
 | IdentityProvider | Identity | Administration | (none) | S |
 | LineageEdge | Data | Reporting | (none) | P |
@@ -133,7 +145,7 @@ MISSING · **R** = RESERVED.
 | PrivacyRequest | Compliance | Administration | `PRR-` | P |
 | Quota | Entitlement | Administration | (none) | P |
 | RateLimitPolicy | Security | Administration | (none) | P |
-| RecurrenceRule | Time | (config) | (none) | P |
+| RecurrenceRule | Time | Studio | (none) | P |
 | ReferenceData | Data | (global) | (none) | P |
 | RegulatoryEvidence | Compliance | Administration | (none) | P |
 | RetentionPolicy | Compliance | Administration | `RTP-` | P |
@@ -141,7 +153,7 @@ MISSING · **R** = RESERVED.
 | ServiceAccount | Identity | Administration | `SVA-` | S |
 | ServiceStatus | Observability | Administration | (none) | P |
 | Session | Identity | Administration | (none) | S |
-| Shift | Time | (config) | (none) | P |
+| Shift | Time | Studio | (none) | P |
 | SlaClock | Time/SLA | (cross) | (none) | P |
 | Standard | Governance | Administration | (none) | P |
 | Tenant | Tenant | Administration | `TNT-` | S |
@@ -150,7 +162,7 @@ MISSING · **R** = RESERVED.
 | TenantProfile | Tenant | Administration | (none) | S |
 | TenantSetting | Configuration | Studio | (none) | S |
 | ThreatRule | Security | Administration | (none) | W |
-| Timezone | Time | (config) | (none) | P |
+| Timezone | Time | (global) | (none) | P |
 | Trace | Observability | Administration | (none) | P |
 | UsageMeter | Entitlement | Administration | (none) | P |
 | User | Identity | Administration | `USR-` | S |
@@ -159,13 +171,13 @@ MISSING · **R** = RESERVED.
 
 | Entity | Primary Core | Domain | Prefix | Status |
 |---|---|---|---|---|
-| AddOn | Product | (Catalog) | `ADD-` | P |
+| AddOn | Product | (cross) | `ADD-` | P |
 | Article (Knowledge) | Knowledge | (cross) | `KBA-` | W |
 | Asset | Resource | Network/Inventory | `RES-` | P |
 | Assignment | Work | Workforce | (subref) | S |
 | Branch | Organization | Workforce | (none) | S |
 | Building | Location | Network | (none) | P |
-| Bundle | Product | (Catalog) | `BND-` | P |
+| Bundle | Product | (cross) | `BND-` | P |
 | BusinessUnit | Organization | Workforce | (none) | S |
 | City | Location | (global) | (none) | P |
 | Contact | Party | CRM | `CON-` | P |
@@ -188,8 +200,8 @@ MISSING · **R** = RESERVED.
 | ONU | Resource | Network | `ONU-` | P |
 | Partner | Party | CRM | `PRT-` | P |
 | Person | Party | CRM | (none) | P |
-| Plan (Product) | Product | (Catalog) | `PLN-` | P |
-| Product | Product | (Catalog) | `PRD-` | P |
+| Plan (Product) | Product | (cross) | `PLN-` | P |
+| Product | Product | (cross) | `PRD-` | P |
 | ProjectTask | Work | Workforce | `PTK-` | S |
 | ProvisioningState | Service | OSS | (none) | P |
 | Rack | Location | Network | (none) | P |
@@ -226,7 +238,7 @@ MISSING · **R** = RESERVED.
 | Invoice | Financial | Billing | `INV-` | P |
 | Order | Financial | BSS | `ORD-` | P |
 | Payment | Financial | Billing | `PAY-` | P |
-| Pricing | Financial | (Catalog) | (none) | P |
+| Pricing | Financial | Billing | (none) | P |
 | Quote | Financial | CRM/BSS | `QUO-` | P |
 | Rating | Financial | Billing | (none) | P |
 | RevenueEntry | Financial | Billing | (none) | P |
@@ -507,14 +519,21 @@ LAW-AP1). Supporting cores listed where relevant.
 | `/api/v1/billing/dunning/*` | Financial | Billing | Workflow, Notification, Communication | P |
 | `/api/v1/billing/credits/*` | Financial | Billing | Audit | P |
 
-## B.9 Operations + cross-domain
+## B.9 Cross-domain operational surfaces
+
+> *"Operations" is a left-nav workflow grouping per `04_NAVIGATION` §7.1,
+> not a canonical domain. The 12 domains per `02_DOMAIN` §7.1 are CRM /
+> OSS / BSS / Network / Inventory / Workforce / Billing / Portal / Studio
+> / Automation / Reporting / Administration. The rows below are owned by
+> Case / SLA / Approval cores whose natural primary domain is OSS (with
+> Network as supporting for incident handling).*
 
 | URL Prefix | Primary Core | Domain | Supporting Cores | Status |
 |---|---|---|---|---|
-| `/api/v1/cases/*` | Case | Operations | (per nested type) | P |
-| `/api/v1/tickets/*` | Case | Operations | (cross) | P |
-| `/api/v1/sla/*` | SLA | Operations | Workflow, Notification, Observability | P |
-| `/api/v1/approvals/*` | Approval | Operations | Workflow, Audit, Notification | P |
+| `/api/v1/cases/*` | Case | OSS/Network | (per nested type) | P |
+| `/api/v1/tickets/*` | Case | OSS | (cross) | P |
+| `/api/v1/sla/*` | SLA | OSS/Network | Workflow, Notification, Observability | P |
+| `/api/v1/approvals/*` | Approval | BSS/OSS | Workflow, Audit, Notification | P |
 | `/api/v1/automations/*` | Automation | Automation | Event, Workflow, Notification | P |
 | `/api/v1/workflows/*` | Workflow | Studio | (cross) | S |
 | `/api/v1/policies/*` | Policy | Studio | Workflow, Security | P |
@@ -760,8 +779,8 @@ page maps to exactly one core (per `01` §9.4). Workspace Core owns the
 |---|---|---|---|
 | `/my-day/home` | Workspace | (n/a) | (role-aware roll-up) |
 | `/my-day/tasks` | Work | Workforce | (filter by assigneeId=current) |
-| `/my-day/cases` | Case | Operations | (filter by assigneeId=current) |
-| `/my-day/approvals` | Approval | Operations | (filter by approverId=current) |
+| `/my-day/cases` | Case | OSS | (filter by assigneeId=current) |
+| `/my-day/approvals` | Approval | BSS/OSS | (filter by approverId=current) |
 | `/my-day/notifications` | Notification | (cross) | (filter by recipientId=current) |
 | `/my-day/recent` | Workspace | (n/a) | (per-user recency) |
 
@@ -782,7 +801,7 @@ page maps to exactly one core (per `01` §9.4). Workspace Core owns the
 |---|---|---|---|
 | `/services/all` | Service | OSS | Party, Product, Contract |
 | `/services/subscriptions` | Service | OSS | (same) |
-| `/services/catalog` | Product | (Catalog) | (read-only view) |
+| `/services/catalog` | Product | (cross) | (read-only view) |
 | `/services/provisioning-queue` | Service | OSS | Workflow, Work, Notification |
 | `/services/health` | SLA + Observability | OSS | Service |
 | `/services/topology` | Relationship | OSS | Service, Resource |
@@ -822,16 +841,21 @@ page maps to exactly one core (per `01` §9.4). Workspace Core owns the
 | `/billing/credits-refunds` | Financial | Billing | Audit |
 | `/billing/revenue` | Analytics (over Financial) | Billing | Financial |
 
-## D.7 Operations (cross-domain)
+## D.7 Operations workflow group (cross-domain pages)
+
+> *The `/operations/*` URL prefix is the left-nav "Operations" workflow
+> group per `04_NAVIGATION` §7.1. The pages it aggregates are owned by
+> Case / SLA / Approval cores whose natural primary domain is OSS (BSS for
+> commercial-approval flows).*
 
 | Page | Primary Core | Domain | Supporting Cores |
 |---|---|---|---|
-| `/operations/cases` | Case | Operations | (all case types) |
-| `/operations/tickets` | Case | Operations | (Ticket subtype) |
-| `/operations/incidents` | Case | Operations | (Incident subtype) |
-| `/operations/changes` | Case | Operations | (ChangeRequest subtype) |
-| `/operations/sla-breach` | SLA | Operations | Case, Notification |
-| `/operations/approvals` | Approval | Operations | Workflow |
+| `/operations/cases` | Case | OSS | (all case types) |
+| `/operations/tickets` | Case | OSS | (Ticket subtype) |
+| `/operations/incidents` | Case | OSS | (Incident subtype) |
+| `/operations/changes` | Case | OSS | (ChangeRequest subtype) |
+| `/operations/sla-breach` | SLA | OSS | Case, Notification |
+| `/operations/approvals` | Approval | BSS/OSS | Workflow |
 
 ## D.8 Reports
 
@@ -894,7 +918,7 @@ Processing Core owns infrastructure; semantics belong to a business core.
 |---|---|---|---|
 | `BillingCycleRun` | Financial | Billing | Substrate |
 | `DunningEscalate` | Financial | Billing | Substrate |
-| `SlaClockCheck` | SLA | Operations | Substrate |
+| `SlaClockCheck` | SLA | OSS | Substrate |
 | `ScheduledReportRun` | Reporting | Reporting | Substrate |
 | `MetricAggregation` | Analytics | Reporting | Substrate |
 | `EventReplay` | Event | Administration | Substrate |
@@ -950,7 +974,7 @@ the *framework*; each connector's primary core is its target business core.
 | Vault / secret stores | Security | Administration | Framework |
 | S3 / blob storage | Storage | Administration | Framework |
 | Salesforce (case sync) | Case | (cross) | Framework (M2+) |
-| ServiceNow (case sync) | Case | Operations | Framework (M2+) |
+| ServiceNow (case sync) | Case | OSS | Framework (M2+) |
 | OpenAI / Anthropic (LLM) | AI | (cross) | Framework |
 
 ---
