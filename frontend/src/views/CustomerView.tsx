@@ -397,14 +397,14 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
         {!data && !error && (
           <>
             {/* Per-section loading skeletons — mirrors the rendered KPI strip + cards below */}
-            <div className="kpi-strip" style={{ marginBottom: 22 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+            <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-20)' }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
               {[0, 1, 2].map((i) => (
                 <KPITile key={i} label="" value="" size="sm" loading />
               ))}
             </div>
             {[0, 1, 2].map((i) => (
               <div key={i}>
-                <div className="kpi-tile-skeleton" style={{ height: 14, width: 140, margin: '18px 0 10px' }} />
+                <div className="kpi-tile-skeleton" style={{ height: 14, width: 140, margin: 'var(--gx-space-18) 0 var(--gx-space-5)' }} />
                 <div className="card" style={{ padding: 'var(--gx-space-7)' }}>
                   <div className="kpi-tile-skeleton" style={{ height: 12, width: '92%', marginBottom: 'var(--gx-space-4)' }} />
                   <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 'var(--gx-space-4)' }} />
@@ -419,7 +419,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
           <>
             {/* 360 stat KPIs — outstanding / billed / paid / related. Each clickable
                 tile drills through to that customer's invoices filtered by status. */}
-            <div className="kpi-strip" style={{ marginBottom: 22 }}>
+            <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-20)' }}>
               <KPITile
                 icon={CreditCardIcon}
                 label={t('cust.outstanding', 'Outstanding')}
@@ -497,7 +497,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                 display: 'flex',
                 gap: 'var(--gx-space-2)',
                 borderBottom: '1px solid var(--gx-border)',
-                marginTop: 22,
+                marginTop: 'var(--gx-space-20)',
                 marginBottom: 'var(--gx-space-5)',
                 paddingBottom: 0,
                 overflowX: 'auto',
@@ -519,7 +519,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               })}
             </div>
 
-            <div role="tabpanel" aria-label={tabLabel(tab, t)} style={{ marginBottom: 22 }}>
+            <div role="tabpanel" aria-label={tabLabel(tab, t)} style={{ marginBottom: 'var(--gx-space-20)' }}>
               <CustomerTabBody
                 tab={tab}
                 rows={tabData[tab]}

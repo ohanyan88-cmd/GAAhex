@@ -288,7 +288,7 @@ export default function PaymentMethodsView({
                         </span>
                       </td>
                       <td>
-                        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 1 }}>
+                        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 'var(--gx-space-1)' }}>
                           <span>{customerLabel(p)}</span>
                           <span className="mono" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
                             {p.customer_id.slice(0, 8)}

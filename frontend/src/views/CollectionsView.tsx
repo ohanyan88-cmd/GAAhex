@@ -400,7 +400,7 @@ function CasesTab({
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', margin: 'var(--gx-space-6) 0', flexWrap: 'wrap' }}>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           {t('collections.filter.status', 'Status')}
           <select

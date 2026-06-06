@@ -45,7 +45,7 @@ function sinceDate(r: Range): string {
 
 function ChartSkeleton({ h = 160 }: { h?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: h, padding: '4px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: h, padding: 'var(--gx-space-2) 0' }}>
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="skel" style={{ flex: 1, height: `${28 + (i % 5) * 14}%`, borderRadius: '4px 4px 0 0' }} />
       ))}
@@ -486,7 +486,7 @@ function NetGrowthChart({ data }: { data: { week: string; new: number; churned: 
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140 }}>
         {data.map(d => (
-          <div key={d.week} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 1 }} title={`${d.week}: +${d.new} new, -${d.churned} churn, net ${d.net}`}>
+          <div key={d.week} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 'var(--gx-space-1)' }} title={`${d.week}: +${d.new} new, -${d.churned} churn, net ${d.net}`}>
             <div style={{
               height: `${(d.new / max) * 50}%`,
               background: 'var(--gx-success)',
@@ -550,7 +550,7 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
   const max = Math.max(...data.flatMap(d => [d.thisVal, d.lastVal]), 1)
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-5)', height: 160, padding: '4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-5)', height: 160, padding: 'var(--gx-space-2) 0' }}>
         {data.map(d => (
           <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 'var(--gx-space-2)', height: '100%' }} title={`${d.label}: this ${d.thisVal} vs last ${d.lastVal}`}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 'var(--gx-space-1)', height: '85%' }}>
@@ -615,7 +615,7 @@ function HeatmapChart({ data }: { data: { date: string; count: number; amount: n
   const weeks = Math.ceil(data.length / 7)
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, ${cellSize}px)`, gridAutoFlow: 'column', gridTemplateRows: `repeat(7, ${cellSize}px)`, gap: cellGap, padding: '4px 0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weeks}, ${cellSize}px)`, gridAutoFlow: 'column', gridTemplateRows: `repeat(7, ${cellSize}px)`, gap: cellGap, padding: 'var(--gx-space-2) 0' }}>
         {data.map(d => {
           const intensity = d.count / maxCount
           const bg = d.count === 0
@@ -654,7 +654,7 @@ function StackedBarChart({ buckets }: {
         {buckets.map((b, bi) => {
           const total = totals[bi]
           return (
-            <div key={bi} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 1 }} title={b.label}>
+            <div key={bi} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 'var(--gx-space-1)' }} title={b.label}>
               <div style={{ height: `${total / max * 85}%`, display: 'flex', flexDirection: 'column-reverse', borderRadius: '3px 3px 0 0', overflow: 'hidden' }}>
                 {b.segments.filter(sg => sg.value > 0).map((sg, si) => (
                   <div key={si} title={`${sg.name}: ${sg.value}`}
@@ -1169,7 +1169,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: 3, padding: 'var(--gx-space-3)' }}>
                     <div></div>
                     {['Low', 'Medium', 'High'].map(im => (
-                      <div key={im} style={{ fontSize: 'var(--gx-text-10)', textAlign: 'center', color: 'var(--gx-text-3)', padding: '4px 0' }}>{im}</div>
+                      <div key={im} style={{ fontSize: 'var(--gx-text-10)', textAlign: 'center', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) 0' }}>{im}</div>
                     ))}
                     {['high', 'medium', 'low'].map(li => (
                       <>
@@ -1186,7 +1186,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                             <div key={`${li}-${im}`} style={{
                               background: v > 0 ? bg : 'var(--gx-surface-2)',
                               height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: 4, fontSize: 'var(--gx-text-md)', fontWeight: 700, color: v > 0 ? '#fff' : 'var(--gx-text-3)',
+                              borderRadius: 4, fontSize: 'var(--gx-text-md)', fontWeight: 700, color: v > 0 ? 'var(--gx-on-primary)' : 'var(--gx-text-3)',
                             }}>{v}</div>
                           )
                         })}

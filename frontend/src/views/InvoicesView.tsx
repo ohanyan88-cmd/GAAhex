@@ -766,7 +766,7 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
     return (
       <div className="card" style={{ marginTop: 'var(--gx-space-7)', padding: 'var(--gx-space-5)', borderColor: 'var(--gx-danger)' }}>
         <strong>Allocations not available</strong>
-        <p className="muted" style={{ margin: '6px 0 0' }}>
+        <p className="muted" style={{ margin: 'var(--gx-space-3) 0 0' }}>
           You don't have permission to view allocation details for this invoice.
         </p>
       </div>
