@@ -646,3 +646,52 @@ rename (Portal/GAAex → GAAhex) to user-visible text only (no folder renames).
   value was already Cobalt; only the comment was wrong).
 
 No remaining rule-vs-code contradictions on palette or font as of this patch.
+
+---
+
+# Tenth patch — D20 Token discipline (no hardcoded styling)
+
+Applied 2026-06-06. Owner: Gev. **Triggered by a deep audit finding ~1,200 inline
+`style={{ }}` usages and 46 hardcoded hex colors across `frontend/src` — drift that
+defeats the tokenized design system.** D20 is the standing law that prevents it.
+
+## D20 — Token discipline
+
+Every visual value in the frontend comes from a `--gx-*` token via a CSS class. There
+is no per-file exception.
+
+1. **No static inline styles.** padding, margin, gap, color, width/height, font-size,
+   radius, border, shadow never appear as literal values in a `style={{ }}` prop; they
+   live in CSS keyed off tokens.
+2. **No hardcoded hex.** `#rrggbb` / `#rgb` appears ONLY in
+   `frontend/src/styles/gaahex-tokens.css` (the single registry). Everywhere else: a
+   `--gx-*` color token mapped by ROLE (D18 families).
+3. **No raw px / magic numbers** in inline styles or component CSS. Use the spacing /
+   text / radius tokens. If a value has no token, ADD the token to `gaahex-tokens.css`
+   first, then reference it.
+4. **The only permitted inline style is a genuinely-dynamic runtime value** (live %,
+   computed coordinate), and even then it is passed as a CSS custom property
+   (`style={{ ['--x']: value }}`) with the real styling in a class.
+5. **Components set `className`;** values live in CSS + tokens.
+6. **Comments are minimal, factual, name-free.** No personal names, no chatty
+   justifications in code — they go stale and become their own trash.
+
+### Token map (substitute, never inline the raw value)
+
+- spacing `--gx-space-N`: 1=2 · 2=4 · 3=6 · 4=8 · 5=10 · 6=12 · 7=14 · 8=16 · 18=18 ·
+  20=20 · 12=24 · 16=32 · 9=40 (px)
+- radius `--gx-radius-*`: none=0 · xs=3 · sm=5 · md=8 · lg=12 · xl=16 · 2xl=22 · full=9999
+- text `--gx-text-*`: 10 · 11 · sm=12 · base/13=13 · md=14 · lg=16 · xl=18 · 2xl=22 ·
+  3xl=28 · 4xl=36 · 5xl=48 · 6xl=64
+- color: text-1/2/3 · bg · bg-subtle · surface · surface-2 · elevated · border ·
+  border-subtle · border-strong · gold · interactive · {success,warning,danger}-{fg,soft}
+
+### Enforcement
+
+D20 falls under D19 (rule ↔ code parity): a change that re-introduces a hardcoded value
+is reverted or tokenized in the same session, never deferred. The D19 pre-flight grep
+checklist gains: `rg "#[0-9a-fA-F]{3,6}" frontend/src --type tsx -g '!**/gaahex-tokens.css'`
+(hex leak) and a scan for literal px inside `style={{`.
+
+KPI cockpit cards are the canonical worked example: height / value-size / bar-thickness
+are `--gx-kpi-*` tokens, so one token edit re-sizes every KPI card app-wide (D17/D20).

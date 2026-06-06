@@ -73,11 +73,10 @@ change.** If your code would diverge from a standard, FLAG IT in your return sum
 orchestrator can decide: align, document an exception, or revise the standard.
 
 ## Where to look first
-- **`docs/standards/FRONTEND-STYLING-LAW.md`** — ⚖️ LAW: no static inline styles, no hardcoded hex/px — everything is `--gx-*` tokens via CSS classes. Read before writing ANY frontend code.
 - **`docs/standards/00-standards-index.md`** — canonical index of all 70 standards (TOC + status + dependencies)
 - **`docs/standards/14-enum-registry.md`** — every enum name, owner department, and `UPPER_SNAKE_CASE` values
 - **`docs/standards/15-permission-registry.md`** — `object.action` permission keys (immutable once released)
-- **`docs/standards/13-consistency-patch-notes.md`** — normalization patches (B1–B5, S1–S5, D1–D19). D17 = KPI Tile Standard (no premium highlight, colored value text + tooltip). D18 = Color Token Families (Cobalt = brand spine · Gold = signature · Azure = interactive · Slate = neutrals · Semantic = status — each family has one role only). D19 = Rule ↔ Implementation Parity (no standing rule/code contradiction; reconcile by amending whichever is wrong).
+- **`docs/standards/13-consistency-patch-notes.md`** — normalization patches (B1–B5, S1–S5, D1–D20). D17 = KPI Tile Standard (no premium highlight, colored value text + tooltip). D18 = Color Token Families (Cobalt = brand spine · Gold = signature · Azure = interactive · Slate = neutrals · Semantic = status — each family has one role only). D19 = Rule ↔ Implementation Parity (no standing rule/code contradiction; reconcile by amending whichever is wrong). **D20 = Token discipline — no static inline styles, no hardcoded hex/px; every visual value is a `--gx-*` token via a CSS class. Read before writing ANY frontend code.**
 
 ## What overrides what
 - A LOCKED standard overrides personal style choices
