@@ -67,6 +67,15 @@ table.grid.leads-grid th {
   color: var(--gx-text-2);
   padding-top: var(--gx-space-9); padding-bottom: var(--gx-space-8);
 }
+/* Locked column widths (table-layout:fixed) — proportions stay put regardless of the
+   data in each cell; overflow ellipsizes rather than reflowing the grid. */
+table.grid.leads-grid th:nth-child(1) { width: 120px; }  /* Lead ID  */
+table.grid.leads-grid th:nth-child(2) { width: 200px; }  /* Full Name */
+table.grid.leads-grid th:nth-child(3) { width: 240px; }  /* Address  */
+table.grid.leads-grid th:nth-child(4) { width: 160px; }  /* Phone    */
+table.grid.leads-grid th:nth-child(5) { width: 220px; }  /* Email    */
+table.grid.leads-grid th:nth-child(6) { width: 140px; }  /* Stage    */
+table.grid.leads-grid td { white-space: nowrap; }
 table.grid td .row-actions { justify-content:flex-end; }
 table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }
 table.grid tbody tr:hover { background:var(--gx-hover); }
