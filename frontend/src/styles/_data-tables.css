@@ -60,14 +60,12 @@ table.grid td .row-actions-menu { justify-content:flex-end; }
 table.grid.leads-grid { overflow: visible; border-radius: 0; box-shadow: none; }
 table.grid.leads-grid thead { background: var(--gx-surface); }
 table.grid.leads-grid th {
-  position: sticky; top: 0; z-index: 2;
+  position: sticky; top: -1px; z-index: 5;
   background: var(--gx-surface);
-  /* paint a surface band above the header so no row sliver peeks through on scroll */
-  box-shadow: 0 -10px 0 var(--gx-surface);
   font-size: var(--gx-text-sm);
   letter-spacing: .04em;
   color: var(--gx-text-2);
-  padding-top: var(--gx-space-8); padding-bottom: var(--gx-space-8);
+  padding-top: var(--gx-space-9); padding-bottom: var(--gx-space-8);
 }
 table.grid td .row-actions { justify-content:flex-end; }
 table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }
