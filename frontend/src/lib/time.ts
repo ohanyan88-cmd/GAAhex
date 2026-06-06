@@ -4,7 +4,7 @@ export function timeAgo(iso: string | null): string {
   const t = new Date(iso).getTime()
   if (isNaN(t)) return ''
   const s = Math.floor((Date.now() - t) / 1000)
-  if (s < 45) return 'just now'
+  if (s < 60) return 'just now'
   const m = Math.floor(s / 60)
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)

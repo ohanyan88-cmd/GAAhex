@@ -344,7 +344,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--gx-on-primary);
   flex-shrink: 0;
 }
 .layer-meta {

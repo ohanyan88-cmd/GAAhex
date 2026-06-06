@@ -16,7 +16,7 @@
 .btn-lg { height: 44px; font-size: 14px; padding: 0 18px; border-radius: 10px; }
 
 /* Primary = BLUE interactive color (GLASS). White text on the solid blue fill. */
-.btn-primary { background: var(--gx-interactive); color: #fff; border-color: var(--gx-interactive); }
+.btn-primary { background: var(--gx-interactive); color: var(--gx-on-primary); border-color: var(--gx-interactive); }
 .btn-primary:hover:not(:disabled) { background: var(--gx-interactive-hover); border-color: var(--gx-interactive-hover); }
 .btn-primary:disabled { background: var(--gx-surface); color: rgba(244,246,249,0.30); border-color: var(--gx-border); }
 
@@ -28,7 +28,7 @@
 .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.06); border-color: var(--gx-text-3); }
 .btn-ghost:disabled { opacity: 0.25; }
 
-.btn-danger { background: var(--gx-danger); color: #fff; border-color: var(--gx-danger); }
+.btn-danger { background: var(--gx-danger); color: var(--gx-on-primary); border-color: var(--gx-danger); }
 .btn-danger:hover:not(:disabled) { background: #EF4D58; border-color: #EF4D58; }
 .btn-danger:disabled { background: #3D1B1F; color: rgba(255,255,255,0.40); }
 

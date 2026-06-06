@@ -26,7 +26,7 @@
 .btn-tertiary:hover { color:var(--gx-text-1); }
 .btn-gold { background:var(--gx-gold); color:var(--gx-text-on-gold); }
 .btn-gold:hover { filter:brightness(1.06); }
-.btn-danger { background:var(--gx-danger); color:#fff; }
+.btn-danger { background:var(--gx-danger); color:var(--gx-on-primary); }
 .btn[disabled] { opacity:.5; cursor:not-allowed; }
 .btn-sm { height:var(--gx-control-sm); font-size:12px; padding:0 11px; }
 .btn-lg { height:var(--gx-control-lg); font-size:14px; padding:0 22px; }
@@ -52,16 +52,16 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .pill-neutral { background:var(--gx-neutral-soft); color:var(--gx-text-2); }
 .pill-gold    { background:var(--gx-gold-soft);    color:var(--gx-gold); }
 /* D18: base .badge is a signal-value count chip (notification counts, unread counts, generic tallies — NOT an interactive control, NOT brand chrome). Route through slate neutral instead of cobalt brand spine. Callers wanting a semantic accent layer on .badge-success / .badge-warning / .badge-danger over this base. */
-.badge { display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:var(--gx-neutral); color:#fff; font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+.badge { display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:99px; background:var(--gx-neutral); color:var(--gx-on-primary); font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
 /* T-P2-8 — semantic badge variants. Previously referenced by HomeView,
  * GlobalSearchView, DispatchBoardView, CoverageView without a CSS rule
  * (silently fell back to the base slate-fill .badge). Now each variant lights
  * up its semantic family per D18; the base .badge above stays the default. */
 .badge-primary { background: var(--gx-interactive); color: var(--gx-on-primary); }
-.badge-neutral { background: var(--gx-neutral); color: #fff; }
-.badge-success { background: var(--gx-success); color: #fff; }
-.badge-warning { background: var(--gx-warning); color: #fff; }
-.badge-danger  { background: var(--gx-danger);  color: #fff; }
+.badge-neutral { background: var(--gx-neutral); color: var(--gx-on-primary); }
+.badge-success { background: var(--gx-success); color: var(--gx-on-primary); }
+.badge-warning { background: var(--gx-warning); color: var(--gx-on-primary); }
+.badge-danger  { background: var(--gx-danger);  color: var(--gx-on-primary); }
 .mono { font-family:var(--gx-font-mono); }
 .tnum { font-variant-numeric:tabular-nums; }
 .spacer { flex:1; }
@@ -264,7 +264,7 @@ button.kpi-tile, a.kpi-tile {
 }
 .gx-chip:hover { background: var(--gx-interactive-soft); color: var(--gx-text-1); border-color: var(--gx-interactive); }
 .gx-chip.on,
-.gx-chip[aria-pressed="true"] { background: var(--gx-interactive); color: #fff; border-color: var(--gx-interactive); }
+.gx-chip[aria-pressed="true"] { background: var(--gx-interactive); color: var(--gx-on-primary); border-color: var(--gx-interactive); }
 .gx-chip:focus-visible { outline: 2px solid var(--gx-focus-ring); outline-offset: 1px; }
 
 /* D18 — non-interactive classification tag (priority labels, role badges, etc.).
@@ -305,7 +305,7 @@ button.kpi-tile, a.kpi-tile {
 }
 .gx-check.on,
 .gx-check[aria-checked="true"] {
-  background: var(--gx-interactive); border-color: var(--gx-interactive); color: #fff;
+  background: var(--gx-interactive); border-color: var(--gx-interactive); color: var(--gx-on-primary);
 }
 .gx-check:focus-visible { outline: 2px solid var(--gx-focus-ring); outline-offset: 1px; }
 

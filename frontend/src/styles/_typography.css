@@ -25,7 +25,7 @@
 
 .user-avatar {
   width: 26px; height: 26px; border-radius: 999px;
-  background: var(--gx-interactive); color: #fff;
+  background: var(--gx-interactive); color: var(--gx-on-primary);
   display: grid; place-items: center;
   font-weight: var(--gx-weight-bold); font-size: 11px;
 }
@@ -44,7 +44,7 @@
 .profile-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
 .profile-avatar {
   width: 64px; height: 64px; border-radius: 999px; flex: none;
-  background: var(--gx-interactive); color: #fff;
+  background: var(--gx-interactive); color: var(--gx-on-primary);
   display: grid; place-items: center; overflow: hidden;
   font-weight: var(--gx-weight-bold); font-size: 22px;
 }

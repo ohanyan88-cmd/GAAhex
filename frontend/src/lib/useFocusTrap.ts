@@ -10,6 +10,10 @@ const FOCUSABLE = [
 // when Esc is pressed. Used by the Overlay primitive (Modal / confirm / etc.).
 export function useFocusTrap<T extends HTMLElement>(onEscape?: () => void) {
   const ref = useRef<T>(null)
+  // Keep the latest onEscape in a ref so the mount-once effect never fires a stale
+  // callback (the effect intentionally runs once; re-running it would re-grab focus).
+  const onEscapeRef = useRef(onEscape)
+  onEscapeRef.current = onEscape
 
   useEffect(() => {
     const node = ref.current
@@ -26,7 +30,7 @@ export function useFocusTrap<T extends HTMLElement>(onEscape?: () => void) {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onEscape?.()
+        onEscapeRef.current?.()
         return
       }
       if (e.key !== 'Tab') return

@@ -44,7 +44,7 @@
 .kcard-foot .badge { font-size: 10px; }
 .kcard-avatar {
   width: 22px; height: 22px; border-radius: 999px;
-  background: var(--gx-interactive); color: #fff;
+  background: var(--gx-interactive); color: var(--gx-on-primary);
   display: grid; place-items: center;
   font-size: 10px; font-weight: var(--gx-weight-bold);
   margin-left: auto;

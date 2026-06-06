@@ -23,7 +23,7 @@
 .sb-item { width:100%; display:flex; align-items:center; gap:10px; height:32px; padding:0 10px 0 34px; border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12.5px; cursor:pointer; border-radius:var(--gx-radius-sm); position:relative; transition:all var(--gx-dur-fast); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sb-item > span:not(.ic) { overflow:hidden; text-overflow:ellipsis; }
 .sb-item:hover { background:rgba(130,161,204,.06); color:var(--gx-text-1); }
-.sb-item.on { background:rgba(59,123,224,.07); color:#fff; font-weight:500; }
+.sb-item.on { background:rgba(59,123,224,.07); color:var(--gx-on-primary); font-weight:500; }
 .sb-item.on::before { content:""; position:absolute; left:8px; top:50%; transform:translateY(-50%); width:3px; height:16px; border-radius:99px; background:var(--gx-gold); }
 .sb-item .ic { color:var(--gx-text-3); display:inline-flex; }
 .sb-item.on .ic { color:var(--gx-gold); }
@@ -43,7 +43,7 @@
 .tb-icon:hover { background:var(--gx-hover); color:var(--gx-text-1); }
 .tb-icon .ndot { position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--gx-danger); border:1.5px solid var(--gx-topbar); }
 .tb-icon.on { background:var(--gx-hover); color:var(--gx-text-1); }
-.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--cobalt-600),var(--cobalt-800)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex-shrink:0; }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--cobalt-600),var(--cobalt-800)); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex-shrink:0; }
 
 /* ---- OrgIdentity (P3): left-side editable company chip ---- */
 .org-wrap { position:relative; }
