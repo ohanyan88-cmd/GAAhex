@@ -44,8 +44,11 @@ from .models.billing import Subscription, Invoice, InvoiceLine, Payment
 from .models.order import Order, OrderItem
 from .models.helpdesk import HelpdeskTicket
 from .models.workitem import WorkItem
+from .models.calendar import CalendarEvent, UserCalendar
+from .models.communication import Communication
 from . import workflow
 from .routers.billing import _now, _add_cycle
+from .utils.refnum import next_reference_number
 
 _log = logging.getLogger("gaahex.seed_dev_bulk")
 
@@ -617,4 +620,212 @@ async def seed_dev_bulk_if_empty() -> dict | None:
         await s.commit()
 
         _log.info("dev-bulk seeder complete: %s", summary)
+        return summary
+
+
+# =================================================================================================
+# Dev-extras seeder — CalendarEvents + Communications for the Calendar / Communications pages
+# =================================================================================================
+#
+# ADDITIVE + INDEPENDENT of `seed_dev_bulk_if_empty()`. It does NOT touch the customer/billing
+# tree above and never short-circuits on the dev_bulk customer marker — it has its OWN idempotency
+# guard so it can run even when dev_bulk customers already exist (e.g. on a DB that was seeded by
+# an older build that predates this function). It ties its rows to the already-seeded dev_bulk
+# customers (Record entity_key="customer", data["_seed"]="dev_bulk") so the Calendar/Comms pages
+# show realistic, cross-referenced demo data.
+#
+# Idempotency: returns early if ANY dev_extras-tagged CalendarEvent OR Communication already
+# exists. CalendarEvent has no JSONB bag, so we tag events by a recognizable title prefix
+# (`_EVENT_TAG`) and detect by `title LIKE '<tag>%'`. Communication likewise has no bag, so we tag
+# the subject with `_COMM_TAG` and detect by `subject LIKE '<tag>%'`. Re-runs therefore no-op.
+
+# Recognizable markers — used both to stamp rows and to detect them on re-run.
+_EVENT_TAG = "[demo] "
+_COMM_TAG = "[demo] "
+
+# Calendar events — (title, day_offset_from_today, start_hour, duration_hours, all_day, location,
+# color). Spread so a few land TODAY (offset 0) and several across THIS week (offsets 1..5) so the
+# Calendar TODAY / THIS WEEK KPIs are non-zero.
+_CAL_EVENTS = [
+    ("Ֆայբեր միացում — տեղում",        0,  9, 2, False, "Մաշտոցի 28, Երևան",        "#3A6FB5"),
+    ("Թիմի ամենօրյա stand-up",         0, 10, 1, False, "Գրասենյակ, Երևան",         "#0EA5E9"),
+    ("ONT փոխարինում հաճախորդի մոտ",    0, 14, 2, False, "Բաղրամյան 47, Երևան",      "#D4A017"),
+    ("Ցանցի պլանային սպասարկում",       1,  8, 3, False, "Մալաթիա Datacenter",        "#3A6FB5"),
+    ("Վաճառքի հանդիպում — Enterprise",  1, 13, 1, False, "Աբովյան 14, Երևան",        "#0EA5E9"),
+    ("Հաճախորդի տեղափոխման այց",        2, 11, 2, False, "Հալաբյան 19, Երևան",       "#D4A017"),
+    ("POP սարքավորման ստուգում",        3,  9, 2, False, "Կոմիտաս 49, Երևան",        "#3A6FB5"),
+    ("Billing ամփոփման ստուգում",       4, 15, 1, False, "Գրասենյակ, Երևան",         "#0EA5E9"),
+    ("Շաբաթական NOC վերանայում",        5, 16, 1, False, "Գրասենյակ, Երևան",         "#3A6FB5"),
+]
+
+# Communications — (channel, direction, status, subject, body, hours_ago, sent/received).
+# Channel mix: EMAIL / SMS / CALLS / WHATSAPP / PORTAL_MESSAGE. participant_type=CUSTOMER, linked
+# to seeded customers by participant_id + related_entity_type="customer" + related_entity_id.
+_COMMS = [
+    ("EMAIL",          "OUTBOUND", "DELIVERED", "Ձեր ապրիլ ամսվա հաշիվը",         "Հարգելի հաճախորդ, Ձեր ապրիլ ամսվա հաշիվը պատրաստ է։ Շնորհակալություն GAAhex-ն ընտրելու համար։", 2),
+    ("SMS",            "OUTBOUND", "SENT",      "Վճարման հիշեցում",               "GAAhex: Ձեր վճարման ժամկետը լրանում է 3 օրից։ Մանրամասները՝ անձնական էջում։", 5),
+    ("CALLS",          "INBOUND",  "RECEIVED",  "Արագության խնդրի բողոք",          "Հաճախորդը զանգահարել է երեկոյան արագության անկման կապակցությամբ։ Փոխանցվել է NOC-ին։", 8),
+    ("WHATSAPP",       "OUTBOUND", "READ",      "Տեխնիկի այցի հաստատում",          "Բարև Ձեզ, մեր տեխնիկը կժամանի վաղը ժամը 11:00-ին։ Խնդրում ենք հաստատել։", 24),
+    ("PORTAL_MESSAGE", "INBOUND",  "RECEIVED",  "Պլանի բարձրացման հարցում",        "Ցանկանում եմ անցնել ավելի բարձր արագության փաթեթի։ Ի՞նչ տարբերակներ կան։", 30),
+    ("EMAIL",          "INBOUND",  "RECEIVED",  "Re: Ձեր ապրիլ ամսվա հաշիվը",      "Շնորհակալություն, վճարումը կատարված է բանկային փոխանցմամբ։", 33),
+    ("SMS",            "OUTBOUND", "DELIVERED", "Միացման հաստատում",              "GAAhex: Ձեր ինտերնետ ծառայությունն ակտիվ է։ Բարի օգտագործում։", 48),
+    ("CALLS",          "OUTBOUND", "DELIVERED", "Հետադարձ զանգ՝ բողոքի կապակցությամբ", "Կապ հաստատվեց հաճախորդի հետ, խնդիրը լուծված է, ONT-ն վերագործարկվել է։", 50),
+    ("WHATSAPP",       "INBOUND",  "RECEIVED",  "WiFi-ի խնդիր",                    "Բարև, WiFi-ը չի աշխատում երկրորդ հարկում, օգնեք խնդրեմ։", 54),
+    ("PORTAL_MESSAGE", "OUTBOUND", "READ",      "Տոմսի կարգավիճակ",                "Ձեր դիմումը մշակման փուլում է, կտեղեկացնենք լուծման մասին։", 60),
+    ("EMAIL",          "OUTBOUND", "QUEUED",    "Նոր ծառայությունների առաջարկ",    "Ներկայացնում ենք մեր նոր Enterprise ֆայբեր փաթեթը հատուկ բիզնեսների համար։", 70),
+    ("SMS",            "OUTBOUND", "DELIVERED", "Սպասարկման ծանուցում",           "GAAhex: Վաղը 02:00-04:00 պլանային աշխատանքների պատճառով հնարավոր են ընդհատումներ։", 72),
+]
+
+
+async def _has_dev_extras_rows(s) -> bool:
+    """Return True if any demo-tagged CalendarEvent OR Communication already exists.
+
+    This is the dev-extras idempotency short-circuit — INDEPENDENT of the dev_bulk customer
+    marker, so the function runs even when dev_bulk customers already exist.
+    """
+    n_events = (await s.execute(
+        select(func.count()).select_from(CalendarEvent).where(
+            CalendarEvent.title.like(f"{_EVENT_TAG}%")
+        )
+    )).scalar_one()
+    if n_events > 0:
+        return True
+    n_comms = (await s.execute(
+        select(func.count()).select_from(Communication).where(
+            Communication.subject.like(f"{_COMM_TAG}%")
+        )
+    )).scalar_one()
+    return n_comms > 0
+
+
+async def seed_dev_extras_if_empty() -> dict | None:
+    """Insert demo CalendarEvents + Communications tied to the seeded dev_bulk customers.
+
+    Additive, idempotent (no-op on re-run via `_has_dev_extras_rows`), independent of the
+    dev_bulk customer tree, and runs as OWNER (bypasses RLS) — same pattern as
+    `seed_dev_bulk_if_empty()`. Gated by `GAAHEX_DEV_SEED` at the caller (defense-in-depth
+    check here too). Returns a dict summary on first run, else None.
+    """
+    if not _dev_seed_enabled():
+        _log.info("dev-extras seeder skipped: GAAHEX_DEV_SEED not set")
+        return None
+
+    async with SessionLocal() as s:
+        await s.connection(execution_options={"audit_tenant_filter": False})
+
+        # ---- idempotency (own guard, independent of dev_bulk customers) ----
+        if await _has_dev_extras_rows(s):
+            _log.info("dev-extras seeder skipped: demo CalendarEvent/Communication already present")
+            return None
+
+        # ---- resolve tenant + actor (same anchor logic as dev_bulk) ----
+        admin = (await s.execute(
+            select(User).where(User.email == "admin@demo.isp")
+        )).scalar_one_or_none()
+        tenant = None
+        if admin is not None:
+            tenant = (await s.execute(
+                select(Tenant).where(Tenant.id == admin.tenant_id)
+            )).scalar_one_or_none()
+        if tenant is None:
+            tenant = (await s.execute(select(Tenant))).scalars().first()
+        if not tenant:
+            _log.info("dev-extras seeder skipped: no tenant yet")
+            return None
+        actor_id = admin.id if admin else None
+
+        # ---- find the seeded dev_bulk customers to link rows against ----
+        customers = (await s.execute(
+            select(Record).where(
+                Record.tenant_id == tenant.id,
+                Record.entity_key == "customer",
+                Record.data["_seed"].astext == SEED_MARKER,
+            ).order_by(Record.id)
+        )).scalars().all()
+        if not customers:
+            # No dev_bulk customers to tie to — calendar/comms demo data is meaningless without
+            # them, so skip rather than seed orphan rows.
+            _log.info("dev-extras seeder skipped: no dev_bulk customers to link to (run dev-bulk first)")
+            return None
+
+        # Communication.created_by is NOT NULL — without a resolvable actor user we cannot insert
+        # comms. The demo tenant always has admin@demo.isp, so this only trips on a degenerate DB.
+        if actor_id is None:
+            _log.info("dev-extras seeder skipped: no actor user resolved (admin@demo.isp missing)")
+            return None
+
+        now = _now()
+        summary = {"calendar": 0, "communications": 0}
+
+        # ---- a shared demo UserCalendar (so events have a home calendar) ----
+        cal = UserCalendar(
+            tenant_id=tenant.id,
+            owner_node_id=customers[0].owner_node_id,
+            created_by_id=actor_id,
+            name=f"{_EVENT_TAG}Operations",
+            color="#3A6FB5",
+            is_shared=True,
+        )
+        s.add(cal)
+        await s.flush()
+
+        # ---- CalendarEvents ----
+        for i, (title, day_off, hour, dur, all_day, location, color) in enumerate(_CAL_EVENTS):
+            cust = customers[i % len(customers)]
+            start_at = (now + timedelta(days=day_off)).replace(
+                hour=hour, minute=0, second=0, microsecond=0
+            )
+            end_at = start_at + timedelta(hours=dur)
+            ev = CalendarEvent(
+                tenant_id=tenant.id,
+                owner_node_id=cust.owner_node_id,
+                calendar_id=cal.id,
+                created_by_id=actor_id,
+                title=f"{_EVENT_TAG}{title}",
+                start_at=start_at,
+                end_at=end_at,
+                all_day=all_day,
+                description=f"Հաճախորդ՝ {cust.data.get('name', '—')}. Demo seed.",
+                location=location,
+                color=color,
+                customer_record_id=cust.id,
+            )
+            s.add(ev)
+            await s.flush()
+            # NOTE: no workflow.emit here — demo seed inserts rows directly (matches the
+            # direct-insert pattern of the other seeders); emitting hit a record-lookup path.
+            summary["calendar"] += 1
+
+        # ---- Communications ----
+        for i, (channel, direction, status, subject, body, hours_ago) in enumerate(_COMMS):
+            cust = customers[i % len(customers)]
+            ts = now - timedelta(hours=hours_ago)
+            ref = await next_reference_number(s, tenant_id=tenant.id, prefix="COM", width=6)
+            sent_at = ts if direction == "OUTBOUND" and status in (
+                "SENT", "DELIVERED", "READ"
+            ) else None
+            received_at = ts if direction == "INBOUND" else None
+            c = Communication(
+                reference_number=ref,
+                tenant_id=tenant.id,
+                channel=channel,
+                direction=direction,
+                related_entity_type="customer",
+                related_entity_id=cust.id,
+                participant_type="CUSTOMER",
+                participant_id=cust.id,
+                subject=f"{_COMM_TAG}{subject}",
+                message_body=body,
+                status=status,
+                created_by=actor_id,
+                sent_at=sent_at,
+                received_at=received_at,
+            )
+            s.add(c)
+            await s.flush()
+            # NOTE: no workflow.emit here — demo seed inserts rows directly (see calendar note above).
+            summary["communications"] += 1
+
+        await s.commit()
+        _log.info("dev-extras seeder complete: %s", summary)
         return summary
