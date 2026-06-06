@@ -602,10 +602,8 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
   return (
     <PageShell
       type={pp.type}
-      breadcrumb={pp.breadcrumb}
       icon={<RowsIcon size={18} />}
       title={pp.title}
-      subtitle={countLabel}
       kpis={shellKpis}
       primaryAction={shellPrimary}
       secondaryActions={shellSecondary.length > 0 ? shellSecondary : undefined}

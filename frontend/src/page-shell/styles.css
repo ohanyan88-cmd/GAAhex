@@ -125,7 +125,7 @@
 
 .ps-header-title {
   font-family: var(--gx-font-display);
-  font-size: var(--gx-text-2xl);
+  font-size: var(--gx-text-3xl);
   font-weight: var(--gx-weight-semibold);
   letter-spacing: var(--gx-tracking-tight);
   color: var(--gx-text-1);
