@@ -285,24 +285,33 @@
 /* Per-type defaults — these are gentle layout hints, NOT impositions. Pages
    are free to lay out their children however they want; these rules just set
    the outer container's default padding and overflow behavior. */
+/* Horizontal padding standard (locked 2026-06-06 by Gev): all six
+   page-type variants below use `var(--gx-space-12)` = 24px horizontal +
+   `var(--gx-space-5)` = 10px vertical. This is the enterprise-rhythm
+   PageShell standard — proper breathing room from the sidebar/edges
+   without losing operations-grade density. Do not change to a different
+   horizontal token without a sealed-baseline conversation. KPIs / header /
+   actions / filters bars keep their own horizontal rhythm (see L55,
+   L128, L153, L210). Communication / placeholder remain non-padded
+   variants by design. */
 .ps-workspace[data-page-type="registry"] {
-  padding: var(--gx-space-5) var(--gx-space-8);
+  padding: var(--gx-space-5) var(--gx-space-12);
   overflow: auto;
 }
 .ps-workspace[data-page-type="pipeline"] {
-  padding: var(--gx-space-5) var(--gx-space-8);
+  padding: var(--gx-space-5) var(--gx-space-12);
   overflow-x: auto;
   overflow-y: hidden;
 }
 .ps-workspace[data-page-type="operations"] {
-  padding: var(--gx-space-5) var(--gx-space-8);
+  padding: var(--gx-space-5) var(--gx-space-12);
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: var(--gx-space-5);
   overflow: hidden;
 }
 .ps-workspace[data-page-type="analytics"] {
-  padding: var(--gx-space-5) var(--gx-space-8);
+  padding: var(--gx-space-5) var(--gx-space-12);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--gx-space-5);
@@ -316,11 +325,11 @@
   overflow: hidden;
 }
 .ps-workspace[data-page-type="configuration"] {
-  padding: var(--gx-space-5) var(--gx-space-8);
+  padding: var(--gx-space-5) var(--gx-space-12);
   overflow: auto;
 }
 .ps-workspace[data-page-type="workspace"] {
-  padding: var(--gx-space-5) var(--gx-space-8);
+  padding: var(--gx-space-5) var(--gx-space-12);
   overflow: auto;
 }
 /* No global sibling-gap rule here — views opt into spacing explicitly by
