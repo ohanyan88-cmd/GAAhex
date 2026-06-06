@@ -5,11 +5,20 @@ Architecture Constitution. It binds the Platform Reference Model (PRM) to
 the 22 Architecture Constitution documents and to the LOCKED Standards
 beneath them.
 
+**Above this layer** (per LAW-ST1 of the GAAhex Project Constitution v1.0):
+[`../CONSTITUTION.md`](../CONSTITUTION.md) — the project meta-law that
+governs Architecture, Standards, Domains, Modules, APIs, Events, Data,
+Workflows, Permissions, Navigation, UI, Infrastructure, Documentation, AI,
+Marketplace, Mobile, and Future Platform Expansion.
+
 ---
 
 ## The Architecture Hierarchy
 
 ```
+docs/CONSTITUTION.md (Project Constitution v1.0 — meta-law)
+        │
+        ▼
 PLATFORM_REFERENCE_MODEL.md
         │
         ▼
@@ -34,9 +43,10 @@ Components                                  (UI primitives)
 Implementation                              (the running code)
 ```
 
-**No implementation document may contradict the Architecture Constitution. No
-standard may contradict the Architecture Constitution. No module design may
-contradict the Architecture Constitution.**
+**Per LAW-ST1**, no implementation document may contradict the Architecture
+Constitution. No standard may contradict the Architecture Constitution. No
+module design may contradict the Architecture Constitution. The Architecture
+Constitution itself must remain consistent with the Project Constitution.
 
 ---
 

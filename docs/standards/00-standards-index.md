@@ -1,20 +1,29 @@
 # 00 — Canonical Standards Index
 
-> **Position in the architecture hierarchy (locked 2026-06-06):** these standards live *under*
-> the **Architecture Constitution** at `docs/architecture/`:
+> **Position in the project hierarchy (locked 2026-06-06):** these standards
+> live three layers below the project meta-law:
 >
-> 1. `PLATFORM_REFERENCE_MODEL.md` — the constitutional definition of the 51 cores and 7 platform tiers.
-> 2. The **22 Architecture Constitution documents** at `docs/architecture/01_*.md` through `22_*.md`,
->    indexed by `docs/architecture/00_ARCHITECTURE_INDEX.md`.
+> 1. **`docs/CONSTITUTION.md`** — GAAhex Project Constitution v1.0 (meta-law).
+>    Authoritative for *all* concerns: architecture, standards, infrastructure,
+>    AI, mobile, docs, naming, engineering, governance. LAW-ST1 defines the
+>    source-of-truth hierarchy.
+> 2. **`docs/architecture/PLATFORM_REFERENCE_MODEL.md`** — the constitutional
+>    definition of the 51 cores and 7 platform tiers.
+> 3. **The 22 Architecture Constitution documents** at
+>    `docs/architecture/01_*.md` through `22_*.md`, indexed by
+>    `docs/architecture/00_ARCHITECTURE_INDEX.md`.
 >
-> The PRM defines *what cores exist and their ownership boundaries*. The 22 architecture documents
-> define *the laws that govern each architectural viewpoint*. These 70 standards below define
-> *how each core's entities, APIs, UI, lifecycle, and security behave at implementation level*.
-> Architecture overrides Standards; Standards override Modules; Modules override Pages; Pages override
-> Components; Components override Implementation. No implementation, no standard, and no module
-> design may contradict the Architecture Constitution. See
-> `docs/architecture/00_ARCHITECTURE_INDEX.md` for the constitution entry point and
-> `docs/architecture/PRM-MIGRATION-AUDIT-2026-06-06.md` for the full classification audit.
+> The Project Constitution defines *the meta-laws every layer must respect*.
+> The PRM defines *what cores exist and their ownership boundaries*. The 22
+> architecture documents define *the laws that govern each architectural
+> viewpoint*. These 70 standards below define *how each core's entities, APIs,
+> UI, lifecycle, and security behave at implementation level*.
+>
+> Per LAW-ST1: lower layers may not contradict higher layers. Per LAW-AR1:
+> no implementation may bypass the PRM, the Architecture Constitution, or
+> the Standards. See `docs/architecture/00_ARCHITECTURE_INDEX.md` for the
+> architecture entry point and `docs/architecture/PRM-MIGRATION-AUDIT-2026-06-06.md`
+> for the original classification audit.
 
 LOCKED. Standard **name** is immutable identity. **Number** is display order only and
 is never used as a business value, key, or reference. No duplicate numbers exist.
