@@ -55,14 +55,14 @@ export default function DispatchBoardView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="OPERATIONS"
+      type="REGISTRY"
       breadcrumb={['Tech & NOC', 'Support Dispatch Board']}
       icon={<TruckIcon size={20} />}
       title="Support Dispatch Board"
       subtitle="Field operations dispatch"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
+      <div>
         {loading && <SkeletonRows rows={8} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && items.length === 0 && (

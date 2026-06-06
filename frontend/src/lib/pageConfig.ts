@@ -144,17 +144,6 @@ export const PAGE_SPECS: Record<string, PageSpec> = {
       { key: 'allocations', label: 'Allocations' },
     ],
   },
-  outbound: {
-    pageKey: 'outbound',
-    defaultTitle: 'Outbound Messaging',
-    defaultColumns: [
-      { key: 'channel', label: 'Channel' },
-      { key: 'to', label: 'To' },
-      { key: 'message', label: 'Message' },
-      { key: 'status', label: 'Status' },
-      { key: 'when', label: 'When' },
-    ],
-  },
   // Title-only pages: widgets/charts/tree/detail — no column config.
   dashboards: {
     pageKey: 'dashboards',

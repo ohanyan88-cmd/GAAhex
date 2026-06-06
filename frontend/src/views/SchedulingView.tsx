@@ -51,14 +51,14 @@ export default function SchedulingView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="OPERATIONS"
+      type="REGISTRY"
       breadcrumb={['Tech & NOC', 'Scheduling']}
       icon={<CalendarIcon size={20} />}
       title="Scheduling"
       subtitle="Technician calendar & field dispatch slots"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
+      <div>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && slots.length === 0 && (

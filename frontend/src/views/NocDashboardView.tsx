@@ -222,7 +222,7 @@ function NMSCard({
           {action}
           {status !== 'live' && (
             <span className="nms-card-preview-tag" title="This widget shows sample data while we finalize the design.">
-              ▾ representative — design preview
+              ▾ sample data
             </span>
           )}
         </div>
@@ -1072,12 +1072,12 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
 
   return (
     <PageShell
-      type="OPERATIONS"
+      type="WORKSPACE"
       breadcrumb={['Tech & NOC', 'NMS Dashboard']}
       title="NMS Dashboard"
       subtitle="Network operations · alarms · provisioning · field"
     >
-      <div className="nms-page" style={{ padding: 'var(--gx-space-8)' }}>
+      <div className="nms-page">
         {/* Top bar — design-preview banner + gear menu */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--gx-space-8)' }}>
           <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>

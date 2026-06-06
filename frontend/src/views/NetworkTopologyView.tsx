@@ -51,14 +51,14 @@ export default function NetworkTopologyView({ token }: { token: string }) {
 
   return (
     <PageShell
-      type="OPERATIONS"
+      type="REGISTRY"
       breadcrumb={['Tech & NOC', 'Network Topology']}
       icon={<ServerIcon size={20} />}
       title="Network Topology"
       subtitle="Logical connectivity graph"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
+      <div>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && sites.length === 0 && (

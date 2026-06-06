@@ -68,7 +68,7 @@ export default function GlobalSearchView({ token, onNavigate }: {
       title="Global Search"
       subtitle={q && !loading ? `${resultCount} result${resultCount === 1 ? '' : 's'}` : 'Search across all records'}
     >
-      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
+      <div>
         <input
           ref={inputRef}
           className="inp inp-md"

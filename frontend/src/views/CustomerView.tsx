@@ -4,7 +4,6 @@ import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner, PermissionDenied, NotFound } from '../components/States'
-import InteractionsView from './InteractionsView'
 import { PageShell, type KPISpec, type StatusSummary, type StatusSummaryVariant } from '../page-shell'
 import {
   ChevronLeftIcon, UsersIcon, ReceiptIcon, PhoneIcon,
@@ -640,13 +639,6 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                 </div>
               )}
 
-            {/* Interactions — customer touchpoints (calls, emails, notes, etc.) */}
-            <div className="section-head">
-              <PhoneIcon size={16} className="section-icon" />
-              {t('nav.interactions', 'Interactions')}
-              <span className="muted" style={{ fontWeight: 400, fontSize: 'var(--gx-text-sm)' }}>· {t('common.embedded', 'embedded view')}</span>
-            </div>
-            <InteractionsView token={token} customerId={customerId} embedded />
           </>
         )}
 

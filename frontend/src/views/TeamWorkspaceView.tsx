@@ -39,7 +39,10 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
   ]
 
   const body = (
-    <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
+    // No inner padding — PageShell's `.ps-workspace[data-page-type="workspace"]` already applies
+    // the ONE standard body padding (space-5 / space-12). Re-padding here double-padded the content
+    // and pushed it out of alignment with the KPI bar above. (Page-structure consistency sweep.)
+    <div>
       {loading && <SkeletonRows rows={6} />}
       {error && <ErrorBanner message={error} />}
       {!loading && !error && nodes.length === 0 && members.length === 0 && (

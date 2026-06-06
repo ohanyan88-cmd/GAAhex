@@ -117,16 +117,21 @@ export function KPITile({
             {unit && <span className="kpi-tile-label" style={{ letterSpacing: 0, textTransform: 'none' }}>{unit}</span>}
           </div>
           {subtitle && <div className="kpi-tile-sub">{subtitle}</div>}
-          <div className="kpi-tile-foot">
-            {delta && (
-              <div className={['kpi-tile-delta', deltaPositive ? 'up' : 'down'].join(' ')}>
-                {deltaPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                <span>{delta}</span>
-                <span style={{ color: 'var(--gx-text-3)' }}>vs 7d</span>
-              </div>
-            )}
-            {accessory}
-          </div>
+          {/* Only render the foot when it has content. An always-present empty foot
+              (with its `margin-top:auto`) padded the value to the top and left dead
+              space below — making delta-less tiles (e.g. Team Workspace) look too tall. */}
+          {(delta || accessory) && (
+            <div className="kpi-tile-foot">
+              {delta && (
+                <div className={['kpi-tile-delta', deltaPositive ? 'up' : 'down'].join(' ')}>
+                  {deltaPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                  <span>{delta}</span>
+                  <span style={{ color: 'var(--gx-text-3)' }}>vs 7d</span>
+                </div>
+              )}
+              {accessory}
+            </div>
+          )}
         </>
       )}
     </>

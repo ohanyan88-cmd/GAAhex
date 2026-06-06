@@ -5,7 +5,6 @@ import { bget, bpost, loadProducts, openDocument, type Subscription, type Invoic
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState } from '../components/States'
-import InteractionsView from '../views/InteractionsView'
 import { PrinterIcon, CreditCardIcon } from '../components/icons'
 
 type Service = { id: string; type?: string; name?: string; status?: string | null }
@@ -284,9 +283,6 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 </tbody>
               </table></div>
             )}
-
-          <h3 style={{ marginTop: 'var(--gx-space-18)' }}>Touchpoints</h3>
-          <InteractionsView token={token} customerId={customerId} embedded />
         </>
       )}
     </Modal>

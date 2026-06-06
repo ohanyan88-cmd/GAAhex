@@ -25,7 +25,7 @@
    it was dead code and was layering a 96px-min-height surface-colored pill behind every
    `.cal-day` span (visible as a dark oval in off-month cells).
 
-   Each of MessagesView, CalendarView, OutboundView opts in by adding `gx-comms` to its
+   Each of MessagesView, CalendarView opts in by adding `gx-comms` to its
    outer wrapper.
    ========================================================================= */
 

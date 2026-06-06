@@ -18,7 +18,6 @@ import SubscriptionsView from './views/SubscriptionsView'
 import ProductsView from './views/ProductsView'
 import TariffPlansView from './views/TariffPlansView'
 import ReportBuilderView from './views/ReportBuilderView'
-import OutboundView from './views/OutboundView'
 import WebhooksView from './views/WebhooksView'
 import ServicesView from './views/ServicesView'
 import UsageView from './views/UsageView'
@@ -92,7 +91,6 @@ type View =
   | { type: 'tariff-plans' }
   | { type: 'usage' }
   | { type: 'report-builder' }
-  | { type: 'outbound' }
   | { type: 'webhooks' }
   | { type: 'services' }
   | { type: 'resource-pools' }
@@ -143,7 +141,6 @@ const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
   usage: 'usage',
   webhooks: 'webhooks',
   'resource-pools': 'resource-pools',
-  outbound: 'outbound',
   // Title-only pages.
   dashboards: 'dashboards',
   analytics: 'analytics',
@@ -715,8 +712,6 @@ export default function App() {
                 ? <TariffPlansView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
               : view.type === 'report-builder'
                 ? <ReportBuilderView token={token} entities={entities} />
-              : view.type === 'outbound'
-                ? <OutboundView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
               : view.type === 'webhooks'
                 ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />
               : view.type === 'services'

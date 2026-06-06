@@ -51,6 +51,10 @@
   letter-spacing: 0.08em;
   color: var(--gx-text-2);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
+  min-width: 0;             /* allow truncation instead of pushing into the tag */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nms-card-body {
@@ -78,6 +82,8 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;   /* never let the tag wrap onto / collide with the title */
 }
 
 /* "Pending data source" empty state body — same chrome as a live widget,

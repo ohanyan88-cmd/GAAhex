@@ -65,7 +65,7 @@ export default function RecentItemsView({ token, onNavigate }: {
       title="Recent Items"
       subtitle={loading ? 'Recently visited records' : `${unique.length} item${unique.length === 1 ? '' : 's'}`}
     >
-      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
+      <div>
         {loading && <SkeletonRows rows={8} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && unique.length === 0 && (

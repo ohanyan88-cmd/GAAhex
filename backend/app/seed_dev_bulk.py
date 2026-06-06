@@ -46,6 +46,7 @@ from .models.helpdesk import HelpdeskTicket
 from .models.workitem import WorkItem
 from .models.calendar import CalendarEvent, UserCalendar
 from .models.communication import Communication
+from .models.comm import Thread, Message
 from . import workflow
 from .routers.billing import _now, _add_cycle
 from .utils.refnum import next_reference_number
@@ -676,6 +677,40 @@ _COMMS = [
     ("SMS",            "OUTBOUND", "DELIVERED", "Սպասարկման ծանուցում",           "GAAhex: Վաղը 02:00-04:00 պլանային աշխատանքների պատճառով հնարավոր են ընդհատումներ։", 72),
 ]
 
+# Communications threads — the Communications view reads /api/threads (Thread + Message), NOT the
+# Communication table above. Each thread is record-linked to a seeded customer so it surfaces via
+# `_can_access_thread`, with a short realistic staff conversation. Authors alternate between the
+# admin and a second staff user. Titles are clean (no "[demo]" prefix) — these are demo-worthy.
+# (title, [(author: 'admin'|'agent', body, hours_ago), ...])
+_THREADS = [
+    ("Արագության խնդիր — երեկոյան անկում", [
+        ("agent", "Հաճախորդը հայտնում է երեկոյան արագության անկման մասին։ Ստուգում եմ գիծը։", 27),
+        ("admin", "NOC-ը նայեց՝ POP-ի ծանրաբեռնվածություն էր, շտկվեց։ Հետևիր մի օր։", 26),
+        ("agent", "Հաստատված, արագությունը նորմալ է հիմա։ Փակում եմ տոմսը։", 25),
+    ]),
+    ("Նոր ֆայբեր միացման հայտ", [
+        ("agent", "Հաճախորդը ցանկանում է ֆայբեր միացում նոր հասցեում։ Ծածկույթը կա։", 52),
+        ("admin", "Հաստատում եմ։ Տեխնիկ նշանակիր վաղվա առավոտին։", 51),
+    ]),
+    ("Ապրիլի հաշվի հարցում", [
+        ("agent", "Հաճախորդը հարցնում է ապրիլ ամսվա հաշվի մանրամասները։", 9),
+        ("admin", "Ուղարկիր մանրամասն քաղվածքը էլ-փոստով։", 8),
+        ("agent", "Ուղարկվեց, հաճախորդը գոհ է։", 7),
+    ]),
+    ("ONT սարքի փոխարինում", [
+        ("agent", "Հին ONT-ն պարբերաբար անջատվում է։ Առաջարկում եմ փոխարինել։", 31),
+        ("admin", "Հաստատված, պահեստից վերցրու նոր սարք ու պլանավորիր այցը։", 30),
+    ]),
+    ("Փաթեթի բարձրացում 300 Մբ/վ", [
+        ("agent", "Հաճախորդը ցանկանում է անցնել 300 Մբ/վ փաթեթի։", 13),
+        ("admin", "Կիրառիր նոր սակագինը հաջորդ բիլինգ ցիկլից։", 12),
+    ]),
+    ("WiFi ծածկույթ 2-րդ հարկում", [
+        ("agent", "Հաճախորդը գանգատվում է 2-րդ հարկի թույլ WiFi-ից։ Առաջարկում եմ mesh։", 55),
+        ("admin", "Առաջարկիր mesh փաթեթը, ուղարկիր գնացուցակը։", 54),
+    ]),
+]
+
 
 async def _has_dev_extras_rows(s) -> bool:
     """Return True if any demo-tagged CalendarEvent OR Communication already exists.
@@ -828,4 +863,92 @@ async def seed_dev_extras_if_empty() -> dict | None:
 
         await s.commit()
         _log.info("dev-extras seeder complete: %s", summary)
+        return summary
+
+
+async def seed_dev_threads_if_empty() -> dict | None:
+    """Insert demo Communications threads (Thread + Message) tied to seeded dev_bulk customers.
+
+    The Communications view (MessagesView) reads `/api/threads` — i.e. the Thread/Message tables —
+    NOT the Communication table that `seed_dev_extras_if_empty` populates. Without these rows the
+    page shows "No conversations yet". Each thread is record-linked to a seeded customer
+    (entity_key='customer' + record_id) and authored by `admin@demo.isp`, so the view's
+    `_can_access_thread` gate surfaces it. Additive, idempotent, OWNER session (bypasses RLS) —
+    same contract as the other `*_if_empty` seeders. Gated by `GAAHEX_DEV_SEED` at the caller.
+    """
+    if not _dev_seed_enabled():
+        _log.info("dev-threads seeder skipped: GAAHEX_DEV_SEED not set")
+        return None
+
+    async with SessionLocal() as s:
+        await s.connection(execution_options={"audit_tenant_filter": False})
+
+        admin = (await s.execute(
+            select(User).where(User.email == "admin@demo.isp")
+        )).scalar_one_or_none()
+        if admin is None:
+            _log.info("dev-threads seeder skipped: admin@demo.isp missing")
+            return None
+        tenant_id = admin.tenant_id
+
+        # idempotency — any record-linked thread already authored by the seed actor → no-op.
+        existing = (await s.execute(
+            select(func.count()).select_from(Thread).where(
+                Thread.tenant_id == tenant_id,
+                Thread.created_by == admin.id,
+                Thread.record_id.isnot(None),
+            )
+        )).scalar_one()
+        if existing > 0:
+            _log.info("dev-threads seeder skipped: demo threads already present")
+            return None
+
+        customers = (await s.execute(
+            select(Record).where(
+                Record.tenant_id == tenant_id,
+                Record.entity_key == "customer",
+                Record.data["_seed"].astext == SEED_MARKER,
+            ).order_by(Record.id)
+        )).scalars().all()
+        if not customers:
+            _log.info("dev-threads seeder skipped: no dev_bulk customers to link to (run dev-bulk first)")
+            return None
+
+        # A second staff user gives the conversations a back-and-forth feel. Fall back to admin.
+        agent_user = (await s.execute(
+            select(User).where(User.tenant_id == tenant_id, User.id != admin.id).order_by(User.id)
+        )).scalars().first()
+        authors = {"admin": admin.id, "agent": agent_user.id if agent_user else admin.id}
+
+        now = _now()
+        n_threads = 0
+        n_messages = 0
+        for i, (title, msgs) in enumerate(_THREADS):
+            cust = customers[i % len(customers)]
+            cust_name = (cust.data or {}).get("name", "")
+            earliest = max((h for _, _, h in msgs), default=1)
+            th = Thread(
+                tenant_id=tenant_id,
+                entity_key="customer",
+                record_id=cust.id,
+                title=(f"{title} — {cust_name}".strip(" —") if cust_name else title),
+                created_by=admin.id,
+                created_at=now - timedelta(hours=earliest + 1),
+            )
+            s.add(th)
+            await s.flush()
+            n_threads += 1
+            for role, body, hours_ago in msgs:
+                s.add(Message(
+                    tenant_id=tenant_id,
+                    thread_id=th.id,
+                    author_user_id=authors.get(role, admin.id),
+                    body=body,
+                    created_at=now - timedelta(hours=hours_ago),
+                ))
+                n_messages += 1
+
+        await s.commit()
+        summary = {"threads": n_threads, "messages": n_messages}
+        _log.info("dev-threads seeder complete: %s", summary)
         return summary
