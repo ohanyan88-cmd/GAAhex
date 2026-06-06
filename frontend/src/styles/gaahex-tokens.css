@@ -308,8 +308,8 @@
   --gx-kpi-value-size:  30px;   /* the big cockpit metric value */
   --gx-kpi-bar-h:       6px;    /* progress/utilisation bar thickness */
 
-  /* In-header search box width cap (Zone A search slot, and reusable elsewhere). */
-  --gx-search-w:        360px;
+  /* In-header search box width (Zone A search slot, and reusable elsewhere). */
+  --gx-search-w:        300px;
   /* Glyph size inside the 36px header icon box (box itself unchanged). */
   --gx-header-icon-size: 22px;
 

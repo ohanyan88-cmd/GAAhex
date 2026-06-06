@@ -79,7 +79,7 @@ export function PageHeader({
           <div className="ps-header-search">
             <Input
               variant="search"
-              size="sm"
+              size="md"
               value={search.value}
               onChange={(e) => search.onChange(e.target.value)}
               placeholder={search.placeholder ?? 'Search…'}
@@ -89,13 +89,13 @@ export function PageHeader({
         {hasActions && (
           <div className="ps-header-actions">
             {secondaryActions?.map((a, i) => (
-              <Button variant="secondary" size="sm" type="button"
+              <Button variant="secondary" size="md" type="button"
                 key={`${a.label}-${i}`} onClick={a.onClick} disabled={a.disabled}>
                 {a.icon}{a.label}
               </Button>
             ))}
             {primaryAction && (
-              <Button variant="primary" size="sm" type="button"
+              <Button variant="primary" size="md" type="button"
                 onClick={primaryAction.onClick}
                 disabled={primaryAction.disabled || primaryAction.loading}>
                 {primaryAction.icon}{primaryAction.label}

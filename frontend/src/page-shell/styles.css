@@ -79,7 +79,6 @@
 .ps-header-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--gx-space-8);
 }
 .ps-header-actions {
@@ -88,10 +87,10 @@
   gap: var(--gx-space-4);
   flex-shrink: 0;
 }
-/* Search slot in the header, between the title and the action buttons. */
+/* Search slot in the header — fixed width, grouped on the right next to the buttons. */
 .ps-header-search {
-  flex: 1 1 auto;
-  max-width: var(--gx-search-w);
+  flex: 0 0 auto;
+  width: var(--gx-search-w);
   align-self: center;
 }
 
@@ -100,6 +99,7 @@
   align-items: flex-start;
   gap: var(--gx-space-4);
   min-width: 0;
+  margin-right: auto;   /* push title left; search + actions group together on the right */
 }
 
 .ps-header-icon {
