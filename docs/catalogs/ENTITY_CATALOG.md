@@ -4,8 +4,8 @@
 |---|---|
 | **Location** | `docs/catalogs/ENTITY_CATALOG.md` |
 | **Layer** | Catalog (between Standards and Implementation) |
-| **Status** | **LOCKED · RATIFIED · BASELINE ESTABLISHED — 2026-06-06** |
-| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT · ✅ NORMALIZE · ✅ LOCK |
+| **Status** | **PROVISIONAL — 2026-06-06.** Reverted from LOCKED at Gev's direction (LAW-GV6 push-back) pending the Prefix Registry Reconciliation pass. Lock is blocked until `PREFIX_RECONCILIATION_REPORT.md` is ratified and Std03 + IA8 §7.4 amended. |
+| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT · ✅ NORMALIZE · ⏸ LOCK BLOCKED (pending prefix reconciliation) |
 | **Authority** | [`../governance/PROJECT_CONSTITUTION.md`](../governance/PROJECT_CONSTITUTION.md) → PRM → `03_INFORMATION_ARCHITECTURE.md` §8 → `09_DATA_ARCHITECTURE.md` §17 → Standards 03 + 14 |
 | **Amendments** | Only via LAW-GV1 of PROJECT_CONSTITUTION |
 
