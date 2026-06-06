@@ -187,7 +187,7 @@ export default function RolesPane({ token }: { token: string }) {
       {showCreate && (
         <form
           onSubmit={createRole}
-          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: 'var(--gx-space-7) var(--gx-space-8)', marginBottom: 'var(--gx-space-8)' }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: 'var(--gx-space-7) var(--gx-space-8)', marginBottom: 'var(--gx-space-8)' }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <PlusIcon size={14} className="section-icon" /> New role
@@ -328,7 +328,7 @@ export default function RolesPane({ token }: { token: string }) {
           ) : (
             Object.entries(grouped).map(([group, perms]) => (
               <div key={group} style={{ marginBottom: 'var(--gx-space-8)' }}>
-                <div style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
+                <div style={{ fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                   {group}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-4) var(--gx-space-12)' }}>

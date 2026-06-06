@@ -515,7 +515,7 @@ export default function TariffPlansView({
                             background: 'var(--gx-bg-subtle)',
                             color: 'var(--gx-text-2)',
                             fontSize: 'var(--gx-text-11)',
-                            fontWeight: 600,
+                            fontWeight: 'var(--gx-weight-semibold)',
                           }}
                           title={(p.tiers_json ?? []).length === 0 ? 'No tiers' : `${(p.tiers_json ?? []).length} tier(s)`}
                         >

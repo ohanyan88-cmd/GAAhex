@@ -167,7 +167,7 @@ function renderInvoiceCell(colKey: string, inv: Invoice, cust: (inv: Invoice) =>
 const COL_CLASS: Record<string, string> = { amount: 'num' }
 // Columns that get special inline styling on their <td>
 function colTdStyle(colKey: string): React.CSSProperties | undefined {
-  if (colKey === 'number') return { color: 'var(--gx-gold)', fontWeight: 600 }
+  if (colKey === 'number') return { color: 'var(--gx-gold)', fontWeight: 'var(--gx-weight-semibold)' }
   return undefined
 }
 // Columns that get extra className on their <td>
@@ -813,19 +813,19 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--gx-space-5)', alignItems: 'end' }}>
           <div>
             <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Total</div>
-            <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.total)}</div>
+            <div className="num mono" style={{ fontSize: 'var(--gx-text-md)' }}>{moneyDecToLumaFmt(out.total)}</div>
           </div>
           <div>
             <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Paid</div>
-            <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.paid)}</div>
+            <div className="num mono" style={{ fontSize: 'var(--gx-text-md)' }}>{moneyDecToLumaFmt(out.paid)}</div>
           </div>
           <div>
             <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Credited</div>
-            <div className="num mono" style={{ fontSize: 15 }}>{moneyDecToLumaFmt(out.credited)}</div>
+            <div className="num mono" style={{ fontSize: 'var(--gx-text-md)' }}>{moneyDecToLumaFmt(out.credited)}</div>
           </div>
           <div>
             <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Outstanding</div>
-            <div className="num mono" style={{ fontSize: 17, fontWeight: 700, color: outColor }}>
+            <div className="num mono" style={{ fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-bold)', color: outColor }}>
               {moneyDecToLumaFmt(out.outstanding)}
             </div>
           </div>

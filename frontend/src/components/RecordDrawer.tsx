@@ -172,7 +172,7 @@ export default function RecordDrawer({
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-7)' }}>
             <div
               className="avatar"
-              style={{ width: 46, height: 46, fontSize: 15 }}
+              style={{ width: 46, height: 46, fontSize: 'var(--gx-text-md)' }}
             >
               {initials(title)}
             </div>
@@ -181,8 +181,8 @@ export default function RecordDrawer({
                 id="record-drawer-title"
                 style={{
                   fontFamily: 'var(--gx-font-display)',
-                  fontSize: 20,
-                  fontWeight: 600,
+                  fontSize: 'var(--gx-text-xl)',
+                  fontWeight: 'var(--gx-weight-semibold)',
                   letterSpacing: '-.01em',
                 }}
               >
@@ -256,7 +256,7 @@ export default function RecordDrawer({
                     <span className="tl-dot">{a.icon ?? <Clock size={13} />}</span>
                     <div>
                       <div style={{ fontSize: 'var(--gx-text-13)' }}>{a.title}</div>
-                      <div className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-1)' }}>
+                      <div className="hint" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-1)' }}>
                         {a.detail ? <span>{a.detail} · </span> : null}
                         <span>{a.ts}</span>
                       </div>
@@ -359,7 +359,7 @@ export default function RecordDrawer({
                       color: 'var(--gx-text-3)',
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{n.author}</span>
+                    <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{n.author}</span>
                     <span>{n.ts}</span>
                   </div>
                   <div

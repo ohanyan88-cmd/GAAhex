@@ -764,7 +764,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           {/* ── Bulk action bar (overlays toolbar when selection > 0) ── */}
           {selected.size > 0 && (
             <div className="bulkbar">
-              <span style={{ fontWeight: 600, fontSize: 12.5 }}>{selected.size} selected</span>
+              <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-sm)' }}>{selected.size} selected</span>
               <span className="spacer" />
               {/* B21: only show transition controls if user can edit */}
               {canEdit && transitionTargets.length > 0 && (

@@ -102,7 +102,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-3)' }}>
         <div>
-          <h2 style={{ margin: '0 0 var(--gx-space-2)', fontSize: 'var(--gx-text-xl)', fontWeight: 600 }}>{title}</h2>
+          <h2 style={{ margin: '0 0 var(--gx-space-2)', fontSize: 'var(--gx-text-xl)', fontWeight: 'var(--gx-weight-semibold)' }}>{title}</h2>
           <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
             <UsersIcon size={12} /> Owner: <strong style={{ color: 'var(--gx-text-2)' }}>{owner}</strong>
           </div>
@@ -132,7 +132,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
         borderRadius: 'var(--gx-radius-lg, 12px)',
         padding: 'var(--gx-space-5)',
       }}>
-        <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 'var(--gx-space-5)' }}>
+        <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 'var(--gx-space-5)' }}>
           Control gates referenced in this pipeline
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-6)' }}>
@@ -142,7 +142,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
               border: '1px solid var(--gx-border)',
               borderRadius: 'var(--gx-radius-md)', padding: 'var(--gx-space-4)',
             }}>
-              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 'var(--gx-space-2)' }}>{gate}</div>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', marginBottom: 'var(--gx-space-2)' }}>{gate}</div>
               <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)', lineHeight: 1.5 }}>
                 {CONTROL_GATE_DEFINITIONS[gate]}
               </div>
@@ -160,7 +160,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
       style={{
         background: 'var(--gx-surface)',
         border: '1px solid var(--gx-border)',
-        borderRadius: 10,
+        borderRadius: 'var(--gx-radius-md)',
         padding: 'var(--gx-space-4)',
         minHeight: 140,
         position: 'relative',
@@ -171,13 +171,13 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
     >
       <div style={{
         position: 'absolute', top: 'var(--gx-space-4)', right: 'var(--gx-space-5)',
-        fontSize: 'var(--gx-text-10)', fontWeight: 700,
+        fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)',
         color: 'var(--gx-text-3)',
         fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
       }}>
         #{index + 1}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', paddingRight: 'var(--gx-space-12)' }}>
+      <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', paddingRight: 'var(--gx-space-12)' }}>
         {stage.label}
       </div>
       <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
@@ -198,7 +198,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
             border: '1px solid var(--gx-border)',
             borderRadius: 'var(--gx-radius-full)',
             fontSize: 'var(--gx-text-10)',
-            fontWeight: 600,
+            fontWeight: 'var(--gx-weight-semibold)',
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
           }}>

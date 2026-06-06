@@ -77,9 +77,9 @@ export default function NetworkTopologyView({ token }: { token: string }) {
                 const kind = String(d.kind ?? '—')
                 return (
                   <tr key={site.id}>
-                    <td style={{ fontWeight: 500 }}>{String(d.name ?? '—')}</td>
+                    <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{String(d.name ?? '—')}</td>
                     <td>
-                      <span style={{ color: KIND_COLORS[kind] || 'inherit', fontWeight: 500 }}>{kind}</span>
+                      <span style={{ color: KIND_COLORS[kind] || 'inherit', fontWeight: 'var(--gx-weight-medium)' }}>{kind}</span>
                     </td>
                     <td>
                       <span className={`badge badge-${site.status === 'LIVE' ? 'success' : site.status === 'DECOMMISSIONED' ? 'danger' : 'neutral'}`}>

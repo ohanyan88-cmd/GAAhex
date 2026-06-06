@@ -204,7 +204,7 @@ function CreateWebhookModal({
                 type="button"
                 className={'btn btn-sm ' + (on ? 'btn-primary' : 'btn-ghost')}
                 onClick={() => toggleEvent(ev)}
-                style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11.5 }}
+                style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)' }}
               >
                 {ev}
               </button>
@@ -470,7 +470,7 @@ function DetailDrawer({
                   type="button"
                   className={'btn btn-sm ' + (on ? 'btn-primary' : 'btn-ghost')}
                   onClick={() => toggleEvent(ev)}
-                  style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11.5 }}
+                  style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)' }}
                 >
                   {ev}
                 </button>

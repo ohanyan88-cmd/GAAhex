@@ -132,7 +132,7 @@ export default function AskGaaexView({ token }: { token: string }) {
                     <div key={i} className="bubble-row in">
                       <div className="bubble-wrap" style={{ maxWidth: '78%' }}>
                         <div className="bubble in" style={{ maxWidth: '100%' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 'var(--gx-space-3)' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 'var(--gx-space-3)' }}>
                             <SparkleIcon size={12} /> {t('ask.proposalTitle', 'Action proposed')}
                           </div>
                           <div style={{ fontSize: 'var(--gx-text-13)', lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>
@@ -142,9 +142,9 @@ export default function AskGaaexView({ token }: { token: string }) {
                               <Button variant="ghost" size="sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</Button>
                             </div>
                           ) : m.state === 'done' ? (
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-success-fg)', marginTop: 'var(--gx-space-4)' }}>{m.result}</div>
+                            <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-success-fg)', marginTop: 'var(--gx-space-4)' }}>{m.result}</div>
                           ) : (
-                            <div style={{ fontSize: 12.5, color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-4)' }}>{t('ask.cancelled', 'Cancelled.')}</div>
+                            <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-4)' }}>{t('ask.cancelled', 'Cancelled.')}</div>
                           )}
                         </div>
                       </div>
@@ -200,7 +200,7 @@ export default function AskGaaexView({ token }: { token: string }) {
                 className="info-act"
                 onClick={() => ask(sg)}
                 disabled={busy}
-                style={{ textAlign: 'left', fontSize: 11.5, lineHeight: 1.4 }}
+                style={{ textAlign: 'left', fontSize: 'var(--gx-text-11)', lineHeight: 1.4 }}
               >
                 {sg}
               </button>

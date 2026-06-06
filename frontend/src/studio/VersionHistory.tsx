@@ -251,17 +251,17 @@ function PageVersionsTab({ token }: { token?: string }) {
                       color: 'inherit',
                     }}
                   >
-                    <span className="mono" style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', minWidth: 36 }}>
+                    <span className="mono" style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', minWidth: 36 }}>
                       v{ver.version_no}
                     </span>
                     <span className={`pill ${ver.status === 'published' ? 'pill-success' : 'pill-neutral'}`}>
                       {ver.status}
                     </span>
                     {ver.author_user_id && (
-                      <span className="hint mono" style={{ fontSize: 11.5 }}>{ver.author_user_id.slice(0, 8)}</span>
+                      <span className="hint mono" style={{ fontSize: 'var(--gx-text-11)' }}>{ver.author_user_id.slice(0, 8)}</span>
                     )}
                     <span style={{ flex: 1 }} />
-                    <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ver.created_at)}</span>
+                    <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{timeAgo(ver.created_at)}</span>
                     {!isCurrentPublished && (
                       <Button variant="ghost" size="sm"
             type="button"
@@ -464,7 +464,7 @@ function AuditLogTab({ token }: { token?: string }) {
     <>
       {filterBar}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--gx-space-2)' }}>
-        <span className="hint" style={{ fontSize: 11.5 }}>{loading ? '' : `${items.length} of ${total}`}</span>
+        <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{loading ? '' : `${items.length} of ${total}`}</span>
       </div>
       {items.length === 0 ? (
         <EmptyState
@@ -490,12 +490,12 @@ function AuditLogTab({ token }: { token?: string }) {
                     style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', width: '100%', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
                   >
                     <StatusPillLite variant={eventVariant(ev.type)} label={ev.type} />
-                    <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>{actorLabel(ev)}</span>
+                    <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>{actorLabel(ev)}</span>
                     {entitySuffix && (
                       <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{entitySuffix}</span>
                     )}
                     <span style={{ flex: 1 }} />
-                    <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(ev.created_at)}</span>
+                    <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{timeAgo(ev.created_at)}</span>
                     {isOpen ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} /> : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
                   </button>
                   {isOpen && (

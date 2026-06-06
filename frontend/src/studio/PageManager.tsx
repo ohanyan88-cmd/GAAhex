@@ -65,7 +65,7 @@ export function PageManager() {
           <tbody>
             {pages.map(pg => (
               <tr key={pg.id} style={{ cursor: 'default' }}>
-                <td style={{ fontWeight: 600 }}>
+                <td style={{ fontWeight: 'var(--gx-weight-semibold)' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                     <File size={14} style={{ color: 'var(--gx-text-3)' }} />{pg.name}
                   </span>
@@ -81,7 +81,7 @@ export function PageManager() {
                   </select>
                 </td>
                 <td><span className={statusCls(pg.status)}>{pg.status}</span></td>
-                <td className="hint" style={{ fontSize: 11.5 }}>{pg.updated}</td>
+                <td className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{pg.updated}</td>
                 <td className="actions-col">
                   <div style={{ display: 'flex', gap: 'var(--gx-space-1)', justifyContent: 'flex-end' }}>
                     <Button variant="ghost" size="sm" iconOnly

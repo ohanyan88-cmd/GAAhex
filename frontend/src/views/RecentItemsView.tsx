@@ -79,7 +79,7 @@ export default function RecentItemsView({ token, onNavigate }: {
             onClick={() => e.entity_key && e.record_id && onNavigate?.(e.entity_key, e.record_id)}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 500, textTransform: 'capitalize' }}>{label(e)}</span>
+              <span style={{ fontWeight: 'var(--gx-weight-medium)', textTransform: 'capitalize' }}>{label(e)}</span>
               <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', whiteSpace: 'nowrap', marginLeft: 'var(--gx-space-8)' }}>{timeAgo(e.created_at)}</span>
             </div>
             {e.entity_key && (

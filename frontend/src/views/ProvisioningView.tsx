@@ -71,7 +71,7 @@ export default function ProvisioningView({ token }: { token: string }) {
             <tbody>
               {services.map(s => (
                 <tr key={s.id}>
-                  <td style={{ fontWeight: 500 }}>{s.plan_name}</td>
+                  <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{s.plan_name}</td>
                   <td><span className="badge badge-warning">{s.status}</span></td>
                   <td className="mono" style={{ fontSize: 'var(--gx-text-13)' }}>{fmtDate(s.started_at)}</td>
                   <td className="mono muted" style={{ fontSize: 'var(--gx-text-13)' }}>{fmtDate(s.created_at)}</td>

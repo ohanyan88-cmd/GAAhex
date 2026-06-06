@@ -215,7 +215,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
   return (
     <div>
       <div style={{ marginBottom: 'var(--gx-space-18)' }}>
-        <h3 style={{ margin: '0 0 var(--gx-space-2)', fontFamily: 'var(--gx-font-sans)', fontSize: 'var(--gx-text-lg)', fontWeight: 600 }}>Appearance</h3>
+        <h3 style={{ margin: '0 0 var(--gx-space-2)', fontFamily: 'var(--gx-font-sans)', fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-semibold)' }}>Appearance</h3>
         <p className="hint" style={{ margin: 0 }}>
           Tenant branding. Set it once here — every rendered screen across all 18 modules updates. No code.
         </p>
@@ -304,13 +304,13 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           <div className="lbl">Live preview · applies everywhere</div>
 
           <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button style={{ height: ht, padding: pad, borderRadius: radius, border: 'none', background: 'var(--gx-primary)', color: 'var(--gx-on-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 'var(--gx-text-13)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }} type="button">
+            <button style={{ height: ht, padding: pad, borderRadius: radius, border: 'none', background: 'var(--gx-primary)', color: 'var(--gx-on-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }} type="button">
               <Plus size={14} />Primary
             </button>
-            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-border-strong)', background: 'var(--gx-surface-2)', color: 'var(--gx-text-1)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 'var(--gx-text-13)', cursor: 'pointer' }} type="button">
+            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-border-strong)', background: 'var(--gx-surface-2)', color: 'var(--gx-text-1)', fontFamily: 'var(--gx-font-sans)', fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)', cursor: 'pointer' }} type="button">
               Secondary
             </button>
-            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-primary)', background: 'transparent', color: 'var(--gx-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 'var(--gx-text-13)', cursor: 'pointer' }} type="button">
+            <button style={{ height: ht, padding: pad, borderRadius: radius, border: '1px solid var(--gx-primary)', background: 'transparent', color: 'var(--gx-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)', cursor: 'pointer' }} type="button">
               Outline
             </button>
             <button style={{ height: ht, width: ht, padding: 0, borderRadius: radius, border: 'none', background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} type="button">
@@ -319,7 +319,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 'var(--gx-radius-full)', fontSize: 'var(--gx-text-11)', fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 'var(--gx-radius-full)', fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-semibold)', background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
             <span className="pill pill-success">Online</span>
             <span className="pill pill-warning">Degraded</span>
             <span className="pill pill-danger">SLA breached</span>
@@ -339,7 +339,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
               <Globe size={17} />
             </span>
             <div>
-              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Active subscribers</div>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)' }}>Active subscribers</div>
               <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>—</div>
             </div>
           </div>

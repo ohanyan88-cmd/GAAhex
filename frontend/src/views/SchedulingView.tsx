@@ -79,7 +79,7 @@ export default function SchedulingView({ token }: { token: string }) {
                     const d = sl.data ?? {}
                     return (
                       <tr key={sl.id}>
-                        <td style={{ fontWeight: 500 }}>{String(d.title ?? '—')}</td>
+                        <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{String(d.title ?? '—')}</td>
                         <td className="mono" style={{ fontSize: 'var(--gx-text-13)' }}>{String(d.date ?? '—')}</td>
                         <td className="muted" style={{ fontSize: 'var(--gx-text-13)' }}>{String(d.tech ?? '—')}</td>
                         <td><span className={`badge ${STATUS_CLASS[status] ?? 'badge-neutral'}`}>{status}</span></td>

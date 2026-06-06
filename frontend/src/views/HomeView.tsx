@@ -147,7 +147,7 @@ function Widget({ icon: Icon, title, children, count }: {
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="card-head" style={{ borderBottom: '1px solid var(--gx-border)', padding: 'var(--gx-space-6) var(--gx-space-18)' }}>
         <Icon size={14} color="var(--gx-text-3)" />
-        <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>{title}</h3>
+        <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)' }}>{title}</h3>
         {count !== undefined && (
           <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginLeft: 'var(--gx-space-3)' }}>{count}</span>
         )}
@@ -373,7 +373,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       <section aria-label="Requires your attention" style={{ marginBottom: 'var(--gx-space-8)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-5)' }}>
           <AlertTriangle size={15} color={urgentItems.length > 0 ? 'var(--gx-warning)' : 'var(--gx-text-3)'} />
-          <h2 style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, margin: 0 }}>Requires your attention</h2>
+          <h2 style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', margin: 0 }}>Requires your attention</h2>
           {urgentItems.length > 0 && <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{urgentItems.length}</span>}
         </div>
         {urgentItems.length === 0 ? (
@@ -400,7 +400,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
                 }}
               >
                 <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'} />
-                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{u.label}</span>
+                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{u.label}</span>
               </div>
             ))}
           </div>
@@ -416,7 +416,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               {tickets.state === 'loading' && <Skel />}
               {myTickets.length === 0 ? <Empty msg="All clear" /> : myTickets.slice(0, 6).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-primary" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
                 </div>
               ))}
@@ -439,7 +439,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={Users} title="My Pipeline" count={myLeads.length}>
               {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
                 <div key={l.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'leads')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'leads'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{l.status}</span>
                 </div>
               ))}
@@ -462,7 +462,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               {myTodaySlots.length === 0 ? <Empty msg="No dispatches scheduled today" /> : myTodaySlots.slice(0, 6).map(s => (
                 <div key={s.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
                   <Clock size={13} color="var(--gx-text-3)" />
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{s.data?.title ?? 'Slot'}</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{s.data?.title ?? 'Slot'}</span>
                   {s.data?.time_from && <span className="mono muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{String(s.data.time_from)}</span>}
                 </div>
               ))}

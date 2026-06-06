@@ -125,7 +125,7 @@ export default function ComingSoonView({ title, parent, description, id, preview
             border: '1px solid var(--gx-warning)',
             borderRadius: 'var(--gx-radius-full)',
             fontSize: 'var(--gx-text-11)',
-            fontWeight: 700,
+            fontWeight: 'var(--gx-weight-bold)',
             textTransform: 'uppercase' as const,
             letterSpacing: '0.06em',
             marginBottom: 'var(--gx-space-xl)' as string,
@@ -134,7 +134,7 @@ export default function ComingSoonView({ title, parent, description, id, preview
           Coming Soon
         </div>
 
-        <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 'var(--gx-space-4)' }}>
+        <div style={{ fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', marginBottom: 'var(--gx-space-4)' }}>
           {title}
           {id && (
             <span
@@ -146,7 +146,7 @@ export default function ComingSoonView({ title, parent, description, id, preview
                 color: 'var(--gx-text-3)',
                 border: '1px solid var(--gx-border)',
                 borderRadius: 'var(--gx-radius-xs)',
-                fontWeight: 500,
+                fontWeight: 'var(--gx-weight-medium)',
                 marginLeft: 'var(--gx-space-5)',
               }}
             >
@@ -175,7 +175,7 @@ export default function ComingSoonView({ title, parent, description, id, preview
             <div
               style={{
                 fontSize: 'var(--gx-text-11)',
-                fontWeight: 700,
+                fontWeight: 'var(--gx-weight-bold)',
                 textTransform: 'uppercase' as const,
                 letterSpacing: '0.08em',
                 color: 'var(--gx-text-3)',

@@ -54,7 +54,7 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
           <div key={node.id} className="card" style={{ padding: 'var(--gx-space-8)', marginBottom: 'var(--gx-space-6)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-6)' }}>
               <BuildingIcon size={16} className="muted" />
-              <span style={{ fontWeight: 600 }}>{node.name}</span>
+              <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{node.name}</span>
               <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{node.kind}</span>
               <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginLeft: 'auto' }}>{nodeMembers.length} member{nodeMembers.length === 1 ? '' : 's'}</span>
             </div>
@@ -77,7 +77,7 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
         <div className="card" style={{ padding: 'var(--gx-space-8)', marginBottom: 'var(--gx-space-6)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-6)' }}>
             <UsersIcon size={16} className="muted" />
-            <span style={{ fontWeight: 600 }}>Unassigned</span>
+            <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>Unassigned</span>
             <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginLeft: 'auto' }}>{unassigned.length} member{unassigned.length === 1 ? '' : 's'}</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>

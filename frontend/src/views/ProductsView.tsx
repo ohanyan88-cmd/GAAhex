@@ -314,14 +314,16 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
         background: active
           ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
           : 'var(--gx-bg-subtle)',
-        color: active ? 'var(--gx-text-on-primary)' : 'var(--gx-text-2)',
+        // primary active chip sits on the near-white --gx-text-1 fill, so its label must be
+        // dark (app bg), not white-on-white; the azure variant keeps the on-primary white.
+        color: active ? (primary ? 'var(--gx-bg)' : 'var(--gx-text-on-primary)') : 'var(--gx-text-2)',
         // D18: active chip outline matches background — azure for the default variant
         border: '1px solid ' + (active
           ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
           : 'var(--gx-border)'),
         borderRadius: 'var(--gx-radius-full)',
         fontSize: 'var(--gx-text-sm)',
-        fontWeight: active ? 600 : 500,
+        fontWeight: active ? 'var(--gx-weight-semibold)' : 'var(--gx-weight-medium)',
         cursor: 'pointer',
       }}
     >
@@ -337,8 +339,8 @@ function CategoryGroup<T extends string>({ title, categories, active, onPick }: 
   onPick: (c: T | 'All') => void
 }) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-2) var(--gx-space-5) var(--gx-space-2) var(--gx-space-6)', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 10 }}>
-      <span style={{ fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 'var(--gx-space-2)' }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-2) var(--gx-space-5) var(--gx-space-2) var(--gx-space-6)', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)' }}>
+      <span style={{ fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 'var(--gx-space-2)' }}>
         {title}
       </span>
       {categories.map((c) => (

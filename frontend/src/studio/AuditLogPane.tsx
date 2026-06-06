@@ -243,7 +243,7 @@ export default function AuditLogPane({ token }: { token: string }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginRight: 'var(--gx-space-2)', color: 'var(--gx-text-3)' }}>
         <FilterIcon size={13} />
-        <span className="hint" style={{ fontSize: 11.5 }}>Filters</span>
+        <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>Filters</span>
       </div>
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
         <span style={{ fontSize: 'var(--gx-text-11)' }}>Event type</span>
@@ -343,7 +343,7 @@ export default function AuditLogPane({ token }: { token: string }) {
       {filterBar}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--gx-space-3)' }}>
-        <span className="hint" style={{ fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
+        <span className="hint" style={{ fontSize: 'var(--gx-text-11)', display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
           <ActivityIcon size={12} />
           {filtersActive ? 'Filtered · ' : ''}{items.length} of {total} events
         </span>
@@ -385,13 +385,13 @@ export default function AuditLogPane({ token }: { token: string }) {
                         <td>
                           <span
                             className="hint"
-                            style={{ fontSize: 11.5 }}
+                            style={{ fontSize: 'var(--gx-text-11)' }}
                             title={ev.created_at ?? ''}
                           >
                             {timeAgo(ev.created_at)}
                           </span>
                         </td>
-                        <td style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
+                        <td style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>
                           {actorLabel(ev)}
                         </td>
                         <td>

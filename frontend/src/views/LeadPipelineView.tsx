@@ -265,7 +265,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
               <div key={col.key} className="kcol">
                 <div className="kcol-head">
                   <span style={{ width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: tone, flexShrink: 0 }} />
-                  <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{col.label}</span>
+                  <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{col.label}</span>
                   <span className="kcol-count">{items.length}</span>
                   {canCreate && (
                     <Button variant="ghost" size="sm" iconOnly
@@ -282,7 +282,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                         <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
                           {lead.id?.slice(0, 12)}
                         </div>
-                        <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 'var(--gx-space-5)' }}>
+                        <div style={{ fontSize: 'var(--gx-text-sm)', lineHeight: 1.45, marginBottom: 'var(--gx-space-5)' }}>
                           {lead.name || t('leads.unnamed', 'Unnamed lead')}
                         </div>
                         {(lead.source || lead.phone || lead.email) && (
@@ -293,7 +293,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-                          <span className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>{initials(lead.name || '')}</span>
+                          <span className="avatar" style={{ width: 22, height: 22, fontSize: 'var(--gx-text-10)' }}>{initials(lead.name || '')}</span>
                           {sc && sc !== 'loading' && sc !== 'error' && (
                             <span className={'pill ' + (sc.band === 'hot' ? 'pill-danger' : sc.band === 'warm' ? 'pill-warning' : 'pill-muted')} style={{ height: 'var(--gx-space-18)', marginLeft: 'auto' }} title={(sc.reasons ?? []).join(' · ')}>
                               {sc.band}
@@ -320,7 +320,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                     )
                   })}
                   {items.length === 0 && (
-                    <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)', borderRadius: 6, border: '1px dashed var(--gx-border)' }}>
+                    <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)', borderRadius: 'var(--gx-radius-sm)', border: '1px dashed var(--gx-border)' }}>
                       No leads in this stage
                     </div>
                   )}

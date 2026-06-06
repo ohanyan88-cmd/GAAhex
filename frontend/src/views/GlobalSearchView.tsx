@@ -107,7 +107,7 @@ export default function GlobalSearchView({ token, onNavigate }: {
                   onClick={() => onNavigate?.(group.route_slug, m.id)}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600 }}>{m.label}</span>
+                    <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{m.label}</span>
                     {m.status && <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{m.status}</span>}
                   </div>
                   <div

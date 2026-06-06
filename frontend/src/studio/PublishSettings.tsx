@@ -240,11 +240,11 @@ export function PublishSettings({ token }: { token?: string } = {}) {
                     {detail.version.status}
                   </span>
                   {detail.version.author_user_id && (
-                    <span className="hint" style={{ fontSize: 11.5 }}>
+                    <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
                       by {detail.version.author_user_id.slice(0, 8)}
                     </span>
                   )}
-                  <span className="hint" style={{ fontSize: 11.5 }}>{timeAgo(detail.version.created_at)}</span>
+                  <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{timeAgo(detail.version.created_at)}</span>
                 </div>
               </div>
             ) : (

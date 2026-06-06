@@ -45,7 +45,7 @@ export default function OverviewTab({ customerId, profile }: { customerId: strin
   return (
     <div className="card" style={{ padding: 'var(--gx-space-8)' }}>
       <div style={{ marginBottom: 'var(--gx-space-7)' }}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
+        <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)' }}>{name}</div>
         <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-1)' }}>{profile.id}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--gx-space-7)' }}>

@@ -757,7 +757,7 @@ function PoliciesTab({
                     background: isSelected ? 'var(--gx-bg-subtle)' : 'var(--gx-surface)',
                     // D18: active selection outline = azure (interactive)
                     border: '1px solid ' + (isSelected ? 'var(--gx-interactive)' : 'var(--gx-border)'),
-                    borderRadius: 10,
+                    borderRadius: 'var(--gx-radius-md)',
                     padding: 'var(--gx-space-7)',
                     cursor: 'pointer',
                     display: 'flex',
@@ -766,10 +766,10 @@ function PoliciesTab({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
-                    <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)', flex: 1 }}>{p.name}</div>
+                    <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', flex: 1 }}>{p.name}</div>
                     {p.is_default && (
                       <span style={{
-                        fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                        fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', textTransform: 'uppercase', letterSpacing: '0.06em',
                         padding: '2px 7px', borderRadius: 'var(--gx-radius-full)',
                         background: 'var(--gx-bg-subtle)', color: 'var(--gx-text-2)',
                         border: '1px solid var(--gx-border)',
@@ -807,7 +807,7 @@ function PoliciesTab({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
-              <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
+              <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>
                 {draft.id ? t('collections.policy.edit', 'Edit policy') : t('collections.policy.create', 'Create policy')}
               </div>
               <span style={{ flex: 1 }} />

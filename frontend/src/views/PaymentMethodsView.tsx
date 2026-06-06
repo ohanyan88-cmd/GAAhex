@@ -272,9 +272,9 @@ export default function PaymentMethodsView({
                             className="mono"
                             style={{
                               fontSize: 'var(--gx-text-10)',
-                              fontWeight: 600,
+                              fontWeight: 'var(--gx-weight-semibold)',
                               padding: 'var(--gx-space-1) var(--gx-space-3)',
-                              borderRadius: 4,
+                              borderRadius: 'var(--gx-radius-xs)',
                               background: tone.bg,
                               color: tone.fg,
                               letterSpacing: 0.5,
@@ -533,7 +533,7 @@ function VaultModal({
           <p
             className="err"
             role="alert"
-            style={{ margin: 0, color: 'var(--gx-danger-fg)', fontSize: 12.5, lineHeight: 1.4 }}
+            style={{ margin: 0, color: 'var(--gx-danger-fg)', fontSize: 'var(--gx-text-sm)', lineHeight: 1.4 }}
           >
             {formError}
           </p>

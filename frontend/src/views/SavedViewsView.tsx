@@ -135,7 +135,7 @@ export default function SavedViewsView({
                         style={{ cursor: clickable ? 'pointer' : 'default' }}
                         title={clickable ? `Open ${v.entity_label}` : undefined}
                       >
-                        <td style={{ fontWeight: 500 }}>{v.name}</td>
+                        <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{v.name}</td>
                         <td style={{ color: 'var(--gx-text-2)' }}>{v.entity_label}</td>
                         <td>
                           {v.shared

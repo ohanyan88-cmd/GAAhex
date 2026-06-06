@@ -173,7 +173,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)' }}>
             <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: sl.color, flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 'var(--gx-text-sm)' }}>{sl.label}</span>
-            <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{sl.value}</span>
+            <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{sl.value}</span>
             <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{Math.round(sl.value / total * 100)}%</span>
           </div>
         ))}
@@ -191,10 +191,10 @@ function HorizontalBarChart({ buckets }: { buckets: { label: string; value: numb
         <div key={b.label}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-sm)' }}>
             <span>{b.label}</span>
-            <span style={{ fontWeight: 600, color: b.color }}>{money(b.value)}</span>
+            <span style={{ fontWeight: 'var(--gx-weight-semibold)', color: b.color }}>{money(b.value)}</span>
           </div>
-          <div style={{ height: 'var(--gx-space-4)', borderRadius: 4, background: 'var(--gx-surface-2)' }}>
-            <div style={{ height: '100%', width: `${b.value / max * 100}%`, borderRadius: 4, background: b.color, transition: 'width .3s' }} />
+          <div style={{ height: 'var(--gx-space-4)', borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
+            <div style={{ height: '100%', width: `${b.value / max * 100}%`, borderRadius: 'var(--gx-radius-xs)', background: b.color, transition: 'width .3s' }} />
           </div>
         </div>
       ))}
@@ -215,14 +215,14 @@ function FunnelChart({ stages }: { stages: { label: string; value: number }[] })
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 'var(--gx-text-sm)' }}>
               <span>{st.label}</span>
               <span style={{ display: 'flex', gap: 'var(--gx-space-4)' }}>
-                <span style={{ fontWeight: 600 }}>{st.value.toLocaleString()}</span>
+                <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{st.value.toLocaleString()}</span>
                 {i > 0 && <span className="muted">{convRate}%</span>}
               </span>
             </div>
-            <div style={{ height: 'var(--gx-space-6)', borderRadius: 4, background: 'var(--gx-surface-2)', overflow: 'hidden' }}>
+            <div style={{ height: 'var(--gx-space-6)', borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)', overflow: 'hidden' }}>
               <div style={{
                 height: '100%', width: `${pct}%`,
-                borderRadius: 4,
+                borderRadius: 'var(--gx-radius-xs)',
                 background: `hsl(${200 + i * 20}, 70%, ${50 + i * 5}%)`,
                 transition: 'width .3s',
               }} />
@@ -250,7 +250,7 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
             <Icon size={13} />
             <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{label}</span>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: color ?? 'inherit', lineHeight: 1 }}>{value}</div>
+          <div style={{ fontSize: 'var(--gx-text-3xl)', fontWeight: 'var(--gx-weight-bold)', color: color ?? 'inherit', lineHeight: 1 }}>{value}</div>
           {sublabel && <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)' }}>{sublabel}</div>}
         </div>
         {trend.length > 1 && (
@@ -277,7 +277,7 @@ function DashboardCard({ title, icon: Icon, children, action }: {
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="card-head" style={{ borderBottom: '1px solid var(--gx-border)' }}>
         <Icon size={14} color="var(--gx-text-3)" />
-        <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>{title}</h3>
+        <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)' }}>{title}</h3>
         <span className="spacer" />
         {action}
       </div>
@@ -352,7 +352,7 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
               background: i < 3 ? 'var(--gx-chart-active)' : 'var(--gx-chart-default)',
               borderRadius: '3px 3px 0 0',
             }} />
-            <span style={{ fontSize: 9, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--gx-space-1)' }}>{d.category}</span>
+            <span style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--gx-space-1)' }}>{d.category}</span>
           </div>
         ))}
         {/* Cumulative % overlay line */}
@@ -389,9 +389,9 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
                 <div style={{ width: '80%', height: `${Math.max(h, 5)}%`,
                   background: PLAN_COLORS[i % PLAN_COLORS.length], borderRadius: 'var(--gx-radius-xs)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--gx-on-primary)', fontWeight: 700, fontSize: 'var(--gx-text-13)',
+                  color: 'var(--gx-on-primary)', fontWeight: 'var(--gx-weight-bold)', fontSize: 'var(--gx-text-13)',
                 }}>{n.value}</div>
-                <div style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)', fontWeight: 600 }}>{n.name}</div>
+                <div style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)', fontWeight: 'var(--gx-weight-semibold)' }}>{n.name}</div>
                 {conv !== null && (
                   <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{conv}% conv</div>
                 )}
@@ -444,7 +444,7 @@ function GeoMap({ points }: { points: { id: string; kind: string; name: string; 
     <div>
       <div style={{
         position: 'relative', width: '100%', height: 180, background: 'var(--gx-surface-2)',
-        borderRadius: 4, overflow: 'hidden', border: '1px solid var(--gx-border)',
+        borderRadius: 'var(--gx-radius-xs)', overflow: 'hidden', border: '1px solid var(--gx-border)',
       }}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
           {/* dotted grid */}
@@ -534,8 +534,8 @@ function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.
     <div className="card" style={{ padding: 'var(--gx-space-7) var(--gx-space-18)' }}>
       <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginBottom: 'var(--gx-space-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)' }}>
-        <span style={{ fontSize: 'var(--gx-text-2xl)', fontWeight: 700 }}>{formatter(thisVal)}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 'var(--gx-text-sm)', fontWeight: 600, color }}>
+        <span style={{ fontSize: 'var(--gx-text-2xl)', fontWeight: 'var(--gx-weight-bold)' }}>{formatter(thisVal)}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', color }}>
           {!flat && (up ? <TrendingUp size={12} /> : <TrendingDown size={12} />)}
           {flat ? '—' : `${pctDelta > 0 ? '+' : ''}${pctDelta.toFixed(1)}%`}
         </span>
@@ -680,7 +680,7 @@ function StatusBreakdown({ buckets, total }: { buckets: { label: string; value: 
           <div key={b.label}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-11)', marginBottom: 3 }}>
               <span>{b.label}</span>
-              <span style={{ fontWeight: 600 }}>{b.value} · {pct.toFixed(0)}%</span>
+              <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{b.value} · {pct.toFixed(0)}%</span>
             </div>
             <div style={{ height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
               <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: 'var(--gx-radius-xs)' }} />
@@ -950,7 +950,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Week vs Week Comparisons === */}
         {isShown('wow-cards') && compare.state === 'ok' && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ marginTop: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Week vs Last Week
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
@@ -969,7 +969,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Month vs Last Month === */}
         {isShown('mom-cards') && compare.state === 'ok' && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Month vs Last Month
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
@@ -988,7 +988,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Quarter & Year Comparisons === */}
         {(isShown('qoq-bars') || isShown('yoy-bars')) && compare.state === 'ok' && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Quarter & Year Comparisons
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -1054,7 +1054,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Status Breakdown (individually toggleable) === */}
         {statusBreak.state === 'ok' && (isShown('status-workitems') || isShown('status-tickets') || isShown('status-invoices') || isShown('status-subs')) && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Current Status Breakdown
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -1123,7 +1123,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: New charts (RAG, aging, risk, leads, sales) === */}
         {(isShown('rag-health') || isShown('task-aging') || isShown('issue-aging') || isShown('risk-heatmap') || isShown('lead-source-donut') || isShown('salesperson-rank')) && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Execution Insights
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -1186,7 +1186,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                             <div key={`${li}-${im}`} style={{
                               background: v > 0 ? bg : 'var(--gx-surface-2)',
                               height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: 4, fontSize: 'var(--gx-text-md)', fontWeight: 700, color: v > 0 ? 'var(--gx-on-primary)' : 'var(--gx-text-3)',
+                              borderRadius: 'var(--gx-radius-xs)', fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-bold)', color: v > 0 ? 'var(--gx-on-primary)' : 'var(--gx-text-3)',
                             }}>{v}</div>
                           )
                         })}
@@ -1217,7 +1217,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                           <div key={name}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-sm)', marginBottom: 3 }}>
                               <span>{name}</span>
-                              <span style={{ fontWeight: 600 }}>{Number(cnt)}</span>
+                              <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{Number(cnt)}</span>
                             </div>
                             <div style={{ height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
                               {/* D18: ranked-list bar = drillable per-rep performance → --gx-chart-active. */}
@@ -1237,7 +1237,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Advanced execution charts === */}
         {(isShown('gantt') || isShown('exec-summary') || isShown('sankey-leads') || isShown('pareto-leads') || isShown('geographic-map') || isShown('net-subscriber-growth')) && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Strategic & Operational Charts
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>

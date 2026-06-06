@@ -64,7 +64,7 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
       <div className="section-head" style={{ marginTop: 0 }}>
         <Layers size={16} className="section-icon" />
         Platform architecture
-        <span className="hint" style={{ fontWeight: 400, marginLeft: 'var(--gx-space-3)' }}>
+        <span className="hint" style={{ fontWeight: 'var(--gx-weight-regular)', marginLeft: 'var(--gx-space-3)' }}>
           · nine layers, one connected system
         </span>
       </div>
@@ -114,7 +114,7 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
       <div className="section-head">
         <Puzzle size={16} className="section-icon" />
         Platform capabilities
-        <span className="hint" style={{ fontWeight: 400, marginLeft: 'var(--gx-space-3)' }}>
+        <span className="hint" style={{ fontWeight: 'var(--gx-weight-regular)', marginLeft: 'var(--gx-space-3)' }}>
           · extend &amp; operate
         </span>
       </div>
@@ -133,8 +133,8 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
                 <Icon size={18} />
               </span>
               <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>{name}</span>
-                <span className="hint" style={{ fontSize: 11.5 }}>{sub}</span>
+                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)' }}>{name}</span>
+                <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{sub}</span>
               </span>
               <ArrowRight size={14} style={{ color: 'var(--gx-text-3)' }} />
             </button>

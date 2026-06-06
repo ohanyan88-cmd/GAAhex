@@ -330,7 +330,7 @@ export default function UsersPane({ token }: { token: string }) {
           style={{
             background: 'var(--gx-surface-2)',
             border: '1px solid var(--gx-border)',
-            borderRadius: 6,
+            borderRadius: 'var(--gx-radius-sm)',
             padding: 'var(--gx-space-7) var(--gx-space-8)',
             marginBottom: 'var(--gx-space-5)',
           }}
@@ -463,7 +463,7 @@ export default function UsersPane({ token }: { token: string }) {
                             style={{
                               background: 'var(--gx-surface-2)',
                               border: '1px solid var(--gx-border)',
-                              borderRadius: 4,
+                              borderRadius: 'var(--gx-radius-xs)',
                               padding: '1px var(--gx-space-3)',
                               fontSize: 'var(--gx-text-11)',
                               color: 'var(--gx-text-2)',
@@ -534,7 +534,7 @@ export default function UsersPane({ token }: { token: string }) {
           style={{
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
-            borderRadius: 6,
+            borderRadius: 'var(--gx-radius-sm)',
             padding: 'var(--gx-space-8) var(--gx-space-18)',
             marginTop: 'var(--gx-space-3)',
           }}
@@ -575,7 +575,7 @@ export default function UsersPane({ token }: { token: string }) {
               style={{
                 background: 'var(--gx-surface-2)',
                 border: '1px solid var(--gx-border)',
-                borderRadius: 6,
+                borderRadius: 'var(--gx-radius-sm)',
                 padding: 'var(--gx-space-6) var(--gx-space-7)',
                 marginBottom: 'var(--gx-space-5)',
               }}
@@ -674,7 +674,7 @@ export default function UsersPane({ token }: { token: string }) {
               style={{
                 background: 'var(--gx-surface-2)',
                 border: '1px solid var(--gx-border)',
-                borderRadius: 6,
+                borderRadius: 'var(--gx-radius-sm)',
                 padding: 'var(--gx-space-6) var(--gx-space-7)',
                 marginBottom: 'var(--gx-space-4)',
               }}
@@ -743,7 +743,7 @@ export default function UsersPane({ token }: { token: string }) {
                     gap: 'var(--gx-space-3)',
                     border: '1px solid var(--gx-border)',
                     background: 'var(--gx-surface-2)',
-                    borderRadius: 6,
+                    borderRadius: 'var(--gx-radius-sm)',
                     padding: 'var(--gx-space-3) var(--gx-space-5)',
                   }}
                 >

@@ -869,7 +869,7 @@ function Stage8Modal({
               return (
                 <div key={row.key} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: 'var(--gx-space-4) var(--gx-space-6)', border: '1px solid var(--gx-border-subtle)', borderRadius: 6,
+                  padding: 'var(--gx-space-4) var(--gx-space-6)', border: '1px solid var(--gx-border-subtle)', borderRadius: 'var(--gx-radius-sm)',
                 }}>
                   <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-1)' }}>{row.label}</span>
                   {loading && !check
@@ -886,7 +886,7 @@ function Stage8Modal({
               <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                 Blockers
               </div>
-              <ul style={{ margin: 0, paddingLeft: 'var(--gx-space-18)', fontSize: 12.5, color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
+              <ul style={{ margin: 0, paddingLeft: 'var(--gx-space-18)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
                 {check.blockers.map((b, i) => <li key={i}>{b}</li>)}
               </ul>
             </div>

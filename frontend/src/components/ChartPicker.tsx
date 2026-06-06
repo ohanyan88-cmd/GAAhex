@@ -78,7 +78,7 @@ export default function ChartPicker({
             return (
               <div key={cat} style={{ marginBottom: 'var(--gx-space-18)' }}>
                 <div style={{
-                  fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-text-2)',
+                  fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)',
                   textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-3)',
                   padding: '0 var(--gx-space-2)',
                 }}>{cat}</div>
@@ -92,7 +92,7 @@ export default function ChartPicker({
                         style={{
                           display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'flex-start',
                           padding: 'var(--gx-space-5) var(--gx-space-6)',
-                          borderRadius: 6,
+                          borderRadius: 'var(--gx-radius-sm)',
                           border: '1px solid var(--gx-border)',
                           background: on ? 'var(--gx-primary-soft)' : 'var(--gx-surface-2)',
                           cursor: c.implemented ? 'pointer' : 'not-allowed',
@@ -105,7 +105,7 @@ export default function ChartPicker({
                             Border + fill both swap to the same token so the
                             check mark stays legible on the filled square. */}
                         <div style={{
-                          width: 'var(--gx-space-18)', height: 'var(--gx-space-18)', borderRadius: 4, flexShrink: 0,
+                          width: 'var(--gx-space-18)', height: 'var(--gx-space-18)', borderRadius: 'var(--gx-radius-xs)', flexShrink: 0,
                           border: `1.5px solid ${on ? 'var(--gx-interactive)' : 'var(--gx-border-strong, var(--gx-border))'}`,
                           background: on ? 'var(--gx-interactive)' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -113,7 +113,7 @@ export default function ChartPicker({
                           {on && <Check size={12} color="var(--gx-text-on-primary)" />}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
+                          <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>
                             {c.title}
                             {!c.implemented && (
                               <span style={{ fontSize: 'var(--gx-text-10)', marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)' }}>(coming soon)</span>

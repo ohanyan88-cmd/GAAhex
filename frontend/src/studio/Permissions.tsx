@@ -156,7 +156,7 @@ export function Permissions({ token }: { token?: string } = {}) {
         <div className="card" style={{ overflow: 'hidden' }}>
           <div style={{ padding: 'var(--gx-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
             {[0, 1, 2, 3].map(i => (
-              <div key={i} style={{ height: 22, background: 'var(--gx-surface-2)', borderRadius: 4, opacity: 0.6 }} />
+              <div key={i} style={{ height: 22, background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-xs)', opacity: 0.6 }} />
             ))}
           </div>
         </div>
@@ -209,7 +209,7 @@ export function Permissions({ token }: { token?: string } = {}) {
           <tbody>
             {scopes.map(sc => (
               <tr key={sc.key} style={{ cursor: 'default' }}>
-                <td style={{ fontWeight: 600 }}>{sc.label}</td>
+                <td style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{sc.label}</td>
                 {roles.map(role => {
                   const level = cellLevel(role, sc)
                   const [label, color] = dot(level)
@@ -233,7 +233,7 @@ export function Permissions({ token }: { token?: string } = {}) {
           </tbody>
         </table>
       </div>
-      <p className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-5)' }}>
+      <p className="hint" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-5)' }}>
         Click a cell to cycle None → View → Edit. Saved per-click; enforced server-side by the auth kernel.
       </p>
     </div>

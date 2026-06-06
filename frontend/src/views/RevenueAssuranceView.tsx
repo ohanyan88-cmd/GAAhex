@@ -1120,7 +1120,7 @@ function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeve
       color: tone.fg,
       borderRadius: 'var(--gx-radius-full)',
       fontSize: 'var(--gx-text-11)',
-      fontWeight: 600,
+      fontWeight: 'var(--gx-weight-semibold)',
       whiteSpace: 'nowrap',
     }}>
       {FINDING_TYPE_LABEL[type]}
@@ -1315,8 +1315,8 @@ function FindingDrawer(props: {
 }
 
 const drawerSectionTitleStyle: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
+  fontSize: 'var(--gx-text-11)',
+  fontWeight: 'var(--gx-weight-semibold)',
   textTransform: 'uppercase',
   letterSpacing: 0.4,
   color: 'var(--gx-text-3)',
@@ -1333,9 +1333,9 @@ const drawerCardStyle: React.CSSProperties = {
 const drawerLabelStyle: React.CSSProperties = {
   display: 'inline-block',
   minWidth: 84,
-  fontSize: 11,
+  fontSize: 'var(--gx-text-11)',
   color: 'var(--gx-text-3)',
-  fontWeight: 500,
+  fontWeight: 'var(--gx-weight-medium)',
 }
 
 // Decode the known detail_json fields nicely; fall back to formatted JSON for the rest.
@@ -1391,7 +1391,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
             padding: 'var(--gx-space-3)',
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border-subtle)',
-            borderRadius: 6,
+            borderRadius: 'var(--gx-radius-sm)',
             fontSize: 'var(--gx-text-11)',
             lineHeight: 1.5,
             color: 'var(--gx-text-2)',

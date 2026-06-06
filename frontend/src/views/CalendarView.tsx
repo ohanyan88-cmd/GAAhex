@@ -270,7 +270,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     return (
       <div className="minical">
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--gx-space-4)' }}>
-          <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)' }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
+          <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)' }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
           <span className="spacer" />
           <button className="tb-icon" style={{ width: 26, height: 26 }} onClick={prev} aria-label="Previous month">
             <ChevronLeftIcon size={15} />
@@ -338,7 +338,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                       onClick={e => { e.stopPropagation(); openEdit(ev) }}
                     >
                       {!ev.all_day && (
-                        <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
+                        <span className="mono" style={{ fontSize: 'var(--gx-text-10)', opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
                           {ev.start_at.slice(11, 16)}
                         </span>
                       )}
@@ -403,7 +403,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
   const body = (
     <div className="gx-comms" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
       <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
-        <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
+        <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
           {rangeLabel}
           {loading ? ' · loading…' : ''}
           {loadError ? ` · ${loadError}` : ''}
@@ -445,7 +445,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                     >
                       {on && <CheckIcon size={11} style={{ color: 'var(--gx-text-on-gold)' }} />}
                     </span>
-                    <span style={{ fontSize: 12.5, color: on ? 'var(--gx-text-1)' : 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 'var(--gx-text-sm)', color: on ? 'var(--gx-text-1)' : 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {cal.name}
                     </span>
                   </label>
@@ -473,7 +473,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                     >
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: tone, marginTop: 5, flexShrink: 0 }} />
                       <div style={{ fontSize: 'var(--gx-text-sm)', minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
+                        <div style={{ fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
                         <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
                           {MONTH_NAMES[d.getMonth()].slice(0, 3)} {d.getDate()}
                           {!e.all_day && e.start_at.length > 10 ? ` · ${e.start_at.slice(11, 16)}` : ''}
@@ -527,7 +527,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                             onClick={e => { e.stopPropagation(); openEdit(ev) }}
                           >
                             {!ev.all_day && ev.start_at.length > 10 && (
-                              <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
+                              <span className="mono" style={{ fontSize: 'var(--gx-text-10)', opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
                                 {ev.start_at.slice(11, 16)}
                               </span>
                             )}

@@ -393,7 +393,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
               {c.dot && <span className={'nms-dot ' + c.dot} />}
               {c.label}
             </span>
-            <div className="nms-value nms-value-mono" style={{ fontSize: 26 }}>{c.value}</div>
+            <div className="nms-value nms-value-mono" style={{ fontSize: 'var(--gx-text-3xl)' }}>{c.value}</div>
             {c.isTotal ? (
               // Neutral stacked bar: text-2 (working) → text-3 (dying_gasp) → gold (offline).
               <div style={{ display: 'flex', height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-full)', overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
@@ -437,10 +437,10 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
               }}
             >
-              <div style={{ fontSize: 'var(--gx-text-md)', fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, color }}>{b.count}</div>
+              <div style={{ fontSize: 'var(--gx-text-md)', fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 'var(--gx-weight-semibold)', color }}>{b.count}</div>
               <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 'var(--gx-space-2)' }} />
               <div style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{b.label}</div>
-              <div style={{ fontSize: 'var(--gx-text-10)', color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
+              <div style={{ fontSize: 'var(--gx-text-10)', color, fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
             </button>
           )
         })}
@@ -605,7 +605,7 @@ const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
           >
             <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.olt}</span>
             <Bar pct={(d.count / max) * 100} height={10} />
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, textAlign: 'right' }}>{d.count}</span>
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 'var(--gx-weight-semibold)', textAlign: 'right' }}>{d.count}</span>
           </button>
         ))}
       </div>
@@ -655,7 +655,7 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                   borderRadius: 'var(--gx-radius-sm)',
                   padding: 'var(--gx-space-1) var(--gx-space-4)',
                   fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)',
-                  color: 'var(--gx-text-1)', whiteSpace: 'nowrap', fontWeight: 600,
+                  color: 'var(--gx-text-1)', whiteSpace: 'nowrap', fontWeight: 'var(--gx-weight-semibold)',
                 }}>▼ Peak Plan · {peakPct}%</div>
               )}
               <div style={{
@@ -698,7 +698,7 @@ const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer }) => {
           >
             <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</span>
             <Bar pct={(p.count / max) * 100} height={8} />
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, textAlign: 'right' }}>{p.count}</span>
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 'var(--gx-weight-semibold)', textAlign: 'right' }}>{p.count}</span>
           </button>
         ))}
       </div>
@@ -890,7 +890,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
               >
                 <span>{o.serial}</span>
                 <span style={{ color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
-                <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 9, justifySelf: 'end' }}>{o.phase}</span>
+                <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 'var(--gx-text-10)', justifySelf: 'end' }}>{o.phase}</span>
               </button>
             ))}
           </div>
@@ -990,7 +990,7 @@ const WTechnicianFleet: React.FC<WidgetCtx> = ({ openDrawer }) => {
             }}
           >
             <span className={'nms-pill ' + g.pill}>{g.label}</span>
-            <span style={{ fontSize: 'var(--gx-text-lg)', fontWeight: 600 }}>{g.count}</span>
+            <span style={{ fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-semibold)' }}>{g.count}</span>
           </button>
         ))}
       </div>
@@ -1202,7 +1202,7 @@ function WidgetManager({
                     <span className={'nms-pill ' + (
                       w.dataStatus === 'live' ? 'nms-pill-green' :
                       w.dataStatus === 'partial' ? 'nms-pill-amber' : 'nms-pill-cyan'
-                    )} style={{ fontSize: 9 }}>
+                    )} style={{ fontSize: 'var(--gx-text-10)' }}>
                       {w.dataStatus}
                     </span>
                   </label>

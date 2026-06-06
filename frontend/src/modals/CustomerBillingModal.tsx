@@ -158,7 +158,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                     padding: 'var(--gx-space-6) var(--gx-space-8)', border: '1px solid var(--gx-border)'
                   }}>
                     <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>{label}</div>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: highlight ? 'var(--gx-danger)' : 'var(--gx-gold)', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: 'var(--gx-text-2xl)', fontWeight: 'var(--gx-weight-bold)', color: highlight ? 'var(--gx-danger)' : 'var(--gx-gold)', fontVariantNumeric: 'tabular-nums' }}>
                       {money(value)}
                     </div>
                   </div>
@@ -234,7 +234,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
           {payments.length > 0 && (
             <div style={{ marginTop: 'var(--gx-space-12)' }}>
-              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <CreditCardIcon size={15} /> Recent payments
               </div>
               <table className="grid">

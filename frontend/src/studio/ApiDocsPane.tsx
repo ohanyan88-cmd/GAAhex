@@ -333,7 +333,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
           <pre
             className="mono"
             style={{
-              margin: 0, fontSize: 11.5, lineHeight: 1.5,
+              margin: 0, fontSize: 'var(--gx-text-11)', lineHeight: 1.5,
               maxHeight: 320, overflow: 'auto',
               color: 'var(--gx-text-2)',
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -413,7 +413,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                   <tr key={p.name + ':' + p.in}>
                     <td><code className="mono">{p.name}</code></td>
                     <td><span className="hint mono">{p.in}</span></td>
-                    <td><span className="mono" style={{ fontSize: 11.5 }}>{shortSchemaType(p.schema, spec)}</span></td>
+                    <td><span className="mono" style={{ fontSize: 'var(--gx-text-11)' }}>{shortSchemaType(p.schema, spec)}</span></td>
                     <td>{p.required ? <CheckIcon size={13} /> : <span className="hint">—</span>}</td>
                     <td className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>{p.description ?? ''}</td>
                   </tr>
@@ -435,7 +435,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                   background: 'var(--gx-warning-soft)',
                   color: 'var(--gx-warning-fg)',
                   borderRadius: 'var(--gx-radius-sm, 4px)',
-                  fontWeight: 600,
+                  fontWeight: 'var(--gx-weight-semibold)',
                 }}
               >
                 required
@@ -445,7 +445,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
           <pre
             className="mono"
             style={{
-              margin: '0 0 var(--gx-space-5)', padding: 'var(--gx-space-5)', fontSize: 11.5, lineHeight: 1.5,
+              margin: '0 0 var(--gx-space-5)', padding: 'var(--gx-space-5)', fontSize: 'var(--gx-text-11)', lineHeight: 1.5,
               maxHeight: 220, overflow: 'auto',
               background: 'var(--gx-surface-2)',
               border: '1px solid var(--gx-border)',
@@ -491,7 +491,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     <span
                       className="mono"
                       style={{
-                        fontWeight: 600, fontSize: 'var(--gx-text-sm)',
+                        fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-sm)',
                         color: okish ? 'var(--gx-success-fg)' : errish ? 'var(--gx-danger-fg)' : 'var(--gx-text-2)',
                       }}
                     >
@@ -505,7 +505,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     <pre
                       className="mono"
                       style={{
-                        margin: 0, padding: 'var(--gx-space-5)', fontSize: 11.5, lineHeight: 1.5,
+                        margin: 0, padding: 'var(--gx-space-5)', fontSize: 'var(--gx-text-11)', lineHeight: 1.5,
                         maxHeight: 220, overflow: 'auto',
                         background: 'var(--gx-surface)',
                         color: 'var(--gx-text-2)',
@@ -524,7 +524,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
 
       {tryAllowed && <TryIt token={token} endpoint={endpoint} />}
       {!tryAllowed && endpoint.method !== 'GET' && (
-        <p className="hint" style={{ margin: 'var(--gx-space-4) 0 0', fontSize: 11.5 }}>
+        <p className="hint" style={{ margin: 'var(--gx-space-4) 0 0', fontSize: 'var(--gx-text-11)' }}>
           <InfoIcon size={11} style={{ verticalAlign: 'middle', marginRight: 'var(--gx-space-2)' }} />
           "Try it" is only available for GET endpoints — write methods are intentionally not
           fired from the docs viewer to avoid side effects.
@@ -570,7 +570,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
             padding: 'var(--gx-space-1) var(--gx-space-4)',
             borderRadius: 'var(--gx-radius-sm, 4px)',
             fontSize: 'var(--gx-text-11)',
-            fontWeight: 700,
+            fontWeight: 'var(--gx-weight-bold)',
             background: METHOD_BG[endpoint.method],
             color: METHOD_COLOR[endpoint.method],
             minWidth: 56,
@@ -581,7 +581,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         </span>
         <code
           className="mono"
-          style={{ fontSize: 12.5, color: 'var(--gx-text-1)' }}
+          style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-1)' }}
         >
           {endpoint.path}
         </code>
@@ -729,7 +729,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
           <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Base URL
           </div>
-          <code className="mono" style={{ fontSize: 12.5, wordBreak: 'break-all' }}>{baseUrl}</code>
+          <code className="mono" style={{ fontSize: 'var(--gx-text-sm)', wordBreak: 'break-all' }}>{baseUrl}</code>
         </div>
         {description && (
           <div className="hint" style={{ fontSize: 'var(--gx-text-sm)', maxWidth: 360 }}>
@@ -762,7 +762,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
             type="button"
             className={'btn btn-sm ' + (activeTag === tag ? 'btn-primary' : 'btn-ghost')}
             onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-            style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 11.5 }}
+            style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)' }}
           >
             {tag} ({byTag[tag].length})
           </button>
@@ -786,7 +786,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
             <div key={tag} style={{ marginBottom: 'var(--gx-space-18)' }}>
               <div className="section-head" style={{ marginTop: 0 }}>
                 <RowsIcon size={15} className="section-icon" /> {tag}
-                <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontWeight: 400 }}>
+                <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontWeight: 'var(--gx-weight-regular)' }}>
                   · {list.length} endpoint{list.length === 1 ? '' : 's'}
                 </span>
               </div>

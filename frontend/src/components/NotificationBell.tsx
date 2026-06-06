@@ -145,7 +145,7 @@ export default function NotificationBell({
       {open && (
         <div className="menu fade-fast notif-pop" onClick={(e) => e.stopPropagation()}>
           <div className="notif-head">
-            <span style={{ fontWeight: 600, fontSize: 13.5 }}>Notifications</span>
+            <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-base)' }}>Notifications</span>
             {unread > 0 && <span className="badge" style={{ marginLeft: 'var(--gx-space-4)' }}>{unread}</span>}
             <span className="spacer" />
             <Button variant="ghost" size="sm" onClick={handleMarkAll} disabled={unread === 0}>
@@ -174,7 +174,7 @@ export default function NotificationBell({
                   <span className="notif-ic" style={{ color: tone }}><Icon size={16} /></span>
                   <span style={{ flex: 1, textAlign: 'left' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 600 }}>{n.title}</span>
+                      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{n.title}</span>
                       {isUnread && <span style={{ width: 'var(--gx-space-3)', height: 'var(--gx-space-3)', borderRadius: '50%', background: 'var(--gx-primary)', marginLeft: 'auto', flexShrink: 0 }} />}
                     </span>
                     {n.body && (

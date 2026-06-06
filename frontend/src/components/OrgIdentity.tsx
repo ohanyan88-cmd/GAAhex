@@ -130,8 +130,8 @@ export default function OrgIdentity({ token }: { token: string }) {
           </div>
           <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 'var(--gx-space-7)' }}>
             {draftLogo
-              ? <img src={draftLogo} alt="" style={{ width: 46, height: 46, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
-              : <span style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-lg)', fontWeight: 700, color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
+              ? <img src={draftLogo} alt="" style={{ width: 46, height: 46, borderRadius: 'var(--gx-radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+              : <span style={{ width: 46, height: 46, borderRadius: 'var(--gx-radius-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
                   {initialsOf(draftName)}
                 </span>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>

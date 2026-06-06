@@ -86,7 +86,7 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-2) var(--gx-space-3) var(--gx-space-6)' }}>
               <span style={{ width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: col.tone }} />
-              <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600, color: 'var(--gx-text-1)' }}>{col.label}</span>
+              <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>{col.label}</span>
               <span
                 className="badge"
                 style={{
@@ -159,7 +159,7 @@ function BoardCard({
         </span>
         <span style={{ marginLeft: 'auto' }}>{priorityPill(item.priority)}</span>
       </div>
-      <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 'var(--gx-space-5)', color: 'var(--gx-text-1)' }}>
+      <div style={{ fontSize: 'var(--gx-text-sm)', lineHeight: 1.45, marginBottom: 'var(--gx-space-5)', color: 'var(--gx-text-1)' }}>
         {item.title}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>

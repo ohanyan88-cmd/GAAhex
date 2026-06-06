@@ -232,7 +232,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                         padding: 0,
                       }}
                     >
-                      <span style={{ fontWeight: 600 }}>{r.name}</span>
+                      <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{r.name}</span>
                       <span style={{ display: 'inline-flex', gap: 'var(--gx-space-3)' }}>
                         <span className="pill pill-neutral pill-sm">{r.query.metric}</span>
                         {r.shared

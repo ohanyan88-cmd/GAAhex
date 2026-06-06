@@ -816,7 +816,7 @@ function FinancialSummaryCard({
           <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 'var(--gx-space-2)' }}>
             {isConsolidated ? t('cust.consolidatedBalance', 'Consolidated balance') : t('cust.balance', 'Balance')}
           </div>
-          <div className="mono tnum" style={{ fontSize: 20, fontWeight: 600, color: balanceTone(current) }}>
+          <div className="mono tnum" style={{ fontSize: 'var(--gx-text-xl)', fontWeight: 'var(--gx-weight-semibold)', color: balanceTone(current) }}>
             {moneyDecimal(current)}
           </div>
           {(() => {

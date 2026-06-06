@@ -147,7 +147,7 @@ function PageSwitcher({
                 }}
                 onClick={() => pick(e.route_slug)}
               >
-                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{e.label_plural}</span>
+                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{e.label_plural}</span>
                 <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono)' }}>{e.route_slug}</span>
               </button>
             ))
@@ -231,7 +231,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           <span style={{ color: 'var(--gx-gold)', display: 'flex', alignItems: 'center' }}>
             <GearIcon size={18} />
           </span>
-          <h3 id={titleId} style={{ margin: 0, fontSize: 15, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <h3 id={titleId} style={{ margin: 0, fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {heading}
           </h3>
           <button

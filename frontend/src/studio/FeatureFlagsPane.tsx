@@ -225,7 +225,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
             <tbody>
               {flags.map(flag => (
                 <tr key={flag.id} style={{ cursor: 'default' }}>
-                  <td className="mono" style={{ fontSize: 12.5, fontWeight: 600 }}>{flag.key}</td>
+                  <td className="mono" style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{flag.key}</td>
                   <td style={{ fontSize: 'var(--gx-text-13)' }}>{flag.label}</td>
                   <td style={{ textAlign: 'center' }}>
                     <button

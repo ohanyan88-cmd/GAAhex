@@ -140,7 +140,7 @@ function ProbePanel({
           <p className="hint" style={{ margin: 0, fontSize: 'var(--gx-text-sm)' }}>{description}</p>
           <p
             className="mono hint"
-            style={{ margin: 'var(--gx-space-2) 0 0', fontSize: 11.5, color: 'var(--gx-text-3)' }}
+            style={{ margin: 'var(--gx-space-2) 0 0', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}
           >
             {endpoint}
           </p>
@@ -183,7 +183,7 @@ function ProbePanel({
           alignItems: 'center',
           gap: 'var(--gx-space-3)',
           color: 'var(--gx-text-3)',
-          fontSize: 11.5,
+          fontSize: 'var(--gx-text-11)',
           marginTop: 'var(--gx-space-2)',
         }}
       >
@@ -382,7 +382,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
                     background: 'var(--gx-surface-2)',
                     border: '1px solid var(--gx-border-subtle)',
                     borderRadius: 'var(--gx-radius-md)',
-                    fontSize: 11.5,
+                    fontSize: 'var(--gx-text-11)',
                     color: 'var(--gx-danger-fg, var(--gx-text-1))',
                     wordBreak: 'break-word',
                   }}
@@ -425,7 +425,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
                     background: 'var(--gx-surface-2)',
                     border: '1px solid var(--gx-border-subtle)',
                     borderRadius: 'var(--gx-radius-md)',
-                    fontSize: 11.5,
+                    fontSize: 'var(--gx-text-11)',
                     color: 'var(--gx-danger-fg, var(--gx-text-1))',
                     wordBreak: 'break-word',
                   }}

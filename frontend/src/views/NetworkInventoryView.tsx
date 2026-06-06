@@ -561,7 +561,7 @@ function FiberTab({ state, status, onStatus, canAdmin, onNew, onReload, onOpen }
                       style={{ cursor: 'pointer' }}
                       onClick={() => onOpen(r.id)}
                     >
-                      <td style={{ fontWeight: 500 }}>{r.name ?? r.id.slice(0, 8)}</td>
+                      <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{r.name ?? r.id.slice(0, 8)}</td>
                       <td>
                         <span style={{ color: 'var(--gx-text-2)' }}>
                           {r.origin_pop ?? '—'}
@@ -954,7 +954,7 @@ function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, onStop, 
                     const isActive = (s.status ?? '').toLowerCase() === 'active'
                     return (
                       <tr key={s.id}>
-                        <td style={{ fontWeight: 500 }}>{s.username ?? '—'}</td>
+                        <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{s.username ?? '—'}</td>
                         <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{(s.session_id ?? s.id).slice(0, 12)}</span></td>
                         <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{s.nas_ip ?? '—'}</span></td>
                         <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{s.framed_ip ?? '—'}</span></td>
@@ -1056,7 +1056,7 @@ function BroadcastTab({ state, status, onStatus, canAdmin, onNew, onSend, onRelo
                     const isDraft = (b.status ?? '').toLowerCase() === 'draft'
                     return (
                       <tr key={b.id}>
-                        <td style={{ fontWeight: 500 }}>{b.channel ?? '—'}</td>
+                        <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{b.channel ?? '—'}</td>
                         <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{b.template_id ? b.template_id.slice(0, 12) : '—'}</span></td>
                         <td className="num"><span className="mono tnum">{b.recipient_count ?? '—'}</span></td>
                         <td className="num"><span className="mono tnum">{b.sent_count ?? '—'}</span></td>
@@ -1174,7 +1174,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
-      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 500, color: 'var(--gx-text-2)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-medium)', color: 'var(--gx-text-2)' }}>{label}</span>
       {children}
     </label>
   )
@@ -1183,7 +1183,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
-      fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase',
+      fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase',
       color: 'var(--gx-text-3)', letterSpacing: '0.06em',
       marginBottom: 'var(--gx-space-3)',
     }}>{children}</div>

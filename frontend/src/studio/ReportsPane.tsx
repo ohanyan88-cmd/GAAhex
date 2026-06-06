@@ -614,9 +614,9 @@ function SchedulesList({ token }: { token: string }) {
                         <span style={{
                           display: 'inline-block',
                           padding: 'var(--gx-space-1) var(--gx-space-4)',
-                          borderRadius: 4,
+                          borderRadius: 'var(--gx-radius-xs)',
                           fontSize: 'var(--gx-text-11)',
-                          fontWeight: 600,
+                          fontWeight: 'var(--gx-weight-semibold)',
                           background: s.status === 'ACTIVE' ? 'var(--gx-success-soft)' : 'var(--gx-surface-2)',
                           color: s.status === 'ACTIVE' ? 'var(--gx-success)' : 'var(--gx-text-3)',
                         }}>

@@ -87,7 +87,7 @@ export function ComponentsLibrary() {
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="Search"
-              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 12.5, fontFamily: 'var(--gx-font-sans)' }}
+              style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-sans)' }}
             />
           </div>
         }
@@ -107,7 +107,7 @@ export function ComponentsLibrary() {
                   draggable
                 >
                   <span className="comp-ic">{ic}</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>{name}</span>
+                  <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-medium)' }}>{name}</span>
                   <Plus size={13} className="comp-add" />
                 </button>
               ))}

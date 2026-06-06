@@ -82,7 +82,7 @@ export function DetailTab({
       <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start' }}>
         <span>{children}</span>
         {subtitle && (
-          <span style={{ fontSize: 'var(--gx-text-11)', fontWeight: 400, color: 'var(--gx-text-3)' }}>
+          <span style={{ fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-regular)', color: 'var(--gx-text-3)' }}>
             {subtitle}
           </span>
         )}
@@ -96,7 +96,7 @@ export function DetailTab({
             background: active ? 'var(--gx-interactive)' : 'var(--gx-surface-2)',
             color: active ? 'var(--gx-text-on-primary)' : 'var(--gx-text-2)',
             fontSize: 'var(--gx-text-11)',
-            fontWeight: 600,
+            fontWeight: 'var(--gx-weight-semibold)',
             lineHeight: '16px',
           }}
         >

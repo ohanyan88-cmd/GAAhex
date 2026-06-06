@@ -252,8 +252,8 @@ export default function InstallationBoardView({
                     }}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, flex: 1 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-text-1)' }}>{col.label}</span>
-                    <span style={{ fontSize: 10.5, color: 'var(--gx-text-3)' }}>{col.sub}</span>
+                    <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>{col.label}</span>
+                    <span style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{col.sub}</span>
                   </div>
                   <span className="kcol-count">{items.length}</span>
                 </div>
@@ -278,7 +278,7 @@ export default function InstallationBoardView({
                         textAlign: 'center',
                         color: 'var(--gx-text-3)',
                         fontSize: 'var(--gx-text-sm)',
-                        borderRadius: 6,
+                        borderRadius: 'var(--gx-radius-sm)',
                         border: '1px dashed var(--gx-border)',
                       }}
                     >
@@ -356,7 +356,7 @@ function OrderCard({
       >
         {order.number ? order.number : `ord-${shortId(order.id)}`}
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-4)' }}>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-4)' }}>
         Customer <span className="mono" title={order.customer_id ?? ''}>{shortId(order.customer_id, 8)}</span>
       </div>
       <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-5)' }}>
@@ -579,7 +579,7 @@ function InstallSummaryModal({
       hero={
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
           <StatusPill variant={substageVariant(order.install_substage)} label={substageLabel(order.install_substage)} />
-          <span style={{ fontSize: 11.5, color: 'var(--gx-text-3)' }}>
+          <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
             Updated {order.install_substage_at ? timeAgo(order.install_substage_at) : '—'}
           </span>
         </div>
@@ -656,7 +656,7 @@ function SummarySection({
     <section>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-        fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase',
+        fontSize: 'var(--gx-text-11)', fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase',
         letterSpacing: '0.06em', color: 'var(--gx-text-3)',
         marginBottom: 'var(--gx-space-3)',
       }}>
@@ -665,11 +665,11 @@ function SummarySection({
       {empty ? (
         <div style={{
           padding: 'var(--gx-space-4)',
-          fontSize: 12.5,
+          fontSize: 'var(--gx-text-sm)',
           color: 'var(--gx-text-3)',
           background: 'var(--gx-surface-2)',
           border: '1px dashed var(--gx-border)',
-          borderRadius: 6,
+          borderRadius: 'var(--gx-radius-sm)',
         }}>
           {empty}
         </div>
@@ -679,7 +679,7 @@ function SummarySection({
           gridTemplateColumns: '140px 1fr',
           rowGap: 'var(--gx-space-3)',
           columnGap: 'var(--gx-space-4)',
-          fontSize: 12.5,
+          fontSize: 'var(--gx-text-sm)',
         }}>
           {rows.map(([k, v], i) => (
             <div key={i} style={{ display: 'contents' }}>

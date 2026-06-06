@@ -675,7 +675,7 @@ function DetailDrawer({
           <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered title
           </div>
-          <div style={{ fontWeight: 600, marginBottom: 'var(--gx-space-4)' }}>{preview.title}</div>
+          <div style={{ fontWeight: 'var(--gx-weight-semibold)', marginBottom: 'var(--gx-space-4)' }}>{preview.title}</div>
           <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered body
           </div>

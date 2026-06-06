@@ -72,7 +72,7 @@ export default function CoverageView({ token }: { token: string }) {
                 const result = String(d.result ?? c.status ?? '—')
                 return (
                   <tr key={c.id}>
-                    <td style={{ fontWeight: 500 }}>{String(d.address ?? '—')}</td>
+                    <td style={{ fontWeight: 'var(--gx-weight-medium)' }}>{String(d.address ?? '—')}</td>
                     <td>
                       <span className={`badge ${result === 'PASS' ? 'badge-success' : result === 'FAIL' ? 'badge-danger' : 'badge-neutral'}`}>
                         {result}

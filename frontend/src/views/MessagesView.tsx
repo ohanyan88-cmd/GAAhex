@@ -270,7 +270,7 @@ export default function MessagesView({
                   </span>
                   <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
-                      <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                      <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
                       <span className="hint" style={{ marginLeft: 'auto', fontSize: 'var(--gx-text-11)', flexShrink: 0 }}>{timeAgo(c.created_at)}</span>
                     </span>
                     {c.entity_key && (
@@ -301,7 +301,7 @@ export default function MessagesView({
                   <span className="avatar" style={{ width: 34, height: 34, fontSize: 'var(--gx-text-sm)' }}>{initials(threadLabel(selectedThread))}</span>
                 </span>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 13.5 }}>{threadLabel(selectedThread)}</div>
+                  <div style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-base)' }}>{threadLabel(selectedThread)}</div>
                   <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
                     {selectedThread.entity_key ? `${selectedThread.entity_key} record · ` : ''}
                     {timeAgo(selectedThread.created_at)}
@@ -360,12 +360,12 @@ export default function MessagesView({
                       <span className="avatar" style={{ width: 64, height: 64, fontSize: 'var(--gx-text-2xl)', margin: '0 auto' }}>
                         {initials(threadLabel(selectedThread))}
                       </span>
-                      <div style={{ fontWeight: 600, fontSize: 15, marginTop: 'var(--gx-space-5)' }}>{threadLabel(selectedThread)}</div>
+                      <div style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-md)', marginTop: 'var(--gx-space-5)' }}>{threadLabel(selectedThread)}</div>
                     </div>
                     <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 var(--gx-space-4)' }}>Thread</div>
                     <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                       <span className="kv-k" style={{ width: 80 }}>ID</span>
-                      <span className="kv-v mono" style={{ fontSize: 11.5 }}>{selectedThread.id.slice(0, 12)}</span>
+                      <span className="kv-v mono" style={{ fontSize: 'var(--gx-text-11)' }}>{selectedThread.id.slice(0, 12)}</span>
                     </div>
                     {selectedThread.entity_key && (
                       <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
@@ -376,7 +376,7 @@ export default function MessagesView({
                     {selectedThread.record_id && (
                       <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                         <span className="kv-k" style={{ width: 80 }}>Record</span>
-                        <span className="kv-v mono" style={{ fontSize: 11.5 }}>{selectedThread.record_id.slice(0, 12)}</span>
+                        <span className="kv-v mono" style={{ fontSize: 'var(--gx-text-11)' }}>{selectedThread.record_id.slice(0, 12)}</span>
                       </div>
                     )}
                     {selectedThread.created_at && (

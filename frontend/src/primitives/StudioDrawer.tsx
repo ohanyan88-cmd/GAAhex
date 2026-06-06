@@ -80,7 +80,7 @@ export function StudioDrawer({
       <div className="drawer-head" style={{ alignItems: 'center', gap: 'var(--gx-space-5)' }}>
         <h3
           id={titleId}
-          style={{ margin: 0, fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          style={{ margin: 0, fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         >
           {title}
         </h3>

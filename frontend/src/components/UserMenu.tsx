@@ -97,7 +97,7 @@ export default function UserMenu({
           {view === 'menu' ? (
             <>
               <div className="user-card">
-                <span className="avatar" style={{ width: 42, height: 42, fontSize: 15 }}>
+                <span className="avatar" style={{ width: 42, height: 42, fontSize: 'var(--gx-text-md)' }}>
                   {user.avatar_url
                     ? <img src={user.avatar_url} alt="" className="avatar-img" />
                     : initialsOf(user.name)}
@@ -168,15 +168,15 @@ export default function UserMenu({
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)' }}>{t('profile.title', 'My profile')}</span>
+                <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)' }}>{t('profile.title', 'My profile')}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-4) 0 var(--gx-space-7)' }}>
-                <span className="avatar" style={{ width: 56, height: 56, fontSize: 20 }}>
+                <span className="avatar" style={{ width: 56, height: 56, fontSize: 'var(--gx-text-xl)' }}>
                   {user.avatar_url
                     ? <img src={user.avatar_url} alt="" className="avatar-img" />
                     : initialsOf(user.name)}
                 </span>
-                <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600 }}>{user.name || t('common.you', 'You')}</div>
+                <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)' }}>{user.name || t('common.you', 'You')}</div>
                 <span className="pill pill-gold">{role}</span>
               </div>
               <div className="kv" style={{ padding: '9px 0' }}>

@@ -299,7 +299,7 @@ export default function AutomationsPane({ token }: { token: string }) {
                   onClick={() => openEdit(a)}
                 >
                   <td>
-                    <span style={{ fontWeight: 500 }}>{a.name}</span>
+                    <span style={{ fontWeight: 'var(--gx-weight-medium)' }}>{a.name}</span>
                     {a.condition && (
                       <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-1)' }}>
                         if {a.condition}
@@ -368,7 +368,7 @@ export default function AutomationsPane({ token }: { token: string }) {
       {formOpen && (
         <form
           onSubmit={submitForm}
-          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: 'var(--gx-space-8) var(--gx-space-18)', marginTop: 'var(--gx-space-4)' }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: 'var(--gx-space-8) var(--gx-space-18)', marginTop: 'var(--gx-space-4)' }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <SparkleIcon size={14} className="section-icon" />
