@@ -512,7 +512,7 @@ export default function AutomationsPane({ token }: { token: string }) {
           </div>
 
           <div className="row" style={{ marginTop: 'var(--gx-space-2)' }}>
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             type="submit"  disabled={submitting}>
               <CheckIcon size={13} />
               {submitting ? 'Saving…' : editTarget ? 'Save changes' : 'Create automation'}

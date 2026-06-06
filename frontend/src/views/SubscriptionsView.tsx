@@ -255,7 +255,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
               </select>
             </label>
             <div className="rec-form-actions">
-              <Button variant="gold" size="md" onClick={createSub} disabled={!draft.plan_name.trim()}>Create</Button>
+              <Button variant="primary" size="md" onClick={createSub} disabled={!draft.plan_name.trim()}>Create</Button>
             </div>
           </div>
         )}

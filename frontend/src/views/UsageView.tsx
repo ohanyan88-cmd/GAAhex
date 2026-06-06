@@ -284,7 +284,7 @@ function RecordUsageModal({ token, subs, onClose, onDone }: { token: string; sub
     <Modal open onClose={onClose} title="Record usage" size="sm"
       footer={<>
         <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-        <Button variant="gold" size="md" disabled={saving || !quantity} onClick={submit}>{saving ? 'Saving…' : 'Record'}</Button>
+        <Button variant="primary" size="md" disabled={saving || !quantity} onClick={submit}>{saving ? 'Saving…' : 'Record'}</Button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field"><span>Subscription</span>

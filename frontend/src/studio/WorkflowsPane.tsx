@@ -81,7 +81,7 @@ function AddStatusForm({
           <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 'var(--gx-space-4)' }} />
         </label>
         <div style={{ paddingBottom: 'var(--gx-space-1)' }}>
-          <Button variant="gold" size="sm"
+          <Button variant="primary" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {saving ? 'Saving…' : 'Add status'}
           </Button>
@@ -145,7 +145,7 @@ function EditStatusRow({
         </td>
         <td>
           <div className="row-actions">
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
             </Button>
@@ -285,7 +285,7 @@ function TransitionsEditor({
           <PlusIcon size={13} /> Add transition
         </Button>
         <span className="spacer" />
-        <Button variant="gold" size="sm"
+        <Button variant="primary" size="sm"
             type="button"  onClick={save} disabled={saving}>
           <CheckIcon size={13} /> {saving ? 'Saving…' : 'Save transitions'}
         </Button>

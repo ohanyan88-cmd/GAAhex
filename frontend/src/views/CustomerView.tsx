@@ -628,7 +628,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                               <td><span className="mono">{fmtDate(inv.due_at)}</span></td>
                               <td className="actions-col row-actions">
                                 {canEditInvoice && st === 'DRAFT' && <Button variant="primary" size="sm" onClick={() => issue(inv.id)}>{t('cust.issue', 'Issue')}</Button>}
-                                {canEditInvoice && (st === 'ISSUED' || st === 'OVERDUE') && <Button variant="gold" size="sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</Button>}
+                                {canEditInvoice && (st === 'ISSUED' || st === 'OVERDUE') && <Button variant="primary" size="sm" onClick={() => setPayInvoice(inv)}>{t('cust.recordPayment', 'Record payment')}</Button>}
                               </td>
                             </tr>
                           )
@@ -677,7 +677,7 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
-          <Button variant="gold" size="md" disabled={saving || !amount} onClick={submit}>{saving ? t('common.saving', 'Saving…') : t('cust.record', 'Record')}</Button>
+          <Button variant="primary" size="md" disabled={saving || !amount} onClick={submit}>{saving ? t('common.saving', 'Saving…') : t('cust.record', 'Record')}</Button>
         </>
       }
     >

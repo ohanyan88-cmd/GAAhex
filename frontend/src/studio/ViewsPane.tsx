@@ -403,7 +403,7 @@ export default function ViewsPane({ token }: { token: string }) {
             </div>
           </div>
 
-          <Button variant="gold" size="md"
+          <Button variant="primary" size="md"
             type="button"
             
             onClick={save}

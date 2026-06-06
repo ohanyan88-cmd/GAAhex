@@ -530,7 +530,7 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
                           <PayOnlineButton token={token} invoiceId={id} onDone={load} />
                         )}
                         {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                          <Button variant="gold" size="sm" onClick={() => setPayOpen(true)}>Record payment</Button>
+                          <Button variant="primary" size="sm" onClick={() => setPayOpen(true)}>Record payment</Button>
                         )}
                         {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
                           <Button variant="ghost" size="sm" onClick={voidInvoice}>Void</Button>
@@ -697,7 +697,7 @@ function PaymentModal({ token, invoiceId, onClose, onDone }: { token: string; in
       footer={
         <>
           <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-          <Button variant="gold" size="md"
+          <Button variant="primary" size="md"
             disabled={saving || !amount} onClick={submit}>
             {saving ? 'Saving…' : 'Record'}
           </Button>

@@ -265,7 +265,7 @@ function ScheduleForm({
 
       {/* Actions — spans full grid width */}
       <div className="rec-form-actions">
-        <Button variant="gold" size="md"
+        <Button variant="primary" size="md"
             type="submit"
           
           disabled={saving || !reportId}>

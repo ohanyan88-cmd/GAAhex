@@ -479,7 +479,7 @@ function ReportForm({
         </div>
 
         <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
-          <Button variant="gold" size="sm"
+          <Button variant="primary" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {isEdit ? 'Save changes' : 'Create report'}
           </Button>
@@ -744,7 +744,7 @@ function ScheduleForm({
           </div>
 
           <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             type="submit"  disabled={saving}>
               <CheckIcon size={13} /> Create schedule
             </Button>

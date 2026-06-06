@@ -154,7 +154,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                 {(list ?? []).map((p) => <option key={p.id} value={p.id}>{p.name ?? p.id.slice(0, 8)}</option>)}
               </select>
             </label>
-            <div className="rec-form-actions"><Button variant="gold" size="md" onClick={create} disabled={!name.trim()}>{t('common.create', 'Create')}</Button></div>
+            <div className="rec-form-actions"><Button variant="primary" size="md" onClick={create} disabled={!name.trim()}>{t('common.create', 'Create')}</Button></div>
           </div>
         )}
 

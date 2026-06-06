@@ -342,7 +342,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
             <label className="field"><span>{t('accounts.cycle', 'Billing cycle')}</span>
               <select className="inp inp-md" value={cycle} onChange={(e) => setCycle(e.target.value)}>{CYCLES.map((x) => <option key={x} value={x}>{x}</option>)}</select>
             </label>
-            <div className="rec-form-actions"><Button variant="gold" size="md" onClick={create} disabled={!holder}>{t('common.create', 'Create')}</Button></div>
+            <div className="rec-form-actions"><Button variant="primary" size="md" onClick={create} disabled={!holder}>{t('common.create', 'Create')}</Button></div>
           </div>
         )}
 

@@ -336,7 +336,7 @@ function CustomFieldsSection({
               </label>
             )}
             <div style={{ display: 'flex', gap: 'var(--gx-space-2)', paddingBottom: 'var(--gx-space-1)' }}>
-              <Button variant="gold" size="sm"
+              <Button variant="primary" size="sm"
             type="button"  onClick={commit}>
                 <CheckIcon size={13} /> {editing != null ? 'Save' : 'Add'}
               </Button>

@@ -656,7 +656,7 @@ function DetailDrawer({
           onClick={runPreview} disabled={previewing}>
           <PlayIcon size={13} /> {previewing ? 'Rendering…' : 'Preview'}
         </Button>
-        <Button variant="gold" size="sm"
+        <Button variant="primary" size="sm"
             type="button" 
           onClick={() => setConfirmSend(true)} disabled={sending}
         >

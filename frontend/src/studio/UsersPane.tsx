@@ -390,7 +390,7 @@ export default function UsersPane({ token }: { token: string }) {
             </label>
           </div>
           <div className="row">
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             type="submit"  disabled={creating}>
               <CheckIcon size={13} /> {creating ? 'Creating…' : 'Create user'}
             </Button>
@@ -626,7 +626,7 @@ export default function UsersPane({ token }: { token: string }) {
                 </label>
               </div>
               <div className="row">
-                <Button variant="gold" size="sm"
+                <Button variant="primary" size="sm"
             onClick={saveEdit} disabled={savingEdit}>
                   <CheckIcon size={13} /> {savingEdit ? 'Saving…' : 'Save'}
                 </Button>
@@ -713,7 +713,7 @@ export default function UsersPane({ token }: { token: string }) {
                 </label>
               </div>
               <div className="row">
-                <Button variant="gold" size="sm"
+                <Button variant="primary" size="sm"
             type="submit"  disabled={addingRole}>
                   <CheckIcon size={13} /> {addingRole ? 'Adding…' : 'Add role'}
                 </Button>

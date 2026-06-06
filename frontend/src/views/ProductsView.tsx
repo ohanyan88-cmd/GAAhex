@@ -189,12 +189,12 @@ export default function ProductsView({ token, canConfigure = false, configVersio
     >
         {/* Category chips — Commercial vs Supporting grouping per approved catalog model. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-7)', alignItems: 'center', margin: 'var(--gx-space-6) 0 var(--gx-space-4)' }}>
-          <CategoryChip label="All" active={category === 'All'} onClick={() => setCategory('All')} primary />
           <CategoryGroup
             title="Commercial Products"
             categories={COMMERCIAL_PRODUCT_CATEGORIES}
             active={category}
             onPick={setCategory}
+            showAll
           />
           <CategoryGroup
             title="Supporting Products"
@@ -216,7 +216,10 @@ export default function ProductsView({ token, canConfigure = false, configVersio
               </select>
             </label>
             <label className="field"><span>Active</span><input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /></label>
-            <div className="rec-form-actions"><Button variant="gold" size="md" onClick={save} disabled={!draft.name.trim() || (!draft.id && !draft.key.trim())}>{draft.id ? 'Save' : 'Create'}</Button></div>
+            <div className="rec-form-actions">
+              <Button variant="ghost" size="md" onClick={() => setDraft(null)}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={save} disabled={!draft.name.trim() || (!draft.id && !draft.key.trim())}>{draft.id ? 'Save' : 'Create'}</Button>
+            </div>
           </div>
         )}
 
@@ -332,17 +335,21 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
   )
 }
 
-function CategoryGroup<T extends string>({ title, categories, active, onPick }: {
+function CategoryGroup<T extends string>({ title, categories, active, onPick, showAll = false }: {
   title: string
   categories: readonly T[]
   active: T | 'All'
   onPick: (c: T | 'All') => void
+  showAll?: boolean
 }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-2) var(--gx-space-5) var(--gx-space-2) var(--gx-space-6)', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)' }}>
       <span style={{ fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 'var(--gx-space-2)' }}>
         {title}
       </span>
+      {showAll && (
+        <CategoryChip label="All" active={active === 'All'} onClick={() => onPick('All')} />
+      )}
       {categories.map((c) => (
         <CategoryChip key={c} label={c} active={active === c} onClick={() => onPick(c)} />
       ))}

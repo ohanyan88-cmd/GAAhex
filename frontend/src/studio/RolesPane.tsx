@@ -204,7 +204,7 @@ export default function RolesPane({ token }: { token: string }) {
             </label>
           </div>
           <div className="row">
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             type="submit"  disabled={creating}>
               <CheckIcon size={13} /> {creating ? 'Creating…' : 'Create role'}
             </Button>
@@ -303,7 +303,7 @@ export default function RolesPane({ token }: { token: string }) {
             <LockIcon size={14} className="section-icon" />
             Permissions for <strong style={{ marginLeft: 'var(--gx-space-2)' }}>{selected.label}</strong>
             <span className="spacer" />
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             onClick={savePerms}
               disabled={saving}>
               <CheckIcon size={13} /> {saving ? 'Saving…' : 'Save'}

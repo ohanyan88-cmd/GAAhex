@@ -1027,7 +1027,7 @@ function AddFieldInline({
           />
         </label>
         <div className="row-actions" style={{ paddingBottom: 'var(--gx-space-1)' }}>
-          <Button variant="gold" size="sm"
+          <Button variant="primary" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} />
           </Button>
@@ -1095,7 +1095,7 @@ function EditFieldInline({
         </td>
         <td className="actions-col">
           <div className="row-actions">
-            <Button variant="gold" size="sm"
+            <Button variant="primary" size="sm"
             type="button"  onClick={save} disabled={saving}>
               <CheckIcon size={13} />
             </Button>
@@ -1165,7 +1165,7 @@ function AddStatusInline({
           <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 'var(--gx-space-4)' }} />
         </label>
         <div className="row-actions" style={{ paddingBottom: 'var(--gx-space-1)' }}>
-          <Button variant="gold" size="sm"
+          <Button variant="primary" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} />
           </Button>
@@ -1218,7 +1218,7 @@ function AddTransitionInline({
           </select>
         </label>
         <div className="row-actions" style={{ paddingBottom: 'var(--gx-space-1)' }}>
-          <Button variant="gold" size="sm"
+          <Button variant="primary" size="sm"
             type="submit">
             <CheckIcon size={13} />
           </Button>

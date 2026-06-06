@@ -493,14 +493,14 @@ function WorkItemDetailModal({
             {cust && <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{cust}</span>}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--gx-space-3)' }}>
               {s === 'TODO' && (
-                <Button variant="gold" size="sm"
+                <Button variant="primary" size="sm"
             disabled={busy} onClick={() => handleAction('start')}>
                   <PlayIcon size={12} /> Start
                 </Button>
               )}
               {s === 'IN_PROGRESS' && (
                 <>
-                  <Button variant="gold" size="sm"
+                  <Button variant="primary" size="sm"
             disabled={busy} onClick={() => handleAction('complete')}>
                     <CheckIcon size={12} /> Complete
                   </Button>

@@ -188,7 +188,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                   <option value="yearly">Yearly</option>
                 </select>
               </label>
-              <div className="rec-form-actions"><Button variant="gold" size="md" onClick={createSub} disabled={!planName.trim()}>Create</Button></div>
+              <div className="rec-form-actions"><Button variant="primary" size="md" onClick={createSub} disabled={!planName.trim()}>Create</Button></div>
             </div>
           )}
 

@@ -433,7 +433,7 @@ export default function TariffPlansView({
               />
             </label>
             <div className="rec-form-actions">
-              <Button variant="gold" size="md"
+              <Button variant="primary" size="md"
             onClick={save}
                 disabled={
                   !draft.name.trim()
