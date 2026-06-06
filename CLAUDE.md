@@ -73,6 +73,7 @@ change.** If your code would diverge from a standard, FLAG IT in your return sum
 orchestrator can decide: align, document an exception, or revise the standard.
 
 ## Where to look first
+- **`docs/standards/FRONTEND-STYLING-LAW.md`** — ⚖️ LAW: no static inline styles, no hardcoded hex/px — everything is `--gx-*` tokens via CSS classes. Read before writing ANY frontend code.
 - **`docs/standards/00-standards-index.md`** — canonical index of all 70 standards (TOC + status + dependencies)
 - **`docs/standards/14-enum-registry.md`** — every enum name, owner department, and `UPPER_SNAKE_CASE` values
 - **`docs/standards/15-permission-registry.md`** — `object.action` permission keys (immutable once released)

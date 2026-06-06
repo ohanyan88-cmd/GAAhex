@@ -29,7 +29,6 @@ export function KPIBar({ kpis }: KPIBarProps) {
           progress={k.progress}
           progressVariant={k.progressVariant}
           subtitle={k.subtitle}
-          onClick={k.onClick}
           danger={k.danger}
           warning={k.warning}
           muted={k.muted}
