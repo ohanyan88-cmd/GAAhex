@@ -459,7 +459,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                   value=" "
                   size="sm"
                   accessory={
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
                       {related.filter(([, n]) => n > 0).map(([key, n]) => (
                         <span key={key} className="pill">{key} · {n}</span>
                       ))}
@@ -783,9 +783,9 @@ function FinancialSummaryCard({
     <div className="card" style={{ padding: 14 }}>
       {/* Toolbar: account picker (when 2+) + consolidated toggle (when subtree data exists). */}
       {(accounts.length > 1 || consolidated) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap', marginBottom: 12 }}>
           {accounts.length > 1 && !showConsolidated && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-2)' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)' }}>
               <span>{t('cust.account', 'Account')}</span>
               <select
                 className="inp inp-sm"
@@ -800,7 +800,7 @@ function FinancialSummaryCard({
             </label>
           )}
           {consolidated && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-2)', cursor: 'pointer' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={showConsolidated}
@@ -1168,7 +1168,7 @@ function SlasTabBody({ rows, t }: { rows: SlaRow[]; t: (k: string, fb?: string) 
                 <td>
                   <span className="mono">{fmtDate(tk.sla_due_at)}</span>
                   {tk.sla_due_at && (
-                    <span className="muted" style={{ marginLeft: 6, fontSize: 11 }}>{relTime(tk.sla_due_at)}</span>
+                    <span className="muted" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>{relTime(tk.sla_due_at)}</span>
                   )}
                 </td>
                 <td>{tk.sla_breached

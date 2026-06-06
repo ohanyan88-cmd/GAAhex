@@ -279,7 +279,7 @@ export default function MessagesView({
                       <span className="hint" style={{ marginLeft: 'auto', fontSize: 11, flexShrink: 0 }}>{timeAgo(c.created_at)}</span>
                     </span>
                     {c.entity_key && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 2 }}>
                         <span style={{ fontSize: 12, color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {c.entity_key}{c.record_id ? ` · ${c.record_id.slice(0, 8)}` : ''}
                         </span>

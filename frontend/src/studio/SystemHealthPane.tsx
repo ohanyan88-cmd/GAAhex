@@ -133,7 +133,7 @@ function ProbePanel({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 4 }}>
             <h4 style={{ margin: 0, fontSize: 14 }}>{title}</h4>
             <StatusPill variant={v.variant} label={v.label} size="sm" />
           </div>
@@ -167,7 +167,7 @@ function ProbePanel({
             fontSize: 12,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 'var(--gx-space-3)',
           }}
         >
           <WarningIcon size={12} />
@@ -181,7 +181,7 @@ function ProbePanel({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--gx-space-3)',
           color: 'var(--gx-text-3)',
           fontSize: 11.5,
           marginTop: 'var(--gx-space-2)',
@@ -270,7 +270,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
       {/* ---- header + headline ---- */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 4 }}>
             <h3 style={{ margin: 0 }}>System Health</h3>
             <StatusPill variant={headline.variant} label={headline.label} />
           </div>
@@ -280,7 +280,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <label className="row" style={{ gap: 6, fontSize: 12, alignItems: 'center', marginRight: 8 }}>
+        <label className="row" style={{ gap: 'var(--gx-space-3)', fontSize: 12, alignItems: 'center', marginRight: 8 }}>
           <input
             type="checkbox"
             checked={autoRefresh}
@@ -378,7 +378,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
                 <div
                   style={{
                     marginTop: 'var(--gx-space-2)',
-                    padding: 6,
+                    padding: 'var(--gx-space-3)',
                     background: 'var(--gx-surface-2)',
                     border: '1px solid var(--gx-border-subtle)',
                     borderRadius: 'var(--gx-radius-md)',
@@ -421,7 +421,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
                 <div
                   style={{
                     marginTop: 'var(--gx-space-2)',
-                    padding: 6,
+                    padding: 'var(--gx-space-3)',
                     background: 'var(--gx-surface-2)',
                     border: '1px solid var(--gx-border-subtle)',
                     borderRadius: 'var(--gx-radius-md)',

@@ -136,7 +136,7 @@ export default function AskGaaexView({ token }: { token: string }) {
                     <div key={i} className="bubble-row in">
                       <div className="bubble-wrap" style={{ maxWidth: '78%' }}>
                         <div className="bubble in" style={{ maxWidth: '100%' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 11, fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
                             <SparkleIcon size={12} /> {t('ask.proposalTitle', 'Action proposed')}
                           </div>
                           <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>

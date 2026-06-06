@@ -87,7 +87,7 @@ export function LayoutBuilder() {
                 key={label as string}
                 className="palette-block"
                 type="button"
-                style={{ flexDirection: 'column', gap: 6, padding: '10px 8px', fontSize: 11 }}
+                style={{ flexDirection: 'column', gap: 'var(--gx-space-3)', padding: '10px 8px', fontSize: 11 }}
                 onClick={() => addBlock(label as string)}
               >
                 {ic}
@@ -108,7 +108,7 @@ export function LayoutBuilder() {
               transition: 'width var(--gx-dur-base)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 'var(--gx-space-5)',
             }}
           >
             {blocks.map((b, i) => (
@@ -135,7 +135,7 @@ export function LayoutBuilder() {
                 color: 'var(--gx-text-3)',
                 fontSize: 13,
                 flexDirection: 'column',
-                gap: 10,
+                gap: 'var(--gx-space-5)',
               }}>
                 <LayoutTemplate size={28} style={{ opacity: 0.35 }} />
                 <span>Canvas is empty — pick a block from the palette</span>

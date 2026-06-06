@@ -75,7 +75,7 @@ export default function ComingSoonView({ title, parent, description, id }: Comin
                 border: '1px solid var(--gx-border)',
                 borderRadius: 6,
                 fontWeight: 500,
-                marginLeft: 10,
+                marginLeft: 'var(--gx-space-5)',
               }}
             >
               {id}

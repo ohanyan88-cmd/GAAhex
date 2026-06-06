@@ -1091,7 +1091,7 @@ function FilterSelect({ label, value, onChange, options }: {
   options: [string, string][]
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3)' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}>
       <span>{label}</span>
       <select
         className="inp inp-sm"
@@ -1198,7 +1198,7 @@ function FindingDrawer(props: {
       subtitle={f.id ? f.id : undefined}
       size="lg"
       hero={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
           <StatusPill variant={severityToPill(f.severity)} label={f.severity} size="sm" />
           <StatusPill variant={statusToPill(f.status)} label={STATUS_LABEL[f.status]} size="sm" />
           <span style={{ fontSize: 12, color: 'var(--gx-text-3)' }} title={f.detected_at}>
@@ -1423,7 +1423,7 @@ function StatusFlow({ current }: { current: FindingStatus }) {
   const order = { open: 0, investigating: 1, resolved: 2, false_positive: 2 } as const
   const currentIdx = order[current]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
       {steps.map((s, i) => {
         const reached = order[s.key] <= currentIdx
         const isCurrent = s.key === current

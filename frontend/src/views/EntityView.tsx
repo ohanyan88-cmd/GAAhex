@@ -620,9 +620,9 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 'var(--gx-space-3)',
             padding: '6px 12px',
-            marginBottom: 10,
+            marginBottom: 'var(--gx-space-5)',
             background: 'var(--gx-warning-soft)',
             border: '1px solid var(--gx-warning)',
             borderRadius: 'var(--gx-radius-md)',

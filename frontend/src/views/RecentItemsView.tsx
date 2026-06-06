@@ -75,7 +75,7 @@ export default function RecentItemsView({ token, onNavigate }: {
           <div
             key={e.id}
             className="card card-hover"
-            style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 6, cursor: (onNavigate && e.entity_key && e.record_id) ? 'pointer' : 'default' }}
+            style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--gx-space-3)', cursor: (onNavigate && e.entity_key && e.record_id) ? 'pointer' : 'default' }}
             onClick={() => e.entity_key && e.record_id && onNavigate?.(e.entity_key, e.record_id)}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

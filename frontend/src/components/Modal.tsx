@@ -85,7 +85,7 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
         {footer && (
           <div style={{
             display: 'flex',
-            gap: 10,
+            gap: 'var(--gx-space-5)',
             justifyContent: 'flex-end',
             padding: '12px 20px',
             borderTop: '1px solid var(--gx-border-subtle)',

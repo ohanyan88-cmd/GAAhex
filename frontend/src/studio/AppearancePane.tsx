@@ -222,7 +222,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
       </div>
 
       {error && (
-        <div className="banner" style={{ marginBottom: 14, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-7)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{error}</div>
         </div>
       )}
@@ -253,7 +253,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 10, fontFamily: 'var(--gx-font-mono)', fontSize: 12, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
+            <div style={{ marginTop: 'var(--gx-space-5)', fontFamily: 'var(--gx-font-mono)', fontSize: 12, background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
               <span style={{ width: 12, height: 12, borderRadius: 3, background: accent.val }} />
               {accent.val.toUpperCase()}
             </div>
@@ -303,7 +303,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
         >
           <div className="lbl">Live preview · applies everywhere</div>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'center' }}>
             <button style={{ height: ht, padding: pad, borderRadius: radius, border: 'none', background: 'var(--gx-primary)', color: 'var(--gx-on-primary)', fontFamily: 'var(--gx-font-sans)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }} type="button">
               <Plus size={14} />Primary
             </button>
@@ -319,7 +319,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, padding: '0 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
             <span className="pill pill-success">Online</span>
             <span className="pill pill-warning">Degraded</span>
             <span className="pill pill-danger">SLA breached</span>
@@ -346,7 +346,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 'var(--gx-space-6)', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-6)', alignItems: 'center' }}>
         <Button variant="primary" size="md"
             type="button"
           style={{ background: accent.val }}

@@ -396,7 +396,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
 
   const body = (
     <div className="gx-comms" style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
-      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
+      <div className="cal-subbar" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
         <div className="sub" style={{ color: 'var(--gx-text-3)', fontSize: 12.5 }}>
           {rangeLabel}
           {loading ? ' · loading…' : ''}

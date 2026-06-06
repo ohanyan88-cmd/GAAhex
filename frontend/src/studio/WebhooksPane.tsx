@@ -494,7 +494,7 @@ function DetailDrawer({
           {savedAt && (
             <div
               style={{
-                marginTop: 10, padding: 'var(--gx-space-3)',
+                marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-3)',
                 border: '1px solid var(--gx-border)',
                 borderRadius: 'var(--gx-radius-md)',
                 background: 'var(--gx-success-soft, var(--gx-surface-2))',
@@ -545,7 +545,7 @@ function DetailDrawer({
                 placeholder="(blank to clear)"
               />
             </label>
-            <div className="row" style={{ marginTop: 10, gap: 8 }}>
+            <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
               <span className="spacer" />
               <Button variant="secondary" size="md"
             type="button" 
@@ -568,7 +568,7 @@ function DetailDrawer({
           {testResult && (
             <div
               style={{
-                marginBottom: 10, padding: 10,
+                marginBottom: 'var(--gx-space-5)', padding: 'var(--gx-space-5)',
                 border: '1px solid var(--gx-border)',
                 borderRadius: 'var(--gx-radius-md)',
                 background: 'var(--gx-surface-2)',
@@ -646,7 +646,7 @@ function DetailDrawer({
           </div>
           <div
             style={{
-              padding: 14,
+              padding: 'var(--gx-space-7)',
               border: '1px solid var(--gx-border)',
               borderRadius: 'var(--gx-radius-md)',
               background: 'var(--gx-surface-2)',

@@ -16,7 +16,7 @@ export function FormField({ label, hint, error, required, htmlFor, children }: F
       <span>
         <label htmlFor={htmlFor}>{label}</label>
         {required && <span style={{ color: 'var(--gx-danger)' }}> *</span>}
-        {hint && <span className="field-hint" style={{ marginLeft: 6, marginTop: 0, display: 'inline' }}>{hint}</span>}
+        {hint && <span className="field-hint" style={{ marginLeft: 'var(--gx-space-3)', marginTop: 0, display: 'inline' }}>{hint}</span>}
       </span>
       {children}
       {error && (

@@ -441,7 +441,7 @@ function FilterSelect({ label, value, onChange, options }: {
   options: [string, string][]
 }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3)' }}>
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}>
       <span>{label}</span>
       <select
         className="inp inp-sm"

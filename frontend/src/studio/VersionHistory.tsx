@@ -185,7 +185,7 @@ function PageVersionsTab({ token }: { token?: string }) {
   return (
     <div>
       {/* Page picker */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-7)', flexWrap: 'wrap' }}>
         <label className="lbl" style={{ margin: 0, flexShrink: 0 }}>Page</label>
         {loadingPages ? (
           <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
@@ -209,12 +209,12 @@ function PageVersionsTab({ token }: { token?: string }) {
       </div>
 
       {rollbackErr && (
-        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-5)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{rollbackErr}</div>
         </div>
       )}
       {rollbackMsg && (
-        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-5)', borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-success-fg)' }}>{rollbackMsg}</div>
         </div>
       )}
@@ -241,7 +241,7 @@ function PageVersionsTab({ token }: { token?: string }) {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
+                      gap: 'var(--gx-space-5)',
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
@@ -279,7 +279,7 @@ function PageVersionsTab({ token }: { token?: string }) {
                     <div
                       style={{
                         marginTop: 'var(--gx-space-3)',
-                        padding: 10,
+                        padding: 'var(--gx-space-5)',
                         background: 'var(--gx-surface-2)',
                         border: '1px solid var(--gx-border-subtle)',
                         borderRadius: 'var(--gx-radius-md)',
@@ -420,7 +420,7 @@ function AuditLogTab({ token }: { token?: string }) {
   const filterBar = (
     <div
       className="card"
-      style={{ padding: 10, marginBottom: 'var(--gx-space-4)', display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}
+      style={{ padding: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-4)', display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}
     >
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
         <span style={{ fontSize: 11 }}>Event type</span>
@@ -487,7 +487,7 @@ function AuditLogTab({ token }: { token?: string }) {
                     type="button"
                     onClick={() => toggleExpanded(ev.id)}
                     aria-expanded={isOpen}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', width: '100%', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', color: 'inherit' }}
                   >
                     <StatusPillLite variant={eventVariant(ev.type)} label={ev.type} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>{actorLabel(ev)}</span>
@@ -499,7 +499,7 @@ function AuditLogTab({ token }: { token?: string }) {
                     {isOpen ? <ChevronUp size={14} style={{ color: 'var(--gx-text-3)' }} /> : <ChevronDown size={14} style={{ color: 'var(--gx-text-3)' }} />}
                   </button>
                   {isOpen && (
-                    <div style={{ marginTop: 'var(--gx-space-3)', padding: 10, background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border-subtle)', borderRadius: 'var(--gx-radius-md)' }}>
+                    <div style={{ marginTop: 'var(--gx-space-3)', padding: 'var(--gx-space-5)', background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border-subtle)', borderRadius: 'var(--gx-radius-md)' }}>
                       <DataDetail data={ev.data} />
                     </div>
                   )}

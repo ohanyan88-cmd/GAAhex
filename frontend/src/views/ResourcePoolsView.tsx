@@ -187,7 +187,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
       filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search pools' } }}
     >
         {creating && (
-          <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+          <div className="card" style={{ padding: 'var(--gx-space-7)', marginBottom: 16 }}>
             <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
               <label className="field"><span>Name *</span><input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Yerevan /24" /></label>
               <label className="field"><span>Kind</span>
@@ -405,7 +405,7 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
         fields={fields}
       />
       {error && (
-        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 9999, maxWidth: 320 }}>
+        <div style={{ position: 'fixed', top: 'var(--gx-space-8)', left: 'var(--gx-space-8)', zIndex: 9999, maxWidth: 320 }}>
           <ErrorBanner message={error} onRetry={load} />
         </div>
       )}

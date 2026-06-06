@@ -363,7 +363,7 @@ function OrderCard({
         {order.install_substage_at ? timeAgo(order.install_substage_at) : 'no timestamp'}
       </div>
 
-      <div onClick={stop} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+      <div onClick={stop} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', alignItems: 'center' }}>
         {column === 'NONE' && canEdit && (
           <Button variant="primary" size="sm"
             onClick={onAllocate}
@@ -577,7 +577,7 @@ function InstallSummaryModal({
       subtitle={order.number ? `Order ${order.number}` : `Order ${shortId(order.id, 12)}`}
       size="lg"
       hero={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
           <StatusPill variant={substageVariant(order.install_substage)} label={substageLabel(order.install_substage)} />
           <span style={{ fontSize: 11.5, color: 'var(--gx-text-3)' }}>
             Updated {order.install_substage_at ? timeAgo(order.install_substage_at) : '—'}
@@ -655,7 +655,7 @@ function SummarySection({
   return (
     <section>
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
+        display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
         fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
         letterSpacing: '0.06em', color: 'var(--gx-text-3)',
         marginBottom: 'var(--gx-space-3)',
@@ -677,7 +677,7 @@ function SummarySection({
         <div style={{
           display: 'grid',
           gridTemplateColumns: '140px 1fr',
-          rowGap: 6,
+          rowGap: 'var(--gx-space-3)',
           columnGap: 'var(--gx-space-4)',
           fontSize: 12.5,
         }}>

@@ -153,7 +153,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
       {header}
 
       {/* Page picker */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-7)', flexWrap: 'wrap' }}>
         <label className="lbl" style={{ margin: 0, flexShrink: 0 }}>Page</label>
         {loadingPages ? (
           <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
@@ -185,7 +185,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
         <form
           onSubmit={createPage}
           className="card"
-          style={{ padding: '12px 14px', marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}
+          style={{ padding: '12px 14px', marginBottom: 'var(--gx-space-7)', display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}
         >
           <label className="field" style={{ flex: '1 1 140px', margin: 0 }}>
             <span style={{ fontSize: 11 }}>Key *</span>
@@ -233,7 +233,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
           <div className="card card-pad" style={{ marginBottom: 14 }}>
             {detail?.version ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className="lbl" style={{ margin: 0 }}>Current version</span>
                   <span className="mono" style={{ fontSize: 13 }}>v{detail.version.version_no}</span>
                   <span className={`pill ${detail.version.status === 'published' ? 'pill-success' : 'pill-neutral'}`}>
@@ -267,7 +267,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
       )}
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 4 }}>
         <Button
           variant="secondary"
           type="button"

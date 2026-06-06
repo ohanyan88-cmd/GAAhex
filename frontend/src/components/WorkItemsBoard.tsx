@@ -81,7 +81,7 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
               background: 'var(--gx-bg-subtle)',
               border: '1px solid var(--gx-border-subtle, var(--gx-border))',
               borderRadius: 'var(--gx-radius-lg, 12px)',
-              padding: 10,
+              padding: 'var(--gx-space-5)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '4px 6px 12px' }}>
@@ -159,7 +159,7 @@ function BoardCard({
         </span>
         <span style={{ marginLeft: 'auto' }}>{priorityPill(item.priority)}</span>
       </div>
-      <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 10, color: 'var(--gx-text-1)' }}>
+      <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 'var(--gx-space-5)', color: 'var(--gx-text-1)' }}>
         {item.title}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
@@ -167,7 +167,7 @@ function BoardCard({
         {dueShort && <span style={{ marginLeft: 'auto' }} className="mono">{dueShort}</span>}
       </div>
       {/* Inline status actions — same set as the table row */}
-      <div className="row-actions" style={{ marginTop: 10, justifyContent: 'flex-end', display: 'flex', gap: 4 }}>
+      <div className="row-actions" style={{ marginTop: 'var(--gx-space-5)', justifyContent: 'flex-end', display: 'flex', gap: 4 }}>
         {s === 'TODO' && (
           <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('start', e)} title="Start">
             <PlayIcon size={12} /> Start

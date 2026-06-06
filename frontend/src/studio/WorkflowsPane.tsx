@@ -276,7 +276,7 @@ function TransitionsEditor({
         </div>
       )}
 
-      <div className="row" style={{ marginTop: 10, gap: 8 }}>
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
         <Button variant="ghost" size="sm"
             type="button"
           

@@ -364,7 +364,7 @@ export default function RecordDrawer({
                   </div>
                   <div
                     style={{
-                      marginTop: 6,
+                      marginTop: 'var(--gx-space-3)',
                       fontSize: 13,
                       color: 'var(--gx-text-1)',
                       lineHeight: 1.5,

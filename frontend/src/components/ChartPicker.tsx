@@ -57,7 +57,7 @@ export default function ChartPicker({
     >
       <>
         {/* Search + bulk actions */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginBottom: 12 }}>
           <input
             type="text"
             placeholder="Search charts…"
@@ -90,7 +90,7 @@ export default function ChartPicker({
                         key={c.id}
                         onClick={() => toggle(c.id, c.implemented)}
                         style={{
-                          display: 'flex', gap: 10, alignItems: 'flex-start',
+                          display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'flex-start',
                           padding: '10px 12px',
                           borderRadius: 6,
                           border: '1px solid var(--gx-border)',
@@ -116,7 +116,7 @@ export default function ChartPicker({
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--gx-text-1)' }}>
                             {c.title}
                             {!c.implemented && (
-                              <span style={{ fontSize: 10, marginLeft: 6, color: 'var(--gx-text-3)' }}>(coming soon)</span>
+                              <span style={{ fontSize: 10, marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)' }}>(coming soon)</span>
                             )}
                           </div>
                           <div className="muted" style={{ fontSize: 11, lineHeight: 1.35, marginTop: 2 }}>

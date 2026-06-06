@@ -235,7 +235,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
           {payments.length > 0 && (
             <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CreditCardIcon size={15} /> Recent payments
               </div>
               <table className="grid">

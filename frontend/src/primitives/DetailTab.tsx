@@ -61,7 +61,7 @@ export function DetailTab({
       style={{
         display: 'inline-flex',
         alignItems: subtitle ? 'flex-start' : 'center',
-        gap: 6,
+        gap: 'var(--gx-space-3)',
         padding: '10px 14px',
         background: 'transparent',
         border: 'none',

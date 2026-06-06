@@ -300,7 +300,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
       {result && (
         <div
           style={{
-            marginTop: 'var(--gx-space-3)', padding: 10,
+            marginTop: 'var(--gx-space-3)', padding: 'var(--gx-space-5)',
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
             borderRadius: 'var(--gx-radius-md)',
@@ -380,12 +380,12 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
       {requiresAuth && (
         <div
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)',
             fontSize: 11, padding: '2px 8px',
             background: 'var(--gx-warning-soft)',
             color: 'var(--gx-warning-fg)',
             borderRadius: 'var(--gx-radius-sm, 4px)',
-            marginBottom: 10,
+            marginBottom: 'var(--gx-space-5)',
           }}
         >
           <LockIcon size={11} /> Requires authentication
@@ -445,7 +445,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
           <pre
             className="mono"
             style={{
-              margin: '0 0 10px', padding: 10, fontSize: 11.5, lineHeight: 1.5,
+              margin: '0 0 10px', padding: 'var(--gx-space-5)', fontSize: 11.5, lineHeight: 1.5,
               maxHeight: 220, overflow: 'auto',
               background: 'var(--gx-surface-2)',
               border: '1px solid var(--gx-border)',
@@ -497,7 +497,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     >
                       {code}
                     </span>
-                    <span className="hint" style={{ marginLeft: 10, fontSize: 12 }}>
+                    <span className="hint" style={{ marginLeft: 'var(--gx-space-5)', fontSize: 12 }}>
                       {resp.description ?? ''}
                     </span>
                   </div>
@@ -505,7 +505,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     <pre
                       className="mono"
                       style={{
-                        margin: 0, padding: 10, fontSize: 11.5, lineHeight: 1.5,
+                        margin: 0, padding: 'var(--gx-space-5)', fontSize: 11.5, lineHeight: 1.5,
                         maxHeight: 220, overflow: 'auto',
                         background: 'var(--gx-surface)',
                         color: 'var(--gx-text-2)',
@@ -544,7 +544,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
       style={{
         border: '1px solid var(--gx-border)',
         borderRadius: 'var(--gx-radius-md)',
-        marginBottom: 6,
+        marginBottom: 'var(--gx-space-3)',
         overflow: 'hidden',
         background: 'var(--gx-surface)',
       }}
@@ -553,7 +553,7 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
         type="button"
         onClick={() => setOpen(o => !o)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 10,
+          display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
           width: '100%', padding: '8px 10px',
           background: 'transparent',
           border: 'none',
@@ -687,7 +687,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 14, alignItems: 'flex-end' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-7)', alignItems: 'flex-end' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>{title}</h3>
           <p className="hint" style={{ margin: 0 }}>
@@ -716,12 +716,12 @@ export default function ApiDocsPane({ token }: { token: string }) {
 
       <div
         style={{
-          display: 'flex', alignItems: 'center', gap: 10,
+          display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
           padding: '10px 12px',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-md)',
           background: 'var(--gx-surface-2)',
-          marginBottom: 14,
+          marginBottom: 'var(--gx-space-7)',
         }}
       >
         <GlobeIcon size={15} style={{ color: 'var(--gx-text-3)' }} />
@@ -748,7 +748,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
       </div>
 
       {/* Tag chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 14 }}>
         <button
           type="button"
           className={'btn btn-sm ' + (activeTag === null ? 'btn-primary' : 'btn-ghost')}
@@ -786,7 +786,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
             <div key={tag} style={{ marginBottom: 18 }}>
               <div className="section-head" style={{ marginTop: 0 }}>
                 <RowsIcon size={15} className="section-icon" /> {tag}
-                <span className="hint" style={{ marginLeft: 6, fontWeight: 400 }}>
+                <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontWeight: 400 }}>
                   · {list.length} endpoint{list.length === 1 ? '' : 's'}
                 </span>
               </div>

@@ -403,7 +403,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
                     <span className="hint" style={{ marginLeft: 'auto', fontSize: 11 }}>{timeAgo(o.created_at ?? null)}</span>
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: isQueued ? 600 : 400, marginTop: 3 }}>{o.subject || '(no subject)'}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 3 }}>
                     <span style={{ fontSize: 11.5, color: 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                       {o.error ? <span style={{ color: 'var(--gx-danger)' }}>{o.error}</span> : preview(o)}
                     </span>
@@ -429,7 +429,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
                   </h2>
                   {statusPill(current.status)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginTop: 14 }}>
                   <span className="avatar" style={{ width: 36, height: 36 }}>{initials(current.to_addr)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600 }}>

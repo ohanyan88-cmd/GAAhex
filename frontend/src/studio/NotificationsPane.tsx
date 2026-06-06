@@ -629,7 +629,7 @@ function DetailDrawer({
 
       {metaErr && <ErrorBanner message={metaErr} />}
       {metaMsg && <div className="hint" style={{ marginTop: 8 }}>{metaMsg}</div>}
-      <div className="row" style={{ marginTop: 10, gap: 8 }}>
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
         <Button variant="primary" size="sm"
             type="button" 
           onClick={saveMeta} disabled={savingMeta}>
@@ -650,7 +650,7 @@ function DetailDrawer({
           style={{ resize: 'vertical' }}
         />
       </label>
-      <div className="row" style={{ marginTop: 10, gap: 8 }}>
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
         <Button variant="ghost" size="sm"
             type="button" 
           onClick={runPreview} disabled={previewing}>
@@ -667,7 +667,7 @@ function DetailDrawer({
       {preview && (
         <div
           style={{
-            marginTop: 10, padding: 'var(--gx-space-4)',
+            marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-4)',
             border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
             background: 'var(--gx-surface-2)',
           }}
@@ -685,7 +685,7 @@ function DetailDrawer({
       {sendResult && (
         <div
           style={{
-            marginTop: 10, padding: 10,
+            marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-5)',
             border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
             background: sendResult.ok ? 'var(--gx-success-soft, var(--gx-surface-2))' : 'var(--gx-warning-soft, var(--gx-surface-2))',
             color: 'var(--gx-text-1)',
@@ -702,7 +702,7 @@ function DetailDrawer({
       </div>
       <div
         style={{
-          padding: 14,
+          padding: 'var(--gx-space-7)',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-md)',
           background: 'var(--gx-surface-2)',

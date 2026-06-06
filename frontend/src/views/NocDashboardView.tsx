@@ -383,7 +383,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
               border: '1px solid var(--nms-border)',
               borderRadius: 'var(--nms-radius-sm)',
               padding: 'var(--nms-sp-3)',
-              display: 'flex', flexDirection: 'column', gap: 6,
+              display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)',
               cursor: 'pointer',
               color: 'inherit',
               textAlign: 'left',
@@ -439,7 +439,7 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
             >
               <div style={{ fontSize: 14, fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, color }}>{b.count}</div>
               <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 4 }} />
-              <div style={{ fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)', marginTop: 6, textAlign: 'center' }}>{b.label}</div>
+              <div style={{ fontSize: 10, fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{b.label}</div>
               <div style={{ fontSize: 10, color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
             </button>
           )
@@ -459,7 +459,7 @@ const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
         style={{
           background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          flex: 1, gap: 6,
+          flex: 1, gap: 'var(--gx-space-3)',
         }}
       >
         <span className={'nms-dot ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
@@ -659,7 +659,7 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 }}>▼ Peak Plan · {peakPct}%</div>
               )}
               <div style={{
-                position: 'absolute', bottom: 24, width: 2, height: stem,
+                position: 'absolute', bottom: 'var(--gx-space-12)', width: 2, height: stem,
                 background: 'var(--nms-text-2)', opacity: 0.6, borderRadius: 1,
               }} />
               <div style={{
@@ -717,7 +717,7 @@ const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
         style={{
           background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          flex: 1, gap: 6,
+          flex: 1, gap: 'var(--gx-space-3)',
         }}
       >
         <span className={'nms-dot ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />

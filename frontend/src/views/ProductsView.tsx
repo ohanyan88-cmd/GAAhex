@@ -188,7 +188,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
       filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search products' } }}
     >
         {/* Category chips — Commercial vs Supporting grouping per approved catalog model. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', margin: '12px 0 8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-7)', alignItems: 'center', margin: '12px 0 8px' }}>
           <CategoryChip label="All" active={category === 'All'} onClick={() => setCategory('All')} primary />
           <CategoryGroup
             title="Commercial Products"
@@ -337,7 +337,7 @@ function CategoryGroup<T extends string>({ title, categories, active, onPick }: 
   onPick: (c: T | 'All') => void
 }) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 12px', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 10 }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '4px 10px 4px 12px', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 10 }}>
       <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 4 }}>
         {title}
       </span>

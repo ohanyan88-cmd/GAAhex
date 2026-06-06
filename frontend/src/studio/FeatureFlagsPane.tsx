@@ -159,7 +159,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
         <form
           onSubmit={submitNew}
           className="card"
-          style={{ padding: '14px 16px', marginBottom: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}
+          style={{ padding: '14px 16px', marginBottom: 'var(--gx-space-7)', display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}
         >
           <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
             <span style={{ fontSize: 11 }}>Key *</span>

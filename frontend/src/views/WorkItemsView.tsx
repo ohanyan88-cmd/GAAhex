@@ -485,7 +485,7 @@ function WorkItemDetailModal({
       {item && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Status + action bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
             {item.status
               ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabel(item.status)} size="sm" />
               : <span className="muted">—</span>}

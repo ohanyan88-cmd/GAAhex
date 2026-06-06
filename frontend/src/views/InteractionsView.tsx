@@ -381,7 +381,7 @@ export default function InteractionsView({
                       {timeAgo(it.occurred_at ?? it.created_at ?? null)}
                     </span>
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 2 }}>
                     <span style={{ fontSize: 12, color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                       {it.channel ?? ''}
                       {it.customer_id ? ` · cust ${it.customer_id.slice(0, 8)}` : ''}
@@ -571,7 +571,7 @@ function InteractionDetail({
       </div>
 
       {/* Action bar — "Log follow-up" is a real POST action */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center' }}>
         <Button variant="primary" size="sm"
             onClick={onLogFollowUp}>
           <PlusIcon size={13} /> Log follow-up

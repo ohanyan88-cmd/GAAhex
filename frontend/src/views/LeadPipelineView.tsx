@@ -286,13 +286,13 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                           {lead.name || t('leads.unnamed', 'Unnamed lead')}
                         </div>
                         {(lead.source || lead.phone || lead.email) && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
                             {lead.source && <span>{lead.source}</span>}
                             {lead.phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><PhoneIcon size={10} /><span className="mono">{lead.phone}</span></span>}
                             {lead.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><MailIcon size={10} /><span className="mono">{lead.email}</span></span>}
                           </div>
                         )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
                           <span className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>{initials(lead.name || '')}</span>
                           {sc && sc !== 'loading' && sc !== 'error' && (
                             <span className={'pill ' + (sc.band === 'hot' ? 'pill-danger' : sc.band === 'warm' ? 'pill-warning' : 'pill-muted')} style={{ height: 18, marginLeft: 'auto' }} title={(sc.reasons ?? []).join(' · ')}>

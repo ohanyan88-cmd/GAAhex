@@ -166,11 +166,11 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        gap: 6,
+        gap: 'var(--gx-space-3)',
       }}
     >
       <div style={{
-        position: 'absolute', top: 8, right: 10,
+        position: 'absolute', top: 'var(--gx-space-4)', right: 'var(--gx-space-5)',
         fontSize: 10, fontWeight: 700,
         color: 'var(--gx-text-3)',
         fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',

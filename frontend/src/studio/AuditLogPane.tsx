@@ -237,11 +237,11 @@ export default function AuditLogPane({ token }: { token: string }) {
     <div
       className="card"
       style={{
-        padding: 10, marginBottom: 'var(--gx-space-4)',
+        padding: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-4)',
         display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 'var(--gx-space-2)', color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginRight: 'var(--gx-space-2)', color: 'var(--gx-text-3)' }}>
         <FilterIcon size={13} />
         <span className="hint" style={{ fontSize: 11.5 }}>Filters</span>
       </div>

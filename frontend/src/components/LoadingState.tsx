@@ -41,7 +41,7 @@ export default function LoadingState({ kind = 'rows', label, rows = 4 }: Props) 
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 'var(--gx-space-3)',
           fontSize: 12,
           color: 'var(--text-3)',
         }}

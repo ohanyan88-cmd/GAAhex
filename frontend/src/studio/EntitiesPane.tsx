@@ -351,7 +351,7 @@ function CreateEntityModal({
               <span
                 key={s.key}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)',
                   padding: '4px 8px',
                   // D18: active "initial status" pill = azure-soft (interactive family)
                   background: s.is_initial ? 'var(--gx-interactive-soft)' : 'var(--gx-surface-2)',
@@ -682,7 +682,7 @@ function DetailDrawer({
       </div>
       {metaErr && <ErrorBanner message={metaErr} />}
       {metaMsg && <div className="hint" style={{ marginTop: 8 }}>{metaMsg}</div>}
-      <div className="row" style={{ marginTop: 10, gap: 8 }}>
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
         <Button variant="primary" size="sm"
             type="button" 
           onClick={saveMeta} disabled={savingMeta}>
@@ -913,7 +913,7 @@ function DetailDrawer({
       </div>
       <div
         style={{
-          padding: 14,
+          padding: 'var(--gx-space-7)',
           border: '1px solid var(--gx-border)',
           borderRadius: 'var(--gx-radius-md)',
           background: 'var(--gx-surface-2)',
@@ -997,7 +997,7 @@ function AddFieldInline({
     <form
       onSubmit={save}
       style={{
-        marginTop: 10, padding: 'var(--gx-space-4)',
+        marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
       }}
@@ -1145,7 +1145,7 @@ function AddStatusInline({
     <form
       onSubmit={save}
       style={{
-        marginTop: 10, padding: 'var(--gx-space-4)',
+        marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
       }}
@@ -1198,7 +1198,7 @@ function AddTransitionInline({
     <form
       onSubmit={save}
       style={{
-        marginTop: 10, padding: 'var(--gx-space-4)',
+        marginTop: 'var(--gx-space-5)', padding: 'var(--gx-space-4)',
         border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)',
         background: 'var(--gx-surface-2)',
       }}

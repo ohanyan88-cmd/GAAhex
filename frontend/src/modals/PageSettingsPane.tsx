@@ -140,7 +140,7 @@ export default function PageSettingsPane({
               <div
                 key={col.key}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
+                  display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
                   padding: '8px 10px', border: '1px solid var(--border)',
                   borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
                   opacity: col.visible ? 1 : 0.6,
@@ -292,7 +292,7 @@ function CustomFieldsSection({
           <div
             key={f.key}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10,
+              display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
               padding: '8px 10px', border: '1px solid var(--border)',
               borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
             }}
@@ -316,7 +316,7 @@ function CustomFieldsSection({
       </div>
 
       {formOpen && (
-        <div style={{ marginTop: 10, padding: '12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
+        <div style={{ marginTop: 'var(--gx-space-5)', padding: '12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <label className="field" style={{ flex: '1 1 160px' }}>
               <span>Label *</span>

@@ -400,8 +400,8 @@ function CasesTab({
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-3)' }}>
           {t('collections.filter.status', 'Status')}
           <select
             className="inp inp-sm"
@@ -758,11 +758,11 @@ function PoliciesTab({
                     // D18: active selection outline = azure (interactive)
                     border: '1px solid ' + (isSelected ? 'var(--gx-interactive)' : 'var(--gx-border)'),
                     borderRadius: 10,
-                    padding: 14,
+                    padding: 'var(--gx-space-7)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 6,
+                    gap: 'var(--gx-space-3)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -836,7 +836,7 @@ function PoliciesTab({
             </label>
 
             <div style={{ display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-2)' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)' }}>
                 <input
                   type="checkbox"
                   checked={draft.is_default}
@@ -844,7 +844,7 @@ function PoliciesTab({
                 />
                 {t('collections.policy.isDefault', 'Default policy')}
               </label>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gx-text-2)' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 12, color: 'var(--gx-text-2)' }}>
                 <input
                   type="checkbox"
                   checked={draft.active}
@@ -866,7 +866,7 @@ function PoliciesTab({
                   fontFamily: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace',
                   fontSize: 12,
                   lineHeight: 1.5,
-                  padding: 10,
+                  padding: 'var(--gx-space-5)',
                   resize: 'vertical',
                 }}
               />

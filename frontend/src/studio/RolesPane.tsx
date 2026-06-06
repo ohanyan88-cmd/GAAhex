@@ -333,7 +333,7 @@ export default function RolesPane({ token }: { token: string }) {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px' }}>
                   {perms.map((p) => (
-                    <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                    <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', cursor: 'pointer', fontSize: 13 }}>
                       <input
                         type="checkbox"
                         checked={editPerms.has(p.key)}

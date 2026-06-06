@@ -693,7 +693,7 @@ function OrderDetailModal({
         }
       />
       {error && (
-        <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 9999, maxWidth: 320 }}>
+        <div style={{ position: 'fixed', top: 'var(--gx-space-8)', left: 'var(--gx-space-8)', zIndex: 9999, maxWidth: 320 }}>
           <ErrorBanner message={error} onRetry={load} />
         </div>
       )}
@@ -846,7 +846,7 @@ function Stage8Modal({
         <>
           {/* Overall verdict band */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+            display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: '10px 12px',
             borderRadius: 8, border: '1px solid var(--gx-border-subtle)',
             background: 'var(--gx-surface-2)', marginBottom: 'var(--gx-space-4)',
           }}>
@@ -895,7 +895,7 @@ function Stage8Modal({
           {/* Deposit snapshot (only when the row has deposit data) */}
           {order && depositReq > 0 && (
             <div style={{
-              marginTop: 14, padding: '10px 12px', borderRadius: 8,
+              marginTop: 'var(--gx-space-7)', padding: '10px 12px', borderRadius: 8,
               border: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)',
             }}>
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>

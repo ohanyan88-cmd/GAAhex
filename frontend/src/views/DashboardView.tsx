@@ -45,7 +45,7 @@ function sinceDate(r: Range): string {
 
 function ChartSkeleton({ h = 160 }: { h?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: h, padding: '4px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: h, padding: '4px 0' }}>
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="skel" style={{ flex: 1, height: `${28 + (i % 5) * 14}%`, borderRadius: '4px 4px 0 0' }} />
       ))}
@@ -59,7 +59,7 @@ function BarChart({ data }: { data: { label: string; primary: number; secondary?
   const maxS = Math.max(...data.map(d => d.secondary ?? 0), 1)
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: 160 }}>
         {data.map(b => (
           <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }} title={b.label}>
             {/* D18: primary revenue bar = drillable/active series → --gx-chart-active (= --gx-interactive). Gradient routed via --gx-interactive-hover → --gx-interactive-active to keep the depth cue without touching Tier-0 azure scales. */}
@@ -70,7 +70,7 @@ function BarChart({ data }: { data: { label: string; primary: number; secondary?
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-3)', fontSize: 10, color: 'var(--gx-text-3)' }}>
         {data.map(b => <span key={b.label} style={{ flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.label.slice(5)}</span>)}
       </div>
     </div>
@@ -246,7 +246,7 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
     <div className="card" style={{ padding: '12px 18px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 6 }}>
             <Icon size={13} />
             <span className="muted" style={{ fontSize: 12 }}>{label}</span>
           </div>
@@ -313,7 +313,7 @@ function GanttChart({ projects }: { projects: { id: string; name: string; start_
     'CANCELLED': 'var(--gx-danger)',
   }[s] ?? 'var(--gx-text-3)')
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', padding: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', maxHeight: 280, overflowY: 'auto', padding: 4 }}>
       {projects.slice(0, 12).map(p => {
         const s = new Date(p.start_date).getTime()
         const e = new Date(p.due_date).getTime()
@@ -379,7 +379,7 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
   const max = Math.max(...data.nodes.map(n => n.value), 1)
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 160 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 160 }}>
         {data.nodes.map((n, i) => {
           const h = (n.value / max) * 100
           const conv = i > 0 ? Math.round((n.value / Math.max(data.nodes[i - 1].value, 1)) * 100) : null
@@ -502,7 +502,7 @@ function NetGrowthChart({ data }: { data: { week: string; new: number; churned: 
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-3)', fontSize: 10, color: 'var(--gx-text-3)' }}>
         <span>Net change: {data.reduce((s, d) => s + d.net, 0)}</span>
         <span style={{ display: 'flex', gap: 10 }}>
           <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success)', borderRadius: 2, marginRight: 4 }} />New</span>
@@ -532,7 +532,7 @@ function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.
       : 'var(--gx-danger)'
   return (
     <div className="card" style={{ padding: '14px 18px' }}>
-      <div className="muted" style={{ fontSize: 11, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div className="muted" style={{ fontSize: 11, marginBottom: 'var(--gx-space-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
         <span style={{ fontSize: 22, fontWeight: 700 }}>{formatter(thisVal)}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 600, color }}>
@@ -550,7 +550,7 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
   const max = Math.max(...data.flatMap(d => [d.thisVal, d.lastVal]), 1)
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160, padding: '4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-5)', height: 160, padding: '4px 0' }}>
         {data.map(d => (
           <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 'var(--gx-space-2)', height: '100%' }} title={`${d.label}: this ${d.thisVal} vs last ${d.lastVal}`}>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 'var(--gx-space-1)', height: '85%' }}>
@@ -566,7 +566,7 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 14, marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-7)', marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />This period
         </span>
@@ -595,7 +595,7 @@ function MultiLineChart({ labels, series }: {
           return <polyline key={si} points={pts} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" />
         })}
       </svg>
-      <div style={{ display: 'flex', gap: 14, marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-7)', marginTop: 'var(--gx-space-3)', fontSize: 11, color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
         {series.map((s, i) => (
           <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 12, height: 2, background: s.color, borderRadius: 1 }} />{s.name}
@@ -629,7 +629,7 @@ function HeatmapChart({ data }: { data: { date: string; count: number; amount: n
           )
         })}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10, color: 'var(--gx-text-3)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-5)', fontSize: 10, color: 'var(--gx-text-3)' }}>
         <span>Less</span>
         <div style={{ display: 'flex', gap: 2 }}>
           {[0.15, 0.35, 0.55, 0.75, 1].map(i => (
@@ -844,7 +844,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     <BarChart data={revTrend.value.map(b => ({
                       label: b.month, primary: b.collected, secondary: b.churn ?? 0
                     }))} />
-                    <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 10, fontSize: 11, color: 'var(--gx-text-3)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-5)', fontSize: 11, color: 'var(--gx-text-3)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {/* D18: legend swatch matches BarChart primary fill → --gx-chart-active. */}
                         <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />Collected
@@ -1173,7 +1173,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     ))}
                     {['high', 'medium', 'low'].map(li => (
                       <>
-                        <div key={li} style={{ fontSize: 10, color: 'var(--gx-text-3)', alignSelf: 'center', paddingRight: 6, textAlign: 'right' }}>{li[0].toUpperCase() + li.slice(1)}</div>
+                        <div key={li} style={{ fontSize: 10, color: 'var(--gx-text-3)', alignSelf: 'center', paddingRight: 'var(--gx-space-3)', textAlign: 'right' }}>{li[0].toUpperCase() + li.slice(1)}</div>
                         {['low', 'medium', 'high'].map(im => {
                           const v = Number(riskHeatmap.value[`${li}_${im}`] ?? 0)
                           // color intensity: low_low = green, high_high = red
@@ -1193,7 +1193,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                       </>
                     ))}
                   </div>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 6, textAlign: 'center' }}>Impact -&gt;</div>
+                  <div className="muted" style={{ fontSize: 11, marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>Impact -&gt;</div>
                 </DashboardCard>
               )}
 

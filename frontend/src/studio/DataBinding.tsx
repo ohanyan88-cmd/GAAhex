@@ -208,12 +208,12 @@ export function DataBinding({ token }: { token?: string } = {}) {
         </div>
       )}
       {saveState === 'ok' && (
-        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-5)', borderLeftColor: 'var(--gx-success)', background: 'var(--gx-success-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-success-fg)' }}>Bindings saved.</div>
         </div>
       )}
       {saveState === 'err' && saveError && (
-        <div className="banner" style={{ marginBottom: 10, borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
+        <div className="banner" style={{ marginBottom: 'var(--gx-space-5)', borderLeftColor: 'var(--gx-danger)', background: 'var(--gx-danger-soft)' }}>
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{saveError}</div>
         </div>
       )}

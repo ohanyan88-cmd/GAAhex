@@ -222,7 +222,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         {/* Header */}
         <div
           style={{
-            display: 'flex', alignItems: 'center', gap: 10,
+            display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
             padding: '14px 18px',
             borderBottom: '1px solid var(--border)',
             flexShrink: 0,
@@ -278,7 +278,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         {!isPageMode && (
           <div
             style={{
-              display: 'flex', gap: 6,
+              display: 'flex', gap: 'var(--gx-space-3)',
               padding: '12px 18px 0',
               borderBottom: '1px solid var(--border)',
               flexShrink: 0,

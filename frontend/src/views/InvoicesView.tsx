@@ -836,7 +836,7 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
           </div>
         )}
         {canAllocate && outNum > 0 && (
-          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: 'var(--gx-space-7)', display: 'flex', justifyContent: 'flex-end' }}>
             <Button variant="primary" size="sm"
             onClick={() => setOpen(true)}>
               Allocate payment

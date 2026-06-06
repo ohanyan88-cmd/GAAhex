@@ -34,7 +34,7 @@ export function ContentEditor() {
           <label className="field"><span>Button link</span><input className="inp inp-sm mono" /></label>
           <label className="field">
             <span>Image</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--gx-bg-subtle)', border: '1px dashed var(--gx-border-strong)', borderRadius: 'var(--gx-radius-md)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: '8px 10px', background: 'var(--gx-bg-subtle)', border: '1px dashed var(--gx-border-strong)', borderRadius: 'var(--gx-radius-md)' }}>
               <Image size={18} style={{ color: 'var(--gx-text-3)' }} />
               <span className="hint" style={{ fontSize: 12 }}>No image</span>
               <Button variant="ghost" size="sm"
@@ -46,7 +46,7 @@ export function ContentEditor() {
           <label className="field"><span>Placeholder text</span><input className="inp inp-sm" /></label>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14, maxWidth: 560 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--gx-space-7)', maxWidth: 560 }}>
           <label className="field"><span>SEO title</span><input className="inp inp-sm" /></label>
           <label className="field">
             <span>Meta description</span>

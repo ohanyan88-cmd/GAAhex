@@ -108,7 +108,7 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
                 <div className="card-pad">
                   {trend && trend.length > 0
                     ? <RevenueTrendChart data={trend} t={t} />
-                    : <p className="muted">{t('common.noData', 'No data.')}</p>}
+                    : <EmptyState title={t('common.noData', 'No data')} message={t('analytics.revenueTrend.empty', 'Revenue trend will appear here once invoices and payments are recorded.')} />}
                 </div>
               </div>
 
@@ -119,7 +119,7 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
                 <div className="card-pad">
                   {mix && mix.length > 0
                     ? <MixDonut data={mix} />
-                    : <p className="muted">{t('common.noData', 'No data.')}</p>}
+                    : <EmptyState title={t('common.noData', 'No data')} message={t('analytics.subscriptionMix.empty', 'Active subscriptions will be summarized here once plans are assigned.')} />}
                 </div>
               </div>
             </div>

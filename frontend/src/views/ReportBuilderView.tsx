@@ -303,7 +303,7 @@ function RunView({ run }: { run: RunResult }) {
           />
         </div>
       )}
-      {!isValue && groups.length === 0 && <p className="muted">No data.</p>}
+      {!isValue && groups.length === 0 && <EmptyState title={t('common.noData', 'No data')} message={t('reportBuilder.noData', 'The query returned zero matching rows. Adjust the filters or pick a different range to see results.')} />}
       {!isValue && groups.length > 0 && (
         <>
           <Donut data={donutData} centerLabel={fmtNum(total)} centerCaption="total" />
