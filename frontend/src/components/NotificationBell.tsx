@@ -155,7 +155,7 @@ export default function NotificationBell({
 
           <div className="notif-list">
             {items.length === 0 && (
-              <div className="stub" style={{ padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-5)' }}>
+              <div className="stub" style={{ padding: '36px var(--gx-space-20)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-5)' }}>
                 <div className="si" style={{ width: 44, height: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
                   <BellOff size={20} />
                 </div>
@@ -175,7 +175,7 @@ export default function NotificationBell({
                   <span style={{ flex: 1, textAlign: 'left' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600 }}>{n.title}</span>
-                      {isUnread && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gx-primary)', marginLeft: 'auto', flexShrink: 0 }} />}
+                      {isUnread && <span style={{ width: 'var(--gx-space-3)', height: 'var(--gx-space-3)', borderRadius: '50%', background: 'var(--gx-primary)', marginLeft: 'auto', flexShrink: 0 }} />}
                     </span>
                     {n.body && (
                       <span style={{ display: 'block', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>

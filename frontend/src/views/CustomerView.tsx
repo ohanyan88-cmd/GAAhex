@@ -403,11 +403,11 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
             </div>
             {[0, 1, 2].map((i) => (
               <div key={i}>
-                <div className="kpi-tile-skeleton" style={{ height: 14, width: 140, margin: 'var(--gx-space-18) 0 var(--gx-space-5)' }} />
+                <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-7)', width: 140, margin: 'var(--gx-space-18) 0 var(--gx-space-5)' }} />
                 <div className="card" style={{ padding: 'var(--gx-space-7)' }}>
-                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '92%', marginBottom: 'var(--gx-space-4)' }} />
-                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 'var(--gx-space-4)' }} />
-                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '60%' }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '92%', marginBottom: 'var(--gx-space-4)' }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '80%', marginBottom: 'var(--gx-space-4)' }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '60%' }} />
                 </div>
               </div>
             ))}
@@ -719,9 +719,9 @@ function FinancialSummaryCard({
   if (accounts === undefined) {
     return (
       <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
-        <div className="kpi-tile-skeleton" style={{ height: 12, width: '40%', marginBottom: 'var(--gx-space-5)' }} />
-        <div className="kpi-tile-skeleton" style={{ height: 18, width: '60%', marginBottom: 'var(--gx-space-4)' }} />
-        <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '40%', marginBottom: 'var(--gx-space-5)' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-18)', width: '60%', marginBottom: 'var(--gx-space-4)' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '80%' }} />
       </div>
     )
   }
@@ -965,10 +965,10 @@ function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
       <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} style={{ display: 'flex', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-5)' }}>
-            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 2 }} />
-            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
-            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
-            <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', flex: 2 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', flex: 1 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', flex: 1 }} />
+            <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', flex: 1 }} />
           </div>
         ))}
       </div>

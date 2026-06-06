@@ -310,7 +310,7 @@ export default function UsersPane({ token }: { token: string }) {
       {/* Header row */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Users</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Users</h3>
           <p className="hint" style={{ margin: 0 }}>
             Manage tenant users and bind roles at specific org nodes.
           </p>
@@ -464,7 +464,7 @@ export default function UsersPane({ token }: { token: string }) {
                               background: 'var(--gx-surface-2)',
                               border: '1px solid var(--gx-border)',
                               borderRadius: 4,
-                              padding: '1px 6px',
+                              padding: '1px var(--gx-space-3)',
                               fontSize: 'var(--gx-text-11)',
                               color: 'var(--gx-text-2)',
                             }}

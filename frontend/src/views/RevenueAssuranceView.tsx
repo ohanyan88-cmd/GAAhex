@@ -1462,7 +1462,7 @@ function StatusFlow({ current }: { current: FindingStatus }) {
             </span>
             {i < steps.length - 1 && (
               <span style={{
-                width: 18,
+                width: 'var(--gx-space-18)',
                 height: 1,
                 background: 'var(--gx-border)',
                 display: 'inline-block',

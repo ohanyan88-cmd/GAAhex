@@ -61,7 +61,7 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
             {nodeMembers.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
                 {nodeMembers.map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--gx-space-2) 0', borderTop: '1px solid var(--gx-border)' }}>
                     <span style={{ fontSize: 'var(--gx-text-md)' }}>{m.name || m.email}</span>
                     <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{m.role}</span>
                   </div>
@@ -82,7 +82,7 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
             {unassigned.map(m => (
-              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
+              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--gx-space-2) 0', borderTop: '1px solid var(--gx-border)' }}>
                 <span style={{ fontSize: 'var(--gx-text-md)' }}>{m.name || m.email}</span>
                 <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{m.role}</span>
               </div>

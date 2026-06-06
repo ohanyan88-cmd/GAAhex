@@ -191,7 +191,7 @@ function CreateWebhookModal({
         <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <ActivityIcon size={15} className="section-icon" /> Event subscriptions
         </div>
-        <p className="hint" style={{ margin: '0 0 8px' }}>
+        <p className="hint" style={{ margin: '0 0 var(--gx-space-4)' }}>
           Leave empty to receive <strong>all</strong> events. Otherwise only the selected types are
           delivered.
         </p>
@@ -223,7 +223,7 @@ function CreateWebhookModal({
             placeholder="(leave empty for unsigned deliveries)"
           />
         </label>
-        <p className="hint" style={{ margin: '4px 0 0' }}>
+        <p className="hint" style={{ margin: 'var(--gx-space-2) 0 0' }}>
           Deliveries are signed with HMAC-SHA256 over the request body when a secret is set.
           The secret is stored server-side and never returned by the API.
         </p>
@@ -278,7 +278,7 @@ function ConfirmDeleteDialog({
         </>
       }
     >
-      <p className="hint" style={{ margin: '0 0 14px' }}>
+      <p className="hint" style={{ margin: '0 0 var(--gx-space-7)' }}>
         This will hard-delete <strong>{hookName}</strong>. Future events will no longer be
         delivered to this endpoint. Past delivery records are preserved.
       </p>
@@ -458,7 +458,7 @@ function DetailDrawer({
           <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
             <ActivityIcon size={15} className="section-icon" /> Event subscriptions
           </div>
-          <p className="hint" style={{ margin: '0 0 8px' }}>
+          <p className="hint" style={{ margin: '0 0 var(--gx-space-4)' }}>
             Empty = receive all events.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)' }}>
@@ -533,7 +533,7 @@ function DetailDrawer({
                 ? <StatusPill variant="active" label="signed" size="sm" />
                 : <span className="hint">unsigned</span>}
             </div>
-            <p className="hint" style={{ margin: '0 0 10px' }}>
+            <p className="hint" style={{ margin: '0 0 var(--gx-space-5)' }}>
               The secret is never returned by the API. Set a new value to rotate it; clear and rotate
               to disable signing.
             </p>
@@ -560,7 +560,7 @@ function DetailDrawer({
           <div className="section-head" style={{ marginTop: 22 }}>
             <PlayIcon size={15} className="section-icon" /> Test delivery
           </div>
-          <p className="hint" style={{ margin: '0 0 8px' }}>
+          <p className="hint" style={{ margin: '0 0 var(--gx-space-4)' }}>
             Sends a sample <code className="mono">test</code> event to this endpoint and records the
             attempt in the delivery log.
           </p>
@@ -655,7 +655,7 @@ function DetailDrawer({
             <div style={{ marginBottom: 'var(--gx-space-4)' }}>
               <strong>Delete this webhook</strong>
             </div>
-            <p className="hint" style={{ margin: '0 0 10px' }}>
+            <p className="hint" style={{ margin: '0 0 var(--gx-space-5)' }}>
               Hard-delete <strong>{hook.name}</strong>. Future events will no longer be delivered.
               To temporarily stop deliveries instead, uncheck <strong>Active</strong> above and Save.
             </p>
@@ -743,7 +743,7 @@ export default function WebhooksPane({ token }: { token: string }) {
     <div>
       <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Webhooks</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Webhooks</h3>
           <p className="hint" style={{ margin: 0 }}>
             Forward platform events to external HTTPS endpoints. Deliveries are
             HMAC-SHA256 signed when a secret is set; retries are recorded in the

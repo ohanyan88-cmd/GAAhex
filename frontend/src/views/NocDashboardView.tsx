@@ -396,7 +396,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
             <div className="nms-value nms-value-mono" style={{ fontSize: 26 }}>{c.value}</div>
             {c.isTotal ? (
               // Neutral stacked bar: text-2 (working) → text-3 (dying_gasp) → gold (offline).
-              <div style={{ display: 'flex', height: 6, borderRadius: 999, overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
+              <div style={{ display: 'flex', height: 'var(--gx-space-3)', borderRadius: 999, overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
                 <div style={{ flex: s.working,    background: 'var(--gx-text-2)' }} />
                 <div style={{ flex: s.dying_gasp, background: 'var(--gx-text-3)' }} />
                 <div style={{ flex: s.offline,    background: 'var(--gx-gold)' }} />
@@ -462,7 +462,7 @@ const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
           flex: 1, gap: 'var(--gx-space-3)',
         }}
       >
-        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
+        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-6)' }} />
         <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-red' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_ROGUE.count}</div>
         <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', maxWidth: 200 }}>
           {isAlarm ? 'Blinded ports — uncontrolled light' : 'No rogue ONUs · all ports stable'}
@@ -572,7 +572,7 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                   fontSize: 'var(--gx-text-sm)',
                 }}
               >
-                <span style={{ width: 10, height: 10, borderRadius: 2, background: colors[i % colors.length] }} />
+                <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: colors[i % colors.length] }} />
                 <span>{v.vendor}</span>
                 <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>{v.count}</span>
                 <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>{pct}%</span>
@@ -720,7 +720,7 @@ const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
           flex: 1, gap: 'var(--gx-space-3)',
         }}
       >
-        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
+        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-6)' }} />
         <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-amber' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{n}</div>
         <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', maxWidth: 200 }}>
           Pending activation from billing CRM
@@ -798,7 +798,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
       }}>
         {/* Column 1 — Regions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--gx-border)', paddingRight: 'var(--gx-space-4)' }}>
-          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>Regions</div>
+          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 var(--gx-space-3)' }}>Regions</div>
           {SAMPLE_HIERARCHY.regions.map(r => (
             <button key={r.id}
               type="button"
@@ -818,7 +818,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
         </div>
         {/* Column 2 — OLTs + Ports */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--gx-border)', paddingRight: 'var(--gx-space-4)' }}>
-          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>OLT · PON</div>
+          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 var(--gx-space-3)' }}>OLT · PON</div>
           {region.olts.map(o => (
             <div key={o.id}>
               <button
@@ -861,7 +861,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
         {/* Column 3 — ONU rows for selected port */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', minHeight: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>
+            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 var(--gx-space-3)' }}>
               {port ? `Port ${port.label}` : '—'} · {port?.onus.length ?? 0} ONUs
             </div>
           </div>
@@ -960,9 +960,9 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
         })}
       </svg>
       <div style={{ display: 'flex', gap: 'var(--gx-space-8)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', justifyContent: 'center', marginTop: 'var(--gx-space-2)' }}>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 'var(--gx-space-2)' }} /> Operational</span>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 'var(--gx-space-2)' }} /> Warning</span>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 'var(--gx-space-2)' }} /> Outage</span>
+        <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 'var(--gx-space-2)' }} /> Operational</span>
+        <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 'var(--gx-space-2)' }} /> Warning</span>
+        <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 'var(--gx-space-2)' }} /> Outage</span>
       </div>
     </NMSCard>
   )

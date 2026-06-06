@@ -37,7 +37,7 @@ export default function CommentsTab({ token, entity, id }: { token: string; enti
     return (
       <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="kpi-tile-skeleton" style={{ height: 14, width: '100%', marginBottom: 'var(--gx-space-5)' }} />
+          <div key={i} className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-7)', width: '100%', marginBottom: 'var(--gx-space-5)' }} />
         ))}
       </div>
     )

@@ -649,10 +649,10 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                   type="button"
                   onClick={() => setFColor(fColor === c ? null : c)}
                   style={{
-                    width: 24, height: 24, borderRadius: '50%',
+                    width: 'var(--gx-space-12)', height: 'var(--gx-space-12)', borderRadius: '50%',
                     background: c, border: 'none', cursor: 'pointer',
                     outline: fColor === c ? '2px solid var(--gx-gold)' : '2px solid transparent',
-                    outlineOffset: 2,
+                    outlineOffset: 'var(--gx-space-1)',
                   }}
                   aria-label={`Color ${c}`}
                 />
@@ -661,7 +661,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                 <Button variant="ghost" size="sm"
             type="button"
                   
-                  style={{ padding: '0 8px', height: 24, fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}
+                  style={{ padding: '0 8px', height: 'var(--gx-space-12)', fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}
                   onClick={() => setFColor(null)}
                 >
                   <CloseIcon size={10} /> Clear

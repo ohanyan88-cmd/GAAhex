@@ -214,7 +214,7 @@ export default function DashboardsPane({ token }: { token: string }) {
       {/* header */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Dashboards</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Dashboards</h3>
           <p className="hint" style={{ margin: 0 }}>Define boards and their config-driven widgets.</p>
         </div>
         <span className="spacer" />
@@ -479,7 +479,7 @@ export default function DashboardsPane({ token }: { token: string }) {
             </table>
           </div>
 
-          <div className="error-banner" style={{ margin: '16px 0 14px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+          <div className="error-banner" style={{ margin: 'var(--gx-space-8) 0 var(--gx-space-7)', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
             <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={15} /></div>
             <div className="error-banner-msg">
               Widget queries run at view time. <code className="mono">filter</code> is a GXL expression evaluated per record (e.g. <code className="mono">status == &apos;OPEN&apos;</code>).

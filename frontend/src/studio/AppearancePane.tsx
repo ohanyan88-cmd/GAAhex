@@ -215,7 +215,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
   return (
     <div>
       <div style={{ marginBottom: 'var(--gx-space-18)' }}>
-        <h3 style={{ margin: '0 0 4px', fontFamily: 'var(--gx-font-sans)', fontSize: 'var(--gx-text-lg)', fontWeight: 600 }}>Appearance</h3>
+        <h3 style={{ margin: '0 0 var(--gx-space-2)', fontFamily: 'var(--gx-font-sans)', fontSize: 'var(--gx-text-lg)', fontWeight: 600 }}>Appearance</h3>
         <p className="hint" style={{ margin: 0 }}>
           Tenant branding. Set it once here — every rendered screen across all 18 modules updates. No code.
         </p>
@@ -248,13 +248,13 @@ export function AppearancePane({ token }: { token?: string } = {}) {
                     boxShadow: accent.name === a.name ? '0 0 0 2px ' + a.soft : 'none',
                   }}
                 >
-                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: a.val, flexShrink: 0 }} />
+                  <span style={{ width: 'var(--gx-space-18)', height: 'var(--gx-space-18)', borderRadius: '50%', background: a.val, flexShrink: 0 }} />
                   <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-1)', fontWeight: accent.name === a.name ? 600 : 400 }}>{a.name}</span>
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 'var(--gx-space-5)', fontFamily: 'var(--gx-font-mono)', fontSize: 'var(--gx-text-sm)', background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: '4px 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
-              <span style={{ width: 12, height: 12, borderRadius: 'var(--gx-radius-xs)', background: accent.val }} />
+            <div style={{ marginTop: 'var(--gx-space-5)', fontFamily: 'var(--gx-font-mono)', fontSize: 'var(--gx-text-sm)', background: 'var(--gx-bg-subtle)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-sm)', padding: 'var(--gx-space-2) 9px', display: 'inline-flex', gap: 'var(--gx-space-3)', alignItems: 'center', color: 'var(--gx-text-1)' }}>
+              <span style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-6)', borderRadius: 'var(--gx-radius-xs)', background: accent.val }} />
               {accent.val.toUpperCase()}
             </div>
           </div>

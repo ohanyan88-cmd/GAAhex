@@ -125,7 +125,7 @@ export default function OrgIdentity({ token }: { token: string }) {
 
       {open && (
         <div className="menu fade-fast org-pop" onClick={(e) => e.stopPropagation()}>
-          <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '2px 4px 10px' }}>
+          <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: 'var(--gx-space-1) var(--gx-space-2) var(--gx-space-5)' }}>
             Company identity
           </div>
           <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 'var(--gx-space-7)' }}>

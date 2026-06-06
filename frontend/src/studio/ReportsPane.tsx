@@ -62,7 +62,7 @@ export default function ReportsPane({ token }: { token: string }) {
     <div>
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Reports</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Reports</h3>
           <p className="hint" style={{ margin: 0 }}>
             Saved report definitions, run results, and delivery schedules.
           </p>

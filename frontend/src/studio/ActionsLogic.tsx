@@ -98,7 +98,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Zap size={15} />} title="Actions & Logic" hint="button actions, submit behavior, navigation, conditions, visibility" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+        <div style={{ padding: 'var(--gx-space-9) 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to define automation rules.
         </div>
       </div>
@@ -119,7 +119,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         }
       />
       {loading && (
-        <div style={{ padding: '20px 0', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+        <div style={{ padding: 'var(--gx-space-20) 0', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Loading event registry…
         </div>
       )}

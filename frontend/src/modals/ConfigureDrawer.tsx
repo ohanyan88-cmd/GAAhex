@@ -279,7 +279,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           <div
             style={{
               display: 'flex', gap: 'var(--gx-space-3)',
-              padding: '12px 18px 0',
+              padding: 'var(--gx-space-6) var(--gx-space-18) 0',
               borderBottom: '1px solid var(--gx-border)',
               flexShrink: 0,
             }}

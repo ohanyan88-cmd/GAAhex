@@ -247,7 +247,7 @@ export default function InstallationBoardView({
                 <div className="kcol-head">
                   <span
                     style={{
-                      width: 8, height: 8, borderRadius: '50%',
+                      width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%',
                       background: col.tone, flexShrink: 0,
                     }}
                   />

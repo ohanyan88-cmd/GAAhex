@@ -79,7 +79,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
                   {(byStatus[col] ?? []).map(item => (
                     <div key={item.id} className="card" style={{ padding: 'var(--gx-space-6)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--gx-space-3)' }}>
-                        <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: PRIORITY_DOT[item.priority] ?? 'var(--gx-text-3)', marginTop: 5, flexShrink: 0 }} />
+                        <span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: PRIORITY_DOT[item.priority] ?? 'var(--gx-text-3)', marginTop: 'var(--gx-space-5)', flexShrink: 0 }} />
                         <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500, lineHeight: 1.4 }}>{item.title}</span>
                       </div>
                       <div style={{ display: 'flex', gap: 'var(--gx-space-2)', marginTop: 'var(--gx-space-2)' }}>

@@ -35,9 +35,9 @@ export default function OverviewTab({ customerId, profile }: { customerId: strin
   if (!profile) {
     return (
       <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
-        <div className="kpi-tile-skeleton" style={{ height: 14, width: '40%', marginBottom: 'var(--gx-space-5)' }} />
-        <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 'var(--gx-space-4)' }} />
-        <div className="kpi-tile-skeleton" style={{ height: 12, width: '60%' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-7)', width: '40%', marginBottom: 'var(--gx-space-5)' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '80%', marginBottom: 'var(--gx-space-4)' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '60%' }} />
       </div>
     )
   }

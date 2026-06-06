@@ -258,7 +258,7 @@ export default function PaymentMethodsView({
                   <th scope="col">Expires</th>
                   <th scope="col">Status</th>
                   <th scope="col">Last used</th>
-                  {canWrite && <th scope="col" style={{ width: 40 }}></th>}
+                  {canWrite && <th scope="col" style={{ width: 'var(--gx-space-9)' }}></th>}
                 </tr>
               </thead>
               <tbody>

@@ -28,7 +28,7 @@ export function ContentEditor() {
           <label className="field"><span>Subtitle</span><input className="inp inp-sm" /></label>
           <label className="field" style={{ gridColumn: '1 / -1' }}>
             <span>Body text</span>
-            <textarea className="inp" rows={4} style={{ height: 'auto', padding: '10px 11px', lineHeight: 1.6, resize: 'vertical' }} />
+            <textarea className="inp" rows={4} style={{ height: 'auto', padding: 'var(--gx-space-5) 11px', lineHeight: 1.6, resize: 'vertical' }} />
           </label>
           <label className="field"><span>Primary button label</span><input className="inp inp-sm" /></label>
           <label className="field"><span>Button link</span><input className="inp inp-sm mono" /></label>
@@ -50,7 +50,7 @@ export function ContentEditor() {
           <label className="field"><span>SEO title</span><input className="inp inp-sm" /></label>
           <label className="field">
             <span>Meta description</span>
-            <textarea className="inp" rows={3} style={{ height: 'auto', padding: '10px 11px', lineHeight: 1.6, resize: 'vertical' }} />
+            <textarea className="inp" rows={3} style={{ height: 'auto', padding: 'var(--gx-space-5) 11px', lineHeight: 1.6, resize: 'vertical' }} />
           </label>
           <label className="field"><span>URL slug</span><input className="inp inp-sm mono" /></label>
         </div>

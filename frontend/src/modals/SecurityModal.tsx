@@ -89,7 +89,7 @@ export default function SecurityModal({
           </Button>
         </div>
 
-        <div className="menu-sep" style={{ margin: '14px 0' }} />
+        <div className="menu-sep" style={{ margin: 'var(--gx-space-7) 0' }} />
 
         <div className="security-stub">
           <div className="security-stub-title">{t('security.mfa', 'Two-factor authentication (MFA)')}</div>

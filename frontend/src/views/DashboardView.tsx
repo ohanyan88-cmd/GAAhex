@@ -63,9 +63,9 @@ function BarChart({ data }: { data: { label: string; primary: number; secondary?
         {data.map(b => (
           <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 'var(--gx-space-1)' }} title={b.label}>
             {/* D18: primary revenue bar = drillable/active series → --gx-chart-active (= --gx-interactive). Gradient routed via --gx-interactive-hover → --gx-interactive-active to keep the depth cue without touching Tier-0 azure scales. */}
-            <div style={{ height: `${b.primary / maxP * 82}%`, background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))', borderRadius: '4px 4px 0 0', minHeight: b.primary > 0 ? 4 : 0 }} />
+            <div style={{ height: `${b.primary / maxP * 82}%`, background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))', borderRadius: '4px 4px 0 0', minHeight: b.primary > 0 ? 'var(--gx-space-2)' : 0 }} />
             {b.secondary != null && b.secondary > 0 && (
-              <div style={{ height: `${b.secondary / maxS * 14}%`, background: 'var(--gx-gold)', borderRadius: '0 0 4px 4px', minHeight: 2 }} />
+              <div style={{ height: `${b.secondary / maxS * 14}%`, background: 'var(--gx-gold)', borderRadius: '0 0 4px 4px', minHeight: 'var(--gx-space-1)' }} />
             )}
           </div>
         ))}
@@ -132,10 +132,10 @@ function LineChart({ data, series1Label = 'Series 1', series2Label = 'Series 2' 
       </svg>
       <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 12, height: 2, background: 'var(--gx-chart-active)', display: 'inline-block', borderRadius: 1 }} />{series1Label}
+          <span style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-1)', background: 'var(--gx-chart-active)', display: 'inline-block', borderRadius: 1 }} />{series1Label}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 12, height: 2, background: 'var(--gx-gold)', display: 'inline-block', borderRadius: 1 }} />{series2Label}
+          <span style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-1)', background: 'var(--gx-gold)', display: 'inline-block', borderRadius: 1 }} />{series2Label}
         </span>
       </div>
     </div>
@@ -171,7 +171,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
       <div style={{ flex: 1, minWidth: 120 }}>
         {slices.map((sl, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)' }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: sl.color, flexShrink: 0 }} />
+            <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: sl.color, flexShrink: 0 }} />
             <span style={{ flex: 1, fontSize: 'var(--gx-text-sm)' }}>{sl.label}</span>
             <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{sl.value}</span>
             <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{Math.round(sl.value / total * 100)}%</span>
@@ -193,7 +193,7 @@ function HorizontalBarChart({ buckets }: { buckets: { label: string; value: numb
             <span>{b.label}</span>
             <span style={{ fontWeight: 600, color: b.color }}>{money(b.value)}</span>
           </div>
-          <div style={{ height: 8, borderRadius: 4, background: 'var(--gx-surface-2)' }}>
+          <div style={{ height: 'var(--gx-space-4)', borderRadius: 4, background: 'var(--gx-surface-2)' }}>
             <div style={{ height: '100%', width: `${b.value / max * 100}%`, borderRadius: 4, background: b.color, transition: 'width .3s' }} />
           </div>
         </div>
@@ -219,7 +219,7 @@ function FunnelChart({ stages }: { stages: { label: string; value: number }[] })
                 {i > 0 && <span className="muted">{convRate}%</span>}
               </span>
             </div>
-            <div style={{ height: 12, borderRadius: 4, background: 'var(--gx-surface-2)', overflow: 'hidden' }}>
+            <div style={{ height: 'var(--gx-space-6)', borderRadius: 4, background: 'var(--gx-surface-2)', overflow: 'hidden' }}>
               <div style={{
                 height: '100%', width: `${pct}%`,
                 borderRadius: 4,
@@ -322,11 +322,11 @@ function GanttChart({ projects }: { projects: { id: string; name: string; start_
         return (
           <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)' }}>
             <span style={{ width: 110, textAlign: 'right', color: 'var(--gx-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</span>
-            <div style={{ flex: 1, position: 'relative', height: 16, background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-xs)' }}>
+            <div style={{ flex: 1, position: 'relative', height: 'var(--gx-space-8)', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-xs)' }}>
               <div title={`${p.start_date} to ${p.due_date} - ${p.status}`}
                 style={{
                   position: 'absolute', left: `${leftPct}%`, width: `${widthPct}%`,
-                  top: 1, bottom: 1, background: statusColor(p.status), borderRadius: 3,
+                  top: 1, bottom: 1, background: statusColor(p.status), borderRadius: 'var(--gx-radius-xs)',
                 }} />
             </div>
             <span style={{ width: 60, fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textAlign: 'right' }}>{p.status}</span>
@@ -387,7 +387,7 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
             <>
               <div key={n.id} style={{ flex: '0 0 16%', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
                 <div style={{ width: '80%', height: `${Math.max(h, 5)}%`,
-                  background: PLAN_COLORS[i % PLAN_COLORS.length], borderRadius: 3,
+                  background: PLAN_COLORS[i % PLAN_COLORS.length], borderRadius: 'var(--gx-radius-xs)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'var(--gx-on-primary)', fontWeight: 700, fontSize: 'var(--gx-text-13)',
                 }}>{n.value}</div>
@@ -398,7 +398,7 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
               </div>
               {i < data.nodes.length - 1 && (
                 <div key={`arrow-${i}`} style={{
-                  flex: 1, height: 2,
+                  flex: 1, height: 'var(--gx-space-1)',
                   // D18: connector encodes flow direction (active → passive). Start = active drillable
                   // (--gx-chart-active), end = passive default text → keep --gx-text-3.
                   background: 'linear-gradient(90deg, var(--gx-chart-active), var(--gx-text-3))',
@@ -469,7 +469,7 @@ function GeoMap({ points }: { points: { id: string; kind: string; name: string; 
       <div style={{ display: 'flex', gap: 'var(--gx-space-4)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
         {Object.entries(points.reduce((acc, p) => { acc[p.kind] = (acc[p.kind] || 0) + 1; return acc }, {} as Record<string, number>)).map(([k, n]) => (
           <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: kindColor(k) }} />
+            <span style={{ width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: kindColor(k) }} />
             {k.replace(/_/g, ' ')} ({n})
           </span>
         ))}
@@ -505,8 +505,8 @@ function NetGrowthChart({ data }: { data: { week: string; new: number; churned: 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
         <span>Net change: {data.reduce((s, d) => s + d.net, 0)}</span>
         <span style={{ display: 'flex', gap: 'var(--gx-space-5)' }}>
-          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />New</span>
-          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-danger)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />Churned</span>
+          <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', background: 'var(--gx-success)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />New</span>
+          <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', background: 'var(--gx-danger)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />Churned</span>
         </span>
       </div>
     </div>
@@ -568,10 +568,10 @@ function GroupedBarChart({ data }: { data: { label: string; thisVal: number; las
       </div>
       <div style={{ display: 'flex', gap: 'var(--gx-space-7)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />This period
+          <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-chart-active)', borderRadius: 2 }} />This period
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 10, height: 10, background: 'var(--gx-text-3)', opacity: 0.5, borderRadius: 2 }} />Last period
+          <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-text-3)', opacity: 0.5, borderRadius: 2 }} />Last period
         </span>
       </div>
     </div>
@@ -598,7 +598,7 @@ function MultiLineChart({ labels, series }: {
       <div style={{ display: 'flex', gap: 'var(--gx-space-7)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
         {series.map((s, i) => (
           <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 12, height: 2, background: s.color, borderRadius: 1 }} />{s.name}
+            <span style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-1)', background: s.color, borderRadius: 1 }} />{s.name}
           </span>
         ))}
       </div>
@@ -633,7 +633,7 @@ function HeatmapChart({ data }: { data: { date: string; count: number; amount: n
         <span>Less</span>
         <div style={{ display: 'flex', gap: 'var(--gx-space-1)' }}>
           {[0.15, 0.35, 0.55, 0.75, 1].map(i => (
-            <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(59,130,246,${i})` }} />
+            <span key={i} style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: `rgba(59,130,246,${i})` }} />
           ))}
         </div>
         <span>More</span>
@@ -682,8 +682,8 @@ function StatusBreakdown({ buckets, total }: { buckets: { label: string; value: 
               <span>{b.label}</span>
               <span style={{ fontWeight: 600 }}>{b.value} · {pct.toFixed(0)}%</span>
             </div>
-            <div style={{ height: 6, borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: 3 }} />
+            <div style={{ height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: b.color, borderRadius: 'var(--gx-radius-xs)' }} />
             </div>
           </div>
         )
@@ -847,10 +847,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {/* D18: legend swatch matches BarChart primary fill → --gx-chart-active. */}
-                        <span style={{ width: 10, height: 10, background: 'var(--gx-chart-active)', borderRadius: 2 }} />Collected
+                        <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-chart-active)', borderRadius: 2 }} />Collected
                       </span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ width: 10, height: 10, background: 'var(--gx-gold)', borderRadius: 2 }} />Churn events
+                        <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-gold)', borderRadius: 2 }} />Churn events
                       </span>
                     </div>
                   </>
@@ -1219,9 +1219,9 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                               <span>{name}</span>
                               <span style={{ fontWeight: 600 }}>{Number(cnt)}</span>
                             </div>
-                            <div style={{ height: 6, borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
+                            <div style={{ height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-xs)', background: 'var(--gx-surface-2)' }}>
                               {/* D18: ranked-list bar = drillable per-rep performance → --gx-chart-active. */}
-                              <div style={{ height: '100%', width: `${(Number(cnt) / max) * 100}%`, background: 'var(--gx-chart-active)', borderRadius: 3 }} />
+                              <div style={{ height: '100%', width: `${(Number(cnt) / max) * 100}%`, background: 'var(--gx-chart-active)', borderRadius: 'var(--gx-radius-xs)' }} />
                             </div>
                           </div>
                         )

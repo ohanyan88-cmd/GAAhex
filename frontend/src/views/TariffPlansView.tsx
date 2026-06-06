@@ -510,7 +510,7 @@ export default function TariffPlansView({
                         <span
                           style={{
                             display: 'inline-block',
-                            padding: '2px 7px',
+                            padding: 'var(--gx-space-1) 7px',
                             borderRadius: 999,
                             background: 'var(--gx-bg-subtle)',
                             color: 'var(--gx-text-2)',

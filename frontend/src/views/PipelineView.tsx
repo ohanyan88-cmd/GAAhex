@@ -102,7 +102,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-3)' }}>
         <div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 'var(--gx-text-xl)', fontWeight: 600 }}>{title}</h2>
+          <h2 style={{ margin: '0 0 var(--gx-space-2)', fontSize: 'var(--gx-text-xl)', fontWeight: 600 }}>{title}</h2>
           <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
             <UsersIcon size={12} /> Owner: <strong style={{ color: 'var(--gx-text-2)' }}>{owner}</strong>
           </div>
@@ -206,7 +206,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
           </span>
         </div>
       )}
-      <div style={{ marginTop: stage.gate ? 6 : 'auto', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+      <div style={{ marginTop: stage.gate ? 'var(--gx-space-3)' : 'auto', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
         No assignments yet
       </div>
     </div>

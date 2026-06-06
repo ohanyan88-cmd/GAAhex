@@ -140,7 +140,7 @@ function ProbePanel({
           <p className="hint" style={{ margin: 0, fontSize: 'var(--gx-text-sm)' }}>{description}</p>
           <p
             className="mono hint"
-            style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--gx-text-3)' }}
+            style={{ margin: 'var(--gx-space-2) 0 0', fontSize: 11.5, color: 'var(--gx-text-3)' }}
           >
             {endpoint}
           </p>

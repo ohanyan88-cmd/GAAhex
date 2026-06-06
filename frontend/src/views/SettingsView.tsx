@@ -132,7 +132,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
             {sections.map(s => (
               <div className="card" key={s.title}>
                 <div className="card-head"><h3>{s.title}</h3></div>
-                <div style={{ padding: '4px 18px 8px' }}>
+                <div style={{ padding: 'var(--gx-space-2) var(--gx-space-18) var(--gx-space-4)' }}>
                   {s.rows.map((r, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: '13px 0', borderBottom: i < s.rows.length - 1 ? '1px solid var(--gx-border-subtle)' : 'none' }}>
                       <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500, flex: 1 }}>{r.label}</span>

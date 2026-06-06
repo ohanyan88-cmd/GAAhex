@@ -86,7 +86,7 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
     switch (colKey) {
       case 'invoice':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-5)' }}>
             <ReceiptIcon size={13} />
             <span className="mono" style={{ color: 'var(--gx-text-1)' }}>{invoiceRef(p)}</span>
           </span>

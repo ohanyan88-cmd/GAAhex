@@ -46,7 +46,7 @@ export default function AuditTab({ token, entity, id }: { token: string; entity:
     return (
       <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 'var(--gx-space-5)' }} />
+          <div key={i} className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-6)', width: '100%', marginBottom: 'var(--gx-space-5)' }} />
         ))}
       </div>
     )

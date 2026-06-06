@@ -142,7 +142,7 @@ export function Permissions({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+        <div style={{ padding: 'var(--gx-space-9) 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to manage role permissions.
         </div>
       </div>
@@ -181,7 +181,7 @@ export function Permissions({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+        <div style={{ padding: 'var(--gx-space-9) 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           {roles.length === 0
             ? 'No roles defined yet. Create roles under Security → Roles.'
             : 'No permissions registered yet — they are created automatically when entities are added.'}

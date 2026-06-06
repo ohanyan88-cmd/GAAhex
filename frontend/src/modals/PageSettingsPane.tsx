@@ -111,8 +111,8 @@ export default function PageSettingsPane({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       {/* Title override */}
       <section>
-        <h4 style={{ margin: '0 0 4px', fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Page heading</h4>
-        <p style={{ margin: '0 0 10px', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
+        <h4 style={{ margin: '0 0 var(--gx-space-2)', fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Page heading</h4>
+        <p style={{ margin: '0 0 var(--gx-space-5)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           Override the title shown at the top of the page. Leave blank for the default
           (<span style={{ fontStyle: 'italic' }}>{spec.defaultTitle}</span>).
         </p>
@@ -129,8 +129,8 @@ export default function PageSettingsPane({
       {/* Column controls — only shown when the page has configurable columns */}
       {spec.defaultColumns.length > 0 && (
       <section>
-        <h4 style={{ margin: '0 0 4px', fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Table columns</h4>
-        <p style={{ margin: '0 0 12px', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
+        <h4 style={{ margin: '0 0 var(--gx-space-2)', fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Table columns</h4>
+        <p style={{ margin: '0 0 var(--gx-space-6)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           Show or hide columns, rename their headers, and reorder them. The page's data and tools are unchanged.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
@@ -155,7 +155,7 @@ export default function PageSettingsPane({
                   aria-label={`Show column ${col.label}`}
                   onClick={() => patchColumn(i, { visible: !col.visible })}
                   style={{
-                    width: 18, height: 18, flexShrink: 0, borderRadius: 4,
+                    width: 'var(--gx-space-18)', height: 'var(--gx-space-18)', flexShrink: 0, borderRadius: 4,
                     border: '1px solid var(--gx-border)', cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     background: col.visible ? 'var(--gx-gold)' : 'transparent',
@@ -269,7 +269,7 @@ function CustomFieldsSection({
 
   return (
     <section>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 var(--gx-space-2)' }}>
         <h4 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Custom fields</h4>
         {!formOpen && (
           <Button variant="primary" size="sm"
@@ -278,13 +278,13 @@ function CustomFieldsSection({
           </Button>
         )}
       </div>
-      <p style={{ margin: '0 0 12px', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
+      <p style={{ margin: '0 0 var(--gx-space-6)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
         Add real data fields (text, number, date, select, boolean) shown as extra columns. Each row's
         value is edited directly in the table. The page's data and tools are unchanged.
       </p>
 
       {fields.length === 0 && !formOpen && (
-        <p style={{ margin: '0 0 8px', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>No custom fields yet.</p>
+        <p style={{ margin: '0 0 var(--gx-space-4)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>No custom fields yet.</p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
@@ -347,7 +347,7 @@ function CustomFieldsSection({
             </div>
           </div>
           {editing != null && (
-            <p style={{ margin: '8px 0 0', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
+            <p style={{ margin: 'var(--gx-space-4) 0 0', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
               Key and type are immutable — changing them would orphan stored values.
             </p>
           )}

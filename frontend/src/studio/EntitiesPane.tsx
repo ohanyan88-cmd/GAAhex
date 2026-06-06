@@ -262,7 +262,7 @@ function CreateEntityModal({
           </Button>
         </div>
         {fields.length === 0 ? (
-          <div className="hint" style={{ padding: '12px 0' }}>
+          <div className="hint" style={{ padding: 'var(--gx-space-6) 0' }}>
             No fields yet — click <strong>Add field</strong>.
           </div>
         ) : (
@@ -342,7 +342,7 @@ function CreateEntityModal({
           </Button>
         </div>
         {statuses.length === 0 ? (
-          <div className="hint" style={{ padding: '8px 0' }}>
+          <div className="hint" style={{ padding: 'var(--gx-space-4) 0' }}>
             No statuses — click <strong>+ Status</strong> (the first added is initial; click any pill to change).
           </div>
         ) : (
@@ -387,7 +387,7 @@ function CreateEntityModal({
           </div>
         )}
 
-        <div className="error-banner" style={{ margin: '16px 0 4px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+        <div className="error-banner" style={{ margin: 'var(--gx-space-8) 0 var(--gx-space-2)', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
           <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={16} /></div>
           <div>
             <div className="error-banner-title" style={{ color: 'var(--gx-text-1)' }}>
@@ -437,7 +437,7 @@ function ConfirmDeleteDialog({
         </>
       }
     >
-      <p className="hint" style={{ margin: '0 0 14px' }}>
+      <p className="hint" style={{ margin: '0 0 var(--gx-space-7)' }}>
         This will retire <strong>{entityLabel}</strong> — it disappears from the active
         entity listing and its surface stops rendering for new use. Existing records
         and audit events are preserved in the database (no data loss).
@@ -922,7 +922,7 @@ function DetailDrawer({
         <div style={{ marginBottom: 'var(--gx-space-4)' }}>
           <strong>Retire this entity</strong>
         </div>
-        <p className="hint" style={{ margin: '0 0 10px' }}>
+        <p className="hint" style={{ margin: '0 0 var(--gx-space-5)' }}>
           Removes <code className="mono">{detail.route_slug}</code> from the active entity list.
           Existing records and audit history are preserved (soft-retire).
         </p>
@@ -1280,7 +1280,7 @@ export default function EntitiesPane({ token }: { token: string }) {
     <div>
       <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Entities</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Entities</h3>
           <p className="hint" style={{ margin: 0 }}>
             Entities are the system's living configuration — fields and statuses applied to every record.
             Stand up a new entity here and it appears in the sidebar instantly.

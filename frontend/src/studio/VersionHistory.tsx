@@ -69,7 +69,7 @@ function DataDetail({ data }: { data: any }) {
     return <div className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>Empty payload</div>
   }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 'var(--gx-text-sm)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--gx-space-2) var(--gx-space-6)', fontSize: 'var(--gx-text-sm)' }}>
       {entries.flatMap(([k, v]) => [
         <span key={`${k}-k`} className="mono" style={{ color: 'var(--gx-text-3)' }}>{k}</span>,
         <span key={`${k}-v`} className="mono" style={{ color: 'var(--gx-text-1)', wordBreak: 'break-word' }}>
@@ -173,7 +173,7 @@ function PageVersionsTab({ token }: { token?: string }) {
 
   if (!token) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+      <div style={{ padding: 'var(--gx-space-9) 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
         Sign in to view page versions.
       </div>
     )
@@ -233,7 +233,7 @@ function PageVersionsTab({ token }: { token?: string }) {
               const diff = diffs[ver.id]
               const isCurrentPublished = publishedVer?.id === ver.id
               return (
-                <div key={ver.id} className="tl-item" style={{ flexDirection: 'column', alignItems: 'stretch', padding: '10px 0' }}>
+                <div key={ver.id} className="tl-item" style={{ flexDirection: 'column', alignItems: 'stretch', padding: 'var(--gx-space-5) 0' }}>
                   <button
                     type="button"
                     onClick={() => toggleVersion(ver)}
@@ -448,7 +448,7 @@ function AuditLogTab({ token }: { token?: string }) {
 
   if (!token) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+      <div style={{ padding: 'var(--gx-space-9) 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
         Sign in to view the audit log.
       </div>
     )
@@ -482,7 +482,7 @@ function AuditLogTab({ token }: { token?: string }) {
                   : ev.entity_key
                 : null
               return (
-                <div key={ev.id} className="tl-item" style={{ flexDirection: 'column', alignItems: 'stretch', padding: '10px 0' }}>
+                <div key={ev.id} className="tl-item" style={{ flexDirection: 'column', alignItems: 'stretch', padding: 'var(--gx-space-5) 0' }}>
                   <button
                     type="button"
                     onClick={() => toggleExpanded(ev.id)}

@@ -199,7 +199,7 @@ export default function ViewsPane({ token }: { token: string }) {
       {/* header */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Views</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Views</h3>
           <p className="hint" style={{ margin: 0 }}>Saved list views per entity — columns, sort, filter presets.</p>
         </div>
         <span className="spacer" />
@@ -395,7 +395,7 @@ export default function ViewsPane({ token }: { token: string }) {
             </label>
           </div>
 
-          <div className="error-banner" style={{ margin: '0 0 14px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+          <div className="error-banner" style={{ margin: '0 0 var(--gx-space-7)', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
             <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={15} /></div>
             <div className="error-banner-msg">
               All config fields are optional. Leave blank to inherit the list view defaults.

@@ -254,7 +254,7 @@ function CreateDefModal({
             style={{ fontFamily: 'inherit', resize: 'vertical' }}
           />
         </label>
-        <p className="hint" style={{ margin: '4px 0 0' }}>
+        <p className="hint" style={{ margin: 'var(--gx-space-2) 0 0' }}>
           Placeholders in <code className="mono">{'{curly_braces}'}</code> resolve at emit time.
         </p>
 
@@ -270,7 +270,7 @@ function CreateDefModal({
             placeholder={rulesView ? "priority == 'high' and status == 'OPEN'" : '(leave empty for unconditional emit)'}
           />
         </label>
-        <p className="hint" style={{ margin: '4px 0 0' }}>
+        <p className="hint" style={{ margin: 'var(--gx-space-2) 0 0' }}>
           GXL expression — evaluated against the emit context. See backend/app/gxl.py.
         </p>
 
@@ -311,7 +311,7 @@ function ConfirmDeleteDialog({
         </>
       }
     >
-      <p className="hint" style={{ margin: '0 0 14px' }}>
+      <p className="hint" style={{ margin: '0 0 var(--gx-space-7)' }}>
         This will hard-delete <strong>{defLabel}</strong> (<code className="mono">{defKey}</code>).
         Existing inbox rows that were rendered FROM this def are preserved (they're
         immutable post-emit). Future emits of <code className="mono">{defKey}</code> become a
@@ -350,7 +350,7 @@ function ConfirmTestSendDialog({
         </>
       }
     >
-      <p className="hint" style={{ margin: '0 0 14px' }}>
+      <p className="hint" style={{ margin: '0 0 var(--gx-space-7)' }}>
         This will emit one notification through <code className="mono">{defKey}</code> on the
         <strong> {channel}</strong> channel, addressed to you. If a real adapter is not
         configured for this channel, the inbox row is still created (dev adapter) and the
@@ -711,7 +711,7 @@ function DetailDrawer({
         <div style={{ marginBottom: 'var(--gx-space-4)' }}>
           <strong>Delete this notification def</strong>
         </div>
-        <p className="hint" style={{ margin: '0 0 10px' }}>
+        <p className="hint" style={{ margin: '0 0 var(--gx-space-5)' }}>
           Hard-delete <code className="mono">{detail.key}</code>. To soft-retire instead, toggle
           <strong> Enabled</strong> off in Identity above and Save — future emits become no-ops
           while history is preserved.
@@ -816,7 +816,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
     <div>
       <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>{headingLabel}</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>{headingLabel}</h3>
           <p className="hint" style={{ margin: 0 }}>{headingHint}</p>
         </div>
         <span className="spacer" />

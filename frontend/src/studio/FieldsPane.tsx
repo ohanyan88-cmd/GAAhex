@@ -298,7 +298,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
       {/* header */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Fields</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Fields</h3>
           <p className="hint" style={{ margin: 0 }}>
             Add, edit, and remove fields for any entity. Key and type are immutable after creation.
           </p>
@@ -431,7 +431,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
                     />
                   )}
 
-                  <div className="error-banner" style={{ margin: '20px 0 4px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+                  <div className="error-banner" style={{ margin: 'var(--gx-space-20) 0 var(--gx-space-2)', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
                     <div style={{ color: 'var(--gx-info)', flexShrink: 0, marginTop: 1 }}><InfoIcon size={16} /></div>
                     <div>
                       <div className="error-banner-title" style={{ color: 'var(--gx-text-1)' }}>Key and type are immutable</div>

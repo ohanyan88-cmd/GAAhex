@@ -126,7 +126,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     return (
       <div>
         {header}
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
+        <div style={{ padding: 'var(--gx-space-9) 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to manage feature flags.
         </div>
       </div>

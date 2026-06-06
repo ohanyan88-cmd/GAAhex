@@ -66,14 +66,14 @@ export function PreviewMode({ token }: { token?: string } = {}) {
           }}
         >
           {/* browser chrome */}
-          <div style={{ height: 38, borderBottom: '1px solid var(--gx-border-subtle)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '0 12px' }}>
+          <div style={{ height: 38, borderBottom: '1px solid var(--gx-border-subtle)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '0 var(--gx-space-6)' }}>
             <span style={{ display: 'flex', gap: 5 }}>
               {['var(--gx-danger)', 'var(--gx-warning)', 'var(--gx-success)'].map((c, i) => (
-                <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />
+                <span key={i} style={{ width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: c }} />
               ))}
             </span>
             <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>gaahex.app</span>
-            <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>as {role}</span>
+            <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 'var(--gx-space-18)' }}>as {role}</span>
           </div>
           {/* empty preview body */}
           <div style={{ padding: 'var(--gx-space-7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', gap: 'var(--gx-space-4)' }}>

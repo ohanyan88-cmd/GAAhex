@@ -69,7 +69,7 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${visibleCols.length}, minmax(220px, 1fr))`,
-        gap: 14,
+        gap: 'var(--gx-space-7)',
       }}
     >
       {visibleCols.map((col) => {
@@ -84,8 +84,8 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
               padding: 'var(--gx-space-5)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '4px 6px 12px' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.tone }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-2) var(--gx-space-3) var(--gx-space-6)' }}>
+              <span style={{ width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: col.tone }} />
               <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600, color: 'var(--gx-text-1)' }}>{col.label}</span>
               <span
                 className="badge"

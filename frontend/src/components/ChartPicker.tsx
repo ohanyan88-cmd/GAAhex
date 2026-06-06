@@ -80,7 +80,7 @@ export default function ChartPicker({
                 <div style={{
                   fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-text-2)',
                   textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-3)',
-                  padding: '0 4px',
+                  padding: '0 var(--gx-space-2)',
                 }}>{cat}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--gx-space-4)' }}>
                   {items.map(c => {
@@ -105,7 +105,7 @@ export default function ChartPicker({
                             Border + fill both swap to the same token so the
                             check mark stays legible on the filled square. */}
                         <div style={{
-                          width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                          width: 'var(--gx-space-18)', height: 'var(--gx-space-18)', borderRadius: 4, flexShrink: 0,
                           border: `1.5px solid ${on ? 'var(--gx-interactive)' : 'var(--gx-border-strong, var(--gx-border))'}`,
                           background: on ? 'var(--gx-interactive)' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',

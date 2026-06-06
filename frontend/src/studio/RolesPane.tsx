@@ -170,7 +170,7 @@ export default function RolesPane({ token }: { token: string }) {
       {/* Header row */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Roles and Permissions</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Roles and Permissions</h3>
           <p className="hint" style={{ margin: 0 }}>
             Define roles and configure which permissions each role carries.
           </p>
@@ -331,7 +331,7 @@ export default function RolesPane({ token }: { token: string }) {
                 <div style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                   {group}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-4) var(--gx-space-12)' }}>
                   {perms.map((p) => (
                     <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', cursor: 'pointer', fontSize: 'var(--gx-text-13)' }}>
                       <input

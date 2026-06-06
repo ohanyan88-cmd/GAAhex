@@ -246,7 +246,7 @@ export default function AutomationsPane({ token }: { token: string }) {
       {/* Header */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>Automations</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Automations</h3>
           <p className="hint" style={{ margin: 0 }}>
             Trigger-condition-action rules. Fire on entity lifecycle events.
           </p>
@@ -500,13 +500,13 @@ export default function AutomationsPane({ token }: { token: string }) {
                 type="checkbox"
                 checked={form.is_active}
                 onChange={(e) => patch('is_active', e.target.checked)}
-                style={{ width: 18, height: 18 }}
+                style={{ width: 'var(--gx-space-18)', height: 'var(--gx-space-18)' }}
               />
             </label>
           </div>
 
           {/* Help banner per action type */}
-          <div className="error-banner" style={{ margin: '12px 0 8px', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
+          <div className="error-banner" style={{ margin: 'var(--gx-space-6) 0 var(--gx-space-4)', borderLeftColor: 'var(--gx-info)', background: 'var(--gx-info-soft)' }}>
             <InfoIcon size={14} style={{ color: 'var(--gx-info)', flexShrink: 0 }} />
             <span className="error-banner-msg">{getActionHint(form.action_type)}</span>
           </div>

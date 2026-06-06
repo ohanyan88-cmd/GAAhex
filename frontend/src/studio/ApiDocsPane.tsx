@@ -372,7 +372,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
       }}
     >
       {endpoint.op.description && (
-        <p style={{ margin: '0 0 10px', fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
+        <p style={{ margin: '0 0 var(--gx-space-5)', fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
           {endpoint.op.description}
         </p>
       )}
@@ -431,7 +431,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
             {reqBody?.required && (
               <span
                 style={{
-                  marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', padding: '1px 6px',
+                  marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', padding: '1px var(--gx-space-3)',
                   background: 'var(--gx-warning-soft)',
                   color: 'var(--gx-warning-fg)',
                   borderRadius: 'var(--gx-radius-sm, 4px)',
@@ -445,7 +445,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
           <pre
             className="mono"
             style={{
-              margin: '0 0 10px', padding: 'var(--gx-space-5)', fontSize: 11.5, lineHeight: 1.5,
+              margin: '0 0 var(--gx-space-5)', padding: 'var(--gx-space-5)', fontSize: 11.5, lineHeight: 1.5,
               maxHeight: 220, overflow: 'auto',
               background: 'var(--gx-surface-2)',
               border: '1px solid var(--gx-border)',
@@ -524,7 +524,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
 
       {tryAllowed && <TryIt token={token} endpoint={endpoint} />}
       {!tryAllowed && endpoint.method !== 'GET' && (
-        <p className="hint" style={{ margin: '8px 0 0', fontSize: 11.5 }}>
+        <p className="hint" style={{ margin: 'var(--gx-space-4) 0 0', fontSize: 11.5 }}>
           <InfoIcon size={11} style={{ verticalAlign: 'middle', marginRight: 'var(--gx-space-2)' }} />
           "Try it" is only available for GET endpoints — write methods are intentionally not
           fired from the docs viewer to avoid side effects.
@@ -689,7 +689,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
     <div>
       <div className="row" style={{ marginBottom: 'var(--gx-space-7)', alignItems: 'flex-end' }}>
         <div>
-          <h3 style={{ margin: '0 0 4px' }}>{title}</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>{title}</h3>
           <p className="hint" style={{ margin: 0 }}>
             Live OpenAPI spec, fetched from <code className="mono">/openapi.json</code>.
             {' '}

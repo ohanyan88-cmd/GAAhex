@@ -566,7 +566,7 @@ function FiberTab({ state, status, onStatus, canAdmin, onNew, onReload, onOpen }
                         <span style={{ color: 'var(--gx-text-2)' }}>
                           {r.origin_pop ?? '—'}
                         </span>
-                        <span style={{ margin: '0 6px', color: 'var(--gx-text-3)' }}>→</span>
+                        <span style={{ margin: '0 var(--gx-space-3)', color: 'var(--gx-text-3)' }}>→</span>
                         <span style={{ color: 'var(--gx-text-2)' }}>
                           {r.destination_pop ?? '—'}
                         </span>

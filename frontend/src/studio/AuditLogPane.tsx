@@ -94,7 +94,7 @@ function PayloadDetail({ data }: { data: unknown }) {
     return <div className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>Empty payload</div>
   }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 'var(--gx-text-sm)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--gx-space-2) var(--gx-space-6)', fontSize: 'var(--gx-text-sm)' }}>
       {entries.flatMap(([k, v]) => [
         <span key={`${k}-k`} className="mono" style={{ color: 'var(--gx-text-3)' }}>{k}</span>,
         <span key={`${k}-v`} className="mono" style={{ color: 'var(--gx-text-1)', wordBreak: 'break-word' }}>
@@ -216,7 +216,7 @@ export default function AuditLogPane({ token }: { token: string }) {
   const header = (
     <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
       <div>
-        <h3 style={{ margin: '0 0 4px' }}>Audit Logs</h3>
+        <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Audit Logs</h3>
         <p className="hint" style={{ margin: 0 }}>
           Immutable record of every create / update / transition / delete across the tenant.
           Read-only; gated on <code className="mono">audit.view</code>.

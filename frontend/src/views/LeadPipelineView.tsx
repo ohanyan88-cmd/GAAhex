@@ -264,7 +264,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
             return (
               <div key={col.key} className="kcol">
                 <div className="kcol-head">
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: tone, flexShrink: 0 }} />
+                  <span style={{ width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: tone, flexShrink: 0 }} />
                   <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{col.label}</span>
                   <span className="kcol-count">{items.length}</span>
                   {canCreate && (
@@ -288,14 +288,14 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                         {(lead.source || lead.phone || lead.email) && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
                             {lead.source && <span>{lead.source}</span>}
-                            {lead.phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><PhoneIcon size={10} /><span className="mono">{lead.phone}</span></span>}
-                            {lead.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><MailIcon size={10} /><span className="mono">{lead.email}</span></span>}
+                            {lead.phone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}><PhoneIcon size={10} /><span className="mono">{lead.phone}</span></span>}
+                            {lead.email && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}><MailIcon size={10} /><span className="mono">{lead.email}</span></span>}
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
                           <span className="avatar" style={{ width: 22, height: 22, fontSize: 9 }}>{initials(lead.name || '')}</span>
                           {sc && sc !== 'loading' && sc !== 'error' && (
-                            <span className={'pill ' + (sc.band === 'hot' ? 'pill-danger' : sc.band === 'warm' ? 'pill-warning' : 'pill-muted')} style={{ height: 18, marginLeft: 'auto' }} title={(sc.reasons ?? []).join(' · ')}>
+                            <span className={'pill ' + (sc.band === 'hot' ? 'pill-danger' : sc.band === 'warm' ? 'pill-warning' : 'pill-muted')} style={{ height: 'var(--gx-space-18)', marginLeft: 'auto' }} title={(sc.reasons ?? []).join(' · ')}>
                               {sc.band}
                             </span>
                           )}

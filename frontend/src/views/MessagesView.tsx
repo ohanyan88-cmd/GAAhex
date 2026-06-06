@@ -245,7 +245,7 @@ export default function MessagesView({
                     <span className="kpi-tile-skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }} />
                     <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
                       <span className="kpi-tile-skeleton" style={{ height: 11, width: '60%' }} />
-                      <span className="kpi-tile-skeleton" style={{ height: 10, width: '80%' }} />
+                      <span className="kpi-tile-skeleton" style={{ height: 'var(--gx-space-5)', width: '80%' }} />
                     </span>
                   </div>
                 ))}
@@ -253,7 +253,7 @@ export default function MessagesView({
             )}
             {error && <div className="err" style={{ padding: 'var(--gx-space-6)' }}>{error}</div>}
             {threads && filteredThreads.length === 0 && !error && (
-              <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>
+              <div className="hint" style={{ textAlign: 'center', padding: '30px var(--gx-space-8)' }}>
                 {query ? 'No conversations match.' : 'No conversations yet.'}
               </div>
             )}
@@ -356,37 +356,37 @@ export default function MessagesView({
 
                 {showInfo && (
                   <aside className="chat-info">
-                    <div style={{ textAlign: 'center', padding: '18px 0 12px' }}>
+                    <div style={{ textAlign: 'center', padding: 'var(--gx-space-18) 0 var(--gx-space-6)' }}>
                       <span className="avatar" style={{ width: 64, height: 64, fontSize: 'var(--gx-text-2xl)', margin: '0 auto' }}>
                         {initials(threadLabel(selectedThread))}
                       </span>
                       <div style={{ fontWeight: 600, fontSize: 15, marginTop: 'var(--gx-space-5)' }}>{threadLabel(selectedThread)}</div>
                     </div>
-                    <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>Thread</div>
-                    <div className="kv" style={{ padding: '8px 0' }}>
+                    <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 var(--gx-space-4)' }}>Thread</div>
+                    <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                       <span className="kv-k" style={{ width: 80 }}>ID</span>
                       <span className="kv-v mono" style={{ fontSize: 11.5 }}>{selectedThread.id.slice(0, 12)}</span>
                     </div>
                     {selectedThread.entity_key && (
-                      <div className="kv" style={{ padding: '8px 0' }}>
+                      <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                         <span className="kv-k" style={{ width: 80 }}>Entity</span>
                         <span className="kv-v">{selectedThread.entity_key}</span>
                       </div>
                     )}
                     {selectedThread.record_id && (
-                      <div className="kv" style={{ padding: '8px 0' }}>
+                      <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                         <span className="kv-k" style={{ width: 80 }}>Record</span>
                         <span className="kv-v mono" style={{ fontSize: 11.5 }}>{selectedThread.record_id.slice(0, 12)}</span>
                       </div>
                     )}
                     {selectedThread.created_at && (
-                      <div className="kv" style={{ padding: '8px 0' }}>
+                      <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                         <span className="kv-k" style={{ width: 80 }}>Created</span>
                         <span className="kv-v">{timeAgo(selectedThread.created_at)}</span>
                       </div>
                     )}
                     {messages && (
-                      <div className="kv" style={{ padding: '8px 0' }}>
+                      <div className="kv" style={{ padding: 'var(--gx-space-4) 0' }}>
                         <span className="kv-k" style={{ width: 80 }}>Messages</span>
                         <span className="kv-v">{messages.length}</span>
                       </div>
@@ -399,7 +399,7 @@ export default function MessagesView({
                 <div className="pop-scrim" onClick={() => { setShowEmoji(false); setShowAttach(false) }} />
               )}
               {sendError && (
-                <div className="err" style={{ margin: '0 14px 8px' }}>{sendError}</div>
+                <div className="err" style={{ margin: '0 var(--gx-space-7) var(--gx-space-4)' }}>{sendError}</div>
               )}
               <div className="chat-composer">
                 <div style={{ position: 'relative' }}>
