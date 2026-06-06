@@ -450,8 +450,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={FileText} title="Active Quotes" count={quoteArr.filter(q => q.status === 'SENT').length}>
               {quoteArr.length === 0 ? <Empty msg="No quotes yet" /> : quoteArr.filter(q => q.status === 'SENT').slice(0, 6).map(q => (
                 <div key={q.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'quotes')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'quotes'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{q.data?.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
-                  {q.data?.amount && <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data.amount)/100).toLocaleString()}֏</span>}
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{q.data?.number ?? q.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
+                  {(q.data?.amount ?? q.amount) && <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data?.amount ?? q.amount)/100).toLocaleString()}֏</span>}
                 </div>
               ))}
             </Widget>
