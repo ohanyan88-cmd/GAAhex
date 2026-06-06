@@ -1,21 +1,17 @@
 """Record export (launch-critical H73).
 
-`GET /api/{slug}/export?format=csv|json|xlsx|pdf` downloads the records the caller can view for an
+`GET /api/{slug}/export?format=csv|json|xlsx` downloads the records the caller can view for an
 entity — using the SAME org-scope + view-gate + q/filter/sort pipeline as the list endpoint, so an
 export never leaks beyond what's on screen. Read-only.
 
 Formats
 -------
-csv   (default) — streaming plain-text CSV; stdlib only.
+csv   (default) — streaming plain-text CSV (UTF-8 BOM so Excel renders non-Latin scripts); stdlib only.
 json            — JSON array; stdlib only.
 xlsx            — OOXML workbook with bold header row; stdlib only (no openpyxl/xlsxwriter dep).
-pdf             — Branded tabular PDF: tenant logo_text + entity title + date in header; stdlib only.
 
-Branding for xlsx/pdf comes from tenant settings (logo_text, currency, name) — nothing hardcoded.
-Money values stored as integer luma are displayed via format_money(luma, currency) (÷100, grouped).
-
-Dependency note: no third-party PDF/XLSX libraries are required or added.  Both formats are
-rendered by the stdlib-only helpers in app/export_formats.py.
+Dependency note: no third-party XLSX libraries are required or added — rendered by the
+stdlib-only helper in app/export_formats.py.
 """
 import csv
 import io
@@ -28,25 +24,17 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import Record, Tenant, User, Event
+from ..models import Record, User, Event
 from ..access import load_grants, can
 from .. import gxl
 from .auth import current_user
 # reuse the records engine's exact helpers so filtering/scoping stays in lock-step with the list view
 from .records import _entity, _fields, _node_paths, _matches_q, _sort_value
-from ..export_formats import build_xlsx, build_pdf
+from ..export_formats import build_xlsx
 
 router = APIRouter(prefix="/api", tags=["export"])
 
-_VALID_FORMATS = {"csv", "json", "xlsx", "pdf"}
-
-
-async def _tenant(s: AsyncSession, tenant_id) -> Tenant:
-    """Load the tenant row for branding (logo_text, currency, name)."""
-    row = (await s.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
-    if not row:
-        raise HTTPException(404, "Tenant not found")
-    return row
+_VALID_FORMATS = {"csv", "json", "xlsx"}
 
 
 async def _viewable_filtered(s: AsyncSession, user: User, ent, q, filter_expr, sort) -> list[Record]:
@@ -134,15 +122,14 @@ async def export_records(
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
-    """Export an entity's viewable records as CSV, JSON, XLSX, or PDF.
+    """Export an entity's viewable records as CSV, JSON, or XLSX.
 
-    Same filters + access control as the list view.  Empty result → a valid empty file (header
-    only for CSV/XLSX; header band only for PDF), never an error.
+    Same filters + access control as the list view.  Empty result → a valid empty file
+    (header only), never an error.
 
-    ?format=csv   (default)  — streaming plain CSV
+    ?format=csv   (default)  — streaming plain CSV (UTF-8 BOM)
     ?format=json             — JSON array
     ?format=xlsx             — OOXML workbook, bold header row
-    ?format=pdf              — branded PDF: tenant logo_text + entity title + date in header
     """
     fmt = (format or "csv").lower()
     if fmt not in _VALID_FORMATS:
@@ -231,45 +218,18 @@ async def export_records(
         )
 
     # ------------------------------------------------------------------
-    # XLSX and PDF both need branding — load tenant once
+    # XLSX — stdlib OOXML writer (no openpyxl / xlsxwriter dep). The only remaining
+    # binary format; csv/json already returned above.
     # ------------------------------------------------------------------
-    t = await _tenant(s, user.tenant_id)
-    currency: str = t.currency or "AMD"
-    logo_text: str = t.logo_text or t.name or "GAAhex"
-
-    # Build flat rows (all string cells, same as CSV but without streaming)
     data_rows = []
     for r in records:
         line = [_cell((r.data or {}).get(k)) for k in keys]
         line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else "", _creator(r)]
         data_rows.append(line)
 
-    # ------------------------------------------------------------------
-    # XLSX — stdlib OOXML writer (no openpyxl / xlsxwriter dep)
-    # ------------------------------------------------------------------
-    if fmt == "xlsx":
-        content = build_xlsx(header, data_rows)
-        return Response(
-            content=content,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
-
-    # ------------------------------------------------------------------
-    # PDF — stdlib raw PDF writer, branded header (no reportlab / weasyprint dep)
-    # ------------------------------------------------------------------
-    # fmt == "pdf"
-    report_title = f"{ent.label or slug} Export"
-    content = build_pdf(
-        header=header,
-        rows=data_rows,
-        logo_text=logo_text,
-        report_title=report_title,
-        generated_date=today,
-        currency=currency,
-    )
+    content = build_xlsx(header, data_rows)
     return Response(
         content=content,
-        media_type="application/pdf",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

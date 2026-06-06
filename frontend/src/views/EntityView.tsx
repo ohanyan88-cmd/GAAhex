@@ -177,8 +177,8 @@ function deriveLeadsWeeklyKPIs(rows: Row[]): KPISpec[] {
 }
 
 // B25 — export format availability probe: HEAD /{slug}/export?format=X; 404 → hide that button.
-// CSV is always available (no probe); XLSX + PDF are probed in parallel on slug change.
-type ExportFormats = { csv: boolean; xlsx: boolean; pdf: boolean }
+// CSV is always available (no probe); XLSX is probed on slug change. (PDF removed — CSV/XLSX only.)
+type ExportFormats = { csv: boolean; xlsx: boolean }
 
 async function probeEntityExportFormats(token: string, slug: string): Promise<ExportFormats> {
   async function probe(format: string): Promise<boolean> {
@@ -196,8 +196,8 @@ async function probeEntityExportFormats(token: string, slug: string): Promise<Ex
       return true  // network error / abort → assume available; real download will surface the error
     }
   }
-  const [xlsx, pdf] = await Promise.all([probe('xlsx'), probe('pdf')])
-  return { csv: true, xlsx, pdf }
+  const xlsx = await probe('xlsx')
+  return { csv: true, xlsx }
 }
 
 // Pull the offending field key out of a backend 422 message (e.g. "Invalid email for 'email'").
@@ -675,12 +675,11 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
 
   // PageShell: secondaryActions — one Download button (asks for format on click) + configure
   const shellSecondary: SecondaryAction[] = []
-  const canExport = exportFormats !== null && (exportFormats.csv || exportFormats.xlsx || exportFormats.pdf)
+  const canExport = exportFormats !== null && (exportFormats.csv || exportFormats.xlsx)
   if (canExport) {
     const fmts: { label: string; icon?: React.ReactNode; onClick: () => void }[] = []
     if (exportFormats?.csv) fmts.push({ label: 'CSV', icon: <DownloadIcon size={14} aria-hidden />, onClick: () => doExport('csv') })
     if (exportFormats?.xlsx) fmts.push({ label: 'XLSX · Excel', icon: <DownloadIcon size={14} aria-hidden />, onClick: () => doExport('xlsx') })
-    if (exportFormats?.pdf) fmts.push({ label: 'PDF', icon: <DownloadIcon size={14} aria-hidden />, onClick: () => doExport('pdf') })
     shellSecondary.push({ label: t('common.download', 'Download'), icon: <DownloadIcon size={13} aria-hidden />, disabled: exporting !== null, menu: fmts })
   }
   if (canConfigure && onConfigure) {

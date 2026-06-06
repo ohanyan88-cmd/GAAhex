@@ -536,7 +536,8 @@ async def test_export_csv_valid_structure(client, admin):
 
     export_r = await client.get(f"/api/leads/export?format=csv&q={tok}", headers=admin)
     assert export_r.status_code == 200, export_r.text
-    rows = list(csv.reader(io.StringIO(export_r.text)))
+    # Strip the UTF-8 BOM the export prepends for spreadsheet apps before parsing.
+    rows = list(csv.reader(io.StringIO(export_r.text.lstrip("﻿"))))
     header = rows[0]
     # Standard lead export columns (from export.py + leads field definitions)
     assert "Name" in header, f"Expected 'Name' in CSV header; got: {header}"
