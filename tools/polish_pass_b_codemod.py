@@ -54,6 +54,8 @@ PX_TO_TOKEN: dict[int, str] = {
     12: "'var(--gx-space-6)'",
     14: "'var(--gx-space-7)'",
     16: "'var(--gx-space-8)'",
+    18: "'var(--gx-space-18)'",   # added 2026-06-06 polish pass
+    20: "'var(--gx-space-20)'",   # added 2026-06-06 polish pass
     24: "'var(--gx-space-12)'",
     32: "'var(--gx-space-16)'",
     40: "'var(--gx-space-9)'",
@@ -69,6 +71,8 @@ PX_TO_TOKEN_BARE: dict[int, str] = {
     12: "var(--gx-space-6)",
     14: "var(--gx-space-7)",
     16: "var(--gx-space-8)",
+    18: "var(--gx-space-18)",
+    20: "var(--gx-space-20)",
     24: "var(--gx-space-12)",
     32: "var(--gx-space-16)",
     40: "var(--gx-space-9)",

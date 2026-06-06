@@ -168,7 +168,7 @@ export default function RolesPane({ token }: { token: string }) {
   return (
     <div>
       {/* Header row */}
-      <div className="row" style={{ marginBottom: 18 }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Roles and Permissions</h3>
           <p className="hint" style={{ margin: 0 }}>

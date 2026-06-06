@@ -223,7 +223,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         <div
           style={{
             display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-            padding: '14px 18px',
+            padding: 'var(--gx-space-7) var(--gx-space-18)',
             borderBottom: '1px solid var(--border)',
             flexShrink: 0,
           }}
@@ -249,7 +249,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-              padding: '12px 18px', borderBottom: '1px solid var(--border)',
+              padding: 'var(--gx-space-6) var(--gx-space-18)', borderBottom: '1px solid var(--border)',
               flexShrink: 0, background: 'var(--surface-2)',
               fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)',
             }}
@@ -260,7 +260,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         ) : (
           <div
             style={{
-              padding: '12px 18px',
+              padding: 'var(--gx-space-6) var(--gx-space-18)',
               borderBottom: '1px solid var(--border)',
               flexShrink: 0,
               background: 'var(--surface-2)',
@@ -302,7 +302,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         )}
 
         {/* Pane content — scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 18px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--gx-space-20) var(--gx-space-18)' }}>
           {isPageMode && (
             <PageSettingsPane
               key={`page-${pageKey}`}

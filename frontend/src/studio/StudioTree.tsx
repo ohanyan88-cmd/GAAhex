@@ -104,7 +104,7 @@ export default function StudioTree({
             </button>
           ))}
           {hits.length === 0 && (
-            <div className="hint" style={{ padding: '20px 12px', textAlign: 'center' }}>
+            <div className="hint" style={{ padding: 'var(--gx-space-20) var(--gx-space-6)', textAlign: 'center' }}>
               No matches.
             </div>
           )}

@@ -308,7 +308,7 @@ export default function UsersPane({ token }: { token: string }) {
   return (
     <div>
       {/* Header row */}
-      <div className="row" style={{ marginBottom: 18 }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Users</h3>
           <p className="hint" style={{ margin: 0 }}>
@@ -535,7 +535,7 @@ export default function UsersPane({ token }: { token: string }) {
             background: 'var(--gx-surface)',
             border: '1px solid var(--gx-border)',
             borderRadius: 6,
-            padding: '16px 18px',
+            padding: 'var(--gx-space-8) var(--gx-space-18)',
             marginTop: 'var(--gx-space-3)',
           }}
         >

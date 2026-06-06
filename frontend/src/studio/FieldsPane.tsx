@@ -296,7 +296,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
   return (
     <div>
       {/* header */}
-      <div className="row" style={{ marginBottom: 18 }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Fields</h3>
           <p className="hint" style={{ margin: 0 }}>

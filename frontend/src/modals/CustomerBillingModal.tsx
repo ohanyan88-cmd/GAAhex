@@ -168,7 +168,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             )
           })()}
 
-          <div className="bill-section-head" style={{ marginTop: 18 }}>
+          <div className="bill-section-head" style={{ marginTop: 'var(--gx-space-18)' }}>
             <h3>Subscriptions</h3>
             <Button variant="ghost" size="sm" onClick={() => setCreating((c) => !c)}>{creating ? 'Cancel' : '+ New subscription'}</Button>
           </div>
@@ -215,7 +215,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
               </table>
             )}
 
-          <h3 style={{ marginTop: 18 }}>Recent invoices</h3>
+          <h3 style={{ marginTop: 'var(--gx-space-18)' }}>Recent invoices</h3>
           {invoices.length === 0
             ? <p className="muted">No invoices.</p>
             : (
@@ -267,7 +267,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             <p className="muted" style={{ marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-13)' }}>No payments recorded for this customer.</p>
           )}
 
-          <h3 style={{ marginTop: 18 }}>Services</h3>
+          <h3 style={{ marginTop: 'var(--gx-space-18)' }}>Services</h3>
           {services.length === 0
             ? <p className="muted">No services.</p>
             : (
@@ -285,7 +285,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
               </table></div>
             )}
 
-          <h3 style={{ marginTop: 18 }}>Touchpoints</h3>
+          <h3 style={{ marginTop: 'var(--gx-space-18)' }}>Touchpoints</h3>
           <InteractionsView token={token} customerId={customerId} embedded />
         </>
       )}

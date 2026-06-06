@@ -214,7 +214,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
+      <div style={{ marginBottom: 'var(--gx-space-18)' }}>
         <h3 style={{ margin: '0 0 4px', fontFamily: 'var(--gx-font-sans)', fontSize: 'var(--gx-text-lg)', fontWeight: 600 }}>Appearance</h3>
         <p className="hint" style={{ margin: 0 }}>
           Tenant branding. Set it once here — every rendered screen across all 18 modules updates. No code.
@@ -227,9 +227,9 @@ export function AppearancePane({ token }: { token?: string } = {}) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 'var(--gx-space-20)' }}>
         {/* controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-20)' }}>
           {/* Accent */}
           <div>
             <div className="lbl" style={{ marginBottom: 9 }}>Button / accent color</div>

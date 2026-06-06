@@ -96,7 +96,7 @@ export function ComponentsLibrary() {
         const filtered = items.filter(([, name]) => !q || (name as string).toLowerCase().includes(q.toLowerCase()))
         if (!filtered.length) return null
         return (
-          <div key={group} style={{ marginBottom: 18 }}>
+          <div key={group} style={{ marginBottom: 'var(--gx-space-18)' }}>
             <div className="lbl" style={{ marginBottom: 'var(--gx-space-5)' }}>{group}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(132px,1fr))', gap: 'var(--gx-space-5)' }}>
               {filtered.map(([ic, name]) => (

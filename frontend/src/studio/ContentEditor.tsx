@@ -55,7 +55,7 @@ export function ContentEditor() {
           <label className="field"><span>URL slug</span><input className="inp inp-sm mono" /></label>
         </div>
       )}
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: 'var(--gx-space-18)' }}>
         {/* Save wires to PUT /api/pages/{pageId}/content when that endpoint is built */}
         <Button variant="primary" size="sm"
             type="button" disabled title="Content save not yet wired">

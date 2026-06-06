@@ -707,7 +707,7 @@ function FiberDetailDrawer({ token, id, onClose }: {
       {loading && <SkeletonRows rows={4} />}
       {error && <ErrorBanner message={error} />}
       {route && !loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-18)' }}>
           <section>
             <SectionLabel>Details</SectionLabel>
             <KvGrid rows={[

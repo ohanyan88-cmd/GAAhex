@@ -158,7 +158,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
     return { d: `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`, color: sl.color, pct, label: sl.label, value: sl.value }
   })
   return (
-    <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 'var(--gx-space-18)', alignItems: 'center', flexWrap: 'wrap' }}>
       <svg viewBox={`0 0 140 140`} style={{ width: 140, height: 140, flexShrink: 0 }}>
         {paths.map((p, i) => (
           <path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={sw} strokeLinecap="butt" />
@@ -243,7 +243,7 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
   const W = 80, H = 28
   const pts = trend.map((v, i) => `${(i / Math.max(trend.length - 1, 1)) * W},${H - (v / maxT) * (H - 4)}`).join(' ')
   return (
-    <div className="card" style={{ padding: '12px 18px', position: 'relative', overflow: 'hidden' }}>
+    <div className="card" style={{ padding: 'var(--gx-space-6) var(--gx-space-18)', position: 'relative', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-3)' }}>
@@ -531,7 +531,7 @@ function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.
       ? 'var(--gx-success)'
       : 'var(--gx-danger)'
   return (
-    <div className="card" style={{ padding: '14px 18px' }}>
+    <div className="card" style={{ padding: 'var(--gx-space-7) var(--gx-space-18)' }}>
       <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginBottom: 'var(--gx-space-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)' }}>
         <span style={{ fontSize: 'var(--gx-text-2xl)', fontWeight: 700 }}>{formatter(thisVal)}</span>
@@ -834,7 +834,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
         {/* Row 1: Revenue bar + Subscription donut */}
         {(isShown('revenue-bar') || isShown('sub-donut')) && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '18px', marginBottom: '18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
             {isShown('revenue-bar') && showRevenue && (
               <DashboardCard title="Revenue vs Churn" icon={BarChart3}>
@@ -868,7 +868,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     color: PLAN_COLORS[i % PLAN_COLORS.length],
                   }))} />
                 )}
-                {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No subscription data</div>}
+                {subMix.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No subscription data</div>}
               </DashboardCard>
             )}
           </div>
@@ -876,7 +876,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
         {/* Row 2: Revenue area + Customer growth line */}
         {(isShown('payment-area') || isShown('customer-line')) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
           {isShown('payment-area') && showRevenue && (
             <DashboardCard title="Payment Trend" icon={TrendingUp}>
@@ -899,7 +899,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 series2Label="Churns"
               />
             )}
-            {customerData.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No customer activity data</div>}
+            {customerData.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No customer activity data</div>}
           </DashboardCard>
           )}
         </div>
@@ -907,7 +907,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
         {/* Row 3: AR aging + Revenue metrics line + Funnel */}
         {(isShown('ar-aging') || isShown('monthly-revenue') || isShown('funnel')) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
           {isShown('ar-aging') && showRevenue && (
             <DashboardCard title="AR Aging" icon={AlertTriangle}>
@@ -922,7 +922,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger)' },
                 ].filter(b => b.value > 0)} />
               )}
-              {arAging.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No outstanding AR</div>}
+              {arAging.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No outstanding AR</div>}
             </DashboardCard>
           )}
 
@@ -941,7 +941,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           <DashboardCard title="Sales Funnel" icon={ArrowRight}>
             {funnel.state === 'loading' && <ChartSkeleton h={100} />}
             {funnel.state === 'ok' && <FunnelChart stages={funnel.value} />}
-            {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No pipeline data</div>}
+            {funnel.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No pipeline data</div>}
           </DashboardCard>
           )}
         </div>
@@ -953,7 +953,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ marginTop: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Week vs Last Week
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
               <ComparisonCard label="Revenue (paid)"    thisVal={compare.value.week.revenue.this}      lastVal={compare.value.week.revenue.last}      formatter={(n) => money(n)} />
               <ComparisonCard label="Invoiced"          thisVal={compare.value.week.invoiced.this}     lastVal={compare.value.week.invoiced.last}     formatter={(n) => money(n)} />
               <ComparisonCard label="Payments"          thisVal={compare.value.week.payments.this}     lastVal={compare.value.week.payments.last} />
@@ -972,7 +972,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Month vs Last Month
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
               <ComparisonCard label="Revenue (paid)"    thisVal={compare.value.month.revenue.this}      lastVal={compare.value.month.revenue.last}      formatter={(n) => money(n)} />
               <ComparisonCard label="Invoiced"          thisVal={compare.value.month.invoiced.this}     lastVal={compare.value.month.invoiced.last}     formatter={(n) => money(n)} />
               <ComparisonCard label="Payments"          thisVal={compare.value.month.payments.this}     lastVal={compare.value.month.payments.last} />
@@ -991,7 +991,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Quarter & Year Comparisons
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
               {isShown('qoq-bars') && (
               <DashboardCard title="Quarter vs Last Quarter" icon={Calendar}>
                 <GroupedBarChart data={[
@@ -1022,7 +1022,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
         {/* === SECTION: Weekly Trend (multi-series) + Heatmap === */}
         {(isShown('weekly-trend') || isShown('heatmap')) && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '18px', marginBottom: '18px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
           {isShown('weekly-trend') && (
           <DashboardCard title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
             {weekly.state === 'loading' && <ChartSkeleton h={130} />}
@@ -1037,7 +1037,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 ]}
               />
             )}
-            {weekly.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No weekly data</div>}
+            {weekly.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No weekly data</div>}
           </DashboardCard>
           )}
 
@@ -1045,7 +1045,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           <DashboardCard title="Daily Payment Heatmap" icon={Activity}>
             {heatmap.state === 'loading' && <ChartSkeleton h={130} />}
             {heatmap.state === 'ok' && <HeatmapChart data={heatmap.value} />}
-            {heatmap.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No payment activity</div>}
+            {heatmap.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No payment activity</div>}
           </DashboardCard>
           )}
         </div>
@@ -1057,7 +1057,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Current Status Breakdown
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
               {isShown('status-workitems') && (
               <DashboardCard title="Workitems by Status" icon={CheckSquare}>
                 <StatusBreakdown
@@ -1126,7 +1126,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Execution Insights
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
               {isShown('rag-health') && ragHealth.state === 'ok' && (
                 <DashboardCard title="RAG Execution Health" icon={AlertTriangle}>
@@ -1240,7 +1240,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 700, color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Strategic & Operational Charts
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px', marginBottom: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
               {isShown('gantt') && gantt.state === 'ok' && (
                 <DashboardCard title="Project Gantt" icon={Calendar}>
@@ -1249,7 +1249,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               )}
               {isShown('gantt') && gantt.state === 'hide' && (
                 <DashboardCard title="Project Gantt" icon={Calendar}>
-                  <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No projects with start/due dates</div>
+                  <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No projects with start/due dates</div>
                 </DashboardCard>
               )}
 

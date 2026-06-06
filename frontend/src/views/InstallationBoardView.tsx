@@ -588,7 +588,7 @@ function InstallSummaryModal({
       {error && <ErrorBanner message={error} />}
       {!summary && !error && <SkeletonRows rows={3} />}
       {summary && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-18)' }}>
           <SummarySection
             title="Order"
             icon={<InfoIcon size={13} />}

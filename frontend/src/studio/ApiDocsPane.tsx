@@ -783,7 +783,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
           const list = endpointsForTag(tag)
           if (list.length === 0) return null
           return (
-            <div key={tag} style={{ marginBottom: 18 }}>
+            <div key={tag} style={{ marginBottom: 'var(--gx-space-18)' }}>
               <div className="section-head" style={{ marginTop: 0 }}>
                 <RowsIcon size={15} className="section-icon" /> {tag}
                 <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontWeight: 400 }}>

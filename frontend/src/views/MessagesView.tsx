@@ -331,7 +331,7 @@ export default function MessagesView({
                   )}
                   {msgError && <div className="err" style={{ padding: 'var(--gx-space-6)' }}>{msgError}</div>}
                   {messages && messages.length === 0 && !msgError && (
-                    <div className="hint" style={{ textAlign: 'center', padding: 20 }}>
+                    <div className="hint" style={{ textAlign: 'center', padding: 'var(--gx-space-20)' }}>
                       No messages yet.
                     </div>
                   )}

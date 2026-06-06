@@ -244,7 +244,7 @@ export default function AutomationsPane({ token }: { token: string }) {
   return (
     <div>
       {/* Header */}
-      <div className="row" style={{ marginBottom: 18 }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Automations</h3>
           <p className="hint" style={{ margin: 0 }}>
@@ -368,7 +368,7 @@ export default function AutomationsPane({ token }: { token: string }) {
       {formOpen && (
         <form
           onSubmit={submitForm}
-          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: '16px 18px', marginTop: 'var(--gx-space-4)' }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: 'var(--gx-space-8) var(--gx-space-18)', marginTop: 'var(--gx-space-4)' }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <SparkleIcon size={14} className="section-icon" />

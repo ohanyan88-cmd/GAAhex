@@ -481,7 +481,7 @@ function InteractionDetail({
         <div className="chat-body" style={{ overflowY: 'auto', padding: '20px 22px' }}>
           {/* Body / notes */}
           {it.body ? (
-            <div style={{ fontSize: 13.5, lineHeight: 1.7, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap', marginBottom: 20 }}>
+            <div style={{ fontSize: 13.5, lineHeight: 1.7, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap', marginBottom: 'var(--gx-space-20)' }}>
               {it.body}
             </div>
           ) : (
@@ -491,7 +491,7 @@ function InteractionDetail({
           )}
 
           {/* Field grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: 'var(--gx-space-20)' }}>
             <KV label="Channel" value={
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                 {channelIcon(it.channel, 13)} {it.channel ?? '—'}

@@ -212,7 +212,7 @@ export default function DashboardsPane({ token }: { token: string }) {
   return (
     <div>
       {/* header */}
-      <div className="row" style={{ marginBottom: 18 }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Dashboards</h3>
           <p className="hint" style={{ margin: 0 }}>Define boards and their config-driven widgets.</p>

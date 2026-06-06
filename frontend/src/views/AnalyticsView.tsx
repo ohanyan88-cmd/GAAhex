@@ -125,7 +125,7 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
             </div>
 
             {aging && aging.some((b) => b.amount > 0) && (
-              <div className="card" style={{ marginTop: 18 }}>
+              <div className="card" style={{ marginTop: 'var(--gx-space-18)' }}>
                 <div className="card-head">
                   <h3>{t('analytics.arAging', 'AR aging')}</h3>
                 </div>

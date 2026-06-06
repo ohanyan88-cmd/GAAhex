@@ -625,13 +625,13 @@ export default function RevenueAssuranceView({
 
         {/* Needs-attention table: overdue invoices, sorted by balance. */}
         {tab === 'overview' && overdue.state !== 'hide' && (
-          <div className="card" style={{ marginTop: 18 }}>
+          <div className="card" style={{ marginTop: 'var(--gx-space-18)' }}>
             <div className="card-head">
               <AlertTriangle size={16} style={{ color: 'var(--gx-text-3)' }} />
               <h3>Overdue invoices — needs attention</h3>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              {overdue.state === 'loading' && <p className="muted" style={{ padding: 18 }}>Loading…</p>}
+              {overdue.state === 'loading' && <p className="muted" style={{ padding: 'var(--gx-space-18)' }}>Loading…</p>}
               {overdue.state === 'ok' && (
                 <table className="grid">
                   <thead>
@@ -927,7 +927,7 @@ function FindingsTab(props: {
 
       {/* Body — loading / error / empty / table */}
       {state.state === 'loading' && (
-        <p className="muted" style={{ padding: 18 }}>Loading findings…</p>
+        <p className="muted" style={{ padding: 'var(--gx-space-18)' }}>Loading findings…</p>
       )}
 
       {state.state === 'error' && (

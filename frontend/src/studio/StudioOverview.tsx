@@ -68,7 +68,7 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
           · nine layers, one connected system
         </span>
       </div>
-      <p className="hint" style={{ marginTop: -4, marginBottom: 18, maxWidth: 620 }}>
+      <p className="hint" style={{ marginTop: -4, marginBottom: 'var(--gx-space-18)', maxWidth: 620 }}>
         Studio is not a collection of settings pages. Each layer is a visual management system that
         feeds the next — build the experience, store the data, drive the logic, protect it, make it
         intelligent, verify, ship, govern, and run.

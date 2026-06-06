@@ -130,7 +130,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
     >
         {/* Builder form — kit `.card` + `.rec-form` + `.field` pattern. */}
         {building && (
-          <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card" style={{ marginBottom: 'var(--gx-space-18)' }}>
             <div className="card-head">
               <h3>New report</h3>
             </div>

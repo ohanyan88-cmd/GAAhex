@@ -75,11 +75,11 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
           </button>
         </div>
         {hero && (
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)', flexShrink: 0 }}>
+          <div style={{ padding: 'var(--gx-space-7) var(--gx-space-20)', borderBottom: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)', flexShrink: 0 }}>
             {hero}
           </div>
         )}
-        <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+        <div style={{ padding: 'var(--gx-space-18) var(--gx-space-20)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
           {children}
         </div>
         {footer && (
@@ -87,7 +87,7 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
             display: 'flex',
             gap: 'var(--gx-space-5)',
             justifyContent: 'flex-end',
-            padding: '12px 20px',
+            padding: 'var(--gx-space-6) var(--gx-space-20)',
             borderTop: '1px solid var(--gx-border-subtle)',
             background: 'var(--gx-surface-2)',
           }}>

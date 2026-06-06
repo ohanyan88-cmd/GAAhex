@@ -108,7 +108,7 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
           </div>
         </div>
       </div>
-      <p style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-3)', maxWidth: 720, marginTop: 0, marginBottom: 18 }}>
+      <p style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-3)', maxWidth: 720, marginTop: 0, marginBottom: 'var(--gx-space-18)' }}>
         {description}
       </p>
 

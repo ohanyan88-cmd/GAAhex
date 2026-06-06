@@ -76,7 +76,7 @@ export default function ChartPicker({
             const items = CHART_CATALOG.filter(c => c.category === cat && matchesQuery(c))
             if (items.length === 0) return null
             return (
-              <div key={cat} style={{ marginBottom: 18 }}>
+              <div key={cat} style={{ marginBottom: 'var(--gx-space-18)' }}>
                 <div style={{
                   fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-text-2)',
                   textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-3)',

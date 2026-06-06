@@ -596,7 +596,7 @@ function DetailDrawer({
         </label>
       </div>
 
-      <div className="section-head" style={{ marginTop: 18 }}>
+      <div className="section-head" style={{ marginTop: 'var(--gx-space-18)' }}>
         <EditIcon size={15} className="section-icon" /> Templates
       </div>
       <label className="field">
@@ -615,7 +615,7 @@ function DetailDrawer({
         />
       </label>
 
-      <div className="section-head" style={{ marginTop: 18 }}>
+      <div className="section-head" style={{ marginTop: 'var(--gx-space-18)' }}>
         <ZapIcon size={15} className="section-icon" /> GXL condition
       </div>
       <label className="field">

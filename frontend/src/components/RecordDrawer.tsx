@@ -418,7 +418,7 @@ export default function RecordDrawer({
               gap: 'var(--gx-space-3)',
               justifyContent: 'flex-end',
               alignItems: 'center',
-              padding: '12px 20px',
+              padding: 'var(--gx-space-6) var(--gx-space-20)',
               borderTop: '1px solid var(--gx-border-subtle)',
               background: 'var(--gx-surface-2)',
               flexShrink: 0,

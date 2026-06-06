@@ -691,7 +691,7 @@ function DetailDrawer({
       </div>
 
       {/* Fields */}
-      <div className="section-head" style={{ marginTop: 18 }}>
+      <div className="section-head" style={{ marginTop: 'var(--gx-space-18)' }}>
         <EditIcon size={15} className="section-icon" /> Fields ({detail.fields.length})
         <span className="spacer" />
         <Button variant="primary" size="sm"
@@ -765,7 +765,7 @@ function DetailDrawer({
       )}
 
       {/* Statuses */}
-      <div className="section-head" style={{ marginTop: 18 }}>
+      <div className="section-head" style={{ marginTop: 'var(--gx-space-18)' }}>
         <ArrowRightIcon size={15} className="section-icon" /> Statuses ({detail.statuses.length})
         <span className="spacer" />
         <Button variant="primary" size="sm"
@@ -851,7 +851,7 @@ function DetailDrawer({
       )}
 
       {/* Transitions */}
-      <div className="section-head" style={{ marginTop: 18 }}>
+      <div className="section-head" style={{ marginTop: 'var(--gx-space-18)' }}>
         <ArrowRightIcon size={15} className="section-icon" /> Transitions ({detail.transitions.length})
         <span className="spacer" />
         <Button variant="primary" size="sm"

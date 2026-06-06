@@ -60,7 +60,7 @@ export default function ReportsPane({ token }: { token: string }) {
 
   return (
     <div>
-      <div className="row" style={{ marginBottom: 18 }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-18)' }}>
         <div>
           <h3 style={{ margin: '0 0 4px' }}>Reports</h3>
           <p className="hint" style={{ margin: 0 }}>
@@ -69,7 +69,7 @@ export default function ReportsPane({ token }: { token: string }) {
         </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 20 }}>
+      <div className="tabs" style={{ marginBottom: 'var(--gx-space-20)' }}>
         <button className={'tab' + (tab === 'reports' ? ' on' : '')} onClick={() => setTab('reports')}>
           Definitions
         </button>
@@ -241,7 +241,7 @@ function ReportsList({ token }: { token: string }) {
           {runError && <ErrorBanner message={runError} />}
 
           {runResult && (
-            <div style={{ marginTop: 20 }}>
+            <div style={{ marginTop: 'var(--gx-space-20)' }}>
               <div className="section-head">
                 <ChartIcon size={15} className="section-icon" /> Run result — {runResult.name}
                 <span className="spacer" />
@@ -368,7 +368,7 @@ function ReportForm({
   }
 
   return (
-    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)' }}>
+    <div style={{ marginBottom: 'var(--gx-space-7)', padding: 'var(--gx-space-8) var(--gx-space-20)', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)' }}>
       <div className="row" style={{ marginBottom: 'var(--gx-space-6)' }}>
         <strong>{isEdit ? 'Edit report' : 'New report'}</strong>
         <span className="spacer" />
@@ -689,7 +689,7 @@ function ScheduleForm({
   }
 
   return (
-    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)' }}>
+    <div style={{ marginBottom: 'var(--gx-space-7)', padding: 'var(--gx-space-8) var(--gx-space-20)', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)' }}>
       <div className="row" style={{ marginBottom: 'var(--gx-space-6)' }}>
         <strong>New schedule</strong>
         <span className="spacer" />

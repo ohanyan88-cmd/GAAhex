@@ -886,7 +886,7 @@ function Stage8Modal({
               <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                 Blockers
               </div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
+              <ul style={{ margin: 0, paddingLeft: 'var(--gx-space-18)', fontSize: 12.5, color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
                 {check.blockers.map((b, i) => <li key={i}>{b}</li>)}
               </ul>
             </div>
