@@ -1,5 +1,13 @@
 # 00 — Canonical Standards Index
 
+> **Position in the architecture hierarchy (locked 2026-06-06):** these standards live *under*
+> `docs/architecture/PLATFORM_REFERENCE_MODEL.md` (the Platform Reference Model — the
+> constitutional definition of the 51 cores and 7 platform tiers). The PRM defines *what
+> cores exist and their ownership boundaries*; these 70 standards define *how each core's
+> entities, APIs, UI, lifecycle, and security behave*. The PRM does not override any locked
+> standard below — it sits above them as platform architecture law. See
+> `docs/architecture/PRM-MIGRATION-AUDIT-2026-06-06.md` for the full classification.
+
 LOCKED. Standard **name** is immutable identity. **Number** is display order only and
 is never used as a business value, key, or reference. No duplicate numbers exist.
 
