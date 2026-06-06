@@ -32,7 +32,13 @@ export function Select({ value, options, onChange, placeholder = 'Select…' }: 
   const searchable = options.length > SEARCH_THRESHOLD
   const filtered = useFiltered(options, q)
 
-  function toggle() { setPos(anchorRect(ctrlRef.current)); setOpen((o) => !o) }
+  // Open on the NEXT tick so the triggering click fully settles before the popup (and its
+  // option buttons) mount — otherwise the same click can land on a freshly-rendered option.
+  function toggle() {
+    if (open) { close(); return }
+    setPos(anchorRect(ctrlRef.current))
+    setTimeout(() => setOpen(true), 0)
+  }
   function close() { setOpen(false); setQ('') }
   function pick(o: string) { onChange(o); close() }
 
@@ -92,7 +98,12 @@ export function MultiSelect({ value, options, onChange, placeholder = 'Select…
   const searchable = options.length > SEARCH_THRESHOLD
   const filtered = useFiltered(options, q)
 
-  function openToggle() { setPos(anchorRect(ctrlRef.current)); setOpen((o) => !o) }
+  // Defer open to the next tick — see Select above (keeps the opening click off the options).
+  function openToggle() {
+    if (open) { setOpen(false); setQ(''); return }
+    setPos(anchorRect(ctrlRef.current))
+    setTimeout(() => setOpen(true), 0)
+  }
   function toggle(o: string) { onChange(arr.includes(o) ? arr.filter((x) => x !== o) : [...arr, o]) }
   function remove(o: string) { onChange(arr.filter((x) => x !== o)) }
 
