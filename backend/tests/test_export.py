@@ -5,14 +5,15 @@ leaks beyond what's on screen. Columns = data FieldDefs (status-type folded into
 then Status, ID, Created At. The shared DB accumulates, so every test scopes its rows with a unique
 name-token via `q` to make counts deterministic.
 
-Lead data fields (seed order): name, phone, email, source → header labels Name, Phone, Email, Source.
+Lead data fields (seed order): name, phone, email, address, source → header labels Name,
+Phone, Email, Address, Source.
 """
 
 import csv
 import io
 import json
 
-LEAD_HEADER = ["Name", "Phone", "Email", "Source", "Status", "ID", "Created At"]
+LEAD_HEADER = ["Name", "Phone", "Email", "Address", "Source", "Status", "ID", "Created At"]
 
 
 def _csv_rows(text):
