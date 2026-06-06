@@ -8,7 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models.billing import Invoice, Payment
+from ..models.billing import Invoice
 from ..models.helpdesk import HelpdeskTicket
 from ..models.service import Service
 from ..models.customer_user import CustomerUser

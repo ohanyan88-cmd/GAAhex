@@ -10,12 +10,12 @@ from decimal import Decimal
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
 from ..models import User
-from ..models.billing import Invoice, InvoiceLine, Payment
+from ..models.billing import Invoice, InvoiceLine
 from ..models.payment_allocation import PaymentAllocation
 from ..models.payment_method import PaymentMethod
 from ..access import load_grants, can

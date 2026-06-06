@@ -40,7 +40,7 @@ DEFAULT_POLICY_STEPS = [
     {"day_offset": 3, "action": "NOTICE", "params": {"template": "dunning_notice_1"}},
     {"day_offset": 7, "action": "NOTICE", "params": {"template": "dunning_notice_2"}},
     {"day_offset": 14, "action": "THROTTLE", "params": {"kbps": 256}},
-    {"day_offset": 21, "action": "WALLED_GARDEN", "params": {"redirect_url": "https://payment.example.com"}},
+    {"day_offset": 21, "action": "WALLED_GARDEN", "params": {}},  # redirect_url wired per-deployment; no placeholder default
     {"day_offset": 45, "action": "TERMINATE", "params": {}},
 ]
 
@@ -299,17 +299,24 @@ async def advance_case(session: AsyncSession, case: DunningCase) -> DunningCase:
             )
             session.add(row)
     elif action == "WALLED_GARDEN":
-        redirect_url = str(params.get("redirect_url") or "https://payment.example.com")
-        for svc in services:
-            await adapter.walled_garden(
-                session, tenant_id=case.tenant_id, service_id=svc.id,
-                redirect_url=redirect_url, dunning_case_id=case.id,
-            )
-        if not services:
+        # No placeholder fallback URL — a real redirect target is wired per deployment
+        # via the policy step's `redirect_url` param. If none is configured we log the
+        # step as not-applied rather than send the customer to a non-existent domain.
+        redirect_url = params.get("redirect_url")
+        if redirect_url:
+            for svc in services:
+                await adapter.walled_garden(
+                    session, tenant_id=case.tenant_id, service_id=svc.id,
+                    redirect_url=str(redirect_url), dunning_case_id=case.id,
+                )
+        if not services or not redirect_url:
             row = ServiceActionLog(
                 tenant_id=case.tenant_id, service_id=None, dunning_case_id=case.id,
                 action="WALLED_GARDEN", adapter="logging",
-                request_payload={"redirect_url": redirect_url, "reason": "no_services_for_account"},
+                request_payload={
+                    "redirect_url": redirect_url,
+                    "reason": "no_redirect_url_configured" if not redirect_url else "no_services_for_account",
+                },
                 response_payload={"applied": False},
                 status="SUCCESS", requested_at=now, completed_at=now,
             )

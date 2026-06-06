@@ -487,7 +487,7 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
         }
       />
       {error && (
-        <div style={{ position: 'fixed', top: 'var(--gx-space-8)', left: 'var(--gx-space-8)', zIndex: 9999, maxWidth: 320 }}>
+        <div style={{ position: 'fixed', top: 'var(--gx-space-8)', left: 'var(--gx-space-8)', zIndex: 'var(--gx-z-toast)', maxWidth: 320 }}>
           <ErrorBanner message={error} onRetry={load} />
         </div>
       )}

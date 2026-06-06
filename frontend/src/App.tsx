@@ -601,7 +601,7 @@ export default function App() {
                       else if (type === 'mytasks') setView({ type: 'mytasks' })
                       else if (type === 'my-approvals') setView({ type: 'my-approvals' })
                       else if (type === 'helpdesk') setView({ type: 'helpdesk', initialOpenTicketId: id })
-                      else if (type === 'entity' && id) setView({ type: 'entity', slug: type })
+                      else if (type === 'entity' && id) setView({ type: 'entity', slug: id })
                     }}
                   />
               : view.type === 'dashboards'

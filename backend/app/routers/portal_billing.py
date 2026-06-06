@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse
 def _e(v) -> str:
     """HTML-escape any value (None / int / str / etc). Mirrors documents.py."""
     return _html_escape("" if v is None else str(v))
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session

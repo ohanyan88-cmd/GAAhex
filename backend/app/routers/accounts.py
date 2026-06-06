@@ -13,7 +13,7 @@ Phase A.2 — Billing Account balance + parent-child hierarchy. The five new col
 and a recompute trigger; account create maintains ``hierarchy_path`` from ``parent_account_id``.
 """
 import uuid
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select

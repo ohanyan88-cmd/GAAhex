@@ -187,22 +187,10 @@ export default function ProductsView({ token, canConfigure = false, configVersio
       // TL-5 — search lifts from the in-card toolbar into PageShell zone D.
       filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search products' } }}
     >
-        {/* Category chips — Commercial vs Supporting grouping per approved catalog model. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-7)', alignItems: 'center', margin: 'var(--gx-space-6) 0 var(--gx-space-4)' }}>
-          <CategoryGroup
-            title="Commercial Products"
-            categories={COMMERCIAL_PRODUCT_CATEGORIES}
-            active={category}
-            onPick={setCategory}
-            showAll
-          />
-          <CategoryGroup
-            title="Supporting Products"
-            categories={SUPPORTING_PRODUCT_CATEGORIES}
-            active={category}
-            onPick={setCategory}
-          />
-        </div>
+        {/* Category filter chips are hidden until products carry a real `category` field —
+            the backend Product has no category column yet, so selecting a category would
+            match nothing (empty list). CategoryGroup/CategoryChip + the `category` state
+            are retained so this re-enables the day the column lands. */}
 
         {draft && (
           <div className="rec-form">

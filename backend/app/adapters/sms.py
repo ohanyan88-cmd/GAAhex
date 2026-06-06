@@ -109,7 +109,6 @@ class TwilioSmsAdapter(ChannelAdapter):
                 "detail": "no phone number for recipient",
             }
 
-        import httpx  # lazy: only paid when Twilio is actually live
 
         url = (
             f"https://api.twilio.com/2010-04-01/Accounts"

@@ -20,12 +20,12 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session, OwnerSessionLocal, set_tenant_guc
 from ..models import User
-from ..models.billing import Invoice, Payment
+from ..models.billing import Invoice
 from ..models.payment_gateway import PaymentOrder
 from ..models.job import JobRun
 from ..access import load_grants, can

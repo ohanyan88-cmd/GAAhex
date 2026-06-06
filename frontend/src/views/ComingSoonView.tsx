@@ -128,7 +128,7 @@ export default function ComingSoonView({ title, parent, description, id, preview
             fontWeight: 'var(--gx-weight-bold)',
             textTransform: 'uppercase' as const,
             letterSpacing: '0.06em',
-            marginBottom: 'var(--gx-space-xl)' as string,
+            marginBottom: 'var(--gx-space-8)',
           }}
         >
           Coming Soon

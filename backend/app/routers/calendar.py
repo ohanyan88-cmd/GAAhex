@@ -7,7 +7,6 @@ NOTE: fixed paths under /api/calendar — register BEFORE the generic /api/{slug
 router so they aren't swallowed as entity slugs.
 """
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
