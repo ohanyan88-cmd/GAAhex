@@ -1,12 +1,32 @@
-# GAAhex System Inventory — Beyond Components (~110 non-UI concerns)
+# System Capability Catalog — Beyond Components
 
-The system layers around the components (see `COMPONENT-INVENTORY.md`). Per the source: **components
+| Field | Value |
+|---|---|
+| **Location** | `docs/catalogs/SYSTEM_CAPABILITY_CATALOG.md` |
+| **Layer** | Catalog (between Standards and Implementation) |
+| **Status** | **LOCKED · RATIFIED · BASELINE ESTABLISHED — 2026-06-06** |
+| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT · ✅ NORMALIZE · ✅ LOCK |
+| **Authority** | [`../governance/PROJECT_CONSTITUTION.md`](../governance/PROJECT_CONSTITUTION.md) → PRM → Architecture Constitution (multiple cores) → Standards |
+| **Amendments** | Only via LAW-GV1 of PROJECT_CONSTITUTION |
+| **Type** | NORTH-STAR CHECKLIST — not a sprint backlog. Drives roadmap, not assigned work. |
+
+**LAW-GV3 audit record (2026-06-06):**
+
+- **CREATE** — Original authorship as `docs/SYSTEM-INVENTORY.md` (root-level); relocated 2026-06-06 (commit `4d267f6`) to `docs/catalogs/SYSTEM_CAPABILITY_CATALOG.md` per Documentation Categorization Audit. Content predates the formal Catalog Layer.
+- **REVIEW** — The 110 system concerns span design-system governance (A), motion (B), content/voice (C), data/state (D), permissions (E), notifications/communication (F), search (G), reporting/export (H), onboarding (I), ops/reliability (J), brand/marketing (K). All sections cross-reference architecture docs: A/B → `06_UI_EXPERIENCE`; C → `CONTENT_VOICE_STANDARD`; D → `09_DATA`; E → `08_PERMISSION` + `13_SECURITY`; F → `02_DOMAIN` (Notification + Communication cores); G → `04_NAVIGATION` + `docs/specs/SEARCH.md`; H → `15_REPORTING` + `16_ANALYTICS`; I → `06_UI_EXPERIENCE`; J → `18_OBSERVABILITY` + `19_INFRASTRUCTURE`; K → Brand v3.0 LOCKED. Coverage consistent.
+- **AUDIT** — Per-item build-status accuracy verification is deferred to a future LAW-GV1 ratchet (same reason as the Component Catalog — code-level verification beyond catalog-formatting scope). Catalog structure verified intact. The "Must-do-before-launch (Gev's verdict)" subset at the bottom is now also referenced from `docs/runbooks/PRE-LAUNCH-CHECKLIST.md`.
+- **NORMALIZE** — Canonical catalog header added. Stale cross-reference updated: `COMPONENT-INVENTORY.md` (old root name) → `COMPONENT_CATALOG.md` (canonical catalog name). `BRAND.md` reference (line 8) updated: BRAND.md is deprecated; canonical brand source is `docs/branding/v3.0/` + Standard 09.
+- **Architectural decisions altered:** zero. Snapshot preserved verbatim.
+
+---
+
+The system layers around the components (see [`COMPONENT_CATALOG.md`](COMPONENT_CATALOG.md)). Per the source: **components
 are ~25% of an enterprise design system** — this is the other ~75%. Status: ✅ have · 🟡 partial ·
 ⬜ not started. **This is a NORTH-STAR CHECKLIST, not a sprint backlog** (see "Honest read").
 
 ## A. Design-system governance
-1.⬜ naming (`gx-*`) · 2.⬜ versioning/semver · 3.🟡 token JSON source-of-truth (we have CSS vars in
-BRAND.md, not a JSON SoT/Figma export) · 4.⬜ Figma↔code parity · 5.⬜ status registry ·
+1.⬜ naming (`gx-*`) · 2.⬜ versioning/semver · 3.🟡 token JSON source-of-truth (we have CSS vars per
+Standard 09 / Brand v3.0, not a JSON SoT/Figma export) · 4.⬜ Figma↔code parity · 5.⬜ status registry ·
 6.⬜ visual-regression (Chromatic/Percy) · 7.⬜ Storybook · 8.⬜ do/don't guides · 9.⬜ WCAG 2.2 audit ·
 10.⬜ contribution rules. **(Mostly team/process tooling — premature for now.)**
 

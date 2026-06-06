@@ -1,8 +1,28 @@
-# GAAhex Component Inventory & Roadmap
+# Component Catalog
+
+| Field | Value |
+|---|---|
+| **Location** | `docs/catalogs/COMPONENT_CATALOG.md` |
+| **Layer** | Catalog (between Standards and Implementation) |
+| **Status** | **LOCKED · RATIFIED · BASELINE ESTABLISHED — 2026-06-06** |
+| **LAW-GV3 cycle** | ✅ CREATE · ✅ REVIEW · ✅ AUDIT · ✅ NORMALIZE · ✅ LOCK |
+| **Authority** | [`../governance/PROJECT_CONSTITUTION.md`](../governance/PROJECT_CONSTITUTION.md) → PRM → Architecture Constitution (`06_UI_EXPERIENCE`) → Standards 09 + 10 + UI_PRIMITIVES |
+| **Amendments** | Only via LAW-GV1 of PROJECT_CONSTITUTION |
+
+**LAW-GV3 audit record (2026-06-06):**
+
+- **CREATE** — Original authorship as `docs/COMPONENT-INVENTORY.md` (root-level); relocated 2026-06-06 (commit `4d267f6`) to `docs/catalogs/` per Documentation Categorization Audit. Content predates the formal Catalog Layer.
+- **REVIEW** — Cross-checked against `06_UI_EXPERIENCE_ARCHITECTURE.md`, Standard 09 (Design System Standards), Standard 10 (UI Structure / PageShell), and `UI_PRIMITIVES_STANDARD.md`. The component enumeration is consistent with the locked architecture; no removed components, no missing canonical primitives.
+- **AUDIT** — Per-item build-status markers (✅ built / 🟡 partial / ⬜ not started) reflect a 2026-05/06 snapshot. **Per-item code-vs-status accuracy verification is deferred** as a future LAW-GV1 ratchet (would require deep `frontend/src/` inspection beyond catalog-formatting scope). Catalog structure verified intact.
+- **NORMALIZE** — Canonical catalog header added. Stale cross-references updated: `BRAND.md` (deprecated 2026-06-04, archived at `branding/_archive/pre-D18/BRAND_pre-D18.md`) → Standard 09 (`docs/standards/09-design-system-standards.md`) + Brand v3.0 (`docs/branding/v3.0/`). The `frontend/COMPONENTS.md` reference preserved as-is (implementation-level pointer).
+- **Architectural decisions altered:** zero. Build-status snapshot preserved verbatim.
+
+---
 
 The full ISP/CRM design-system inventory (~80 components, 7 tiers). Priority-ordered. Builds on
-`BRAND.md` (tokens, themes, no-emoji/SVG rule) and `frontend/COMPONENTS.md` (buttons/inputs/search).
-**Status:** ✅ built · 🟡 partial/basic · ⬜ not started. Build top→bottom, but see "Review & flags".
+**Standard 09 (Design System Standards)** + **Brand v3.0** (canonical tokens, themes, no-emoji/SVG rule)
+and `frontend/COMPONENTS.md` (buttons/inputs/search).
+**Status legend:** ✅ built · 🟡 partial/basic · ⬜ not started. Build top→bottom, but see "Review & flags".
 
 ## Tier 1 — Critical (CRM cannot ship without)
 1. ⬜ Select/Dropdown (single+multi, searchable) · 2. ⬜ Checkbox+Radio (group, indeterminate) ·
@@ -46,7 +66,7 @@ DashboardView) · 60. ⬜ Legend.
 70. ⬜ Keyboard-shortcuts overlay (⌘K).
 
 ## Tier 7 — Tokens & foundation
-71. ✅ Color tokens (BRAND.md) · 72. ⬜ Typography scale · 73. 🟡 Border-radius scale (ad-hoc 6/8/10) ·
+71. ✅ Color tokens (Standard 09 / Brand v3.0) · 72. ⬜ Typography scale · 73. 🟡 Border-radius scale (ad-hoc 6/8/10) ·
 74. ⬜ Border-width scale · 75. ⬜ Motion/easing tokens · 76. ✅ Focus-ring system (gold/cobalt) ·
 77. ⬜ Density modes (comfortable/compact) · 78. ✅ Dark/Light theme switcher · 79. ⬜ A11y primitives
 (sr-only, focus-trap, skip-link) · 80. ⬜ Print stylesheet.
@@ -68,7 +88,7 @@ DashboardView) · 60. ⬜ Legend.
   hand-SVG. Tradeoff: dev-time/consistency vs bundle-size/brand-control. **Needs Gev's call.**
 - **Map View / topology (38) + signal bars (39):** network is "adapters, not core" in our scope — heavy,
   likely **defer to the network-adapter phase**, not Phase 1.
-- **Status/traffic-light/signal-bars (26/39):** must be SVG/CSS, never 🔴🟢 emoji (BRAND.md §4).
+- **Status/traffic-light/signal-bars (26/39):** must be SVG/CSS, never 🔴🟢 emoji (Standard 09 / Brand v3.0).
 - **Shadows light-mode only (49):** good — but dark mode then separates with borders/surfaces; our dark
   tokens already do (`border-subtle/strong`). Confirm, no problem.
 - **Density (77) is an axis, not a size.** sm/md/lg = component size; comfortable/compact = row/padding
