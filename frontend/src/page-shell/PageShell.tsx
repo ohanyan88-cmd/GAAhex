@@ -52,6 +52,7 @@ export function PageShell({
   title,
   subtitle,
   statusSummary,
+  pageTabs,
   kpis,
   views,
   primaryAction,
@@ -108,6 +109,7 @@ export function PageShell({
         title={title}
         subtitle={subtitle}
         statusSummary={statusSummary}
+        pageTabs={pageTabs}
       />
       {showKPIs && <KPIBar kpis={kpis!} />}
       {showActions && (

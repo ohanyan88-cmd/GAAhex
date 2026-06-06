@@ -148,6 +148,10 @@ export interface PageShellProps {
   title: string
   subtitle?: string
   statusSummary?: string | StatusSummary
+  /** Optional page-level tab strip (e.g. a <DetailTabList>) rendered under the
+   *  title — composes sub-pages (e.g. Overview / Work) into one logical page.
+   *  Distinct from the action-bar `views` switcher (Zone C). */
+  pageTabs?: ReactNode
 
   /* Zone B — KPI bar */
   kpis?: KPISpec[]

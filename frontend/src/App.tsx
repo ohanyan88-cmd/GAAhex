@@ -634,6 +634,7 @@ export default function App() {
                     capabilities={capabilities}
                     onNavigate={(type, id) => {
                       if (type === 'workitems') setView({ type: 'workitems' })
+                      else if (type === 'mytasks') setView({ type: 'mytasks' })
                       else if (type === 'my-approvals') setView({ type: 'my-approvals' })
                       else if (type === 'helpdesk') setView({ type: 'helpdesk', initialOpenTicketId: id })
                       else if (type === 'entity' && id) setView({ type: 'entity', slug: type })
@@ -733,7 +734,7 @@ export default function App() {
               : view.type === 'workitems'
                 ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
               : view.type === 'mytasks'
-                ? <MyTasksView token={token} canConfigure={!!user?.can_configure} />
+                ? <MyTasksView token={token} canConfigure={!!user?.can_configure} onNavigate={(t) => { if (t === 'home') setView({ type: 'home' }) }} />
               : view.type === 'customer-tasks'
                 ? <CustomerTasksView token={token} />
               : view.type === 'calendar'

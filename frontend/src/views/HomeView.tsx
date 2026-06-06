@@ -25,6 +25,7 @@ import { type Capabilities } from '../lib/capabilities'
 import { PageShell, type KPISpec } from '../page-shell'
 import { HomeIcon } from '../components/icons'
 import { authH } from '../lib/billing'
+import { DetailTab, DetailTabList } from '../primitives'
 
 
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
@@ -352,12 +353,18 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['Workspace', 'Home']}
+      breadcrumb={['Workspace', 'My Day']}
       icon={<HomeIcon size={18} />}
-      title="Home"
+      title="My Day"
       subtitle={ROLE_SUBTITLE[role]}
       statusSummary={{ label: `You · ${ROLE_LABEL[role]}`, variant: 'info' }}
       kpis={kpiSpecs}
+      pageTabs={
+        <DetailTabList ariaLabel="My Day sections">
+          <DetailTab active onSelect={() => {}}>Overview</DetailTab>
+          <DetailTab active={false} onSelect={() => onNavigate?.('mytasks')}>Work</DetailTab>
+        </DetailTabList>
+      }
     >
 
       {/* Attention Center — the cockpit hero: what needs my action right now.

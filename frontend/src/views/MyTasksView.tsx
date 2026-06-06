@@ -24,7 +24,7 @@ import { loadCustomers } from '../lib/billing'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import UserPicker from '../components/UserPicker'
-import { Button, StatusPill } from '../primitives'
+import { Button, StatusPill, DetailTab, DetailTabList } from '../primitives'
 import { PageShell, type KPISpec, type FiltersSpec, type PrimaryAction, type SecondaryAction, type ViewSwitcher } from '../page-shell'
 
 // Default column set for My Tasks. SLA is intentionally absent — WorkItem has
@@ -92,10 +92,12 @@ export default function MyTasksView({
   token,
   canConfigure = false,
   onConfigure,
+  onNavigate,
 }: {
   token: string
   canConfigure?: boolean
   onConfigure?: () => void
+  onNavigate?: (target: string) => void
 }) {
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [users, setUsers] = useState<User[]>([])
@@ -274,9 +276,9 @@ export default function MyTasksView({
     return (
       <PageShell
         type="WORKSPACE"
-        breadcrumb={['Workspace', 'My Work']}
+        breadcrumb={['Workspace', 'My Day']}
         icon={<CheckIcon size={18} />}
-        title="My Work"
+        title="My Day"
         subtitle="Personal execution bench"
       >
         <PermissionDenied />
@@ -320,11 +322,17 @@ export default function MyTasksView({
     <>
       <PageShell
         type="WORKSPACE"
-        breadcrumb={['Workspace', 'My Work']}
+        breadcrumb={['Workspace', 'My Day']}
         icon={<CheckIcon size={18} />}
-        title="My Work"
+        title="My Day"
         subtitle={subtitle}
         kpis={kpiSpec}
+        pageTabs={
+          <DetailTabList ariaLabel="My Day sections">
+            <DetailTab active={false} onSelect={() => onNavigate?.('home')}>Overview</DetailTab>
+            <DetailTab active onSelect={() => {}}>Work</DetailTab>
+          </DetailTabList>
+        }
         views={viewSwitcher}
         primaryAction={primaryAction}
         secondaryActions={secondaryActions}

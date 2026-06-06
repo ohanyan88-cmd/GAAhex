@@ -13,6 +13,7 @@ interface PageHeaderProps {
   title: string
   subtitle?: string
   statusSummary?: string | StatusSummary
+  pageTabs?: ReactNode
 }
 
 function StatusChip({ summary }: { summary: string | StatusSummary }) {
@@ -33,6 +34,7 @@ export function PageHeader({
   title,
   subtitle,
   statusSummary,
+  pageTabs,
 }: PageHeaderProps) {
   return (
     <header className="ps-header">
@@ -64,6 +66,9 @@ export function PageHeader({
           )}
         </div>
       </div>
+      {pageTabs && (
+        <div style={{ marginTop: 'var(--gx-space-6)' }}>{pageTabs}</div>
+      )}
     </header>
   )
 }
