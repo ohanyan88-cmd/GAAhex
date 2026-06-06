@@ -155,8 +155,8 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--gx-space-4);
   /* Horizontal padding locked at var(--gx-space-12) per the PageShell
-     spacing law (see .ps-header comment). */
-  padding: var(--gx-space-5) var(--gx-space-12);
+     spacing law. Extra top padding gives the KPI cards breathing room below the header. */
+  padding: var(--gx-space-8) var(--gx-space-12) var(--gx-space-5);
   background: var(--gx-bg);
 }
 

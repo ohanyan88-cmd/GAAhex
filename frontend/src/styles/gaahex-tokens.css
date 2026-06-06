@@ -304,9 +304,9 @@
      Every KPIBar tile reads these. Change a value here → every KPI card on every
      page updates at once (no per-page overrides allowed). Enriched "NOC-style"
      cards: bigger value + sub-line + trend + optional progress bar, ONE height. */
-  --gx-kpi-card-h:      120px;  /* uniform card height across the whole app */
-  --gx-kpi-value-size:  30px;   /* the big cockpit metric value */
-  --gx-kpi-bar-h:       6px;    /* progress/utilisation bar thickness */
+  --gx-kpi-card-h:      140px;  /* uniform card height across the whole app */
+  --gx-kpi-value-size:  36px;   /* the big cockpit metric value */
+  --gx-kpi-bar-h:       8px;    /* progress/utilisation bar thickness */
 
   /* In-header search box width (Zone A search slot, and reusable elsewhere). */
   --gx-search-w:        300px;

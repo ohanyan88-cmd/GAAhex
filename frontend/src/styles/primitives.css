@@ -147,28 +147,74 @@ button.kpi-tile, a.kpi-tile {
 }
 
 /* Sub-element typography */
+.kpi-tile-head { display:flex; align-items:center; justify-content:space-between; gap:var(--gx-space-4); }
 .kpi-tile-label { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); font-family:var(--gx-font-mono); }
-.kpi-tile-value { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:8px 0 6px; line-height:1; color:var(--gx-text-1); font-variant-numeric:tabular-nums; }
+.kpi-tile-corner { font-family:var(--gx-font-mono); font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--gx-text-3); white-space:nowrap; }
+.kpi-tile-value { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:2px 0 6px; line-height:1; color:var(--gx-text-1); font-variant-numeric:tabular-nums; }
 .kpi-tile-value.sm { font-size:18px; } .kpi-tile-value.lg { font-size:36px; }
 .kpi-tile-value.danger { color:var(--gx-danger-fg); }
 .kpi-tile-value.warning { color:var(--gx-warning-fg); }
 .kpi-tile-value.muted { color:var(--gx-text-3); }
 .kpi-tile-sub { font-size:11px; color:var(--gx-text-3); margin-top:-2px; }
-/* bottom group — pins to the card floor; holds the progress bar + delta row */
-.kpi-tile-bottom { margin-top:auto; display:flex; flex-direction:column; gap:var(--gx-space-3); }
-.kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; }
-.kpi-tile-delta-base { color:var(--gx-text-3); }
-/* progress / utilisation bar — thickness from token, fill width from the live --gx-kpi-pct */
+/* Bottom group — pinned to the card floor. The WoW delta row (.kpi-tile-foot) is the
+   last child, sits at the floor, and is never allowed to shrink; the chart/bar above it
+   clips rather than growing. This LOCKS the delta row onto one line at the floor across
+   every card variant (chart, bar, or bare) — it can never be pushed into or overlap the
+   chart/value. */
+.kpi-tile-bottom { margin-top:auto; display:flex; flex-direction:column; justify-content:flex-end; gap:var(--gx-space-3); min-height:0; }
+.kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; }
+.kpi-tile-delta-base { color:var(--gx-text-3); font-size:10px; }
+/* progress / utilisation bar — thickness from token, fill width from the live --gx-kpi-pct.
+   Bar + inline percent share a row so the rate reads right next to its visual. */
+.kpi-tile-progress { display:flex; align-items:center; gap:var(--gx-space-4); flex:0 0 auto; }
+.kpi-tile-progress .kpi-tile-bar { flex:1; }
+.kpi-tile-pct { font-family:var(--gx-font-mono); font-size:12px; font-weight:var(--gx-weight-semibold); color:var(--gx-text-2); white-space:nowrap; }
+/* mini-chart slot (sparkline) — fixed-height SVG so it can never push the delta row off
+   the floor; clips rather than overflowing if the card is ever shortened. */
+.kpi-tile-chart { width:100%; flex:0 1 auto; min-height:0; overflow:hidden; }
+.kpi-tile-chart svg { display:block; width:100%; height:24px; }
 .kpi-tile-bar { display:block; width:100%; height:var(--gx-kpi-bar-h); border-radius:999px; background:var(--gx-border-strong); overflow:hidden; }
 .kpi-tile-bar > i { display:block; height:100%; width:var(--gx-kpi-pct,0%); border-radius:inherit; background:var(--gx-text-2); }
 .kpi-tile-bar[data-variant="gold"]    > i { background:var(--gx-gold); }
 .kpi-tile-bar[data-variant="success"] > i { background:var(--gx-success-fg); }
 .kpi-tile-bar[data-variant="danger"]  > i { background:var(--gx-danger-fg); }
-.kpi-tile-delta { display:inline-flex; align-items:center; gap:3px; font-family:var(--gx-font-mono); font-size:10px; }
+.kpi-tile-delta { display:inline-flex; align-items:center; gap:4px; font-family:var(--gx-font-mono); font-size:15px; }
 .kpi-tile-delta.up { color:var(--gx-success-fg); } .kpi-tile-delta.down { color:var(--gx-danger-fg); }
 .kpi-tile.error { border-color:var(--gx-danger); }
 .kpi-tile.error .kpi-tile-value { color:var(--gx-danger); }
 .kpi-tile-skeleton { background:var(--gx-skeleton); border-radius:var(--gx-radius-md); animation:pulse 1.5s ease-in-out infinite; }
+
+/* ── Lifecycle control-gate strip (Leads page) ──────────────────────────────
+   Four locked control gates as a connected CHEVRON spine — each segment points into
+   the next to read as a flow. Gates are checkpoints, so each reports pending / blocked
+   / pass-rate, never a bucket count. The live gate uses the .on accent (azure dot +
+   surface fill); gates awaiting upstream data sink into the page (muted fill). The thin
+   strip-gap between segments shows the angled chevron cut. */
+.gate-strip { display:flex; align-items:stretch; gap:var(--gx-space-1); margin-bottom:var(--gx-space-12); }
+.gate-card { flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--gx-space-6);
+  background:var(--gx-surface);
+  padding:var(--gx-space-8) var(--gx-space-12) var(--gx-space-8) var(--gx-space-9);
+  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%, 28px 50%); }
+.gate-card.first { padding-left:var(--gx-space-12);
+  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%); }
+.gate-card.awaiting { background:var(--gx-bg); }
+/* clickable gates drill into the Pipeline page. Hover/focus brighten the fill — a box
+   ring would be clipped by the chevron clip-path, so we signal state with bg instead. */
+.gate-card-link { cursor:pointer; text-align:left; font:inherit; color:inherit; -webkit-appearance:none; appearance:none; transition:background var(--gx-dur-base); }
+.gate-card-link:hover, .gate-card-link:focus-visible { background:var(--gx-surface-2); outline:none; }
+.gate-card-link.awaiting:hover, .gate-card-link.awaiting:focus-visible { background:var(--gx-surface); }
+.gate-card-head { display:flex; flex-direction:column; gap:var(--gx-space-2); min-width:0; }
+.gate-card-name { display:flex; align-items:center; gap:var(--gx-space-4); font-family:var(--gx-font-mono);
+  font-size:var(--gx-text-xs); font-weight:var(--gx-weight-bold); letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-1); }
+.gate-dot { width:var(--gx-space-5); height:var(--gx-space-5); border-radius:999px; background:var(--gx-border-strong); flex:0 0 auto; }
+.gate-card.on .gate-dot { background:var(--gx-interactive); }
+.gate-card-scope { font-size:var(--gx-text-xs); color:var(--gx-text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gate-card-metrics { display:flex; align-items:baseline; gap:var(--gx-space-8); flex-wrap:wrap; }
+.gate-metric { font-size:var(--gx-text-sm); color:var(--gx-text-2); }
+.gate-metric b { font-family:var(--gx-font-display); font-size:var(--gx-text-lg); font-weight:var(--gx-weight-semibold); color:var(--gx-text-1); margin-right:var(--gx-space-2); }
+.gate-metric-block b { color:var(--gx-danger-fg); }
+.gate-metric-pass { font-family:var(--gx-font-mono); font-size:var(--gx-text-sm); font-weight:var(--gx-weight-semibold); color:var(--gx-success-fg); }
+.gate-card-awaiting { font-size:var(--gx-text-sm); color:var(--gx-text-3); font-style:italic; }
 
 /* KPI Tile Standard (D17) — hover-revealed info popover.
    Every tile that defines `tooltip` shows a popover above the tile on hover or

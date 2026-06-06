@@ -44,11 +44,19 @@ export interface KPISpec {
   delta?: string
   /** Delta direction — drives green/red colorway. */
   deltaPositive?: boolean
+  /** Baseline label shown after the delta (default "vs 7d"). e.g. "WoW". */
+  deltaBase?: string
+  /** Small note pinned to the card's top-right corner (e.g. a date range). */
+  cornerNote?: ReactNode
   /** Optional 0–100 progress/utilisation ratio. When set, the KPI card renders a
    *  thin progress bar at the bottom (cockpit/NOC-style enrichment). */
   progress?: number
   /** Progress bar accent — 'gold' for critical/peak, else neutral. */
   progressVariant?: 'neutral' | 'gold' | 'success' | 'danger'
+  /** Small label rendered inline at the end of the progress bar (e.g. "23%"). */
+  progressLabel?: ReactNode
+  /** Optional mini-chart (e.g. a sparkline) shown in the card's bottom group. */
+  chart?: ReactNode
   /** Sub-line under the value (e.g. "5 active"). */
   subtitle?: ReactNode
   /** Click handler — when present the tile becomes interactive. */

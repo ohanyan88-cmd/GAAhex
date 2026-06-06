@@ -956,15 +956,37 @@ async def seed_dev_threads_if_empty() -> dict | None:
 
 # CRM pipeline demo — leads + quotes so the Leads / Pipeline / Quotes pages and the
 # My Day sales widgets are alive. (name, lead-status, assigned_to, source, est_value AMD)
+# Statuses use the lead entity's CANONICAL status set (NEW/WORKING/CONTACTED/QUALIFIED/
+# CONVERTED/DISQUALIFIED/LOST). CONVERTED = contract signed.
 _LEADS = [
     ("Արամ Հակոբյան — Մաշտոցի ֆայբեր",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
-    ("Tumo Center — Enterprise կապ",      "PROPOSAL",  "Demo Admin", "OUTBOUND", 250000),
+    ("Tumo Center — Enterprise կապ",      "CONVERTED", "Demo Admin", "OUTBOUND", 250000),
     ("Erebuni IT Solutions",              "CONTACTED", "Demo Admin", "OUTBOUND", 120000),
-    ("Մարիամ Գրիգորյան — բիզնես փաթեթ",   "PROPOSAL",  "Demo Admin", "WEBSITE",  45000),
-    ("Լիլիթ Սարգսյան — բնակարան",         "CONTACTED", "Demo Agent", "REFERRAL", 8000),
+    ("Մարիամ Գրիգորյան — բիզնес փաթեթ",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
+    ("Լիլիթ Սարգսյան — բնակարան",         "WORKING",   "Demo Agent", "REFERRAL", 8000),
     ("Գևորգ Պետրոսյան",                   "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Անի Մկրտչյան — տուն",               "QUALIFIED", "Demo Agent", "WALK_IN",  15000),
-    ("Նարեկ Ավագյան",                     "WON",       "Demo Agent", "REFERRAL", 8000),
+    ("Անի Մկրտչյան — տուն",               "CONVERTED", "Demo Agent", "WALK_IN",  15000),
+    ("Նարեկ Ավագյան",                     "NEW",       "Demo Agent", "REFERRAL", 8000),
+    ("Հայկ Սարուխանյան",                  "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Լուսինե Ադամյան",                   "NEW",       "Demo Admin", "WALK_IN",  12000),
+    ("Vardanyan Bakery — 3 sites",        "NEW",       "Demo Admin", "OUTBOUND", 140000),
+    ("Ռուբեն Խաչատրյան",                  "NEW",       "Demo Agent", "REFERRAL", 8000),
+    ("Մհեր Գասպարյան — բիզնес",           "QUALIFIED", "Demo Admin", "OUTBOUND", 60000),
+]
+# Prior-week leads — backdated so the weekly KPIs have a real week-over-week baseline.
+# 7 NEW / 1 QUALIFIED / 1 CONVERTED / 1 CONTACTED (10 total): last week pulled more new
+# leads but closed fewer, so this week reads as a down-arrow on NEW yet up on the funnel.
+_LEADS_PRIOR = [
+    ("Սուրեն Ավետիսյան",                  "NEW",       "Demo Admin", "WEBSITE",  8000),
+    ("Կարեն Հովհաննիսյան",                "NEW",       "Demo Agent", "REFERRAL", 12000),
+    ("Davit Group — office link",         "NEW",       "Demo Admin", "OUTBOUND", 90000),
+    ("Նաիրա Սահակյան",                    "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Գոռ Մարտիրոսյան",                   "NEW",       "Demo Agent", "WALK_IN",  10000),
+    ("Aren Tech — fiber quote",           "NEW",       "Demo Admin", "OUTBOUND", 75000),
+    ("Արմեն Բաբայան",                     "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Շուշան Մելքոնյան",                  "QUALIFIED", "Demo Agent", "WALK_IN",  15000),
+    ("Tigran Auto — 2 sites",             "CONVERTED", "Demo Admin", "OUTBOUND", 180000),
+    ("Վահե Գրիգորյան",                    "CONTACTED", "Demo Agent", "WEBSITE",  8000),
 ]
 # (number, quote-status, amount_minor (luma = AMD×100), customer)
 _QUOTES = [
@@ -1028,9 +1050,34 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
         actor_id = admin.id
         n_leads = 0
         n_quotes = 0
-        for name, status, assigned, source, est in _LEADS:
+        # Spread created_at across the week's days so the cockpit sparklines have a real
+        # daily shape (not one spike). Monday 10:00 of the current / prior week as anchors.
+        now = _now()
+        week_monday = (now - timedelta(days=now.weekday())).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        elapsed = now.weekday() + 1  # days Mon..today inclusive
+        prior_monday = week_monday - timedelta(days=7)
+        for idx, (name, status, assigned, source, est) in enumerate(_LEADS):
+            created = week_monday + timedelta(days=idx % elapsed, hours=(idx * 3) % 8)
+            if created > now:
+                created = now - timedelta(hours=idx)
             rec = Record(
                 tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
+                created_at=created,
+                data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est}),
+            )
+            s.add(rec)
+            await s.flush()
+            await workflow.emit(s, tenant_id, "create", "lead", rec.id, actor_id,
+                                {"data": rec.data, "status": status})
+            n_leads += 1
+        # Prior-week leads — created_at spread across last week so the weekly KPIs have a
+        # real week-over-week baseline (not a rise-from-zero on every card).
+        for idx, (name, status, assigned, source, est) in enumerate(_LEADS_PRIOR):
+            rec = Record(
+                tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
+                created_at=prior_monday + timedelta(days=idx % 7, hours=(idx * 3) % 8),
                 data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est}),
             )
             s.add(rec)

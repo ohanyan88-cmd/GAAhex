@@ -11,6 +11,8 @@ import AiAssistModal from '../modals/AiAssistModal'
 import { Select, MultiSelect } from '../components/Select'
 import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } from '../components/States'
 import ActivityTimeline from '../components/ActivityTimeline'
+import { Spark } from '../components/charts/Spark'
+import { LeadGatesStrip } from '../components/LeadGatesStrip'
 import { useI18n } from '../lib/i18n'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -91,16 +93,87 @@ function deriveEntityKPIs(def: Def, rows: Row[], total: number | null): KPISpec[
   const kpis: KPISpec[] = [
     { label: 'Total', value: count },
   ]
-  // Per-status KPIs when the entity has statuses (max 4 to avoid bar overflow)
+  // Per-status KPIs when the entity has statuses — capped so the bar shows 4 cards
+  // total (Total + 3 statuses).
   const statuses = def.statuses ?? []
   if (statuses.length > 0) {
-    const shown = statuses.slice(0, 4)
+    const shown = statuses.slice(0, 3)
     for (const s of shown) {
       const c = rows.filter((r) => r.status === s.key).length
       kpis.push({ label: s.label, value: c, muted: c === 0 })
     }
   }
   return kpis
+}
+
+// Start of the current week (Monday 00:00, local). KPIs that use this reset every
+// Monday morning — they count only what happened since the most recent Monday.
+function startOfWeekMonday(): Date {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  const day = d.getDay()            // 0=Sun … 6=Sat
+  const sinceMon = day === 0 ? 6 : day - 1
+  d.setDate(d.getDate() - sinceMon)
+  return d
+}
+
+const _MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function fmtDay(d: Date): string {
+  return `${_MONTHS[d.getMonth()]} ${d.getDate()}`
+}
+
+// Leads cockpit KPIs — New · Qualified · Contract Signed · Total — counted for THIS
+// WEEK only (created since Monday), so the bar resets every Monday morning. Each card
+// also carries a WoW (week-over-week) trend; the funnel cards show their rate vs total,
+// and the Total card pins the active week's date range to its corner.
+function deriveLeadsWeeklyKPIs(rows: Row[]): KPISpec[] {
+  const monday = startOfWeekMonday()
+  const weekStart = monday.getTime()
+  const prevStart = weekStart - 7 * 86_400_000
+  const weekEnd = new Date(monday)
+  weekEnd.setDate(weekEnd.getDate() + 6)
+
+  const at = (r: Row) => Date.parse((r as { created_at?: string }).created_at ?? '')
+  const thisWk = rows.filter((r) => { const t = at(r); return !Number.isNaN(t) && t >= weekStart })
+  const lastWk = rows.filter((r) => { const t = at(r); return !Number.isNaN(t) && t >= prevStart && t < weekStart })
+  const cnt = (set: Row[], s: string) => set.filter((r) => r.status === s).length
+
+  // WoW: this week vs last week for the same metric. Percentage when there's a prior
+  // baseline, otherwise the raw rise from zero.
+  const wow = (now: number, prev: number): Partial<KPISpec> => {
+    if (prev === 0) return now > 0 ? { delta: `+${now}`, deltaPositive: true, deltaBase: 'WoW' } : {}
+    const pct = Math.round(((now - prev) / prev) * 100)
+    return { delta: `${pct >= 0 ? '+' : ''}${pct}%`, deltaPositive: pct >= 0, deltaBase: 'WoW' }
+  }
+  const total = thisWk.length
+  const rate = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0)
+  const newN = cnt(thisWk, 'NEW')
+  const qualN = cnt(thisWk, 'QUALIFIED')
+  const signN = cnt(thisWk, 'CONVERTED')
+
+  // Per-day series (Mon→Sun of the current week) for the trend sparklines.
+  const daySeries = (pred: (r: Row) => boolean): number[] => {
+    const buckets = [0, 0, 0, 0, 0, 0, 0]
+    rows.forEach((r) => {
+      const t = at(r)
+      if (Number.isNaN(t) || t < weekStart) return
+      const idx = Math.floor((t - weekStart) / 86_400_000)
+      if (idx >= 0 && idx < 7 && pred(r)) buckets[idx] += 1
+    })
+    return buckets
+  }
+
+  return [
+    { label: 'New', value: newN, ...wow(newN, cnt(lastWk, 'NEW')),
+      chart: <Spark values={daySeries((r) => r.status === 'NEW')} color="var(--gx-text-2)" height={18} strokeWidth={1} /> },
+    { label: 'Qualified', value: qualN, ...wow(qualN, cnt(lastWk, 'QUALIFIED')),
+      progress: rate(qualN), progressVariant: 'gold', progressLabel: `${rate(qualN)}%` },
+    { label: 'Contract Signed', value: signN, ...wow(signN, cnt(lastWk, 'CONVERTED')),
+      progress: rate(signN), progressVariant: 'success', progressLabel: `${rate(signN)}%` },
+    { label: 'Total', value: total, ...wow(total, lastWk.length),
+      cornerNote: `${fmtDay(monday)} – ${fmtDay(weekEnd)}`,
+      chart: <Spark values={daySeries(() => true)} color="var(--gx-interactive)" height={18} strokeWidth={1} /> },
+  ]
 }
 
 // B25 — export format availability probe: HEAD /{slug}/export?format=X; 404 → hide that button.
@@ -149,10 +222,12 @@ async function patchRecord(token: string, slug: string, id: string, data: Record
 }
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug, onOpenCustomer, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
+export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
   token: string
   slug: string
   onOpenCustomer?: (id: string) => void
+  /** Opens the Pipeline page — drill-through from the Leads control-gate strip. */
+  onOpenPipeline?: () => void
   /** B21: per-entity capability map (from GET /api/me/capabilities). Defaults to FULL_ACCESS. */
   capabilities?: Capabilities
   /** B21: handler for "back to dashboard" in NoAccess panel. */
@@ -596,8 +671,9 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
     shellSecondary.push({ label: t('common.configurePageTitle', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure })
   }
 
-  // PageShell: KPI bar — total + per-status (max 4 statuses shown)
-  const shellKpis = deriveEntityKPIs(def, rows, total)
+  // PageShell: KPI bar. Leads get a weekly cockpit (New/Qualified/Contract Signed/Total,
+  // reset every Monday); other entities get the generic total + per-status bar.
+  const shellKpis = slug === 'leads' ? deriveLeadsWeeklyKPIs(rows) : deriveEntityKPIs(def, rows, total)
 
   return (
     <PageShell
@@ -636,8 +712,12 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
 
       {error && !errorField && <p className="err">{error}</p>}
 
-      {/* ── Status-group tabs (generic — any entity with statuses) ── */}
-      {hasStatusTabs && !formOpen && (
+      {/* ── Lifecycle control-gate strip (Leads only) — the four locked control gates. ── */}
+      {slug === 'leads' && !formOpen && <LeadGatesStrip rows={rows} onOpenGate={onOpenPipeline} />}
+
+      {/* ── Status-group tabs (generic — any entity with statuses) ──
+           Hidden on Leads: that strip is reserved for the control-gate spine above. */}
+      {hasStatusTabs && !formOpen && slug !== 'leads' && (
         <>
           <div className="tabs">
             {([

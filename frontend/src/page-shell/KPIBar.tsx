@@ -26,8 +26,12 @@ export function KPIBar({ kpis }: KPIBarProps) {
           unit={k.unit}
           delta={k.delta}
           deltaPositive={k.deltaPositive}
+          deltaBase={k.deltaBase}
+          cornerNote={k.cornerNote}
           progress={k.progress}
           progressVariant={k.progressVariant}
+          progressLabel={k.progressLabel}
+          chart={k.chart}
           subtitle={k.subtitle}
           danger={k.danger}
           warning={k.warning}

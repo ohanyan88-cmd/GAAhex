@@ -713,7 +713,7 @@ export default function App() {
                 ? <ComingSoonView title={view.title} parent={view.parent} id={view.id} />
               : view.type === 'module-stub'
                 ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
-              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} />}
+              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} onOpenPipeline={() => setView({ type: 'lead-pipeline' })} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} />}
           </ErrorBoundary>
         </main>
       </div>

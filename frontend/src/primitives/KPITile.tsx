@@ -36,10 +36,19 @@ interface KPITileProps {
   unit?: string
   delta?: string
   deltaPositive?: boolean
+  /** Baseline label shown after the delta (default "vs 7d"). e.g. "WoW". */
+  deltaBase?: string
+  /** Small note pinned to the card's top-right corner (e.g. a date range). */
+  cornerNote?: React.ReactNode
   /** Optional 0–100 progress/utilisation ratio → thin bar at the card bottom. */
   progress?: number
   /** Progress bar accent. */
   progressVariant?: 'neutral' | 'gold' | 'success' | 'danger'
+  /** Small label rendered inline at the end of the progress bar (e.g. "23%"). */
+  progressLabel?: React.ReactNode
+  /** Optional mini-chart (e.g. a sparkline) rendered in the card's bottom group,
+   *  where the progress bar would otherwise sit. */
+  chart?: React.ReactNode
   /** Optional sub-line under the value (e.g. "5 active"). Mirrors `.kpi-sub`. */
   subtitle?: React.ReactNode
   icon?: IconComponent
@@ -71,8 +80,12 @@ export function KPITile({
   unit,
   delta,
   deltaPositive,
+  deltaBase = 'vs 7d',
+  cornerNote,
   progress,
   progressVariant = 'neutral',
+  progressLabel,
+  chart,
   subtitle,
   icon: Icon,
   accessory,
@@ -107,9 +120,12 @@ export function KPITile({
           {tooltip}
         </div>
       )}
-      <div className="kpi-tile-label">
-        {Icon && <Icon size={11} />}
-        <span>{label}</span>
+      <div className="kpi-tile-head">
+        <div className="kpi-tile-label">
+          {Icon && <Icon size={11} />}
+          <span>{label}</span>
+        </div>
+        {cornerNote && <span className="kpi-tile-corner">{cornerNote}</span>}
       </div>
       {loading ? (
         <>
@@ -127,24 +143,30 @@ export function KPITile({
               progress/utilisation bar and the delta/trend row. Rendered only when
               there's something to show, so plain tiles stay clean. All sizing/colour
               comes from tokens + CSS — the only inline value is the live percentage. */}
-          {(delta || accessory || progress != null) && (
+          {(delta || accessory || progress != null || chart) && (
             <div className="kpi-tile-bottom">
+              {chart && <div className="kpi-tile-chart">{chart}</div>}
               {progress != null && (
-                <span
-                  className="kpi-tile-bar"
-                  data-variant={progressVariant}
-                  style={{ '--gx-kpi-pct': `${Math.max(0, Math.min(100, progress))}%` } as React.CSSProperties}
-                >
-                  <i />
-                </span>
+                <div className="kpi-tile-progress">
+                  <span
+                    className="kpi-tile-bar"
+                    data-variant={progressVariant}
+                    style={{ '--gx-kpi-pct': `${Math.max(0, Math.min(100, progress))}%` } as React.CSSProperties}
+                  >
+                    <i />
+                  </span>
+                  {progressLabel != null && (
+                    <span className="kpi-tile-pct">{progressLabel}</span>
+                  )}
+                </div>
               )}
               {(delta || accessory) && (
                 <div className="kpi-tile-foot">
                   {delta && (
                     <div className={['kpi-tile-delta', deltaPositive ? 'up' : 'down'].join(' ')}>
-                      {deltaPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                      {deltaPositive ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
                       <span>{delta}</span>
-                      <span className="kpi-tile-delta-base">vs 7d</span>
+                      <span className="kpi-tile-delta-base">{deltaBase}</span>
                     </div>
                   )}
                   {accessory}

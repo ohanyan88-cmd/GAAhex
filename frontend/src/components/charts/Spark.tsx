@@ -7,6 +7,7 @@ export interface SparkProps {
   color?: string
   width?: number
   height?: number
+  strokeWidth?: number
 }
 
 // Kit default fallback path so a series-less call still renders something visually consistent
@@ -18,6 +19,7 @@ export function Spark({
   color = 'var(--gx-primary)',
   width = 100,
   height = 22,
+  strokeWidth = 1.5,
 }: SparkProps) {
   let pts = FALLBACK
   if (values && values.length > 1) {
@@ -47,7 +49,7 @@ export function Spark({
         points={pts}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
