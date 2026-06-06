@@ -206,11 +206,6 @@ export default function MessagesView({
         variant: 'info',
       }}
       filters={{
-        search: {
-          value: query,
-          onChange: setQuery,
-          placeholder: 'Search conversations…',
-        },
         quick: [
           {
             label: 'Channel',
