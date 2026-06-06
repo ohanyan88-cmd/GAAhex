@@ -3,7 +3,7 @@ import { bget, bpost, type Subscription, type Invoice } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
-import { ErrorBanner, PermissionDenied, NotFound } from '../components/States'
+import { EmptyState, ErrorBanner, PermissionDenied, NotFound } from '../components/States'
 import InteractionsView from './InteractionsView'
 import { PageShell, type KPISpec, type StatusSummary, type StatusSummaryVariant } from '../page-shell'
 import {
@@ -537,7 +537,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               {t('cust.services', 'Services')}
             </div>
             {services.length === 0
-              ? <p className="muted">{t('cust.noServices', 'No services yet.')}</p>
+              ? <EmptyState title={t('cust.noServices', 'No services yet.')} message={t('cust.noServices.msg', 'Activated services for this customer will be listed here.')} />
               : (
                 <div className="card" style={{ overflow: 'hidden' }}>
                   <div className="grid-wrap">
@@ -569,7 +569,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               {t('nav.subscriptions', 'Subscriptions')}
             </div>
             {subs.length === 0
-              ? <p className="muted">{t('cust.noSubs', 'No subscriptions yet.')}</p>
+              ? <EmptyState title={t('cust.noSubs', 'No subscriptions yet.')} message={t('cust.noSubs.msg', 'Active subscriptions tied to this customer will appear here.')} />
               : (
                 <div className="card" style={{ overflow: 'hidden' }}>
                   <div className="grid-wrap">
@@ -601,7 +601,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
               {t('nav.invoices', 'Invoices')}
             </div>
             {invoices.length === 0
-              ? <p className="muted">{t('cust.noInvoices', 'No invoices yet.')}</p>
+              ? <EmptyState title={t('cust.noInvoices', 'No invoices yet.')} message={t('cust.noInvoices.msg', 'Invoices issued to this customer will be listed here.')} />
               : (
                 <div className="card" style={{ overflow: 'hidden' }}>
                   <div className="grid-wrap">
@@ -1000,7 +1000,7 @@ function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
 // the Financial Summary card above already shows balance with the per-account picker).
 function AccountsTabBody({ rows, t }: { rows: any[]; t: (k: string, fb?: string) => string }) {
   if (rows.length === 0) {
-    return <p className="muted">{t('cust.tab.accountsEmpty', 'No billing accounts linked to this customer.')}</p>
+    return <EmptyState title={t('cust.tab.accountsEmpty', 'No billing accounts linked')} message={t('cust.tab.accountsEmpty.msg', 'Once a billing account is created for this customer, it will be listed here.')} />
   }
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
@@ -1033,7 +1033,7 @@ function AccountsTabBody({ rows, t }: { rows: any[]; t: (k: string, fb?: string)
 // Contacts tab — entity records with data.{name,role|title,email,phone,primary}.
 function ContactsTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: string) => string }) {
   if (rows.length === 0) {
-    return <p className="muted">{t('cust.tab.contactsEmpty', 'No contacts on file.')}</p>
+    return <EmptyState title={t('cust.tab.contactsEmpty', 'No contacts on file')} message={t('cust.tab.contactsEmpty.msg', 'Contact people (primary, technical, billing) for this customer will appear here.')} />
   }
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
@@ -1075,7 +1075,7 @@ function ContactsTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: s
 // Sites tab — entity records with data.{name,address,activated_at}; site status lives on the row.
 function SitesTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: string) => string }) {
   if (rows.length === 0) {
-    return <p className="muted">{t('cust.tab.sitesEmpty', 'No service sites linked.')}</p>
+    return <EmptyState title={t('cust.tab.sitesEmpty', 'No service sites linked')} message={t('cust.tab.sitesEmpty.msg', 'Physical addresses where service is delivered will be listed here.')} />
   }
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
@@ -1109,7 +1109,7 @@ function SitesTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: stri
 // Contracts tab — entity records with data.{contract_number,start_date,end_date,tariff_plan}; status on row.
 function ContractsTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: string) => string }) {
   if (rows.length === 0) {
-    return <p className="muted">{t('cust.tab.contractsEmpty', 'No contracts on file.')}</p>
+    return <EmptyState title={t('cust.tab.contractsEmpty', 'No contracts on file')} message={t('cust.tab.contractsEmpty.msg', 'Signed contracts and tariff agreements with this customer will appear here.')} />
   }
   return (
     <div className="card" style={{ overflow: 'hidden' }}>
@@ -1146,7 +1146,7 @@ function ContractsTabBody({ rows, t }: { rows: EntityRow[]; t: (k: string, fb?: 
 // due-time renders as both an absolute timestamp and a muted relative hint.
 function SlasTabBody({ rows, t }: { rows: SlaRow[]; t: (k: string, fb?: string) => string }) {
   if (rows.length === 0) {
-    return <p className="muted">{t('cust.tab.slasEmpty', 'No SLA-tracked tickets for this customer.')}</p>
+    return <EmptyState title={t('cust.tab.slasEmpty', 'No SLA-tracked tickets')} message={t('cust.tab.slasEmpty.msg', 'Open helpdesk tickets with an SLA target will show up here.')} />
   }
   return (
     <div className="card" style={{ overflow: 'hidden' }}>

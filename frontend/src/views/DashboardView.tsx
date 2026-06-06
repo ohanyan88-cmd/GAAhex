@@ -389,7 +389,7 @@ function SankeyChart({ data }: { data: { nodes: { id: string; name: string; valu
                 <div style={{ width: '80%', height: `${Math.max(h, 5)}%`,
                   background: PLAN_COLORS[i % PLAN_COLORS.length], borderRadius: 3,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontWeight: 700, fontSize: 13,
+                  color: 'var(--gx-on-primary)', fontWeight: 700, fontSize: 'var(--gx-text-13)',
                 }}>{n.value}</div>
                 <div style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)', fontWeight: 600 }}>{n.name}</div>
                 {conv !== null && (

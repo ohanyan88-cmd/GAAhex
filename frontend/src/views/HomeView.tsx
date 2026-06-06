@@ -133,22 +133,26 @@ const ROLE_ACTIONS: Record<Role, QuickAction[]> = {
     { label: 'KB Article',     icon: FileText, target: 'entity:kb-articles',color:'var(--gx-text-2)' },
   ],
   sales: [
-    { label: 'Add Lead',       icon: Plus,     target: 'entity:leads',     color: '#22c55e' },
+    // D18: primary action chip uses --viz-3 (green for growth/conversion)
+    { label: 'Add Lead',       icon: Plus,     target: 'entity:leads',     color: 'var(--viz-3)' },
     { label: 'New Quote',      icon: FileText, target: 'entity:quotes',    color: 'var(--gx-text-2)' },
     { label: 'Check Coverage', icon: MapPin,   target: 'coverage-gis',     color: 'var(--gx-text-2)' },
   ],
   tech: [
-    { label: 'New Work Order', icon: Plus,     target: 'entity:work-orders',color:'#f59e0b' },
+    // D18: primary action chip uses --viz-5 (amber for operational/dispatch)
+    { label: 'New Work Order', icon: Plus,     target: 'entity:work-orders',color: 'var(--viz-5)' },
     { label: 'Check Coverage', icon: MapPin,   target: 'coverage-gis',     color: 'var(--gx-text-2)' },
     { label: 'Dispatch Board', icon: Activity, target: 'dispatch-board',   color: 'var(--gx-text-2)' },
   ],
   finance: [
-    { label: 'New Invoice',    icon: Plus,     target: 'invoices',         color: '#8b5cf6' },
+    // D18: primary action chip uses --viz-4 (violet for financial/ledger)
+    { label: 'New Invoice',    icon: Plus,     target: 'invoices',         color: 'var(--viz-4)' },
     { label: 'Record Payment', icon: Banknote, target: 'payments',         color: 'var(--gx-text-2)' },
     { label: 'Collections',    icon: AlertCircle,target:'entity:collections',color:'var(--gx-text-2)' },
   ],
   admin: [
-    { label: 'Add User',       icon: Plus,     target: 'entity:users',     color: '#ec4899' },
+    // D18: primary action chip uses --viz-7 (magenta for governance/identity)
+    { label: 'Add User',       icon: Plus,     target: 'entity:users',     color: 'var(--viz-7)' },
     { label: 'System Health',  icon: Activity, target: 'studio',           color: 'var(--gx-text-2)' },
     { label: 'Reports',        icon: TrendingUp,target:'reports',          color: 'var(--gx-text-2)' },
   ],

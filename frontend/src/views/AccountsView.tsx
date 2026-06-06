@@ -551,7 +551,7 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
                   <Card pad="md">
                     <SectionHeading icon={<LayersIcon size={14} />} title={t('nav.subscriptions', 'Subscriptions')} />
                     {subs.length === 0
-                      ? <p className="muted">{t('accounts.noSubs', 'No subscriptions on this account yet.')}</p>
+                      ? <EmptyState title={t('accounts.noSubs', 'No subscriptions on this account yet.')} message={t('accounts.noSubs.msg', 'Active subscriptions will appear here once a plan is assigned.')} />
                       : (
                         <div className="grid-wrap">
                           <table className="grid">
@@ -579,7 +579,7 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
                   <Card pad="md">
                     <SectionHeading icon={<ReceiptIcon size={14} />} title={t('nav.invoices', 'Invoices')} />
                     {invoices.length === 0
-                      ? <p className="muted">{t('accounts.noInvoices', 'No invoices on this account yet.')}</p>
+                      ? <EmptyState title={t('accounts.noInvoices', 'No invoices on this account yet.')} message={t('accounts.noInvoices.msg', 'Issued invoices will show up here once billing cycles run.')} />
                       : (
                         <div className="grid-wrap">
                           <table className="grid">

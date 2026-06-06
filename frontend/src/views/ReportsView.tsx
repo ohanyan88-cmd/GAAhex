@@ -205,7 +205,7 @@ export default function ReportsView({
                     {statusLoading && <SkeletonRows rows={3} />}
                     {statusError && <ErrorBanner message={statusError} />}
                     {!statusLoading && !statusError && byStatus.length === 0 && (
-                      <p className="muted">No records yet.</p>
+                      <EmptyState title="No records yet" message="Once the selected report has data, the status distribution donut will render here." />
                     )}
                     {!statusLoading && !statusError && byStatus.length > 0 && (
                       <Donut data={donutData} centerLabel={fmtNum(byStatusTotal)} centerCaption="total" />
@@ -221,7 +221,7 @@ export default function ReportsView({
                     {!statusLoading && !statusError && byStatus.length > 0 ? (
                       <StatusBars data={byStatus} />
                     ) : (
-                      !statusLoading && !statusError && <p className="muted">No records yet.</p>
+                      !statusLoading && !statusError && <EmptyState title="No records yet" message="The status-bar breakdown will populate alongside the donut once data is available." />
                     )}
                   </div>
                 </div>
