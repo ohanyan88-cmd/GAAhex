@@ -952,3 +952,104 @@ async def seed_dev_threads_if_empty() -> dict | None:
         summary = {"threads": n_threads, "messages": n_messages}
         _log.info("dev-threads seeder complete: %s", summary)
         return summary
+
+
+# CRM pipeline demo — leads + quotes so the Leads / Pipeline / Quotes pages and the
+# My Day sales widgets are alive. (name, lead-status, assigned_to, source, est_value AMD)
+_LEADS = [
+    ("Արամ Հակոբյան — Մաշտոցի ֆայբեր",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
+    ("Tumo Center — Enterprise կապ",      "PROPOSAL",  "Demo Admin", "OUTBOUND", 250000),
+    ("Erebuni IT Solutions",              "CONTACTED", "Demo Admin", "OUTBOUND", 120000),
+    ("Մարիամ Գրիգորյան — բիզնես փաթեթ",   "PROPOSAL",  "Demo Admin", "WEBSITE",  45000),
+    ("Լիլիթ Սարգսյան — բնակարան",         "CONTACTED", "Demo Agent", "REFERRAL", 8000),
+    ("Գևորգ Պետրոսյան",                   "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Անի Մկրտչյան — տուն",               "QUALIFIED", "Demo Agent", "WALK_IN",  15000),
+    ("Նարեկ Ավագյան",                     "WON",       "Demo Agent", "REFERRAL", 8000),
+]
+# (number, quote-status, amount_minor (luma = AMD×100), customer)
+_QUOTES = [
+    ("QUO-000101", "SENT",     4500000,  "Արամ Հակոբյան"),
+    ("QUO-000102", "SENT",     25000000, "Tumo Center"),
+    ("QUO-000103", "SENT",     1200000,  "Erebuni IT Solutions"),
+    ("QUO-000104", "ACCEPTED", 800000,   "Լիլիթ Սարգսյան"),
+    ("QUO-000105", "DRAFT",    1500000,  "Մարիամ Գրիգորյան"),
+]
+
+
+async def seed_dev_pipeline_if_empty() -> dict | None:
+    """Insert demo CRM leads + quotes tied to the demo tenant. Makes the Leads /
+    Pipeline / Quotes pages and the My Day sales widgets non-empty. Additive,
+    idempotent (no-op once demo leads exist), OWNER session — same contract as the
+    other `*_if_empty` dev seeders. Gated by `GAAHEX_DEV_SEED`.
+    """
+    if not _dev_seed_enabled():
+        _log.info("dev-pipeline seeder skipped: GAAHEX_DEV_SEED not set")
+        return None
+
+    async with SessionLocal() as s:
+        await s.connection(execution_options={"audit_tenant_filter": False})
+
+        admin = (await s.execute(
+            select(User).where(User.email == "admin@demo.isp")
+        )).scalar_one_or_none()
+        if admin is None:
+            _log.info("dev-pipeline seeder skipped: admin@demo.isp missing")
+            return None
+        tenant_id = admin.tenant_id
+
+        existing = (await s.execute(
+            select(func.count()).select_from(Record).where(
+                Record.tenant_id == tenant_id,
+                Record.entity_key == "lead",
+                Record.data["_seed"].astext == SEED_MARKER,
+            )
+        )).scalar_one()
+        if existing > 0:
+            _log.info("dev-pipeline seeder skipped: demo leads already present")
+            return None
+
+        # Anchor leads/quotes to the same owner node the dev_bulk customers use.
+        cust = (await s.execute(
+            select(Record).where(
+                Record.tenant_id == tenant_id, Record.entity_key == "customer",
+                Record.data["_seed"].astext == SEED_MARKER,
+            ).order_by(Record.id)
+        )).scalars().first()
+        owner_node_id = cust.owner_node_id if cust else None
+        if owner_node_id is None:
+            node = (await s.execute(
+                select(OrgNode).where(OrgNode.tenant_id == tenant_id).order_by(OrgNode.id)
+            )).scalars().first()
+            owner_node_id = node.id if node else None
+        if owner_node_id is None:
+            _log.info("dev-pipeline seeder skipped: no owner node to anchor to")
+            return None
+
+        actor_id = admin.id
+        n_leads = 0
+        n_quotes = 0
+        for name, status, assigned, source, est in _LEADS:
+            rec = Record(
+                tenant_id=tenant_id, entity_key="lead", owner_node_id=owner_node_id, status=status,
+                data=_tag({"name": name, "assigned_to": assigned, "source": source, "est_value": est}),
+            )
+            s.add(rec)
+            await s.flush()
+            await workflow.emit(s, tenant_id, "create", "lead", rec.id, actor_id,
+                                {"data": rec.data, "status": status})
+            n_leads += 1
+        for number, status, amount, custname in _QUOTES:
+            rec = Record(
+                tenant_id=tenant_id, entity_key="quote", owner_node_id=owner_node_id, status=status,
+                data=_tag({"number": number, "amount": amount, "customer": custname}),
+            )
+            s.add(rec)
+            await s.flush()
+            await workflow.emit(s, tenant_id, "create", "quote", rec.id, actor_id,
+                                {"data": rec.data, "status": status})
+            n_quotes += 1
+
+        await s.commit()
+        summary = {"leads": n_leads, "quotes": n_quotes}
+        _log.info("dev-pipeline seeder complete: %s", summary)
+        return summary

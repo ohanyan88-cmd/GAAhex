@@ -38,7 +38,7 @@ from .seed import (
 from .seed_notifications import seed_notifications_if_empty
 from .seed_catalog import seed_catalog_if_missing
 from .seed_default_records import run as seed_default_records_run
-from .seed_dev_bulk import seed_dev_bulk_if_empty, seed_dev_extras_if_empty, seed_dev_threads_if_empty, _dev_seed_enabled
+from .seed_dev_bulk import seed_dev_bulk_if_empty, seed_dev_extras_if_empty, seed_dev_threads_if_empty, seed_dev_pipeline_if_empty, _dev_seed_enabled
 from .seed_ownership import seed_ownership_matrix_if_empty
 from .seed_pipeline import seed_canonical_pipeline_if_empty
 from .seed_workflows import seed_workflows_if_missing
@@ -106,6 +106,11 @@ async def lifespan(app: FastAPI):
         except Exception:
             import logging as _lg
             _lg.getLogger("gaahex").exception("seed_dev_threads_if_empty failed (non-fatal — continuing boot)")
+        try:
+            await seed_dev_pipeline_if_empty()  # demo CRM leads + quotes for the pipeline pages + My Day sales widgets (idempotent)
+        except Exception:
+            import logging as _lg
+            _lg.getLogger("gaahex").exception("seed_dev_pipeline_if_empty failed (non-fatal — continuing boot)")
     await migrate_interactions()      # copy interaction table rows → record table (idempotent)
     await start_scheduler(app)        # no-op unless settings.scheduler_enabled (auto batch jobs)
 
