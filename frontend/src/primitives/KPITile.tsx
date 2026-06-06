@@ -36,6 +36,10 @@ interface KPITileProps {
   unit?: string
   delta?: string
   deltaPositive?: boolean
+  /** Optional 0–100 progress/utilisation ratio → thin bar at the card bottom. */
+  progress?: number
+  /** Progress bar accent. */
+  progressVariant?: 'neutral' | 'gold' | 'success' | 'danger'
   /** Optional sub-line under the value (e.g. "5 active"). Mirrors `.kpi-sub`. */
   subtitle?: React.ReactNode
   icon?: IconComponent
@@ -67,6 +71,8 @@ export function KPITile({
   unit,
   delta,
   deltaPositive,
+  progress,
+  progressVariant = 'neutral',
   subtitle,
   icon: Icon,
   accessory,
@@ -117,19 +123,33 @@ export function KPITile({
             {unit && <span className="kpi-tile-label" style={{ letterSpacing: 0, textTransform: 'none' }}>{unit}</span>}
           </div>
           {subtitle && <div className="kpi-tile-sub">{subtitle}</div>}
-          {/* Only render the foot when it has content. An always-present empty foot
-              (with its `margin-top:auto`) padded the value to the top and left dead
-              space below — making delta-less tiles (e.g. Team Workspace) look too tall. */}
-          {(delta || accessory) && (
-            <div className="kpi-tile-foot">
-              {delta && (
-                <div className={['kpi-tile-delta', deltaPositive ? 'up' : 'down'].join(' ')}>
-                  {deltaPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                  <span>{delta}</span>
-                  <span style={{ color: 'var(--gx-text-3)' }}>vs 7d</span>
+          {/* Bottom group pins to the card floor (token gap). Holds the optional
+              progress/utilisation bar and the delta/trend row. Rendered only when
+              there's something to show, so plain tiles stay clean. All sizing/colour
+              comes from tokens + CSS — the only inline value is the live percentage. */}
+          {(delta || accessory || progress != null) && (
+            <div className="kpi-tile-bottom">
+              {progress != null && (
+                <span
+                  className="kpi-tile-bar"
+                  data-variant={progressVariant}
+                  style={{ '--gx-kpi-pct': `${Math.max(0, Math.min(100, progress))}%` } as React.CSSProperties}
+                >
+                  <i />
+                </span>
+              )}
+              {(delta || accessory) && (
+                <div className="kpi-tile-foot">
+                  {delta && (
+                    <div className={['kpi-tile-delta', deltaPositive ? 'up' : 'down'].join(' ')}>
+                      {deltaPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                      <span>{delta}</span>
+                      <span className="kpi-tile-delta-base">vs 7d</span>
+                    </div>
+                  )}
+                  {accessory}
                 </div>
               )}
-              {accessory}
             </div>
           )}
         </>

@@ -134,12 +134,11 @@
   background: var(--gx-bg);
 }
 
-/* ONE uniform KPI-card height across every page (D17). Without this the tile height
-   was content-driven — a tile with a delta/subtitle grew taller, so the same KPIBar
-   measured 87px on one page and 108–129px on another. Fixed height = identical cards
-   everywhere; label+value (+optional delta) sit top-aligned, the delta pins to the
-   bottom via its `margin-top:auto`. */
-.ps-kpis .kpi-tile { height: 88px; }
+/* ONE uniform KPI-card across every page (D17) — fully token-driven, no per-page
+   or hardcoded values. Card height + value size come straight from the KPI cockpit
+   tokens, so changing `--gx-kpi-*` once re-sizes every KPI card in the app at once. */
+.ps-kpis .kpi-tile { height: var(--gx-kpi-card-h); }
+.ps-kpis .kpi-tile-value { font-size: var(--gx-kpi-value-size); }
 
 /* If the page only has 3-5 tiles we don't want them stretched to absurd
    widths on ultra-wide monitors — cap at 5 columns. */

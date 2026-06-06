@@ -300,6 +300,14 @@
   --gx-sidebar-collapsed-w: 64px;
   --gx-tap-min:   44px;
 
+  /* ── KPI cockpit card (Zone B) — SINGLE SOURCE OF TRUTH ──
+     Every KPIBar tile reads these. Change a value here → every KPI card on every
+     page updates at once (no per-page overrides allowed). Enriched "NOC-style"
+     cards: bigger value + sub-line + trend + optional progress bar, ONE height. */
+  --gx-kpi-card-h:      120px;  /* uniform card height across the whole app */
+  --gx-kpi-value-size:  30px;   /* the big cockpit metric value */
+  --gx-kpi-bar-h:       6px;    /* progress/utilisation bar thickness */
+
   /* ── BREAKPOINTS (T-P3-2) — canonical viewport widths. CSS doesn't allow
      custom properties inside @media queries directly, so these are reference
      constants for documentation and JS readers (matchMedia). The hand-rolled

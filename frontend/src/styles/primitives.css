@@ -150,7 +150,16 @@ button.kpi-tile, a.kpi-tile {
 .kpi-tile-value.warning { color:var(--gx-warning-fg); }
 .kpi-tile-value.muted { color:var(--gx-text-3); }
 .kpi-tile-sub { font-size:11px; color:var(--gx-text-3); margin-top:-2px; }
-.kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; margin-top:auto; }
+/* bottom group — pins to the card floor; holds the progress bar + delta row */
+.kpi-tile-bottom { margin-top:auto; display:flex; flex-direction:column; gap:var(--gx-space-3); }
+.kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; }
+.kpi-tile-delta-base { color:var(--gx-text-3); }
+/* progress / utilisation bar — thickness from token, fill width from the live --gx-kpi-pct */
+.kpi-tile-bar { display:block; width:100%; height:var(--gx-kpi-bar-h); border-radius:999px; background:var(--gx-border-strong); overflow:hidden; }
+.kpi-tile-bar > i { display:block; height:100%; width:var(--gx-kpi-pct,0%); border-radius:inherit; background:var(--gx-text-2); }
+.kpi-tile-bar[data-variant="gold"]    > i { background:var(--gx-gold); }
+.kpi-tile-bar[data-variant="success"] > i { background:var(--gx-success-fg); }
+.kpi-tile-bar[data-variant="danger"]  > i { background:var(--gx-danger-fg); }
 .kpi-tile-delta { display:inline-flex; align-items:center; gap:3px; font-family:var(--gx-font-mono); font-size:10px; }
 .kpi-tile-delta.up { color:var(--gx-success-fg); } .kpi-tile-delta.down { color:var(--gx-danger-fg); }
 .kpi-tile.error { border-color:var(--gx-danger); }
