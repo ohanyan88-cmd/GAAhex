@@ -5,7 +5,8 @@
 // component matches the master spec: same spacing, same typography across
 // every page in the product.
 import type { ReactNode } from 'react'
-import type { StatusSummary } from './types'
+import { Button } from '../primitives'
+import type { StatusSummary, PrimaryAction, SecondaryAction } from './types'
 
 interface PageHeaderProps {
   breadcrumb?: string[]
@@ -14,6 +15,8 @@ interface PageHeaderProps {
   subtitle?: string
   statusSummary?: string | StatusSummary
   pageTabs?: ReactNode
+  primaryAction?: PrimaryAction
+  secondaryActions?: SecondaryAction[]
 }
 
 function StatusChip({ summary }: { summary: string | StatusSummary }) {
@@ -35,13 +38,16 @@ export function PageHeader({
   subtitle,
   statusSummary,
   pageTabs,
+  primaryAction,
+  secondaryActions,
 }: PageHeaderProps) {
+  const hasActions = !!primaryAction || (secondaryActions && secondaryActions.length > 0)
   return (
     <header className="ps-header">
       {breadcrumb && breadcrumb.length > 0 && (
         <nav className="ps-breadcrumb" aria-label="Breadcrumb">
           {breadcrumb.map((crumb, i) => (
-            <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
+            <span key={`${crumb}-${i}`} className="ps-breadcrumb-crumb">
               <span>{crumb}</span>
               {i < breadcrumb.length - 1 && (
                 <span className="ps-breadcrumb-sep" aria-hidden>/</span>
@@ -50,24 +56,43 @@ export function PageHeader({
           ))}
         </nav>
       )}
-      <div className="ps-header-main">
-        {icon && (
-          <span className="ps-header-icon" aria-hidden>
-            {icon}
-          </span>
-        )}
-        <div className="ps-header-titles">
-          <h1 className="ps-header-title">{title}</h1>
-          {subtitle && <p className="ps-header-subtitle">{subtitle}</p>}
-          {statusSummary && (
-            <div className="ps-header-status">
-              <StatusChip summary={statusSummary} />
-            </div>
+      <div className="ps-header-row">
+        <div className="ps-header-main">
+          {icon && (
+            <span className="ps-header-icon" aria-hidden>
+              {icon}
+            </span>
           )}
+          <div className="ps-header-titles">
+            <h1 className="ps-header-title">{title}</h1>
+            {subtitle && <p className="ps-header-subtitle">{subtitle}</p>}
+            {statusSummary && (
+              <div className="ps-header-status">
+                <StatusChip summary={statusSummary} />
+              </div>
+            )}
+          </div>
         </div>
+        {hasActions && (
+          <div className="ps-header-actions">
+            {secondaryActions?.map((a, i) => (
+              <Button variant="secondary" size="sm" type="button"
+                key={`${a.label}-${i}`} onClick={a.onClick} disabled={a.disabled}>
+                {a.icon}{a.label}
+              </Button>
+            ))}
+            {primaryAction && (
+              <Button variant="primary" size="sm" type="button"
+                onClick={primaryAction.onClick}
+                disabled={primaryAction.disabled || primaryAction.loading}>
+                {primaryAction.icon}{primaryAction.label}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {pageTabs && (
-        <div style={{ marginTop: 'var(--gx-space-6)' }}>{pageTabs}</div>
+        <div className="ps-header-tabs">{pageTabs}</div>
       )}
     </header>
   )

@@ -71,11 +71,29 @@
   color: var(--gx-text-3);
 }
 .ps-breadcrumb-sep { opacity: 0.5; }
+.ps-breadcrumb-crumb { display: inline-flex; align-items: center; gap: var(--gx-space-3); }
+.ps-header-tabs { margin-top: var(--gx-space-6); }
+
+/* Zone A title row: title block (left) + primary/secondary actions (right).
+   Actions live in the header now (not a separate ActionBar row). */
+.ps-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gx-space-8);
+}
+.ps-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-4);
+  flex-shrink: 0;
+}
 
 .ps-header-main {
   display: flex;
   align-items: flex-start;
   gap: var(--gx-space-4);
+  min-width: 0;
 }
 
 .ps-header-icon {

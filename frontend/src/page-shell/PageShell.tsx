@@ -70,9 +70,11 @@ export function PageShell({
 
   // Zone visibility resolution (see header doc-comment above).
   const showKPIs = !isPlaceholder && !!kpis && kpis.length > 0
-  const showActions =
-    !isPlaceholder &&
-    (!!views || !!primaryAction || (secondaryActions && secondaryActions.length > 0))
+  // Primary + secondary actions now live in the header (Zone A). The ActionBar
+  // (Zone C) is only for the view switcher; it shows only when `views` is present.
+  const showActions = !isPlaceholder && !!views
+  const headerPrimary = isPlaceholder ? undefined : primaryAction
+  const headerSecondary = isPlaceholder ? undefined : secondaryActions
   const showFilters =
     !!filters &&
     (!!filters.search ||
@@ -110,15 +112,11 @@ export function PageShell({
         subtitle={subtitle}
         statusSummary={statusSummary}
         pageTabs={pageTabs}
+        primaryAction={headerPrimary}
+        secondaryActions={headerSecondary}
       />
       {showKPIs && <KPIBar kpis={kpis!} />}
-      {showActions && (
-        <ActionBar
-          views={views}
-          primaryAction={primaryAction}
-          secondaryActions={secondaryActions}
-        />
-      )}
+      {showActions && <ActionBar views={views} />}
       {showFilters && <FilterBar filters={filters!} />}
       <div className="ps-body">
         <div className={wrapperCls} data-page-type={cssPageType}>
