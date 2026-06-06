@@ -43,7 +43,7 @@ services:
       # The production deploy contract requires the app to connect as the
       # NOBYPASSRLS role 'gaahex_app' so RLS policies are enforced. The owner
       # role 'gaahex' (BYPASSRLS) is used for migrations and backups only.
-      DATABASE_URL: postgresql+asyncpg://gaahex_app:gaahex@db:5432/gaahex
+      DATABASE_URL: postgresql+asyncpg://gaahex_app:gaahex_app@db:5432/gaahex
       OWNER_DATABASE_URL: postgresql+asyncpg://gaahex:gaahex@db:5432/gaahex
       REDIS_URL: redis://redis:6379/0
       ENVIRONMENT: development  # ⚠️ override to production via .env in real deploy
