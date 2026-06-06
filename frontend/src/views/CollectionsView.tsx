@@ -770,7 +770,7 @@ function PoliciesTab({
                     {p.is_default && (
                       <span style={{
                         fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-                        padding: '2px 7px', borderRadius: 999,
+                        padding: '2px 7px', borderRadius: 'var(--gx-radius-full)',
                         background: 'var(--gx-bg-subtle)', color: 'var(--gx-text-2)',
                         border: '1px solid var(--gx-border)',
                       }}>

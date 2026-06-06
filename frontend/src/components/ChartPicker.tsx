@@ -94,7 +94,7 @@ export default function ChartPicker({
                           padding: 'var(--gx-space-5) var(--gx-space-6)',
                           borderRadius: 6,
                           border: '1px solid var(--gx-border)',
-                          background: on ? 'var(--gx-primary-soft, rgba(59,130,246,0.08))' : 'var(--gx-surface-2)',
+                          background: on ? 'var(--gx-primary-soft)' : 'var(--gx-surface-2)',
                           cursor: c.implemented ? 'pointer' : 'not-allowed',
                           opacity: c.implemented ? 1 : 0.45,
                           transition: 'background .12s',
@@ -110,7 +110,7 @@ export default function ChartPicker({
                           background: on ? 'var(--gx-interactive)' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                          {on && <Check size={12} color="#fff" />}
+                          {on && <Check size={12} color="var(--gx-text-on-primary)" />}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)' }}>

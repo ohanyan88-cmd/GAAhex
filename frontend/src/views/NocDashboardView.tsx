@@ -256,7 +256,7 @@ function Bar({ pct, variant = 'cyan', height = 8 }: { pct: number; variant?: 'gr
           : 'var(--gx-text-2)'
   return (
     <div style={{
-      height, width: '100%', borderRadius: 999,
+      height, width: '100%', borderRadius: 'var(--gx-radius-full)',
       background: 'var(--gx-border-strong)', overflow: 'hidden',
     }}>
       <div style={{
@@ -396,7 +396,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
             <div className="nms-value nms-value-mono" style={{ fontSize: 26 }}>{c.value}</div>
             {c.isTotal ? (
               // Neutral stacked bar: text-2 (working) → text-3 (dying_gasp) → gold (offline).
-              <div style={{ display: 'flex', height: 'var(--gx-space-3)', borderRadius: 999, overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
+              <div style={{ display: 'flex', height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-full)', overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
                 <div style={{ flex: s.working,    background: 'var(--gx-text-2)' }} />
                 <div style={{ flex: s.dying_gasp, background: 'var(--gx-text-3)' }} />
                 <div style={{ flex: s.offline,    background: 'var(--gx-gold)' }} />

@@ -314,12 +314,12 @@ function CategoryChip({ label, active, onClick, primary = false }: { label: stri
         background: active
           ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
           : 'var(--gx-bg-subtle)',
-        color: active ? '#ffffff' : 'var(--gx-text-2)',
+        color: active ? 'var(--gx-text-on-primary)' : 'var(--gx-text-2)',
         // D18: active chip outline matches background — azure for the default variant
         border: '1px solid ' + (active
           ? (primary ? 'var(--gx-text-1)' : 'var(--gx-interactive)')
           : 'var(--gx-border)'),
-        borderRadius: 999,
+        borderRadius: 'var(--gx-radius-full)',
         fontSize: 'var(--gx-text-sm)',
         fontWeight: active ? 600 : 500,
         cursor: 'pointer',

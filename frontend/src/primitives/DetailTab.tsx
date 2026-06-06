@@ -92,7 +92,7 @@ export function DetailTab({
           style={{
             marginLeft: 'var(--gx-space-2)',
             padding: '1px 7px',
-            borderRadius: 999,
+            borderRadius: 'var(--gx-radius-full)',
             background: active ? 'var(--gx-interactive)' : 'var(--gx-surface-2)',
             color: active ? 'var(--gx-text-on-primary)' : 'var(--gx-text-2)',
             fontSize: 'var(--gx-text-11)',

@@ -352,7 +352,7 @@ export default function App() {
                     display: 'inline-block',
                     width: 4, height: 4,
                     background: 'var(--gx-gold)',
-                    borderRadius: 999,
+                    borderRadius: 'var(--gx-radius-full)',
                   }} />
                   {m}
                 </li>

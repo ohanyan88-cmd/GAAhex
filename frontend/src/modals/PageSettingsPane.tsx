@@ -159,7 +159,7 @@ export default function PageSettingsPane({
                     border: '1px solid var(--gx-border)', cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     background: col.visible ? 'var(--gx-gold)' : 'transparent',
-                    color: col.visible ? 'var(--accent-contrast, #fff)' : 'transparent',
+                    color: col.visible ? 'var(--gx-text-on-primary)' : 'transparent',
                   }}
                 >
                   {col.visible && <CheckIcon size={12} />}

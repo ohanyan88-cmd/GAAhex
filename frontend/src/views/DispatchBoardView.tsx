@@ -16,7 +16,7 @@ type WorkItem = {
 
 const COLUMNS = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']
 const COL_LABELS: Record<string, string> = { TODO: 'To Do', IN_PROGRESS: 'In Progress', BLOCKED: 'Blocked', DONE: 'Done' }
-const PRIORITY_DOT: Record<string, string> = { HIGH: '#ef4444', NORMAL: '#6b7280', LOW: '#3b82f6' }
+const PRIORITY_DOT: Record<string, string> = { HIGH: 'var(--gx-danger-fg)', NORMAL: 'var(--gx-text-3)', LOW: 'var(--gx-interactive)' }
 
 export default function DispatchBoardView({ token }: { token: string }) {
   const [items, setItems] = useState<WorkItem[]>([])

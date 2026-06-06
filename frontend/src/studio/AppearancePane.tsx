@@ -319,7 +319,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 999, fontSize: 'var(--gx-text-11)', fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', height: 22, padding: '0 9px', borderRadius: 'var(--gx-radius-full)', fontSize: 'var(--gx-text-11)', fontWeight: 600, background: 'var(--gx-primary-soft)', color: 'var(--gx-primary)' }}>Active</span>
             <span className="pill pill-success">Online</span>
             <span className="pill pill-warning">Degraded</span>
             <span className="pill pill-danger">SLA breached</span>

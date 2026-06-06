@@ -196,7 +196,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
             background: 'var(--gx-bg-subtle)',
             color: 'var(--gx-text-2)',
             border: '1px solid var(--gx-border)',
-            borderRadius: 999,
+            borderRadius: 'var(--gx-radius-full)',
             fontSize: 'var(--gx-text-10)',
             fontWeight: 600,
             textTransform: 'uppercase',

@@ -1108,9 +1108,9 @@ function FilterSelect({ label, value, onChange, options }: {
 // Compact type chip with a tinted background driven by severity bucket.
 function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeverity }) {
   const tone = severity === 'critical' || severity === 'high'
-    ? { bg: 'rgba(239, 68, 68, 0.10)', fg: 'var(--gx-danger)' }
+    ? { bg: 'var(--gx-danger-soft)', fg: 'var(--gx-danger)' }
     : severity === 'medium'
-      ? { bg: 'rgba(245, 158, 11, 0.10)', fg: 'var(--gx-warning)' }
+      ? { bg: 'var(--gx-warning-soft)', fg: 'var(--gx-warning)' }
       : { bg: 'var(--gx-bg-subtle)', fg: 'var(--gx-text-2)' }
   return (
     <span style={{
@@ -1118,7 +1118,7 @@ function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeve
       padding: 'var(--gx-space-1) var(--gx-space-4)',
       background: tone.bg,
       color: tone.fg,
-      borderRadius: 999,
+      borderRadius: 'var(--gx-radius-full)',
       fontSize: 'var(--gx-text-11)',
       fontWeight: 600,
       whiteSpace: 'nowrap',
@@ -1433,17 +1433,17 @@ function StatusFlow({ current }: { current: FindingStatus }) {
               display: 'inline-flex',
               alignItems: 'center',
               padding: 'var(--gx-space-2) var(--gx-space-5)',
-              borderRadius: 999,
+              borderRadius: 'var(--gx-radius-full)',
               fontSize: 'var(--gx-text-11)',
               fontWeight: isCurrent ? 600 : 500,
               background: isCurrent
                 ? (s.key === 'resolved'
-                    ? 'rgba(16, 185, 129, 0.12)'
+                    ? 'var(--gx-success-soft)'
                     : s.key === 'false_positive'
-                      ? 'rgba(100, 116, 139, 0.12)'
+                      ? 'var(--gx-bg-subtle)'
                       : s.key === 'investigating'
-                        ? 'rgba(245, 158, 11, 0.12)'
-                        : 'rgba(239, 68, 68, 0.12)')
+                        ? 'var(--gx-warning-soft)'
+                        : 'var(--gx-danger-soft)')
                 : reached ? 'var(--gx-surface)' : 'transparent',
               color: isCurrent
                 ? (s.key === 'resolved'
