@@ -570,6 +570,96 @@ Locked
 
 ---
 
+## LAW-GV5 — Existing Knowledge First
+
+**Adopted 2026-06-06 by Gev as a LAW-GV1 amendment to Constitution v1.0.**
+
+Before creating, modifying, consolidating, promoting, superseding,
+cataloging, standardizing, or assigning ownership of any concept, the
+project must first determine whether knowledge about that concept already
+exists.
+
+The repository contains architecture, standards, specifications, catalogs,
+runbooks, historical decisions, implementation artifacts, and
+institutional knowledge accumulated over time. Existing knowledge must
+always be discovered and evaluated before new knowledge is created.
+
+### Required behavior
+
+When working on any concept:
+
+```text
+Search first.
+Understand first.
+Decide second.
+Create last.
+```
+
+The goal is not to recreate knowledge. The goal is to discover, validate,
+organize, and formalize existing knowledge wherever possible.
+
+### Constitutional presumption
+
+The existence of a document, standard, specification, implementation,
+runbook, catalog, or historical decision creates a **presumption that
+relevant knowledge already exists**.
+
+That knowledge must be reviewed before:
+
+- creating new documentation
+- creating new standards
+- creating new catalogs
+- assigning ownership
+- defining architecture
+- introducing new entities
+- introducing new workflows
+- introducing new APIs
+- introducing new events
+- consolidating information
+- superseding information
+
+### Forbidden behavior (constitutional violations)
+
+```text
+Assumption-driven design
+
+Creating new definitions without reviewing existing sources
+
+Declaring a source of truth without evaluating other relevant sources
+
+Replacing information without understanding existing information
+
+Creating catalogs from assumptions instead of evidence
+
+Inventing ownership where ownership evidence already exists
+
+Creating duplicate concepts because existing concepts were not discovered
+```
+
+### Preservation principle
+
+When uncertainty exists:
+
+```text
+Preserve
+Investigate
+Document
+Escalate
+```
+
+Never discard, replace, merge, or supersede information based on
+assumption.
+
+### Constitutional objective
+
+The platform already contains a significant portion of the knowledge
+required to build its future state. The responsibility of future work is
+not to repeatedly recreate that knowledge. The responsibility of future
+work is to **discover it, validate it, organize it, connect it, and place
+it into its proper constitutional location.**
+
+---
+
 # Constitutional Principle
 
 GAAhex is designed as a long-lived enterprise platform.
@@ -611,3 +701,15 @@ violation of LAW-ST1.
 
 *GAAhex Project Constitution v1.0. Authored 2026-06-06 by Gev and committed
 to the repository as the meta-law of the project.*
+
+---
+
+# Amendments log (per LAW-GV1)
+
+All amendments to this Constitution are LAW-GV1 acts. They are recorded
+here with the date, the adopter, and the substance of the amendment. The
+document itself is amended in place; this log is the change history.
+
+| # | Date | Adopted by | Substance |
+|---|---|---|---|
+| 1 | 2026-06-06 | Gev | **LAW-GV5 added** — Existing Knowledge First. Establishes the Search → Understand → Decide → Create protocol; lists forbidden behaviors (assumption-driven design, declaring a source of truth without comparison, creating duplicate concepts because existing concepts were not discovered, etc.); preservation principle when uncertain. Codifies the lesson taught by the Documentation Categorization Audit (2026-06-06) that closed 4 of 5 originally-claimed "minor gaps" by linking to existing content in `docs/specs/`, `docs/standards/`, `docs/audit/`, and `docs/runbooks/`. |
