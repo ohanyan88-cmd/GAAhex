@@ -534,6 +534,13 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     return true
   })
 
+  // Uniform status pills — pad the whole Status column to the longest status label in
+  // view, so every pill in the column is the same width (sized to e.g. CONVERTED).
+  const statusPillMinW = (() => {
+    const n = visibleRows.reduce((m, r) => Math.max(m, String(r.status ?? '').length), 0)
+    return n > 0 ? n * 9 + 34 : undefined
+  })()
+
   // Tab counts (computed from ALL rows, not visibleRows, so the counts don't react to the tab itself)
   const tabCount = (tab: StatusTab): number => {
     if (!hasStatusTabs) return rows.length
@@ -987,7 +994,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                     )}
                     <td>
                       {r.status ? (
-                        <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" />
+                        <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" minWidth={statusPillMinW} />
                       ) : ''}
                     </td>
                     <td className="actions-col" onClick={(e) => e.stopPropagation()}>

@@ -2,7 +2,7 @@
 
 Export uses the SAME org-scope + view-gate + q/filter/sort pipeline as the list view, so it never
 leaks beyond what's on screen. Columns = data FieldDefs (status-type folded into core `status`),
-then Status, ID, Created At. The shared DB accumulates, so every test scopes its rows with a unique
+then Status, ID, Created At, Created By. The shared DB accumulates, so every test scopes rows with a unique
 name-token via `q` to make counts deterministic.
 
 Lead data fields (seed order): name, phone, email, address, source → header labels Name,
@@ -13,11 +13,12 @@ import csv
 import io
 import json
 
-LEAD_HEADER = ["Name", "Phone", "Email", "Address", "Source", "Status", "ID", "Created At"]
+LEAD_HEADER = ["Name", "Phone", "Email", "Address", "Source", "Status", "ID", "Created At", "Created By"]
 
 
 def _csv_rows(text):
-    return list(csv.reader(io.StringIO(text)))
+    # Strip the UTF-8 BOM the export prepends for spreadsheet apps before parsing.
+    return list(csv.reader(io.StringIO(text.lstrip("﻿"))))
 
 
 async def _export(client, headers, query):

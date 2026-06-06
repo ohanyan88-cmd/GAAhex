@@ -71,10 +71,10 @@ table.grid.leads-grid th {
    data in each cell; overflow ellipsizes rather than reflowing the grid. */
 table.grid.leads-grid th:nth-child(1) { width: 120px; }  /* Lead ID  */
 table.grid.leads-grid th:nth-child(2) { width: 200px; }  /* Full Name */
-table.grid.leads-grid th:nth-child(3) { width: 240px; }  /* Address  */
-table.grid.leads-grid th:nth-child(4) { width: 160px; }  /* Phone    */
-table.grid.leads-grid th:nth-child(5) { width: 220px; }  /* Email    */
-table.grid.leads-grid th:nth-child(6) { width: 140px; }  /* Stage    */
+table.grid.leads-grid th:nth-child(3) { width: 220px; }  /* Address  */
+table.grid.leads-grid th:nth-child(4) { width: 150px; }  /* Phone    */
+table.grid.leads-grid th:nth-child(5) { width: 210px; }  /* Email    */
+table.grid.leads-grid th:nth-child(6) { width: 180px; }  /* Stage — room for the uniform pill + gap before actions */
 table.grid.leads-grid td { white-space: nowrap; }
 table.grid td .row-actions { justify-content:flex-end; }
 table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }

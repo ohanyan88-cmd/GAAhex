@@ -44,6 +44,8 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
 .field > span { font-size:12px; font-weight:500; color:var(--gx-text-2); }
 
 .pill { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:var(--gx-radius-full); font-size:11px; font-weight:600; line-height:1; white-space:nowrap; }
+/* Uniform-width pills — a whole status column padded to the longest label, centered. */
+.pill-uniform { min-width:var(--gx-pill-min); justify-content:center; }
 .pill .d { width:6px; height:6px; border-radius:50%; }
 .pill-success { background:var(--gx-success-soft); color:var(--gx-success-fg); }
 .pill-warning { background:var(--gx-warning-soft); color:var(--gx-warning-fg); }

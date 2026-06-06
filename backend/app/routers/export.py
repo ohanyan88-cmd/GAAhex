@@ -24,11 +24,11 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db import get_session
-from ..models import Record, Tenant, User
+from ..models import Record, Tenant, User, Event
 from ..access import load_grants, can
 from .. import gxl
 from .auth import current_user
@@ -152,11 +152,40 @@ async def export_records(
     fields = await _fields(s, ent.id)
     data_fields = [f for f in fields if f.type != "status"]   # status-type field → folded into core `status`
     keys = [f.key for f in data_fields]
-    header = [f.label for f in data_fields] + ["Status", "ID", "Created At"]
+    header = [f.label for f in data_fields] + ["Status", "ID", "Created At", "Created By"]
 
     records = await _viewable_filtered(s, user, ent, q, filter, sort)
     today = date.today()
     filename = f"{slug}-{today:%Y%m%d}.{fmt}"
+
+    # Created By — resolved from each record's create Event actor → user display name.
+    # Two batched lookups (events, then users); records without a create event show "—".
+    creator_by_record: dict = {}
+    rec_ids = [r.id for r in records]
+    if rec_ids:
+        ev_rows = (await s.execute(
+            select(Event.record_id, Event.actor_id).where(
+                Event.tenant_id == user.tenant_id,
+                Event.entity_key == ent.key,
+                func.upper(Event.type) == "CREATE",
+                Event.record_id.in_(rec_ids),
+            )
+        )).all()
+        actor_by_record: dict = {}
+        for rid, aid in ev_rows:
+            if rid is not None and rid not in actor_by_record:
+                actor_by_record[rid] = aid
+        actor_ids = {a for a in actor_by_record.values() if a is not None}
+        name_by_actor: dict = {}
+        if actor_ids:
+            u_rows = (await s.execute(
+                select(User.id, User.name, User.email).where(User.id.in_(actor_ids))
+            )).all()
+            name_by_actor = {uid: (nm or em) for uid, nm, em in u_rows}
+        creator_by_record = {rid: name_by_actor.get(aid) for rid, aid in actor_by_record.items()}
+
+    def _creator(r) -> str:
+        return creator_by_record.get(r.id) or "—"
 
     # ------------------------------------------------------------------
     # JSON (unchanged)
@@ -168,6 +197,7 @@ async def export_records(
             obj["status"] = r.status
             obj["id"] = str(r.id)
             obj["created_at"] = r.created_at.isoformat() if r.created_at else None
+            obj["created_by"] = _creator(r)
             rows.append(obj)
         return Response(
             content=json.dumps(rows, ensure_ascii=False),
@@ -183,18 +213,20 @@ async def export_records(
             buf = io.StringIO()
             writer = csv.writer(buf)
             writer.writerow(header)
-            yield buf.getvalue()
+            # UTF-8 BOM so spreadsheet apps (Excel) detect the encoding and render
+            # non-Latin scripts (e.g. Armenian) correctly instead of mojibake.
+            yield "﻿" + buf.getvalue()
             buf.seek(0); buf.truncate(0)
             for r in records:
                 line = [_cell((r.data or {}).get(k)) for k in keys]
-                line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else ""]
+                line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else "", _creator(r)]
                 writer.writerow(line)
                 yield buf.getvalue()
                 buf.seek(0); buf.truncate(0)
 
         return StreamingResponse(
             _csv_rows(),
-            media_type="text/csv",
+            media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
@@ -209,7 +241,7 @@ async def export_records(
     data_rows = []
     for r in records:
         line = [_cell((r.data or {}).get(k)) for k in keys]
-        line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else ""]
+        line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else "", _creator(r)]
         data_rows.append(line)
 
     # ------------------------------------------------------------------
