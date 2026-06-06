@@ -421,7 +421,7 @@ function CasesTab({
             value={accountQuery}
             onChange={(e) => setAccountQuery(e.target.value)}
             placeholder={t('collections.filter.search', 'Search account ID (UUID prefix)')}
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)' }}
           />
         </div>
       </div>
@@ -510,7 +510,7 @@ function CasesTab({
                 : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length}`}
             </span>
             <span className="spacer" />
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>
               <Button variant="ghost" size="sm" iconOnly
             disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
                 <ChevronLeft size={15} />
@@ -702,7 +702,7 @@ function PoliciesTab({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-6)' }}>
         <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
           {policies.length} {policies.length === 1 ? t('collections.policy.one', 'policy') : t('collections.policy.many', 'policies')}
         </div>
@@ -765,7 +765,7 @@ function PoliciesTab({
                     gap: 'var(--gx-space-3)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                     <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)', flex: 1 }}>{p.name}</div>
                     {p.is_default && (
                       <span style={{
@@ -806,7 +806,7 @@ function PoliciesTab({
               gap: 'var(--gx-space-4)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
               <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)' }}>
                 {draft.id ? t('collections.policy.edit', 'Edit policy') : t('collections.policy.create', 'Create policy')}
               </div>
@@ -815,7 +815,7 @@ function PoliciesTab({
             </div>
 
             <label className="field">
-              <span>{t('collections.policy.name', 'Name')} {draft.id && <em style={{ color: 'var(--gx-text-3)', fontStyle: 'normal', fontSize: 11 }}>· {t('collections.policy.nameLocked', 'locked')}</em>}</span>
+              <span>{t('collections.policy.name', 'Name')} {draft.id && <em style={{ color: 'var(--gx-text-3)', fontStyle: 'normal', fontSize: 'var(--gx-text-11)' }}>· {t('collections.policy.nameLocked', 'locked')}</em>}</span>
               <input
                 className="inp inp-md"
                 value={draft.name}
@@ -871,11 +871,11 @@ function PoliciesTab({
                 }}
               />
               {stepsError && (
-                <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger)', marginTop: 4 }}>
+                <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger)', marginTop: 'var(--gx-space-2)' }}>
                   {stepsError}
                 </div>
               )}
-              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 4 }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-2)' }}>
                 {t('collections.policy.stepsHint', 'Each step: integer day_offset, string action, object params.')}
               </div>
             </label>

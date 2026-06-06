@@ -351,15 +351,15 @@ function OrderCard({
     >
       <div
         className="mono"
-        style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 4 }}
+        style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-2)' }}
         title={order.id}
       >
         {order.number ? order.number : `ord-${shortId(order.id)}`}
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--gx-text-3)', marginBottom: 8 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-4)' }}>
         Customer <span className="mono" title={order.customer_id ?? ''}>{shortId(order.customer_id, 8)}</span>
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 10 }}>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-5)' }}>
         {order.install_substage_at ? timeAgo(order.install_substage_at) : 'no timestamp'}
       </div>
 
@@ -368,7 +368,7 @@ function OrderCard({
           <Button variant="primary" size="sm"
             onClick={onAllocate}
             disabled={busy}
-            style={{ fontSize: 11 }}>
+            style={{ fontSize: 'var(--gx-text-11)' }}>
             <PlusIcon size={11} />
             {busy ? 'Allocating…' : 'Allocate Resources'}
           </Button>
@@ -377,7 +377,7 @@ function OrderCard({
           <Button variant="primary" size="sm"
             onClick={onBind}
             disabled={busy}
-            style={{ fontSize: 11 }}>
+            style={{ fontSize: 'var(--gx-text-11)' }}>
             <EditIcon size={11} />
             Bind CPE
           </Button>
@@ -386,7 +386,7 @@ function OrderCard({
           <Button variant="primary" size="sm"
             onClick={onActivate}
             disabled={busy}
-            style={{ fontSize: 11 }}>
+            style={{ fontSize: 'var(--gx-text-11)' }}>
             <CheckIcon size={11} />
             {busy ? 'Activating…' : 'Activate'}
           </Button>
@@ -485,7 +485,7 @@ function BindCpeModal({
         </>
       }
     >
-      <form id="bind-cpe-form" onSubmit={submit} className="rec-form" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <form id="bind-cpe-form" onSubmit={submit} className="rec-form" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-6)' }}>
         {err && <ErrorBanner message={err} />}
         <label className="field">
           <span>MAC address *</span>
@@ -508,7 +508,7 @@ function BindCpeModal({
             required
           />
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-6)' }}>
           <label className="field">
             <span>Vendor</span>
             <input className="inp inp-md" value={vendor} onChange={(e) => setVendor(e.target.value)} placeholder="(optional)" />

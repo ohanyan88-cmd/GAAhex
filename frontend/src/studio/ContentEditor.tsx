@@ -23,7 +23,7 @@ export function ContentEditor() {
         }
       />
       {tab === 'content' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-7)' }}>
           <label className="field"><span>Page title</span><input className="inp inp-sm" /></label>
           <label className="field"><span>Subtitle</span><input className="inp inp-sm" /></label>
           <label className="field" style={{ gridColumn: '1 / -1' }}>
@@ -36,7 +36,7 @@ export function ContentEditor() {
             <span>Image</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-4) var(--gx-space-5)', background: 'var(--gx-bg-subtle)', border: '1px dashed var(--gx-border-strong)', borderRadius: 'var(--gx-radius-md)' }}>
               <Image size={18} style={{ color: 'var(--gx-text-3)' }} />
-              <span className="hint" style={{ fontSize: 12 }}>No image</span>
+              <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>No image</span>
               <Button variant="ghost" size="sm"
             type="button" style={{ marginLeft: 'auto' }}>
                 <Upload size={13} />Upload

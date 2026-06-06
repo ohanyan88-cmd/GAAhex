@@ -188,7 +188,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
                         onClick={() => toggleSort(c.key)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {c.label}
                           {sortKey === c.key
                             // D18: active sort indicator = azure (interactive cue)

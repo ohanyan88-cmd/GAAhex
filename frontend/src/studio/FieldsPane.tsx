@@ -96,7 +96,7 @@ function AddFieldForm({
   }
 
   return (
-    <form onSubmit={submit} style={{ marginTop: 12 }}>
+    <form onSubmit={submit} style={{ marginTop: 'var(--gx-space-6)' }}>
       {err && <ErrorBanner message={err} />}
       <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: '1 1 120px' }}>
@@ -115,7 +115,7 @@ function AddFieldForm({
         </label>
         <label className="field" style={{ flex: '0 0 76px' }}>
           <span>Required</span>
-          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} style={{ marginTop: 8 }} />
+          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} style={{ marginTop: 'var(--gx-space-4)' }} />
         </label>
         {(type === 'select' || type === 'ref') && (
           <label className="field" style={{ flex: '1 1 160px' }}>
@@ -128,7 +128,7 @@ function AddFieldForm({
             />
           </label>
         )}
-        <div style={{ paddingBottom: 2 }}>
+        <div style={{ paddingBottom: 'var(--gx-space-1)' }}>
           <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {saving ? 'Saving…' : 'Add field'}
@@ -315,7 +315,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
               <div className="section-head" style={{ marginTop: 0 }}>
                 <RowsIcon size={15} className="section-icon" /> Entity
               </div>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 'var(--gx-space-8)' }}>
                 <select
                   className="inp inp-md"
                   style={{ maxWidth: 280 }}

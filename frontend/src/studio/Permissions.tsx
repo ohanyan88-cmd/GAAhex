@@ -142,7 +142,7 @@ export function Permissions({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to manage role permissions.
         </div>
       </div>
@@ -154,7 +154,7 @@ export function Permissions({ token }: { token?: string } = {}) {
       <div>
         <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ padding: 'var(--gx-space-5)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ padding: 'var(--gx-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
             {[0, 1, 2, 3].map(i => (
               <div key={i} style={{ height: 22, background: 'var(--gx-surface-2)', borderRadius: 4, opacity: 0.6 }} />
             ))}
@@ -181,7 +181,7 @@ export function Permissions({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Lock size={15} />} title="Permissions" hint="control who can view / edit each scope" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           {roles.length === 0
             ? 'No roles defined yet. Create roles under Security → Roles.'
             : 'No permissions registered yet — they are created automatically when entities are added.'}
@@ -233,7 +233,7 @@ export function Permissions({ token }: { token?: string } = {}) {
           </tbody>
         </table>
       </div>
-      <p className="hint" style={{ fontSize: 11.5, marginTop: 10 }}>
+      <p className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-5)' }}>
         Click a cell to cycle None → View → Edit. Saved per-click; enforced server-side by the auth kernel.
       </p>
     </div>

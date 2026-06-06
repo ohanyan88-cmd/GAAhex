@@ -126,7 +126,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
     return (
       <div>
         {header}
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to manage feature flags.
         </div>
       </div>
@@ -162,7 +162,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
           style={{ padding: 'var(--gx-space-7) var(--gx-space-8)', marginBottom: 'var(--gx-space-7)', display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}
         >
           <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
-            <span style={{ fontSize: 11 }}>Key *</span>
+            <span style={{ fontSize: 'var(--gx-text-11)' }}>Key *</span>
             <input
               className="inp inp-sm mono"
               placeholder="new-dashboard"
@@ -172,7 +172,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
             />
           </label>
           <label className="field" style={{ flex: '1 1 200px', minWidth: 160, margin: 0 }}>
-            <span style={{ fontSize: 11 }}>Label *</span>
+            <span style={{ fontSize: 'var(--gx-text-11)' }}>Label *</span>
             <input
               className="inp inp-sm"
               placeholder="New Dashboard"
@@ -182,7 +182,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
             />
           </label>
           <label className="field" style={{ flex: '1 1 140px', minWidth: 120, margin: 0 }}>
-            <span style={{ fontSize: 11 }}>Role scope</span>
+            <span style={{ fontSize: 'var(--gx-text-11)' }}>Role scope</span>
             <input
               className="inp inp-sm mono"
               placeholder="super_admin"
@@ -190,7 +190,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
               onChange={e => setNewScope(e.target.value)}
             />
           </label>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-3)' }}>
             <Button variant="primary" size="sm"
             type="submit" disabled={saving}>
               {saving ? 'Saving…' : 'Create'}
@@ -226,7 +226,7 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
               {flags.map(flag => (
                 <tr key={flag.id} style={{ cursor: 'default' }}>
                   <td className="mono" style={{ fontSize: 12.5, fontWeight: 600 }}>{flag.key}</td>
-                  <td style={{ fontSize: 13 }}>{flag.label}</td>
+                  <td style={{ fontSize: 'var(--gx-text-13)' }}>{flag.label}</td>
                   <td style={{ textAlign: 'center' }}>
                     <button
                       onClick={() => toggle(flag)}
@@ -240,9 +240,9 @@ export function FeatureFlagsPane({ token }: { token?: string } = {}) {
                   </td>
                   <td>
                     {flag.role_scope ? (
-                      <span className="pill pill-info" style={{ fontSize: 11 }}>{flag.role_scope}</span>
+                      <span className="pill pill-info" style={{ fontSize: 'var(--gx-text-11)' }}>{flag.role_scope}</span>
                     ) : (
-                      <span className="hint" style={{ fontSize: 12 }}>—</span>
+                      <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>—</span>
                     )}
                   </td>
                   <td className="actions-col">

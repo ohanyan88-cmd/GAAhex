@@ -188,7 +188,7 @@ export default function InteractionsView({
   if (embedded) {
     return (
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--gx-space-6)' }}>
           <h3 style={{ margin: 0 }}>{t('interactions.title', 'Interactions')}</h3>
           <Button variant="primary" size="sm"
             onClick={() => { setFollowUpFor(null); setLogOpen(true) }}>
@@ -217,7 +217,7 @@ export default function InteractionsView({
                   {all.map((it) => (
                     <tr key={it.id}>
                       <td>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                           {channelIcon(it.channel)} {it.channel ?? '—'}
                         </span>
                       </td>
@@ -318,7 +318,7 @@ export default function InteractionsView({
                 {[0, 1, 2, 3].map((i) => (
                   <div key={i} className="convo" style={{ pointerEvents: 'none' }}>
                     <span className="kpi-tile-skeleton" style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0 }} />
-                    <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
                       <span className="kpi-tile-skeleton" style={{ height: 11, width: '55%' }} />
                       <span className="kpi-tile-skeleton" style={{ height: 10, width: '75%' }} />
                     </span>
@@ -328,7 +328,7 @@ export default function InteractionsView({
             )}
 
             {/* Error */}
-            {error && <div className="err" style={{ padding: 12 }}>{error} <button className="btn-link" onClick={load}>Retry</button></div>}
+            {error && <div className="err" style={{ padding: 'var(--gx-space-6)' }}>{error} <button className="btn-link" onClick={load}>Retry</button></div>}
 
             {/* Unavailable */}
             {unavailable && !error && (
@@ -355,7 +355,7 @@ export default function InteractionsView({
                 <span style={{ position: 'relative', flexShrink: 0 }}>
                   <span
                     className="avatar"
-                    style={{ width: 38, height: 38, fontSize: 13 }}
+                    style={{ width: 38, height: 38, fontSize: 'var(--gx-text-13)' }}
                   >
                     {channelIcon(it.channel, 16)}
                   </span>
@@ -371,7 +371,7 @@ export default function InteractionsView({
 
                 {/* Text */}
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                     {/* Direction arrow */}
                     {directionArrow(it.direction)}
                     <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -381,7 +381,7 @@ export default function InteractionsView({
                       {timeAgo(it.occurred_at ?? it.created_at ?? null)}
                     </span>
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 2 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 'var(--gx-space-1)' }}>
                     <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                       {it.channel ?? ''}
                       {it.customer_id ? ` · cust ${it.customer_id.slice(0, 8)}` : ''}
@@ -452,7 +452,7 @@ function InteractionDetail({
       {/* Pane header */}
       <div className="chat-head">
         <span style={{ flexShrink: 0 }}>
-          <span className="avatar" style={{ width: 34, height: 34, fontSize: 13 }}>
+          <span className="avatar" style={{ width: 34, height: 34, fontSize: 'var(--gx-text-13)' }}>
             {channelIcon(it.channel, 15)}
           </span>
         </span>
@@ -493,7 +493,7 @@ function InteractionDetail({
           {/* Field grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', marginBottom: 20 }}>
             <KV label="Channel" value={
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                 {channelIcon(it.channel, 13)} {it.channel ?? '—'}
               </span>
             } />
@@ -503,12 +503,12 @@ function InteractionDetail({
                 : <span style={{ color: 'var(--gx-text-3)' }}>—</span>
             } />
             <KV label="Occurred" value={
-              <span className="mono" style={{ fontSize: 12 }}>
+              <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>
                 {it.occurred_at ? new Date(it.occurred_at).toLocaleString() : '—'}
               </span>
             } />
             <KV label="Logged" value={
-              <span className="mono" style={{ fontSize: 12 }}>
+              <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>
                 {it.created_at ? timeAgo(it.created_at) : '—'}
               </span>
             } />
@@ -535,7 +535,7 @@ function InteractionDetail({
               <span className="avatar" style={{ width: 56, height: 56, fontSize: 20, margin: '0 auto' }}>
                 {channelIcon(it.channel, 22)}
               </span>
-              <div style={{ fontWeight: 600, fontSize: 'var(--gx-text-md)', marginTop: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 'var(--gx-text-md)', marginTop: 'var(--gx-space-5)' }}>
                 {it.channel ? it.channel.charAt(0).toUpperCase() + it.channel.slice(1) : 'Interaction'}
               </div>
               <div className="hint" style={{ fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', marginTop: 3 }}>
@@ -577,7 +577,7 @@ function InteractionDetail({
           <PlusIcon size={13} /> Log follow-up
         </Button>
         <span className="spacer" />
-        <span className="hint" style={{ fontSize: 11 }}>
+        <span className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
           {timeAgo(it.occurred_at ?? it.created_at ?? null)}
         </span>
       </div>

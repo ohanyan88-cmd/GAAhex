@@ -98,7 +98,7 @@ export default function WorkItemsBoard({ items, users, onRowClick, onStatusChang
                 {colItems.length}
               </span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
               {colItems.map((it) => (
                 <BoardCard
                   key={it.id}
@@ -153,7 +153,7 @@ function BoardCard({
       }}
       onClick={() => onRowClick(item)}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)' }}>
         <span className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link, var(--gx-primary))' }}>
           {item.id.slice(0, 8)}
         </span>
@@ -167,7 +167,7 @@ function BoardCard({
         {dueShort && <span style={{ marginLeft: 'auto' }} className="mono">{dueShort}</span>}
       </div>
       {/* Inline status actions — same set as the table row */}
-      <div className="row-actions" style={{ marginTop: 'var(--gx-space-5)', justifyContent: 'flex-end', display: 'flex', gap: 4 }}>
+      <div className="row-actions" style={{ marginTop: 'var(--gx-space-5)', justifyContent: 'flex-end', display: 'flex', gap: 'var(--gx-space-2)' }}>
         {s === 'TODO' && (
           <Button variant="ghost" size="sm" disabled={busy} onClick={(e) => act('start', e)} title="Start">
             <PlayIcon size={12} /> Start

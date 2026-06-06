@@ -233,7 +233,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
           {/* Accent */}
           <div>
             <div className="lbl" style={{ marginBottom: 9 }}>Button / accent color</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--gx-space-4)' }}>
               {ACCENTS.map(a => (
                 <button
                   key={a.name}
@@ -340,7 +340,7 @@ export function AppearancePane({ token }: { token?: string } = {}) {
             </span>
             <div>
               <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>Active subscribers</div>
-              <div className="hint" style={{ fontSize: 11 }}>—</div>
+              <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>—</div>
             </div>
           </div>
         </div>

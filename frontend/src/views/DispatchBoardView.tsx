@@ -75,16 +75,16 @@ export default function DispatchBoardView({ token }: { token: string }) {
                 <div className="section-label" style={{ marginBottom: 'var(--sp-2)' }}>
                   {COL_LABELS[col]} <span className="muted">({byStatus[col]?.length ?? 0})</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
                   {(byStatus[col] ?? []).map(item => (
                     <div key={item.id} className="card" style={{ padding: 'var(--sp-3)' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--gx-space-3)' }}>
                         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: PRIORITY_DOT[item.priority] ?? 'var(--gx-text-3)', marginTop: 5, flexShrink: 0 }} />
                         <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500, lineHeight: 1.4 }}>{item.title}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: 'var(--gx-space-2)', marginTop: 4 }}>
-                        <span className="badge badge-neutral" style={{ fontSize: 11 }}>{item.kind}</span>
-                        {!item.assigned_user_id && <span className="badge badge-warning" style={{ fontSize: 11 }}>unassigned</span>}
+                      <div style={{ display: 'flex', gap: 'var(--gx-space-2)', marginTop: 'var(--gx-space-2)' }}>
+                        <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{item.kind}</span>
+                        {!item.assigned_user_id && <span className="badge badge-warning" style={{ fontSize: 'var(--gx-text-11)' }}>unassigned</span>}
                       </div>
                     </div>
                   ))}

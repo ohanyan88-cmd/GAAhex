@@ -774,7 +774,7 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
   }
   if (unavailable) {
     return (
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 'var(--gx-space-12)' }}>
         <EmptyState
           icon={<ReceiptIcon size={28} />}
           title="Allocation endpoints not yet available"
@@ -785,13 +785,13 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
   }
   if (err) {
     return (
-      <div style={{ marginTop: 24 }}>
+      <div style={{ marginTop: 'var(--gx-space-12)' }}>
         <ErrorBanner message={err} onRetry={load} />
       </div>
     )
   }
   if (!out || allocs === null) {
-    return <p className="muted" style={{ marginTop: 24 }}>Loading allocations…</p>
+    return <p className="muted" style={{ marginTop: 'var(--gx-space-12)' }}>Loading allocations…</p>
   }
 
   const totalNum = parseFloat(out.total) || 0
@@ -804,12 +804,12 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
       : 'var(--gx-warning)'
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+    <div style={{ marginTop: 'var(--gx-space-12)' }}>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 'var(--gx-space-5)' }}>
         Outstanding &amp; allocations
       </div>
 
-      <div className="card" style={{ padding: 'var(--gx-space-5)', marginBottom: 16 }}>
+      <div className="card" style={{ padding: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-8)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--gx-space-5)', alignItems: 'end' }}>
           <div>
             <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase' }}>Total</div>
@@ -831,7 +831,7 @@ function AllocationPanel({ token, invoiceId, canAllocate, onChanged }: {
           </div>
         </div>
         {out.computed_at && (
-          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 10 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-5)' }}>
             Last computed {timeAgo(out.computed_at)}
           </div>
         )}
@@ -963,11 +963,11 @@ function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }: {
           />
         </label>
         {error && (
-          <div style={{ marginTop: 'var(--gx-space-3)', color: 'var(--gx-danger)', fontSize: 13 }}>
+          <div style={{ marginTop: 'var(--gx-space-3)', color: 'var(--gx-danger)', fontSize: 'var(--gx-text-13)' }}>
             {error}
           </div>
         )}
-        <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 4 }}>
+        <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 'var(--gx-space-2)' }}>
           The backend will reject over-allocation; if amounts change while this dialog is open, the
           server response will explain — just retry after refreshing.
         </p>

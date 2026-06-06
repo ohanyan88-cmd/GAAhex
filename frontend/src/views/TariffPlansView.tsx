@@ -307,7 +307,7 @@ export default function TariffPlansView({
         onClick={() => toggleSort(k)}
         style={{ cursor: 'pointer', userSelect: 'none' }}
       >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
           {label}
           {isOn
             // D18: active sort indicator = azure (interactive cue)
@@ -416,10 +416,10 @@ export default function TariffPlansView({
                 value={draft.tiers_text}
                 onChange={(e) => { setDraft({ ...draft, tiers_text: e.target.value }); if (tiersError) setTiersError('') }}
                 placeholder='[{"from":0,"to":100,"rate":"0.05"}]'
-                style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 12 }}
+                style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-sm)' }}
               />
               {tiersError && (
-                <span style={{ color: 'var(--gx-danger-fg)', fontSize: 'var(--gx-text-sm)', marginTop: 4 }}>
+                <span style={{ color: 'var(--gx-danger-fg)', fontSize: 'var(--gx-text-sm)', marginTop: 'var(--gx-space-2)' }}>
                   {tiersError}
                 </span>
               )}

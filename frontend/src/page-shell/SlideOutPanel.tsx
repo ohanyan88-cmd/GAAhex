@@ -61,7 +61,7 @@ export function SlideOutPanel({
         tabIndex={-1}
       >
         <div className="nms-drawer-header">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)' }}>
             <div id="nms-drawer-title" className="nms-drawer-title">{title}</div>
             {subtitle && (
               <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)' }}>{subtitle}</div>

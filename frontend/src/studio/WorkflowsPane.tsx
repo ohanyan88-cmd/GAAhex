@@ -65,7 +65,7 @@ function AddStatusForm({
   }
 
   return (
-    <form onSubmit={submit} style={{ marginTop: 12 }}>
+    <form onSubmit={submit} style={{ marginTop: 'var(--gx-space-6)' }}>
       {err && <ErrorBanner message={err} />}
       <div style={{ display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: '1 1 130px' }}>
@@ -78,9 +78,9 @@ function AddStatusForm({
         </label>
         <label className="field" style={{ flex: '0 0 72px' }}>
           <span>Initial</span>
-          <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 8 }} />
+          <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 'var(--gx-space-4)' }} />
         </label>
-        <div style={{ paddingBottom: 2 }}>
+        <div style={{ paddingBottom: 'var(--gx-space-1)' }}>
           <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {saving ? 'Saving…' : 'Add status'}
@@ -214,7 +214,7 @@ function TransitionsEditor({
       )}
 
       {rows.length === 0 ? (
-        <p className="hint" style={{ marginBottom: 8 }}>No transitions defined. Add one below.</p>
+        <p className="hint" style={{ marginBottom: 'var(--gx-space-4)' }}>No transitions defined. Add one below.</p>
       ) : (
         <div className="grid-wrap">
           <table className="grid studio">
@@ -276,7 +276,7 @@ function TransitionsEditor({
         </div>
       )}
 
-      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
         <Button variant="ghost" size="sm"
             type="button"
           
@@ -421,7 +421,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
               <div className="section-head" style={{ marginTop: 0 }}>
                 <RowsIcon size={15} className="section-icon" /> Entity
               </div>
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 'var(--gx-space-8)' }}>
                 <select
                   className="inp inp-md"
                   style={{ maxWidth: 280 }}
@@ -557,7 +557,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                   )}
 
                   {/* Transitions */}
-                  <div className="section-head" style={{ marginTop: 24 }}>
+                  <div className="section-head" style={{ marginTop: 'var(--gx-space-12)' }}>
                     <ChartIcon size={15} className="section-icon" /> Transitions
                   </div>
 

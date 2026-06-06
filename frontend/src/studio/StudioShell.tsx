@@ -113,7 +113,7 @@ export default function StudioShell({
                 <ChevronLeft size={14} />Back
               </Button>
             )}
-            <span className="pill pill-gold" style={{ marginRight: 2 }}>
+            <span className="pill pill-gold" style={{ marginRight: 'var(--gx-space-1)' }}>
               <Shield size={12} />SuperAdmin
             </span>
             <span className="studio-pill draft">

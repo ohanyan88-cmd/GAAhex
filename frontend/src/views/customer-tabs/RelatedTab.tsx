@@ -47,9 +47,9 @@ export default function RelatedTab({ token, entity, id }: { token: string; entit
 
   if (rows === undefined) {
     return (
-      <div className="card" style={{ padding: 14 }} aria-busy="true">
+      <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 10 }} />
+          <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 'var(--gx-space-5)' }} />
         ))}
       </div>
     )

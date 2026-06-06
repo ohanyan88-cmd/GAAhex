@@ -59,17 +59,17 @@ function actorLabel(ev: AuditEvent): string {
 // are JSON-stringified so the row stays scannable.
 function DataDetail({ data }: { data: any }) {
   if (data === null || data === undefined) {
-    return <div className="hint" style={{ fontSize: 12 }}>No payload</div>
+    return <div className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>No payload</div>
   }
   if (typeof data !== 'object') {
-    return <div className="mono" style={{ fontSize: 12 }}>{String(data)}</div>
+    return <div className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{String(data)}</div>
   }
   const entries = Object.entries(data)
   if (entries.length === 0) {
-    return <div className="hint" style={{ fontSize: 12 }}>Empty payload</div>
+    return <div className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>Empty payload</div>
   }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 'var(--gx-text-sm)' }}>
       {entries.flatMap(([k, v]) => [
         <span key={`${k}-k`} className="mono" style={{ color: 'var(--gx-text-3)' }}>{k}</span>,
         <span key={`${k}-v`} className="mono" style={{ color: 'var(--gx-text-1)', wordBreak: 'break-word' }}>
@@ -173,7 +173,7 @@ function PageVersionsTab({ token }: { token?: string }) {
 
   if (!token) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
         Sign in to view page versions.
       </div>
     )
@@ -188,11 +188,11 @@ function PageVersionsTab({ token }: { token?: string }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-7)', flexWrap: 'wrap' }}>
         <label className="lbl" style={{ margin: 0, flexShrink: 0 }}>Page</label>
         {loadingPages ? (
-          <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>Loading pages…</span>
         ) : pagesErr ? (
           <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger-fg)' }}>{pagesErr}</span>
         ) : pages.length === 0 ? (
-          <span className="hint" style={{ fontSize: 12 }}>No pages yet.</span>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>No pages yet.</span>
         ) : (
           <select
             className="inp inp-sm"
@@ -294,19 +294,19 @@ function PageVersionsTab({ token }: { token?: string }) {
                         <div style={{ display: 'flex', gap: 'var(--gx-space-6)', flexWrap: 'wrap' }}>
                           {diff.added.length > 0 && (
                             <div>
-                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-success)', marginBottom: 4 }}>Added</div>
+                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-success)', marginBottom: 'var(--gx-space-2)' }}>Added</div>
                               {diff.added.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-success-fg)' }}>+ {k}</div>)}
                             </div>
                           )}
                           {diff.changed.length > 0 && (
                             <div>
-                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-warning)', marginBottom: 4 }}>Changed</div>
+                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-warning)', marginBottom: 'var(--gx-space-2)' }}>Changed</div>
                               {diff.changed.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-warning-fg)' }}>~ {k}</div>)}
                             </div>
                           )}
                           {diff.removed.length > 0 && (
                             <div>
-                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-danger)', marginBottom: 4 }}>Removed</div>
+                              <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-danger)', marginBottom: 'var(--gx-space-2)' }}>Removed</div>
                               {diff.removed.map(k => <div key={k} className="mono" style={{ color: 'var(--gx-danger-fg)' }}>- {k}</div>)}
                             </div>
                           )}
@@ -423,21 +423,21 @@ function AuditLogTab({ token }: { token?: string }) {
       style={{ padding: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-4)', display: 'flex', gap: 'var(--gx-space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}
     >
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Event type</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Event type</span>
         <select className="inp inp-sm" value={filterEventType} onChange={e => setFilterEventType(e.target.value)}>
           <option value="">All types</option>
           {eventTypes.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
         </select>
       </label>
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Entity</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Entity</span>
         <input className="inp inp-sm mono" placeholder="e.g. customer" value={filterEntity} onChange={e => setFilterEntity(e.target.value)} />
       </label>
       <label className="field" style={{ flex: '1 1 140px', minWidth: 120, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Since</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Since</span>
         <input className="inp inp-sm" type="date" value={filterSince} onChange={e => setFilterSince(e.target.value)} />
       </label>
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)' }}>
         <Button variant="primary" size="sm" type="button" onClick={applyFilters} disabled={loading}>Apply</Button>
         {filtersActive ? (
           <Button variant="ghost" size="sm" type="button" onClick={clearFilters} disabled={loading}>Clear</Button>
@@ -448,7 +448,7 @@ function AuditLogTab({ token }: { token?: string }) {
 
   if (!token) {
     return (
-      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+      <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
         Sign in to view the audit log.
       </div>
     )
@@ -463,7 +463,7 @@ function AuditLogTab({ token }: { token?: string }) {
   return (
     <>
       {filterBar}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--gx-space-2)' }}>
         <span className="hint" style={{ fontSize: 11.5 }}>{loading ? '' : `${items.length} of ${total}`}</span>
       </div>
       {items.length === 0 ? (
@@ -508,7 +508,7 @@ function AuditLogTab({ token }: { token?: string }) {
             })}
           </div>
           {items.length < total && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--gx-space-7)' }}>
               <Button variant="secondary" size="sm"
             type="button" onClick={loadMore} disabled={loadingMore}>
                 {loadingMore ? 'Loading…' : `Load more (${total - items.length} remaining)`}

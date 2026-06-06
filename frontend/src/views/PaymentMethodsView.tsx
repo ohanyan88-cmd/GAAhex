@@ -267,7 +267,7 @@ export default function PaymentMethodsView({
                   return (
                     <tr key={p.id}>
                       <td>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                           <span
                             className="mono"
                             style={{
@@ -300,7 +300,7 @@ export default function PaymentMethodsView({
                           ? (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-warning)' }} title="Default card for this customer">
                               <StarIcon size={14} />
-                              <span style={{ fontSize: 11 }}>Default</span>
+                              <span style={{ fontSize: 'var(--gx-text-11)' }}>Default</span>
                             </span>
                           )
                           : <span style={{ color: 'var(--gx-text-3)' }}>—</span>}

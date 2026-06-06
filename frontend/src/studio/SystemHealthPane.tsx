@@ -131,13 +131,13 @@ function ProbePanel({
         gap: 'var(--gx-space-3)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--gx-space-5)' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 4 }}>
-            <h4 style={{ margin: 0, fontSize: 14 }}>{title}</h4>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-2)' }}>
+            <h4 style={{ margin: 0, fontSize: 'var(--gx-text-md)' }}>{title}</h4>
             <StatusPill variant={v.variant} label={v.label} size="sm" />
           </div>
-          <p className="hint" style={{ margin: 0, fontSize: 12 }}>{description}</p>
+          <p className="hint" style={{ margin: 0, fontSize: 'var(--gx-text-sm)' }}>{description}</p>
           <p
             className="mono hint"
             style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--gx-text-3)' }}
@@ -270,7 +270,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
       {/* ---- header + headline ---- */}
       <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-2)' }}>
             <h3 style={{ margin: 0 }}>System Health</h3>
             <StatusPill variant={headline.variant} label={headline.label} />
           </div>
@@ -280,7 +280,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           </p>
         </div>
         <span className="spacer" />
-        <label className="row" style={{ gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', alignItems: 'center', marginRight: 8 }}>
+        <label className="row" style={{ gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', alignItems: 'center', marginRight: 'var(--gx-space-4)' }}>
           <input
             type="checkbox"
             checked={autoRefresh}
@@ -299,7 +299,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
 
       {/* ---- KPI strip (data from /api/health/status when available) ---- */}
       {status.data?.counts && statusOk && (
-        <div className="kpi-strip" style={{ marginBottom: 12 }}>
+        <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-6)' }}>
           <KPITile
             label="Uptime"
             value={formatUptime(status.data.uptime_seconds)}
@@ -344,7 +344,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           onRefresh={checkLiveness}
         >
           {liveness.status >= 200 && liveness.status < 300 && liveness.data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 'var(--gx-text-sm)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="hint">Reported status</span>
                 <span className="mono">{liveness.data.status}</span>
@@ -367,7 +367,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           onRefresh={checkReadiness}
         >
           {readiness.data && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 'var(--gx-text-sm)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="hint">Database</span>
                 {dbProbeOk
@@ -404,7 +404,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
           {status.status === 401 || status.status === 403 ? (
             <ErrorBanner message="Sign-in required to read the operational status summary." />
           ) : status.data && statusOk ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', fontSize: 'var(--gx-text-sm)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="hint">Service</span>
                 <span className="mono">{status.data.service ?? '—'}</span>

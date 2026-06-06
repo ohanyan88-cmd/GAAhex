@@ -83,7 +83,7 @@ export default function RecentItemsView({ token, onNavigate }: {
               <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', whiteSpace: 'nowrap', marginLeft: 'var(--sp-4)' }}>{timeAgo(e.created_at)}</span>
             </div>
             {e.entity_key && (
-              <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginTop: 4 }}>
+              <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)' }}>
                 {e.entity_key.replace(/_/g, ' ')}
               </span>
             )}

@@ -230,7 +230,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                         onClick={() => toggleSort(c.key)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {c.label}
                           {sortKey === c.key
                             // D18: active sort indicator = azure (interactive cue)
@@ -250,11 +250,11 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
                         let cell: React.ReactNode
                         switch (c.key) {
                           case 'name': cell = <strong>{w.name ?? '—'}</strong>; break
-                          case 'url': cell = <span className="mono" title={w.url} style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>{w.url ?? '—'}</span>; break
+                          case 'url': cell = <span className="mono" title={w.url} style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>{w.url ?? '—'}</span>; break
                           case 'events': cell = <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>{(w.events ?? []).length ? (w.events ?? []).join(', ') : <span style={{ color: 'var(--gx-text-3)' }}>all</span>}</span>; break
                           case 'secret': cell = w.has_secret
                             ? <StatusPill variant="active" label="signed" size="sm" />
-                            : <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>none</span>
+                            : <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>none</span>
                             ; break
                           case 'active': {
                             const sp = mapWebhookStatus(w)
@@ -346,7 +346,7 @@ function DeliveriesModal({ token, webhook, onClose }: { token: string; webhook: 
                   <td>{d.event_type ?? '—'}</td>
                   <td>
                     <StatusPill variant={sp.variant} label={sp.label} size="sm" />
-                    {d.error && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 2 }} title={d.error}>{d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}</div>}
+                    {d.error && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-1)' }} title={d.error}>{d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}</div>}
                   </td>
                   <td className="mono">{d.status_code ?? '—'}</td>
                   <td className="tnum">{d.attempts ?? '—'}</td>

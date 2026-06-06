@@ -248,7 +248,7 @@ export default function MessagesView({
                 {[0, 1, 2, 3].map(i => (
                   <div key={i} className="convo" style={{ pointerEvents: 'none' }}>
                     <span className="kpi-tile-skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }} />
-                    <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
                       <span className="kpi-tile-skeleton" style={{ height: 11, width: '60%' }} />
                       <span className="kpi-tile-skeleton" style={{ height: 10, width: '80%' }} />
                     </span>
@@ -256,7 +256,7 @@ export default function MessagesView({
                 ))}
               </>
             )}
-            {error && <div className="err" style={{ padding: 12 }}>{error}</div>}
+            {error && <div className="err" style={{ padding: 'var(--gx-space-6)' }}>{error}</div>}
             {threads && filteredThreads.length === 0 && !error && (
               <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>
                 {query ? 'No conversations match.' : 'No conversations yet.'}
@@ -271,15 +271,15 @@ export default function MessagesView({
                   onClick={() => { setSelected(c.id); setShowInfo(false) }}
                 >
                   <span style={{ flexShrink: 0 }}>
-                    <span className="avatar" style={{ width: 38, height: 38, fontSize: 13 }}>{initials(label)}</span>
+                    <span className="avatar" style={{ width: 38, height: 38, fontSize: 'var(--gx-text-13)' }}>{initials(label)}</span>
                   </span>
                   <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                       <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
                       <span className="hint" style={{ marginLeft: 'auto', fontSize: 'var(--gx-text-11)', flexShrink: 0 }}>{timeAgo(c.created_at)}</span>
                     </span>
                     {c.entity_key && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 2 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 'var(--gx-space-1)' }}>
                         <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {c.entity_key}{c.record_id ? ` · ${c.record_id.slice(0, 8)}` : ''}
                         </span>
@@ -303,11 +303,11 @@ export default function MessagesView({
             <>
               <div className="chat-head">
                 <span style={{ flexShrink: 0 }}>
-                  <span className="avatar" style={{ width: 34, height: 34, fontSize: 12 }}>{initials(threadLabel(selectedThread))}</span>
+                  <span className="avatar" style={{ width: 34, height: 34, fontSize: 'var(--gx-text-sm)' }}>{initials(threadLabel(selectedThread))}</span>
                 </span>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{threadLabel(selectedThread)}</div>
-                  <div className="hint" style={{ fontSize: 11 }}>
+                  <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
                     {selectedThread.entity_key ? `${selectedThread.entity_key} record · ` : ''}
                     {timeAgo(selectedThread.created_at)}
                   </div>
@@ -329,7 +329,7 @@ export default function MessagesView({
                       ))}
                     </>
                   )}
-                  {msgError && <div className="err" style={{ padding: 12 }}>{msgError}</div>}
+                  {msgError && <div className="err" style={{ padding: 'var(--gx-space-6)' }}>{msgError}</div>}
                   {messages && messages.length === 0 && !msgError && (
                     <div className="hint" style={{ textAlign: 'center', padding: 20 }}>
                       No messages yet.
@@ -345,7 +345,7 @@ export default function MessagesView({
                       <div key={m.id} className={'bubble-row ' + dir}>
                         <div className="bubble-wrap">
                           {!out && m.author_name && (
-                            <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-1)', paddingLeft: 4 }}>
+                            <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-2)' }}>
                               {m.author_name}
                             </div>
                           )}
@@ -365,7 +365,7 @@ export default function MessagesView({
                       <span className="avatar" style={{ width: 64, height: 64, fontSize: 'var(--gx-text-2xl)', margin: '0 auto' }}>
                         {initials(threadLabel(selectedThread))}
                       </span>
-                      <div style={{ fontWeight: 600, fontSize: 15, marginTop: 10 }}>{threadLabel(selectedThread)}</div>
+                      <div style={{ fontWeight: 600, fontSize: 15, marginTop: 'var(--gx-space-5)' }}>{threadLabel(selectedThread)}</div>
                     </div>
                     <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>Thread</div>
                     <div className="kv" style={{ padding: '8px 0' }}>

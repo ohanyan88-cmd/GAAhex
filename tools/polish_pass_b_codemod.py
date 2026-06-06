@@ -153,12 +153,15 @@ def make_value_pattern(prop: str) -> re.Pattern[str]:
       paddingTop: someVar   — variable references
       padding: 0            — zero (handled separately; usually means "none")
     """
-    # \b<prop>\s*:\s*(\d+)(?=\s*[,}]|\s*$|\s*\n)
+    # \b<prop>\s*:\s*(\d+)(?=\s*[,}]|\s*\n|\s*$)
     # The lookahead is intentionally STRICT — match only when the value is
-    # immediately terminated by `,`, `}`, or end-of-line. This skips
-    # arithmetic continuations like `bottom: 24 + stem - 5` which would
-    # break if we swap the literal for a string (first-attempt codemod bug).
-    return re.compile(rf"\b{re.escape(prop)}\s*:\s*(\d+)(?=\s*[,}}]|\s*\n)", re.MULTILINE)
+    # immediately terminated by `,`, `}`, end-of-line, or end-of-string
+    # (the last is critical when the property is the LAST in a style block —
+    # initial codemod missed those because the inner-content capture stripped
+    # the closing brace, leaving no `[,}]` after the trailing whitespace).
+    # Still skips arithmetic continuations like `bottom: 24 + stem - 5`
+    # because `+`/`-` don't match `[,}\n]`.
+    return re.compile(rf"\b{re.escape(prop)}\s*:\s*(\d+)(?=\s*[,}}]|\s*\n|\s*$)", re.MULTILINE)
 
 
 # Pre-build the patterns once.
@@ -175,11 +178,11 @@ TWO_VAL_RE = re.compile(
     r"\b(margin|padding)\s*:\s*'(\d+)px (\d+)px'"
 )
 
-# Wave 4 — borderRadius bare numbers (require comma/brace/newline after).
-BORDER_RADIUS_RE = re.compile(r"\bborderRadius\s*:\s*(\d+)(?=\s*[,}]|\s*\n)", re.MULTILINE)
+# Wave 4 — borderRadius bare numbers (require terminator: ,/}/newline/end-of-string).
+BORDER_RADIUS_RE = re.compile(r"\bborderRadius\s*:\s*(\d+)(?=\s*[,}]|\s*\n|\s*$)", re.MULTILINE)
 
 # Wave 5 — fontSize bare numbers (same strict lookahead).
-FONT_SIZE_RE = re.compile(r"\bfontSize\s*:\s*(\d+)(?=\s*[,}]|\s*\n)", re.MULTILINE)
+FONT_SIZE_RE = re.compile(r"\bfontSize\s*:\s*(\d+)(?=\s*[,}]|\s*\n|\s*$)", re.MULTILINE)
 
 
 def process_style_content(content: str) -> tuple[str, int]:

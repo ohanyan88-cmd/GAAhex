@@ -127,7 +127,7 @@ export default function StudioGenericPane({ leaf, token }: { leaf: FlatLeaf; tok
         <span className="sep">/</span>
         <span style={{ color: 'var(--gx-text-1)' }}>{leaf.leafLabel}</span>
       </div>
-      <div className="section-head" style={{ marginTop: 6 }}>
+      <div className="section-head" style={{ marginTop: 'var(--gx-space-3)' }}>
         <IconCmp size={16} className="section-icon" />
         {leaf.leafLabel}
       </div>

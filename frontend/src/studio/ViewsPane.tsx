@@ -212,7 +212,7 @@ export default function ViewsPane({ token }: { token: string }) {
       </div>
 
       {/* entity picker */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 'var(--gx-space-8)' }}>
         <label className="field" style={{ maxWidth: 260 }}>
           <span>Entity</span>
           <select
@@ -329,7 +329,7 @@ export default function ViewsPane({ token }: { token: string }) {
 
           {saveErr && <ErrorBanner message={saveErr} />}
 
-          <div className="rec-form" style={{ marginBottom: 16 }}>
+          <div className="rec-form" style={{ marginBottom: 'var(--gx-space-8)' }}>
             <label className="field">
               <span>Name *</span>
               <input
@@ -341,7 +341,7 @@ export default function ViewsPane({ token }: { token: string }) {
             </label>
 
             {mode === 'create' && (
-              <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <input
                   type="checkbox"
                   checked={formShared}
@@ -356,7 +356,7 @@ export default function ViewsPane({ token }: { token: string }) {
             <RowsIcon size={15} className="section-icon" /> Config
           </div>
 
-          <div className="rec-form" style={{ marginBottom: 16 }}>
+          <div className="rec-form" style={{ marginBottom: 'var(--gx-space-8)' }}>
             <label className="field">
               <span>Search (q)</span>
               <input

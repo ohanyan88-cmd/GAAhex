@@ -141,7 +141,7 @@ export default function RowActionsMenu({ primary, actions, ariaLabel = 'Row acti
   }
 
   return (
-    <div ref={wrapRef} className="row-actions-menu" style={{ display: 'inline-flex', gap: 4 }}>
+    <div ref={wrapRef} className="row-actions-menu" style={{ display: 'inline-flex', gap: 'var(--gx-space-2)' }}>
       {primary && !primary.hidden && (
         <button
           type="button"

@@ -99,7 +99,7 @@ export default function AskGaaexView({ token }: { token: string }) {
     : t('ask.brainLocal', 'Built-in (no external AI configured)')
 
   return (
-    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 14 }}>
+    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 'var(--gx-space-7)' }}>
       <div className="comms-head">
         <div className="vh-ic"><SparkleIcon size={20} /></div>
         <div>
@@ -136,19 +136,19 @@ export default function AskGaaexView({ token }: { token: string }) {
                     <div key={i} className="bubble-row in">
                       <div className="bubble-wrap" style={{ maxWidth: '78%' }}>
                         <div className="bubble in" style={{ maxWidth: '100%' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', fontWeight: 700, color: 'var(--gx-info-fg)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 'var(--gx-space-3)' }}>
                             <SparkleIcon size={12} /> {t('ask.proposalTitle', 'Action proposed')}
                           </div>
                           <div style={{ fontSize: 'var(--gx-text-13)', lineHeight: 1.5, color: 'var(--gx-text-1)' }}>{m.proposal.summary}</div>
                           {m.state === 'pending' ? (
-                            <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 10 }}>
+                            <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 'var(--gx-space-5)' }}>
                               <Button variant="primary" size="sm" onClick={() => confirm(i)} disabled={busy}>{t('ask.confirm', 'Confirm')}</Button>
                               <Button variant="ghost" size="sm" onClick={() => cancel(i)} disabled={busy}>{t('ask.cancel', 'Cancel')}</Button>
                             </div>
                           ) : m.state === 'done' ? (
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-success-fg)', marginTop: 8 }}>{m.result}</div>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--gx-success-fg)', marginTop: 'var(--gx-space-4)' }}>{m.result}</div>
                           ) : (
-                            <div style={{ fontSize: 12.5, color: 'var(--gx-text-3)', marginTop: 8 }}>{t('ask.cancelled', 'Cancelled.')}</div>
+                            <div style={{ fontSize: 12.5, color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-4)' }}>{t('ask.cancelled', 'Cancelled.')}</div>
                           )}
                         </div>
                       </div>
@@ -197,7 +197,7 @@ export default function AskGaaexView({ token }: { token: string }) {
           <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 0 8px' }}>
             {t('ask.suggestionsTitle', 'Try asking')}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
             {SUGGESTIONS.map((sg) => (
               <button
                 key={sg}

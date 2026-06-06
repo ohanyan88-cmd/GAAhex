@@ -21,10 +21,10 @@ function Field({ label, value }: { label: string; value: ReactNode }) {
   if (value === null || value === undefined || value === '' || value === '—') return null
   return (
     <div>
-      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 'var(--gx-space-2)' }}>
         {label}
       </div>
-      <div style={{ fontSize: 13 }}>{value}</div>
+      <div style={{ fontSize: 'var(--gx-text-13)' }}>{value}</div>
     </div>
   )
 }
@@ -34,21 +34,21 @@ export default function OverviewTab({ customerId, profile }: { customerId: strin
   // (skeleton / not-loaded path). We never re-fetch here — overview piggybacks on /360.
   if (!profile) {
     return (
-      <div className="card" style={{ padding: 14 }} aria-busy="true">
-        <div className="kpi-tile-skeleton" style={{ height: 14, width: '40%', marginBottom: 10 }} />
-        <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 8 }} />
+      <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
+        <div className="kpi-tile-skeleton" style={{ height: 14, width: '40%', marginBottom: 'var(--gx-space-5)' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 'var(--gx-space-4)' }} />
         <div className="kpi-tile-skeleton" style={{ height: 12, width: '60%' }} />
       </div>
     )
   }
   const name = profile.name ?? profile.title ?? customerId.slice(0, 8)
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ marginBottom: 14 }}>
+    <div className="card" style={{ padding: 'var(--gx-space-8)' }}>
+      <div style={{ marginBottom: 'var(--gx-space-7)' }}>
         <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
-        <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 2 }}>{profile.id}</div>
+        <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-1)' }}>{profile.id}</div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--gx-space-7)' }}>
         <Field label="Status" value={profile.status ?? '—'} />
         <Field label="Type" value={profile.type ?? profile.customer_type ?? null} />
         <Field label="Segment" value={profile.segment ?? null} />

@@ -31,7 +31,7 @@ export function PreviewMode({ token }: { token?: string } = {}) {
         title="Preview Mode"
         hint="preview as device & as different user roles"
         right={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-4)' }}>
             <select
               className="inp inp-sm"
               style={{ width: 130 }}
@@ -76,7 +76,7 @@ export function PreviewMode({ token }: { token?: string } = {}) {
             <span className="pill pill-gold" style={{ marginLeft: 'auto', height: 18 }}>as {role}</span>
           </div>
           {/* empty preview body */}
-          <div style={{ padding: 'var(--gx-space-7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', gap: 8 }}>
+          <div style={{ padding: 'var(--gx-space-7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)', gap: 'var(--gx-space-4)' }}>
             <Eye size={28} style={{ opacity: 0.3 }} />
             <span>No preview available — publish first</span>
           </div>

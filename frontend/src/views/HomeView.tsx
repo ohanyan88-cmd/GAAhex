@@ -67,18 +67,16 @@ const ROLE_SUBTITLE: Record<Role, string> = {
   general: 'Your workspace',
 }
 
-// D18: per-role identity palette is categorical (each role = distinct identity)
-// → use --viz-N tokens. Support keeps the "primary" slot (--viz-1, cobalt-ish blue)
-// since it's the default-feeling role; other roles retain their existing hex hues
-// (greens/ambers/purples/pinks) — those are intentional non-azure identities that
-// the D18 viz palette doesn't yet cover with a 1:1 swap, so left in place pending
-// a future viz palette migration. The azure removal is the D18-critical change.
+// D18: per-role identity palette uses the categorical --viz-N tokens.
+// One role = one --viz slot, matching the QUICK_ACTIONS_BY_ROLE color assignment
+// (sales = green/viz-3, tech = amber/viz-5, finance = violet/viz-4, admin =
+// magenta/viz-7, support = viz-1 primary, general = neutral text).
 const ROLE_COLOR: Record<Role, string> = {
   support: 'var(--viz-1)',
-  sales:   '#22c55e',
-  tech:    '#f59e0b',
-  finance: '#8b5cf6',
-  admin:   '#ec4899',
+  sales:   'var(--viz-3)',
+  tech:    'var(--viz-5)',
+  finance: 'var(--viz-4)',
+  admin:   'var(--viz-7)',
   general: 'var(--gx-text-3)',
 }
 
@@ -207,7 +205,7 @@ function Widget({ icon: Icon, title, children, count }: {
         <Icon size={14} color="var(--gx-text-3)" />
         <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>{title}</h3>
         {count !== undefined && (
-          <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginLeft: 6 }}>{count}</span>
+          <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)', marginLeft: 'var(--gx-space-3)' }}>{count}</span>
         )}
       </div>
       <div style={{ flex: 1 }}>{children}</div>
@@ -435,7 +433,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       {/* Role override picker — preserves the user's ability to pin a
           different role's view (e.g. a sales manager wanting the support
           dashboard). Auto-detected role is marked with an "auto" tag. */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--gx-space-8)' }}>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setPickerOpen(!pickerOpen)}
@@ -445,11 +443,11 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           >
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[role] }} />
             <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{ROLE_LABEL[role]}</span>
-            {override && <span className="muted" style={{ fontSize: 10 }}>(override)</span>}
+            {override && <span className="muted" style={{ fontSize: 'var(--gx-text-10)' }}>(override)</span>}
             <ChevronDown size={12} />
           </button>
           {pickerOpen && (
-            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', minWidth: 200, zIndex: 100, padding: 6 }}>
+            <div className="card" style={{ position: 'absolute', right: 0, top: '110%', minWidth: 200, zIndex: 100, padding: 'var(--gx-space-3)' }}>
               {(['support','sales','tech','finance','admin','general'] as Role[]).map(r => (
                 <div
                   key={r}
@@ -462,7 +460,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
                 >
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_COLOR[r] }} />
                   <span style={{ fontSize: 'var(--gx-text-13)', flex: 1 }}>{ROLE_LABEL[r]}</span>
-                  {r === detectedRole && <span className="muted" style={{ fontSize: 10 }}>auto</span>}
+                  {r === detectedRole && <span className="muted" style={{ fontSize: 'var(--gx-text-10)' }}>auto</span>}
                 </div>
               ))}
             </div>
@@ -492,7 +490,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
       {/* Urgent alerts band */}
       {urgentItems.length > 0 && (
-        <div style={{ marginBottom: 'var(--gx-space-6)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ marginBottom: 'var(--gx-space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
           {urgentItems.map((u, i) => (
             <div
               key={i}
@@ -525,7 +523,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               {myTickets.length === 0 ? <Empty msg="All clear" /> : myTickets.slice(0, 6).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
-                  <span className="badge badge-primary" style={{ fontSize: 11 }}>{t.status}</span>
+                  <span className="badge badge-primary" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
                 </div>
               ))}
             </Widget>
@@ -548,7 +546,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
                 <div key={l.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'leads')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'leads'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{l.status}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{l.status}</span>
                 </div>
               ))}
             </Widget>
@@ -556,7 +554,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={FileText} title="Active Quotes" count={quoteArr.filter(q => q.status === 'SENT').length}>
               {quoteArr.length === 0 ? <Empty msg="No quotes yet" /> : quoteArr.filter(q => q.status === 'SENT').slice(0, 6).map(q => (
                 <div key={q.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'quotes')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'quotes'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 13 }}>{q.data?.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{q.data?.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
                   {q.data?.amount && <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data.amount)/100).toLocaleString()}֏</span>}
                 </div>
               ))}
@@ -571,7 +569,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
                 <div key={s.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)' }}>
                   <Clock size={13} color="var(--gx-text-3)" />
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{s.data?.title ?? 'Slot'}</span>
-                  {s.data?.time_from && <span className="mono muted" style={{ fontSize: 12 }}>{String(s.data.time_from)}</span>}
+                  {s.data?.time_from && <span className="mono muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{String(s.data.time_from)}</span>}
                 </div>
               ))}
             </Widget>
@@ -580,7 +578,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               {tasksOpen.length === 0 ? <Empty msg="No open work orders" /> : tasksOpen.slice(0, 6).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('workitems')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('workitems'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
                 </div>
               ))}
             </Widget>
@@ -592,8 +590,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={Banknote} title="Issued Invoices" count={invoiceArr.length}>
               {invoiceArr.length === 0 ? <Empty msg="No outstanding invoices" /> : invoiceArr.slice(0, 6).map(i => (
                 <div key={i.id} role="button" tabIndex={0} onClick={() => onNavigate?.('invoices')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('invoices'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 13 }}>{i.number}</span>
-                  <span className="mono" style={{ fontSize: 12 }}>{Math.round(Number(i.total)/100).toLocaleString()}֏</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{i.number}</span>
+                  <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{Math.round(Number(i.total)/100).toLocaleString()}֏</span>
                 </div>
               ))}
             </Widget>
@@ -601,8 +599,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={Shield} title="Pending Approvals" count={approvalArr.length}>
               {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
                 <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('my-approvals'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                  <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{a.action_type?.replace(/_/g, ' ')}</span>
+                  <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{relTime(a.created_at)}</span>
                 </div>
               ))}
             </Widget>
@@ -615,7 +613,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
               {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 6).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('workitems')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('workitems'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 11 }}>{t.status}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
                 </div>
               ))}
             </Widget>
@@ -623,8 +621,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             <Widget icon={Shield} title="Approvals Waiting" count={approvalArr.length}>
               {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
                 <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('my-approvals'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 13 }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                  <span className="muted" style={{ fontSize: 11 }}>{relTime(a.created_at)}</span>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{a.action_type?.replace(/_/g, ' ')}</span>
+                  <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{relTime(a.created_at)}</span>
                 </div>
               ))}
             </Widget>
@@ -637,9 +635,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
         {activity.state === 'loading' && <Skel rows={5} />}
         {activity.state === 'hide' && <Empty msg="No recent activity" />}
         {activity.state === 'ok' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--gx-space-3)', padding: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-6)' }}>
             {activity.value.slice(0, 8).map(a => (
-              <div key={a.id} className="card card-hover" style={{ padding: 'var(--gx-space-4) var(--gx-space-6)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div key={a.id} className="card card-hover" style={{ padding: 'var(--gx-space-4) var(--gx-space-6)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <Activity size={11} color="var(--gx-text-3)" />
                 <span style={{ flex: 1, fontSize: 'var(--gx-text-sm)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   <span style={{ color: 'var(--gx-text-2)' }}>{a.type}</span>

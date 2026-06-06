@@ -98,7 +98,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Zap size={15} />} title="Actions & Logic" hint="button actions, submit behavior, navigation, conditions, visibility" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to define automation rules.
         </div>
       </div>
@@ -119,7 +119,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         }
       />
       {loading && (
-        <div style={{ padding: '20px 0', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '20px 0', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Loading event registry…
         </div>
       )}
@@ -129,7 +129,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         </div>
       )}
       {!loading && !error && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-5)' }}>
           {rules.map(r => (
             <div key={r.id} className="rule-card">
               {/* D18: WHEN/IF/DO are semantic-tagged pills. WHEN = trigger/event =
@@ -202,7 +202,7 @@ export function ActionsLogic({ token }: { token?: string } = {}) {
         </div>
       )}
       {!loading && !error && (
-        <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 14 }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-3)', marginTop: 'var(--gx-space-7)' }}>
           <Button variant="secondary" size="sm"
             type="button"
             disabled={rules.every(r => !r.on || !r.act)}

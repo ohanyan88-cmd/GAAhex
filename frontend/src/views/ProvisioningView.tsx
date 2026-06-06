@@ -73,8 +73,8 @@ export default function ProvisioningView({ token }: { token: string }) {
                 <tr key={s.id}>
                   <td style={{ fontWeight: 500 }}>{s.plan_name}</td>
                   <td><span className="badge badge-warning">{s.status}</span></td>
-                  <td className="mono" style={{ fontSize: 13 }}>{fmtDate(s.started_at)}</td>
-                  <td className="mono muted" style={{ fontSize: 13 }}>{fmtDate(s.created_at)}</td>
+                  <td className="mono" style={{ fontSize: 'var(--gx-text-13)' }}>{fmtDate(s.started_at)}</td>
+                  <td className="mono muted" style={{ fontSize: 'var(--gx-text-13)' }}>{fmtDate(s.created_at)}</td>
                 </tr>
               ))}
             </tbody>

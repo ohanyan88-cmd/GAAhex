@@ -160,7 +160,7 @@ export default function RecordDrawer({
           </button>
           <span
             className="mono"
-            style={{ color: 'var(--gx-text-3)', fontSize: 12 }}
+            style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}
           >
             {entityKey}/{id}
           </span>
@@ -169,7 +169,7 @@ export default function RecordDrawer({
         </div>
 
         <div className="drawer-hero">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-7)' }}>
             <div
               className="avatar"
               style={{ width: 46, height: 46, fontSize: 15 }}
@@ -191,7 +191,7 @@ export default function RecordDrawer({
               {subtitle && (
                 <div
                   className="hint"
-                  style={{ marginTop: 'var(--gx-space-1)', fontSize: 12 }}
+                  style={{ marginTop: 'var(--gx-space-1)', fontSize: 'var(--gx-text-sm)' }}
                 >
                   {subtitle}
                 </div>
@@ -255,8 +255,8 @@ export default function RecordDrawer({
                   <div key={i} className="tl-item">
                     <span className="tl-dot">{a.icon ?? <Clock size={13} />}</span>
                     <div>
-                      <div style={{ fontSize: 13 }}>{a.title}</div>
-                      <div className="hint" style={{ fontSize: 11.5, marginTop: 2 }}>
+                      <div style={{ fontSize: 'var(--gx-text-13)' }}>{a.title}</div>
+                      <div className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-1)' }}>
                         {a.detail ? <span>{a.detail} · </span> : null}
                         <span>{a.ts}</span>
                       </div>
@@ -270,7 +270,7 @@ export default function RecordDrawer({
 
           {tab === 'Related' &&
             (related && related.length > 0 ? (
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gap: 'var(--gx-space-5)' }}>
                 {related.map((r) => {
                   const inner = (
                     <>
@@ -286,7 +286,7 @@ export default function RecordDrawer({
                       {r.meta && (
                         <span
                           className="hint"
-                          style={{ marginLeft: 'auto', fontSize: 12 }}
+                          style={{ marginLeft: 'auto', fontSize: 'var(--gx-text-sm)' }}
                         >
                           {r.meta}
                         </span>
@@ -375,7 +375,7 @@ export default function RecordDrawer({
                 </div>
               ))}
               {onAddNote && (
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 'var(--gx-space-5)' }}>
                   <textarea
                     className="inp"
                     rows={3}

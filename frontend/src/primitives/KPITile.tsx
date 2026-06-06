@@ -112,7 +112,7 @@ export function KPITile({
         </>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--gx-space-3)' }}>
             <span className={valueCls}>{value}</span>
             {unit && <span className="kpi-tile-label" style={{ letterSpacing: 0, textTransform: 'none' }}>{unit}</span>}
           </div>

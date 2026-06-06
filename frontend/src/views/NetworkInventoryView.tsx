@@ -447,7 +447,7 @@ function FilterSelect({ label, value, onChange, options }: {
         className="inp inp-sm"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ fontSize: 12 }}
+        style={{ fontSize: 'var(--gx-text-sm)' }}
       >
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
@@ -577,7 +577,7 @@ function FiberTab({ state, status, onStatus, canAdmin, onNew, onReload, onOpen }
                       <td>
                         <StatusPill variant={fiberStatusVariant(r.status)} label={r.status ?? '—'} size="sm" />
                       </td>
-                      <td className="muted" style={{ fontSize: 12 }}>
+                      <td className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>
                         <span title={r.created_at ?? undefined}>{timeAgo(r.created_at ?? null) || fmtDate(r.created_at)}</span>
                       </td>
                     </tr>
@@ -639,11 +639,11 @@ function FiberCreateModal({ token, onClose, onCreated }: {
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-6)' }}>
         <Field label="Name *">
           <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Yerevan ↔ Gyumri trunk" />
         </Field>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-6)' }}>
           <Field label="Origin POP">
             <input className="inp inp-md" value={originPop} onChange={(e) => setOriginPop(e.target.value)} placeholder="POP code or name" />
           </Field>
@@ -651,7 +651,7 @@ function FiberCreateModal({ token, onClose, onCreated }: {
             <input className="inp inp-md" value={destPop} onChange={(e) => setDestPop(e.target.value)} placeholder="POP code or name" />
           </Field>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-6)' }}>
           <Field label="Capacity (Gbps)">
             <input className="inp inp-md" type="number" min="0" step="0.1" value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="e.g. 100" />
           </Field>
@@ -733,17 +733,17 @@ function FiberDetailDrawer({ token, id, onClose }: {
                   wordBreak: 'break-all',
                   color: 'var(--gx-text-2)',
                 }}>{route.geo_path}</pre>
-              : <p className="muted" style={{ margin: 0, fontSize: 12 }}>No geo path recorded.</p>
+              : <p className="muted" style={{ margin: 0, fontSize: 'var(--gx-text-sm)' }}>No geo path recorded.</p>
             }
           </section>
 
           <section>
             <SectionLabel>Linked outage paths</SectionLabel>
             {outagesUnavailable && (
-              <p className="muted" style={{ margin: 0, fontSize: 12 }}>Outage-path endpoint not available.</p>
+              <p className="muted" style={{ margin: 0, fontSize: 'var(--gx-text-sm)' }}>Outage-path endpoint not available.</p>
             )}
             {!outagesUnavailable && outages && outages.length === 0 && (
-              <p className="muted" style={{ margin: 0, fontSize: 12 }}>No active outages on this route.</p>
+              <p className="muted" style={{ margin: 0, fontSize: 'var(--gx-text-sm)' }}>No active outages on this route.</p>
             )}
             {!outagesUnavailable && outages && outages.length > 0 && (
               <table className="grid" style={{ width: '100%' }}>
@@ -833,17 +833,17 @@ function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onRelease,
                     const isActive = (a.status ?? '').toLowerCase() === 'active'
                     return (
                       <tr key={a.id}>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{a.address ?? '—'}</span></td>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{a.address ?? '—'}</span></td>
                         <td>{a.family ?? '—'}</td>
                         <td>
                           <StatusPill variant={ipamStatusVariant(a.status)} label={a.status ?? '—'} size="sm" />
                         </td>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{a.service_id ? a.service_id.slice(0, 8) : '—'}</span></td>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{a.mac ?? '—'}</span></td>
-                        <td className="muted" style={{ fontSize: 12 }}>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{a.service_id ? a.service_id.slice(0, 8) : '—'}</span></td>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{a.mac ?? '—'}</span></td>
+                        <td className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>
                           <span title={a.assigned_at ?? undefined}>{timeAgo(a.assigned_at ?? null) || '—'}</span>
                         </td>
-                        <td className="muted" style={{ fontSize: 12 }}>
+                        <td className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>
                           <span title={a.lease_expires_at ?? undefined}>{fmtDate(a.lease_expires_at)}</span>
                         </td>
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
@@ -909,7 +909,7 @@ function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, onStop, 
       {/* Tab-local KPI tiles — Zone B handles the page-level strip when the loader settles,
           but render an inline mini-strip too so admins see counts before they scroll. */}
       {state.state === 'ok' && (
-        <div className="kpi-strip" style={{ marginBottom: 16 }}>
+        <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-8)' }}>
           <KPITile label="Active sessions" value={state.items.filter((s) => (s.status ?? '').toLowerCase() === 'active').length} size="sm" />
           <KPITile
             label="Started today"
@@ -955,10 +955,10 @@ function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, onStop, 
                     return (
                       <tr key={s.id}>
                         <td style={{ fontWeight: 500 }}>{s.username ?? '—'}</td>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{(s.session_id ?? s.id).slice(0, 12)}</span></td>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{s.nas_ip ?? '—'}</span></td>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{s.framed_ip ?? '—'}</span></td>
-                        <td className="muted" style={{ fontSize: 12 }}>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{(s.session_id ?? s.id).slice(0, 12)}</span></td>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{s.nas_ip ?? '—'}</span></td>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{s.framed_ip ?? '—'}</span></td>
+                        <td className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>
                           <span title={s.acct_start ?? undefined}>{timeAgo(s.acct_start ?? null) || '—'}</span>
                         </td>
                         <td>
@@ -1057,14 +1057,14 @@ function BroadcastTab({ state, status, onStatus, canAdmin, onNew, onSend, onRelo
                     return (
                       <tr key={b.id}>
                         <td style={{ fontWeight: 500 }}>{b.channel ?? '—'}</td>
-                        <td><span className="mono" style={{ fontSize: 12 }}>{b.template_id ? b.template_id.slice(0, 12) : '—'}</span></td>
+                        <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{b.template_id ? b.template_id.slice(0, 12) : '—'}</span></td>
                         <td className="num"><span className="mono tnum">{b.recipient_count ?? '—'}</span></td>
                         <td className="num"><span className="mono tnum">{b.sent_count ?? '—'}</span></td>
                         <td className="num"><span className="mono tnum">{b.failed_count ?? '—'}</span></td>
                         <td>
                           <StatusPill variant={broadcastStatusVariant(b.status)} label={b.status ?? '—'} size="sm" />
                         </td>
-                        <td className="muted" style={{ fontSize: 12 }}>
+                        <td className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>
                           <span title={b.created_at ?? undefined}>{timeAgo(b.created_at ?? null) || fmtDate(b.created_at)}</span>
                         </td>
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
@@ -1137,7 +1137,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-6)' }}>
         <Field label="Channel *">
           <select className="inp inp-md" value={channel} onChange={(e) => setChannel(e.target.value)}>
             <option value="sms">SMS</option>
@@ -1173,7 +1173,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
 // ── Small layout helpers (local to this view) ────────────────────────────────
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
       <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 500, color: 'var(--gx-text-2)' }}>{label}</span>
       {children}
     </label>
@@ -1192,7 +1192,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function KvGrid({ rows }: { rows: [string, React.ReactNode][] }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 'var(--gx-space-3)', columnGap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 'var(--gx-space-3)', columnGap: 'var(--gx-space-8)' }}>
       {rows.map(([k, v], i) => (
         <span key={i} style={{ display: 'contents' }}>
           <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{k}</span>

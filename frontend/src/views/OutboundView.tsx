@@ -320,7 +320,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
   if (denied) return <PermissionDenied message="Outbound delivery is admin-only." />
 
   return (
-    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 14 }}>
+    <div className="gx-comms comms-shell fade" style={{ height: 'calc(100vh - var(--gx-header-h))', overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '18px 22px', gap: 'var(--gx-space-7)' }}>
       <div className="comms-head">
         <div className="vh-ic"><MailIcon size={20} /></div>
         <div>
@@ -336,7 +336,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
         {/* ── Folder rail ── */}
         <div className="mail-folders">
           <Button variant="gold" size="sm"
-            style={{ width: '100%', marginBottom: 10 }} onClick={() => openCompose()}>
+            style={{ width: '100%', marginBottom: 'var(--gx-space-5)' }} onClick={() => openCompose()}>
             <PlusIcon size={14} />Compose
           </Button>
           {FOLDERS.map(f => {
@@ -354,7 +354,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
               </button>
             )
           })}
-          <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: 'var(--gx-space-6) var(--gx-space-2)', paddingTop: 12 }}>
+          <div style={{ borderTop: '1px solid var(--gx-border-subtle)', margin: 'var(--gx-space-6) var(--gx-space-2)', paddingTop: 'var(--gx-space-6)' }}>
             <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '0 6px 8px' }}>Channels</div>
             {CHANNELS.map(c => {
               // D18: channel-tone palette is categorical (each channel = distinct identity).
@@ -375,7 +375,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
 
         {/* ── Message list ── */}
         <div className="mail-list">
-          <div className="msgr-search" style={{ margin: 10 }}>
+          <div className="msgr-search" style={{ margin: 'var(--gx-space-5)' }}>
             <SearchIcon size={14} />
             <input
               placeholder="Search mail"
@@ -386,7 +386,7 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
           </div>
           <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
             {list === null && !error && <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Loading…</div>}
-            {error && <div className="err" style={{ padding: 12 }}>{error} <Button variant="ghost" size="sm" onClick={load}>Retry</Button></div>}
+            {error && <div className="err" style={{ padding: 'var(--gx-space-6)' }}>{error} <Button variant="ghost" size="sm" onClick={load}>Retry</Button></div>}
             {unavailable && <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>Wire /api/outbound to populate.</div>}
             {filtered.length === 0 && !error && !unavailable && list !== null && (
               <div className="hint" style={{ textAlign: 'center', padding: '30px 16px' }}>No messages match.</div>
@@ -399,8 +399,8 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
                 <button key={o.id} className={'mail-row' + (isActive ? ' on' : '') + (isQueued ? ' unread' : '')} onClick={() => setSelected(o.id)}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <StarIcon size={13} style={{ color: isFailed ? 'var(--gx-danger)' : 'var(--gx-text-3)', fill: 'none' }} />
-                    <span style={{ fontWeight: isQueued ? 700 : 600, fontSize: 13 }}>{o.to_addr || '(no recipient)'}</span>
-                    <span className="hint" style={{ marginLeft: 'auto', fontSize: 11 }}>{timeAgo(o.created_at ?? null)}</span>
+                    <span style={{ fontWeight: isQueued ? 700 : 600, fontSize: 'var(--gx-text-13)' }}>{o.to_addr || '(no recipient)'}</span>
+                    <span className="hint" style={{ marginLeft: 'auto', fontSize: 'var(--gx-text-11)' }}>{timeAgo(o.created_at ?? null)}</span>
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: isQueued ? 600 : 400, marginTop: 3 }}>{o.subject || '(no subject)'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginTop: 3 }}>
@@ -423,17 +423,17 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
           ) : (
             <>
               <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--gx-border-subtle)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--gx-space-6)' }}>
                   <h2 style={{ fontFamily: 'var(--gx-font-display)', fontSize: 19, fontWeight: 600, margin: 0, flex: 1, letterSpacing: '-.01em' }}>
                     {current.subject || '(no subject)'}
                   </h2>
                   {statusPill(current.status)}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginTop: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-7)' }}>
                   <span className="avatar" style={{ width: 36, height: 36 }}>{initials(current.to_addr)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600 }}>
-                      to <span className="mono" style={{ color: 'var(--gx-text-3)', fontWeight: 400, fontSize: 12 }}>&lt;{current.to_addr || '—'}&gt;</span>
+                      to <span className="mono" style={{ color: 'var(--gx-text-3)', fontWeight: 400, fontSize: 'var(--gx-text-sm)' }}>&lt;{current.to_addr || '—'}&gt;</span>
                     </div>
                     <div className="hint" style={{ fontSize: 11.5 }}>{current.channel || '—'} · {timeAgo(current.created_at ?? null)}</div>
                   </div>
@@ -443,17 +443,17 @@ export default function OutboundView({ token, configVersion = 0, canConfigure: _
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', fontSize: 13.5, lineHeight: 1.7, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap' }}>
                 {current.error && (
-                  <div style={{ display: 'flex', gap: 11, padding: 'var(--gx-space-6) var(--gx-space-7)', borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border)', borderLeft: '3px solid var(--gx-danger)', background: 'var(--gx-surface-2)', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', gap: 11, padding: 'var(--gx-space-6) var(--gx-space-7)', borderRadius: 'var(--gx-radius-md)', border: '1px solid var(--gx-border)', borderLeft: '3px solid var(--gx-danger)', background: 'var(--gx-surface-2)', marginBottom: 'var(--gx-space-7)' }}>
                     <WarningIcon size={16} style={{ color: 'var(--gx-danger)' }} />
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 12.5 }}>Delivery error</div>
-                      <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', marginTop: 2 }}>{current.error}</div>
+                      <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)', marginTop: 'var(--gx-space-1)' }}>{current.error}</div>
                     </div>
                   </div>
                 )}
                 {current.body || <span className="muted">(empty body)</span>}
               </div>
-              <div style={{ padding: '14px 22px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 10 }}>
+              <div style={{ padding: '14px 22px', borderTop: '1px solid var(--gx-border-subtle)', display: 'flex', gap: 'var(--gx-space-5)' }}>
                 <Button variant="primary" size="sm" onClick={() => openCompose(buildReply(current))}><ReplyIcon size={14} />Reply</Button>
                 <Button variant="secondary" size="sm" onClick={() => openCompose(buildForward(current))}><ForwardIcon size={14} />Forward</Button>
                 {/* Archive button removed (rule #4): the OutboundMessage model has no

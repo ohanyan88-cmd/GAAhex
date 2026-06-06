@@ -218,7 +218,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                         onClick={() => toggleSort(c.key)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {c.label}
                           {sortKey === c.key && (sortDir === 1 ? <ArrowUpIcon size={11} /> : <ArrowDownIcon size={11} />)}
                         </span>
@@ -230,7 +230,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
                 <tbody>
                   {pageRows.map((o) => (
                     <tr key={o.id}>
-                      <td><span className="mono" style={{ fontSize: 12 }}>{o.id.slice(0, 8)}</span></td>
+                      <td><span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{o.id.slice(0, 8)}</span></td>
                       <td><span className="mono" style={{ color: 'var(--gx-text-3)' }}>{o.invoice_id ? o.invoice_id.slice(0, 8) : '—'}</span></td>
                       <td className="num"><span className="mono tnum">{money(o.amount)}</span></td>
                       <td style={{ textTransform: 'capitalize', color: 'var(--gx-text-2)' }}>{o.provider ?? '—'}</td>
@@ -274,7 +274,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
             </div>
 
             <div className="table-foot">
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
                 {sorted.length === 0
                   ? '0 orders'
                   : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}

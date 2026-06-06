@@ -168,7 +168,7 @@ function CreateWebhookModal({
       <form id="webhook-create-form" onSubmit={submit}>
         {err && <ErrorBanner message={err} />}
 
-        <div className="section-head" style={{ marginTop: 4 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
           <RowsIcon size={15} className="section-icon" /> Endpoint
         </div>
         <label className="field">
@@ -179,7 +179,7 @@ function CreateWebhookModal({
             placeholder="Billing events → CRM"
           />
         </label>
-        <label className="field" style={{ marginTop: 8 }}>
+        <label className="field" style={{ marginTop: 'var(--gx-space-4)' }}>
           <span>URL *</span>
           <input
             className="inp inp-sm mono" value={url}
@@ -188,14 +188,14 @@ function CreateWebhookModal({
           />
         </label>
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <ActivityIcon size={15} className="section-icon" /> Event subscriptions
         </div>
         <p className="hint" style={{ margin: '0 0 8px' }}>
           Leave empty to receive <strong>all</strong> events. Otherwise only the selected types are
           delivered.
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)' }}>
           {EVENT_OPTIONS.map((ev) => {
             const on = events.includes(ev)
             return (
@@ -212,7 +212,7 @@ function CreateWebhookModal({
           })}
         </div>
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <LockIcon size={15} className="section-icon" /> Signing secret (optional)
         </div>
         <label className="field">
@@ -228,7 +228,7 @@ function CreateWebhookModal({
           The secret is stored server-side and never returned by the API.
         </p>
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <CheckIcon size={15} className="section-icon" /> Status
         </div>
         <label className="row" style={{ gap: 'var(--gx-space-3)', alignItems: 'center' }}>
@@ -437,7 +437,7 @@ function DetailDrawer({
 
       {hook && (
         <>
-          <div className="section-head" style={{ marginTop: 4 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
             <RowsIcon size={15} className="section-icon" /> Endpoint
           </div>
           <label className="field">
@@ -447,7 +447,7 @@ function DetailDrawer({
               onChange={(e) => setName(e.target.value)}
             />
           </label>
-          <label className="field" style={{ marginTop: 8 }}>
+          <label className="field" style={{ marginTop: 'var(--gx-space-4)' }}>
             <span>URL *</span>
             <input
               className="inp inp-sm mono" value={url}
@@ -455,13 +455,13 @@ function DetailDrawer({
             />
           </label>
 
-          <div className="section-head" style={{ marginTop: 16 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
             <ActivityIcon size={15} className="section-icon" /> Event subscriptions
           </div>
           <p className="hint" style={{ margin: '0 0 8px' }}>
             Empty = receive all events.
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)' }}>
             {EVENT_OPTIONS.map((ev) => {
               const on = events.includes(ev)
               return (
@@ -478,7 +478,7 @@ function DetailDrawer({
             })}
           </div>
 
-          <div className="section-head" style={{ marginTop: 16 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
             <CheckIcon size={15} className="section-icon" /> Status
           </div>
           <label className="row" style={{ gap: 'var(--gx-space-3)', alignItems: 'center' }}>
@@ -490,7 +490,7 @@ function DetailDrawer({
             <span>Active — fires deliveries on subscribed events.</span>
           </label>
 
-          {saveErr && <div style={{ marginTop: 10 }}><ErrorBanner message={saveErr} /></div>}
+          {saveErr && <div style={{ marginTop: 'var(--gx-space-5)' }}><ErrorBanner message={saveErr} /></div>}
           {savedAt && (
             <div
               style={{
@@ -505,7 +505,7 @@ function DetailDrawer({
             </div>
           )}
 
-          <div className="row" style={{ marginTop: 'var(--gx-space-4)', gap: 8 }}>
+          <div className="row" style={{ marginTop: 'var(--gx-space-4)', gap: 'var(--gx-space-4)' }}>
             <span className="spacer" />
             <Button variant="primary" size="md"
             type="button" 
@@ -527,7 +527,7 @@ function DetailDrawer({
               background: 'var(--gx-surface-2)',
             }}
           >
-            <div style={{ marginBottom: 'var(--gx-space-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginBottom: 'var(--gx-space-3)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
               <strong>Current state</strong>
               {hook.has_secret
                 ? <StatusPill variant="active" label="signed" size="sm" />
@@ -545,7 +545,7 @@ function DetailDrawer({
                 placeholder="(blank to clear)"
               />
             </label>
-            <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+            <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
               <span className="spacer" />
               <Button variant="secondary" size="md"
             type="button" 
@@ -575,7 +575,7 @@ function DetailDrawer({
                 fontSize: 'var(--gx-text-sm)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-2)' }}>
                 <strong>Test result</strong>
                 <StatusPill {...mapDeliveryStatus(testResult.status)} size="sm" />
                 {testResult.status_code != null && (
@@ -623,7 +623,7 @@ function DetailDrawer({
                           <StatusPill variant={sp.variant} label={sp.label} size="sm" />
                           {d.error && (
                             <div
-                              style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 2 }}
+                              style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-1)' }}
                               title={d.error}
                             >
                               {d.error.length > 60 ? d.error.slice(0, 60) + '…' : d.error}
@@ -652,7 +652,7 @@ function DetailDrawer({
               background: 'var(--gx-surface-2)',
             }}
           >
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: 'var(--gx-space-4)' }}>
               <strong>Delete this webhook</strong>
             </div>
             <p className="hint" style={{ margin: '0 0 10px' }}>
@@ -760,7 +760,7 @@ export default function WebhooksPane({ token }: { token: string }) {
       </div>
 
       {total > 0 && (
-        <div className="kpi-strip" style={{ marginBottom: 12 }}>
+        <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-6)' }}>
           <KPITile
             label="Endpoints"
             value={total}
@@ -827,7 +827,7 @@ export default function WebhooksPane({ token }: { token: string }) {
                     <span
                       className="mono"
                       title={w.url}
-                      style={{ color: 'var(--gx-text-3)', fontSize: 12 }}
+                      style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}
                     >
                       {w.url}
                     </span>
@@ -842,7 +842,7 @@ export default function WebhooksPane({ token }: { token: string }) {
                   <td>
                     {w.has_secret
                       ? <StatusPill variant="active" label="signed" size="sm" />
-                      : <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>none</span>}
+                      : <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>none</span>}
                   </td>
                   <td>
                     {w.active !== false

@@ -4,7 +4,7 @@
 // same right-edge drawer chrome:
 //   <div onClick={...closeOnBackdrop} style={{position:'fixed',inset:0,background:'var(--gx-overlay)',zIndex:100,...}}>
 //     <div style={{borderLeft, width, height:'100vh', overflowY:'auto', padding, boxShadow}}>
-//       <div className="row" style={{alignItems:'center', marginBottom:12}}>
+//       <div className="row" style={{alignItems:'center', marginBottom: 'var(--gx-space-6)'}}>
 //         <h3>{title}</h3><span className="spacer"/>
 //         <button className="btn btn-ghost btn-sm" onClick={onClose}><CloseIcon/></button>
 //       </div>
@@ -77,7 +77,7 @@ export function StudioDrawer({
       style={panelStyle}
       bare
     >
-      <div className="drawer-head" style={{ alignItems: 'center', gap: 10 }}>
+      <div className="drawer-head" style={{ alignItems: 'center', gap: 'var(--gx-space-5)' }}>
         <h3
           id={titleId}
           style={{ margin: 0, fontSize: 'var(--gx-text-md)', fontWeight: 600, color: 'var(--gx-text-1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}

@@ -106,7 +106,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
           {state.kind === 'loading' ? (
-            <div style={{ padding: 14 }}>
+            <div style={{ padding: 'var(--gx-space-7)' }}>
               <SkeletonRows rows={5} />
             </div>
           ) : items.length === 0 ? (
@@ -135,17 +135,17 @@ export default function MyApprovalsView({ token }: { token: string }) {
                         {a.record_id.slice(0, 8)}
                       </td>
                       <td>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                           <span className="pill pill-neutral">{a.from_status}</span>
                           <ArrowRightIcon size={12} />
                           <span className="pill pill-info">{a.to_status}</span>
                         </span>
                       </td>
-                      <td style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                      <td style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
                         {timeAgo(a.created_at)}
                       </td>
                       <td className="actions-col" style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                        <div style={{ display: 'inline-flex', gap: 'var(--gx-space-3)' }}>
                           <Button variant="primary" size="sm"
             disabled={busy === a.id}
                             onClick={() => decide(a.id, 'approve')}

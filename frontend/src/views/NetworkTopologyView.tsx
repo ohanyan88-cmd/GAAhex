@@ -86,7 +86,7 @@ export default function NetworkTopologyView({ token }: { token: string }) {
                         {site.status ?? '—'}
                       </span>
                     </td>
-                    <td className="muted" style={{ fontSize: 13 }}>{String(d.address ?? '—')}</td>
+                    <td className="muted" style={{ fontSize: 'var(--gx-text-13)' }}>{String(d.address ?? '—')}</td>
                   </tr>
                 )
               })}

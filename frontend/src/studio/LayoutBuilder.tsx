@@ -77,17 +77,17 @@ export function LayoutBuilder() {
           </div>
         }
       />
-      <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 'var(--gx-space-8)' }}>
         {/* palette */}
         <div>
-          <div className="lbl" style={{ marginBottom: 8 }}>Blocks</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div className="lbl" style={{ marginBottom: 'var(--gx-space-4)' }}>Blocks</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)' }}>
             {BLOCK_PALETTE.map(([ic, label]) => (
               <button
                 key={label as string}
                 className="palette-block"
                 type="button"
-                style={{ flexDirection: 'column', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-5) var(--gx-space-4)', fontSize: 11 }}
+                style={{ flexDirection: 'column', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-5) var(--gx-space-4)', fontSize: 'var(--gx-text-11)' }}
                 onClick={() => addBlock(label as string)}
               >
                 {ic}

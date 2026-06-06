@@ -158,7 +158,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                     flex: '1 1 120px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
                     padding: 'var(--gx-space-6) var(--gx-space-8)', border: '1px solid var(--border)'
                   }}>
-                    <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 'var(--gx-space-3)' }}>{label}</div>
                     <div style={{ fontSize: 24, fontWeight: 700, color: highlight ? 'var(--danger)' : 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
                       {money(value)}
                     </div>
@@ -174,7 +174,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
           </div>
 
           {creating && (
-            <div className="rec-form" style={{ marginBottom: 12 }}>
+            <div className="rec-form" style={{ marginBottom: 'var(--gx-space-6)' }}>
               <label className="field"><span>Product</span>
                 <select className="inp inp-md" value={productId} onChange={(e) => pickProduct(e.target.value)}>
                   <option value="">— custom —</option>
@@ -234,8 +234,8 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
             )}
 
           {payments.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginTop: 'var(--gx-space-12)' }}>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, marginBottom: 'var(--gx-space-5)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <CreditCardIcon size={15} /> Recent payments
               </div>
               <table className="grid">
@@ -259,12 +259,12 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                 </tbody>
               </table>
               {payments.length > 10 && (
-                <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 6 }}>Showing 10 of {payments.length} payments</p>
+                <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 'var(--gx-space-3)' }}>Showing 10 of {payments.length} payments</p>
               )}
             </div>
           )}
           {payments.length === 0 && subs !== null && !unavailable && (
-            <p className="muted" style={{ marginTop: 'var(--gx-space-5)', fontSize: 13 }}>No payments recorded for this customer.</p>
+            <p className="muted" style={{ marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-13)' }}>No payments recorded for this customer.</p>
           )}
 
           <h3 style={{ marginTop: 18 }}>Services</h3>

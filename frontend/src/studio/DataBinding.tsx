@@ -106,7 +106,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
     return (
       <div>
         <Sec icon={<Database size={15} />} title="Data Binding" hint="connect components to database / API fields" />
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to bind components to real entities.
         </div>
       </div>
@@ -121,7 +121,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
         hint="connect components to database / API fields"
       />
       {loading && (
-        <div style={{ padding: '20px 0', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '20px 0', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Loading entities…
         </div>
       )}
@@ -131,7 +131,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
         </div>
       )}
       {!loading && !error && binds.length > 0 && (
-        <div className="card" style={{ overflow: 'hidden', marginBottom: 14 }}>
+        <div className="card" style={{ overflow: 'hidden', marginBottom: 'var(--gx-space-7)' }}>
           <table className="grid">
             <thead>
               <tr>
@@ -201,7 +201,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
         </div>
       )}
       {!loading && !error && binds.length === 0 && (
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           {entities.length === 0
             ? 'No entities found. Define an entity first under Data → Models.'
             : <>No bindings yet — click <strong>Bind a component</strong> to connect data.</>}
@@ -217,7 +217,7 @@ export function DataBinding({ token }: { token?: string } = {}) {
           <div className="bm" style={{ color: 'var(--gx-danger-fg)' }}>{saveError}</div>
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-4)' }}>
         <Button variant="primary" size="sm"
             type="button"
           onClick={add}

@@ -339,7 +339,7 @@ export default function UsersPane({ token }: { token: string }) {
             <PlusIcon size={14} className="section-icon" /> New user
           </div>
           {createErr && <ErrorBanner message={createErr} />}
-          <div className="rec-form" style={{ marginBottom: 12 }}>
+          <div className="rec-form" style={{ marginBottom: 'var(--gx-space-6)' }}>
             <label className="field">
               <span>Name</span>
               <input
@@ -415,7 +415,7 @@ export default function UsersPane({ token }: { token: string }) {
           message="Create a user to get started."
         />
       ) : (
-        <div className="grid-wrap" style={{ marginBottom: 24 }}>
+        <div className="grid-wrap" style={{ marginBottom: 'var(--gx-space-12)' }}>
           <table className="grid studio">
             <thead>
               <tr>
@@ -440,23 +440,23 @@ export default function UsersPane({ token }: { token: string }) {
                   onClick={() => selectUser(u)}
                 >
                   <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                       <UserIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
                       {u.name}
                     </span>
                   </td>
                   <td><code className="mono">{u.email}</code></td>
                   <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-text-2)', fontSize: 13 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-text-2)', fontSize: 'var(--gx-text-13)' }}>
                       <BuildingIcon size={12} />
                       {nodeLabel(u.primary_node_id)}
                     </span>
                   </td>
                   <td>
                     {u.assignments.length === 0 ? (
-                      <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>—</span>
+                      <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>—</span>
                     ) : (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-2)' }}>
                         {u.assignments.map((a) => (
                           <span
                             key={a.id}
@@ -541,7 +541,7 @@ export default function UsersPane({ token }: { token: string }) {
         >
           <div className="section-head">
             <UserIcon size={14} className="section-icon" />
-            User detail — <strong style={{ marginLeft: 4 }}>{selected.name}</strong>
+            User detail — <strong style={{ marginLeft: 'var(--gx-space-2)' }}>{selected.name}</strong>
             <span className="spacer" />
             <Button variant="ghost" size="sm"
             onClick={() => setSelected(null)}
@@ -552,17 +552,17 @@ export default function UsersPane({ token }: { token: string }) {
           </div>
 
           {/* Identity card */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)', marginBottom: 16 }}>
-            <div style={{ fontSize: 13 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-8)' }}>
+            <div style={{ fontSize: 'var(--gx-text-13)' }}>
               <div style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                 <MailIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
                 <code className="mono">{selected.email}</code>
               </div>
             </div>
-            <div style={{ fontSize: 13 }}>
+            <div style={{ fontSize: 'var(--gx-text-13)' }}>
               <div style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Primary node</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                 <BuildingIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
                 {nodeLabel(selected.primary_node_id)}
               </div>
@@ -581,7 +581,7 @@ export default function UsersPane({ token }: { token: string }) {
               }}
             >
               {editErr && <ErrorBanner message={editErr} />}
-              <div className="rec-form" style={{ marginBottom: 10 }}>
+              <div className="rec-form" style={{ marginBottom: 'var(--gx-space-5)' }}>
                 <label className="field">
                   <span>Name</span>
                   <input
@@ -638,17 +638,17 @@ export default function UsersPane({ token }: { token: string }) {
               </div>
             </div>
           ) : (
-            <div className="row" style={{ marginBottom: 16 }}>
+            <div className="row" style={{ marginBottom: 'var(--gx-space-8)' }}>
               <Button variant="ghost" size="sm"
             onClick={() => setEditing(true)}>
                 <EditIcon size={13} /> Edit user
               </Button>
-              {editMsg && <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-success)', fontSize: 12 }}>{editMsg}</span>}
+              {editMsg && <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-success)', fontSize: 'var(--gx-text-sm)' }}>{editMsg}</span>}
             </div>
           )}
 
           {/* Assignments */}
-          <div className="section-head" style={{ marginTop: 4 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
             <ShieldIcon size={14} className="section-icon" />
             Roles
             <span className="spacer" />
@@ -680,7 +680,7 @@ export default function UsersPane({ token }: { token: string }) {
               }}
             >
               {addRoleErr && <ErrorBanner message={addRoleErr} />}
-              <div className="rec-form" style={{ marginBottom: 10 }}>
+              <div className="rec-form" style={{ marginBottom: 'var(--gx-space-5)' }}>
                 <label className="field">
                   <span>Role</span>
                   <select
@@ -733,7 +733,7 @@ export default function UsersPane({ token }: { token: string }) {
               No roles assigned. This user has no effective permissions until a role is bound.
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
               {selected.assignments.map((a) => (
                 <div
                   key={a.id}
@@ -748,10 +748,10 @@ export default function UsersPane({ token }: { token: string }) {
                   }}
                 >
                   <ShieldIcon size={13} style={{ color: 'var(--gx-text-3)' }} />
-                  <strong style={{ fontSize: 13 }}>{a.role_label}</strong>
+                  <strong style={{ fontSize: 'var(--gx-text-13)' }}>{a.role_label}</strong>
                   <code className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{a.role_key}</code>
-                  <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>at</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', fontSize: 13 }}>
+                  <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>at</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', fontSize: 'var(--gx-text-13)' }}>
                     <BuildingIcon size={12} style={{ color: 'var(--gx-text-3)' }} />
                     {a.node_name}
                     <code className="mono" style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{a.node_path}</code>

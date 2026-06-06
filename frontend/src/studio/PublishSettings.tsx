@@ -123,7 +123,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
     return (
       <div>
         {header}
-        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 13 }}>
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-13)' }}>
           Sign in to manage page publishing.
         </div>
       </div>
@@ -156,9 +156,9 @@ export function PublishSettings({ token }: { token?: string } = {}) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-7)', flexWrap: 'wrap' }}>
         <label className="lbl" style={{ margin: 0, flexShrink: 0 }}>Page</label>
         {loadingPages ? (
-          <span className="hint" style={{ fontSize: 12 }}>Loading pages…</span>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>Loading pages…</span>
         ) : pages.length === 0 && !creating ? (
-          <span className="hint" style={{ fontSize: 12 }}>No pages yet.</span>
+          <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>No pages yet.</span>
         ) : !creating ? (
           <select
             className="inp inp-sm"
@@ -188,7 +188,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
           style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', marginBottom: 'var(--gx-space-7)', display: 'flex', gap: 'var(--gx-space-5)', flexWrap: 'wrap', alignItems: 'flex-end' }}
         >
           <label className="field" style={{ flex: '1 1 140px', margin: 0 }}>
-            <span style={{ fontSize: 11 }}>Key *</span>
+            <span style={{ fontSize: 'var(--gx-text-11)' }}>Key *</span>
             <input
               className="inp inp-sm mono"
               placeholder="my-page"
@@ -198,7 +198,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
             />
           </label>
           <label className="field" style={{ flex: '1 1 180px', margin: 0 }}>
-            <span style={{ fontSize: 11 }}>Label *</span>
+            <span style={{ fontSize: 'var(--gx-text-11)' }}>Label *</span>
             <input
               className="inp inp-sm"
               placeholder="My Page"
@@ -210,7 +210,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
           {createError && (
             <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-danger-fg)' }}>{createError}</span>
           )}
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-3)' }}>
             <Button variant="primary" size="sm"
             type="submit" disabled={createSaving}>
               {createSaving ? 'Creating…' : 'Create'}
@@ -230,12 +230,12 @@ export function PublishSettings({ token }: { token?: string } = {}) {
         loadingDetail ? (
           <SkeletonRows rows={3} />
         ) : (
-          <div className="card card-pad" style={{ marginBottom: 14 }}>
+          <div className="card card-pad" style={{ marginBottom: 'var(--gx-space-7)' }}>
             {detail?.version ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
                 <div style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', flexWrap: 'wrap' }}>
                   <span className="lbl" style={{ margin: 0 }}>Current version</span>
-                  <span className="mono" style={{ fontSize: 13 }}>v{detail.version.version_no}</span>
+                  <span className="mono" style={{ fontSize: 'var(--gx-text-13)' }}>v{detail.version.version_no}</span>
                   <span className={`pill ${detail.version.status === 'published' ? 'pill-success' : 'pill-neutral'}`}>
                     {detail.version.status}
                   </span>
@@ -248,7 +248,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
                 </div>
               </div>
             ) : (
-              <p className="hint" style={{ margin: 0, fontSize: 13 }}>No versions yet — save a draft to get started.</p>
+              <p className="hint" style={{ margin: 0, fontSize: 'var(--gx-text-13)' }}>No versions yet — save a draft to get started.</p>
             )}
           </div>
         )
@@ -267,7 +267,7 @@ export function PublishSettings({ token }: { token?: string } = {}) {
       )}
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-2)' }}>
         <Button
           variant="secondary"
           type="button"

@@ -242,7 +242,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
                         onClick={() => toggleSort(c.key)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {c.label}
                           {sortKey === c.key
                             // D18: active sort indicator = azure (interactive cue)
@@ -338,7 +338,7 @@ function CategoryGroup<T extends string>({ title, categories, active, onPick }: 
 }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '4px 10px 4px 12px', background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 10 }}>
-      <span style={{ fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 4 }}>
+      <span style={{ fontSize: 'var(--gx-text-10)', fontWeight: 700, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginRight: 'var(--gx-space-2)' }}>
         {title}
       </span>
       {categories.map((c) => (

@@ -35,9 +35,9 @@ export default function CommentsTab({ token, entity, id }: { token: string; enti
 
   if (rows === undefined) {
     return (
-      <div className="card" style={{ padding: 14 }} aria-busy="true">
+      <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="kpi-tile-skeleton" style={{ height: 14, width: '100%', marginBottom: 10 }} />
+          <div key={i} className="kpi-tile-skeleton" style={{ height: 14, width: '100%', marginBottom: 'var(--gx-space-5)' }} />
         ))}
       </div>
     )
@@ -50,9 +50,9 @@ export default function CommentsTab({ token, entity, id }: { token: string; enti
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {rows.map((r) => (
           <li key={r.id} style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', borderBottom: '1px solid var(--gx-border)' }}>
-            <div style={{ fontSize: 13 }}>
+            <div style={{ fontSize: 'var(--gx-text-13)' }}>
               <strong>{r.author_name ?? r.author ?? 'Unknown'}</strong>
-              <span className="muted mono" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>{fmtDateTime(r.created_at)}</span>
+              <span className="muted mono" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)' }}>{fmtDateTime(r.created_at)}</span>
             </div>
             <div style={{ fontSize: 'var(--gx-text-13)', marginTop: 'var(--gx-space-2)', whiteSpace: 'pre-wrap' }}>
               {r.body ?? r.text ?? ''}

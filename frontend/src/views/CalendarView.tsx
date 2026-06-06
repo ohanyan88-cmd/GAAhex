@@ -263,8 +263,8 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     const todayIso = todayStr()
     return (
       <div className="minical">
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 600, fontSize: 13 }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--gx-space-4)' }}>
+          <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)' }}>{MONTH_NAMES[month].slice(0, 3)} {year}</span>
           <span className="spacer" />
           <button className="tb-icon" style={{ width: 26, height: 26 }} onClick={prev} aria-label="Previous month">
             <ChevronLeftIcon size={15} />
@@ -332,7 +332,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                       onClick={e => { e.stopPropagation(); openEdit(ev) }}
                     >
                       {!ev.all_day && (
-                        <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 4 }}>
+                        <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
                           {ev.start_at.slice(11, 16)}
                         </span>
                       )}
@@ -468,7 +468,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: tone, marginTop: 5, flexShrink: 0 }} />
                       <div style={{ fontSize: 'var(--gx-text-sm)', minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
-                        <div className="hint" style={{ fontSize: 11 }}>
+                        <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>
                           {MONTH_NAMES[d.getMonth()].slice(0, 3)} {d.getDate()}
                           {!e.all_day && e.start_at.length > 10 ? ` · ${e.start_at.slice(11, 16)}` : ''}
                         </div>
@@ -521,7 +521,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                             onClick={e => { e.stopPropagation(); openEdit(ev) }}
                           >
                             {!ev.all_day && ev.start_at.length > 10 && (
-                              <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 4 }}>
+                              <span className="mono" style={{ fontSize: 9, opacity: 0.85, marginRight: 'var(--gx-space-2)' }}>
                                 {ev.start_at.slice(11, 16)}
                               </span>
                             )}
@@ -596,7 +596,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
             />
           </div>
           <div className="field">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
               <input type="checkbox" checked={fAllDay} onChange={e => setFAllDay(e.target.checked)} />
               All day
             </label>
@@ -655,7 +655,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
                 <Button variant="ghost" size="sm"
             type="button"
                   
-                  style={{ padding: '0 8px', height: 24, fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 4 }}
+                  style={{ padding: '0 8px', height: 24, fontSize: 'var(--gx-text-11)', display: 'flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}
                   onClick={() => setFColor(null)}
                 >
                   <CloseIcon size={10} /> Clear

@@ -146,7 +146,7 @@ export default function NotificationBell({
         <div className="menu fade-fast notif-pop" onClick={(e) => e.stopPropagation()}>
           <div className="notif-head">
             <span style={{ fontWeight: 600, fontSize: 13.5 }}>Notifications</span>
-            {unread > 0 && <span className="badge" style={{ marginLeft: 8 }}>{unread}</span>}
+            {unread > 0 && <span className="badge" style={{ marginLeft: 'var(--gx-space-4)' }}>{unread}</span>}
             <span className="spacer" />
             <Button variant="ghost" size="sm" onClick={handleMarkAll} disabled={unread === 0}>
               Mark all read
@@ -155,7 +155,7 @@ export default function NotificationBell({
 
           <div className="notif-list">
             {items.length === 0 && (
-              <div className="stub" style={{ padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <div className="stub" style={{ padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-5)' }}>
                 <div className="si" style={{ width: 44, height: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gx-text-3)' }}>
                   <BellOff size={20} />
                 </div>
@@ -173,7 +173,7 @@ export default function NotificationBell({
                 >
                   <span className="notif-ic" style={{ color: tone }}><Icon size={16} /></span>
                   <span style={{ flex: 1, textAlign: 'left' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600 }}>{n.title}</span>
                       {isUnread && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gx-primary)', marginLeft: 'auto', flexShrink: 0 }} />}
                     </span>

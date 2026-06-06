@@ -170,10 +170,10 @@ function CreateDefModal({
       <form id="notif-def-create-form" onSubmit={submit}>
         {err && <ErrorBanner message={err} />}
 
-        <div className="section-head" style={{ marginTop: 4 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
           <RowsIcon size={15} className="section-icon" /> Identity
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-5)' }}>
           <label className="field">
             <span>Key (unique) *</span>
             <input
@@ -234,7 +234,7 @@ function CreateDefModal({
           </label>
         </div>
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <EditIcon size={15} className="section-icon" /> Templates
         </div>
         <label className="field">
@@ -245,7 +245,7 @@ function CreateDefModal({
             placeholder="New ticket: {subject}"
           />
         </label>
-        <label className="field" style={{ marginTop: 8 }}>
+        <label className="field" style={{ marginTop: 'var(--gx-space-4)' }}>
           <span>Body template *</span>
           <textarea
             className="inp inp-sm" rows={3} value={body}
@@ -258,7 +258,7 @@ function CreateDefModal({
           Placeholders in <code className="mono">{'{curly_braces}'}</code> resolve at emit time.
         </p>
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <ZapIcon size={15} className="section-icon" />
           {rulesView ? ' GXL condition (required)' : ' GXL condition (optional)'}
         </div>
@@ -551,7 +551,7 @@ function DetailDrawer({
       <div className="section-head" style={{ marginTop: 0 }}>
         <RowsIcon size={15} className="section-icon" /> Identity
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-5)' }}>
         <label className="field">
           <span>Key (immutable)</span>
           <input className="inp inp-sm mono" value={detail.key} disabled />
@@ -587,7 +587,7 @@ function DetailDrawer({
         </label>
         <label className="field" style={{ alignSelf: 'end' }}>
           <span>Enabled</span>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 'var(--gx-space-4)' }}>
             <input
               type="checkbox" checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
@@ -606,7 +606,7 @@ function DetailDrawer({
           onChange={(e) => setTitleT(e.target.value)}
         />
       </label>
-      <label className="field" style={{ marginTop: 8 }}>
+      <label className="field" style={{ marginTop: 'var(--gx-space-4)' }}>
         <span>Body template</span>
         <textarea
           className="inp inp-sm" rows={3} value={bodyT}
@@ -628,8 +628,8 @@ function DetailDrawer({
       </label>
 
       {metaErr && <ErrorBanner message={metaErr} />}
-      {metaMsg && <div className="hint" style={{ marginTop: 8 }}>{metaMsg}</div>}
-      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+      {metaMsg && <div className="hint" style={{ marginTop: 'var(--gx-space-4)' }}>{metaMsg}</div>}
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
         <Button variant="primary" size="sm"
             type="button" 
           onClick={saveMeta} disabled={savingMeta}>
@@ -650,7 +650,7 @@ function DetailDrawer({
           style={{ resize: 'vertical' }}
         />
       </label>
-      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
         <Button variant="ghost" size="sm"
             type="button" 
           onClick={runPreview} disabled={previewing}>
@@ -663,7 +663,7 @@ function DetailDrawer({
           <SendHorizontalIcon size={13} /> {sending ? 'Sending…' : 'Test send'}
         </Button>
       </div>
-      {previewErr && <div style={{ marginTop: 8 }}><ErrorBanner message={previewErr} /></div>}
+      {previewErr && <div style={{ marginTop: 'var(--gx-space-4)' }}><ErrorBanner message={previewErr} /></div>}
       {preview && (
         <div
           style={{
@@ -675,7 +675,7 @@ function DetailDrawer({
           <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered title
           </div>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>{preview.title}</div>
+          <div style={{ fontWeight: 600, marginBottom: 'var(--gx-space-4)' }}>{preview.title}</div>
           <div className="hint" style={{ marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Rendered body
           </div>
@@ -692,7 +692,7 @@ function DetailDrawer({
           }}
         >
           <strong>{sendResult.ok ? 'Test send delivered' : 'Test send not delivered'}</strong>
-          <div className="hint" style={{ marginTop: 2 }}>{sendResult.msg}</div>
+          <div className="hint" style={{ marginTop: 'var(--gx-space-1)' }}>{sendResult.msg}</div>
         </div>
       )}
 
@@ -708,7 +708,7 @@ function DetailDrawer({
           background: 'var(--gx-surface-2)',
         }}
       >
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 'var(--gx-space-4)' }}>
           <strong>Delete this notification def</strong>
         </div>
         <p className="hint" style={{ margin: '0 0 10px' }}>

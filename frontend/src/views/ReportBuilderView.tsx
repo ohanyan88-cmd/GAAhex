@@ -180,13 +180,13 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                   <input className="inp inp-md" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="status == 'NEW'" />
                 </label>
 
-                <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                   <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} />
                   <span>Shared with all members</span>
                 </label>
               </div>
 
-              <div className="rec-form-actions" style={{ marginTop: 12 }}>
+              <div className="rec-form-actions" style={{ marginTop: 'var(--gx-space-6)' }}>
                 <Button variant="ghost" size="md" onClick={() => setBuilding(false)}>Cancel</Button>
                 <Button variant="primary" size="md" onClick={save} disabled={!name.trim() || !entity}>Save report</Button>
               </div>
@@ -208,7 +208,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
               <div className="card-head">
                 <h3>Saved reports</h3>
               </div>
-              <div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
                 {reports.map((r) => (
                   <div
                     key={r.id}
@@ -233,7 +233,7 @@ export default function ReportBuilderView({ token, entities }: { token: string; 
                       }}
                     >
                       <span style={{ fontWeight: 600 }}>{r.name}</span>
-                      <span style={{ display: 'inline-flex', gap: 6 }}>
+                      <span style={{ display: 'inline-flex', gap: 'var(--gx-space-3)' }}>
                         <span className="pill pill-neutral pill-sm">{r.query.metric}</span>
                         {r.shared
                           ? <span className="pill pill-info pill-sm">shared</span>
@@ -293,7 +293,7 @@ function RunView({ run }: { run: RunResult }) {
   const total = groups.reduce((s, g) => s + g.value, 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-6)' }}>
       {isValue && (
         <div className="kpi-strip" style={{ marginBottom: 0 }}>
           <KPITile

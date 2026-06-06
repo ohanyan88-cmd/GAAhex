@@ -133,7 +133,7 @@ export default function PageSettingsPane({
         <p style={{ margin: '0 0 12px', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)' }}>
           Show or hide columns, rename their headers, and reorder them. The page's data and tools are unchanged.
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
           {descriptor.columns.map((col, i) => {
             const def = spec.defaultColumns.find((d) => d.key === col.key)
             return (
@@ -202,7 +202,7 @@ export default function PageSettingsPane({
       />
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', alignItems: 'center', paddingTop: 4 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)', alignItems: 'center', paddingTop: 'var(--gx-space-2)' }}>
         <Button variant="primary" size="md"
             type="button"  disabled={saving || !dirty} onClick={save}>
           {saving ? 'Saving…' : 'Save page settings'}
@@ -287,7 +287,7 @@ function CustomFieldsSection({
         <p style={{ margin: '0 0 8px', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)', fontStyle: 'italic' }}>No custom fields yet.</p>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
         {fields.map((f, i) => (
           <div
             key={f.key}
@@ -297,7 +297,7 @@ function CustomFieldsSection({
               borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
             }}
           >
-            <span style={{ flex: 1, minWidth: 0, fontSize: 13 }}>{f.label}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--gx-text-13)' }}>{f.label}</span>
             <span className="pill pill-muted" style={{ flexShrink: 0 }}>{f.type}</span>
             {f.type === 'select' && (
               <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--text-3)', flexShrink: 0 }}>{(f.options ?? []).join(', ') || '—'}</span>
@@ -335,7 +335,7 @@ function CustomFieldsSection({
                 <input className="inp inp-sm" value={options} onChange={(e) => setOptions(e.target.value)} placeholder="Low, High" />
               </label>
             )}
-            <div style={{ display: 'flex', gap: 'var(--gx-space-2)', paddingBottom: 2 }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-2)', paddingBottom: 'var(--gx-space-1)' }}>
               <Button variant="gold" size="sm"
             type="button"  onClick={commit}>
                 <CheckIcon size={13} /> {editing != null ? 'Save' : 'Add'}

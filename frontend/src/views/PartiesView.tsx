@@ -179,7 +179,7 @@ export default function PartiesView({ token, canConfigure = false, onConfigure }
                         onClick={() => toggleSort(k)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {k === 'type' ? t('parties.type', 'Type')
                            : k === 'name' ? t('common.name', 'Name')
                            : k === 'parent' ? t('parties.parent', 'Parent')

@@ -61,7 +61,7 @@ function BarChart({ data }: { data: { label: string; primary: number; secondary?
     <div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: 160 }}>
         {data.map(b => (
-          <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 2 }} title={b.label}>
+          <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 'var(--gx-space-1)' }} title={b.label}>
             {/* D18: primary revenue bar = drillable/active series → --gx-chart-active (= --gx-interactive). Gradient routed via --gx-interactive-hover → --gx-interactive-active to keep the depth cue without touching Tier-0 azure scales. */}
             <div style={{ height: `${b.primary / maxP * 82}%`, background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))', borderRadius: '4px 4px 0 0', minHeight: b.primary > 0 ? 4 : 0 }} />
             {b.secondary != null && b.secondary > 0 && (
@@ -102,7 +102,7 @@ function AreaChart({ data }: { data: { label: string; value: number }[] }) {
         <polygon points={area} fill="url(#areafill)" />
         <polyline points={polyline} fill="none" stroke="var(--gx-chart-active)" strokeWidth="2" strokeLinejoin="round" />
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', marginTop: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-2)' }}>
         <span>{data[0].label.slice(5)}</span>
         <span>{data[data.length - 1].label.slice(5)}</span>
       </div>
@@ -170,11 +170,11 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
       </svg>
       <div style={{ flex: 1, minWidth: 120 }}>
         {slices.map((sl, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 8 }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)' }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: sl.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 12 }}>{sl.label}</span>
+            <span style={{ flex: 1, fontSize: 'var(--gx-text-sm)' }}>{sl.label}</span>
             <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600 }}>{sl.value}</span>
-            <span className="muted" style={{ fontSize: 11 }}>{Math.round(sl.value / total * 100)}%</span>
+            <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{Math.round(sl.value / total * 100)}%</span>
           </div>
         ))}
       </div>
@@ -186,10 +186,10 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
 function HorizontalBarChart({ buckets }: { buckets: { label: string; value: number; color: string }[] }) {
   const max = Math.max(...buckets.map(b => b.value), 1)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-5)' }}>
       {buckets.map(b => (
         <div key={b.label}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)', fontSize: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)', fontSize: 'var(--gx-text-sm)' }}>
             <span>{b.label}</span>
             <span style={{ fontWeight: 600, color: b.color }}>{money(b.value)}</span>
           </div>
@@ -206,15 +206,15 @@ function HorizontalBarChart({ buckets }: { buckets: { label: string; value: numb
 function FunnelChart({ stages }: { stages: { label: string; value: number }[] }) {
   const max = stages[0]?.value || 1
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
       {stages.map((st, i) => {
         const pct = st.value / max * 100
         const convRate = i > 0 ? Math.round(st.value / stages[i - 1].value * 100) : 100
         return (
           <div key={st.label}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 'var(--gx-text-sm)' }}>
               <span>{st.label}</span>
-              <span style={{ display: 'flex', gap: 8 }}>
+              <span style={{ display: 'flex', gap: 'var(--gx-space-4)' }}>
                 <span style={{ fontWeight: 600 }}>{st.value.toLocaleString()}</span>
                 {i > 0 && <span className="muted">{convRate}%</span>}
               </span>
@@ -246,12 +246,12 @@ function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] }: {
     <div className="card" style={{ padding: '12px 18px', position: 'relative', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-3)' }}>
             <Icon size={13} />
-            <span className="muted" style={{ fontSize: 12 }}>{label}</span>
+            <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{label}</span>
           </div>
           <div style={{ fontSize: 26, fontWeight: 700, color: color ?? 'inherit', lineHeight: 1 }}>{value}</div>
-          {sublabel && <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 4 }}>{sublabel}</div>}
+          {sublabel && <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)' }}>{sublabel}</div>}
         </div>
         {trend.length > 1 && (
           <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, height: H, flexShrink: 0, opacity: 0.6 }}>
@@ -313,16 +313,16 @@ function GanttChart({ projects }: { projects: { id: string; name: string; start_
     'CANCELLED': 'var(--gx-danger)',
   }[s] ?? 'var(--gx-text-3)')
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', maxHeight: 280, overflowY: 'auto', padding: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', maxHeight: 280, overflowY: 'auto', padding: 'var(--gx-space-2)' }}>
       {projects.slice(0, 12).map(p => {
         const s = new Date(p.start_date).getTime()
         const e = new Date(p.due_date).getTime()
         const leftPct  = ((s - minT) / span) * 100
         const widthPct = Math.max(2, ((e - s) / span) * 100)
         return (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 11 }}>
+          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)' }}>
             <span style={{ width: 110, textAlign: 'right', color: 'var(--gx-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</span>
-            <div style={{ flex: 1, position: 'relative', height: 16, background: 'var(--gx-surface-2)', borderRadius: 3 }}>
+            <div style={{ flex: 1, position: 'relative', height: 16, background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-xs)' }}>
               <div title={`${p.start_date} to ${p.due_date} - ${p.status}`}
                 style={{
                   position: 'absolute', left: `${leftPct}%`, width: `${widthPct}%`,
@@ -352,7 +352,7 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
               background: i < 3 ? 'var(--gx-chart-active)' : 'var(--gx-chart-default)',
               borderRadius: '3px 3px 0 0',
             }} />
-            <span style={{ fontSize: 9, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{d.category}</span>
+            <span style={{ fontSize: 9, color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--gx-space-1)' }}>{d.category}</span>
           </div>
         ))}
         {/* Cumulative % overlay line */}
@@ -366,8 +366,8 @@ function ParetoChart({ data }: { data: { category: string; count: number; cum_pc
         </svg>
       </div>
       <div style={{ display: 'flex', gap: 'var(--gx-space-4)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
-        <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--gx-chart-active)', borderRadius: 2, marginRight: 4 }} />Top 3</span>
-        <span><span style={{ display: 'inline-block', width: 9, height: 2, background: 'var(--gx-gold)', verticalAlign: 'middle', marginRight: 4 }} />Cumulative %</span>
+        <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--gx-chart-active)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />Top 3</span>
+        <span><span style={{ display: 'inline-block', width: 9, height: 2, background: 'var(--gx-gold)', verticalAlign: 'middle', marginRight: 'var(--gx-space-2)' }} />Cumulative %</span>
         <span style={{ marginLeft: 'auto' }}>80% target line</span>
       </div>
     </div>
@@ -468,7 +468,7 @@ function GeoMap({ points }: { points: { id: string; kind: string; name: string; 
       </div>
       <div style={{ display: 'flex', gap: 'var(--gx-space-4)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', flexWrap: 'wrap' }}>
         {Object.entries(points.reduce((acc, p) => { acc[p.kind] = (acc[p.kind] || 0) + 1; return acc }, {} as Record<string, number>)).map(([k, n]) => (
-          <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: kindColor(k) }} />
             {k.replace(/_/g, ' ')} ({n})
           </span>
@@ -504,9 +504,9 @@ function NetGrowthChart({ data }: { data: { week: string; new: number; churned: 
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
         <span>Net change: {data.reduce((s, d) => s + d.net, 0)}</span>
-        <span style={{ display: 'flex', gap: 10 }}>
-          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success)', borderRadius: 2, marginRight: 4 }} />New</span>
-          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-danger)', borderRadius: 2, marginRight: 4 }} />Churned</span>
+        <span style={{ display: 'flex', gap: 'var(--gx-space-5)' }}>
+          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-success)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />New</span>
+          <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--gx-danger)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />Churned</span>
         </span>
       </div>
     </div>
@@ -533,14 +533,14 @@ function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number) => n.
   return (
     <div className="card" style={{ padding: '14px 18px' }}>
       <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginBottom: 'var(--gx-space-3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 'var(--gx-space-2)' }}>
         <span style={{ fontSize: 'var(--gx-text-2xl)', fontWeight: 700 }}>{formatter(thisVal)}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 'var(--gx-text-sm)', fontWeight: 600, color }}>
           {!flat && (up ? <TrendingUp size={12} /> : <TrendingDown size={12} />)}
           {flat ? '—' : `${pctDelta > 0 ? '+' : ''}${pctDelta.toFixed(1)}%`}
         </span>
       </div>
-      <div className="muted" style={{ fontSize: 11 }}>vs {formatter(lastVal)} prior</div>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>vs {formatter(lastVal)} prior</div>
     </div>
   )
 }
@@ -631,7 +631,7 @@ function HeatmapChart({ data }: { data: { date: string; count: number; amount: n
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
         <span>Less</span>
-        <div style={{ display: 'flex', gap: 2 }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-1)' }}>
           {[0.15, 0.35, 0.55, 0.75, 1].map(i => (
             <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(59,130,246,${i})` }} />
           ))}
@@ -673,7 +673,7 @@ function StackedBarChart({ buckets }: {
 // Status row — small horizontal bar per status
 function StatusBreakdown({ buckets, total }: { buckets: { label: string; value: number; color: string }[]; total: number }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
       {buckets.map(b => {
         const pct = total > 0 ? (b.value / total) * 100 : 0
         return (
@@ -868,7 +868,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     color: PLAN_COLORS[i % PLAN_COLORS.length],
                   }))} />
                 )}
-                {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No subscription data</div>}
+                {subMix.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No subscription data</div>}
               </DashboardCard>
             )}
           </div>
@@ -899,7 +899,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 series2Label="Churns"
               />
             )}
-            {customerData.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No customer activity data</div>}
+            {customerData.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No customer activity data</div>}
           </DashboardCard>
           )}
         </div>
@@ -922,7 +922,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                   { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger)' },
                 ].filter(b => b.value > 0)} />
               )}
-              {arAging.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No outstanding AR</div>}
+              {arAging.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No outstanding AR</div>}
             </DashboardCard>
           )}
 
@@ -941,7 +941,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           <DashboardCard title="Sales Funnel" icon={ArrowRight}>
             {funnel.state === 'loading' && <ChartSkeleton h={100} />}
             {funnel.state === 'ok' && <FunnelChart stages={funnel.value} />}
-            {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No pipeline data</div>}
+            {funnel.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No pipeline data</div>}
           </DashboardCard>
           )}
         </div>
@@ -1037,7 +1037,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                 ]}
               />
             )}
-            {weekly.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No weekly data</div>}
+            {weekly.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No weekly data</div>}
           </DashboardCard>
           )}
 
@@ -1045,7 +1045,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           <DashboardCard title="Daily Payment Heatmap" icon={Activity}>
             {heatmap.state === 'loading' && <ChartSkeleton h={130} />}
             {heatmap.state === 'ok' && <HeatmapChart data={heatmap.value} />}
-            {heatmap.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No payment activity</div>}
+            {heatmap.state === 'hide' && <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No payment activity</div>}
           </DashboardCard>
           )}
         </div>
@@ -1147,7 +1147,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: '16-30 days', value: taskAging.value.d16_30,   color: 'var(--gx-warning)' },
                     { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
-                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 8 }}>Open workitems by age</div>
+                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)' }}>Open workitems by age</div>
                 </DashboardCard>
               )}
 
@@ -1160,13 +1160,13 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     { label: '16-30 days', value: ticketAging.value.d16_30,   color: 'var(--gx-warning)' },
                     { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
-                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 8 }}>Open tickets by age</div>
+                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)' }}>Open tickets by age</div>
                 </DashboardCard>
               )}
 
               {isShown('risk-heatmap') && riskHeatmap.state === 'ok' && (
                 <DashboardCard title="Risk Heat Map" icon={AlertTriangle}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: 3, padding: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: 3, padding: 'var(--gx-space-3)' }}>
                     <div></div>
                     {['Low', 'Medium', 'High'].map(im => (
                       <div key={im} style={{ fontSize: 'var(--gx-text-10)', textAlign: 'center', color: 'var(--gx-text-3)', padding: '4px 0' }}>{im}</div>
@@ -1207,7 +1207,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
               {isShown('salesperson-rank') && salesByUser.state === 'ok' && (
                 <DashboardCard title="Customers by Account Manager" icon={Users}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
                     {Object.entries(salesByUser.value)
                       .sort((a, b) => Number(b[1]) - Number(a[1]))
                       .slice(0, 10)
@@ -1249,7 +1249,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               )}
               {isShown('gantt') && gantt.state === 'hide' && (
                 <DashboardCard title="Project Gantt" icon={Calendar}>
-                  <div className="muted" style={{ padding: '18px', fontSize: 13 }}>No projects with start/due dates</div>
+                  <div className="muted" style={{ padding: '18px', fontSize: 'var(--gx-text-13)' }}>No projects with start/due dates</div>
                 </DashboardCard>
               )}
 
@@ -1285,7 +1285,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {selected.size === 0 && (
           <div style={{ padding: 60, textAlign: 'center', color: 'var(--gx-text-3)' }}>
             <Settings size={40} style={{ marginBottom: 'var(--gx-space-5)', opacity: 0.4 }} />
-            <p style={{ fontSize: 14 }}>No charts selected. Click <strong>Customize</strong> above to choose what to display.</p>
+            <p style={{ fontSize: 'var(--gx-text-md)' }}>No charts selected. Click <strong>Customize</strong> above to choose what to display.</p>
           </div>
         )}
 

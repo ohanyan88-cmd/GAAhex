@@ -43,9 +43,9 @@ export default function TimelineTab({ token, entity, id }: { token: string; enti
 
   if (rows === undefined) {
     return (
-      <div className="card" style={{ padding: 14 }} aria-busy="true">
+      <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 10 }} />
+          <div key={i} className="kpi-tile-skeleton" style={{ height: 12, width: '100%', marginBottom: 'var(--gx-space-5)' }} />
         ))}
       </div>
     )
@@ -58,12 +58,12 @@ export default function TimelineTab({ token, entity, id }: { token: string; enti
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {rows.map((r) => (
           <li key={r.id} style={{ padding: 'var(--gx-space-6) var(--gx-space-7)', borderBottom: '1px solid var(--gx-border)' }}>
-            <div style={{ fontSize: 13 }}>
+            <div style={{ fontSize: 'var(--gx-text-13)' }}>
               <strong>{r.action ?? 'event'}</strong>
-              {r.actor && <span className="muted" style={{ marginLeft: 6 }}>· {r.actor}</span>}
+              {r.actor && <span className="muted" style={{ marginLeft: 'var(--gx-space-3)' }}>· {r.actor}</span>}
             </div>
-            {r.message && <div className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 2 }}>{r.message}</div>}
-            <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 4 }}>{fmtDateTime(r.at ?? r.created_at)}</div>
+            {r.message && <div className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 'var(--gx-space-1)' }}>{r.message}</div>}
+            <div className="muted mono" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)' }}>{fmtDateTime(r.at ?? r.created_at)}</div>
           </li>
         ))}
       </ul>

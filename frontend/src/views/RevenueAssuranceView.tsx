@@ -722,7 +722,7 @@ export default function RevenueAssuranceView({
               </>
             }
           >
-            <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label className="field" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
               <span>
                 Resolution{actionModal.kind === 'resolve' ? ' *' : ' (optional)'}
               </span>
@@ -898,7 +898,7 @@ function FindingsTab(props: {
 
       {/* KPI strip — derived client-side from loaded list */}
       {state.state === 'ok' && (
-        <div className="kpi-strip" style={{ marginBottom: 16 }}>
+        <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-8)' }}>
           <KPITile
             label="Open"
             value={kpiCounts.open}
@@ -991,11 +991,11 @@ function FindingsTab(props: {
                         />
                       </td>
                       <td>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
                           <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase' }}>
                             {f.entity_type}
                           </span>
-                          <span className="mono" style={{ fontSize: 12 }}>
+                          <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>
                             {f.entity_id ? f.entity_id.slice(0, 8) : '—'}
                           </span>
                         </span>
@@ -1054,7 +1054,7 @@ function FindingsTab(props: {
                 : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} of ${totalRows}`}
             </span>
             <span className="spacer" />
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>
               <Button variant="ghost" size="sm" iconOnly
             disabled={page <= 1}
                 onClick={() => onPage(Math.max(1, page - 1))}
@@ -1097,7 +1097,7 @@ function FilterSelect({ label, value, onChange, options }: {
         className="inp inp-sm"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ fontSize: 12 }}
+        style={{ fontSize: 'var(--gx-text-sm)' }}
       >
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
@@ -1229,7 +1229,7 @@ function FindingDrawer(props: {
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
         {/* Summary text */}
         <section>
           <div style={drawerSectionTitleStyle}>Summary</div>
@@ -1241,13 +1241,13 @@ function FindingDrawer(props: {
         {/* Entity context card */}
         <section style={drawerCardStyle}>
           <div style={drawerSectionTitleStyle}>Entity context</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', fontSize: 13 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-13)' }}>
             <div>
               <span style={drawerLabelStyle}>Entity</span>
-              <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 6 }}>
+              <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 'var(--gx-space-3)' }}>
                 {f.entity_type}
               </span>
-              <span className="mono" style={{ fontSize: 12 }} title={f.entity_id}>
+              <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={f.entity_id}>
                 {f.entity_id ? f.entity_id.slice(0, 8) : '—'}
               </span>
             </div>
@@ -1257,7 +1257,7 @@ function FindingDrawer(props: {
                 <span style={drawerLabelStyle}>Customer</span>
                 {customer.name
                   ? <span style={{ color: 'var(--gx-text-1)' }}>{customer.name}</span>
-                  : <span className="mono" style={{ fontSize: 12 }} title={customer.id}>{customer.id.slice(0, 8)}</span>}
+                  : <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={customer.id}>{customer.id.slice(0, 8)}</span>}
               </div>
             )}
 
@@ -1278,7 +1278,7 @@ function FindingDrawer(props: {
             <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
               {f.ack_by && (
                 <>
-                  <span className="mono" style={{ fontSize: 12 }} title={f.ack_by}>{f.ack_by.slice(0, 8)}</span>
+                  <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={f.ack_by}>{f.ack_by.slice(0, 8)}</span>
                   <span> · </span>
                 </>
               )}
@@ -1296,7 +1296,7 @@ function FindingDrawer(props: {
             <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
               {f.resolved_by && (
                 <>
-                  <span className="mono" style={{ fontSize: 12 }} title={f.resolved_by}>{f.resolved_by.slice(0, 8)}</span>
+                  <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={f.resolved_by}>{f.resolved_by.slice(0, 8)}</span>
                   <span> · </span>
                 </>
               )}
@@ -1371,7 +1371,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
           <span style={drawerLabelStyle}>Activated</span>
           <span title={activatedAt}>
             {timeAgo(activatedAt) || fmtDate(activatedAt)}
-            <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)', fontSize: 11 }}>{activatedAt}</span>
+            <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-11)' }}>{activatedAt}</span>
           </span>
         </div>
       )}
@@ -1385,7 +1385,7 @@ function DetailJsonFields({ detail }: { detail: Record<string, any> | null | und
       )}
       {restHasContent && (
         <div>
-          <div style={{ ...drawerLabelStyle, marginBottom: 4 }}>Other</div>
+          <div style={{ ...drawerLabelStyle, marginBottom: 'var(--gx-space-2)' }}>Other</div>
           <pre style={{
             margin: 0,
             padding: 'var(--gx-space-3)',
@@ -1428,7 +1428,7 @@ function StatusFlow({ current }: { current: FindingStatus }) {
         const reached = order[s.key] <= currentIdx
         const isCurrent = s.key === current
         return (
-          <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',

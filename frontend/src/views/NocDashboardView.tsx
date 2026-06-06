@@ -218,7 +218,7 @@ function NMSCard({
     <div className="nms-card">
       <div className="nms-card-header">
         <div className="nms-card-title">{title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
           {action}
           {status !== 'live' && (
             <span className="nms-card-preview-tag" title="This widget shows sample data while we finalize the design.">
@@ -281,7 +281,7 @@ function ValueBlock({ label, value, sub, variant = 'default' }: {
       variant === 'red'   ? 'nms-value-red'   : ''
     )
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
       <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--gx-font-mono, monospace)' }}>{label}</div>
       <div className={valueCls}>{value}</div>
       {sub && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)' }}>{sub}</div>}
@@ -418,7 +418,7 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const max = Math.max(...SAMPLE_OPTICAL_RX.map(b => b.count))
   return (
     <NMSCard title="Optical RX Power Distribution" status="pending">
-      <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-around', gap: 'var(--nms-sp-3)', height: 200, paddingTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-around', gap: 'var(--nms-sp-3)', height: 200, paddingTop: 'var(--gx-space-8)' }}>
         {SAMPLE_OPTICAL_RX.map(b => {
           const h = (b.count / max) * 160
           // Neutral by default; gold only for the Critical bucket.
@@ -438,7 +438,7 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
               }}
             >
               <div style={{ fontSize: 'var(--gx-text-md)', fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, color }}>{b.count}</div>
-              <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 4 }} />
+              <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 'var(--gx-space-2)' }} />
               <div style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{b.label}</div>
               <div style={{ fontSize: 'var(--gx-text-10)', color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
             </button>
@@ -508,7 +508,7 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer }) => {
           )
         })}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 4 }}>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 'var(--gx-space-2)' }}>
         Peak Port Capacity: <b style={{ color: 'var(--nms-accent-gold)' }}>ArmGponOLT2 / {peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
       </div>
     </NMSCard>
@@ -556,7 +556,7 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
           <text x={SIZE/2} y={SIZE/2 - 6} textAnchor="middle" fontSize="22" fontWeight="600" fill="var(--nms-text)" fontFamily="var(--gx-font-display, sans-serif)">{total}</text>
           <text x={SIZE/2} y={SIZE/2 + 14} textAnchor="middle" fontSize="10" fill="var(--nms-text-3)" letterSpacing="0.08em">ONUs</text>
         </svg>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
           {SAMPLE_VENDOR_MIX.map((v, i) => {
             const pct = Math.round((v.count / total) * 100)
             return (
@@ -683,7 +683,7 @@ const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const max = Math.max(...SAMPLE_PROFILES.map(p => p.count))
   return (
     <NMSCard title="Service Profiles Breakdown" status="live">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
         {SAMPLE_PROFILES.map(p => (
           <button key={p.name}
             type="button"
@@ -743,13 +743,13 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer }) => {
     k === 'bng'        ? 'nms-pill-red'  : ''
   return (
     <NMSCard title="Global Segmentation · VLAN / BNG" status="live">
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)' }}>
         {SAMPLE_SEGMENTS.map(s => (
           <button key={s.id}
             type="button"
             onClick={() => openDrawer({ kind: 'segment', id: s.id, label: s.label })}
             className={'nms-pill ' + kindColor(s.kind)}
-            style={{ cursor: 'pointer', fontSize: 11 }}
+            style={{ cursor: 'pointer', fontSize: 'var(--gx-text-11)' }}
           >
             {s.label}
           </button>
@@ -836,7 +836,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 {o.label}
               </button>
               {oltId === o.id && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-4)', marginTop: 2 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-4)', marginTop: 'var(--gx-space-1)' }}>
                   {o.ports.map(p => (
                     <button key={p.id}
                       type="button"
@@ -959,10 +959,10 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
           )
         })}
       </svg>
-      <div style={{ display: 'flex', gap: 'var(--nms-sp-4)', fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', justifyContent: 'center', marginTop: 4 }}>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 4 }} /> Operational</span>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 4 }} /> Warning</span>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 4 }} /> Outage</span>
+      <div style={{ display: 'flex', gap: 'var(--nms-sp-4)', fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', justifyContent: 'center', marginTop: 'var(--gx-space-2)' }}>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 'var(--gx-space-2)' }} /> Operational</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 'var(--gx-space-2)' }} /> Warning</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 'var(--gx-space-2)' }} /> Outage</span>
       </div>
     </NMSCard>
   )

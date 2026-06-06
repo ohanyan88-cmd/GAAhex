@@ -187,13 +187,13 @@ export default function RolesPane({ token }: { token: string }) {
       {showCreate && (
         <form
           onSubmit={createRole}
-          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: 'var(--gx-space-7) var(--gx-space-8)', marginBottom: 16 }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: 'var(--gx-space-7) var(--gx-space-8)', marginBottom: 'var(--gx-space-8)' }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <PlusIcon size={14} className="section-icon" /> New role
           </div>
           {createErr && <ErrorBanner message={createErr} />}
-          <div className="rec-form" style={{ marginBottom: 12 }}>
+          <div className="rec-form" style={{ marginBottom: 'var(--gx-space-6)' }}>
             <label className="field">
               <span>Key (snake_case)</span>
               <input className="inp inp-md" value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="billing_agent" required />
@@ -230,7 +230,7 @@ export default function RolesPane({ token }: { token: string }) {
           message="Create a role to start managing permissions."
         />
       ) : (
-        <div className="grid-wrap" style={{ marginBottom: 24 }}>
+        <div className="grid-wrap" style={{ marginBottom: 'var(--gx-space-12)' }}>
           <table className="grid studio">
             <thead>
               <tr>
@@ -251,7 +251,7 @@ export default function RolesPane({ token }: { token: string }) {
                   <td><code className="mono">{role.key}</code></td>
                   <td>{role.label}</td>
                   <td>
-                    <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                    <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
                       {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
                     </span>
                   </td>
@@ -301,7 +301,7 @@ export default function RolesPane({ token }: { token: string }) {
         <div>
           <div className="section-head">
             <LockIcon size={14} className="section-icon" />
-            Permissions for <strong style={{ marginLeft: 4 }}>{selected.label}</strong>
+            Permissions for <strong style={{ marginLeft: 'var(--gx-space-2)' }}>{selected.label}</strong>
             <span className="spacer" />
             <Button variant="gold" size="sm"
             onClick={savePerms}
@@ -327,13 +327,13 @@ export default function RolesPane({ token }: { token: string }) {
             <p className="hint">No permissions defined. They are created automatically when entities are added.</p>
           ) : (
             Object.entries(grouped).map(([group, perms]) => (
-              <div key={group} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 6 }}>
+              <div key={group} style={{ marginBottom: 'var(--gx-space-8)' }}>
+                <div style={{ fontSize: 'var(--gx-text-11)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                   {group}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 24px' }}>
                   {perms.map((p) => (
-                    <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', cursor: 'pointer', fontSize: 13 }}>
+                    <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', cursor: 'pointer', fontSize: 'var(--gx-text-13)' }}>
                       <input
                         type="checkbox"
                         checked={editPerms.has(p.key)}

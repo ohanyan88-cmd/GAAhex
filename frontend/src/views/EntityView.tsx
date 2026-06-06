@@ -662,9 +662,9 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           </div>
 
           {/* Filter bar: by select field and/or by individual status */}
-          <div className="list-toolbar" style={{ marginBottom: 14 }}>
+          <div className="list-toolbar" style={{ marginBottom: 'var(--gx-space-7)' }}>
             {selectFields.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 {selectFields.length > 1 && (
                   <select
                     className="inp inp-sm"
@@ -679,7 +679,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                   </select>
                 )}
                 {selectFields.length === 1 && (
-                  <span className="muted" style={{ fontSize: 12 }}>{activeFilterFieldDef?.label ?? 'Type'}</span>
+                  <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{activeFilterFieldDef?.label ?? 'Type'}</span>
                 )}
                 <select
                   className="inp inp-sm"
@@ -696,8 +696,8 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
               </div>
             )}
             {statusTab === 'all' && (def.statuses ?? []).length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="muted" style={{ fontSize: 12 }}>Status</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
+                <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>Status</span>
                 <select
                   className="inp inp-sm"
                   aria-label="Filter by status"
@@ -793,7 +793,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={`Search ${def.label_plural.toLowerCase()}`}
                 aria-label={`Search ${def.label_plural}`}
-                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)' }}
               />
               {q && (
                 <button className="iconbtn" aria-label="Clear search" onClick={() => setQ('')} style={{ width: 22, height: 22 }}>
@@ -803,8 +803,8 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
             </div>
             <span className="spacer" />
             {viewsAvailable && (
-              <div className="saved-views" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="muted" style={{ fontSize: 12 }}>View:</span>
+              <div className="saved-views" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
+                <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>View:</span>
                 <select
                   className="inp inp-sm"
                   style={{ width: 160 }}
@@ -963,7 +963,7 @@ export default function EntityView({ token, slug, onOpenCustomer, capabilities =
           {/* B22: pager — only shown when X-Total-Count was returned and total > PAGE_SIZE */}
           {total !== null && total > PAGE_SIZE && (
             <div className="table-foot" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
-              <span style={{ color: 'var(--gx-text-3)', fontSize: 12 }} aria-live="polite">
+              <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }} aria-live="polite">
                 {t('pager.info', '{from}–{to} / {total}')
                   .replace('{from}', String(offset + 1))
                   .replace('{to}', String(Math.min(offset + PAGE_SIZE, total)))

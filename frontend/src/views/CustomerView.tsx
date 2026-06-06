@@ -405,9 +405,9 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
             {[0, 1, 2].map((i) => (
               <div key={i}>
                 <div className="kpi-tile-skeleton" style={{ height: 14, width: 140, margin: '18px 0 10px' }} />
-                <div className="card" style={{ padding: 14 }}>
-                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '92%', marginBottom: 8 }} />
-                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 8 }} />
+                <div className="card" style={{ padding: 'var(--gx-space-7)' }}>
+                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '92%', marginBottom: 'var(--gx-space-4)' }} />
+                  <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%', marginBottom: 'var(--gx-space-4)' }} />
                   <div className="kpi-tile-skeleton" style={{ height: 12, width: '60%' }} />
                 </div>
               </div>
@@ -644,7 +644,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
             <div className="section-head">
               <PhoneIcon size={16} className="section-icon" />
               {t('nav.interactions', 'Interactions')}
-              <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>· {t('common.embedded', 'embedded view')}</span>
+              <span className="muted" style={{ fontWeight: 400, fontSize: 'var(--gx-text-sm)' }}>· {t('common.embedded', 'embedded view')}</span>
             </div>
             <InteractionsView token={token} customerId={customerId} embedded />
           </>
@@ -726,9 +726,9 @@ function FinancialSummaryCard({
   // Skeleton while accounts is loading.
   if (accounts === undefined) {
     return (
-      <div className="card" style={{ padding: 14 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
-        <div className="kpi-tile-skeleton" style={{ height: 12, width: '40%', marginBottom: 10 }} />
-        <div className="kpi-tile-skeleton" style={{ height: 18, width: '60%', marginBottom: 8 }} />
+      <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+        <div className="kpi-tile-skeleton" style={{ height: 12, width: '40%', marginBottom: 'var(--gx-space-5)' }} />
+        <div className="kpi-tile-skeleton" style={{ height: 18, width: '60%', marginBottom: 'var(--gx-space-4)' }} />
         <div className="kpi-tile-skeleton" style={{ height: 12, width: '80%' }} />
       </div>
     )
@@ -780,10 +780,10 @@ function FinancialSummaryCard({
   }
 
   return (
-    <div className="card" style={{ padding: 14 }}>
+    <div className="card" style={{ padding: 'var(--gx-space-7)' }}>
       {/* Toolbar: account picker (when 2+) + consolidated toggle (when subtree data exists). */}
       {(accounts.length > 1 || consolidated) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap', marginBottom: 'var(--gx-space-6)' }}>
           {accounts.length > 1 && !showConsolidated && (
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-2)' }}>
               <span>{t('cust.account', 'Account')}</span>
@@ -810,7 +810,7 @@ function FinancialSummaryCard({
               <span>
                 {t('cust.consolidated', 'Consolidated subtree')}
                 {consolidated.subtree_size > 0 && (
-                  <span className="muted" style={{ marginLeft: 4 }}>· {consolidated.subtree_size}</span>
+                  <span className="muted" style={{ marginLeft: 'var(--gx-space-2)' }}>· {consolidated.subtree_size}</span>
                 )}
               </span>
             </label>
@@ -819,9 +819,9 @@ function FinancialSummaryCard({
       )}
 
       {/* Three-up money summary. Grid auto-wraps on narrow viewports. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--gx-space-7)' }}>
         <div>
-          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 'var(--gx-space-2)' }}>
             {isConsolidated ? t('cust.consolidatedBalance', 'Consolidated balance') : t('cust.balance', 'Balance')}
           </div>
           <div className="mono tnum" style={{ fontSize: 20, fontWeight: 600, color: balanceTone(current) }}>
@@ -831,14 +831,14 @@ function FinancialSummaryCard({
             const n = decimalNum(current)
             if (n === 0) return null
             return (
-              <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 2 }}>
+              <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-1)' }}>
                 {n < 0 ? t('cust.owes', 'Owes') : t('cust.credit', 'Credit')}
               </div>
             )
           })()}
         </div>
         <div>
-          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 'var(--gx-space-2)' }}>
             {t('cust.creditLimit', 'Credit limit')}
           </div>
           <div className="mono tnum" style={{ fontSize: 'var(--gx-text-lg)', color: 'var(--gx-text-2)' }}>
@@ -846,14 +846,14 @@ function FinancialSummaryCard({
           </div>
         </div>
         <div>
-          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 }}>
+          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 'var(--gx-space-2)' }}>
             {t('cust.availableCredit', 'Available credit')}
           </div>
-          <div className="mono tnum" style={{ fontSize: 16 }}>
+          <div className="mono tnum" style={{ fontSize: 'var(--gx-text-lg)' }}>
             {moneyDecimal(available)}
           </div>
           {pct !== null && (
-            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 2 }}>
+            <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-1)' }}>
               {pct}% {t('cust.ofLimit', 'of limit')}
             </div>
           )}
@@ -862,7 +862,7 @@ function FinancialSummaryCard({
 
       {/* Last computed footer — muted, single line. Only shown for per-account snapshots; the
           consolidated endpoint doesn't carry a single updated_at. */}
-      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 12 }}>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-6)' }}>
         {isConsolidated
           ? t('cust.consolidatedNote', 'Aggregated across subtree accounts.')
           : updatedAt
@@ -970,9 +970,9 @@ function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
   // Loading skeleton — 4 shimmering rows so the tab visually communicates "data incoming".
   if (rows === undefined) {
     return (
-      <div className="card" style={{ padding: 14 }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
+      <div className="card" style={{ padding: 'var(--gx-space-7)' }} aria-busy="true" aria-label={t('common.loading', 'Loading…')}>
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} style={{ display: 'flex', gap: 'var(--gx-space-4)', marginBottom: 10 }}>
+          <div key={i} style={{ display: 'flex', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-5)' }}>
             <div className="kpi-tile-skeleton" style={{ height: 12, flex: 2 }} />
             <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
             <div className="kpi-tile-skeleton" style={{ height: 12, flex: 1 }} />
@@ -1168,7 +1168,7 @@ function SlasTabBody({ rows, t }: { rows: SlaRow[]; t: (k: string, fb?: string) 
                 <td>
                   <span className="mono">{fmtDate(tk.sla_due_at)}</span>
                   {tk.sla_due_at && (
-                    <span className="muted" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>{relTime(tk.sla_due_at)}</span>
+                    <span className="muted" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)' }}>{relTime(tk.sla_due_at)}</span>
                   )}
                 </td>
                 <td>{tk.sla_breached

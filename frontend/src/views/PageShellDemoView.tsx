@@ -226,13 +226,13 @@ function CommunicationDemo() {
       kpis={ZERO_KPIS.slice(0, 3)}
       primaryAction={{ label: 'Compose', onClick: () => {} }}
     >
-      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
         Thread list (no data yet)
       </div>
-      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <div style={{ borderRight: '1px solid var(--gx-border)', padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
         Selected thread (none)
       </div>
-      <div style={{ padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <div style={{ padding: 'var(--gx-space-5)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
         Context (no record selected)
       </div>
     </PageShell>
@@ -253,11 +253,11 @@ function ConfigurationDemo() {
       secondaryActions={[{ label: 'Discard', onClick: () => {} }]}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-5)', maxWidth: 720 }}>
-        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', padding: 16 }}>
+        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', padding: 'var(--gx-space-8)' }}>
           <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 'var(--gx-text-md)', color: 'var(--gx-text-1)' }}>Section A</h3>
           <p style={{ margin: '4px 0 0', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>
         </div>
-        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', padding: 16 }}>
+        <div style={{ background: 'var(--gx-surface)', border: '1px solid var(--gx-border)', borderRadius: 'var(--gx-radius-md)', padding: 'var(--gx-space-8)' }}>
           <h3 style={{ margin: 0, fontFamily: 'var(--gx-font-display)', fontSize: 'var(--gx-text-md)', color: 'var(--gx-text-1)' }}>Section B</h3>
           <p style={{ margin: '4px 0 0', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>Settings cards land here when a page migrates onto PageShell.</p>
         </div>

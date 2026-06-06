@@ -128,13 +128,13 @@ export default function OrgIdentity({ token }: { token: string }) {
           <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: '2px 4px 10px' }}>
             Company identity
           </div>
-          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 'var(--gx-space-7)' }}>
             {draftLogo
               ? <img src={draftLogo} alt="" style={{ width: 46, height: 46, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
               : <span style={{ width: 46, height: 46, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-lg)', fontWeight: 700, color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
                   {initialsOf(draftName)}
                 </span>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
               <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
                 <Upload size={13} />Upload logo
               </Button>
@@ -146,7 +146,7 @@ export default function OrgIdentity({ token }: { token: string }) {
             </div>
             <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} style={{ display: 'none' }} />
           </div>
-          <label className="field" style={{ marginBottom: 14 }}>
+          <label className="field" style={{ marginBottom: 'var(--gx-space-7)' }}>
             <span>Company name</span>
             <input
               className="inp inp-sm"

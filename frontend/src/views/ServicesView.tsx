@@ -200,7 +200,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
         {error && <ErrorBanner message={error} onRetry={load} />}
         {list === null && !error && (
-          <div className="card" style={{ padding: 14 }}>
+          <div className="card" style={{ padding: 'var(--gx-space-7)' }}>
             <SkeletonRows rows={6} />
           </div>
         )}
@@ -224,7 +224,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
                         onClick={() => toggleSort(c.key)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {c.label}
                           {sortKey === c.key
                             // D18: active sort indicator = azure (interactive cue)

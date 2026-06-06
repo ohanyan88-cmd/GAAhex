@@ -18,7 +18,7 @@ export function Sec({ icon, title, hint, right }: SecProps) {
       <span className="section-icon" style={{ display: 'inline-flex' }}>{icon}</span>
       {title}
       {hint && (
-        <span className="hint" style={{ fontWeight: 400, marginLeft: 6 }}>· {hint}</span>
+        <span className="hint" style={{ fontWeight: 400, marginLeft: 'var(--gx-space-3)' }}>· {hint}</span>
       )}
       {right && (
         <>

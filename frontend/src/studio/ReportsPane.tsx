@@ -203,7 +203,7 @@ function ReportsList({ token }: { token: string }) {
                     <tr key={r.id}>
                       <td>
                         <strong>{r.name}</strong>
-                        {r.description && <div className="hint" style={{ fontSize: 11 }}>{r.description}</div>}
+                        {r.description && <div className="hint" style={{ fontSize: 'var(--gx-text-11)' }}>{r.description}</div>}
                       </td>
                       <td><code className="mono">{r.query?.entity ?? '—'}</code></td>
                       <td>{r.query?.metric ?? 'count'}</td>
@@ -278,7 +278,7 @@ function RunResultTable({ result }: { result: RunResult }) {
 
   return (
     <div>
-      <p className="hint" style={{ marginBottom: 8 }}>
+      <p className="hint" style={{ marginBottom: 'var(--gx-space-4)' }}>
         Matched {matched.toLocaleString()} record{matched !== 1 ? 's' : ''}.
       </p>
       {rows.length === 0 ? (
@@ -368,8 +368,8 @@ function ReportForm({
   }
 
   return (
-    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
-      <div className="row" style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-6)' }}>
         <strong>{isEdit ? 'Edit report' : 'New report'}</strong>
         <span className="spacer" />
         <Button variant="ghost" size="sm"
@@ -415,7 +415,7 @@ function ReportForm({
           </label>
         </div>
 
-        <div className="section-head" style={{ marginTop: 14 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-7)' }}>
           <ArrowRightIcon size={14} className="section-icon" /> Query
         </div>
         <div className="rec-form">
@@ -467,7 +467,7 @@ function ReportForm({
             />
           </label>
           {!isEdit && (
-            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
               <input
                 type="checkbox"
                 checked={shared}
@@ -478,7 +478,7 @@ function ReportForm({
           )}
         </div>
 
-        <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+        <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
           <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} /> {isEdit ? 'Save changes' : 'Create report'}
@@ -689,8 +689,8 @@ function ScheduleForm({
   }
 
   return (
-    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 8 }}>
-      <div className="row" style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 'var(--gx-space-7)', padding: '16px 20px', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)' }}>
+      <div className="row" style={{ marginBottom: 'var(--gx-space-6)' }}>
         <strong>New schedule</strong>
         <span className="spacer" />
         <Button variant="ghost" size="sm"
@@ -743,7 +743,7 @@ function ScheduleForm({
             </label>
           </div>
 
-          <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+          <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
             <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
               <CheckIcon size={13} /> Create schedule

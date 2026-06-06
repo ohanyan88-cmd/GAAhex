@@ -252,7 +252,7 @@ export default function CustomerTasksView({ token }: { token: string }) {
                     <Stack gap="xs">
                       <span>{t.title || <span className="mono">{t.id.slice(0, 8)}</span>}</span>
                       {t.referenceNumber && (
-                        <span className="muted mono" style={{ fontSize: 11 }}>{t.referenceNumber}</span>
+                        <span className="muted mono" style={{ fontSize: 'var(--gx-text-11)' }}>{t.referenceNumber}</span>
                       )}
                     </Stack>
                   </td>

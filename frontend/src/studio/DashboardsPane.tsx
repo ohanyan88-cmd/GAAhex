@@ -228,7 +228,7 @@ export default function DashboardsPane({ token }: { token: string }) {
 
       {/* board tabs */}
       {boards.length > 0 && mode === 'idle' && (
-        <div className="tabs" style={{ marginBottom: 16 }}>
+        <div className="tabs" style={{ marginBottom: 'var(--gx-space-8)' }}>
           {boards.map((b) => (
             <button
               key={b.key}
@@ -266,11 +266,11 @@ export default function DashboardsPane({ token }: { token: string }) {
                   <EditIcon size={13} /> Edit
                 </Button>
                 <Button variant="ghost" size="sm"
-            onClick={deleteBoard} style={{ marginLeft: 4 }}>
+            onClick={deleteBoard} style={{ marginLeft: 'var(--gx-space-2)' }}>
                   <TrashIcon size={13} /> Delete
                 </Button>
               </div>
-              {detail.description && <p className="hint" style={{ marginBottom: 12 }}>{detail.description}</p>}
+              {detail.description && <p className="hint" style={{ marginBottom: 'var(--gx-space-6)' }}>{detail.description}</p>}
               <div className="grid-wrap">
                 <table className="grid studio">
                   <thead>
@@ -324,7 +324,7 @@ export default function DashboardsPane({ token }: { token: string }) {
           {saveErr && <ErrorBanner message={saveErr} />}
 
           {/* board meta */}
-          <div className="rec-form" style={{ marginBottom: 16 }}>
+          <div className="rec-form" style={{ marginBottom: 'var(--gx-space-8)' }}>
             {mode === 'create' && (
               <label className="field">
                 <span>Key (snake_case) *</span>

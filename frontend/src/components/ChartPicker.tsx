@@ -57,7 +57,7 @@ export default function ChartPicker({
     >
       <>
         {/* Search + bulk actions */}
-        <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-6)' }}>
           <input
             type="text"
             placeholder="Search charts…"
@@ -82,7 +82,7 @@ export default function ChartPicker({
                   textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-3)',
                   padding: '0 4px',
                 }}>{cat}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--gx-space-4)' }}>
                   {items.map(c => {
                     const on = selected.has(c.id)
                     return (
@@ -119,7 +119,7 @@ export default function ChartPicker({
                               <span style={{ fontSize: 'var(--gx-text-10)', marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)' }}>(coming soon)</span>
                             )}
                           </div>
-                          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', lineHeight: 1.35, marginTop: 2 }}>
+                          <div className="muted" style={{ fontSize: 'var(--gx-text-11)', lineHeight: 1.35, marginTop: 'var(--gx-space-1)' }}>
                             {c.description}
                           </div>
                         </div>

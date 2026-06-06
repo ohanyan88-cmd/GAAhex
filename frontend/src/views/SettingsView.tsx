@@ -128,7 +128,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
         )}
 
         {!loading && !unavailable && loaded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
             {sections.map(s => (
               <div className="card" key={s.title}>
                 <div className="card-head"><h3>{s.title}</h3></div>

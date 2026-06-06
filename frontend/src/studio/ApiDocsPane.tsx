@@ -237,9 +237,9 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
         background: 'var(--gx-surface-2)',
       }}
     >
-      <div className="row" style={{ alignItems: 'center', marginBottom: 8 }}>
-        <strong style={{ fontSize: 13 }}>Try it</strong>
-        <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 11 }}>
+      <div className="row" style={{ alignItems: 'center', marginBottom: 'var(--gx-space-4)' }}>
+        <strong style={{ fontSize: 'var(--gx-text-13)' }}>Try it</strong>
+        <span className="hint" style={{ marginLeft: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)' }}>
           Live request — your current session token is reused.
         </span>
         <span className="spacer" />
@@ -251,11 +251,11 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
       </div>
 
       {pathParams.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
-          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+        <div style={{ marginBottom: 'var(--gx-space-4)' }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-2)' }}>
             Path parameters
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)' }}>
             {pathParams.map((p) => (
               <label key={p.name} className="field">
                 <span>{p.name}{p.required ? ' *' : ''}</span>
@@ -272,11 +272,11 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
       )}
 
       {queryParams.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
-          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+        <div style={{ marginBottom: 'var(--gx-space-4)' }}>
+          <div className="hint" style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 'var(--gx-space-2)' }}>
             Query parameters
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-4)' }}>
             {queryParams.map((p) => (
               <label key={p.name} className="field">
                 <span>{p.name}{p.required ? ' *' : ''}</span>
@@ -292,7 +292,7 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
         </div>
       )}
 
-      <div className="hint mono" style={{ fontSize: 'var(--gx-text-11)', wordBreak: 'break-all', marginBottom: 4 }}>
+      <div className="hint mono" style={{ fontSize: 'var(--gx-text-11)', wordBreak: 'break-all', marginBottom: 'var(--gx-space-2)' }}>
         {endpoint.method} {buildUrl().replace(BASE, '')}
       </div>
 
@@ -306,8 +306,8 @@ function TryIt({ token, endpoint }: { token: string; endpoint: Endpoint }) {
             borderRadius: 'var(--gx-radius-md)',
           }}
         >
-          <div className="row" style={{ alignItems: 'center', marginBottom: 6 }}>
-            <strong style={{ fontSize: 12 }}>Response</strong>
+          <div className="row" style={{ alignItems: 'center', marginBottom: 'var(--gx-space-3)' }}>
+            <strong style={{ fontSize: 'var(--gx-text-sm)' }}>Response</strong>
             <span className="spacer" />
             <span
               className="mono"
@@ -394,10 +394,10 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
 
       {params.length > 0 && (
         <>
-          <div className="section-head" style={{ marginTop: 4 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
             <RowsIcon size={14} className="section-icon" /> Parameters
           </div>
-          <div className="grid-wrap" style={{ marginBottom: 10 }}>
+          <div className="grid-wrap" style={{ marginBottom: 'var(--gx-space-5)' }}>
             <table className="grid">
               <thead>
                 <tr>
@@ -415,7 +415,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     <td><span className="hint mono">{p.in}</span></td>
                     <td><span className="mono" style={{ fontSize: 11.5 }}>{shortSchemaType(p.schema, spec)}</span></td>
                     <td>{p.required ? <CheckIcon size={13} /> : <span className="hint">—</span>}</td>
-                    <td className="hint" style={{ fontSize: 12 }}>{p.description ?? ''}</td>
+                    <td className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>{p.description ?? ''}</td>
                   </tr>
                 ))}
               </tbody>
@@ -426,7 +426,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
 
       {reqSchema && (
         <>
-          <div className="section-head" style={{ marginTop: 4 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
             <RowsIcon size={14} className="section-icon" /> Request body
             {reqBody?.required && (
               <span
@@ -461,10 +461,10 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
 
       {Object.keys(responses).length > 0 && (
         <>
-          <div className="section-head" style={{ marginTop: 4 }}>
+          <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
             <RowsIcon size={14} className="section-icon" /> Responses
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', marginBottom: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)' }}>
             {Object.entries(responses).map(([code, resp]) => {
               const schema = resp.content?.['application/json']?.schema
               const codeNum = parseInt(code, 10)
@@ -497,7 +497,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
                     >
                       {code}
                     </span>
-                    <span className="hint" style={{ marginLeft: 'var(--gx-space-5)', fontSize: 12 }}>
+                    <span className="hint" style={{ marginLeft: 'var(--gx-space-5)', fontSize: 'var(--gx-text-sm)' }}>
                       {resp.description ?? ''}
                     </span>
                   </div>
@@ -525,7 +525,7 @@ function EndpointDetail({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoi
       {tryAllowed && <TryIt token={token} endpoint={endpoint} />}
       {!tryAllowed && endpoint.method !== 'GET' && (
         <p className="hint" style={{ margin: '8px 0 0', fontSize: 11.5 }}>
-          <InfoIcon size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+          <InfoIcon size={11} style={{ verticalAlign: 'middle', marginRight: 'var(--gx-space-2)' }} />
           "Try it" is only available for GET endpoints — write methods are intentionally not
           fired from the docs viewer to avoid side effects.
         </p>
@@ -748,7 +748,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
       </div>
 
       {/* Tag chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 14 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-7)' }}>
         <button
           type="button"
           className={'btn btn-sm ' + (activeTag === null ? 'btn-primary' : 'btn-ghost')}

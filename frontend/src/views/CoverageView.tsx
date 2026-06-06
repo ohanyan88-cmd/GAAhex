@@ -78,8 +78,8 @@ export default function CoverageView({ token }: { token: string }) {
                         {result}
                       </span>
                     </td>
-                    <td className="mono muted" style={{ fontSize: 12 }}>{d.lat ? String(d.lat) : '—'}</td>
-                    <td className="mono muted" style={{ fontSize: 12 }}>{d.lon ? String(d.lon) : '—'}</td>
+                    <td className="mono muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{d.lat ? String(d.lat) : '—'}</td>
+                    <td className="mono muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{d.lon ? String(d.lon) : '—'}</td>
                   </tr>
                 )
               })}

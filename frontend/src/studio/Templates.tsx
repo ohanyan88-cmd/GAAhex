@@ -33,7 +33,7 @@ export function Templates() {
   return (
     <div>
       <Sec icon={<Store size={15} />} title="Templates" hint="ready-made pages & reusable saved sections" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 'var(--gx-space-7)' }}>
         {TEMPLATE_GALLERY.map(([ic, name, desc]) => (
           <div key={name as string} className="tpl-card">
             <div className="tpl-thumb">{ic}</div>
@@ -42,7 +42,7 @@ export function Templates() {
               <div className="hint" style={{ fontSize: 11.5, marginTop: 'var(--gx-space-1)', lineHeight: 1.4 }}>{desc}</div>
               {/* Instantiate wires to POST /api/templates/{id}/instantiate when that endpoint is built */}
               <Button variant="secondary" size="sm"
-            style={{ width: '100%', marginTop: 10 }} type="button" disabled>
+            style={{ width: '100%', marginTop: 'var(--gx-space-5)' }} type="button" disabled>
                 <Plus size={13} />Use template
               </Button>
             </div>

@@ -80,7 +80,7 @@ export default function LoadingState({ kind = 'rows', label, rows = 4 }: Props) 
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', padding: '12px 0' }}
     >
       {Array.from({ length: n }, (_, i) => (
-        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
           <div className="skel" style={{ height: 12, width: i % 3 === 0 ? '60%' : '90%' }} />
           {i % 2 === 0 && (
             <div className="skel" style={{ height: 8, width: '40%' }} />

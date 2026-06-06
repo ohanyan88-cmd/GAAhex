@@ -105,7 +105,7 @@ export default function SavedViewsView({
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
           {state.kind === 'loading' ? (
-            <div style={{ padding: 14 }}>
+            <div style={{ padding: 'var(--gx-space-7)' }}>
               <SkeletonRows rows={5} />
             </div>
           ) : items.length === 0 ? (
@@ -142,7 +142,7 @@ export default function SavedViewsView({
                             ? <span className="pill pill-info">Shared</span>
                             : <span className="pill pill-neutral">Personal</span>}
                         </td>
-                        <td className="mono tnum" style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+                        <td className="mono tnum" style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
                           {v.created_at ? new Date(v.created_at).toLocaleDateString() : '—'}
                         </td>
                       </tr>

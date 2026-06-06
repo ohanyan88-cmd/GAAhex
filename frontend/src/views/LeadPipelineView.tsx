@@ -178,7 +178,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
     <>
       {/* Configure gear — shown only when canConfigure is active */}
       {canConfigure && onConfigure && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--gx-space-4)' }}>
           <Button variant="ghost" size="sm" className="hide-sm" onClick={onConfigure} title="Configure this page">
             <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
           </Button>
@@ -186,11 +186,11 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
       )}
 
       {error && <ErrorBanner message={error} onRetry={() => { setError(''); load() }} />}
-      {loading && <div className="hint" style={{ padding: 24 }}>{t('common.loading', 'Loading…')}</div>}
+      {loading && <div className="hint" style={{ padding: 'var(--gx-space-12)' }}>{t('common.loading', 'Loading…')}</div>}
 
       {/* New lead inline form — config-driven from Studio entity fields */}
       {showNew && def && (
-        <form className="rec-form" onSubmit={createLead} style={{ marginBottom: 14 }}>
+        <form className="rec-form" onSubmit={createLead} style={{ marginBottom: 'var(--gx-space-7)' }}>
           {def.fields.filter((f) => f.type !== 'status').map((f) => {
             // TODO: Backend entity_def for lead.source still lists historical options.
             // We override here (frontend-only) to present the 6 approved business sources
@@ -279,10 +279,10 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                     const sc = scores[lead.id]
                     return (
                       <div key={lead.id} className="kcard">
-                        <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 6 }}>
+                        <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
                           {lead.id?.slice(0, 12)}
                         </div>
-                        <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 10 }}>
+                        <div style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 'var(--gx-space-5)' }}>
                           {lead.name || t('leads.unnamed', 'Unnamed lead')}
                         </div>
                         {(lead.source || lead.phone || lead.email) && (
@@ -305,13 +305,13 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
                           </Button>
                           {canEdit && nextFrom(lead.status).map((to) => (
                             <Button variant="ghost" size="sm"
-            key={to}  onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 11 }}>
+            key={to}  onClick={() => move(lead.id, to)} disabled={busy === lead.id} style={{ fontSize: 'var(--gx-text-11)' }}>
                               <ArrowRightIcon size={11} />{labelOf(to)}
                             </Button>
                           ))}
                           {canEdit && !convertNA && ['QUALIFIED', 'CONVERTED'].includes((lead.status || '').toUpperCase()) && (
                             <Button variant="primary" size="sm"
-            onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 11 }}>
+            onClick={() => convert(lead)} disabled={converting === lead.id} style={{ fontSize: 'var(--gx-text-11)' }}>
                               <UsersIcon size={11} />{converting === lead.id ? t('leads.converting', 'Converting…') : t('leads.convert', 'Convert')}
                             </Button>
                           )}

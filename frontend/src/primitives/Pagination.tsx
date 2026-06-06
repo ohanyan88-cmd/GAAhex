@@ -5,7 +5,7 @@
 //   <div className="table-foot">
 //     <span className="hint">Showing 1–25 of 87</span>
 //     <span className="spacer" />
-//     <div style={{ display: 'flex', gap: 4 }}>
+//     <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>
 //       <button .btn.btn-ghost.btn-sm.btn-icon disabled={page<=1}>‹</button>
 //       {Array.from({length: pageCount}, (_, i) => i+1).slice(0,5).map(p =>
 //         <button ...>{p}</button>)}
@@ -74,7 +74,7 @@ export function Pagination({
       <span className="hint">{summaryText}</span>
       <span className="spacer" />
       {pageCount > 1 && (
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>
           <Button variant="ghost" size="sm" iconOnly
             type="button"
             

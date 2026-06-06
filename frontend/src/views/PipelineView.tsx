@@ -100,7 +100,7 @@ function TabButton(props: { active: boolean; onClick: () => void; icon: React.Re
 function StageBoard({ title, owner, description, stages }: { title: string; owner: string; description: string; stages: LifecycleStage[] }) {
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--gx-space-5)', marginBottom: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--gx-space-5)', marginBottom: 'var(--gx-space-3)' }}>
         <div>
           <h2 style={{ margin: '0 0 4px', fontSize: 'var(--gx-text-xl)', fontWeight: 600 }}>{title}</h2>
           <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
@@ -132,17 +132,17 @@ function StageBoard({ title, owner, description, stages }: { title: string; owne
         borderRadius: 'var(--gx-radius-lg, 12px)',
         padding: 'var(--gx-space-5)',
       }}>
-        <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 10 }}>
+        <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 600, textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 'var(--gx-space-5)' }}>
           Control gates referenced in this pipeline
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-6)' }}>
           {uniqueGates(stages).map((gate) => (
             <div key={gate} style={{
               background: 'var(--gx-surface)',
               border: '1px solid var(--gx-border)',
               borderRadius: 'var(--gx-radius-md)', padding: 'var(--gx-space-4)',
             }}>
-              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 4 }}>{gate}</div>
+              <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', marginBottom: 'var(--gx-space-2)' }}>{gate}</div>
               <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)', lineHeight: 1.5 }}>
                 {CONTROL_GATE_DEFINITIONS[gate]}
               </div>
@@ -177,7 +177,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
       }}>
         #{index + 1}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', paddingRight: 24 }}>
+      <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 600, color: 'var(--gx-text-1)', paddingRight: 'var(--gx-space-12)' }}>
         {stage.label}
       </div>
       <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
@@ -189,7 +189,7 @@ function StageCard({ stage, index }: { stage: LifecycleStage; index: number }) {
         </div>
       )}
       {stage.gate && (
-        <div style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
           <span style={{
             display: 'inline-block',
             padding: '2px 7px',

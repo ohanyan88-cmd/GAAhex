@@ -81,7 +81,7 @@ export default function GlobalSearchView({ token, onNavigate }: {
         {facets && Object.keys(facets).length > 0 && (
           <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap', marginBottom: 'var(--sp-4)' }}>
             {Object.entries(facets).sort((a, b) => b[1] - a[1]).map(([key, count]) => (
-              <span key={key} className="badge badge-neutral" style={{ fontSize: 12 }}>
+              <span key={key} className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-sm)' }}>
                 {key.replace(/_/g, ' ')} · {count}
               </span>
             ))}
@@ -98,7 +98,7 @@ export default function GlobalSearchView({ token, onNavigate }: {
         {!loading && groups.map(group => (
           <div key={group.entity_key} style={{ marginBottom: 'var(--sp-6)' }}>
             <div className="section-label" style={{ marginBottom: 'var(--sp-2)' }}>{group.label_plural}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
               {group.matches.map(m => (
                 <div
                   key={m.id}
@@ -108,11 +108,11 @@ export default function GlobalSearchView({ token, onNavigate }: {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontWeight: 600 }}>{m.label}</span>
-                    {m.status && <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.status}</span>}
+                    {m.status && <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{m.status}</span>}
                   </div>
                   <div
                     className="muted"
-                    style={{ fontSize: 'var(--gx-text-13)', marginTop: 2 }}
+                    style={{ fontSize: 'var(--gx-text-13)', marginTop: 'var(--gx-space-1)' }}
                     dangerouslySetInnerHTML={{ __html: m.highlight || m.snippet }}
                   />
                 </div>

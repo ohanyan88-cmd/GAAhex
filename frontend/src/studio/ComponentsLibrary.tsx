@@ -97,8 +97,8 @@ export function ComponentsLibrary() {
         if (!filtered.length) return null
         return (
           <div key={group} style={{ marginBottom: 18 }}>
-            <div className="lbl" style={{ marginBottom: 10 }}>{group}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(132px,1fr))', gap: 10 }}>
+            <div className="lbl" style={{ marginBottom: 'var(--gx-space-5)' }}>{group}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(132px,1fr))', gap: 'var(--gx-space-5)' }}>
               {filtered.map(([ic, name]) => (
                 <button
                   key={name as string}

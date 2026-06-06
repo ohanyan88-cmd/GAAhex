@@ -80,7 +80,7 @@ export default function UserMenu({
         aria-expanded={open}
         title={user.name}
       >
-        <span className="avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
+        <span className="avatar" style={{ width: 28, height: 28, fontSize: 'var(--gx-text-11)' }}>
           {user.avatar_url
             ? <img src={user.avatar_url} alt="" className="avatar-img" />
             : initialsOf(user.name)}
@@ -168,7 +168,7 @@ export default function UserMenu({
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>{t('profile.title', 'My profile')}</span>
+                <span style={{ fontWeight: 600, fontSize: 'var(--gx-text-13)' }}>{t('profile.title', 'My profile')}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-3)', padding: '8px 0 14px' }}>
                 <span className="avatar" style={{ width: 56, height: 56, fontSize: 20 }}>
@@ -181,7 +181,7 @@ export default function UserMenu({
               </div>
               <div className="kv" style={{ padding: '9px 0' }}>
                 <span className="kv-k" style={{ width: 70 }}>{t('auth.email', 'Email')}</span>
-                <span className="kv-v mono" style={{ fontSize: 12 }}>{user.email}</span>
+                <span className="kv-v mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{user.email}</span>
               </div>
               {/* "Team" is intentionally only rendered when the row has a value — Me has no team
                   field today, so the row stays hidden until backend wires one. */}
@@ -197,7 +197,7 @@ export default function UserMenu({
               <Button
                 variant="secondary"
                 size="sm"
-                style={{ width: '100%', marginTop: 12 }}
+                style={{ width: '100%', marginTop: 'var(--gx-space-6)' }}
                 onClick={() => { close(); onOpenModal('profile') }}
               >
                 <SquarePen size={13} />{t('profile.edit', 'Edit profile')}

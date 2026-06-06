@@ -31,9 +31,9 @@ export function SkeletonRows({ rows = 5 }: { rows?: number }) {
       aria-busy="true"
     >
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} style={{ marginBottom: 8 }}>
+        <div key={i} style={{ marginBottom: 'var(--gx-space-4)' }}>
           <div className="skel skel-row" />
-          {i % 2 === 0 && <div className="skel skel-row" style={{ marginTop: 4 }} />}
+          {i % 2 === 0 && <div className="skel skel-row" style={{ marginTop: 'var(--gx-space-2)' }} />}
         </div>
       ))}
     </div>

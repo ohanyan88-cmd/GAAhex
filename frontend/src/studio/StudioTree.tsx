@@ -95,7 +95,7 @@ export default function StudioTree({
             <button
               key={l.id}
               className={'tree-leaf' + (activeId === l.id ? ' on' : '')}
-              style={{ paddingLeft: 12 }}
+              style={{ paddingLeft: 'var(--gx-space-6)' }}
               onClick={() => onPick({ group: l.groupId, module: l.moduleId, leaf: l.leafId })}
               type="button"
             >

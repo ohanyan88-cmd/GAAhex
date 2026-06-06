@@ -129,13 +129,13 @@ function ScheduleItem({
       <td>
         <strong>{sched.report_name ?? sched.report_id}</strong>
       </td>
-      <td style={{ color: 'var(--gx-text-2)', fontSize: 12 }}>
+      <td style={{ color: 'var(--gx-text-2)', fontSize: 'var(--gx-text-sm)' }}>
         {t(CADENCE_LABELS[sched.cadence] ?? 'sched.cadence', sched.cadence)}
       </td>
-      <td style={{ color: 'var(--gx-text-2)', fontSize: 12 }}>
+      <td style={{ color: 'var(--gx-text-2)', fontSize: 'var(--gx-text-sm)' }}>
         {t(CHANNEL_LABELS[sched.channel] ?? 'sched.channel', sched.channel)}
       </td>
-      <td style={{ color: 'var(--gx-text-3)', fontSize: 12 }}>
+      <td style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }}>
         {sched.next_run_at ? fmtNextRun(sched.next_run_at) : '—'}
       </td>
       <td>
@@ -149,7 +149,7 @@ function ScheduleItem({
           onClick={togglePause}
           aria-label={isPaused ? t('sched.resume', 'Resume') : t('sched.pause', 'Pause')}
           title={isPaused ? t('sched.resume', 'Resume') : t('sched.pause', 'Pause')}
-          style={{ marginRight: 6 }}>
+          style={{ marginRight: 'var(--gx-space-3)' }}>
           {isPaused ? <PlayIcon size={13} /> : <PauseIcon size={13} />}
         </Button>
         <Button variant="danger" size="sm"

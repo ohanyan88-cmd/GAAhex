@@ -39,7 +39,7 @@ export function PageHeader({
       {breadcrumb && breadcrumb.length > 0 && (
         <nav className="ps-breadcrumb" aria-label="Breadcrumb">
           {breadcrumb.map((crumb, i) => (
-            <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
               <span>{crumb}</span>
               {i < breadcrumb.length - 1 && (
                 <span className="ps-breadcrumb-sep" aria-hidden>/</span>

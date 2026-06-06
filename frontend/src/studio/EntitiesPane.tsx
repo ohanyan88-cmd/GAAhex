@@ -206,10 +206,10 @@ function CreateEntityModal({
       <form id="entity-create-form" onSubmit={submit}>
         {err && <ErrorBanner message={err} />}
 
-        <div className="section-head" style={{ marginTop: 4 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-2)' }}>
           <RowsIcon size={15} className="section-icon" /> Identity
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-5)' }}>
           <label className="field">
             <span>Label *</span>
             <input
@@ -253,7 +253,7 @@ function CreateEntityModal({
           </label>
         </div>
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <EditIcon size={15} className="section-icon" /> Fields
           <span className="spacer" />
           <Button variant="primary" size="sm"
@@ -333,7 +333,7 @@ function CreateEntityModal({
           </div>
         )}
 
-        <div className="section-head" style={{ marginTop: 16 }}>
+        <div className="section-head" style={{ marginTop: 'var(--gx-space-8)' }}>
           <ArrowRightIcon size={15} className="section-icon" /> Statuses
           <span className="spacer" />
           <Button variant="ghost" size="sm"
@@ -346,7 +346,7 @@ function CreateEntityModal({
             No statuses — click <strong>+ Status</strong> (the first added is initial; click any pill to change).
           </div>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-4)' }}>
             {statuses.map((s) => (
               <span
                 key={s.key}
@@ -648,7 +648,7 @@ function DetailDrawer({
       <div className="section-head" style={{ marginTop: 0 }}>
         <RowsIcon size={15} className="section-icon" /> Entity
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-5)' }}>
         <label className="field">
           <span>Key (immutable)</span>
           <input className="inp inp-sm mono" value={detail.key} disabled />
@@ -681,8 +681,8 @@ function DetailDrawer({
         </label>
       </div>
       {metaErr && <ErrorBanner message={metaErr} />}
-      {metaMsg && <div className="hint" style={{ marginTop: 8 }}>{metaMsg}</div>}
-      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 8 }}>
+      {metaMsg && <div className="hint" style={{ marginTop: 'var(--gx-space-4)' }}>{metaMsg}</div>}
+      <div className="row" style={{ marginTop: 'var(--gx-space-5)', gap: 'var(--gx-space-4)' }}>
         <Button variant="primary" size="sm"
             type="button" 
           onClick={saveMeta} disabled={savingMeta}>
@@ -919,7 +919,7 @@ function DetailDrawer({
           background: 'var(--gx-surface-2)',
         }}
       >
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 'var(--gx-space-4)' }}>
           <strong>Retire this entity</strong>
         </div>
         <p className="hint" style={{ margin: '0 0 10px' }}>
@@ -1016,7 +1016,7 @@ function AddFieldInline({
           </select>
         </label>
         <label className="field"><span>Required</span>
-          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} style={{ marginTop: 8 }} />
+          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} style={{ marginTop: 'var(--gx-space-4)' }} />
         </label>
         <label className="field"><span>{type === 'select' ? 'Options' : type === 'ref' ? 'Target' : '—'}</span>
           <input
@@ -1026,7 +1026,7 @@ function AddFieldInline({
             placeholder={type === 'select' ? 'a, b, c' : 'customer'}
           />
         </label>
-        <div className="row-actions" style={{ paddingBottom: 2 }}>
+        <div className="row-actions" style={{ paddingBottom: 'var(--gx-space-1)' }}>
           <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} />
@@ -1162,9 +1162,9 @@ function AddStatusInline({
         </label>
         <label className="field" style={{ flex: '0 0 90px' }}>
           <span>Initial</span>
-          <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 8 }} />
+          <input type="checkbox" checked={isInitial} onChange={(e) => setIsInitial(e.target.checked)} style={{ marginTop: 'var(--gx-space-4)' }} />
         </label>
-        <div className="row-actions" style={{ paddingBottom: 2 }}>
+        <div className="row-actions" style={{ paddingBottom: 'var(--gx-space-1)' }}>
           <Button variant="gold" size="sm"
             type="submit"  disabled={saving}>
             <CheckIcon size={13} />
@@ -1217,7 +1217,7 @@ function AddTransitionInline({
             {statuses.map((s) => <option key={s.key} value={s.key}>{s.key}</option>)}
           </select>
         </label>
-        <div className="row-actions" style={{ paddingBottom: 2 }}>
+        <div className="row-actions" style={{ paddingBottom: 'var(--gx-space-1)' }}>
           <Button variant="gold" size="sm"
             type="submit">
             <CheckIcon size={13} />

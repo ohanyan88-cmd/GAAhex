@@ -119,7 +119,7 @@ export default function WorkItemsTable({
                 onClick={() => onSortChange(col.key)}
                 style={{ cursor: 'pointer', userSelect: 'none' }}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                   {col.label}
                   {sortKey === col.key
                     ? (sortDir === 1

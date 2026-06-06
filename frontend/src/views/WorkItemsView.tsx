@@ -288,7 +288,7 @@ export default function WorkItemsView({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search work items"
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 13 }}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)' }}
                 />
               </div>
               <select
@@ -296,7 +296,7 @@ export default function WorkItemsView({
                 aria-label="Filter by kind"
                 value={kindFilter}
                 onChange={(e) => setKindFilter(e.target.value)}
-                style={{ marginLeft: 8 }}
+                style={{ marginLeft: 'var(--gx-space-4)' }}
               >
                 <option value="">All kinds</option>
                 {KINDS.map((k) => (
@@ -483,15 +483,15 @@ function WorkItemDetailModal({
       {!item && !error && <p className="muted">Loading…</p>}
 
       {item && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
           {/* Status + action bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
             {item.status
               ? <StatusPill variant={mapWorkItemStatus(item.status)} label={statusLabel(item.status)} size="sm" />
               : <span className="muted">—</span>}
             {priorityPill(item.priority)}
-            {cust && <span className="muted" style={{ fontSize: 12 }}>{cust}</span>}
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            {cust && <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{cust}</span>}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 'var(--gx-space-3)' }}>
               {s === 'TODO' && (
                 <Button variant="gold" size="sm"
             disabled={busy} onClick={() => handleAction('start')}>

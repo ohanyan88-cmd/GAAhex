@@ -52,20 +52,20 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
               <BuildingIcon size={16} className="muted" />
               <span style={{ fontWeight: 600 }}>{node.name}</span>
-              <span className="badge badge-neutral" style={{ fontSize: 11 }}>{node.kind}</span>
+              <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{node.kind}</span>
               <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginLeft: 'auto' }}>{nodeMembers.length} member{nodeMembers.length === 1 ? '' : 's'}</span>
             </div>
             {nodeMembers.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
                 {nodeMembers.map(m => (
                   <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
-                    <span style={{ fontSize: 14 }}>{m.name || m.email}</span>
-                    <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.role}</span>
+                    <span style={{ fontSize: 'var(--gx-text-md)' }}>{m.name || m.email}</span>
+                    <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{m.role}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="muted" style={{ fontSize: 13 }}>No members assigned to this team.</p>
+              <p className="muted" style={{ fontSize: 'var(--gx-text-13)' }}>No members assigned to this team.</p>
             )}
           </div>
         )
@@ -77,11 +77,11 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
             <span style={{ fontWeight: 600 }}>Unassigned</span>
             <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginLeft: 'auto' }}>{unassigned.length} member{unassigned.length === 1 ? '' : 's'}</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
             {unassigned.map(m => (
               <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--gx-border)' }}>
-                <span style={{ fontSize: 14 }}>{m.name || m.email}</span>
-                <span className="badge badge-neutral" style={{ fontSize: 11 }}>{m.role}</span>
+                <span style={{ fontSize: 'var(--gx-text-md)' }}>{m.name || m.email}</span>
+                <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{m.role}</span>
               </div>
             ))}
           </div>

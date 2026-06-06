@@ -84,17 +84,17 @@ function actorLabel(ev: AuditEvent): string {
 // data is null/undefined; honest "empty payload" when an empty object.
 function PayloadDetail({ data }: { data: unknown }) {
   if (data === null || data === undefined) {
-    return <div className="hint" style={{ fontSize: 12 }}>No payload</div>
+    return <div className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>No payload</div>
   }
   if (typeof data !== 'object') {
-    return <div className="mono" style={{ fontSize: 12 }}>{String(data)}</div>
+    return <div className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{String(data)}</div>
   }
   const entries = Object.entries(data as Record<string, unknown>)
   if (entries.length === 0) {
-    return <div className="hint" style={{ fontSize: 12 }}>Empty payload</div>
+    return <div className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>Empty payload</div>
   }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 'var(--gx-text-sm)' }}>
       {entries.flatMap(([k, v]) => [
         <span key={`${k}-k`} className="mono" style={{ color: 'var(--gx-text-3)' }}>{k}</span>,
         <span key={`${k}-v`} className="mono" style={{ color: 'var(--gx-text-1)', wordBreak: 'break-word' }}>
@@ -246,7 +246,7 @@ export default function AuditLogPane({ token }: { token: string }) {
         <span className="hint" style={{ fontSize: 11.5 }}>Filters</span>
       </div>
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Event type</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Event type</span>
         <select
           className="inp inp-sm"
           value={filterEventType}
@@ -257,7 +257,7 @@ export default function AuditLogPane({ token }: { token: string }) {
         </select>
       </label>
       <label className="field" style={{ flex: '1 1 140px', minWidth: 120, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Entity key</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Entity key</span>
         <input
           className="inp inp-sm mono"
           placeholder="e.g. customer"
@@ -266,7 +266,7 @@ export default function AuditLogPane({ token }: { token: string }) {
         />
       </label>
       <label className="field" style={{ flex: '1 1 160px', minWidth: 140, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Actor (UUID)</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Actor (UUID)</span>
         <input
           className="inp inp-sm mono"
           placeholder="00000000-…"
@@ -275,7 +275,7 @@ export default function AuditLogPane({ token }: { token: string }) {
         />
       </label>
       <label className="field" style={{ flex: '1 1 130px', minWidth: 110, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Since</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Since</span>
         <input
           className="inp inp-sm"
           type="date"
@@ -284,7 +284,7 @@ export default function AuditLogPane({ token }: { token: string }) {
         />
       </label>
       <label className="field" style={{ flex: '1 1 130px', minWidth: 110, margin: 0 }}>
-        <span style={{ fontSize: 11 }}>Until</span>
+        <span style={{ fontSize: 'var(--gx-text-11)' }}>Until</span>
         <input
           className="inp inp-sm"
           type="date"
@@ -292,7 +292,7 @@ export default function AuditLogPane({ token }: { token: string }) {
           onChange={e => setFilterUntil(e.target.value)}
         />
       </label>
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-3)' }}>
         <Button variant="primary" size="sm"
             type="button" onClick={applyFilters} disabled={loading}>
           Apply
@@ -342,8 +342,8 @@ export default function AuditLogPane({ token }: { token: string }) {
       {header}
       {filterBar}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <span className="hint" style={{ fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--gx-space-3)' }}>
+        <span className="hint" style={{ fontSize: 11.5, display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
           <ActivityIcon size={12} />
           {filtersActive ? 'Filtered · ' : ''}{items.length} of {total} events
         </span>
@@ -399,8 +399,8 @@ export default function AuditLogPane({ token }: { token: string }) {
                         </td>
                         <td>
                           {ev.entity_key
-                            ? <span className="mono" style={{ fontSize: 12 }}>{ev.entity_key}</span>
-                            : <span className="hint" style={{ fontSize: 12 }}>—</span>}
+                            ? <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{ev.entity_key}</span>
+                            : <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>—</span>}
                         </td>
                         <td>
                           {ev.record_id
@@ -413,7 +413,7 @@ export default function AuditLogPane({ token }: { token: string }) {
                                 {ev.record_id.slice(0, 8)}
                               </span>
                             )
-                            : <span className="hint" style={{ fontSize: 12 }}>—</span>}
+                            : <span className="hint" style={{ fontSize: 'var(--gx-text-sm)' }}>—</span>}
                         </td>
                         <td className="actions-col">
                           <Button variant="ghost" size="sm" iconOnly
@@ -445,7 +445,7 @@ export default function AuditLogPane({ token }: { token: string }) {
           </div>
 
           {items.length < total && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--gx-space-7)' }}>
               <Button variant="secondary" size="sm"
             type="button"
                 onClick={loadMore}

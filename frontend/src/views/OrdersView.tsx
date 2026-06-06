@@ -352,7 +352,7 @@ export default function OrdersView({ token, capabilities }: {
                         onClick={() => toggleSort(k)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {lbl}
                           {sortKey === k
                             // D18: active sort indicator = azure (interactive cue)
@@ -644,9 +644,9 @@ function OrderDetailModal({
     { key: 'total', label: 'Total', value: <span className="mono tnum">{money(order.total)}</span> },
     { key: 'created', label: 'Created', value: fmtDate(order.created_at) },
     { key: 'items', label: 'Items', value: order.items && order.items.length > 0 ? (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
         {order.items.map((it) => (
-          <div key={it.id} style={{ display: 'flex', gap: 'var(--gx-space-3)', fontSize: 12 }}>
+          <div key={it.id} style={{ display: 'flex', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)' }}>
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.description}</span>
             <span className="mono tnum" style={{ color: 'var(--gx-text-3)' }}>×{it.quantity}</span>
             <span className="mono tnum" style={{ minWidth: 64, textAlign: 'right' }}>{money(it.line_total)}</span>
@@ -852,18 +852,18 @@ function Stage8Modal({
           }}>
             <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>Verdict</span>
             {loading
-              ? <span className="muted" style={{ fontSize: 12 }}>Running…</span>
+              ? <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>Running…</span>
               : check
                 ? <StatusPill
                     variant={check.pass ? 'active' : 'critical'}
                     label={check.pass ? 'Pass' : 'Fail'}
                     size="sm"
                   />
-                : <span className="muted" style={{ fontSize: 12 }}>—</span>}
+                : <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>—</span>}
           </div>
 
           {/* 4 check rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
             {checkRows.map((row) => {
               const v: Stage8CheckStatus = (check?.checks?.[row.key] ?? 'PENDING') as Stage8CheckStatus
               return (
@@ -873,7 +873,7 @@ function Stage8Modal({
                 }}>
                   <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-1)' }}>{row.label}</span>
                   {loading && !check
-                    ? <span className="muted" style={{ fontSize: 12 }}>…</span>
+                    ? <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>…</span>
                     : <StatusPill variant={stage8CheckVariant(v)} label={humanizeStatus(v)} size="sm" />}
                 </div>
               )
@@ -882,8 +882,8 @@ function Stage8Modal({
 
           {/* Blockers */}
           {check && check.blockers && check.blockers.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
+            <div style={{ marginTop: 'var(--gx-space-7)' }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                 Blockers
               </div>
               <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--gx-text-2)', lineHeight: 1.6 }}>
@@ -898,19 +898,19 @@ function Stage8Modal({
               marginTop: 'var(--gx-space-7)', padding: 'var(--gx-space-5) var(--gx-space-6)', borderRadius: 'var(--gx-radius-md)',
               border: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)',
             }}>
-              <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 6 }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>
                 Deposit
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-13)' }}>
                 <span>Collected</span>
                 <span className="mono tnum">{depositColl.toLocaleString()} ֏</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-13)' }}>
                 <span>Required</span>
                 <span className="mono tnum">{depositReq.toLocaleString()} ֏</span>
               </div>
               {depositShortfall && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-warning-fg)', marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-warning-fg)', marginTop: 'var(--gx-space-2)' }}>
                   <span>Shortfall</span>
                   <span className="mono tnum">{(depositReq - depositColl).toLocaleString()} ֏</span>
                 </div>
@@ -997,7 +997,7 @@ function CollectDepositModal({
           />
         </label>
         <label className="field">
-          <span>Payment method ID <span className="muted" style={{ fontSize: 11 }}>(optional)</span></span>
+          <span>Payment method ID <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>(optional)</span></span>
           <input
             className="inp inp-md"
             value={paymentMethodId}

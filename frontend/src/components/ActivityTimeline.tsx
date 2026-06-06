@@ -267,7 +267,7 @@ function ActivitySkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="act-row act-row-skel">
           <div className="act-avatar act-avatar-skel skel" />
-          <div className="act-body" style={{ gap: 6 }}>
+          <div className="act-body" style={{ gap: 'var(--gx-space-3)' }}>
             <div className="skel skel-row" />
             <div className="skel skel-row" style={{ width: '40%' }} />
           </div>

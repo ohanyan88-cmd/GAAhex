@@ -66,7 +66,7 @@ export function PageManager() {
             {pages.map(pg => (
               <tr key={pg.id} style={{ cursor: 'default' }}>
                 <td style={{ fontWeight: 600 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                     <File size={14} style={{ color: 'var(--gx-text-3)' }} />{pg.name}
                   </span>
                 </td>

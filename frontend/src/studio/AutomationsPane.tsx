@@ -274,7 +274,7 @@ export default function AutomationsPane({ token }: { token: string }) {
           }
         />
       ) : (
-        <div className="grid-wrap" style={{ marginBottom: 24 }}>
+        <div className="grid-wrap" style={{ marginBottom: 'var(--gx-space-12)' }}>
           <table className="grid studio">
             <thead>
               <tr>
@@ -301,19 +301,19 @@ export default function AutomationsPane({ token }: { token: string }) {
                   <td>
                     <span style={{ fontWeight: 500 }}>{a.name}</span>
                     {a.condition && (
-                      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 2 }}>
+                      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-1)' }}>
                         if {a.condition}
                       </div>
                     )}
                   </td>
                   <td>
-                    <span style={{ fontSize: 12 }}>{eventLabel[a.event_type] ?? a.event_type}</span>
+                    <span style={{ fontSize: 'var(--gx-text-sm)' }}>{eventLabel[a.event_type] ?? a.event_type}</span>
                   </td>
                   <td>
-                    <code className="mono" style={{ fontSize: 11 }}>{a.entity_key}</code>
+                    <code className="mono" style={{ fontSize: 'var(--gx-text-11)' }}>{a.entity_key}</code>
                   </td>
                   <td>
-                    <span style={{ fontSize: 12 }}>{actionLabel[a.action?.type] ?? a.action?.type}</span>
+                    <span style={{ fontSize: 'var(--gx-text-sm)' }}>{actionLabel[a.action?.type] ?? a.action?.type}</span>
                   </td>
                   <td onClick={(e) => { e.stopPropagation(); toggleActive(a) }}>
                     <button
@@ -368,7 +368,7 @@ export default function AutomationsPane({ token }: { token: string }) {
       {formOpen && (
         <form
           onSubmit={submitForm}
-          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: '16px 18px', marginTop: 8 }}
+          style={{ background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)', borderRadius: 6, padding: '16px 18px', marginTop: 'var(--gx-space-4)' }}
         >
           <div className="section-head" style={{ marginTop: 0 }}>
             <SparkleIcon size={14} className="section-icon" />
@@ -443,7 +443,7 @@ export default function AutomationsPane({ token }: { token: string }) {
             <label className="field" style={{ gridColumn: '1 / -1' }}>
               <span>
                 Condition
-                <span className="hint" style={{ marginLeft: 8 }}>(GXL expression — leave blank to always fire)</span>
+                <span className="hint" style={{ marginLeft: 'var(--gx-space-4)' }}>(GXL expression — leave blank to always fire)</span>
               </span>
               <input
                 className="inp inp-md"
@@ -470,7 +470,7 @@ export default function AutomationsPane({ token }: { token: string }) {
             <label className="field" style={{ gridColumn: '1 / -1' }}>
               <span>
                 Action config
-                <span className="hint" style={{ marginLeft: 8 }}>(JSON)</span>
+                <span className="hint" style={{ marginLeft: 'var(--gx-space-4)' }}>(JSON)</span>
               </span>
               <textarea
                 className="inp inp-md"
@@ -511,7 +511,7 @@ export default function AutomationsPane({ token }: { token: string }) {
             <span className="error-banner-msg">{getActionHint(form.action_type)}</span>
           </div>
 
-          <div className="row" style={{ marginTop: 4 }}>
+          <div className="row" style={{ marginTop: 'var(--gx-space-2)' }}>
             <Button variant="gold" size="sm"
             type="submit"  disabled={submitting}>
               <CheckIcon size={13} />

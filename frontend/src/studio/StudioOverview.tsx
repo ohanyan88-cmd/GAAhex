@@ -64,7 +64,7 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
       <div className="section-head" style={{ marginTop: 0 }}>
         <Layers size={16} className="section-icon" />
         Platform architecture
-        <span className="hint" style={{ fontWeight: 400, marginLeft: 6 }}>
+        <span className="hint" style={{ fontWeight: 400, marginLeft: 'var(--gx-space-3)' }}>
           · nine layers, one connected system
         </span>
       </div>
@@ -114,7 +114,7 @@ export default function StudioOverview({ onPick }: { onPick: (p: StudioPick) => 
       <div className="section-head">
         <Puzzle size={16} className="section-icon" />
         Platform capabilities
-        <span className="hint" style={{ fontWeight: 400, marginLeft: 6 }}>
+        <span className="hint" style={{ fontWeight: 400, marginLeft: 'var(--gx-space-3)' }}>
           · extend &amp; operate
         </span>
       </div>

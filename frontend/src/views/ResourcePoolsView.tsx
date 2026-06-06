@@ -187,7 +187,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
       filters={{ search: { value: query, onChange: setQuery, placeholder: 'Search pools' } }}
     >
         {creating && (
-          <div className="card" style={{ padding: 'var(--gx-space-7)', marginBottom: 16 }}>
+          <div className="card" style={{ padding: 'var(--gx-space-7)', marginBottom: 'var(--gx-space-8)' }}>
             <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
               <label className="field"><span>Name *</span><input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="Yerevan /24" /></label>
               <label className="field"><span>Kind</span>
@@ -209,7 +209,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
         {error && <ErrorBanner message={error} onRetry={load} />}
         {list === null && !error && (
-          <div className="card" style={{ padding: 14 }}>
+          <div className="card" style={{ padding: 'var(--gx-space-7)' }}>
             <SkeletonRows rows={6} />
           </div>
         )}
@@ -234,7 +234,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
                         onClick={() => toggleSort(c.key)}
                         style={{ cursor: 'pointer', userSelect: 'none' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)' }}>
                           {c.label}
                           {sortKey === c.key
                             // D18: active sort indicator = azure (interactive cue)
@@ -367,7 +367,7 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
                         return (
                           <tr key={a.id}>
                             <td className="mono">{a.value ?? '—'}</td>
-                            <td style={{ fontSize: 12 }}>{svcName(a.service_id)}</td>
+                            <td style={{ fontSize: 'var(--gx-text-sm)' }}>{svcName(a.service_id)}</td>
                             <td>{rs === 'RELEASED'
                               ? <StatusPill variant="neutral" label="Released" size="sm" />
                               : <StatusPill variant="active" label="Allocated" size="sm" />}
