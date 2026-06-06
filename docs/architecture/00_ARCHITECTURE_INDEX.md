@@ -125,6 +125,8 @@ Forbidden Patterns `FP1+`.
 | [`PRM-MIGRATION-AUDIT-2026-06-06.md`](PRM-MIGRATION-AUDIT-2026-06-06.md) | The classification audit that adopted PRM (2026-06-06). |
 | [`CONSTITUTION_CONSISTENCY_AUDIT.md`](CONSTITUTION_CONSISTENCY_AUDIT.md) | Pass-1 cross-doc consistency audit of the 22 constitution documents (2026-06-06). Documents structural variance pre-normalization. |
 | [`CONSTITUTION_CONSISTENCY_AUDIT_PASS2.md`](CONSTITUTION_CONSISTENCY_AUDIT_PASS2.md) | Pass-2 post-normalization audit (2026-06-06). All 22 docs now match the canonical 17-section template; **PASS**. |
+| [`ARCHITECTURE_GAP_ANALYSIS.md`](ARCHITECTURE_GAP_ANALYSIS.md) | Coverage analysis against Constitution + PRM + Standards (2026-06-06). **ZERO critical gaps.** |
+| [`ARCHITECTURE_LAYER_RATIFICATION.md`](ARCHITECTURE_LAYER_RATIFICATION.md) | Architecture Layer ratification report (2026-06-06). Proposes locking the layer per LAW-GV4. |
 | [`SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`](SEALED-ARCHITECTURE-BASELINE-2026-06-05.md) | Kernel-level engineering invariants (5 engines). Implementation contract under Foundation cores. |
 | [`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`](SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md) | DRAFT-SHELL addendum for GXL business-condition workflow guards (M1 Phase 1.5). |
 | [`Q1-Q5-Q8-DECISION-PACKAGE-2026-06-05.md`](Q1-Q5-Q8-DECISION-PACKAGE-2026-06-05.md) | Three open architecture Q's resolution package. |
