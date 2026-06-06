@@ -58,7 +58,7 @@ export default function SchedulingView({ token }: { token: string }) {
       subtitle="Technician calendar & field dispatch slots"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && slots.length === 0 && (
@@ -68,8 +68,8 @@ export default function SchedulingView({ token }: { token: string }) {
           const group = byStatus[status] ?? []
           if (group.length === 0) return null
           return (
-            <div key={status} style={{ marginBottom: 'var(--sp-6)' }}>
-              <div className="section-label" style={{ marginBottom: 'var(--sp-2)' }}>
+            <div key={status} style={{ marginBottom: 'var(--gx-space-12)' }}>
+              <div className="section-label" style={{ marginBottom: 'var(--gx-space-4)' }}>
                 {status} <span className="muted">({group.length})</span>
               </div>
               <table className="grid" style={{ width: '100%' }}>

@@ -2,7 +2,7 @@
 //
 // Token-backed wrapper that pairs with Stack/Grid for the common
 // "panel of related data" pattern. Replaces hand-rolled `<section style={{
-// padding: 'var(--gx-space-6)', background: var(--surface), border: ... }}>` calls.
+// padding: 'var(--gx-space-6)', background: var(--gx-surface), border: ... }}>` calls.
 //
 //   <Card pad="md" tone="default">
 //     <SectionHeading title="Recent invoices" />

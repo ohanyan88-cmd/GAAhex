@@ -27,9 +27,9 @@ export const withTheme: Decorator = (Story) => {
     <div
       data-theme="dark"
       style={{
-        background: 'var(--bg)',
-        color: 'var(--text)',
-        fontFamily: 'var(--font-body)',
+        background: 'var(--gx-bg)',
+        color: 'var(--gx-text-1)',
+        fontFamily: 'var(--gx-font-sans)',
         padding: 'var(--gx-space-16)',
         minHeight: '100vh',
       }}

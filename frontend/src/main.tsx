@@ -13,7 +13,7 @@ import './styles/primitives.css'
 import './styles/tailwind.css'
 import './styles/styles.css'
 import './styles/studio.css'
-import './styles/nms-tokens.css'
+import './styles/_nms.css'
 import './layout/master-layout.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

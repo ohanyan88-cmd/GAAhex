@@ -62,22 +62,22 @@ export default function DispatchBoardView({ token }: { token: string }) {
       subtitle="Field operations dispatch"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
         {loading && <SkeletonRows rows={8} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && items.length === 0 && (
           <EmptyState icon={<TruckIcon size={36} />} title="No work items" message="Assign work items to field technicians to populate the dispatch board." />
         )}
         {!loading && items.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--sp-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-8)' }}>
             {COLUMNS.map(col => (
               <div key={col}>
-                <div className="section-label" style={{ marginBottom: 'var(--sp-2)' }}>
+                <div className="section-label" style={{ marginBottom: 'var(--gx-space-4)' }}>
                   {COL_LABELS[col]} <span className="muted">({byStatus[col]?.length ?? 0})</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
                   {(byStatus[col] ?? []).map(item => (
-                    <div key={item.id} className="card" style={{ padding: 'var(--sp-3)' }}>
+                    <div key={item.id} className="card" style={{ padding: 'var(--gx-space-6)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--gx-space-3)' }}>
                         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: PRIORITY_DOT[item.priority] ?? 'var(--gx-text-3)', marginTop: 5, flexShrink: 0 }} />
                         <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500, lineHeight: 1.4 }}>{item.title}</span>
@@ -89,7 +89,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
                     </div>
                   ))}
                   {(byStatus[col] ?? []).length === 0 && (
-                    <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', padding: 'var(--sp-2) 0' }}>Empty</p>
+                    <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', padding: 'var(--gx-space-4) 0' }}>Empty</p>
                   )}
                 </div>
               </div>

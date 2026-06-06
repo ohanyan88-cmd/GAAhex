@@ -2,21 +2,21 @@
 .pill {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px;
-  background: var(--primary-soft);
-  color: var(--primary-hover);
+  background: var(--gx-interactive-soft);
+  color: var(--gx-interactive-hover);
   padding: 2px 9px;
-  border-radius: var(--pill);
-  font-weight: var(--fw-semibold);
+  border-radius: var(--gx-radius-full);
+  font-weight: var(--gx-weight-semibold);
   white-space: nowrap;
 }
 .pill-dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; opacity: 0.85; }
-.pill-success { background: var(--success-soft); color: var(--success); }
-.pill-warning { background: var(--warning-soft); color: var(--warning); }
-.pill-danger { background: var(--danger-soft); color: var(--danger); }
-.pill-accent { background: var(--accent-soft); color: var(--accent); }
-.pill-muted { background: var(--surface-2); color: var(--text-3); }
+.pill-success { background: var(--gx-success-soft); color: var(--gx-success); }
+.pill-warning { background: var(--gx-warning-soft); color: var(--gx-warning); }
+.pill-danger { background: var(--gx-danger-soft); color: var(--gx-danger); }
+.pill-accent { background: var(--gx-gold-soft); color: var(--gx-gold); }
+.pill-muted { background: var(--gx-surface-2); color: var(--gx-text-3); }
 .badge {
   display: inline-block; font-size: 11px;
-  background: var(--surface-2); color: var(--text-2);
-  padding: 2px 8px; border-radius: var(--pill);
+  background: var(--gx-surface-2); color: var(--gx-text-2);
+  padding: 2px 8px; border-radius: var(--gx-radius-full);
 }

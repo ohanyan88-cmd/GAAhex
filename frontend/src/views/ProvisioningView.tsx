@@ -57,7 +57,7 @@ export default function ProvisioningView({ token }: { token: string }) {
       subtitle="Service activation pipeline · Stages 9–11"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && services.length === 0 && (

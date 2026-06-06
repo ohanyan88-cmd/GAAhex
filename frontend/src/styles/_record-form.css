@@ -1,14 +1,14 @@
 /* ===================== RECORD FORM ===================== */
 .rec-form {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--pad);
-  margin-bottom: var(--pad);
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  padding: var(--gx-space-20);
+  margin-bottom: var(--gx-space-20);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--gap);
+  gap: var(--gx-space-8);
   align-items: end;
-  box-shadow: var(--shadow);
+  box-shadow: var(--gx-shadow-xs);
 }
 .rec-form-actions { display: flex; align-items: center; gap: 8px; grid-column: 1 / -1; }

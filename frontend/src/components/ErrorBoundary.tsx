@@ -75,7 +75,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="empty-state" role="alert" style={{ alignItems: 'stretch' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-5)' }}>
             <h3 style={{ margin: 0, fontSize: 15 }}>Something went wrong</h3>
-            <p style={{ margin: 0, fontSize: 'var(--gx-text-13)', color: 'var(--text-2)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
               {err.message || 'An unexpected error occurred while rendering this section.'}
             </p>
             <ErrorBanner

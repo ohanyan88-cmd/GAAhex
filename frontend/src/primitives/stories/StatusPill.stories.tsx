@@ -32,16 +32,16 @@ export const AllVariants: Story = {
     <table style={{ borderCollapse: 'collapse' }}>
       <thead>
         <tr>
-          <th style={{ textAlign: 'left', padding: 'var(--gx-space-3)', color: 'var(--text-3)', fontSize: 'var(--gx-text-10)' }}>variant</th>
+          <th style={{ textAlign: 'left', padding: 'var(--gx-space-3)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-10)' }}>variant</th>
           {sizes.map((s) => (
-            <th key={s} style={{ textAlign: 'left', padding: 'var(--gx-space-3)', color: 'var(--text-3)', fontSize: 'var(--gx-text-10)' }}>{s}</th>
+            <th key={s} style={{ textAlign: 'left', padding: 'var(--gx-space-3)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-10)' }}>{s}</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {variants.map((v) => (
           <tr key={v}>
-            <td style={{ padding: 'var(--gx-space-3)', color: 'var(--text-2)', fontSize: 'var(--gx-text-11)', fontFamily: 'var(--font-mono)' }}>{v}</td>
+            <td style={{ padding: 'var(--gx-space-3)', color: 'var(--gx-text-2)', fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono)' }}>{v}</td>
             {sizes.map((s) => (
               <td key={s} style={{ padding: 'var(--gx-space-3)' }}>
                 <StatusPill variant={v} size={s} />

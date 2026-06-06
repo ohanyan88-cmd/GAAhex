@@ -41,7 +41,7 @@ function Swatch({ token }: { token: string }) {
           background: `var(${token})`,
         }}
       />
-      <code style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--font-mono)', color: 'var(--gx-text-2)' }}>
+      <code style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono)', color: 'var(--gx-text-2)' }}>
         {token}
       </code>
     </div>

@@ -155,11 +155,11 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
                   { label: 'Outstanding', value: balance, highlight: balance > 0 },
                 ].map(({ label, value, highlight }) => (
                   <div key={label} style={{
-                    flex: '1 1 120px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
-                    padding: 'var(--gx-space-6) var(--gx-space-8)', border: '1px solid var(--border)'
+                    flex: '1 1 120px', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-md)',
+                    padding: 'var(--gx-space-6) var(--gx-space-8)', border: '1px solid var(--gx-border)'
                   }}>
-                    <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-3)', marginBottom: 'var(--gx-space-3)' }}>{label}</div>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: highlight ? 'var(--danger)' : 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--gx-text-3)', marginBottom: 'var(--gx-space-3)' }}>{label}</div>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: highlight ? 'var(--gx-danger)' : 'var(--gx-gold)', fontVariantNumeric: 'tabular-nums' }}>
                       {money(value)}
                     </div>
                   </div>

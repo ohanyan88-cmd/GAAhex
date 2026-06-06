@@ -466,7 +466,7 @@ function WorkItemDetailModal({
           <Button variant="ghost" size="sm"
             disabled={busy}
             onClick={handleDelete}
-            style={{ color: 'var(--danger)', marginRight: 'auto' }}
+            style={{ color: 'var(--gx-danger)', marginRight: 'auto' }}
             title="Delete">
             <TrashIcon size={13} />
           </Button>
@@ -534,7 +534,7 @@ function WorkItemDetailModal({
           {/* Fields */}
           <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
             <label className="field">
-              <span>Title <span style={{ color: 'var(--danger)' }}>*</span></span>
+              <span>Title <span style={{ color: 'var(--gx-danger)' }}>*</span></span>
               <input
                 className="inp inp-md"
                 value={title}
@@ -706,7 +706,7 @@ function CreateWorkItemModal({
     >
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field">
-          <span>Title <span style={{ color: 'var(--danger)' }}>*</span></span>
+          <span>Title <span style={{ color: 'var(--gx-danger)' }}>*</span></span>
           <input
             className="inp inp-md"
             value={title}

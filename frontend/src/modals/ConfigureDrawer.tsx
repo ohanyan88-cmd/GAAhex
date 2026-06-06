@@ -95,12 +95,12 @@ function PageSwitcher({
     <div id="cfg-page-switcher" style={{ position: 'relative' }}>
       <label
         htmlFor={inputId}
-        style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-3)', display: 'block', marginBottom: 5 }}
+        style={{ fontSize: 'var(--gx-text-11)', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--gx-text-3)', display: 'block', marginBottom: 5 }}
       >
         Switch page
       </label>
       <div style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }}>
+        <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--gx-text-3)', pointerEvents: 'none' }}>
           <SearchIcon size={13} />
         </span>
         <input
@@ -123,13 +123,13 @@ function PageSwitcher({
           role="listbox"
           style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-pop)',
+            background: 'var(--gx-surface)', border: '1px solid var(--gx-border)',
+            borderRadius: 'var(--gx-radius-md)', boxShadow: 'var(--gx-shadow-lg)',
             zIndex: 10, maxHeight: 220, overflowY: 'auto',
           }}
         >
           {filtered.length === 0 ? (
-            <div style={{ padding: 'var(--gx-space-5) var(--gx-space-6)', fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)' }}>No pages found</div>
+            <div style={{ padding: 'var(--gx-space-5) var(--gx-space-6)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>No pages found</div>
           ) : (
             filtered.map((e) => (
               <button
@@ -141,14 +141,14 @@ function PageSwitcher({
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   width: '100%', padding: 'var(--gx-space-4) var(--gx-space-6)', borderRadius: 'var(--gx-radius-none)', border: 0,
-                  borderBottom: '1px solid var(--border-soft)',
-                  background: e.route_slug === currentSlug ? 'var(--accent-soft)' : 'transparent',
-                  color: e.route_slug === currentSlug ? 'var(--accent)' : 'var(--text)',
+                  borderBottom: '1px solid var(--gx-border-subtle)',
+                  background: e.route_slug === currentSlug ? 'var(--gx-gold-soft)' : 'transparent',
+                  color: e.route_slug === currentSlug ? 'var(--gx-gold)' : 'var(--gx-text-1)',
                 }}
                 onClick={() => pick(e.route_slug)}
               >
                 <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 500 }}>{e.label_plural}</span>
-                <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>{e.route_slug}</span>
+                <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono)' }}>{e.route_slug}</span>
               </button>
             ))
           )}
@@ -196,9 +196,9 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
     <div
       style={{
         position: 'fixed', inset: 0,
-        zIndex: 'var(--z-modal)' as any,
+        zIndex: 'var(--gx-z-modal)' as any,
         background: 'var(--gx-overlay)',
-        animation: 'overlay-fade var(--dur-base) var(--ease-decelerate)',
+        animation: 'overlay-fade var(--gx-dur-base) var(--gx-ease-emphasis)',
       }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
@@ -212,11 +212,11 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
         style={{
           position: 'absolute', top: 0, right: 0, bottom: 0,
           width: 'min(620px, 100vw)',
-          background: 'var(--surface)',
-          borderLeft: '1px solid var(--border)',
+          background: 'var(--gx-surface)',
+          borderLeft: '1px solid var(--gx-border)',
           display: 'flex', flexDirection: 'column',
           boxShadow: '-8px 0 32px rgba(0,0,0,0.5)',
-          animation: 'drawer-slide-in var(--dur-base) var(--ease-decelerate)',
+          animation: 'drawer-slide-in var(--gx-dur-base) var(--gx-ease-emphasis)',
         }}
       >
         {/* Header */}
@@ -224,11 +224,11 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           style={{
             display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
             padding: 'var(--gx-space-7) var(--gx-space-18)',
-            borderBottom: '1px solid var(--border)',
+            borderBottom: '1px solid var(--gx-border)',
             flexShrink: 0,
           }}
         >
-          <span style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center' }}>
+          <span style={{ color: 'var(--gx-gold)', display: 'flex', alignItems: 'center' }}>
             <GearIcon size={18} />
           </span>
           <h3 id={titleId} style={{ margin: 0, fontSize: 15, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -249,9 +249,9 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)',
-              padding: 'var(--gx-space-6) var(--gx-space-18)', borderBottom: '1px solid var(--border)',
-              flexShrink: 0, background: 'var(--surface-2)',
-              fontSize: 'var(--gx-text-sm)', color: 'var(--text-3)',
+              padding: 'var(--gx-space-6) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)',
+              flexShrink: 0, background: 'var(--gx-surface-2)',
+              fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)',
             }}
           >
             <RowsIcon size={13} />
@@ -261,9 +261,9 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           <div
             style={{
               padding: 'var(--gx-space-6) var(--gx-space-18)',
-              borderBottom: '1px solid var(--border)',
+              borderBottom: '1px solid var(--gx-border)',
               flexShrink: 0,
-              background: 'var(--surface-2)',
+              background: 'var(--gx-surface-2)',
             }}
           >
             <PageSwitcher
@@ -280,7 +280,7 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
             style={{
               display: 'flex', gap: 'var(--gx-space-3)',
               padding: '12px 18px 0',
-              borderBottom: '1px solid var(--border)',
+              borderBottom: '1px solid var(--gx-border)',
               flexShrink: 0,
             }}
           >

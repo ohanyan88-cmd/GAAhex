@@ -68,18 +68,18 @@ export default function GlobalSearchView({ token, onNavigate }: {
       title="Global Search"
       subtitle={q && !loading ? `${resultCount} result${resultCount === 1 ? '' : 's'}` : 'Search across all records'}
     >
-      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
         <input
           ref={inputRef}
           className="inp inp-md"
-          style={{ width: '100%', maxWidth: 600, marginBottom: 'var(--sp-4)' }}
+          style={{ width: '100%', maxWidth: 600, marginBottom: 'var(--gx-space-8)' }}
           placeholder="Search everything…"
           value={pending}
           onChange={e => onChange(e.target.value)}
           aria-label="Search"
         />
         {facets && Object.keys(facets).length > 0 && (
-          <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap', marginBottom: 'var(--sp-4)' }}>
+          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap', marginBottom: 'var(--gx-space-8)' }}>
             {Object.entries(facets).sort((a, b) => b[1] - a[1]).map(([key, count]) => (
               <span key={key} className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-sm)' }}>
                 {key.replace(/_/g, ' ')} · {count}
@@ -96,14 +96,14 @@ export default function GlobalSearchView({ token, onNavigate }: {
           <EmptyState icon={<InboxIcon size={36} />} title="Start typing to search" message="Searches across customers, invoices, tickets, orders and all other records." />
         )}
         {!loading && groups.map(group => (
-          <div key={group.entity_key} style={{ marginBottom: 'var(--sp-6)' }}>
-            <div className="section-label" style={{ marginBottom: 'var(--sp-2)' }}>{group.label_plural}</div>
+          <div key={group.entity_key} style={{ marginBottom: 'var(--gx-space-12)' }}>
+            <div className="section-label" style={{ marginBottom: 'var(--gx-space-4)' }}>{group.label_plural}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
               {group.matches.map(m => (
                 <div
                   key={m.id}
                   className="card card-hover"
-                  style={{ padding: 'var(--sp-3) var(--sp-4)', cursor: onNavigate ? 'pointer' : 'default' }}
+                  style={{ padding: 'var(--gx-space-6) var(--gx-space-8)', cursor: onNavigate ? 'pointer' : 'default' }}
                   onClick={() => onNavigate?.(group.route_slug, m.id)}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

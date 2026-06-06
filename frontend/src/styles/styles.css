@@ -6,7 +6,10 @@
    verifying that the last-wins rules still resolve identically.
    ========================================================================= */
 
-@import "./_tokens.css";          /* :root tokens + [data-theme="light"] overrides */
+/* Token registry: SINGLE source of truth is `./gaahex-tokens.css` (imported
+   from main.tsx). The legacy `_tokens.css` was deleted 2026-06-06 per Gev's
+   token-unification decision; every consumer was migrated to `var(--gx-*)`.
+   See docs/audit/D19-TOKEN-REGISTRY-RECONCILIATION-PLAN.md for the doctrine. */
 @import "./_base.css";            /* reset, body backdrop, headings, scrollbar */
 @import "./_glass.css";           /* shared glass-surface shadow recipe */
 @import "./_typography.css";      /* helpers, header bcrumb, user avatar, account modals */

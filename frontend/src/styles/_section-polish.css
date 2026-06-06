@@ -25,7 +25,7 @@
 .view-inner.section-page {
   max-width: 1320px;
   margin: 0 auto;
-  padding: var(--page-pad-y) var(--page-pad-x);
+  padding: var(--gx-space-20) var(--gx-space-12);
 }
 
 /* ----- Activity Feed page card ------------------------------------------- */

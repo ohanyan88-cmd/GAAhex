@@ -39,7 +39,7 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
   ]
 
   const body = (
-    <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+    <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
       {loading && <SkeletonRows rows={6} />}
       {error && <ErrorBanner message={error} />}
       {!loading && !error && nodes.length === 0 && members.length === 0 && (
@@ -48,8 +48,8 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
       {!loading && nodes.map(node => {
         const nodeMembers = membersFor(node.id)
         return (
-          <div key={node.id} className="card" style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
+          <div key={node.id} className="card" style={{ padding: 'var(--gx-space-8)', marginBottom: 'var(--gx-space-6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-6)' }}>
               <BuildingIcon size={16} className="muted" />
               <span style={{ fontWeight: 600 }}>{node.name}</span>
               <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{node.kind}</span>
@@ -71,8 +71,8 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
         )
       })}
       {!loading && unassigned.length > 0 && (
-        <div className="card" style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-3)' }}>
+        <div className="card" style={{ padding: 'var(--gx-space-8)', marginBottom: 'var(--gx-space-6)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-6)' }}>
             <UsersIcon size={16} className="muted" />
             <span style={{ fontWeight: 600 }}>Unassigned</span>
             <span className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginLeft: 'auto' }}>{unassigned.length} member{unassigned.length === 1 ? '' : 's'}</span>

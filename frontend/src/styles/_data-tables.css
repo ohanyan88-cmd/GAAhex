@@ -8,8 +8,8 @@
    across every dashboard. KPI strip styling lives under `.kpi-strip` only.
    ========================================================================= */
 .view { flex:1; overflow-y:auto; overflow-x:hidden; }
-.view-inner { padding:var(--page-pad-y) var(--page-pad-x) var(--sp-8); width:100%; box-sizing:border-box; }
-.crumbs { display:flex; align-items:center; gap:var(--inline-gap); font-size:12px; color:var(--gx-text-3); margin-bottom:var(--sp-4); }
+.view-inner { padding:var(--gx-space-20) var(--gx-space-12) var(--gx-space-9); width:100%; box-sizing:border-box; }
+.crumbs { display:flex; align-items:center; gap:var(--gx-space-4); font-size:12px; color:var(--gx-text-3); margin-bottom:var(--gx-space-8); }
 .crumbs .sep { opacity:.5; }
 
 /* table
@@ -62,11 +62,11 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
    .kpi-strip .kpi mirrors .gx-dash .kpi so list views render kit-shaped tiles
    (the legacy app-wide .kpi { font-size:38px; font-family:mono } at line 959 would
    otherwise win and reduce these to bare numeric text). */
-.kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:var(--kpi-gap); margin-bottom:var(--sp-4); }
+.kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:var(--gx-space-8); margin-bottom:var(--gx-space-8); }
 .kpi-strip .kpi {
   min-width:0; overflow:hidden; position:relative;
   background:var(--gx-surface); border:1px solid var(--gx-border); border-radius:var(--gx-radius-lg);
-  padding:var(--card-pad); box-shadow:var(--gx-shadow-sm);
+  padding:var(--gx-space-20); box-shadow:var(--gx-shadow-sm);
   transition:box-shadow var(--gx-dur-base), transform var(--gx-dur-base);
   display:flex; flex-direction:column; gap:6px;
   /* reset the legacy .kpi rule */
@@ -77,9 +77,9 @@ table.grid tbody tr.sel { background:var(--gx-selected); }
 .kpi-strip .kpi .kval { font-family:var(--gx-font-display); font-weight:600; letter-spacing:-.02em; margin:6px 0 8px; color:var(--gx-text-1); }
 .kpi-strip .kpi--marquee { box-shadow:var(--gx-glow-gold); border-color:transparent; }
 .kpi-strip .kpi--marquee::before { content:""; position:absolute; left:0; top:8px; bottom:8px; width:3px; background:var(--gx-gold); border-radius:99px; }
-.toolbar { display:flex; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-4); flex-wrap:wrap; }
+.toolbar { display:flex; align-items:center; gap:var(--gx-space-6); margin-bottom:var(--gx-space-8); flex-wrap:wrap; }
 .toolbar .tb-search { height:34px; }
-.table-foot { display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-3) var(--sp-4); border-top:1px solid var(--gx-border-subtle); }
+.table-foot { display:flex; align-items:center; gap:var(--gx-space-6); padding:var(--gx-space-6) var(--gx-space-8); border-top:1px solid var(--gx-border-subtle); }
 
 /* bulk action bar */
-.bulkbar { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; gap:var(--inline-gap); padding:var(--sp-2) var(--sp-4); background:var(--gx-elevated); border-bottom:1px solid var(--gx-primary); box-shadow:var(--gx-shadow-sm); }
+.bulkbar { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; gap:var(--gx-space-4); padding:var(--gx-space-4) var(--gx-space-8); background:var(--gx-elevated); border-bottom:1px solid var(--gx-primary); box-shadow:var(--gx-shadow-sm); }

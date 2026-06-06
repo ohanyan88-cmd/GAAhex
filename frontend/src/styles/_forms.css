@@ -2,40 +2,40 @@
 .inp {
   width: 100%;
   box-sizing: border-box;
-  background: var(--surface);
+  background: var(--gx-surface);
   border: 1px solid rgba(244,246,249,0.10);
-  color: var(--text);
+  color: var(--gx-text-1);
   outline: none;
-  transition: background var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast);
+  transition: background var(--gx-dur-fast), border-color var(--gx-dur-fast), box-shadow var(--gx-dur-fast);
 }
-[data-theme="light"] .inp { border: 1px solid var(--border); }
-.inp::placeholder { color: var(--text-3); }
+[data-theme="light"] .inp { border: 1px solid var(--gx-border); }
+.inp::placeholder { color: var(--gx-text-3); }
 .inp-sm { height: 28px; font-size: 12px; padding: 0 10px; border-radius: 6px; }
 .inp-md { height: 36px; font-size: 13px; padding: 0 12px; border-radius: 8px; }
 .inp-lg { height: 44px; font-size: 14px; padding: 0 14px; border-radius: 10px; }
-.inp-numeric { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
-.inp-area { height: auto; padding: 10px 12px; resize: vertical; line-height: var(--lh-base); }
+.inp-numeric { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--gx-font-mono); }
+.inp-area { height: auto; padding: 10px 12px; resize: vertical; line-height: var(--gx-leading-normal); }
 
-.inp:hover { background: var(--surface-2); border-color: rgba(197,160,89,0.40); }
+.inp:hover { background: var(--gx-surface-2); border-color: rgba(197,160,89,0.40); }
 .inp:focus, .inp:focus-visible {
-  background: var(--surface-2);
-  border-color: var(--accent);
+  background: var(--gx-surface-2);
+  border-color: var(--gx-gold);
   box-shadow: 0 0 0 3px rgba(197,160,89,0.18);
   outline: none;
 }
 .inp.is-err, .inp[aria-invalid="true"] {
-  border-color: var(--danger);
+  border-color: var(--gx-danger);
   box-shadow: 0 0 0 3px rgba(230,57,70,0.18);
 }
-.inp:disabled { background: var(--surface-2); color: rgba(244,246,249,0.30); cursor: not-allowed; }
-[data-theme="light"] .inp:disabled { background: var(--surface-2); color: var(--text-3); }
+.inp:disabled { background: var(--gx-surface-2); color: rgba(244,246,249,0.30); cursor: not-allowed; }
+[data-theme="light"] .inp:disabled { background: var(--gx-surface-2); color: var(--gx-text-3); }
 
 .inp-help { font-size: 11px; color: rgba(244,246,249,0.45); margin-top: 4px; }
-[data-theme="light"] .inp-help { color: var(--text-3); }
-.inp-err { font-size: 11px; color: var(--danger); margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; }
+[data-theme="light"] .inp-help { color: var(--gx-text-3); }
+.inp-err { font-size: 11px; color: var(--gx-danger); margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; min-width: 0; }
-.field > span { color: var(--text-3); font-size: 12px; }
+.field > span { color: var(--gx-text-3); font-size: 12px; }
 
 /* ===================== SEARCH ===================== */
 .search { position: relative; display: inline-block; }
@@ -46,12 +46,12 @@
 .search-lg .search-input { height: 44px; padding: 0 46px 0 44px; border-radius: 10px; font-size: 14px; }
 
 .search-icon { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); color: rgba(244,246,249,0.50); pointer-events: none; }
-[data-theme="light"] .search-icon { color: var(--text-3); }
+[data-theme="light"] .search-icon { color: var(--gx-text-3); }
 .search-md .search-icon { left: 12px; }
 .search-lg .search-icon { left: 14px; }
 .search-clear, .search-filter {
   position: absolute; top: 50%; transform: translateY(-50%); right: 8px;
 }
-.search-clear { color: var(--text-3); background: transparent; border: 0; cursor: pointer; padding: 4px; border-radius: 4px; }
-.search-clear:hover { color: var(--text); background: var(--surface-2); }
-.search-filter { color: var(--accent); background: transparent; border: 0; cursor: pointer; padding: 4px; }
+.search-clear { color: var(--gx-text-3); background: transparent; border: 0; cursor: pointer; padding: 4px; border-radius: 4px; }
+.search-clear:hover { color: var(--gx-text-1); background: var(--gx-surface-2); }
+.search-filter { color: var(--gx-gold); background: transparent; border: 0; cursor: pointer; padding: 4px; }

@@ -1,33 +1,33 @@
 /* ===================== EMPTY / LOADING / ERROR ===================== */
 .empty-state {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
-  padding: var(--sp-9) var(--page-pad-x);
+  display: flex; flex-direction: column; align-items: center; gap: var(--gx-space-6);
+  padding: 48px var(--gx-space-12);
   text-align: center;
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text-2);
+  background: var(--gx-surface);
+  border: 1px dashed var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  color: var(--gx-text-2);
 }
-.empty-state-icon { width: 48px; height: 48px; color: var(--text-3); }
-.empty-state h3 { color: var(--text); }
-.empty-state p { color: var(--text-3); font-size: 13px; max-width: 380px; margin: 0; }
+.empty-state-icon { width: 48px; height: 48px; color: var(--gx-text-3); }
+.empty-state h3 { color: var(--gx-text-1); }
+.empty-state p { color: var(--gx-text-3); font-size: 13px; max-width: 380px; margin: 0; }
 
 .loading-state {
-  display: flex; flex-direction: column; align-items: center; gap: var(--sp-3);
-  padding: var(--sp-8) var(--page-pad-x);
-  color: var(--text-3);
+  display: flex; flex-direction: column; align-items: center; gap: var(--gx-space-6);
+  padding: var(--gx-space-9) var(--gx-space-12);
+  color: var(--gx-text-3);
 }
 .spin-icon { animation: spin-icon 0.75s linear infinite; }
 
 .error-banner {
-  display: flex; align-items: flex-start; gap: var(--inline-gap);
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--danger-soft);
-  border-left: 3px solid var(--danger);
-  border-radius: var(--r-md);
-  color: var(--text);
-  margin-bottom: var(--sp-4);
+  display: flex; align-items: flex-start; gap: var(--gx-space-4);
+  padding: var(--gx-space-6) var(--gx-space-8);
+  background: var(--gx-danger-soft);
+  border-left: 3px solid var(--gx-danger);
+  border-radius: var(--gx-radius-md);
+  color: var(--gx-text-1);
+  margin-bottom: var(--gx-space-8);
 }
-.error-banner-icon { color: var(--danger); flex: none; margin-top: 1px; }
-.error-banner-title { font-weight: var(--fw-semibold); font-size: 13px; }
-.error-banner-msg { font-size: 12px; color: var(--text-2); }
+.error-banner-icon { color: var(--gx-danger); flex: none; margin-top: 1px; }
+.error-banner-title { font-weight: var(--gx-weight-semibold); font-size: 13px; }
+.error-banner-msg { font-size: 12px; color: var(--gx-text-2); }

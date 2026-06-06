@@ -2,42 +2,42 @@
    Design-foundation addendum (reskin): backward-compat aliases for class names
    the real app uses that the DESIGN system names differently. Keeps every
    existing view styled with zero edits. */
-.skel { background: var(--surface-2); background-image: linear-gradient(90deg, var(--surface-2), var(--border), var(--surface-2)); background-size: 240% 100%; animation: shimmer 1.5s linear infinite; border-radius: 4px; }
-.skel-row { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-soft); }
+.skel { background: var(--gx-surface-2); background-image: linear-gradient(90deg, var(--gx-surface-2), var(--gx-border), var(--gx-surface-2)); background-size: 240% 100%; animation: shimmer 1.5s linear infinite; border-radius: 4px; }
+.skel-row { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--gx-border-subtle); }
 .skel-cell { height: 10px; flex: 1; }
 @keyframes shimmer { 0% { background-position: 240% 0; } 100% { background-position: -40% 0; } }
-.pill-info { background: var(--accent-soft); color: var(--accent-hover, var(--accent)); }
+.pill-info { background: var(--gx-gold-soft); color: var(--gx-gold, var(--gx-gold)); }
 .kan-col { flex: 0 0 268px; display: flex; flex-direction: column; gap: 10px; }
 .kan-col-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
-.kan-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; transition: border-color 140ms; }
-.kan-card:hover { border-color: var(--accent); }
-.kan-avatar { width: 28px; height: 28px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-hover); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.kan-card { background: var(--gx-surface); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md); padding: 12px; display: flex; flex-direction: column; gap: 8px; transition: border-color 140ms; }
+.kan-card:hover { border-color: var(--gx-gold); }
+.kan-avatar { width: 28px; height: 28px; border-radius: 999px; background: var(--gx-interactive-soft); color: var(--gx-interactive-hover); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
 
 /* Recovered real-app classes the DESIGN system doesn't define — LeadPipeline scores,
    Ask-GAAhex chat bubbles + proposals, the language switcher, and the table scroll wrapper. */
 .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .score-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
-.score-hot { background: var(--danger-soft); color: var(--danger); }
-.score-warm { background: var(--warning-soft); color: var(--warning); }
-.score-cold { background: var(--surface-2); color: var(--text-3); }
-.kan-newform { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+.score-hot { background: var(--gx-danger-soft); color: var(--gx-danger); }
+.score-warm { background: var(--gx-warning-soft); color: var(--gx-warning); }
+.score-cold { background: var(--gx-surface-2); color: var(--gx-text-3); }
+.kan-newform { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--gx-surface-2); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md); padding: 10px; }
 .ask-msg { display: flex; }
 .ask-user { justify-content: flex-end; }
 .ask-assistant { justify-content: flex-start; }
-.ask-bubble { max-width: 78%; padding: 10px 14px; border-radius: var(--radius); font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
-.ask-user .ask-bubble { background: var(--primary); color: var(--text-inv); }
-.ask-assistant .ask-bubble { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.ask-bubble { max-width: 78%; padding: 10px 14px; border-radius: var(--gx-radius-md); font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+.ask-user .ask-bubble { background: var(--gx-interactive); color: var(--gx-text-on-primary); }
+.ask-assistant .ask-bubble { background: var(--gx-surface-2); color: var(--gx-text-1); border: 1px solid var(--gx-border); }
 .ask-input { display: flex; gap: 8px; }
 .ask-input .inp { flex: 1; }
-.ask-proposal { max-width: 78%; border: 1px solid var(--accent); background: var(--accent-soft); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
-.ask-proposal-head { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--accent-hover); text-transform: uppercase; letter-spacing: .04em; }
-.ask-proposal-body { font-size: 14px; line-height: 1.5; color: var(--text); }
+.ask-proposal { max-width: 78%; border: 1px solid var(--gx-gold); background: var(--gx-gold-soft); border-radius: var(--gx-radius-md); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ask-proposal-head { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--gx-gold); text-transform: uppercase; letter-spacing: .04em; }
+.ask-proposal-body { font-size: 14px; line-height: 1.5; color: var(--gx-text-1); }
 .ask-proposal-actions { display: flex; gap: 8px; }
-.ask-proposal-done { font-size: 13px; font-weight: 600; color: var(--success); }
-.lang-switch { display: inline-flex; border: var(--bw-1) solid var(--border); border-radius: var(--r-md); overflow: hidden; }
-.lang-opt { background: transparent; color: var(--text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--fw-medium); cursor: pointer; }
-.lang-opt:hover { background: var(--surface-2); color: var(--text); }
-.lang-opt.on { background: var(--primary-soft); color: var(--text); }
+.ask-proposal-done { font-size: 13px; font-weight: 600; color: var(--gx-success); }
+.lang-switch { display: inline-flex; border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md); overflow: hidden; }
+.lang-opt { background: transparent; color: var(--gx-text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--gx-weight-medium); cursor: pointer; }
+.lang-opt:hover { background: var(--gx-surface-2); color: var(--gx-text-1); }
+.lang-opt.on { background: var(--gx-interactive-soft); color: var(--gx-text-1); }
 
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }

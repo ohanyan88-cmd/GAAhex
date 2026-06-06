@@ -11,7 +11,7 @@
 .flex-wrap { flex-wrap: wrap; }
 .text-right { text-align: right; }
 .text-center { text-align: center; }
-.tabular { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.tabular { font-variant-numeric: tabular-nums; font-family: var(--gx-font-mono); }
 .hide-sm { }
 .no-wrap { white-space: nowrap; }
 

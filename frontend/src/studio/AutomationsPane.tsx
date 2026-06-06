@@ -474,7 +474,7 @@ export default function AutomationsPane({ token }: { token: string }) {
               </span>
               <textarea
                 className="inp inp-md"
-                style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--gx-text-sm)', minHeight: 80, resize: 'vertical' }}
+                style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-sm)', minHeight: 80, resize: 'vertical' }}
                 value={form.action_config}
                 onChange={(e) => patch('action_config', e.target.value)}
                 placeholder={getConfigPlaceholder(form.action_type)}

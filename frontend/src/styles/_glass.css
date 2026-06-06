@@ -3,7 +3,7 @@
    the ambient gradient on <body> glows through. These rules add the shared
    glass recipe — backdrop blur + the soft inset/drop shadow — to the real
    surface classes the app uses for chrome, cards, panels, tables, modals and
-   popovers. Each class already paints `background: var(--surface)` (or -2) via
+   popovers. Each class already paints `background: var(--gx-surface)` (or -2) via
    its own rule; here we only layer the blur + glass shadow on top.
    (Sidebar + header are handled in their own rules with a stronger blur.) */
 .widget,
@@ -32,4 +32,4 @@
 .notif-pop,
 .org-kebab-menu,
 .emoji-pop,
-.icon-picker-pop { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--shadow-pop); }
+.icon-picker-pop { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--gx-shadow-lg); }

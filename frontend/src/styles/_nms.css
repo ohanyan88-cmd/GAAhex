@@ -1,103 +1,18 @@
-/* NMS — Network Management System palette + neon accents.
+/* GAAhex — NMS component classes.
  *
- * Locked 2026-06-03 by Gev for the production NMS rebuild. This is the ONLY
- * page using the "native" shadcn-zinc baseline; the rest of GAAhex stays on
- * cobalt+gold (D17). Tokens here are namespaced `--nms-*` so they never
- * collide with the platform `--gx-*` tokens.
+ * Extracted 2026-06-06 from the now-deleted nms-tokens.css. Tokens
+ * referenced here are CANONICAL --gx-* tokens from gaahex-tokens.css.
+ * This file is component-CSS only; no token DEFINITIONS live here.
  *
- * Use neon accents ONLY for status pulses (active dot, warning flash, critical
- * alarm). Never as decoration. Per D17, state is communicated by colored value
- * text or a small badge — never by tile chrome.
+ * Origin: Gev's locked decision (2026-06-06) — single token registry.
  */
-:root {
-  /* ── Routed entirely through GAAhex brand tokens (`--gx-*`) so the NMS
-       page is on-brand with the rest of the platform. Cobalt + Gold +
-       semantic status palette. Theme switching is automatic (the gx tokens
-       carry their own light/dark values). */
-
-  /* Surfaces — cobalt navy family */
-  --nms-bg:            var(--gx-bg);
-  --nms-surface:       var(--gx-surface);
-  --nms-surface-2:     var(--gx-surface-2);
-  --nms-surface-3:     var(--gx-border-strong);
-
-  /* Borders */
-  --nms-border:        var(--gx-border);
-  --nms-border-strong: var(--gx-border-strong);
-  --nms-border-soft:   rgba(244,246,249,0.06);
-
-  /* Text */
-  --nms-text:          var(--gx-text-1);
-  --nms-text-2:        var(--gx-text-2);
-  --nms-text-3:        var(--gx-text-3);
-  --nms-text-inv:      var(--gx-bg);
-
-  /* PALETTE PHILOSOPHY (Gev 2026-06-03, after the "too much blue" feedback):
-     Per D17, brand colors are SIGNATURE — sparing. Most data viz uses
-     neutral text shades; cobalt + gold appear only where they MEAN something.
-
-       · neutrals (text-2, text-3)  → 95% of bars, donut slices, default chrome
-       · cobalt (--gx-primary)      → ACTIVE selection, hover, focus, interactive
-       · gold   (--gx-gold)         → CRITICAL alerts, PEAK markers, FEATURED
-
-     Severity hierarchy on data: neutral → dimmer neutral → GOLD (the attention).
-     Cobalt does NOT appear in passive data — only when something is
-     interactive or actively selected. */
-  --nms-neon-green:    var(--gx-text-2);     /* neutral — healthy data, plain bars */
-  --nms-neon-amber:    var(--gx-text-3);     /* dimmer neutral — quiet warning */
-  --nms-neon-red:      var(--gx-gold);       /* gold — critical / attention */
-  --nms-neon-cyan:     var(--gx-interactive); /* azure — interactive (D18 routing, 2026-06-04) */
-  --nms-accent-gold:   var(--gx-gold);
-
-  /* Soft tints — neutrals get transparent backgrounds (no chromatic fill);
-     gold + cobalt keep their tinted fills as the "signature" markers. */
-  --nms-neon-green-soft: rgba(244,246,249,0.04);  /* near-transparent neutral */
-  --nms-neon-amber-soft: transparent;
-  --nms-neon-red-soft:   var(--gx-gold-soft);
-  --nms-neon-cyan-soft:  var(--gx-primary-soft);
-  --nms-accent-gold-soft: var(--gx-gold-soft);
-
-  /* Dimmed-neutral — used for the "middle" state in 3-way distributions
-     where neither end is critical. Same family as the bar default. */
-  --nms-cobalt-dim:    var(--gx-text-3);
-
-  /* Glow tokens — kept as no-ops; brand UI does not glow. */
-  --nms-glow-green:    none;
-  --nms-glow-amber:    none;
-  --nms-glow-red:      none;
-  --nms-glow-cyan:     none;
-
-  /* ── Radii ───────────────────────────────────────────────────────────── */
-  --nms-radius-sm:     6px;
-  --nms-radius-md:     10px;
-  --nms-radius-lg:     14px;
-
-  /* ── Spacing (matches GAAhex --sp-N scale for consistency) ─────────────── */
-  --nms-sp-1:          4px;
-  --nms-sp-2:          8px;
-  --nms-sp-3:          12px;
-  --nms-sp-4:          16px;
-  --nms-sp-5:          24px;
-  --nms-sp-6:          32px;
-
-  /* ── Shadows (subtle elevation, no glow) ─────────────────────────────── */
-  --nms-shadow-sm:     0 1px 2px rgba(0,0,0,0.6);
-  --nms-shadow-md:     0 4px 12px rgba(0,0,0,0.5);
-  --nms-shadow-lg:     0 12px 32px rgba(0,0,0,0.55);
-
-  /* ── Motion ──────────────────────────────────────────────────────────── */
-  --nms-dur-fast:      120ms;
-  --nms-dur-base:      180ms;
-  --nms-dur-slow:      280ms;
-  --nms-ease:          cubic-bezier(0.2, 0.8, 0.2, 1);
-}
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Page-level surface
  * ───────────────────────────────────────────────────────────────────────── */
 .nms-page {
-  background: var(--nms-bg);
-  color: var(--nms-text);
+  background: var(--gx-bg);
+  color: var(--gx-text-1);
   min-height: 100vh;
 }
 
@@ -105,28 +20,28 @@
  * Widget card — universal shell for every NMS widget.
  * ───────────────────────────────────────────────────────────────────────── */
 .nms-card {
-  background: var(--nms-surface);
-  border: 1px solid var(--nms-border);
-  border-radius: var(--nms-radius-md);
-  box-shadow: var(--nms-shadow-sm);
-  padding: var(--nms-sp-4);
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-xs);
+  padding: var(--gx-space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--nms-sp-3);
+  gap: var(--gx-space-6);
   min-height: 0;
   position: relative;
-  transition: border-color var(--nms-dur-base) var(--nms-ease);
+  transition: border-color var(--gx-dur-base) var(--gx-ease-standard);
 }
 
 .nms-card:hover {
-  border-color: var(--nms-border-strong);
+  border-color: var(--gx-border-strong);
 }
 
 .nms-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--nms-sp-2);
+  gap: var(--gx-space-4);
 }
 
 .nms-card-title {
@@ -134,7 +49,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--nms-text-2);
+  color: var(--gx-text-2);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
 }
 
@@ -142,7 +57,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--nms-sp-3);
+  gap: var(--gx-space-6);
   min-height: 0;
 }
 
@@ -155,9 +70,9 @@
   gap: 4px;
   padding: 2px 6px;
   border-radius: 999px;
-  background: var(--nms-surface-2);
-  border: 1px solid var(--nms-border-strong);
-  color: var(--nms-text-3);
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border-strong);
+  color: var(--gx-text-3);
   font-size: 9px;
   font-family: var(--gx-font-mono, ui-monospace, monospace);
   text-transform: uppercase;
@@ -174,11 +89,11 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: var(--nms-sp-4);
-  border: 1px dashed var(--nms-border-strong);
-  border-radius: var(--nms-radius-sm);
+  padding: var(--gx-space-8);
+  border: 1px dashed var(--gx-border-strong);
+  border-radius: var(--gx-radius-sm);
   text-align: center;
-  color: var(--nms-text-3);
+  color: var(--gx-text-3);
   font-size: 12px;
   min-height: 100px;
 }
@@ -188,7 +103,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--nms-text-2);
+  color: var(--gx-text-2);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -205,9 +120,9 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: var(--nms-surface-2);
-  border: 1px solid var(--nms-border-strong);
-  color: var(--nms-text-2);
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border-strong);
+  color: var(--gx-text-2);
 }
 
 /* Status pill variants — most pills are neutral; cobalt + gold appear only
@@ -248,7 +163,7 @@
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.02em;
-  color: var(--nms-text);
+  color: var(--gx-text-1);
   font-variant-numeric: tabular-nums;
 }
 .nms-value-sm   { font-size: 22px; }
@@ -266,21 +181,21 @@
 .nms-module-band {
   display: flex;
   align-items: center;
-  gap: var(--nms-sp-3);
-  margin-top: var(--nms-sp-5);
-  margin-bottom: var(--nms-sp-3);
+  gap: var(--gx-space-6);
+  margin-top: var(--gx-space-12);
+  margin-bottom: var(--gx-space-6);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--nms-text-3);
+  color: var(--gx-text-3);
 }
 .nms-module-band::after {
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--nms-border);
+  background: var(--gx-border);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -294,11 +209,11 @@
 .nms-module-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--nms-sp-4);
+  gap: var(--gx-space-8);
 }
 .nms-row {
   display: flex;
-  gap: var(--nms-sp-4);
+  gap: var(--gx-space-8);
   align-items: stretch;
 }
 .nms-row > * {
@@ -329,20 +244,20 @@
 .nms-widget-manager-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 10px;
-  border-radius: var(--nms-radius-sm);
-  background: var(--nms-surface);
-  border: 1px solid var(--nms-border-strong);
-  color: var(--nms-text-2);
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border-strong);
+  color: var(--gx-text-2);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: border-color var(--nms-dur-base), color var(--nms-dur-base);
+  transition: border-color var(--gx-dur-base), color var(--gx-dur-base);
 }
 .nms-widget-manager-btn:hover {
-  border-color: var(--nms-text);
-  color: var(--nms-text);
+  border-color: var(--gx-text-1);
+  color: var(--gx-text-1);
 }
 .nms-widget-manager-panel {
   position: absolute;
@@ -351,15 +266,15 @@
   width: 320px;
   max-height: 60vh;
   overflow-y: auto;
-  background: var(--nms-surface);
-  border: 1px solid var(--nms-border-strong);
-  border-radius: var(--nms-radius-md);
-  box-shadow: var(--nms-shadow-lg);
-  padding: var(--nms-sp-3);
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border-strong);
+  border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-md);
+  padding: var(--gx-space-6);
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: var(--nms-sp-3);
+  gap: var(--gx-space-6);
 }
 .nms-widget-manager-group {
   display: flex; flex-direction: column; gap: 4px;
@@ -368,20 +283,20 @@
   font-family: var(--gx-font-mono, ui-monospace, monospace);
   font-size: 10px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--nms-text-3);
+  color: var(--gx-text-3);
   padding: 4px 0;
-  border-bottom: 1px solid var(--nms-border);
+  border-bottom: 1px solid var(--gx-border);
 }
 .nms-widget-manager-row {
   display: flex; align-items: center; gap: 8px;
   padding: 5px 6px;
-  border-radius: var(--nms-radius-sm);
+  border-radius: var(--gx-radius-sm);
   cursor: pointer;
   font-size: 12px;
-  color: var(--nms-text);
+  color: var(--gx-text-1);
 }
-.nms-widget-manager-row:hover { background: var(--nms-surface-2); }
-.nms-widget-manager-row input[type="checkbox"] { accent-color: var(--nms-text); }
+.nms-widget-manager-row:hover { background: var(--gx-surface-2); }
+.nms-widget-manager-row input[type="checkbox"] { accent-color: var(--gx-text-1); }
 .nms-widget-manager-row .nms-pill { margin-left: auto; }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -394,7 +309,7 @@
   z-index: 200;
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--nms-dur-base) var(--nms-ease);
+  transition: opacity var(--gx-dur-base) var(--gx-ease-standard);
 }
 .nms-drawer-overlay.is-open {
   opacity: 1;
@@ -404,12 +319,12 @@
   position: fixed;
   top: 0; right: 0; bottom: 0;
   width: min(520px, 90vw);
-  background: var(--nms-surface);
-  border-left: 1px solid var(--nms-border-strong);
-  box-shadow: var(--nms-shadow-lg);
+  background: var(--gx-surface);
+  border-left: 1px solid var(--gx-border-strong);
+  box-shadow: var(--gx-shadow-md);
   z-index: 201;
   transform: translateX(100%);
-  transition: transform var(--nms-dur-slow) var(--nms-ease);
+  transition: transform var(--gx-dur-moderate) var(--gx-ease-standard);
   display: flex;
   flex-direction: column;
 }
@@ -418,8 +333,8 @@
 }
 .nms-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: var(--nms-sp-4);
-  border-bottom: 1px solid var(--nms-border);
+  padding: var(--gx-space-8);
+  border-bottom: 1px solid var(--gx-border);
   flex-shrink: 0;
 }
 .nms-drawer-title {
@@ -428,25 +343,25 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--nms-text);
+  color: var(--gx-text-1);
 }
 .nms-drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--nms-sp-4);
+  padding: var(--gx-space-8);
 }
 .nms-drawer-close {
   background: none;
-  border: 1px solid var(--nms-border-strong);
-  color: var(--nms-text-2);
+  border: 1px solid var(--gx-border-strong);
+  color: var(--gx-text-2);
   width: 28px; height: 28px;
-  border-radius: var(--nms-radius-sm);
+  border-radius: var(--gx-radius-sm);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   font-size: 14px;
-  transition: color var(--nms-dur-base), border-color var(--nms-dur-base);
+  transition: color var(--gx-dur-base), border-color var(--gx-dur-base);
 }
 .nms-drawer-close:hover {
-  color: var(--nms-text);
-  border-color: var(--nms-text);
+  color: var(--gx-text-1);
+  border-color: var(--gx-text-1);
 }

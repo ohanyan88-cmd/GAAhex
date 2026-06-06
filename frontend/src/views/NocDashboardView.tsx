@@ -3,9 +3,9 @@
 // Rebuilt 2026-06-03 per the production NMS spec Gev locked. Six modules,
 // 17 widgets, alarms-first ordering, fixed-slot grid with reflow on toggle,
 // universal slide-out drawer for context detail, gear menu for widget
-// visibility. Native shadcn-zinc palette + neon status accents (see
-// `styles/nms-tokens.css`). Cobalt+gold (D17) is NOT used here — this is
-// the only page on a different visual register.
+// visibility. Component classes (`.nms-*`) live in `styles/_nms.css` and
+// reference the canonical `--gx-*` tokens directly — the previously-separate
+// `nms-tokens.css` was unified into `gaahex-tokens.css` on 2026-06-06.
 //
 // PHASE 1A — DESIGN PREVIEW MODE
 //   Every widget renders from SAMPLE_* constants below with a visible
@@ -257,7 +257,7 @@ function Bar({ pct, variant = 'cyan', height = 8 }: { pct: number; variant?: 'gr
   return (
     <div style={{
       height, width: '100%', borderRadius: 999,
-      background: 'var(--nms-surface-3)', overflow: 'hidden',
+      background: 'var(--gx-border-strong)', overflow: 'hidden',
     }}>
       <div style={{
         width: `${Math.max(0, Math.min(100, pct))}%`,
@@ -282,9 +282,9 @@ function ValueBlock({ label, value, sub, variant = 'default' }: {
     )
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
-      <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--gx-font-mono, monospace)' }}>{label}</div>
+      <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--gx-font-mono, monospace)' }}>{label}</div>
       <div className={valueCls}>{value}</div>
-      {sub && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{sub}</div>}
     </div>
   )
 }
@@ -346,7 +346,7 @@ const WIpPool: React.FC<WidgetCtx> = () => {
         value={
           <span>
             <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_IP_POOL.used.toLocaleString()}</span>
-            <span style={{ color: 'var(--nms-text-3)' }}>/{SAMPLE_IP_POOL.total.toLocaleString()}</span>
+            <span style={{ color: 'var(--gx-text-3)' }}>/{SAMPLE_IP_POOL.total.toLocaleString()}</span>
           </span>
         }
         sub={`${remaining.toLocaleString()} available addresses remaining`}
@@ -372,17 +372,17 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
   ]
   return (
     <NMSCard title="ONU Phase State Grid" status="live">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--nms-sp-3)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--gx-space-6)' }}>
         {cells.map(c => (
           <button
             key={c.key}
             type="button"
             onClick={() => openDrawer({ kind: 'segment', id: `phase:${c.key}`, label: c.label })}
             style={{
-              background: 'var(--nms-surface-2)',
-              border: '1px solid var(--nms-border)',
-              borderRadius: 'var(--nms-radius-sm)',
-              padding: 'var(--nms-sp-3)',
+              background: 'var(--gx-surface-2)',
+              border: '1px solid var(--gx-border)',
+              borderRadius: 'var(--gx-radius-sm)',
+              padding: 'var(--gx-space-6)',
               display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)',
               cursor: 'pointer',
               color: 'inherit',
@@ -396,7 +396,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
             <div className="nms-value nms-value-mono" style={{ fontSize: 26 }}>{c.value}</div>
             {c.isTotal ? (
               // Neutral stacked bar: text-2 (working) → text-3 (dying_gasp) → gold (offline).
-              <div style={{ display: 'flex', height: 6, borderRadius: 999, overflow: 'hidden', background: 'var(--nms-surface-3)' }}>
+              <div style={{ display: 'flex', height: 6, borderRadius: 999, overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
                 <div style={{ flex: s.working,    background: 'var(--gx-text-2)' }} />
                 <div style={{ flex: s.dying_gasp, background: 'var(--gx-text-3)' }} />
                 <div style={{ flex: s.offline,    background: 'var(--gx-gold)' }} />
@@ -404,7 +404,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
             ) : (
               <Bar pct={c.share * 100} variant={c.pillCls.includes('green') ? 'green' : c.pillCls.includes('amber') ? 'amber' : 'red'} height={5} />
             )}
-            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--nms-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
               {c.isTotal ? '100%' : `${(c.share * 100).toFixed(1)}%`}
             </div>
           </button>
@@ -418,7 +418,7 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const max = Math.max(...SAMPLE_OPTICAL_RX.map(b => b.count))
   return (
     <NMSCard title="Optical RX Power Distribution" status="pending">
-      <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-around', gap: 'var(--nms-sp-3)', height: 200, paddingTop: 'var(--gx-space-8)' }}>
+      <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-around', gap: 'var(--gx-space-6)', height: 200, paddingTop: 'var(--gx-space-8)' }}>
         {SAMPLE_OPTICAL_RX.map(b => {
           const h = (b.count / max) * 160
           // Neutral by default; gold only for the Critical bucket.
@@ -439,7 +439,7 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
             >
               <div style={{ fontSize: 'var(--gx-text-md)', fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, color }}>{b.count}</div>
               <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 'var(--gx-space-2)' }} />
-              <div style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{b.label}</div>
+              <div style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{b.label}</div>
               <div style={{ fontSize: 'var(--gx-text-10)', color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
             </button>
           )
@@ -464,7 +464,7 @@ const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
       >
         <span className={'nms-dot ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
         <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-red' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_ROGUE.count}</div>
-        <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', textAlign: 'center', maxWidth: 200 }}>
+        <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', maxWidth: 200 }}>
           {isAlarm ? 'Blinded ports — uncontrolled light' : 'No rogue ONUs · all ports stable'}
         </div>
       </button>
@@ -482,7 +482,7 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const peakPct = (peak.count / peak.max) * 100
   return (
     <NMSCard title="PON Port Saturation" status="live">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-2)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
         {SAMPLE_PON_SATURATION.ports.map(p => {
           const pct = (p.count / p.max) * 100
           const variant = pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'green'
@@ -493,23 +493,23 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer }) => {
               onClick={() => openDrawer({ kind: 'port', id: p.id, label: `Port ${p.id}` })}
               style={{
                 display: 'grid', gridTemplateColumns: '52px 1fr 70px',
-                gap: 'var(--nms-sp-2)', alignItems: 'center',
+                gap: 'var(--gx-space-4)', alignItems: 'center',
                 background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)',
                 cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                borderRadius: 'var(--nms-radius-sm)',
+                borderRadius: 'var(--gx-radius-sm)',
               }}
             >
-              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-2)' }}>{p.id}</span>
+              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-2)' }}>{p.id}</span>
               <Bar pct={pct} variant={variant} height={10} />
-              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)', textAlign: 'right', color: variant === 'red' ? 'var(--nms-neon-red)' : variant === 'amber' ? 'var(--nms-neon-amber)' : 'var(--nms-text)' }}>
+              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)', textAlign: 'right', color: variant === 'red' ? 'var(--gx-gold)' : variant === 'amber' ? 'var(--gx-text-3)' : 'var(--gx-text-1)' }}>
                 {p.count}/{p.max}
               </span>
             </button>
           )
         })}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 'var(--gx-space-2)' }}>
-        Peak Port Capacity: <b style={{ color: 'var(--nms-accent-gold)' }}>ArmGponOLT2 / {peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 'var(--gx-space-2)' }}>
+        Peak Port Capacity: <b style={{ color: 'var(--gx-gold)' }}>ArmGponOLT2 / {peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
       </div>
     </NMSCard>
   )
@@ -527,13 +527,13 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
     'var(--gx-gold)',     // gold — dominant (signature for the leader)
     'var(--gx-text-2)',   // neutral 1
     'var(--gx-text-3)',   // neutral 2
-    'var(--nms-surface-3)', // neutral 3 (dimmest)
+    'var(--gx-border-strong)', // neutral 3 (dimmest)
   ]
   return (
     <NMSCard title="ONU Vendor Diversity Mix" status="live">
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--nms-sp-3)', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--gx-space-6)', alignItems: 'center' }}>
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--nms-surface-3)" strokeWidth={STROKE} />
+          <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--gx-border-strong)" strokeWidth={STROKE} />
           {SAMPLE_VENDOR_MIX.map((v, i) => {
             const frac = v.count / total
             const dash = frac * C
@@ -553,8 +553,8 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
               />
             )
           })}
-          <text x={SIZE/2} y={SIZE/2 - 6} textAnchor="middle" fontSize="22" fontWeight="600" fill="var(--nms-text)" fontFamily="var(--gx-font-display, sans-serif)">{total}</text>
-          <text x={SIZE/2} y={SIZE/2 + 14} textAnchor="middle" fontSize="10" fill="var(--nms-text-3)" letterSpacing="0.08em">ONUs</text>
+          <text x={SIZE/2} y={SIZE/2 - 6} textAnchor="middle" fontSize="22" fontWeight="600" fill="var(--gx-text-1)" fontFamily="var(--gx-font-display, sans-serif)">{total}</text>
+          <text x={SIZE/2} y={SIZE/2 + 14} textAnchor="middle" fontSize="10" fill="var(--gx-text-3)" letterSpacing="0.08em">ONUs</text>
         </svg>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
           {SAMPLE_VENDOR_MIX.map((v, i) => {
@@ -568,14 +568,14 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                   gap: 'var(--gx-space-3)', alignItems: 'center',
                   background: 'transparent', border: 'none', padding: '3px 6px',
                   cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                  borderRadius: 'var(--nms-radius-sm)',
+                  borderRadius: 'var(--gx-radius-sm)',
                   fontSize: 'var(--gx-text-sm)',
                 }}
               >
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: colors[i % colors.length] }} />
                 <span>{v.vendor}</span>
-                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-2)' }}>{v.count}</span>
-                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)' }}>{pct}%</span>
+                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>{v.count}</span>
+                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>{pct}%</span>
               </button>
             )
           })}
@@ -589,21 +589,21 @@ const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const max = Math.max(...SAMPLE_DENSITY.map(d => d.count))
   return (
     <NMSCard title="Subscriber Density per OLT" status="partial">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-2)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
         {SAMPLE_DENSITY.map(d => (
           <button key={d.olt}
             type="button"
             onClick={() => openDrawer({ kind: 'olt', id: d.olt, label: d.olt })}
             style={{
               display: 'grid', gridTemplateColumns: '140px 1fr 50px',
-              gap: 'var(--nms-sp-2)', alignItems: 'center',
+              gap: 'var(--gx-space-4)', alignItems: 'center',
               background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)',
               cursor: 'pointer', color: 'inherit', textAlign: 'left',
-              borderRadius: 'var(--nms-radius-sm)',
+              borderRadius: 'var(--gx-radius-sm)',
               fontSize: 'var(--gx-text-sm)',
             }}
           >
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.olt}</span>
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.olt}</span>
             <Bar pct={(d.count / max) * 100} height={10} />
             <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, textAlign: 'right' }}>{d.count}</span>
           </button>
@@ -629,7 +629,7 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${SAMPLE_TIER_MIX.length}, minmax(0, 1fr))`,
-        gap: 'var(--nms-sp-2)', alignItems: 'end',
+        gap: 'var(--gx-space-4)', alignItems: 'end',
         height: CHART_H + 40, paddingTop: 'var(--gx-space-7)', position: 'relative',
       }}>
         {SAMPLE_TIER_MIX.map(t => {
@@ -650,27 +650,27 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 <div style={{
                   position: 'absolute',
                   bottom: stem + 24,
-                  background: 'var(--nms-surface-2)',
-                  border: '1px solid var(--nms-border-strong)',
-                  borderRadius: 'var(--nms-radius-sm)',
+                  background: 'var(--gx-surface-2)',
+                  border: '1px solid var(--gx-border-strong)',
+                  borderRadius: 'var(--gx-radius-sm)',
                   padding: 'var(--gx-space-1) var(--gx-space-4)',
                   fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)',
-                  color: 'var(--nms-text)', whiteSpace: 'nowrap', fontWeight: 600,
+                  color: 'var(--gx-text-1)', whiteSpace: 'nowrap', fontWeight: 600,
                 }}>▼ Peak Plan · {peakPct}%</div>
               )}
               <div style={{
                 position: 'absolute', bottom: 'var(--gx-space-12)', width: 2, height: stem,
-                background: 'var(--nms-text-2)', opacity: 0.6, borderRadius: 1,
+                background: 'var(--gx-text-2)', opacity: 0.6, borderRadius: 1,
               }} />
               <div style={{
                 position: 'absolute', bottom: 24 + stem - 5, width: 10, height: 10, borderRadius: '50%',
-                background: 'var(--nms-text)',
-                border: '2px solid var(--nms-bg)',
-                outline: isLeader ? '1px solid var(--nms-text)' : 'none',
+                background: 'var(--gx-text-1)',
+                border: '2px solid var(--gx-bg)',
+                outline: isLeader ? '1px solid var(--gx-text-1)' : 'none',
                 outlineOffset: 1,
               }} />
-              <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: isLeader ? 'var(--nms-text)' : 'var(--nms-text-3)', fontWeight: isLeader ? 600 : 400 }}>{t.tier}</span>
-              <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-3)' }}>{t.count}</span>
+              <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: isLeader ? 'var(--gx-text-1)' : 'var(--gx-text-3)', fontWeight: isLeader ? 600 : 400 }}>{t.tier}</span>
+              <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>{t.count}</span>
             </button>
           )
         })}
@@ -690,13 +690,13 @@ const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer }) => {
             onClick={() => openDrawer({ kind: 'profile', name: p.name })}
             style={{
               display: 'grid', gridTemplateColumns: '170px 1fr 40px',
-              gap: 'var(--nms-sp-2)', alignItems: 'center',
+              gap: 'var(--gx-space-4)', alignItems: 'center',
               background: 'transparent', border: 'none', padding: '3px 6px',
               cursor: 'pointer', color: 'inherit', textAlign: 'left',
-              borderRadius: 'var(--nms-radius-sm)', fontSize: 'var(--gx-text-11)',
+              borderRadius: 'var(--gx-radius-sm)', fontSize: 'var(--gx-text-11)',
             }}
           >
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--nms-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</span>
+            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</span>
             <Bar pct={(p.count / max) * 100} height={8} />
             <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 600, textAlign: 'right' }}>{p.count}</span>
           </button>
@@ -722,7 +722,7 @@ const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
       >
         <span className={'nms-dot ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} style={{ width: 12, height: 12 }} />
         <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-amber' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{n}</div>
-        <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', textAlign: 'center', maxWidth: 200 }}>
+        <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', maxWidth: 200 }}>
           Pending activation from billing CRM
         </div>
       </button>
@@ -755,7 +755,7 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer }) => {
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', fontStyle: 'italic' }}>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
         Click a chip to filter every widget on the dashboard to that traffic segment.
       </div>
     </NMSCard>
@@ -794,31 +794,31 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
     <NMSCard title="ISP Hierarchy Explorer" status="live">
       <div style={{
         display: 'grid', gridTemplateColumns: '180px 200px 1fr',
-        gap: 'var(--nms-sp-3)', minHeight: 320,
+        gap: 'var(--gx-space-6)', minHeight: 320,
       }}>
         {/* Column 1 — Regions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
-          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>Regions</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--gx-border)', paddingRight: 'var(--gx-space-4)' }}>
+          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>Regions</div>
           {SAMPLE_HIERARCHY.regions.map(r => (
             <button key={r.id}
               type="button"
               onClick={() => onRegion(r.id)}
               onDoubleClick={() => openDrawer({ kind: 'region', id: r.id, label: r.label })}
               style={{
-                padding: 'var(--gx-space-3) var(--gx-space-5)', borderRadius: 'var(--nms-radius-sm)',
-                background: regionId === r.id ? 'var(--nms-surface-2)' : 'transparent',
-                border: regionId === r.id ? '1px solid var(--nms-border-strong)' : '1px solid transparent',
+                padding: 'var(--gx-space-3) var(--gx-space-5)', borderRadius: 'var(--gx-radius-sm)',
+                background: regionId === r.id ? 'var(--gx-surface-2)' : 'transparent',
+                border: regionId === r.id ? '1px solid var(--gx-border-strong)' : '1px solid transparent',
                 cursor: 'pointer', color: 'inherit', textAlign: 'left',
                 fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
               }}
             >
-              {r.label} <span style={{ color: 'var(--nms-text-3)' }}>· {r.olts.length}</span>
+              {r.label} <span style={{ color: 'var(--gx-text-3)' }}>· {r.olts.length}</span>
             </button>
           ))}
         </div>
         {/* Column 2 — OLTs + Ports */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--nms-border)', paddingRight: 'var(--nms-sp-2)' }}>
-          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>OLT · PON</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--gx-border)', paddingRight: 'var(--gx-space-4)' }}>
+          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>OLT · PON</div>
           {region.olts.map(o => (
             <div key={o.id}>
               <button
@@ -826,9 +826,9 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 onClick={() => onOlt(o.id)}
                 onDoubleClick={() => openDrawer({ kind: 'olt', id: o.id, label: o.label })}
                 style={{
-                  width: '100%', padding: 'var(--gx-space-2) var(--gx-space-5)', borderRadius: 'var(--nms-radius-sm)',
-                  background: oltId === o.id ? 'var(--nms-surface-2)' : 'transparent',
-                  border: oltId === o.id ? '1px solid var(--nms-border-strong)' : '1px solid transparent',
+                  width: '100%', padding: 'var(--gx-space-2) var(--gx-space-5)', borderRadius: 'var(--gx-radius-sm)',
+                  background: oltId === o.id ? 'var(--gx-surface-2)' : 'transparent',
+                  border: oltId === o.id ? '1px solid var(--gx-border-strong)' : '1px solid transparent',
                   cursor: 'pointer', color: 'inherit', textAlign: 'left',
                   fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
                 }}
@@ -842,15 +842,15 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
                       type="button"
                       onClick={() => setPortId(p.id)}
                       style={{
-                        padding: 'var(--gx-space-1) var(--gx-space-3)', borderRadius: 'var(--nms-radius-sm)',
-                        background: portId === p.id ? 'var(--nms-surface-3)' : 'transparent',
+                        padding: 'var(--gx-space-1) var(--gx-space-3)', borderRadius: 'var(--gx-radius-sm)',
+                        background: portId === p.id ? 'var(--gx-border-strong)' : 'transparent',
                         border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left',
                         fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)',
                         display: 'flex', justifyContent: 'space-between',
                       }}
                     >
                       <span>{p.label}</span>
-                      <span style={{ color: 'var(--nms-text-3)' }}>{p.onus.length}</span>
+                      <span style={{ color: 'var(--gx-text-3)' }}>{p.onus.length}</span>
                     </button>
                   ))}
                 </div>
@@ -861,18 +861,18 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
         {/* Column 3 — ONU rows for selected port */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', minHeight: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--nms-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>
+            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 6px' }}>
               {port ? `Port ${port.label}` : '—'} · {port?.onus.length ?? 0} ONUs
             </div>
           </div>
           <div style={{
             display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)',
-            background: 'var(--nms-surface-2)', borderRadius: 'var(--nms-radius-sm)',
-            border: '1px solid var(--nms-border)', padding: 'var(--nms-sp-2)',
+            background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)',
+            border: '1px solid var(--gx-border)', padding: 'var(--gx-space-4)',
             maxHeight: 280, overflowY: 'auto',
           }}>
             {!port || port.onus.length === 0 ? (
-              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', textAlign: 'center', padding: 'var(--nms-sp-3)' }}>
+              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', padding: 'var(--gx-space-6)' }}>
                 No ONUs on this port (sample data).
               </div>
             ) : port.onus.map(o => (
@@ -881,15 +881,15 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 onClick={() => openDrawer({ kind: 'onu', serial: o.serial })}
                 style={{
                   display: 'grid', gridTemplateColumns: '1fr 1fr 80px',
-                  gap: 'var(--nms-sp-2)', alignItems: 'center',
+                  gap: 'var(--gx-space-4)', alignItems: 'center',
                   background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)',
                   cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                  borderRadius: 'var(--nms-radius-sm)',
+                  borderRadius: 'var(--gx-radius-sm)',
                   fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)',
                 }}
               >
                 <span>{o.serial}</span>
-                <span style={{ color: 'var(--nms-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
+                <span style={{ color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
                 <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 9, justifySelf: 'end' }}>{o.phase}</span>
               </button>
             ))}
@@ -925,12 +925,12 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
   //   · Outage      → solid GOLD dot + animated gold pulse + bold label
   return (
     <NMSCard title="Regional Outage Field Map" status="partial">
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, background: 'var(--nms-surface-2)', borderRadius: 'var(--nms-radius-sm)', border: '1px solid var(--nms-border)' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)' }}>
         {Array.from({ length: 10 }).map((_, i) => (
-          <line key={'h' + i} x1={0} y1={(i * H) / 10} x2={W} y2={(i * H) / 10} stroke="var(--nms-border)" strokeWidth={1} opacity={0.4} />
+          <line key={'h' + i} x1={0} y1={(i * H) / 10} x2={W} y2={(i * H) / 10} stroke="var(--gx-border)" strokeWidth={1} opacity={0.4} />
         ))}
         {Array.from({ length: 16 }).map((_, i) => (
-          <line key={'v' + i} x1={(i * W) / 16} y1={0} x2={(i * W) / 16} y2={H} stroke="var(--nms-border)" strokeWidth={1} opacity={0.4} />
+          <line key={'v' + i} x1={(i * W) / 16} y1={0} x2={(i * W) / 16} y2={H} stroke="var(--gx-border)" strokeWidth={1} opacity={0.4} />
         ))}
         {SAMPLE_REGIONAL_HUBS.map(h => {
           const [x, y] = project(h.lat, h.lng)
@@ -950,7 +950,7 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
                 <circle cx={x} cy={y} r={7} fill={isOutage ? 'var(--gx-gold)' : 'var(--gx-text-2)'} />
               )}
               <text x={x + 12} y={y + 4} fontSize="11"
-                fill={isOutage ? 'var(--gx-gold)' : 'var(--nms-text-2)'}
+                fill={isOutage ? 'var(--gx-gold)' : 'var(--gx-text-2)'}
                 fontFamily="var(--gx-font-mono, monospace)"
                 fontWeight={isOutage ? 700 : 400}>
                 {h.label}{isOutage && ' · OUTAGE'}
@@ -959,7 +959,7 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
           )
         })}
       </svg>
-      <div style={{ display: 'flex', gap: 'var(--nms-sp-4)', fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', justifyContent: 'center', marginTop: 'var(--gx-space-2)' }}>
+      <div style={{ display: 'flex', gap: 'var(--gx-space-8)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', justifyContent: 'center', marginTop: 'var(--gx-space-2)' }}>
         <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 'var(--gx-space-2)' }} /> Operational</span>
         <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 'var(--gx-space-2)' }} /> Warning</span>
         <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 'var(--gx-space-2)' }} /> Outage</span>
@@ -976,15 +976,15 @@ const WTechnicianFleet: React.FC<WidgetCtx> = ({ openDrawer }) => {
   ]
   return (
     <NMSCard title="Technician Fleet Status" status="pending">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-2)', flex: 1, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)', flex: 1, justifyContent: 'center' }}>
         {groups.map(g => (
           <button key={g.key}
             type="button"
             onClick={() => openDrawer({ kind: 'tech-group', group: g.key })}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--gx-space-4) var(--gx-space-6)', borderRadius: 'var(--nms-radius-sm)',
-              background: 'var(--nms-surface-2)', border: '1px solid var(--nms-border)',
+              padding: 'var(--gx-space-4) var(--gx-space-6)', borderRadius: 'var(--gx-radius-sm)',
+              background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)',
               cursor: 'pointer', color: 'inherit',
               fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
             }}
@@ -1077,11 +1077,11 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
       title="NMS Dashboard"
       subtitle="Network operations · alarms · provisioning · field"
     >
-      <div className="nms-page" style={{ padding: 'var(--nms-sp-4)' }}>
+      <div className="nms-page" style={{ padding: 'var(--gx-space-8)' }}>
         {/* Top bar — design-preview banner + gear menu */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--nms-sp-4)' }}>
-          <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
-            <span style={{ color: 'var(--nms-accent-gold)' }}>● </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--gx-space-8)' }}>
+          <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+            <span style={{ color: 'var(--gx-gold)' }}>● </span>
             Phase 1A · design preview · widgets tagged below are sample data
           </div>
           <WidgetManager
@@ -1250,20 +1250,20 @@ function drawerSubtitleFor(p: DrawerPayload): string {
 
 function DrawerBody({ payload }: { payload: DrawerPayload }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--nms-sp-4)' }}>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)', fontStyle: 'italic' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
+      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
         Slide-out drawer body — Phase 1A design preview. Real per-asset detail will
         render here once each widget is wired to live data and the matching backend
         endpoint exists.
       </div>
       <div style={{
-        padding: 'var(--nms-sp-3)',
-        background: 'var(--nms-surface-2)',
-        border: '1px solid var(--nms-border)',
-        borderRadius: 'var(--nms-radius-sm)',
+        padding: 'var(--gx-space-6)',
+        background: 'var(--gx-surface-2)',
+        border: '1px solid var(--gx-border)',
+        borderRadius: 'var(--gx-radius-sm)',
         fontSize: 'var(--gx-text-sm)',
         fontFamily: 'var(--gx-font-mono, monospace)',
-        color: 'var(--nms-text-2)',
+        color: 'var(--gx-text-2)',
         whiteSpace: 'pre-wrap',
       }}>
         {JSON.stringify(payload, null, 2)}

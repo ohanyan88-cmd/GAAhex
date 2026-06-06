@@ -22,7 +22,7 @@ function SpacingScale() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
       {spaces.map(({ token, px }) => (
         <div key={token} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-6)' }}>
-          <code style={{ width: 130, fontSize: 'var(--gx-text-10)', fontFamily: 'var(--font-mono)', color: 'var(--gx-text-2)' }}>{token}</code>
+          <code style={{ width: 130, fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono)', color: 'var(--gx-text-2)' }}>{token}</code>
           <div
             style={{
               width: `var(${token})`,
@@ -31,7 +31,7 @@ function SpacingScale() {
               borderRadius: 'var(--gx-radius-sm)',
             }}
           />
-          <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--font-mono)', color: 'var(--gx-text-3)' }}>{px}px</span>
+          <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono)', color: 'var(--gx-text-3)' }}>{px}px</span>
         </div>
       ))}
     </div>

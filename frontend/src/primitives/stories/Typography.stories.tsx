@@ -20,7 +20,7 @@ function TypeScale() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
       {sizes.map(({ token, px }) => (
         <div key={token} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--gx-space-8)' }}>
-          <code style={{ width: 130, flexShrink: 0, fontSize: 'var(--gx-text-10)', fontFamily: 'var(--font-mono)', color: 'var(--gx-text-3)' }}>
+          <code style={{ width: 130, flexShrink: 0, fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono)', color: 'var(--gx-text-3)' }}>
             {token} · {px}px
           </code>
           <span style={{ fontSize: `var(${token})`, color: 'var(--gx-text-1)', lineHeight: 'var(--gx-leading-tight)' }}>

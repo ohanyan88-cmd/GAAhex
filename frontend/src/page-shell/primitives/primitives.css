@@ -2,8 +2,9 @@
    GAAhex — Layout Primitives (Stack / Inline / Grid / Card / SectionHeading)
 
    These rules are the ONLY place that maps the public {xs,sm,md,lg,xl} size
-   names to spacing tokens. Every value below is a `var(--...)` reference into
-   _tokens.css — no hardcoded lengths.
+   names to spacing tokens. Every value below is a `var(--gx-*)` reference into
+   `gaahex-tokens.css` (the single canonical token registry) — no hardcoded
+   lengths.
 
    Class surface is intentionally tiny:
      .stk / .stk--{xs|sm|md|lg|xl}
@@ -17,11 +18,11 @@
 
 /* ── Gap scale (shared by Stack + Inline) ────────────────────────────────── */
 :where(.stk, .inl) {
-  --stk-gap-xs: var(--sp-1);
-  --stk-gap-sm: var(--sp-2);
-  --stk-gap-md: var(--sp-4);
-  --stk-gap-lg: var(--sp-6);
-  --stk-gap-xl: var(--sp-7);
+  --stk-gap-xs: var(--gx-space-2);
+  --stk-gap-sm: var(--gx-space-4);
+  --stk-gap-md: var(--gx-space-8);
+  --stk-gap-lg: var(--gx-space-12);
+  --stk-gap-xl: var(--gx-space-16);
 }
 
 /* ── Stack ───────────────────────────────────────────────────────────────── */
@@ -61,9 +62,9 @@
 
 /* ── Grid ────────────────────────────────────────────────────────────────── */
 .gd {
-  --gd-gap-sm: var(--sp-3);
-  --gd-gap-md: var(--card-gap);
-  --gd-gap-lg: var(--sp-6);
+  --gd-gap-sm: var(--gx-space-6);
+  --gd-gap-md: var(--gx-space-8);
+  --gd-gap-lg: var(--gx-space-12);
   display: grid;
   min-width: 0;
 }
@@ -81,19 +82,19 @@
 /* Responsive auto-fit mode overrides the fixed cols rule above. The minimum
    column width comes from the --gd-min custom property the JSX sets. */
 .gd--auto {
-  grid-template-columns: repeat(auto-fit, minmax(var(--gd-min, var(--sp-10)), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--gd-min, 64px), 1fr));
 }
 
 /* ── Card ────────────────────────────────────────────────────────────────── */
 .card-primitive {
-  --card-p-sm: var(--sp-3);
-  --card-p-md: var(--card-pad);
-  --card-p-lg: var(--sp-7);
-  background: var(--surface);
-  border: var(--bw-1) solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow);
-  color: var(--text);
+  --card-p-sm: var(--gx-space-6);
+  --card-p-md: var(--gx-space-20);
+  --card-p-lg: var(--gx-space-16);
+  background: var(--gx-surface);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-lg);
+  box-shadow: var(--gx-shadow-xs);
+  color: var(--gx-text-1);
   min-width: 0;
 }
 .card-primitive--pad-sm { padding: var(--card-p-sm); }
@@ -102,13 +103,13 @@
 
 .card-primitive--default { /* surface + border defaults above */ }
 .card-primitive--emphasis {
-  background: var(--surface-2);
-  border-color: var(--primary-soft);
-  box-shadow: var(--shadow-card);
+  background: var(--gx-surface-2);
+  border-color: var(--gx-interactive-soft);
+  box-shadow: var(--gx-shadow-md);
 }
 .card-primitive--subtle {
-  background: var(--surface-2);
-  border-color: var(--border-soft);
+  background: var(--gx-surface-2);
+  border-color: var(--gx-border-subtle);
   box-shadow: none;
 }
 
@@ -124,30 +125,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-2);
+  color: var(--gx-text-2);
   flex: 0 0 auto;
 }
 .sh__titles {
   display: inline-flex;
   flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--gx-space-2);
   min-width: 0;
 }
 .sh__title {
-  font-size: var(--fs-h3);
-  font-weight: var(--fw-semibold);
-  color: var(--text);
-  line-height: var(--lh-tight);
+  font-size: var(--gx-text-xl);
+  font-weight: var(--gx-weight-semibold);
+  color: var(--gx-text-1);
+  line-height: var(--gx-leading-tight);
 }
 .sh__subtitle {
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-regular);
-  color: var(--text-2);
-  line-height: var(--lh-base);
+  font-size: var(--gx-text-13);
+  font-weight: var(--gx-weight-regular);
+  color: var(--gx-text-2);
+  line-height: var(--gx-leading-normal);
 }
 .sh__action {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--gx-space-4);
   flex: 0 0 auto;
 }

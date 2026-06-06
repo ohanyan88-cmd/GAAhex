@@ -5,7 +5,9 @@
 // drawer body is context-aware — caller hands it whatever JSX is appropriate
 // for the asset class that was clicked.
 //
-// Styling: `.nms-drawer-*` classes in `styles/nms-tokens.css`.
+// Styling: `.nms-drawer-*` classes in `styles/_nms.css` (NMS component CSS;
+// nms-tokens.css was deleted 2026-06-06 as part of the token-unification — all
+// `--nms-*` tokens migrated to canonical `--gx-*`).
 // Behavior:
 //   - Open state lifted to the caller (controlled component).
 //   - ESC closes.
@@ -64,7 +66,7 @@ export function SlideOutPanel({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)' }}>
             <div id="nms-drawer-title" className="nms-drawer-title">{title}</div>
             {subtitle && (
-              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--nms-text-3)' }}>{subtitle}</div>
+              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{subtitle}</div>
             )}
           </div>
           <button

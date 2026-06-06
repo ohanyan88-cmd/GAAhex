@@ -1,25 +1,25 @@
 /* ===================== TABS ===================== */
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .tab {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--pill);
+  background: var(--gx-surface);
+  color: var(--gx-text-1);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-full);
   padding: 7px 16px;
   font-size: 13px;
-  font-weight: var(--fw-medium);
+  font-weight: var(--gx-weight-medium);
   cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px;
-  transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
+  transition: background var(--gx-dur-fast), border-color var(--gx-dur-fast), color var(--gx-dur-fast);
 }
-.tab:hover { border-color: var(--accent); }
+.tab:hover { border-color: var(--gx-gold); }
 .tab.on {
-  background: var(--primary);
+  background: var(--gx-interactive);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--gx-interactive);
 }
 .tab-count {
-  font-size: 11px; font-family: var(--font-mono);
+  font-size: 11px; font-family: var(--gx-font-mono);
   background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 999px;
 }
 .tab.on .tab-count { background: rgba(0,0,0,0.20); color: #fff; }

@@ -57,7 +57,7 @@ export default function CoverageView({ token }: { token: string }) {
       subtitle="Network coverage check & feasibility"
       kpis={kpis.length > 0 ? kpis : undefined}
     >
-      <div style={{ padding: '0 var(--sp-4) var(--sp-4)' }}>
+      <div style={{ padding: '0 var(--gx-space-8) var(--gx-space-8)' }}>
         {loading && <SkeletonRows rows={6} />}
         {error && <ErrorBanner message={error} />}
         {!loading && !error && checks.length === 0 && (
