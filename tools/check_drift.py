@@ -18,6 +18,11 @@ Hard rules (immediate fail):
   * Local `function fmtDate(`, `function fmtDateTime(`, `function moneyDecimal(`
     (DF-4/5/6).
   * `aria-pressed=` on a `role="tab"` (TB-5).
+  * `next_reference_number(prefix='XYZ')` where XYZ is not in the canonical
+    Std03 prefix registry (PR-1). Same self-enforcement pattern that closed
+    the frontend D19 token rubbish — converts Std03 from "discipline" to
+    "CI-enforced." Catches both invention (LAW-GV5 violation) and registry
+    drift (LAW-GV1 amendment needed).
 
 Ratchet rules (fail if count INCREASES vs baseline):
   * `let alive = true` blocks in frontend (DF-1/2; baseline 54 — Phase 5 target 0)
@@ -44,6 +49,68 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 BASELINE_PATH = REPO / "tools" / "check_drift_baseline.json"
+
+
+# ─────────────────────────────────────────────────────────────────────
+# PR-1 — Canonical prefix registry (Standard 03, LOCKED, LAW-GV1 amendment #3).
+# ─────────────────────────────────────────────────────────────────────
+# Mirror of `docs/standards/03-identity-reference-naming-enum-standards.md`
+# §Prefix Registry. Every `next_reference_number(prefix='XYZ')` call site
+# in backend code MUST use a prefix that appears in CANONICAL_PREFIXES or
+# DEPRECATED_PREFIX_ALIASES. Unknown prefixes fail the drift check.
+#
+# This converts the architecture-layer discipline ("Std03 is the single
+# authoritative prefix registry") into CI-enforced reality. Same pattern
+# that closed the frontend D19 token rubbish in 2026-06.
+#
+# To add a new prefix:
+#   1. LAW-GV1 amendment to Standard 03 + IA8 §7.4 (architecture layer).
+#   2. Mirror the addition here (catalog layer reflection).
+#   3. Both changes land in the same commit.
+#
+# To deprecate a prefix:
+#   1. LAW-GV1 amendment moves the entry from CANONICAL_PREFIXES to
+#      DEPRECATED_PREFIX_ALIASES.
+#   2. Existing reference numbers using the deprecated prefix are
+#      immutable per Standard 03 rule 6 (no retroactive renaming).
+CANONICAL_PREFIXES: frozenset[str] = frozenset({
+    "ADD", "AIA", "AMD", "API", "APP", "APR", "APT", "ATT", "AUT",
+    "BND", "BRC",
+    "CAM", "CFG", "CHG", "CMP", "CMT", "CN", "CNT", "CNX", "COM", "CON",
+    "CRD", "CTR", "CUS",
+    "DEP", "DNG", "DOC",
+    "EMP", "EPL", "EVT", "EXC", "EXE", "EXP", "EXT",
+    "FAQ", "FBR", "FFL", "FJB", "FRC",
+    "IMP", "INC", "INV", "IPP",
+    "JOB",
+    "KBA",
+    "LED", "LIC", "LOC",
+    "MNT", "MSG",
+    "NDV", "NTF",
+    "OAP", "OLT", "ONU", "ORD",
+    "PAY", "PLN", "PRB", "PRD", "PRJ", "PRQ", "PRR", "PRT", "PTK", "PUR",
+    "QUE", "QUO",
+    "REC", "REL", "REN", "RES", "RLE", "ROL", "RPS", "RPT", "RTP", "RTR",
+    "SAC", "SCH", "SIT", "SLA", "SOP", "SRQ", "STK", "SUB", "SVA", "SVC", "SWT",
+    "TEM", "THR", "TKT", "TLS", "TNT", "TPL", "TSK",
+    "USR",
+    "VEN", "VHC",
+    "WFI", "WFL", "WHK", "WIT", "WO",
+})
+
+# Aliases retained for backward-compatibility with reference numbers
+# already issued under the old prefix. New code must use the canonical
+# replacement (Standard 03 § Deprecated aliases table).
+DEPRECATED_PREFIX_ALIASES: frozenset[str] = frozenset({
+    "WBH",  # deprecated 2026-06-06 (amendment #3) → replaced by WHK (Webhook)
+})
+
+# Regex for `next_reference_number(prefix='XYZ')` or `prefix="XYZ"` style
+# literals. Captures the prefix token. Only matches uppercase canonical
+# form (lowercase / mixed-case would fail upstream validation anyway).
+PREFIX_LITERAL_RE = re.compile(
+    r"""prefix\s*=\s*['"]([A-Z][A-Z0-9_]{0,5})['"]""",
+)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -353,6 +420,57 @@ def count_pattern(rule, files: list[Path]) -> tuple[int, list[tuple[Path, int, s
     return count, sample
 
 
+def check_prefix_registry() -> tuple[int, list[tuple[Path, int, str]]]:
+    """PR-1 — Std03 canonical prefix registry enforcement.
+
+    Scans every `*.py` under `backend/` for `prefix='XYZ'` / `prefix="XYZ"`
+    literal patterns. Each captured prefix must appear in
+    `CANONICAL_PREFIXES` or `DEPRECATED_PREFIX_ALIASES`. Returns
+    (violation_count, sample_violations) where each sample is
+    (file_path, line_no, "prefix='XYZ' — message").
+
+    Excludes `.venv`, `__pycache__`, and the file that DEFINES the registry
+    (this file itself) since its frozenset literals are documentation, not
+    runtime call sites.
+    """
+    backend_root = REPO / "backend"
+    if not backend_root.exists():
+        return 0, []
+    violations: list[tuple[Path, int, str]] = []
+    excluded_files = {
+        "tools/check_drift.py",  # the registry itself
+        "tools/check_drift_baseline.json",
+    }
+    for path in backend_root.rglob("*.py"):
+        posix = path.as_posix()
+        if any(seg in posix for seg in (
+            "__pycache__", ".venv", ".pytest_cache",
+        )):
+            continue
+        rel = path.relative_to(REPO).as_posix()
+        if rel in excluded_files:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for m in PREFIX_LITERAL_RE.finditer(text):
+            prefix = m.group(1)
+            if prefix in CANONICAL_PREFIXES:
+                continue
+            if prefix in DEPRECATED_PREFIX_ALIASES:
+                # Deprecated but not a hard failure — kept for backward
+                # compatibility on existing reference numbers. Not flagged
+                # to avoid breaking the build; a separate ratchet could
+                # be added later if we want to enforce migration.
+                continue
+            line_no = text.count("\n", 0, m.start()) + 1
+            line_text = text.splitlines()[line_no - 1] if line_no - 1 < len(text.splitlines()) else ""
+            msg = f"prefix='{prefix}' — not in Std03 canonical registry"
+            violations.append((path, line_no, f"{msg} | {line_text.strip()[:80]}"))
+    return len(violations), violations
+
+
 def load_baseline() -> dict:
     if not BASELINE_PATH.exists():
         return {}
@@ -381,6 +499,21 @@ def main() -> int:
                 print(f"        {rel}:{ln}: {line}")
         else:
             print(f"  OK   {rule.name}")
+
+    # PR-1 — prefix registry enforcement (separate from the regex-based
+    # HARD_RULES because it asserts membership in a frozenset, not
+    # absence of a regex pattern).
+    pr_count, pr_violations = check_prefix_registry()
+    if pr_count > 0:
+        hard_failures.append("PR-1 prefix registry drift")
+        print(f"  FAIL PR-1 prefix registry drift: {pr_count} unknown prefix literal(s)")
+        print(f"        Every `next_reference_number(prefix='XYZ')` must use a prefix in")
+        print(f"        Standard 03's canonical registry (LAW-GV1 amendment process to add).")
+        for p, ln, line in pr_violations[:3]:
+            rel = p.relative_to(REPO)
+            print(f"        {rel}:{ln}: {line}")
+    else:
+        print(f"  OK   PR-1 Std03 prefix registry")
 
     baseline = load_baseline()
     new_baseline: dict = dict(baseline)

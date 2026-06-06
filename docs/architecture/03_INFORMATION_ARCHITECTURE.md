@@ -315,8 +315,10 @@ Standard 03 governs.
 | `CHG-` | ChangeRequest | Case |
 | `CMP-` | Complaint | Case |
 | `CMT-` | Comment | Communication |
+| `CN-`  | CreditNote | Financial |
 | `CNT-` | Contract | Contract |
 | `CNX-` | Connector | Integration |
+| `COM-` | Communication (parent record) | Communication |
 | `CON-` | Contact | Party |
 | `CRD-` | Credit | Financial |
 | `CTR-` | Contractor | Party |
@@ -542,6 +544,7 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Tax               | Financial  | Billing | (none) |
 | Discount          | Financial  | Billing | (none) |
 | Credit            | Financial  | Billing | `CRD-` |
+| CreditNote        | Financial  | Billing | `CN-`  |
 | DunningRecord     | Financial  | Billing | `DNG-` |
 | RevenueEntry      | Financial  | Billing | (none) |
 | CostEntry         | Financial  | Billing | (none) |
@@ -577,6 +580,7 @@ schema lives in `09_DATA_ARCHITECTURE.md`).
 | Schedule          | Scheduling   | WF       | `SCH-` |
 | Appointment       | Scheduling   | WF       | `APT-` |
 | DispatchSlot      | Scheduling   | WF       | (none) |
+| Communication (parent)| Communication| (any) | `COM-` |
 | Thread            | Communication| (any)    | `THR-` |
 | Message           | Communication| (any)    | `MSG-` |
 | Comment           | Communication| (any)    | `CMT-` |

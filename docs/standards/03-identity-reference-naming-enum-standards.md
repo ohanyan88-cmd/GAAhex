@@ -67,8 +67,10 @@ from it.
 | `CHG-` | ChangeRequest | Case | §8.4 |
 | `CMP-` | Complaint | Case | §8.4 |
 | `CMT-` | Comment | Communication | §8.4 |
+| `CN-`  | CreditNote | Financial | §8.3 |
 | `CNT-` | Contract | Contract | §8.2 |
 | `CNX-` | Connector | Integration | §8.5 |
+| `COM-` | Communication (parent record) | Communication | §8.4 |
 | `CON-` | Contact | Party | §8.2 |
 | `CRD-` | Credit | Financial | §8.3 |
 | `CTR-` | Contractor | Party | §8.2 |
