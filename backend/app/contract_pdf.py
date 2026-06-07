@@ -36,8 +36,12 @@ def _ensure_fonts() -> None:
     _fonts_ready = True
 
 
-def build_table_pdf(header: list, rows: list, title: str, date_str: str) -> bytes:
-    """Render a tabular export as an Armenian-capable landscape PDF (DejaVu)."""
+def build_table_pdf(header: list, rows: list, title: str, date_str: str, note: str = "") -> bytes:
+    """Render a tabular export as an Armenian-capable landscape PDF (DejaVu).
+
+    Column widths are sized to the page so text wraps by word (not per-character);
+    keep the column count modest (callers curate) so the table stays readable.
+    """
     _ensure_fonts()
     import io
     from reportlab.lib.pagesizes import landscape
@@ -49,16 +53,20 @@ def build_table_pdf(header: list, rows: list, title: str, date_str: str) -> byte
         title=title,
     )
     base = getSampleStyleSheet()["Normal"]
-    cell = ParagraphStyle("cell", parent=base, fontName=_REGULAR, fontSize=7, leading=9)
+    cell = ParagraphStyle("cell", parent=base, fontName=_REGULAR, fontSize=8, leading=10, wordWrap="CJK")
     head_cell = ParagraphStyle("hcell", parent=cell, fontName=_BOLD, textColor=colors.white)
     h1 = ParagraphStyle("th1", parent=base, fontName=_BOLD, fontSize=14)
     sub = ParagraphStyle("tsub", parent=base, fontName=_REGULAR, fontSize=8, textColor=colors.HexColor("#5b6b85"))
+    foot = ParagraphStyle("tfoot", parent=sub, fontSize=7, textColor=colors.HexColor("#8a98ad"), spaceBefore=6 * mm)
+
+    ncols = len(header) or 1
+    col_w = doc.width / ncols  # even split across the page so nothing overflows the margin
 
     table_rows = [[Paragraph(str(c), head_cell) for c in header]]
     for r in rows:
         table_rows.append([Paragraph("" if c is None else str(c), cell) for c in r])
 
-    t = Table(table_rows, repeatRows=1)
+    t = Table(table_rows, colWidths=[col_w] * ncols, repeatRows=1)
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f3a63")),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f6fb")]),
@@ -68,12 +76,15 @@ def build_table_pdf(header: list, rows: list, title: str, date_str: str) -> byte
         ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
     ]))
 
-    return _finish([
+    elems = [
         Paragraph(title, h1),
         Paragraph(f"HouseNet ISP · {date_str} · {len(rows)} records", sub),
         Spacer(1, 6 * mm),
         t,
-    ], doc, buf)
+    ]
+    if note:
+        elems.append(Paragraph(note, foot))
+    return _finish(elems, doc, buf)
 
 
 def _finish(elems, doc, buf) -> bytes:

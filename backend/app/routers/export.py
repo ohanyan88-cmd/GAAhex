@@ -112,6 +112,17 @@ def _cell(v) -> str:
     return _neutralize_formula(s)
 
 
+def _pdf_cell(v) -> str:
+    """Render a value for the PDF — no formula neutralization (a PDF isn't a spreadsheet)."""
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, list):
+        return "; ".join("" if x is None else str(x) for x in v)
+    return str(v)
+
+
 @router.get("/{slug}/export")
 async def export_records(
     slug: str,
@@ -229,11 +240,29 @@ async def export_records(
 
     # ------------------------------------------------------------------
     # PDF — Armenian-capable tabular PDF (reportlab + DejaVu; lazy import).
+    # A print format: curate to a few key columns so the table stays readable
+    # (a 30-column dump squeezes text to one char per line). Full data → csv/xlsx.
     # ------------------------------------------------------------------
     if fmt == "pdf":
         from ..contract_pdf import build_table_pdf
 
-        content = build_table_pdf(header, data_rows, f"{slug} export", f"{today:%Y-%m-%d}")
+        priority = ["name", "surname", "company_name", "phone", "email",
+                    "region", "city", "address", "service_type", "source"]
+        label_by_key = {f.key: f.label for f in data_fields}
+        pdf_keys = [k for k in priority if k in keys][:7]
+        if len(pdf_keys) < 3:                       # entity without the usual CRM keys → first few
+            pdf_keys = keys[:6]
+        pdf_header = [label_by_key[k] for k in pdf_keys] + ["Status", "Created"]
+        pdf_rows = []
+        for r in records:
+            line = [_pdf_cell((r.data or {}).get(k)) for k in pdf_keys]
+            line += [_pdf_cell(r.status), r.created_at.strftime("%Y-%m-%d") if r.created_at else ""]
+            pdf_rows.append(line)
+        note = ""
+        if len(data_fields) > len(pdf_keys):
+            note = (f"Showing {len(pdf_keys)} of {len(data_fields)} fields — "
+                    f"download CSV or XLSX for the complete data.")
+        content = build_table_pdf(pdf_header, pdf_rows, f"{slug} export", f"{today:%Y-%m-%d}", note)
         return Response(
             content=content,
             media_type="application/pdf",
