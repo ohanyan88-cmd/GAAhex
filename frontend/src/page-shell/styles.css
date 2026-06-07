@@ -54,8 +54,9 @@
   gap: var(--gx-space-3);
   /* Horizontal padding locked at var(--gx-space-12) = 24px per the PageShell
      spacing law (Gev 2026-06-06): header/kpis/actions/filters/body share the
-     same horizontal content edge. Vertical paddings stay per-zone. */
-  padding: var(--gx-space-7) var(--gx-space-12) var(--gx-space-5);
+     same horizontal content edge. Vertical paddings widened for more breathing
+     room top + bottom (Gev 2026-06-07). */
+  padding: var(--gx-space-12) var(--gx-space-12) var(--gx-space-12);
   border-bottom: 1px solid var(--gx-divider);
   background: var(--gx-bg);
 }
@@ -78,7 +79,7 @@
    Actions live in the header now (not a separate ActionBar row). */
 .ps-header-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;            /* search + action buttons sit on one line, vertically centered with the title */
   gap: var(--gx-space-8);
 }
 .ps-header-actions {
@@ -135,20 +136,32 @@
   margin-right: auto;   /* push title left; search + actions group together on the right */
 }
 
+/* GAAhex brand-motif: the page-header icon badge is a HEXAGON (app-wide). The "hex" in
+   GAAhex, rendered in the one tile that's on every page. Pure shape + tokenized outline —
+   no new colors (--gx-border-strong around --gx-surface-2). clip-path can't carry a CSS
+   border, so the outline is the layered-fill trick: outer hex = the border color, an
+   inner hex inset by 2px = the fill; the 2px sliver showing IS the border. */
 .ps-header-icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 42px;       /* ~0.87 × width → a regular (not stretched) flat-top hexagon */
   flex-shrink: 0;
-  border-radius: var(--gx-radius-md);
-  background: var(--gx-surface-2);
-  border: 1px solid var(--gx-border);
+  background: var(--gx-border-strong);   /* outer hex = the (tokenized) outline color */
   color: var(--gx-text-2);
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
 }
-/* Bigger glyph inside the (unchanged) icon box — overrides each view's icon size prop. */
-.ps-header-icon svg { width: var(--gx-header-icon-size); height: var(--gx-header-icon-size); }
+.ps-header-icon::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: var(--gx-surface-2);       /* inner hex = the fill */
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+/* Bigger glyph inside the hex, above the inner-fill pseudo-element. */
+.ps-header-icon svg { width: 22px; height: 22px; position: relative; z-index: 1; }
 
 .ps-header-titles {
   display: flex;
