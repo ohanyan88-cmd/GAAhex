@@ -807,11 +807,10 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 {selectFields.length > 1 && (
                   <select
-                    className="inp inp-sm"
+                    className="inp inp-sm flt-field"
                     aria-label="Filter field"
                     value={activeFilterField}
                     onChange={(e) => { setFilterSelectField(e.target.value); setFilterSelectVal('') }}
-                    style={{ width: 130 }}
                   >
                     {selectFields.map((f) => (
                       <option key={f.key} value={f.key}>{f.label}</option>
@@ -822,11 +821,10 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                   <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{activeFilterFieldDef?.label ?? 'Type'}</span>
                 )}
                 <select
-                  className="inp inp-sm"
+                  className="inp inp-sm flt-value"
                   aria-label={`Filter by ${activeFilterFieldDef?.label ?? 'type'}`}
                   value={filterSelectVal}
                   onChange={(e) => setFilterSelectVal(e.target.value)}
-                  style={{ width: 180 }}
                 >
                   <option value="">All {activeFilterFieldDef?.label ?? 'types'}</option>
                   {(activeFilterFieldDef?.config?.options ?? []).map((opt: string) => (
@@ -839,11 +837,10 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>Status</span>
                 <select
-                  className="inp inp-sm"
+                  className="inp inp-sm flt-status"
                   aria-label="Filter by status"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  style={{ width: 150 }}
                 >
                   <option value="">All statuses</option>
                   {(def.statuses ?? []).map((s) => (
@@ -1036,8 +1033,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
               <div className="saved-views" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
                 <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>View:</span>
                 <select
-                  className="inp inp-sm"
-                  style={{ width: 160 }}
+                  className="inp inp-sm flt-view"
                   aria-label="Saved views"
                   value={activeView}
                   onChange={(e) => applyView(e.target.value)}

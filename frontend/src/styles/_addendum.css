@@ -77,5 +77,10 @@
 }
 .tb-pop-foot:hover { background: var(--gx-surface-2); }
 
+/* List-toolbar filter control widths — sized to their labels (no inline px). */
+.flt-field { width: 130px; }
+.flt-value { width: 180px; }
+.flt-status { width: 150px; }
+.flt-view { width: 160px; }
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }

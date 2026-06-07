@@ -11,7 +11,7 @@
   align-items: end;
   box-shadow: var(--gx-shadow-xs);
 }
-.rec-form-actions { display: flex; align-items: center; gap: 8px; grid-column: 1 / -1; }
+.rec-form-actions { display: flex; align-items: center; gap: var(--gx-space-4); grid-column: 1 / -1; }
 
 /* Modal variant — the create/edit form rendered inside a Modal (EntityView). The modal body
    already provides the card surface/padding, so this strips .rec-form's own chrome and lays
@@ -47,7 +47,9 @@
 }
 .rec-pick-card:hover { border-color: var(--gx-border-strong); }
 .rec-pick-card.on { border-color: var(--gx-interactive); background: var(--gx-interactive-soft); box-shadow: 0 0 0 3px var(--gx-interactive-soft); }
-.rec-pick-card-icon { color: var(--gx-interactive); display: inline-flex; margin-bottom: var(--gx-space-2); }
+.rec-pick-card-icon { color: var(--gx-text-3); display: inline-flex; margin-bottom: var(--gx-space-2); }
+/* selected card: the icon picks up the interactive accent (matches the azure ring) */
+.rec-pick-card.on .rec-pick-card-icon { color: var(--gx-interactive); }
 .rec-pick-card-title { font-size: var(--gx-text-md); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); }
 .rec-pick-card-desc { font-size: var(--gx-text-sm); color: var(--gx-text-3); }
 /* the Lead Source field label in the picker — uppercase to match the Type label */
@@ -74,7 +76,7 @@
   font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);
   letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-2);
 }
-.rec-form-section-head svg { color: var(--gx-interactive); flex-shrink: 0; }
+.rec-form-section-head svg { color: var(--gx-text-3); flex-shrink: 0; }
 .rec-form-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--gx-space-12) var(--gx-space-12); align-items: end;

@@ -82,7 +82,9 @@
   padding: var(--gx-space-4) var(--gx-space-5); border-radius: var(--gx-radius-sm);
 }
 .sel-opt:hover { background: var(--gx-surface-2); }
-.sel-opt.on { color: var(--gx-interactive); }
+/* Selected option reads neutral (bold + check), not azure — azure stays interactive-only. */
+.sel-opt.on { color: var(--gx-text-1); font-weight: var(--gx-weight-semibold); }
+.sel-opt.on svg { color: var(--gx-text-2); }
 .sel-empty { padding: var(--gx-space-5); font-size: var(--gx-text-sm); }
 
 /* ── DatePicker (components/DatePicker.tsx) — token-styled calendar replacing native date input ── */
