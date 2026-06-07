@@ -123,10 +123,25 @@
 }
 .pv-name { font-size: var(--gx-text-lg); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); }
 .pv-email { font-size: var(--gx-text-sm); color: var(--gx-text-3); margin-top: var(--gx-space-1); }
-.pv-role { margin-top: var(--gx-space-3); }
-.pv-soon { display: flex; flex-direction: column; align-items: center; gap: var(--gx-space-4); padding: var(--gx-space-20); text-align: center; }
-.pv-soon svg { color: var(--gx-text-3); }
-.pv-soon-title { font-size: var(--gx-text-md); font-weight: var(--gx-weight-semibold); color: var(--gx-text-2); }
-.pv-soon-sub { font-size: var(--gx-text-sm); color: var(--gx-text-3); max-width: 360px; }
+.pv-role { margin-top: var(--gx-space-3); display: inline-flex; }
+.pv-info { display: flex; flex-direction: column; padding: 0; }
+.pv-kv { display: flex; gap: var(--gx-space-7); padding: var(--gx-space-5) var(--gx-space-6); border-bottom: 1px solid var(--gx-border-subtle); font-size: var(--gx-text-sm); }
+.pv-kv:last-child { border-bottom: 0; }
+.pv-k { width: 120px; flex-shrink: 0; color: var(--gx-text-3); }
+.pv-v { color: var(--gx-text-1); }
+.pv-row { display: flex; align-items: center; gap: var(--gx-space-4); padding: var(--gx-space-5) var(--gx-space-6); border-bottom: 1px solid var(--gx-border-subtle); }
+.pv-row:last-child { border-bottom: 0; }
+.pv-row-ic { color: var(--gx-text-3); display: inline-flex; flex-shrink: 0; }
+.pv-row-main { flex: 1; display: flex; flex-direction: column; gap: var(--gx-space-1); min-width: 0; }
+.pv-row-title { font-size: var(--gx-text-sm); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); }
+.pv-row-sub { font-size: var(--gx-text-11); color: var(--gx-text-3); }
+.pv-row-act { color: var(--gx-text-3); cursor: pointer; display: inline-flex; }
+.pv-row-act:hover { color: var(--gx-interactive); }
+.pv-benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--gx-space-7); }
+.pv-benefit { display: flex; flex-direction: column; gap: var(--gx-space-2); }
+.pv-benefit-ic { color: var(--gx-text-3); }
+.pv-benefit-title { font-size: var(--gx-text-sm); color: var(--gx-text-3); }
+.pv-benefit-value { font-size: var(--gx-text-lg); font-weight: var(--gx-weight-bold); color: var(--gx-text-1); }
+.pv-benefit-note { font-size: var(--gx-text-11); color: var(--gx-text-3); }
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
