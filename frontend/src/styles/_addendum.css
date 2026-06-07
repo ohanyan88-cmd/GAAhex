@@ -38,6 +38,8 @@
 .lang-opt { background: transparent; color: var(--gx-text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--gx-weight-medium); cursor: pointer; }
 .lang-opt:hover { background: var(--gx-surface-2); color: var(--gx-text-1); }
 .lang-opt.on { background: var(--gx-interactive-soft); color: var(--gx-text-1); }
+/* Topbar quick-tools cluster — Email · Messenger · Language · Theme, beside the bell. */
+.tb-tools { display: inline-flex; align-items: center; gap: var(--gx-space-2); }
 
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }

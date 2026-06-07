@@ -120,33 +120,6 @@ export default function UserMenu({
                 <SlidersHorizontal size={15} /><span>{t('prefs.comingSoon', 'Preferences (coming soon)')}</span>
               </button>
 
-              <button
-                className="menu-item"
-                role="menuitem"
-                onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}
-              >
-                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-                <span>{theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}</span>
-              </button>
-
-              {/* Language — small 3-button row. Same `.lang-switch`/`.lang-opt` rules the topbar
-                  used before. Tucked inside the menu now (locked decision #1). */}
-              <div className="menu-lang-row" role="group" aria-label={t('common.language', 'Language')}>
-                <span className="menu-lang-label">{t('common.language', 'Language')}</span>
-                <div className="lang-switch">
-                  {(['en', 'hy', 'ru'] as Lang[]).map((l) => (
-                    <button
-                      key={l}
-                      className={'lang-opt' + (lang === l ? ' on' : '')}
-                      onClick={() => onLangChange(l)}
-                      aria-pressed={lang === l}
-                    >
-                      {l === 'en' ? 'EN' : l === 'hy' ? 'AM' : 'RU'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <button className="menu-item" role="menuitem" onClick={() => { close(); onOpenModal('shortcuts') }}>
                 <Keyboard size={15} /><span>{t('shortcuts.title', 'Keyboard shortcuts')}</span>
               </button>
