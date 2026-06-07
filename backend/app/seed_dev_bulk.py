@@ -85,7 +85,7 @@ CUSTOMERS = [
     ("Արամ Գրիգորյան",      "individual",   "aram.grigoryan@example.am",      "+374 99 201001", "Pro",      "Կենտրոն",            "Մաշտոցի 28",     "residential"),
     ("Անի Հարությունյան",   "individual",   "ani.harutyunyan@example.am",     "+374 99 201002", "Basic",    "Արաբկիր",            "Բաղրամյան 47",   "residential"),
     ("Տիգրան Մելիքյան",     "individual",   "tigran.melikyan@example.am",     "+374 99 201003", "Pro",      "Աջափնյակ",           "Հալաբյան 19",    "residential"),
-    ("Լիլիթ Սարգսյան",      "individual",   "lilit.sargsyan@example.am",      "+374 99 201004", "Pro",      "Մալաթիա-Սեբաստիա",   "Շիրազի 64",      "residential"),
+    ("Սարգսյան Լիլիթ",      "individual",   "lilit.sargsyan@example.am",      "+374 99 201004", "Pro",      "Մալաթիա-Սեբաստիա",   "Շիրազի 64",      "residential"),
     ("Հայկ Պետրոսյան",      "individual",   "hayk.petrosyan@example.am",      "+374 99 201005", "Enterprise","Շենգավիթ",           "Բագրատունյաց 3", "residential"),
     ("Մարիամ Հակոբյան",     "individual",   "mariam.hakobyan@example.am",     "+374 99 201006", "Basic",    "Դավիթաշեն",          "Դավիթաշեն 1-7",  "residential"),
     ("Erebuni IT Solutions LLC",   "organization", "info@erebuni-it.am",      "+374 10 540210", "Enterprise","Կենտրոն",           "Աբովյան 14",     "business"),
@@ -142,7 +142,7 @@ DEVICE_TYPES = [
 # Employees (operations / technicians / sales — same Armenian-name pool).
 EMPLOYEES = [
     ("Արման Գալստյան",   "arman.galstyan@gaahex.am",   "Field Tech"),
-    ("Աննա Ավետիսյան",   "anna.avetisyan@gaahex.am",   "Helpdesk Lead"),
+    ("Ավետիսյան Աննա",   "anna.avetisyan@gaahex.am",   "Helpdesk Lead"),
     ("Սերգեյ Մինասյան",  "sergey.minasyan@gaahex.am",  "Network Engineer"),
     ("Կարինե Բադալյան",  "karine.badalyan@gaahex.am",  "Sales Manager"),
     ("Ռոբերտ Սահակյան",  "robert.sahakyan@gaahex.am",  "Field Tech"),
@@ -959,34 +959,34 @@ async def seed_dev_threads_if_empty() -> dict | None:
 # Statuses use the lead entity's CANONICAL status set (NEW/WORKING/CONTACTED/QUALIFIED/
 # CONVERTED/DISQUALIFIED/LOST). CONVERTED = contract signed.
 _LEADS = [
-    ("Արամ Հակոբյան — Մաշտոցի ֆայբեր",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
+    ("Հակոբյան Արամ — Մաշտոցի ֆայբեր",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
     ("Tumo Center — Enterprise կապ",      "CONVERTED", "Demo Admin", "OUTBOUND", 250000),
     ("Erebuni IT Solutions",              "CONTACTED", "Demo Admin", "OUTBOUND", 120000),
-    ("Մարիամ Գրիգորյան — բիզնес փաթեթ",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
-    ("Լիլիթ Սարգսյան — բնակարան",         "WORKING",   "Demo Agent", "REFERRAL", 8000),
-    ("Գևորգ Պետրոսյան",                   "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Անի Մկրտչյան — տուն",               "CONVERTED", "Demo Agent", "WALK_IN",  15000),
-    ("Նարեկ Ավագյան",                     "NEW",       "Demo Agent", "REFERRAL", 8000),
-    ("Հայկ Սարուխանյան",                  "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Լուսինե Ադամյան",                   "NEW",       "Demo Admin", "WALK_IN",  12000),
+    ("Գրիգորյան Մարիամ — բիզնес փաթեթ",   "QUALIFIED", "Demo Admin", "WEBSITE",  45000),
+    ("Սարգսյան Լիլիթ — բնակարան",         "WORKING",   "Demo Agent", "REFERRAL", 8000),
+    ("Պետրոսյան Գևորգ",                   "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Մկրտչյան Անի — տուն",               "CONVERTED", "Demo Agent", "WALK_IN",  15000),
+    ("Ավագյան Նարեկ",                     "NEW",       "Demo Agent", "REFERRAL", 8000),
+    ("Սարուխանյան Հայկ",                  "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Ադամյան Լուսինե",                   "NEW",       "Demo Admin", "WALK_IN",  12000),
     ("Vardanyan Bakery — 3 sites",        "NEW",       "Demo Admin", "OUTBOUND", 140000),
-    ("Ռուբեն Խաչատրյան",                  "NEW",       "Demo Agent", "REFERRAL", 8000),
-    ("Մհեր Գասպարյան — բիզնес",           "QUALIFIED", "Demo Admin", "OUTBOUND", 60000),
+    ("Խաչատրյան Ռուբեն",                  "NEW",       "Demo Agent", "REFERRAL", 8000),
+    ("Գասպարյան Մհեր — բիզնес",           "QUALIFIED", "Demo Admin", "OUTBOUND", 60000),
 ]
 # Prior-week leads — backdated so the weekly KPIs have a real week-over-week baseline.
 # 7 NEW / 1 QUALIFIED / 1 CONVERTED / 1 CONTACTED (10 total): last week pulled more new
 # leads but closed fewer, so this week reads as a down-arrow on NEW yet up on the funnel.
 _LEADS_PRIOR = [
-    ("Սուրեն Ավետիսյան",                  "NEW",       "Demo Admin", "WEBSITE",  8000),
-    ("Կարեն Հովհաննիսյան",                "NEW",       "Demo Agent", "REFERRAL", 12000),
+    ("Ավետիսյան Սուրեն",                  "NEW",       "Demo Admin", "WEBSITE",  8000),
+    ("Հովհաննիսյան Կարեն",                "NEW",       "Demo Agent", "REFERRAL", 12000),
     ("Davit Group — office link",         "NEW",       "Demo Admin", "OUTBOUND", 90000),
-    ("Նաիրա Սահակյան",                    "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Գոռ Մարտիրոսյան",                   "NEW",       "Demo Agent", "WALK_IN",  10000),
+    ("Սահակյան Նաիրա",                    "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Մարտիրոսյան Գոռ",                   "NEW",       "Demo Agent", "WALK_IN",  10000),
     ("Aren Tech — fiber quote",           "NEW",       "Demo Admin", "OUTBOUND", 75000),
-    ("Արմեն Բաբայան",                     "NEW",       "Demo Agent", "WEBSITE",  8000),
-    ("Շուշան Մելքոնյան",                  "QUALIFIED", "Demo Agent", "WALK_IN",  15000),
+    ("Բաբայան Արմեն",                     "NEW",       "Demo Agent", "WEBSITE",  8000),
+    ("Մելքոնյան Շուշան",                  "QUALIFIED", "Demo Agent", "WALK_IN",  15000),
     ("Tigran Auto — 2 sites",             "CONVERTED", "Demo Admin", "OUTBOUND", 180000),
-    ("Վահե Գրիգորյան",                    "CONTACTED", "Demo Agent", "WEBSITE",  8000),
+    ("Գրիգորյան Վահե",                    "CONTACTED", "Demo Agent", "WEBSITE",  8000),
 ]
 # Yerevan demo addresses, cycled per lead so the Address column reads real.
 _ADDR = [
@@ -1011,11 +1011,11 @@ def _lead_contact(idx: int) -> dict:
 
 # (number, quote-status, amount_minor (luma = AMD×100), customer)
 _QUOTES = [
-    ("QUO-000101", "SENT",     4500000,  "Արամ Հակոբյան"),
+    ("QUO-000101", "SENT",     4500000,  "Հակոբյան Արամ"),
     ("QUO-000102", "SENT",     25000000, "Tumo Center"),
     ("QUO-000103", "SENT",     1200000,  "Erebuni IT Solutions"),
-    ("QUO-000104", "ACCEPTED", 800000,   "Լիլիթ Սարգսյան"),
-    ("QUO-000105", "DRAFT",    1500000,  "Մարիամ Գրիգորյան"),
+    ("QUO-000104", "ACCEPTED", 800000,   "Սարգսյան Լիլիթ"),
+    ("QUO-000105", "DRAFT",    1500000,  "Գրիգորյան Մարիամ"),
 ]
 
 
