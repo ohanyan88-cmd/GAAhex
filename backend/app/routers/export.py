@@ -150,7 +150,10 @@ async def export_records(
     fields = await _fields(s, ent.id)
     data_fields = [f for f in fields if f.type != "status"]   # status-type field → folded into core `status`
     keys = [f.key for f in data_fields]
-    header = [f.label for f in data_fields] + ["Status", "ID", "Created At", "Created By"]
+    # A field may override its export column header via config.export_label (e.g. name → "ԱԱ").
+    def _col(f):
+        return (f.config or {}).get("export_label") or f.label
+    header = [_col(f) for f in data_fields] + ["Status", "ID", "Created At", "Created By"]
 
     records = await _viewable_filtered(s, user, ent, q, filter, sort)
     today = date.today()
@@ -248,7 +251,7 @@ async def export_records(
 
         priority = ["name", "surname", "company_name", "phone", "email",
                     "region", "city", "address", "service_type", "source"]
-        label_by_key = {f.key: f.label for f in data_fields}
+        label_by_key = {f.key: _col(f) for f in data_fields}
         pdf_keys = [k for k in priority if k in keys][:7]
         if len(pdf_keys) < 3:                       # entity without the usual CRM keys → first few
             pdf_keys = keys[:6]

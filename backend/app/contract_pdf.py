@@ -117,9 +117,8 @@ def build_contract_pdf(values: dict, fields: list[dict], date_str: str) -> bytes
     h2 = ParagraphStyle("h2", parent=body, fontName=_BOLD, fontSize=11, textColor=colors.HexColor("#1f3a63"), spaceBefore=12, spaceAfter=6)
     note = ParagraphStyle("note", parent=body, fontSize=8, textColor=colors.HexColor("#8a98ad"), alignment=TA_CENTER, spaceBefore=22)
 
-    full_name = " ".join(
-        s for s in (_val(values, "name"), _val(values, "surname"), _val(values, "patronymic")) if s and s != "—"
-    ) or "—"
+    # One Full Name field (Surname Name Patronymic for people, company name for B2B).
+    full_name = _val(values, "name")
 
     def kv_table(pairs: list[tuple[str, str]]) -> Table:
         rows = [[Paragraph(k, body), Paragraph(v, body)] for k, v in pairs]

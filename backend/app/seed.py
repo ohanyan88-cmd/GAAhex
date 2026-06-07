@@ -293,9 +293,9 @@ def _sec(section: str, extra: dict | None = None) -> dict:
 _LEAD_FIELDS = [
     # Personal — identity + contact merged into one section
     ("segment", "Type", "select", False, _sec("Personal", {"options": [B2C, B2B], "header": True})),
-    ("name", "Name", "text", True, _sec("Personal")),
-    ("surname", "Surname", "text", False, _sec("Personal")),
-    ("patronymic", "Patronic Name", "text", False, _sec("Personal")),
+    # One Full Name field — order: Ազգանուն Անուն Հայրանուն (Surname Name Patronymic).
+    # B2B leads just type the company name. Exports show this as a single "ԱԱ" column.
+    ("name", "Full Name", "text", True, _sec("Personal", {"export_label": "ԱԱ"})),
     ("company_name", "Company Name", "text", False, _sec("Personal", {"segments": [B2B]})),
     ("tax_id", "Tax ID / Reg №", "text", False, _sec("Personal", {"segments": [B2B]})),
     ("phone", "Primary Phone", "phone", False, _sec("Personal")),

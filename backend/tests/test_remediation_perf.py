@@ -148,7 +148,7 @@ async def test_csv_export_endpoint_neutralizes_formula_injection(client, admin):
     r = await client.get(f"/api/leads/export?format=csv&q={tok}", headers=admin)
     assert r.status_code == 200, r.text
     rows = list(csv.reader(io.StringIO(r.text.lstrip("﻿"))))   # strip the UTF-8 BOM
-    name_idx = rows[0].index("Name")                           # 'name' field's label is 'Name'
+    name_idx = rows[0].index("ԱԱ")                             # 'name' field's export header (config.export_label)
     # Find the data row whose Name column contains our token; assert it's defanged.
     data_rows = [row for row in rows[1:] if tok in row[name_idx]]
     assert data_rows, "exported CSV must contain our planted row"

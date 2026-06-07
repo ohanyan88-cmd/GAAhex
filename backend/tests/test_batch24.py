@@ -540,7 +540,7 @@ async def test_export_csv_valid_structure(client, admin):
     rows = list(csv.reader(io.StringIO(export_r.text.lstrip("﻿"))))
     header = rows[0]
     # Standard lead export columns (from export.py + leads field definitions)
-    assert "Name" in header, f"Expected 'Name' in CSV header; got: {header}"
+    assert "ԱԱ" in header, f"Expected 'ԱԱ' in CSV header; got: {header}"
     assert len(rows) == 3, f"Expected 1 header + 2 data rows; got {len(rows)} rows: {rows}"
 
 

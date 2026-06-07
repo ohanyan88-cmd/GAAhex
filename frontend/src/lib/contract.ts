@@ -22,8 +22,7 @@ function val(values: Record<string, any>, key: string): string {
 }
 
 function renderTemplate(values: Record<string, any>, fields: FieldLike[], dateStr: string): string {
-  const fullName = [val(values, 'name'), val(values, 'surname'), val(values, 'patronymic')]
-    .filter((s) => s && s !== '—').join(' ') || '—'
+  const fullName = val(values, 'name')
   // Every filled field, as a details table (skips files / empties).
   const rows = fields
     .filter((f) => f.type !== 'file' && f.type !== 'status' && f.key !== 'attachments')
