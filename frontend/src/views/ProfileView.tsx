@@ -4,11 +4,11 @@
 // the canonical config-driven entities via the generic records API. My Documents is local demo
 // for now (a per-user document store lands next). Visual: see styles/_profile.css.
 import '../styles/_profile.css'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageShell } from '../page-shell'
 import {
   UserIcon, ReceiptIcon, FolderIcon, BookmarkIcon, DownloadIcon, CheckIcon, ClockIcon,
-  CalendarIcon, BriefcaseIcon, ArrowRightIcon, ChevronLeftIcon, PlusIcon,
+  CalendarIcon, BriefcaseIcon, ArrowRightIcon, ChevronLeftIcon, PlusIcon, EditIcon,
 } from '../components/icons'
 import { Modal } from '../components/Modal'
 import { FileUpload } from '../components/FileUpload'
@@ -83,6 +83,15 @@ export default function ProfileView() {
   const [reqReason, setReqReason] = useState('')
   const [saving, setSaving] = useState(false)
   const [reqErr, setReqErr] = useState('')
+
+  const [phone, setPhone] = useState('+374 10 100000')
+  const [editPhone, setEditPhone] = useState(false)
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarPos, setAvatarPos] = useState({ x: 50, y: 50 })
+  const [posOpen, setPosOpen] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const posDrag = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null)
 
   const [reqView, setReqView] = useState<ReqRec | null>(null)
   const [bene, setBene] = useState<BeneRec | null>(null)
@@ -165,6 +174,30 @@ export default function ProfileView() {
     }
   }
 
+  function onAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (avatarUrl) URL.revokeObjectURL(avatarUrl)
+    setAvatarUrl(URL.createObjectURL(f))
+    setAvatarPos({ x: 50, y: 50 })
+    setPosOpen(true)
+    e.target.value = ''
+  }
+  function posStart(e: React.MouseEvent) {
+    e.preventDefault()
+    posDrag.current = { sx: e.clientX, sy: e.clientY, ox: avatarPos.x, oy: avatarPos.y }
+  }
+  function posMove(e: React.MouseEvent) {
+    if (!posDrag.current) return
+    const dx = (e.clientX - posDrag.current.sx) * 0.3
+    const dy = (e.clientY - posDrag.current.sy) * 0.3
+    setAvatarPos({
+      x: Math.min(100, Math.max(0, posDrag.current.ox - dx)),
+      y: Math.min(100, Math.max(0, posDrag.current.oy - dy)),
+    })
+  }
+  function posEnd() { posDrag.current = null }
+
   // ── HUB (bento) ───────────────────────────────────────────────────────────
   function hub() {
     return (
@@ -173,14 +206,29 @@ export default function ProfileView() {
         <div className="hub-tile b-profile is-static">
           <div className="hub-tile-top">
             <div className="pv-hub-id">
-              <span className="pv-hub-av">{initials(user?.name)}</span>
+              <button type="button" className="pv-hub-av-wrap" onClick={() => avatarInputRef.current?.click()} title={t('profile.changePhoto', 'Change photo')}>
+                <span className="pv-hub-av">
+                  {avatarUrl
+                    ? <img src={avatarUrl} className="pv-hub-av-img" style={{ objectPosition: `${avatarPos.x}% ${avatarPos.y}%` }} alt="" />
+                    : initials(user?.name)
+                  }
+                </span>
+                <span className="pv-hub-av-badge" aria-hidden><EditIcon size={10} /></span>
+              </button>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="pv-av-input" onChange={onAvatarPick} />
               <div className="hub-tile-title">{name}</div>
             </div>
             <span className="hub-stat"><span className="hub-stat-v">{role}</span><span className="hub-stat-l">{t('profile.access', 'access')}</span></span>
           </div>
           <div className="pv-info-grid pv-hub-grid">
             <div className="pv-info-cell"><span className="pv-info-label">{t('auth.email', 'Email')}</span><span className="pv-info-value mono">{user?.email}</span></div>
-            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.phone', 'Phone')}</span><span className="pv-info-value">+374 10 100000</span></div>
+            <div className="pv-info-cell">
+              <span className="pv-info-label">{t('profile.phone', 'Phone')}</span>
+              {editPhone
+                ? <input className="pv-info-edit" value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => setEditPhone(false)} autoFocus />
+                : <span className="pv-info-value pv-info-editable" onClick={() => setEditPhone(true)}>{phone}</span>
+              }
+            </div>
             <div className="pv-info-cell"><span className="pv-info-label">{t('profile.jobTitle', 'Job title')}</span><span className="pv-info-value">{role}</span></div>
             <div className="pv-info-cell"><span className="pv-info-label">{t('profile.team', 'Team')}</span><span className="pv-info-value">Operations</span></div>
             <div className="pv-info-cell"><span className="pv-info-label">{t('profile.joined', 'Joined')}</span><span className="pv-info-value">2024-03-01</span></div>
@@ -451,6 +499,49 @@ export default function ProfileView() {
           <div className="pv-detail">
             <p>{article.body}</p>
           </div>
+        </Modal>
+      )}
+
+      {/* ── Avatar position picker ─────────────────────────────────────────── */}
+      {posOpen && avatarUrl && (
+        <Modal
+          open
+          onClose={() => setPosOpen(false)}
+          size="sm"
+          title={t('profile.positionPhoto', 'Position photo')}
+          footer={
+            <>
+              <Button variant="ghost" size="md" onClick={() => { setAvatarUrl(null); setPosOpen(false) }}>{t('common.remove', 'Remove')}</Button>
+              <Button variant="primary" size="md" onClick={() => setPosOpen(false)}>{t('common.apply', 'Apply')}</Button>
+            </>
+          }
+        >
+          <div
+            className="pv-pos-stage"
+            onMouseDown={posStart}
+            onMouseMove={posMove}
+            onMouseUp={posEnd}
+            onMouseLeave={posEnd}
+          >
+            <img
+              src={avatarUrl}
+              className="pv-pos-img"
+              style={{ objectPosition: `${avatarPos.x}% ${avatarPos.y}%` }}
+              draggable={false}
+              alt=""
+            />
+            <svg className="pv-pos-guide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+              <defs>
+                <mask id="pv-hex-mask">
+                  <rect width="100" height="100" fill="white" />
+                  <polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill="black" />
+                </mask>
+              </defs>
+              <rect width="100" height="100" fill="var(--gx-bg)" fillOpacity="0.55" mask="url(#pv-hex-mask)" />
+              <polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill="none" stroke="var(--gx-interactive)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+          <p className="pv-pos-hint">{t('profile.dragToReposition', 'Drag to reposition')}</p>
         </Modal>
       )}
     </PageShell>
