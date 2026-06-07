@@ -36,6 +36,51 @@ def _ensure_fonts() -> None:
     _fonts_ready = True
 
 
+def build_table_pdf(header: list, rows: list, title: str, date_str: str) -> bytes:
+    """Render a tabular export as an Armenian-capable landscape PDF (DejaVu)."""
+    _ensure_fonts()
+    import io
+    from reportlab.lib.pagesizes import landscape
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=landscape(A4),
+        leftMargin=12 * mm, rightMargin=12 * mm, topMargin=12 * mm, bottomMargin=12 * mm,
+        title=title,
+    )
+    base = getSampleStyleSheet()["Normal"]
+    cell = ParagraphStyle("cell", parent=base, fontName=_REGULAR, fontSize=7, leading=9)
+    head_cell = ParagraphStyle("hcell", parent=cell, fontName=_BOLD, textColor=colors.white)
+    h1 = ParagraphStyle("th1", parent=base, fontName=_BOLD, fontSize=14)
+    sub = ParagraphStyle("tsub", parent=base, fontName=_REGULAR, fontSize=8, textColor=colors.HexColor("#5b6b85"))
+
+    table_rows = [[Paragraph(str(c), head_cell) for c in header]]
+    for r in rows:
+        table_rows.append([Paragraph("" if c is None else str(c), cell) for c in r])
+
+    t = Table(table_rows, repeatRows=1)
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f3a63")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f6fb")]),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d4def0")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+
+    return _finish([
+        Paragraph(title, h1),
+        Paragraph(f"HouseNet ISP · {date_str} · {len(rows)} records", sub),
+        Spacer(1, 6 * mm),
+        t,
+    ], doc, buf)
+
+
+def _finish(elems, doc, buf) -> bytes:
+    doc.build(elems)
+    return buf.getvalue()
+
+
 def _val(values: dict, key: str) -> str:
     v = values.get(key)
     if v is None or v == "" or isinstance(v, (list, dict)):

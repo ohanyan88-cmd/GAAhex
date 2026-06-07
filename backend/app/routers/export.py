@@ -34,7 +34,7 @@ from ..export_formats import build_xlsx
 
 router = APIRouter(prefix="/api", tags=["export"])
 
-_VALID_FORMATS = {"csv", "json", "xlsx"}
+_VALID_FORMATS = {"csv", "json", "xlsx", "pdf"}
 
 
 async def _viewable_filtered(s: AsyncSession, user: User, ent, q, filter_expr, sort) -> list[Record]:
@@ -226,6 +226,19 @@ async def export_records(
         line = [_cell((r.data or {}).get(k)) for k in keys]
         line += [_cell(r.status), str(r.id), r.created_at.isoformat() if r.created_at else "", _creator(r)]
         data_rows.append(line)
+
+    # ------------------------------------------------------------------
+    # PDF — Armenian-capable tabular PDF (reportlab + DejaVu; lazy import).
+    # ------------------------------------------------------------------
+    if fmt == "pdf":
+        from ..contract_pdf import build_table_pdf
+
+        content = build_table_pdf(header, data_rows, f"{slug} export", f"{today:%Y-%m-%d}")
+        return Response(
+            content=content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
     content = build_xlsx(header, data_rows)
     return Response(
