@@ -4,6 +4,7 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ToastHost } from './components/Toast'
 import { ConfirmHost } from './components/Modal'
+import { BootSplash } from './components/BootSplash'
 import 'leaflet/dist/leaflet.css'
 // D19 Path A (2026-06-05): color-tokens.css was deleted. gaahex-tokens.css is
 // now the single source of truth for every `--gx-*` token. Enforced by the
@@ -25,5 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     {/* Overlay-family singletons — portal to <body>, so they work app-wide (incl. logged-out). */}
     <ToastHost />
     <ConfirmHost />
+    {/* Branded load moment — animated mark, plays once per page load then fades out. */}
+    <BootSplash />
   </React.StrictMode>,
 )

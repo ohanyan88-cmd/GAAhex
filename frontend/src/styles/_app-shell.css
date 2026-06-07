@@ -37,6 +37,11 @@
 .app.collapsed .sb-sec-btn span, .app.collapsed .sb-sec-btn .chev { display:none; }
 .app.collapsed .sb-items { display:none; }
 
+/* ---- boot splash (branded load moment) ---- */
+.boot-splash { position:fixed; inset:0; z-index:var(--gx-z-toast); display:flex; align-items:center; justify-content:center; background:var(--gx-bg); transition:opacity var(--gx-dur-moderate) var(--gx-ease-standard); }
+.boot-splash.boot-hide { opacity:0; pointer-events:none; }
+.boot-mark { width:140px; height:140px; }
+
 /* ---- topbar ---- */
 .main { display:flex; flex-direction:column; overflow:hidden; min-height:0; }
 .tb { display:flex; align-items:center; gap:12px; height:var(--gx-header-h); padding:0 18px; flex-shrink:0; background:var(--gx-topbar); backdrop-filter:blur(var(--gx-backdrop-blur)); border-bottom:1px solid var(--gx-border-subtle); position:relative; z-index:var(--gx-z-sticky); }

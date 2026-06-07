@@ -76,6 +76,12 @@ table.grid.leads-grid th:nth-child(4) { width: 150px; }  /* Phone    */
 table.grid.leads-grid th:nth-child(5) { width: 210px; }  /* Email    */
 table.grid.leads-grid th:nth-child(6) { width: 180px; }  /* Stage — room for the uniform pill + gap before actions */
 table.grid.leads-grid td { white-space: nowrap; }
+/* Leads table — borderless: no header underline, no row divider lines (Gev 2026-06-07).
+   Row separation is carried by hover background + cell rhythm instead of rules. */
+table.grid.leads-grid th, table.grid.leads-grid td { border-bottom: none; }
+/* …and no outer box either — the wrapping card goes flat (no border / bg / radius / shadow /
+   padding) so the leads table reads as clean rows on the page, no rectangle around it. */
+.card.leads-flat { background: transparent; border: none; border-radius: 0; box-shadow: none; padding: 0; }
 table.grid td .row-actions { justify-content:flex-end; }
 table.grid tbody tr { cursor:pointer; transition:background var(--gx-dur-fast); }
 table.grid tbody tr:hover { background:var(--gx-hover); }

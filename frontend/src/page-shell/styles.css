@@ -80,12 +80,12 @@
 .ps-header-row {
   display: flex;
   align-items: center;            /* search + action buttons sit on one line, vertically centered with the title */
-  gap: var(--gx-space-8);
+  gap: var(--gx-space-20);        /* equal gap: search ↔ Download (matches the actions gap below) */
 }
 .ps-header-actions {
   display: flex;
   align-items: center;
-  gap: var(--gx-space-4);
+  gap: var(--gx-space-20);        /* equal gap: Download ↔ New Lead (matches the row gap above) */
   flex-shrink: 0;
 }
 /* Header action with a popover menu (e.g. Download → format picker) — a small card

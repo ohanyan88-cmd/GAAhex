@@ -1057,7 +1057,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
           ) : undefined}
         />
       ) : (
-        <div className="card" style={{ overflow: 'hidden', position: 'relative' }}>
+        <div className={'card' + (isLeads ? ' leads-flat' : '')} style={{ overflow: 'hidden', position: 'relative' }}>
           {/* ── Bulk action bar (overlays toolbar when selection > 0) ── */}
           {selected.size > 0 && (
             <div className="bulkbar">
