@@ -1,14 +1,14 @@
-// ProfileView — Workspace → My Profile. Employee self-service hub:
-// Profile · My Documents · My Requests · My Benefits · Knowledge Base.
-// Requests / Benefits / Knowledge Base are REAL — backed by the canonical config-driven entities
-// (request / benefit / kb_article) via the generic records API. The request-type picker is built
-// from the entity's own `request_type` options (config over code). My Documents stays local demo
-// for now (a per-user document store lands next).
+// ProfileView — Workspace → My Profile. A bento HUB of data-rich section cards
+// (Profile · My Requests · My Documents · My Benefits · Knowledge Base); clicking a card
+// drills into its full section view. Requests / Benefits / Knowledge Base are REAL — backed by
+// the canonical config-driven entities via the generic records API. My Documents is local demo
+// for now (a per-user document store lands next). Visual: see styles/_profile.css.
+import '../styles/_profile.css'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageShell } from '../page-shell'
 import {
-  UserIcon, ReceiptIcon, DownloadIcon, CheckIcon, ClockIcon,
-  CalendarIcon, ArrowRightIcon, PlusIcon, BriefcaseIcon,
+  UserIcon, ReceiptIcon, FolderIcon, BookmarkIcon, DownloadIcon, CheckIcon, ClockIcon,
+  CalendarIcon, BriefcaseIcon, ArrowRightIcon, ChevronLeftIcon, PlusIcon,
 } from '../components/icons'
 import { Modal } from '../components/Modal'
 import { FileUpload } from '../components/FileUpload'
@@ -25,7 +25,8 @@ function initials(name: string | null | undefined): string {
   return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase()
 }
 
-type TabKey = 'profile' | 'documents' | 'requests' | 'benefits' | 'kb'
+type SectionKey = 'profile' | 'documents' | 'requests' | 'benefits' | 'kb'
+type View = 'hub' | SectionKey
 type ReqRec = { id: string; request_type?: string; subject?: string; details?: string; status: string; created_at?: string }
 type BeneRec = { id: string; title: string; value?: string; note?: string; detail?: string }
 type ArticleRec = { id: string; title: string; category?: string; body?: string }
@@ -33,9 +34,9 @@ type ReqOption = { value: string; label: string }
 type ReqGroup = { cat: string; items: ReqOption[] }
 
 const DOCS = [
-  { name: 'Աշխատանքային պայմանագիր.pdf', size: '240 KB', date: '2024-03-01' },
-  { name: 'Անձնագիր (սկան).pdf', size: '1.2 MB', date: '2024-03-01' },
-  { name: 'NDA.pdf', size: '180 KB', date: '2024-03-02' },
+  { name: 'Աշխատանքային պայմանագիր.pdf', kind: 'Contract', size: '240 KB', date: '2024-03-01' },
+  { name: 'Անձնագիր (սկան).pdf', kind: 'Identity', size: '1.2 MB', date: '2024-03-01' },
+  { name: 'NDA.pdf', kind: 'Legal', size: '180 KB', date: '2024-03-02' },
 ]
 
 // Icon per request-type category (the part before " · " in each option).
@@ -53,11 +54,17 @@ function reqPill(status: string): string {
   if (status === 'CLOSED') return 'pill'
   return 'pill-info'
 }
+// status → state key for tinted dots / accent bars (presentational only)
+function reqState(status: string): 'approved' | 'rejected' | 'pending' {
+  if (status === 'APPROVED') return 'approved'
+  if (status === 'REJECTED') return 'rejected'
+  return 'pending'
+}
 
 export default function ProfileView() {
   const { t } = useI18n()
   const { user, token } = useAuth()
-  const [tab, setTab] = useState<TabKey>('profile')
+  const [view, setView] = useState<View>('hub')
 
   const [uploads, setUploads] = useState<File[]>([])
 
@@ -106,9 +113,10 @@ export default function ProfileView() {
     setArticles(rows as unknown as ArticleRec[])
   }, [token])
 
-  useEffect(() => { if (tab === 'requests') loadRequests() }, [tab, loadRequests])
-  useEffect(() => { if (tab === 'benefits') loadBenefits() }, [tab, loadBenefits])
-  useEffect(() => { if (tab === 'kb') loadArticles() }, [tab, loadArticles])
+  // Load everything up front so the hub can show live counts + previews.
+  useEffect(() => { loadRequests() }, [loadRequests])
+  useEffect(() => { loadBenefits() }, [loadBenefits])
+  useEffect(() => { loadArticles() }, [loadArticles])
 
   // Group the request-type options by their "Category · Name" prefix for the picker grid.
   const reqGroups = useMemo<ReqGroup[]>(() => {
@@ -125,6 +133,11 @@ export default function ProfileView() {
 
   const name = user?.name || t('common.you', 'You')
   const role = user?.can_configure ? t('role.admin', 'Administrator') : t('role.member', 'Member')
+  const pending = requests.filter((r) => !['APPROVED', 'REJECTED', 'CLOSED'].includes(r.status || '')).length
+  const allDocs = [
+    ...uploads.map((f) => ({ name: f.name, kind: 'Upload', size: `${Math.max(1, Math.round(f.size / 1024))} KB`, date: new Date().toISOString().slice(0, 10) })),
+    ...DOCS,
+  ]
 
   function openNewReq() {
     setReqType(null); setReqSubject(''); setReqFrom(''); setReqTo(''); setReqReason(''); setReqErr(''); setReqOpen(true)
@@ -152,13 +165,101 @@ export default function ProfileView() {
     }
   }
 
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: 'profile', label: t('profile.tab.profile', 'Profile') },
-    { key: 'documents', label: t('profile.tab.documents', 'My Documents') },
-    { key: 'requests', label: t('profile.tab.requests', 'My Requests') },
-    { key: 'benefits', label: t('profile.tab.benefits', 'My Benefits') },
-    { key: 'kb', label: t('profile.tab.kb', 'Knowledge Base') },
-  ]
+  // ── HUB (bento) ───────────────────────────────────────────────────────────
+  function hub() {
+    return (
+      <div className="hub-bento">
+        {/* Profile */}
+        <button type="button" className="hub-tile b-profile" onClick={() => setView('profile')}>
+          <div className="hub-tile-top">
+            <span className="hub-ic"><UserIcon size={20} /></span>
+            <span className="hub-stat"><span className="hub-stat-v">{role}</span><span className="hub-stat-l">{t('profile.access', 'access')}</span></span>
+          </div>
+          <div><div className="hub-tile-title">{t('profile.tab.profile', 'Profile')}</div><div className="hub-tile-blurb">Operations · Yerevan</div></div>
+        </button>
+
+        {/* My Requests (wide, with preview) */}
+        <button type="button" className="hub-tile b-requests" onClick={() => setView('requests')}>
+          <div className="hub-tile-top">
+            <span className="hub-ic"><ReceiptIcon size={20} /></span>
+            <span className="hub-stat"><span className="hub-stat-v">{pending}</span><span className="hub-stat-l">{t('profile.pending', 'pending')}</span></span>
+          </div>
+          <div>
+            <div className="hub-tile-title">{t('profile.tab.requests', 'My Requests')}</div>
+            <div className="hub-tile-blurb">{requests.length} {t('profile.total', 'total')} · {pending} {t('profile.awaiting', 'awaiting review')}</div>
+          </div>
+          {requests.length > 0 && (
+            <div className="hub-tile-foot"><div className="hub-prev">
+              {requests.slice(0, 3).map((r) => {
+                const st = r.status || 'DRAFT'
+                return (
+                  <div key={r.id} className="hub-prev-row">
+                    <span className={'hub-dot is-' + reqState(st)} />
+                    <span className="hub-prev-main">{r.subject || r.request_type}</span>
+                    <span className={'pill ' + reqPill(st)}>{st}</span>
+                  </div>
+                )
+              })}
+            </div></div>
+          )}
+        </button>
+
+        {/* My Documents */}
+        <button type="button" className="hub-tile b-documents" onClick={() => setView('documents')}>
+          <div className="hub-tile-top">
+            <span className="hub-ic"><FolderIcon size={20} /></span>
+            <span className="hub-stat"><span className="hub-stat-v">{allDocs.length}</span><span className="hub-stat-l">{t('profile.files', 'files')}</span></span>
+          </div>
+          <div><div className="hub-tile-title">{t('profile.tab.documents', 'My Documents')}</div><div className="hub-tile-blurb">Contracts, ID, tax &amp; HR records</div></div>
+        </button>
+
+        {/* My Benefits */}
+        <button type="button" className="hub-tile b-benefits" onClick={() => setView('benefits')}>
+          <div className="hub-tile-top">
+            <span className="hub-ic"><BriefcaseIcon size={20} /></span>
+            <span className="hub-stat"><span className="hub-stat-v">{benefits.length}</span><span className="hub-stat-l">{t('profile.enrolled', 'enrolled')}</span></span>
+          </div>
+          <div><div className="hub-tile-title">{t('profile.tab.benefits', 'My Benefits')}</div><div className="hub-tile-blurb">Health, leave, learning &amp; more</div></div>
+        </button>
+
+        {/* Knowledge Base (wide, with preview) */}
+        <button type="button" className="hub-tile b-kb" onClick={() => setView('kb')}>
+          <div className="hub-tile-top">
+            <span className="hub-ic"><BookmarkIcon size={20} /></span>
+            <span className="hub-stat"><span className="hub-stat-v">{articles.length}</span><span className="hub-stat-l">{t('profile.articles', 'articles')}</span></span>
+          </div>
+          <div><div className="hub-tile-title">{t('profile.tab.kb', 'Knowledge Base')}</div><div className="hub-tile-blurb">{t('profile.guides', 'Guides & how-tos')}</div></div>
+          {articles.length > 0 && (
+            <div className="hub-tile-foot"><div className="hub-prev">
+              {articles.slice(0, 3).map((a) => (
+                <div key={a.id} className="hub-prev-row">
+                  <span className="hub-prev-ic"><BookmarkIcon size={15} /></span>
+                  <span className="hub-prev-main">{a.title}</span>
+                  <span className="hub-prev-ic"><ArrowRightIcon size={14} /></span>
+                </div>
+              ))}
+            </div></div>
+          )}
+        </button>
+      </div>
+    )
+  }
+
+  // ── section back bar ───────────────────────────────────────────────────────
+  function backBar(title: string, sub: string, action?: React.ReactNode) {
+    return (
+      <div className="pv-backbar">
+        <Button variant="secondary" size="sm" onClick={() => setView('hub')}>
+          <ChevronLeftIcon size={16} /> {t('common.back', 'Back')}
+        </Button>
+        <div className="pv-backbar-titles">
+          <div className="pv-backbar-title">{title}</div>
+          <div className="pv-backbar-sub">{sub}</div>
+        </div>
+        {action}
+      </div>
+    )
+  }
 
   return (
     <PageShell
@@ -166,130 +267,127 @@ export default function ProfileView() {
       breadcrumb={['Workspace', 'My Profile']}
       icon={<UserIcon size={18} />}
       title={t('profile.title', 'My profile')}
-      subtitle={t('profile.subtitle', 'Your account')}
+      subtitle={t('profile.subtitle2', 'Everything about your account, in one place')}
     >
-      <div className="tabs">
-        {tabs.map((tb) => (
-          <button key={tb.key} className={'tab' + (tab === tb.key ? ' on' : '')} onClick={() => setTab(tb.key)}>
-            {tb.label}
-          </button>
-        ))}
-      </div>
+      {view === 'hub' && hub()}
 
-      {tab === 'profile' && (
+      {/* ════════════ PROFILE ════════════ */}
+      {view === 'profile' && (
         <>
-          <div className="card pv-card">
-            <div className="pv-id">
-              <span className="pv-avatar">{initials(user?.name)}</span>
-              <div>
-                <div className="pv-name">{name}</div>
-                <div className="pv-email mono">{user?.email}</div>
-                <span className="pill pill-gold pv-role">{role}</span>
+          {backBar(t('profile.tab.profile', 'Profile'), t('profile.accountDetails', 'Your account details'))}
+          <div className="pv-surface pv-mb">
+            <div className="pv-hero">
+              <span className="pv-avatar-lg">{initials(user?.name)}</span>
+              <div className="pv-hero-info">
+                <div className="pv-hero-name">{name}</div>
+                <div className="pv-hero-email mono">{user?.email}</div>
+                <span className="pill pill-gold pv-hero-role">{role}</span>
               </div>
             </div>
           </div>
-          <div className="card pv-info">
-            <div className="pv-kv"><span className="pv-k">{t('auth.email', 'Email')}</span><span className="pv-v mono">{user?.email}</span></div>
-            <div className="pv-kv"><span className="pv-k">{t('profile.phone', 'Phone')}</span><span className="pv-v">+374 10 100000</span></div>
-            <div className="pv-kv"><span className="pv-k">{t('profile.jobTitle', 'Job title')}</span><span className="pv-v">{role}</span></div>
-            <div className="pv-kv"><span className="pv-k">{t('profile.team', 'Team')}</span><span className="pv-v">Operations</span></div>
-            <div className="pv-kv"><span className="pv-k">{t('profile.joined', 'Joined')}</span><span className="pv-v">2024-03-01</span></div>
+          <div className="pv-info-grid">
+            <div className="pv-info-cell"><span className="pv-info-label">{t('auth.email', 'Email')}</span><span className="pv-info-value mono">{user?.email}</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.phone', 'Phone')}</span><span className="pv-info-value">+374 10 100000</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.jobTitle', 'Job title')}</span><span className="pv-info-value">{role}</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.team', 'Team')}</span><span className="pv-info-value">Operations</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.joined', 'Joined')}</span><span className="pv-info-value">2024-03-01</span></div>
           </div>
         </>
       )}
 
-      {tab === 'documents' && (
+      {/* ════════════ DOCUMENTS ════════════ */}
+      {view === 'documents' && (
         <>
-          <div className="card pv-pad">
-            <div className="pv-sec-title">{t('profile.upload', 'Upload a document')}</div>
+          {backBar(t('profile.tab.documents', 'My Documents'), `${allDocs.length} ${t('profile.files', 'files')}`)}
+          <div className="pv-surface pv-block">
+            <div className="pv-block-title">{t('profile.upload', 'Upload a document')}</div>
             <FileUpload value={uploads} onChange={setUploads} hint={t('profile.uploadHint', 'ID, passport, agreement — PDF / image / doc')} />
           </div>
-          <div className="card np-card">
-            <div className="np-head">{t('profile.tab.documents', 'My Documents')}</div>
-            <div className="np-list">
-              {[...uploads.map((f) => ({ name: f.name, size: `${Math.max(1, Math.round(f.size / 1024))} KB`, date: new Date().toISOString().slice(0, 10) })), ...DOCS].map((d, i) => (
-                <div key={d.name + i} className="pv-row">
-                  <span className="pv-row-ic"><ReceiptIcon size={16} /></span>
-                  <span className="pv-row-main">
-                    <span className="pv-row-title">{d.name}</span>
-                    <span className="pv-row-sub">{d.size} · {d.date}</span>
-                  </span>
-                  <span className="pv-row-act"><DownloadIcon size={15} /></span>
-                </div>
-              ))}
-            </div>
+          <div className="pv-surface pv-card-flush">
+            {allDocs.map((d, i) => (
+              <div key={d.name + i} className="pv-doc-row">
+                <span className="pv-doc-icon"><FolderIcon size={16} /></span>
+                <span className="pv-doc-main">
+                  <span className="pv-doc-name">{d.name}</span>
+                  <span className="pv-doc-meta">{d.kind} · {d.size} · {d.date}</span>
+                </span>
+                <span className="pv-doc-dl"><DownloadIcon size={15} /></span>
+              </div>
+            ))}
           </div>
         </>
       )}
 
-      {tab === 'requests' && (
-        <div className="card np-card">
-          <div className="np-head pv-reqhead">
-            <span>{t('profile.tab.requests', 'My Requests')}</span>
-            <span className="spacer" />
-            <Button variant="secondary" size="sm" onClick={openNewReq}>
-              <PlusIcon size={13} /> {t('profile.newRequest', 'New request')}
-            </Button>
-          </div>
-          <div className="np-list">
-            {requests.length === 0 && (
-              <div className="pv-empty">{t('profile.noRequests', 'No requests yet — create your first one.')}</div>
-            )}
+      {/* ════════════ REQUESTS ════════════ */}
+      {view === 'requests' && (
+        <>
+          {backBar(
+            t('profile.tab.requests', 'My Requests'),
+            `${requests.length} ${t('profile.total', 'total')}`,
+            <Button variant="primary" size="sm" onClick={openNewReq}><PlusIcon size={13} /> {t('profile.newRequest', 'New request')}</Button>,
+          )}
+          <div className="pv-surface pv-card-flush">
+            {requests.length === 0 && <div className="pv-empty">{t('profile.noRequests', 'No requests yet — create your first one.')}</div>}
             {requests.map((r) => {
               const st = r.status || 'DRAFT'
               return (
-                <button key={r.id} type="button" className="pv-row pv-row-btn" onClick={() => setReqView(r)}>
-                  <span className="pv-row-ic">{st === 'APPROVED' ? <CheckIcon size={16} /> : <ClockIcon size={16} />}</span>
-                  <span className="pv-row-main">
-                    <span className="pv-row-title">{r.subject || r.request_type}</span>
-                    <span className="pv-row-sub">{r.request_type}</span>
+                <button key={r.id} type="button" className="pv-req-row" onClick={() => setReqView(r)}>
+                  <span className={'pv-req-accent is-' + reqState(st)} />
+                  <span className="pv-req-icon">{st === 'APPROVED' ? <CheckIcon size={15} /> : <ClockIcon size={15} />}</span>
+                  <span className="pv-req-main">
+                    <span className="pv-req-title">{r.subject || r.request_type}</span>
+                    <span className="pv-req-sub">{r.request_type}{r.created_at ? ' · ' + r.created_at.slice(0, 10) : ''}</span>
                   </span>
                   <span className={'pill ' + reqPill(st)}>{st}</span>
                 </button>
               )
             })}
           </div>
-        </div>
+        </>
       )}
 
-      {tab === 'benefits' && (
-        <div className="pv-benefits">
-          {benefits.length === 0 && (
-            <div className="card pv-pad pv-empty">{t('profile.noBenefits', 'No benefits to show.')}</div>
+      {/* ════════════ BENEFITS ════════════ */}
+      {view === 'benefits' && (
+        <>
+          {backBar(t('profile.tab.benefits', 'My Benefits'), `${benefits.length} ${t('profile.enrolled', 'enrolled')}`)}
+          {benefits.length === 0 ? (
+            <div className="pv-surface pv-empty">{t('profile.noBenefits', 'No benefits to show.')}</div>
+          ) : (
+            <div className="pv-benefits-grid">
+              {benefits.map((bn) => (
+                <button key={bn.id} type="button" className="pv-benefit-card" onClick={() => setBene(bn)}>
+                  <span className="pv-benefit-icon-wrap"><BriefcaseIcon size={16} /></span>
+                  <span className="pv-benefit-label">{bn.title}</span>
+                  <span className="pv-benefit-val">{bn.value}</span>
+                  {bn.note && <span className="pv-benefit-note">{bn.note}</span>}
+                </button>
+              ))}
+            </div>
           )}
-          {benefits.map((bn) => (
-            <button key={bn.id} type="button" className="card pv-benefit" onClick={() => setBene(bn)}>
-              <span className="pv-benefit-ic"><BriefcaseIcon size={16} /></span>
-              <span className="pv-benefit-title">{bn.title}</span>
-              <span className="pv-benefit-value">{bn.value}</span>
-              <span className="pv-benefit-note">{bn.note}</span>
-            </button>
-          ))}
-        </div>
+        </>
       )}
 
-      {tab === 'kb' && (
-        <div className="card np-card">
-          <div className="np-head">{t('profile.tab.kb', 'Knowledge Base')}</div>
-          <div className="np-list">
-            {articles.length === 0 && (
-              <div className="pv-empty">{t('profile.noArticles', 'No articles yet.')}</div>
-            )}
+      {/* ════════════ KNOWLEDGE BASE ════════════ */}
+      {view === 'kb' && (
+        <>
+          {backBar(t('profile.tab.kb', 'Knowledge Base'), `${articles.length} ${t('profile.articles', 'articles')}`)}
+          <div className="pv-surface pv-card-flush">
+            {articles.length === 0 && <div className="pv-empty">{t('profile.noArticles', 'No articles yet.')}</div>}
             {articles.map((a) => (
-              <button key={a.id} type="button" className="pv-row pv-row-btn" onClick={() => setArticle(a)}>
-                <span className="pv-row-ic"><ReceiptIcon size={16} /></span>
-                <span className="pv-row-main">
-                  <span className="pv-row-title">{a.title}</span>
-                  <span className="pv-row-sub">{a.category}</span>
+              <button key={a.id} type="button" className="pv-kb-row" onClick={() => setArticle(a)}>
+                <span className="pv-kb-icon"><BookmarkIcon size={15} /></span>
+                <span className="pv-kb-main">
+                  <span className="pv-kb-title">{a.title}</span>
+                  <span className="pv-kb-cat">{a.category}</span>
                 </span>
-                <span className="pv-row-act"><ArrowRightIcon size={15} /></span>
+                <span className="pv-kb-arrow"><ArrowRightIcon size={15} /></span>
               </button>
             ))}
           </div>
-        </div>
+        </>
       )}
 
-      {/* New request modal */}
+      {/* ── New request modal ──────────────────────────────────────────────── */}
       {reqOpen && (
         <Modal
           open
@@ -328,12 +426,12 @@ export default function ProfileView() {
             </div>
           ) : (
             <div className="pv-req-form">
-              <label className="field pv-req-reason"><span>{t('profile.subject', 'Subject')}</span>
+              <label className="field pv-req-wide"><span>{t('profile.subject', 'Subject')}</span>
                 <Input value={reqSubject} onChange={(e) => setReqSubject(e.target.value)} />
               </label>
               <label className="field"><span>{t('profile.from', 'From')}</span><DatePicker value={reqFrom} onChange={setReqFrom} /></label>
               <label className="field"><span>{t('profile.to', 'To')}</span><DatePicker value={reqTo} onChange={setReqTo} /></label>
-              <label className="field pv-req-reason"><span>{t('profile.reason', 'Reason / details')}</span>
+              <label className="field pv-req-wide"><span>{t('profile.reason', 'Reason / details')}</span>
                 <textarea className="inp inp-area" rows={4} value={reqReason} onChange={(e) => setReqReason(e.target.value)} />
               </label>
               {reqErr && <div className="pv-req-err">{reqErr}</div>}
@@ -342,30 +440,30 @@ export default function ProfileView() {
         </Modal>
       )}
 
-      {/* Request detail modal */}
+      {/* ── Request detail modal ───────────────────────────────────────────── */}
       {reqView && (
         <Modal open onClose={() => setReqView(null)} size="md" title={reqView.subject || reqView.request_type || ''} subtitle={reqView.request_type}>
-          <div className="pv-bene-detail">
+          <div className="pv-detail">
             <span className={'pill ' + reqPill(reqView.status || 'DRAFT')}>{reqView.status || 'DRAFT'}</span>
             {reqView.details && <p className="pv-pre">{reqView.details}</p>}
           </div>
         </Modal>
       )}
 
-      {/* Benefit detail modal */}
+      {/* ── Benefit detail modal ───────────────────────────────────────────── */}
       {bene && (
         <Modal open onClose={() => setBene(null)} size="md" title={bene.title} subtitle={bene.value}>
-          <div className="pv-bene-detail">
+          <div className="pv-detail">
             {bene.note && <span className="pill pill-gold">{bene.note}</span>}
             <p>{bene.detail}</p>
           </div>
         </Modal>
       )}
 
-      {/* Knowledge base article modal */}
+      {/* ── Knowledge base article modal ───────────────────────────────────── */}
       {article && (
         <Modal open onClose={() => setArticle(null)} size="md" title={article.title} subtitle={article.category}>
-          <div className="pv-bene-detail">
+          <div className="pv-detail">
             <p>{article.body}</p>
           </div>
         </Modal>
