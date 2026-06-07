@@ -36,6 +36,12 @@
   transition: box-shadow var(--gx-dur-base), transform var(--gx-dur-base), border-color var(--gx-dur-base);
 }
 .hub-tile:hover { box-shadow: var(--gx-shadow-md); transform: translateY(-2px); border-color: var(--gx-border-strong); }
+/* non-interactive tile (Profile card shows its info inline — nothing to drill into) */
+.hub-tile.is-static { cursor: default; }
+.hub-tile.is-static:hover { box-shadow: none; transform: none; border-color: var(--gx-border); }
+.pv-hub-id { display: flex; align-items: center; gap: var(--gx-space-5); min-width: 0; }
+.pv-hub-av { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--gx-radius-full); background: var(--gx-surface-2); border: 1px solid var(--gx-border); color: var(--gx-text-1); display: inline-flex; align-items: center; justify-content: center; font-family: var(--gx-font-display); font-size: var(--gx-text-md); font-weight: var(--gx-weight-bold); }
+.pv-hub-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-top: var(--gx-space-2); }
 .hub-tile:focus-visible { outline: 2px solid var(--gx-focus-ring); outline-offset: calc(-1 * var(--gx-space-1)); }
 .hub-tile-top { display: flex; align-items: flex-start; justify-content: space-between; }
 .hub-tile-title { font-family: var(--gx-font-display); font-size: var(--gx-text-base); font-weight: var(--gx-weight-bold); color: var(--gx-text-1); }

@@ -169,14 +169,23 @@ export default function ProfileView() {
   function hub() {
     return (
       <div className="hub-bento">
-        {/* Profile */}
-        <button type="button" className="hub-tile b-profile" onClick={() => setView('profile')}>
+        {/* Profile — static (not clickable); all the info lives on the card */}
+        <div className="hub-tile b-profile is-static">
           <div className="hub-tile-top">
-            <span className="hub-ic"><UserIcon size={20} /></span>
+            <div className="pv-hub-id">
+              <span className="pv-hub-av">{initials(user?.name)}</span>
+              <div className="hub-tile-title">{name}</div>
+            </div>
             <span className="hub-stat"><span className="hub-stat-v">{role}</span><span className="hub-stat-l">{t('profile.access', 'access')}</span></span>
           </div>
-          <div><div className="hub-tile-title">{t('profile.tab.profile', 'Profile')}</div><div className="hub-tile-blurb">Operations · Yerevan</div></div>
-        </button>
+          <div className="pv-info-grid pv-hub-grid">
+            <div className="pv-info-cell"><span className="pv-info-label">{t('auth.email', 'Email')}</span><span className="pv-info-value mono">{user?.email}</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.phone', 'Phone')}</span><span className="pv-info-value">+374 10 100000</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.jobTitle', 'Job title')}</span><span className="pv-info-value">{role}</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.team', 'Team')}</span><span className="pv-info-value">Operations</span></div>
+            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.joined', 'Joined')}</span><span className="pv-info-value">2024-03-01</span></div>
+          </div>
+        </div>
 
         {/* My Requests (wide, with preview) */}
         <button type="button" className="hub-tile b-requests" onClick={() => setView('requests')}>
@@ -270,30 +279,6 @@ export default function ProfileView() {
       subtitle={t('profile.subtitle2', 'Everything about your account, in one place')}
     >
       {view === 'hub' && hub()}
-
-      {/* ════════════ PROFILE ════════════ */}
-      {view === 'profile' && (
-        <>
-          {backBar(t('profile.tab.profile', 'Profile'), t('profile.accountDetails', 'Your account details'))}
-          <div className="pv-surface pv-mb">
-            <div className="pv-hero">
-              <span className="pv-avatar-lg">{initials(user?.name)}</span>
-              <div className="pv-hero-info">
-                <div className="pv-hero-name">{name}</div>
-                <div className="pv-hero-email mono">{user?.email}</div>
-                <span className="pill pill-gold pv-hero-role">{role}</span>
-              </div>
-            </div>
-          </div>
-          <div className="pv-info-grid">
-            <div className="pv-info-cell"><span className="pv-info-label">{t('auth.email', 'Email')}</span><span className="pv-info-value mono">{user?.email}</span></div>
-            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.phone', 'Phone')}</span><span className="pv-info-value">+374 10 100000</span></div>
-            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.jobTitle', 'Job title')}</span><span className="pv-info-value">{role}</span></div>
-            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.team', 'Team')}</span><span className="pv-info-value">Operations</span></div>
-            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.joined', 'Joined')}</span><span className="pv-info-value">2024-03-01</span></div>
-          </div>
-        </>
-      )}
 
       {/* ════════════ DOCUMENTS ════════════ */}
       {view === 'documents' && (

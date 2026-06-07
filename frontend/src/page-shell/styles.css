@@ -61,18 +61,7 @@
   background: var(--gx-bg);
 }
 
-.ps-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--gx-text-xs);
-  font-family: var(--gx-font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--gx-text-3);
-}
-.ps-breadcrumb-sep { opacity: 0.5; }
-.ps-breadcrumb-crumb { display: inline-flex; align-items: center; gap: var(--gx-space-3); }
+/* breadcrumb + page-subtitle styles removed — the header no longer renders them (Gev 2026-06-08). */
 .ps-header-tabs { margin-top: var(--gx-space-6); }
 
 /* Zone A title row: title block (left) + primary/secondary actions (right).
@@ -179,12 +168,6 @@
   color: var(--gx-text-1);
   line-height: var(--gx-leading-tight);
   margin: 0;
-}
-
-.ps-header-subtitle {
-  font-size: var(--gx-text-sm);
-  color: var(--gx-text-3);
-  line-height: var(--gx-leading-snug);
 }
 
 .ps-header-status {

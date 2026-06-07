@@ -33,10 +33,10 @@ function StatusChip({ summary }: { summary: string | StatusSummary }) {
 }
 
 export function PageHeader({
-  breadcrumb,
+  // breadcrumb + subtitle intentionally NOT rendered anymore (removed app-wide, Gev 2026-06-08).
+  // Props stay on the interface so callers don't break; PageHeader just doesn't paint them.
   icon,
   title,
-  subtitle,
   statusSummary,
   pageTabs,
   primaryAction,
@@ -56,18 +56,6 @@ export function PageHeader({
   }, [openMenu])
   return (
     <header className="ps-header">
-      {breadcrumb && breadcrumb.length > 0 && (
-        <nav className="ps-breadcrumb" aria-label="Breadcrumb">
-          {breadcrumb.map((crumb, i) => (
-            <span key={`${crumb}-${i}`} className="ps-breadcrumb-crumb">
-              <span>{crumb}</span>
-              {i < breadcrumb.length - 1 && (
-                <span className="ps-breadcrumb-sep" aria-hidden>/</span>
-              )}
-            </span>
-          ))}
-        </nav>
-      )}
       <div className="ps-header-row">
         <div className="ps-header-main">
           {icon && (
@@ -77,7 +65,6 @@ export function PageHeader({
           )}
           <div className="ps-header-titles">
             <h1 className="ps-header-title">{title}</h1>
-            {subtitle && <p className="ps-header-subtitle">{subtitle}</p>}
             {statusSummary && (
               <div className="ps-header-status">
                 <StatusChip summary={statusSummary} />
