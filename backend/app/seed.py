@@ -290,29 +290,29 @@ def _sec(section: str, extra: dict | None = None) -> dict:
 # `segments` in a field's config gates which lead Type shows it — fields without it are common
 # to both. The form filters by the chosen segment so B2C and B2B see different forms.
 _LEAD_FIELDS = [
-    # Identity & Type
-    ("segment", "Type", "select", False, _sec("Personal info", {"options": [B2C, B2B], "header": True})),
-    ("name", "Full Name", "text", True, _sec("Personal info")),
-    ("company_name", "Company Name", "text", False, _sec("Personal info", {"segments": [B2B]})),
-    ("tax_id", "Tax ID / Reg №", "text", False, _sec("Personal info", {"segments": [B2B]})),
-    ("date_of_birth", "Date of Birth", "date", False, _sec("Personal info", {"segments": [B2C]})),
-    ("document_type", "Document Type", "select", False, _sec("Personal info", {"options": ["ID", "Passport"], "segments": [B2C]})),
-    ("document_number", "Document Number", "text", False, _sec("Personal info", {"segments": [B2C]})),
-    # Contact
-    ("phone", "Primary Phone", "phone", False, _sec("Contact")),
-    ("secondary_phone", "Second Phone", "phone", False, _sec("Contact")),
-    ("whatsapp", "WhatsApp", "text", False, _sec("Contact")),
-    ("email", "Email", "email", False, _sec("Contact")),
-    # Service Address
-    ("region", "Region", "select", False, _sec("Service Address", {"options": _REGIONS})),
-    ("city", "City", "select", False, _sec("Service Address", {"options": _CITIES})),
-    ("address", "Address", "text", False, _sec("Service Address")),
-    ("registration_address", "Registration Address", "text", False, _sec("Service Address")),
-    ("landmark", "Landmark", "text", False, _sec("Service Address")),
-    # Service Interest
-    ("service_type", "Service Type", "select", False, _sec("Service Interest", {"options": ["Internet", "TV", "VoIP", "Bundle"]})),
-    ("package", "Package", "select", False, _sec("Service Interest", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
-    ("contract_term", "Contract Term", "select", False, _sec("Service Interest", {"options": ["Monthly", "12 Months", "24 Months"]})),
+    # Personal — identity + contact merged into one section
+    ("segment", "Type", "select", False, _sec("Personal", {"options": [B2C, B2B], "header": True})),
+    ("name", "Name", "text", True, _sec("Personal")),
+    ("surname", "Surname", "text", False, _sec("Personal")),
+    ("patronymic", "Patronic Name", "text", False, _sec("Personal")),
+    ("company_name", "Company Name", "text", False, _sec("Personal", {"segments": [B2B]})),
+    ("tax_id", "Tax ID / Reg №", "text", False, _sec("Personal", {"segments": [B2B]})),
+    ("date_of_birth", "Date of Birth", "date", False, _sec("Personal", {"segments": [B2C]})),
+    ("document_type", "Document Type", "select", False, _sec("Personal", {"options": ["ID", "Passport"], "segments": [B2C]})),
+    ("document_number", "Document Number", "text", False, _sec("Personal", {"segments": [B2C]})),
+    ("phone", "Primary Phone", "phone", False, _sec("Personal")),
+    ("secondary_phone", "Second Phone", "phone", False, _sec("Personal")),
+    ("whatsapp", "WhatsApp", "text", False, _sec("Personal")),
+    ("email", "Email", "email", False, _sec("Personal")),
+    # Service — address + interest merged into one section
+    ("region", "Region", "select", False, _sec("Service", {"options": _REGIONS})),
+    ("city", "City", "select", False, _sec("Service", {"options": _CITIES})),
+    ("address", "Address", "text", False, _sec("Service")),
+    ("registration_address", "Registration Address", "text", False, _sec("Service")),
+    ("landmark", "Landmark", "text", False, _sec("Service")),
+    ("service_type", "Service Type", "select", False, _sec("Service", {"options": ["Internet", "TV", "VoIP", "Bundle"]})),
+    ("package", "Package", "select", False, _sec("Service", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
+    ("contract_term", "Contract Term", "select", False, _sec("Service", {"options": ["Monthly", "12 Months", "24 Months"]})),
     # Top strip — Source + owning Sales Representative sit beside Type (all header fields)
     ("source", "Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
     ("sales_representative", "Sales Representative", "select", False, _sec("Sales", {"options": _SALES_REPS, "header": True})),
