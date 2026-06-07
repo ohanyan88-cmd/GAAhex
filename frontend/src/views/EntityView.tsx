@@ -267,7 +267,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   /** P1: opens the ConfigureDrawer for this entity (set by parent — see App.tsx). */
   onConfigure?: () => void
 }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
@@ -649,6 +649,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     setExporting(format)
     try {
       const params = new URLSearchParams({ format })
+      params.set('lang', lang)   // export headers follow the current system language
       if (appliedQ) params.set('q', appliedQ)
       if (filter) params.set('filter', filter)
       if (sort) params.set('sort', sort)

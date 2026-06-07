@@ -123,6 +123,77 @@ def _pdf_cell(v) -> str:
     return str(v)
 
 
+# Export column headers per system language. English comes from the field label;
+# (hy, ru) here. Unknown keys fall back to the English label (so non-lead entities
+# stay English until translated). Order matches the form, headers match the locale.
+_HDR = {
+    "segment": ("Տեսակ", "Тип"),
+    "name": ("ԱԱՀ", "ФИО"),
+    "company_name": ("Կազմակերպություն", "Организация"),
+    "tax_id": ("ՀՎՀՀ", "ИНН"),
+    "phone": ("Հիմնական հեռ.", "Осн. телефон"),
+    "secondary_phone": ("Լրացուցիչ հեռ.", "Доп. телефон"),
+    "landline": ("Ֆիքս. հեռ.", "Стационарный"),
+    "whatsapp": ("WhatsApp", "WhatsApp"),
+    "telegram": ("Telegram", "Telegram"),
+    "email": ("Էլ. փոստ", "Эл. почта"),
+    "document_type": ("Փաստաթղթի տեսակ", "Тип документа"),
+    "document_number": ("Փաստաթղթի համար", "Номер документа"),
+    "issued_by": ("Տրված է", "Кем выдан"),
+    "issue_date": ("Տրման ամսաթիվ", "Дата выдачи"),
+    "date_of_birth": ("Ծննդյան ամսաթիվ", "Дата рождения"),
+    "registration_address": ("Գրանցման հասցե", "Адрес регистрации"),
+    "service_type": ("Ծառայության տեսակ", "Тип услуги"),
+    "package": ("Փաթեթ", "Пакет"),
+    "contract_term": ("Պայմանագրի ժամկետ", "Срок договора"),
+    "region": ("Մարզ", "Марз"),
+    "city": ("Քաղաք", "Город"),
+    "village": ("Գյուղ", "Село"),
+    "address": ("Հասցե", "Адрес"),
+    "landmark": ("Կողմնորոշիչ", "Ориентир"),
+    "gps": ("GPS կոորդինատներ", "GPS координаты"),
+    "source": ("Աղբյուր", "Источник"),
+    "sales_representative": ("Ներկայացուցիչ", "Представитель"),
+    "notes": ("Նշումներ", "Заметки"),
+    "attachments": ("Փաստաթղթեր", "Документы"),
+}
+_TRAIL = {
+    "Status": ("Կարգավիճակ", "Статус"),
+    "ID": ("ID", "ID"),
+    "Created At": ("Ստեղծված", "Создано"),
+    "Created By": ("Ստեղծող", "Создал"),
+    "Created": ("Ստեղծված", "Создано"),
+}
+_WORDS = {  # misc UI words for the PDF chrome
+    "export": ("export", "արտահանում", "экспорт"),
+    "records": ("records", "գրառում", "записей"),
+}
+
+
+def _li(lang: str) -> int:
+    return 1 if lang == "ru" else 0   # index into the (hy, ru) tuples
+
+
+def _hcol(f, lang: str) -> str:
+    """Localized export header for a data field — English from its label."""
+    if lang in ("hy", "ru") and f.key in _HDR:
+        return _HDR[f.key][_li(lang)]
+    return f.label
+
+
+def _htrail(name: str, lang: str) -> str:
+    if lang in ("hy", "ru") and name in _TRAIL:
+        return _TRAIL[name][_li(lang)]
+    return name
+
+
+def _word(key: str, lang: str) -> str:
+    w = _WORDS.get(key)
+    if not w:
+        return key
+    return {"en": w[0], "hy": w[1], "ru": w[2]}.get(lang, w[0])
+
+
 @router.get("/{slug}/export")
 async def export_records(
     slug: str,
@@ -130,6 +201,7 @@ async def export_records(
     q: str | None = None,
     filter: str | None = None,
     sort: str | None = None,
+    lang: str = "en",
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
@@ -150,10 +222,10 @@ async def export_records(
     fields = await _fields(s, ent.id)
     data_fields = [f for f in fields if f.type != "status"]   # status-type field → folded into core `status`
     keys = [f.key for f in data_fields]
-    # A field may override its export column header via config.export_label (e.g. name → "ԱԱ").
-    def _col(f):
-        return (f.config or {}).get("export_label") or f.label
-    header = [_col(f) for f in data_fields] + ["Status", "ID", "Created At", "Created By"]
+    # Headers follow the system language (lang param); English from field labels.
+    header = [_hcol(f, lang) for f in data_fields] + [
+        _htrail(x, lang) for x in ("Status", "ID", "Created At", "Created By")
+    ]
 
     records = await _viewable_filtered(s, user, ent, q, filter, sort)
     today = date.today()
@@ -251,11 +323,11 @@ async def export_records(
 
         priority = ["name", "surname", "company_name", "phone", "email",
                     "region", "city", "address", "service_type", "source"]
-        label_by_key = {f.key: _col(f) for f in data_fields}
+        by_key = {f.key: f for f in data_fields}
         pdf_keys = [k for k in priority if k in keys][:7]
         if len(pdf_keys) < 3:                       # entity without the usual CRM keys → first few
             pdf_keys = keys[:6]
-        pdf_header = [label_by_key[k] for k in pdf_keys] + ["Status", "Created"]
+        pdf_header = [_hcol(by_key[k], lang) for k in pdf_keys] + [_htrail("Status", lang), _htrail("Created", lang)]
         pdf_rows = []
         for r in records:
             line = [_pdf_cell((r.data or {}).get(k)) for k in pdf_keys]
@@ -263,9 +335,16 @@ async def export_records(
             pdf_rows.append(line)
         note = ""
         if len(data_fields) > len(pdf_keys):
-            note = (f"Showing {len(pdf_keys)} of {len(data_fields)} fields — "
-                    f"download CSV or XLSX for the complete data.")
-        content = build_table_pdf(pdf_header, pdf_rows, f"{slug} export", f"{today:%Y-%m-%d}", note)
+            if lang == "hy":
+                note = f"Ցուցադրված է {len(data_fields)} դաշտից {len(pdf_keys)}-ը — ամբողջ տվյալների համար ներբեռնեք CSV կամ XLSX։"
+            elif lang == "ru":
+                note = f"Показано {len(pdf_keys)} из {len(data_fields)} полей — для полных данных скачайте CSV или XLSX."
+            else:
+                note = (f"Showing {len(pdf_keys)} of {len(data_fields)} fields — "
+                        f"download CSV or XLSX for the complete data.")
+        title = f"{slug} {_word('export', lang)}"
+        subtitle = f"HouseNet ISP · {today:%Y-%m-%d} · {len(records)} {_word('records', lang)}"
+        content = build_table_pdf(pdf_header, pdf_rows, title, subtitle, note)
         return Response(
             content=content,
             media_type="application/pdf",

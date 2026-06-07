@@ -36,7 +36,7 @@ def _ensure_fonts() -> None:
     _fonts_ready = True
 
 
-def build_table_pdf(header: list, rows: list, title: str, date_str: str, note: str = "") -> bytes:
+def build_table_pdf(header: list, rows: list, title: str, subtitle: str, note: str = "") -> bytes:
     """Render a tabular export as an Armenian-capable landscape PDF (DejaVu).
 
     Column widths are sized to the page so text wraps by word (not per-character);
@@ -55,8 +55,8 @@ def build_table_pdf(header: list, rows: list, title: str, date_str: str, note: s
     base = getSampleStyleSheet()["Normal"]
     cell = ParagraphStyle("cell", parent=base, fontName=_REGULAR, fontSize=8, leading=10, wordWrap="CJK")
     head_cell = ParagraphStyle("hcell", parent=cell, fontName=_BOLD, textColor=colors.white)
-    h1 = ParagraphStyle("th1", parent=base, fontName=_BOLD, fontSize=14)
-    sub = ParagraphStyle("tsub", parent=base, fontName=_REGULAR, fontSize=8, textColor=colors.HexColor("#5b6b85"))
+    h1 = ParagraphStyle("th1", parent=base, fontName=_BOLD, fontSize=15, leading=19, spaceAfter=3)
+    sub = ParagraphStyle("tsub", parent=base, fontName=_REGULAR, fontSize=8, leading=11, spaceAfter=2, textColor=colors.HexColor("#5b6b85"))
     foot = ParagraphStyle("tfoot", parent=sub, fontSize=7, textColor=colors.HexColor("#8a98ad"), spaceBefore=6 * mm)
 
     ncols = len(header) or 1
@@ -78,7 +78,7 @@ def build_table_pdf(header: list, rows: list, title: str, date_str: str, note: s
 
     elems = [
         Paragraph(title, h1),
-        Paragraph(f"HouseNet ISP · {date_str} · {len(rows)} records", sub),
+        Paragraph(subtitle, sub),
         Spacer(1, 6 * mm),
         t,
     ]
