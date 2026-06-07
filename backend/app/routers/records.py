@@ -6,7 +6,7 @@ from sqlalchemy import cast, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import Text
 
-from ..db import get_session
+from ..db import get_session, set_tenant_guc
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT, count_select
@@ -166,6 +166,9 @@ def _serialize(rec: Record, hidden_keys: set | frozenset = frozenset()) -> dict:
 
 
 async def _get(s, tenant_id, entity_key, rec_id) -> Record:
+    # Re-arm the RLS tenant GUC: write handlers commit mid-request and a pooled connection swap
+    # can drop the session GUC, so a post-commit re-fetch would otherwise see zero rows (404).
+    await set_tenant_guc(s, tenant_id)
     rec = (await s.execute(
         select(Record).where(
             Record.id == rec_id, Record.tenant_id == tenant_id, Record.entity_key == entity_key

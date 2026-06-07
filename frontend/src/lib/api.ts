@@ -132,6 +132,24 @@ export async function createRecord(token: string, slug: string, data: Record<str
   return r.json()
 }
 
+// Upload files to a record's attachments (one multipart POST per file — the endpoint takes a
+// single `file`). `entityKey` is the entity key (e.g. "lead"), not the route slug.
+export async function uploadAttachments(token: string, entityKey: string, recordId: string, files: File[]) {
+  for (const f of files) {
+    const fd = new FormData()
+    fd.append('file', f, f.name)
+    const r = await fetch(`${BASE}/api/${entityKey}/${recordId}/attachments`, {
+      method: 'POST',
+      headers: authH(token),   // no Content-Type — the browser sets the multipart boundary
+      body: fd,
+    })
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({ detail: 'Attachment upload failed' }))
+      throw new Error(e.detail || 'Attachment upload failed')
+    }
+  }
+}
+
 export async function createEntity(token: string, def: Record<string, unknown>) {
   const r = await fetch(`${BASE}/meta/entities`, {
     method: 'POST',

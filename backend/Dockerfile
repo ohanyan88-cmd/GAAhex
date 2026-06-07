@@ -64,6 +64,11 @@ COPY --chown=gaahex:gaahex app/         /app/app/
 COPY --chown=gaahex:gaahex alembic/     /app/alembic/
 COPY --chown=gaahex:gaahex alembic.ini  /app/alembic.ini
 
+# Attachment storage dir (LocalDiskBackend, config.storage_local_path=/app/uploads) — created
+# + owned by the runtime user so uploads don't hit a PermissionError. Mount a volume here in
+# production for durable storage.
+RUN mkdir -p /app/uploads && chown gaahex:gaahex /app/uploads
+
 USER gaahex
 
 EXPOSE 8099

@@ -315,6 +315,8 @@ _LEAD_FIELDS = [
     ("referral_customer", "Referral Customer", "text", False, _sec("Sales")),
     # Notes
     ("notes", "General Notes", "textarea", False, _sec("Notes")),
+    # Documents — ID / passport / agreement / other (drag-drop or click to attach)
+    ("attachments", "Documents", "file", False, _sec("Documents")),
     # Lifecycle (no section — managed by workflow)
     ("status", "Status", "status", False, None),
 ]

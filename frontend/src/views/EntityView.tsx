@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getEntityDef, createRecord, transitionRecord, listRecordsPaged } from '../lib/api'
+import { getEntityDef, createRecord, transitionRecord, listRecordsPaged, uploadAttachments } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon, UserIcon, PhoneIcon, MapIcon, GlobeIcon, BriefcaseIcon, InfoIcon, BuildingIcon } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -14,6 +14,7 @@ import ActivityTimeline from '../components/ActivityTimeline'
 import { Spark } from '../components/charts/Spark'
 import { LeadGatesStrip } from '../components/LeadGatesStrip'
 import DatePicker from '../components/DatePicker'
+import FileUpload from '../components/FileUpload'
 import { useI18n } from '../lib/i18n'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -64,6 +65,18 @@ function groupFieldsBySection(fields: Field[]): Array<{ section: string | null; 
     g.fields.push(f)
   }
   return groups
+}
+
+// A small icon for each form section header (keyword-matched, with a sensible fallback).
+function sectionIcon(section: string): React.ReactNode {
+  const s = section.toLowerCase()
+  if (s.includes('identity') || s.includes('type')) return <UserIcon size={14} aria-hidden />
+  if (s.includes('contact')) return <PhoneIcon size={14} aria-hidden />
+  if (s.includes('address')) return <MapIcon size={14} aria-hidden />
+  if (s.includes('service') || s.includes('interest')) return <GlobeIcon size={14} aria-hidden />
+  if (s.includes('sales')) return <BriefcaseIcon size={14} aria-hidden />
+  if (s.includes('company') || s.includes('business')) return <BuildingIcon size={14} aria-hidden />
+  return <InfoIcon size={14} aria-hidden />
 }
 type Mode = 'idle' | 'creating' | 'editing'
 type SavedView = { id: string | number; name: string; q?: string; filter?: string; sort?: string }
@@ -308,7 +321,8 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       const params = new URLSearchParams()
       if (appliedQ) params.set('q', appliedQ)
       if (filter) params.set('filter', filter)
-      if (sort) params.set('sort', sort)
+      // Default to newest-first (most recently created on top); an explicit sort overrides.
+      params.set('sort', sort || '-created_at')
       // B22: add pagination params
       params.set('limit', String(PAGE_SIZE))
       params.set('offset', String(pageOffset))
@@ -406,6 +420,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       const payload: Record<string, unknown> = {}
       def!.fields.forEach((f) => {
         if (f.type === 'status') return            // status is lifecycle-managed, never sent here
+        if (f.type === 'file') return              // files aren't JSON data — uploaded separately
         if (f.editable === false) return           // read-only fields are never submitted
         const v = form[f.key]
         if (mode === 'creating') {
@@ -415,8 +430,18 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
         }
       })
       const wasEditing = mode === 'editing'
+      let recordId = editingId
       if (wasEditing && editingId) await patchRecord(token, slug, editingId, payload)
-      else await createRecord(token, slug, payload)
+      else { const created = await createRecord(token, slug, payload); recordId = created?.id ?? null }
+      // Upload any files picked in `file` fields, now that the record id exists.
+      if (recordId) {
+        for (const ff of def!.fields.filter((f) => f.type === 'file')) {
+          const picked = form[ff.key]
+          if (Array.isArray(picked) && picked.length > 0) {
+            await uploadAttachments(token, def!.key, recordId, picked as File[])
+          }
+        }
+      }
       closeForm()
       await load(slug)
       toast.success(`${def!.label} ${wasEditing ? 'updated' : 'created'}`)
@@ -892,10 +917,17 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                   <div className="rec-form-header">{headerFields.map(renderField)}</div>
                 )}
                 {groupFieldsBySection(bodyFields).map((g, gi) => (
-                  <div className="rec-form-section" key={g.section ?? `_${gi}`}>
-                    {g.section && <div className="rec-form-section-head">{g.section}</div>}
-                    <div className="rec-form-grid">{g.fields.map(renderField)}</div>
-                  </div>
+                  g.section ? (
+                    <div className="rec-form-section" key={g.section}>
+                      <div className="rec-form-section-head">
+                        {sectionIcon(g.section)}
+                        <span>{g.section}</span>
+                      </div>
+                      <div className="rec-form-grid">{g.fields.map(renderField)}</div>
+                    </div>
+                  ) : (
+                    <div className="rec-form-grid rec-form-grid-bare" key={`_${gi}`}>{g.fields.map(renderField)}</div>
+                  )
                 ))}
                 <div className="rec-form-actions">
                   {mode === 'creating' && hasPicker && (
@@ -1282,6 +1314,8 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
     input = <input type="email" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'phone') {
     input = <input type="tel" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+  } else if (f.type === 'file') {
+    input = <FileUpload value={value} onChange={onChange} />
   } else if (f.type === 'textarea') {
     input = <textarea className={cls + ' inp-area'} rows={4} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'select') {
