@@ -1,11 +1,10 @@
 """Armenia administrative geography — trilingual (Armenian / English / Russian).
 
-Source: RA 2011 census settlement table (English column extracted from the PDF;
-Armenian + Russian rendered to standard forms). Currently only the Armavir marz
-is populated — other marzes get appended here as they are digitised.
+Currently only the Armavir marz is populated (owner-supplied canonical list);
+other marzes get appended here as they are digitised.
 
-Each entry is a (hy, en, ru) tuple. `combined()` builds the "hy / en / ru" label
-the lead form's Region / City / Village dropdowns store.
+Each entry is a (hy, en, ru) tuple. `combined()` builds a "hy / en / ru" label;
+`dicts()` builds per-language option objects (the form shows the current language).
 """
 
 # (Armenian, English, Russian)
@@ -23,108 +22,114 @@ REGIONS: list[tuple[str, str, str]] = [
     ("Վայոց Ձոր", "Vayots Dzor", "Вайоц Дзор"),
 ]
 
+# Armavir marz only (for now) — the single region the lead form offers.
+ARMAVIR_REGION: tuple[str, str, str] = ("Արմավիր", "Armavir", "Армавир")
+
 # Armavir marz — towns/cities
 ARMAVIR_CITIES: list[tuple[str, str, str]] = [
-    ("Արմավիր (Հոկտեմբերյան)", "Armavir (Hoktemberyan)", "Армавир (Октемберян)"),
-    ("Վաղարշապատ (Էջմիածին)", "Vagharshapat (Echmiadzin)", "Вагаршапат (Эчмиадзин)"),
+    ("Արմավիր", "Armavir", "Армавир"),
+    ("Վաղարշապատ", "Vagharshapat", "Вагаршапат"),
     ("Մեծամոր", "Metsamor", "Мецамор"),
 ]
 
-# Armavir marz — villages
+# Armavir marz — villages (owner-supplied canonical list)
 ARMAVIR_VILLAGES: list[tuple[str, str, str]] = [
+    ("Աղավնատուն", "Aghavnatun", "Агавнатун"),
     ("Ակնալիճ", "Aknalich", "Акналич"),
     ("Ակնաշեն", "Aknashen", "Акнашен"),
-    ("Աղավնատուն", "Aghavnatun", "Агавнатун"),
-    ("Ամասիա", "Amasia", "Амасия"),
+    ("Ալաշկերտ", "Alashkert", "Алашкерт"),
+    ("Ամասիա", "Amasia", "Амасиа"),
     ("Ամբերդ", "Amberd", "Амберд"),
-    ("Այգեկ", "Aygek", "Айгек"),
-    ("Այգեշատ (Արմավիրի)", "Aygeshat (Armavir district)", "Айгешат (Армавирский)"),
-    ("Այգեշատ (Էջմիածնի)", "Aygeshat (Echmiadzin district)", "Айгешат (Эчмиадзинский)"),
     ("Ապագա", "Apaga", "Апага"),
-    ("Արատաշեն", "Aratashen", "Араташен"),
     ("Արագած", "Aragats", "Арагац"),
+    ("Արաքս (Արմավիր)", "Araks (Armavir)", "Аракс (Армавир)"),
+    ("Արաքս (Վաղարշապատ)", "Araks (Vagharshapat)", "Аракс (Вагаршапат)"),
+    ("Արատաշեն", "Aratashen", "Араташен"),
     ("Արազափ", "Arazap", "Аразап"),
-    ("Արաքս (Արմավիրի)", "Araks (Armavir district)", "Аракс (Армавирский)"),
-    ("Արաքս (Էջմիածնի)", "Araks (Echmiadzin district)", "Аракс (Эчмиадзинский)"),
-    ("Արգավանդ", "Argavand", "Аргаванд"),
-    ("Արգինա", "Argina", "Аргина"),
-    ("Արմավիր", "Armavir", "Армавир"),
-    ("Արշալույս", "Arshaluys", "Аршалуйс"),
-    ("Արտամետ", "Artamet", "Артамет"),
-    ("Արտիմետ", "Artimet", "Артимет"),
-    ("Արտաշար", "Artashar", "Арташар"),
     ("Արևադաշտ", "Arevadasht", "Аревадашт"),
     ("Արևաշատ", "Arevashat", "Аревашат"),
     ("Արևիկ", "Arevik", "Аревик"),
+    ("Արգավանդ", "Argavand", "Аргаванд"),
+    ("Արգինա", "Argina", "Аргина"),
+    ("Արմավիր", "Armavir (village)", "Армавир"),
+    ("Արշալույս", "Arshaluys", "Аршалуйс"),
+    ("Արտամետ", "Artamet", "Артамет"),
+    ("Արտաշար", "Artashar", "Арташар"),
+    ("Արտիմետ", "Artimet", "Артимет"),
+    ("Այգեկ", "Aygek", "Айгек"),
+    ("Այգեշատ (Արմավիր)", "Aygeshat (Armavir)", "Айгешат (Армавир)"),
+    ("Այգեշատ (Վաղարշապատ)", "Aygeshat (Vagharshapat)", "Айгешат (Вагаршапат)"),
+    ("Այգեվան", "Aygevan", "Айгеван"),
     ("Բագարան", "Bagaran", "Багаран"),
-    ("Բաղրամյան (Բաղրամյանի)", "Baghramyan (Baghramyan district)", "Баграмян (Баграмянский)"),
-    ("Բաղրամյան (Էջմիածնի)", "Baghramyan (Echmiadzin district)", "Баграмян (Эчмиадзинский)"),
+    ("Բաղրամյան (Արմավիր)", "Baghramyan (Armavir)", "Баграмян (Армавир)"),
+    ("Բաղրամյան (Վաղարշապատ)", "Baghramyan (Vagharshapat)", "Баграмян (Вагаршапат)"),
     ("Բամբակաշատ", "Bambakashat", "Бамбакашат"),
     ("Բերքաշատ", "Berkashat", "Беркашат"),
-    ("Գայ", "Gay", "Гай"),
-    ("Գետաշեն", "Getashen", "Геташен"),
-    ("Գրիբոյեդով", "Griboyedov", "Грибоедов"),
     ("Դալարիկ", "Dalarik", "Даларик"),
     ("Դաշտ", "Dasht", "Дашт"),
     ("Դողս", "Doghs", "Догс"),
-    ("Եղեգնուտ", "Yeghegnut", "Егегнут"),
-    ("Երասխահուն", "Yeraskhahun", "Ерасхаун"),
-    ("Երվանդաշատ", "Yervandashat", "Ервандашат"),
-    ("Զարթոնք", "Zartonk", "Зартонк"),
-    ("Ժդանով", "Zhdanov", "Жданов"),
+    ("Ֆերիկ", "Ferik", "Ферик"),
+    ("Գայ", "Gai", "Гай"),
+    ("Գեղակերտ", "Geghakert", "Гегакерт"),
+    ("Գետաշեն", "Getashen", "Геташен"),
+    ("Գրիբոյեդով", "Griboyedov", "Грибоедов"),
+    ("Հացիկ", "Hatsik", "Ацик"),
+    ("Հայկաշեն", "Haykashen", "Айкашен"),
+    ("Հայկավան", "Haykavan", "Айкаван"),
+    ("Հայթաղ", "Haytagh", "Айтаг"),
+    ("Հովտամեջ", "Hovtamej", "Овтамедж"),
+    ("Հուշակերտ", "Hushakert", "Ушакерт"),
+    ("Ջանֆիդա", "Janfida", "Джанфида"),
+    ("Ջրառատ", "Jrarat", "Джрарат"),
+    ("Ջրարբի", "Jrarbi", "Джрарби"),
+    ("Ջրաշեն", "Jrashen", "Джрашен"),
+    ("Քարակերտ", "Karakert", "Каракерт"),
+    ("Խանջյան", "Khanjyan", "Ханджян"),
+    ("Խորոնք", "Khoronk", "Хоронк"),
+    ("Կողբավան", "Koghbavan", "Кохбаван"),
+    ("Կյուրաքյան", "Kyurakyan", "Кюрякян"),
     ("Լենուղի", "Lenughi", "Ленуги"),
     ("Լեռնագոգ", "Lernagog", "Лернагог"),
     ("Լեռնամերձ", "Lernamerdz", "Лернамердз"),
     ("Լուկաշին", "Lukashin", "Лукашин"),
     ("Լուսագյուղ", "Lusagyugh", "Лусагюх"),
-    ("Խանջյան", "Khandjyan", "Ханджян"),
-    ("Խորոնք", "Khoronk", "Хоронк"),
-    ("Ծաղկալանջ", "Tsaghkalandj", "Цахкаландж"),
-    ("Ծաղկունք", "Tsaghkunk", "Цахкунк"),
-    ("Ծիածան", "Tsiatsan", "Циацан"),
-    ("Կողբավան", "Koghbavan", "Когбаван"),
-    ("Հայթաղ", "Haytagh", "Айтаг"),
-    ("Հայկաշեն", "Haykashen", "Айкашен"),
-    ("Հայկավան", "Haykavan", "Айкаван"),
-    ("Հացիկ", "Hatsik", "Ацик"),
-    ("Հոկտեմբեր", "Hoktember", "Октембер"),
-    ("Հովտամեջ", "Hovtamech", "Овтамеч"),
-    ("Հուշակերտ", "Hushakert", "Ушакерт"),
-    ("Ձերժինսկի", "Dzerzhinsky", "Дзержинский"),
     ("Մարգարա", "Margara", "Маргара"),
-    ("Մեծամոր", "Metsamor", "Мецамор"),
+    ("Մայիսյան", "Mayisyan", "Маисян"),
     ("Մերձավան", "Merdzavan", "Мердзаван"),
-    ("Մյասնիկյան", "Myasnikyan", "Мясникян"),
-    ("Մրգաշատ", "Mrgashat", "Мргашат"),
     ("Մրգաստան", "Mrgastan", "Мргастан"),
+    ("Մրգաշատ", "Mrgashat", "Мргашат"),
+    ("Մուղամ", "Mugam", "Мугам"),
     ("Մուսալեռ", "Musaler", "Мусалер"),
+    ("Մյասնիկյան", "Myasnikyan", "Мясникян"),
     ("Նալբանդյան", "Nalbandyan", "Налбандян"),
-    ("Նոր Արմավիր", "Nor Armavir", "Нор Армавир"),
-    ("Նոր Արտագես", "Nor Artages", "Нор Артагес"),
-    ("Նոր Կեսարիա", "Nor Kesaria", "Нор Кесария"),
     ("Նորակերտ", "Norakert", "Норакерт"),
+    ("Նոր Արմավիր", "Nor Armavir", "Нор Армавир"),
+    ("Նոր Արտագերս", "Nor Artagers", "Нор Артагерс"),
+    ("Նոր Կեսարիա", "Nor Kesaria", "Нор Кесария"),
     ("Նորապատ", "Norapat", "Норапат"),
     ("Նորավան", "Noravan", "Нораван"),
-    ("Շահումյան", "Shahumyan", "Шаумян"),
-    ("Շենավան", "Shenavan", "Шенаван"),
-    ("Շենիկ", "Shenik", "Шеник"),
-    ("Ոսկեհատ", "Voskehat", "Воскеат"),
-    ("Փթղունք", "Ptghunk", "Птгунк"),
-    ("Ջանֆիդա", "Janfida", "Джанфида"),
-    ("Ջրաշեն", "Jrashen", "Джрашен"),
-    ("Ջրառատ", "Jrarat", "Джрарат"),
-    ("Սամաղար", "Samaghar", "Самагар"),
-    ("Սովետական", "Sovetakan", "Советакан"),
-    ("Վանանդ", "Vanand", "Вананд"),
-    ("Վարդանաշեն", "Vardanashen", "Варданашен"),
-    ("Թալվորիկ", "Talvorik", "Талворик"),
-    ("Տանձուտ", "Tandzut", "Тандзут"),
-    ("Տարոնիկ", "Taronik", "Тароник"),
     ("Փարաքար", "Parakar", "Паракар"),
     ("Թաիրով", "Tairov", "Таиров"),
     ("Փշատավան", "Pshatavan", "Пшатаван"),
-    ("Կարակերտ", "Karakert", "Каракерт"),
-    ("Ֆերիկ", "Ferik", "Ферик"),
+    ("Պտղունք", "Ptghunk", "Птхунк"),
+    ("Սարդարապատ", "Sardarapat", "Сардарапат"),
+    ("Շահումյան", "Shahumyan", "Шаумян"),
+    ("Շահումյանի թռչնաֆաբրիկա", "Shahumyani Trchnafabrika", "Птицефабрика Шаумяна"),
+    ("Շենավան", "Shenavan", "Шенаван"),
+    ("Շենիկ", "Shenik", "Шеник"),
+    ("Տալվորիկ", "Talvorik", "Талворик"),
+    ("Թանձուտ", "Tandzut", "Тандзут"),
+    ("Տարոնիկ", "Taronik", "Тароник"),
+    ("Ծաղկալանջ", "Tsaghkalanj", "Цахкаландж"),
+    ("Ծաղկունք", "Tsaghkunk", "Цахкунк"),
+    ("Ցիածան", "Tsiatsan", "Циацан"),
+    ("Վանանդ", "Vanand", "Вананд"),
+    ("Վարդանաշեն", "Vardanashen", "Варданашен"),
+    ("Ոսկեհատ", "Voskehat", "Воскехат"),
+    ("Եղեգնուտ", "Yeghegnut", "Егегнут"),
+    ("Երասխահուն", "Yeraskhahun", "Ераскахун"),
+    ("Երվանդաշատ", "Yervandashat", "Ервандашат"),
+    ("Զարթոնք", "Zartonk", "Зартонк"),
 ]
 
 
@@ -136,7 +141,3 @@ def combined(rows: list[tuple[str, str, str]]) -> list[str]:
 def dicts(rows: list[tuple[str, str, str]]) -> list[dict[str, str]]:
     """Per-language option objects — the form shows only the current system language."""
     return [{"hy": hy, "en": en, "ru": ru} for hy, en, ru in rows]
-
-
-# Armavir marz only (for now) — the single region the lead form offers.
-ARMAVIR_REGION: tuple[str, str, str] = ("Արմավիր", "Armavir", "Армавир")
