@@ -298,12 +298,15 @@ _LEAD_FIELDS = [
     ("company_name", "Company Name", "text", False, _sec("Personal", {"segments": [B2B]})),
     ("tax_id", "Tax ID / Reg №", "text", False, _sec("Personal", {"segments": [B2B]})),
     ("date_of_birth", "Date of Birth", "date", False, _sec("Personal", {"segments": [B2C]})),
-    ("document_type", "Document Type", "select", False, _sec("Personal", {"options": ["ID", "Passport"], "segments": [B2C]})),
-    ("document_number", "Document Number", "text", False, _sec("Personal", {"segments": [B2C]})),
     ("phone", "Primary Phone", "phone", False, _sec("Personal")),
     ("secondary_phone", "Second Phone", "phone", False, _sec("Personal")),
     ("whatsapp", "WhatsApp", "text", False, _sec("Personal")),
     ("email", "Email", "email", False, _sec("Personal")),
+    # ID document — kept at the bottom of the Personal section
+    ("document_type", "Document Type", "select", False, _sec("Personal", {"options": ["ID", "Passport"], "segments": [B2C]})),
+    ("document_number", "Document Number", "text", False, _sec("Personal", {"segments": [B2C]})),
+    ("issued_by", "Issued By", "text", False, _sec("Personal", {"segments": [B2C]})),
+    ("issue_date", "Issue Date", "date", False, _sec("Personal", {"segments": [B2C]})),
     # Service — address + interest merged into one section
     ("region", "Region", "select", False, _sec("Service", {"options": _REGIONS})),
     ("city", "City", "select", False, _sec("Service", {"options": _CITIES})),
