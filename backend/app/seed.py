@@ -258,35 +258,75 @@ async def _make_entity(s, tenant_id, key, label, plural, slug, icon, fields, sta
     return ent
 
 
+# ── Lead field set (single source of truth — reused by build_crm_entities + the lead-field
+# re-provision script). Each non-status field carries a `section` in its config so the form
+# renders grouped. Deep Technical / Billing / detailed-Installation fields are deliberately
+# deferred to the post-conversion Customer / Service records (Standard 11: lead → customer).
+_REGIONS = [
+    "Yerevan", "Aragatsotn", "Ararat", "Armavir", "Gegharkunik", "Kotayk",
+    "Lori", "Shirak", "Syunik", "Tavush", "Vayots Dzor",
+]
+_CITIES = [
+    "Yerevan", "Abovyan", "Agarak", "Alaverdi", "Aparan", "Ararat", "Armavir", "Artashat",
+    "Artik", "Ashtarak", "Berd", "Byureghavan", "Chambarak", "Charentsavan", "Dilijan",
+    "Echmiadzin (Vagharshapat)", "Gavar", "Goris", "Gyumri", "Hrazdan", "Ijevan", "Jermuk",
+    "Kajaran", "Kapan", "Maralik", "Martuni", "Masis", "Meghri", "Metsamor", "Nor Hachn",
+    "Noyemberyan", "Sevan", "Sisian", "Spitak", "Stepanavan", "Talin", "Tashir", "Tsaghkadzor",
+    "Tumanyan", "Vanadzor", "Vardenis", "Vayk", "Vedi", "Yeghegnadzor", "Yeghvard",
+]
+B2C = "Individual (B2C)"
+B2B = "Business (B2B)"
+
+
+def _sec(section: str, extra: dict | None = None) -> dict:
+    return {"section": section, **(extra or {})}
+
+
+# `segments` in a field's config gates which lead Type shows it — fields without it are common
+# to both. The form filters by the chosen segment so B2C and B2B see different forms.
+_LEAD_FIELDS = [
+    # Identity & Type
+    ("segment", "Type", "select", False, _sec("Identity & Type", {"options": [B2C, B2B]})),
+    ("name", "Full Name", "text", True, _sec("Identity & Type")),
+    ("company_name", "Company Name", "text", False, _sec("Identity & Type", {"segments": [B2B]})),
+    ("tax_id", "Tax ID / Reg №", "text", False, _sec("Identity & Type", {"segments": [B2B]})),
+    ("date_of_birth", "Date of Birth", "date", False, _sec("Identity & Type", {"segments": [B2C]})),
+    ("document_type", "Document Type", "select", False, _sec("Identity & Type", {"options": ["ID", "Passport"], "segments": [B2C]})),
+    ("document_number", "Document Number", "text", False, _sec("Identity & Type", {"segments": [B2C]})),
+    # Contact
+    ("phone", "Primary Phone", "phone", False, _sec("Contact")),
+    ("secondary_phone", "Second Phone", "phone", False, _sec("Contact")),
+    ("whatsapp", "WhatsApp", "text", False, _sec("Contact")),
+    ("email", "Email", "email", False, _sec("Contact")),
+    # Service Address
+    ("region", "Region", "select", False, _sec("Service Address", {"options": _REGIONS})),
+    ("city", "City", "select", False, _sec("Service Address", {"options": _CITIES})),
+    ("address", "Address", "text", False, _sec("Service Address")),
+    ("registration_address", "Registration Address", "text", False, _sec("Service Address")),
+    ("landmark", "Landmark", "text", False, _sec("Service Address")),
+    # Service Interest
+    ("service_type", "Service Type", "select", False, _sec("Service Interest", {"options": ["Internet", "TV", "VoIP", "Bundle"]})),
+    ("package", "Package", "select", False, _sec("Service Interest", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
+    ("contract_term", "Contract Term", "select", False, _sec("Service Interest", {"options": ["Monthly", "12 Months", "24 Months"]})),
+    # Sales
+    ("source", "Lead Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"]})),
+    ("sales_representative", "Sales Representative", "text", False, _sec("Sales")),
+    ("campaign", "Campaign", "text", False, _sec("Sales")),
+    ("referral_customer", "Referral Customer", "text", False, _sec("Sales")),
+    # Notes
+    ("notes", "General Notes", "textarea", False, _sec("Notes")),
+    # Lifecycle (no section — managed by workflow)
+    ("status", "Status", "status", False, None),
+]
+
+
 async def build_crm_entities(s, t) -> None:
     """Build the baseline CRM module (Lead, Customer, Contact, Deal, Ticket) for tenant `t` AS CONFIG.
     Reusable by the demo seed AND by tenant provisioning — no emptiness guard here (callers guard)."""
     # ---- CRM: Lead ----
     await _make_entity(
         s, t, "lead", "Lead", "Leads", "leads", "users",
-        fields=[
-            ("segment", "Type", "select", False, {"options": ["Individual (B2C)", "Business (B2B)"]}),
-            ("name", "Name", "text", True, None),
-            ("patronymic", "Patronymic", "text", False, None),
-            ("date_of_birth", "Date of Birth", "date", False, None),
-            ("phone", "Phone", "phone", False, None),
-            ("secondary_phone", "Second Phone", "phone", False, None),
-            ("whatsapp", "WhatsApp", "text", False, None),
-            ("telegram", "Telegram", "text", False, None),
-            ("email", "Email", "email", False, None),
-            ("region", "Region", "select", False, {"options": [
-                "Yerevan", "Aragatsotn", "Ararat", "Armavir", "Gegharkunik", "Kotayk",
-                "Lori", "Shirak", "Syunik", "Tavush", "Vayots Dzor",
-            ]}),
-            ("city", "City", "text", False, None),
-            ("address", "Address", "text", False, None),
-            ("document_type", "Document Type", "select", False, {"options": ["ID", "Passport"]}),
-            ("document_number", "Document Number", "text", False, None),
-            ("source", "Source", "select", False, {"options": ["Website", "Referral", "Cold Call", "Ad"]}),
-            ("priority", "Priority", "select", False, {"options": ["Low", "Medium", "High"]}),
-            ("notes", "Notes", "textarea", False, None),
-            ("status", "Status", "status", False, None),
-        ],
+        fields=_LEAD_FIELDS,
         statuses=[("NEW", "New", True), ("CONTACTED", "Contacted", False), ("QUALIFIED", "Qualified", False),
                   ("CONVERTED", "Converted", False), ("LOST", "Lost", False)],
         transitions=[

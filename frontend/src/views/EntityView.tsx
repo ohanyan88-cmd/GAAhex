@@ -13,6 +13,7 @@ import { EmptyState, PermissionDenied, NotFound, LoadingState, ErrorBanner } fro
 import ActivityTimeline from '../components/ActivityTimeline'
 import { Spark } from '../components/charts/Spark'
 import { LeadGatesStrip } from '../components/LeadGatesStrip'
+import DatePicker from '../components/DatePicker'
 import { useI18n } from '../lib/i18n'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -50,6 +51,20 @@ function deriveStatusGroups(def: Def): StatusGroups {
 
 type StatusTab = 'all' | 'active' | 'history' | 'drafts'
 type Row = Record<string, any>
+
+// Group form fields by their config.section (preserving order) so the create/edit modal
+// renders titled sections. Fields with no section fall into one leading unlabeled group —
+// keeps entities that don't define sections rendering exactly as before.
+function groupFieldsBySection(fields: Field[]): Array<{ section: string | null; fields: Field[] }> {
+  const groups: Array<{ section: string | null; fields: Field[] }> = []
+  for (const f of fields) {
+    const section: string | null = f.config?.section ?? null
+    let g = groups.find((x) => x.section === section)
+    if (!g) { g = { section, fields: [] }; groups.push(g) }
+    g.fields.push(f)
+  }
+  return groups
+}
 type Mode = 'idle' | 'creating' | 'editing'
 type SavedView = { id: string | number; name: string; q?: string; filter?: string; sort?: string }
 
@@ -822,19 +837,31 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
             ? undefined
             : t('form.fillBelow', `Fill in the information below to create a new ${def.label.toLowerCase()}`)}
         >
-          <form className="rec-form" onSubmit={submit}>
-            {def.fields.map((f) => (
-              <FieldInput
-                key={f.key}
-                field={f}
-                token={token}
-                mode={mode}
-                currentStatus={editingStatus}
-                errorField={errorField}
-                errorMsg={error}
-                value={form[f.key]}
-                onChange={(v) => setForm({ ...form, [f.key]: v })}
-              />
+          <form className="rec-form rec-form-modal" onSubmit={submit}>
+            {groupFieldsBySection(def.fields.filter((f) => {
+              // segment-gated fields show only for the chosen lead Type (B2C / B2B);
+              // untagged fields are common to both.
+              const segs: string[] | undefined = f.config?.segments
+              return !segs || segs.includes(form.segment)
+            })).map((g, gi) => (
+              <div className="rec-form-section" key={g.section ?? `_${gi}`}>
+                {g.section && <div className="rec-form-section-head">{g.section}</div>}
+                <div className="rec-form-grid">
+                  {g.fields.map((f) => (
+                    <FieldInput
+                      key={f.key}
+                      field={f}
+                      token={token}
+                      mode={mode}
+                      currentStatus={editingStatus}
+                      errorField={errorField}
+                      errorMsg={error}
+                      value={form[f.key]}
+                      onChange={(v) => setForm({ ...form, [f.key]: v })}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
             <div className="rec-form-actions">
               <span className="spacer" />
@@ -1209,7 +1236,7 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
   } else if (f.type === 'number' || f.type === 'money') {
     input = <input type="number" className={cls + ' inp-numeric'} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'date') {
-    input = <input type="date" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
+    input = <DatePicker value={value ?? ''} onChange={onChange} />
   } else if (f.type === 'datetime') {
     input = <input type="datetime-local" className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'email') {
@@ -1227,7 +1254,7 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
   }
 
   return (
-    <label className="field">
+    <label className={'field field-' + f.type}>
       <span>{f.label}{f.required && ' *'}</span>
       {input}
       {isErr && <span className="inp-err"><WarningIcon size={12} /> {errorMsg}</span>}

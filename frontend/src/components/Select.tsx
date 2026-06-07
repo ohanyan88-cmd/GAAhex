@@ -57,7 +57,7 @@ export function Select({ value, options, onChange, placeholder = 'Select…' }: 
       </div>
       {open && (
         <>
-          <div className="sel-backdrop" onClick={close} />
+          <button type="button" className="sel-backdrop" aria-label="Close" onClick={close} />
           <div className="sel-pop" style={pos}>
             {searchable && (
               <div className="sel-search">
@@ -135,7 +135,7 @@ export function MultiSelect({ value, options, onChange, placeholder = 'Select…
       </div>
       {open && (
         <>
-          <div className="sel-backdrop" onClick={() => { setOpen(false); setQ('') }} />
+          <button type="button" className="sel-backdrop" aria-label="Close" onClick={() => { setOpen(false); setQ('') }} />
           <div className="sel-pop" style={pos}>
             {searchable && (
               <div className="sel-search">

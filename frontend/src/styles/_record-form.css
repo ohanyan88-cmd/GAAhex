@@ -12,3 +12,27 @@
   box-shadow: var(--gx-shadow-xs);
 }
 .rec-form-actions { display: flex; align-items: center; gap: 8px; grid-column: 1 / -1; }
+
+/* Modal variant — the create/edit form rendered inside a Modal (EntityView). The modal body
+   already provides the card surface/padding, so this strips .rec-form's own chrome and lays
+   the fields out as titled sections instead of one flat grid. */
+.rec-form.rec-form-modal {
+  display: flex; flex-direction: column; align-items: stretch; gap: var(--gx-space-16);
+  background: transparent; border: 0; box-shadow: none; padding: 0; margin: 0;
+}
+.rec-form-section { display: flex; flex-direction: column; gap: var(--gx-space-6); }
+.rec-form-section-head {
+  font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-2);
+  padding-bottom: var(--gx-space-3); border-bottom: 1px solid var(--gx-border-subtle);
+}
+.rec-form-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gx-space-8) var(--gx-space-12); align-items: end;
+}
+/* Textareas (notes / instructions) span the full width of the section grid. */
+.rec-form-grid .field-textarea { grid-column: 1 / -1; }
+.rec-form-modal .rec-form-actions {
+  grid-column: auto; justify-content: flex-end;
+  padding-top: var(--gx-space-6); border-top: 1px solid var(--gx-border-subtle);
+}

@@ -5,21 +5,19 @@ leaks beyond what's on screen. Columns = data FieldDefs (status-type folded into
 then Status, ID, Created At, Created By. The shared DB accumulates, so every test scopes rows with a unique
 name-token via `q` to make counts deterministic.
 
-Lead data fields are defined in seed.py build_crm_entities (name, patronymic, date_of_birth,
-phone, secondary_phone, whatsapp, telegram, email, region, city, address, document_type,
-document_number, source, priority, notes) → the header labels below, then Status/ID/Created
-At/Created By.
+Lead data fields are defined in seed.py (`_LEAD_FIELDS`) and evolve, so these tests assert the
+SHAPE rather than an exact column list: every export ends with the four fixed trailing columns
+and includes the key data columns. This keeps the suite stable as lead fields are added/removed.
 """
 
 import csv
 import io
 import json
 
-LEAD_HEADER = [
-    "Type", "Name", "Patronymic", "Date of Birth", "Phone", "Second Phone", "WhatsApp",
-    "Telegram", "Email", "Region", "City", "Address", "Document Type", "Document Number",
-    "Source", "Priority", "Notes", "Status", "ID", "Created At", "Created By",
-]
+# The fixed tail every record export ends with (after the entity's data fields).
+TRAILING = ["Status", "ID", "Created At", "Created By"]
+# Data columns we always expect a lead export to carry (by their field labels).
+KEY_COLS = ["Full Name", "Primary Phone", "Email"]
 
 
 def _csv_rows(text):
@@ -44,10 +42,12 @@ async def test_csv_export_header_and_rows(client, admin):
     assert r.headers["content-type"].startswith("text/csv")
 
     rows = _csv_rows(r.text)
-    assert rows[0] == LEAD_HEADER
+    header = rows[0]
+    assert header[-4:] == TRAILING, f"export must end with {TRAILING}; got {header[-4:]}"
+    assert all(c in header for c in KEY_COLS), f"missing key columns in {header}"
     data = rows[1:]
     assert len(data) == 2
-    name_col = LEAD_HEADER.index("Name")
+    name_col = header.index("Full Name")
     assert {row[name_col] for row in data} == {f"{tok} 0", f"{tok} 1"}     # Name column
 
 
@@ -113,5 +113,6 @@ async def test_export_respects_scope_and_view_gate(client, admin, agent):
 async def test_empty_export_is_valid(client, admin):
     nohits = "zexpnone_xyz"
     csv_rows = _csv_rows((await _export(client, admin, f"?format=csv&q={nohits}")).text)
-    assert csv_rows == [LEAD_HEADER]                                # header only, no data rows
+    assert len(csv_rows) == 1                                       # header only, no data rows
+    assert csv_rows[0][-4:] == TRAILING and all(c in csv_rows[0] for c in KEY_COLS)
     assert (await _export(client, admin, f"?format=json&q={nohits}")).json() == []

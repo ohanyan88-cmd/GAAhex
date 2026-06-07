@@ -8,6 +8,7 @@ Covers:
   selects the version that was live AT that time, not the current one.
 * HTTP endpoints — list versions and mint via POST.
 """
+import asyncio
 import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -170,7 +171,10 @@ async def test_grandfathered_subscription_resolves_to_old_version(client, admin)
     # where v1 became live; v1's window covers this instant by definition.
     sub_created_at = v1_from
 
-    # Catalog price changes — v2 is minted, which will close v1.effective_to.
+    # Catalog price changes — v2 is minted, which will close v1.effective_to. Pause briefly so
+    # v2's mint timestamp is strictly after v1's: otherwise a same-instant clock tick gives v1 a
+    # zero-width [from, to) window and the boundary query below would resolve to v2 (flaky).
+    await asyncio.sleep(0.02)
     async with SessionLocal() as s:
         await mint_new_version(s, pid, {"recurring_price": "30.00"})
         await s.commit()
