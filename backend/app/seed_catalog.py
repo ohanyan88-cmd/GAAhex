@@ -921,6 +921,14 @@ ENTITY_CATALOG = [
        st("APPROVED","Approved"), st("REJECTED","Rejected"), st("CLOSED","Closed")],
       [tr("DRAFT","OPEN"), tr("OPEN","IN_REVIEW"), tr("IN_REVIEW","APPROVED"),
        tr("IN_REVIEW","REJECTED"), tr("APPROVED","CLOSED"), tr("REJECTED","CLOSED")]),
+
+    # Employee benefits catalog (My Profile → My Benefits) — informational reference content,
+    # no lifecycle (it's read-only company-provided perks; rows are seeded, not employee-created).
+    e("benefit", "Benefit", "Benefits", "benefits", "briefcase",
+      [f("title",  "Title",  "text", True),
+       f("value",  "Value",  "text"),
+       f("note",   "Note",   "text"),
+       f("detail", "Detail", "textarea")]),
 ]
 
 

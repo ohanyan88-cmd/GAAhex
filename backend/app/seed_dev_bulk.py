@@ -1160,3 +1160,56 @@ async def seed_dev_notifications_if_empty() -> None:
             s.add(n)
         await s.commit()
         _log.info("dev notifications seeded: %d", len(_DEMO_NOTIFS))
+
+
+# Demo employee Benefits (My Profile → My Benefits) — reference content, no lifecycle.
+_DEMO_BENEFITS = [
+    {"title": "Բժշկական ապահովագրություն", "value": "Ակտիվ", "note": "Ընտանեկան փաթեթ", "detail": "Ընտանեկան փաթեթ՝ ամբուլատոր, ստացիոնար և շտապ օգնություն։ Դեղորայք՝ 80% փոխհատուցում։ Ստոմատոլոգիա՝ տարեկան մինչև ֏150,000։ Գործընկեր՝ Ռեսո Ապահովագրություն։"},
+    {"title": "Արձակուրդ", "value": "18 / 25 օր", "note": "7 օր օգտագործված", "detail": "Տարեկան 25 աշխատանքային օր վճարովի արձակուրդ։ Օգտագործված՝ 7 օր։ Մնացած՝ 18 օր։ Չօգտագործված օրերը փոխանցվում են հաջորդ տարի (առավելագույնը 5 օր)։"},
+    {"title": "Ուսման բյուջե", "value": "֏200,000", "note": "Տարեկան", "detail": "Տարեկան ֏200,000 մասնագիտական զարգացման համար՝ դասընթացներ, գրքեր, կոնֆերանսներ, սերտիֆիկացիաներ։ Հաստատումը՝ թիմի ղեկավարի մոտ։"},
+    {"title": "Սննդի փոխհատուցում", "value": "֏45,000", "note": "Ամսական", "detail": "Ամսական ֏45,000 սննդի փոխհատուցում՝ կորպորատիվ քարտով։ Կիրառելի գործընկեր ռեստորաններում և սուպերմարկետներում։"},
+]
+# Demo Knowledge-Base articles (My Profile → Knowledge Base) — published (status ACTIVE).
+_DEMO_KB = [
+    {"title": "Ինչպես հայտել արձակուրդ", "category": "HR", "body": "Անցեք My Profile → My Requests → New request → Time Off · Vacation request։ Նշեք ամսաթվերը և պատճառը։ Հաստատումը կատարում է թիմի ղեկավարը 1-2 աշխատանքային օրում։"},
+    {"title": "Հեռավար աշխատանքի քաղաքականություն", "category": "HR", "body": "Շաբաթական մինչև 2 օր հեռավար աշխատանք՝ ղեկավարի համաձայնությամբ։ Անհրաժեշտ է կայուն ինտերնետ և հասանելիություն աշխատանքային ժամերին (10:00–18:00)։"},
+    {"title": "VPN-ի կարգավորում", "category": "IT", "body": "Ներբեռնեք GAAhex VPN client-ը ներքին պորտալից։ Մուտքագրեք ձեր կորպորատիվ հաշիվը։ Խնդիրների դեպքում՝ դիմեք IT բաժին (My Requests → IT & Access)։"},
+    {"title": "Ծախսերի փոխհատուցման ընթացակարգ", "category": "Finance", "body": "Կցեք անդորրագրերը (My Documents → Upload)։ Լրացրեք փոխհատուցման հայտը (My Requests → Finance · Expense reimbursement)։ Վճարումը կատարվում է հաջորդ աշխատավարձի հետ։"},
+    {"title": "Բժշկական ապահովագրության օգտագործում", "category": "Benefits", "body": "Ներկայացրեք ապահովագրական քարտը գործընկեր կլինիկայում։ Դեղորայք՝ 80% փոխհատուցում անդորրագրով։ Մանրամասները՝ My Benefits բաժնում։"},
+    {"title": "Տեղեկատվական անվտանգության հիմունքներ", "category": "Security", "body": "Միացրեք 2FA-ն։ Մի կիսվեք գաղտնաբառերով։ Կասկածելի նամակները զեկուցեք security@gaahex.am հասցեին։"},
+]
+
+
+async def seed_dev_people_content_if_empty() -> None:
+    """Idempotent demo content for the People self-service pages: Benefits + Knowledge Base records
+    on the canonical `benefit` / `kb_article` entities. Dev-only (gated by GAAHEX_DEV_SEED) so prod
+    stays empty-until-real. owner_node_id is NULL → tenant-global (visible to anyone with view perm).
+    Requests are NOT seeded — employees create their own."""
+    if not _dev_seed_enabled():
+        return
+    async with SessionLocal() as s:
+        await s.connection(execution_options={"audit_tenant_filter": False})
+        tenants = (await s.execute(select(Tenant))).scalars().all()
+        for t in tenants:
+            for entity_key, status, rows in (
+                ("benefit", None, _DEMO_BENEFITS),
+                ("kb_article", "ACTIVE", _DEMO_KB),
+            ):
+                # only seed into an entity that exists for this tenant and currently has no rows
+                ent = (await s.execute(
+                    select(EntityDef).where(EntityDef.tenant_id == t.id, EntityDef.key == entity_key)
+                )).scalar_one_or_none()
+                if ent is None:
+                    continue
+                has_any = (await s.execute(
+                    select(func.count()).select_from(Record).where(
+                        Record.tenant_id == t.id, Record.entity_key == entity_key
+                    )
+                )).scalar() or 0
+                if has_any:
+                    continue
+                for data in rows:
+                    s.add(Record(tenant_id=t.id, entity_key=entity_key,
+                                 owner_node_id=None, status=status, data=dict(data)))
+        await s.commit()
+        _log.info("dev people content seeded (benefits + KB)")
