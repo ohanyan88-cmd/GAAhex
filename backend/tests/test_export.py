@@ -17,7 +17,7 @@ import json
 # The fixed tail every record export ends with (after the entity's data fields).
 TRAILING = ["Status", "ID", "Created At", "Created By"]
 # Data columns we always expect a lead export to carry (by their field labels).
-KEY_COLS = ["Full Name", "Primary Phone", "Email"]
+KEY_COLS = ["Name", "Primary Phone", "Email"]
 
 
 def _csv_rows(text):
@@ -47,7 +47,7 @@ async def test_csv_export_header_and_rows(client, admin):
     assert all(c in header for c in KEY_COLS), f"missing key columns in {header}"
     data = rows[1:]
     assert len(data) == 2
-    name_col = header.index("Full Name")
+    name_col = header.index("Name")
     assert {row[name_col] for row in data} == {f"{tok} 0", f"{tok} 1"}     # Name column
 
 
