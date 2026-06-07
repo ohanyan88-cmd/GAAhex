@@ -44,10 +44,10 @@
 .tb-lang { position: relative; display: inline-flex; }
 .tb-lang-backdrop { position: fixed; inset: 0; z-index: 60; background: transparent; border: 0; padding: 0; cursor: default; }
 .tb-lang-pop {
-  position: absolute; top: calc(100% + 4px); right: 0; z-index: 61;
+  position: absolute; top: calc(100% + var(--gx-space-2)); right: 0; z-index: 61;
   background: var(--gx-elevated); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md);
   box-shadow: var(--gx-shadow-md); padding: var(--gx-space-2); min-width: 132px;
-  display: flex; flex-direction: column; gap: 2px;
+  display: flex; flex-direction: column; gap: var(--gx-space-1);
 }
 .tb-lang-opt {
   background: transparent; border: 0; text-align: left; cursor: pointer;
@@ -59,7 +59,7 @@
 /* Email / Messenger topbar popovers — quick panel with a "View all" footer. */
 .tb-pop-wrap { position: relative; display: inline-flex; }
 .tb-pop {
-  position: absolute; top: calc(100% + 4px); right: 0; z-index: 61; width: 280px;
+  position: absolute; top: calc(100% + var(--gx-space-2)); right: 0; z-index: 61; width: 280px;
   background: var(--gx-elevated); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md);
   box-shadow: var(--gx-shadow-md); overflow: hidden;
 }
