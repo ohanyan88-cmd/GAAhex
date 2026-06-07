@@ -9,6 +9,7 @@ import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
 import NotificationBell from './components/NotificationBell'
 import LangMenu from './components/LangMenu'
+import TopbarMenu from './components/TopbarMenu'
 import OrgIdentity from './components/OrgIdentity'
 import UserMenu from './components/UserMenu'
 import ConfigureDrawer from './modals/ConfigureDrawer'
@@ -566,12 +567,20 @@ export default function App() {
 
           {/* Topbar quick tools — Email · Messenger · Theme, then Bell, then Language (icons). */}
           <div className="tb-tools">
-            <button className="tb-icon" aria-label={t('common.email', 'Email')} title={t('common.email', 'Email')}>
-              <Mail size={18} />
-            </button>
-            <button className="tb-icon" aria-label={t('common.messenger', 'Messenger')} title={t('common.messenger', 'Messenger')}>
-              <MessageCircle size={18} />
-            </button>
+            <TopbarMenu
+              icon={<Mail size={18} />}
+              title={t('common.email', 'Email')}
+              emptyLabel={t('email.empty', 'No new emails')}
+              viewAllLabel={t('email.viewAll', 'Open Communications')}
+              onViewAll={() => setView({ type: 'messages' })}
+            />
+            <TopbarMenu
+              icon={<MessageCircle size={18} />}
+              title={t('common.messenger', 'Messenger')}
+              emptyLabel={t('messenger.empty', 'No new messages')}
+              viewAllLabel={t('messenger.viewAll', 'Open Communications')}
+              onViewAll={() => setView({ type: 'messages' })}
+            />
             <button
               className="tb-icon"
               aria-label={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}

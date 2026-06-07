@@ -56,6 +56,26 @@
 }
 .tb-lang-opt:hover { background: var(--gx-surface-2); color: var(--gx-text-1); }
 .tb-lang-opt.on { background: var(--gx-interactive-soft); color: var(--gx-text-1); font-weight: var(--gx-weight-semibold); }
+/* Email / Messenger topbar popovers — quick panel with a "View all" footer. */
+.tb-pop-wrap { position: relative; display: inline-flex; }
+.tb-pop {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 61; width: 280px;
+  background: var(--gx-elevated); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-md); overflow: hidden;
+}
+.tb-pop-head {
+  padding: var(--gx-space-4) var(--gx-space-5); border-bottom: 1px solid var(--gx-border-subtle);
+  font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-2);
+}
+.tb-pop-empty { padding: var(--gx-space-12) var(--gx-space-5); text-align: center; color: var(--gx-text-3); font-size: var(--gx-text-sm); }
+.tb-pop-foot {
+  display: flex; align-items: center; justify-content: center; gap: var(--gx-space-3); width: 100%;
+  padding: var(--gx-space-4) var(--gx-space-5); border-top: 1px solid var(--gx-border-subtle);
+  background: transparent; border-left: 0; border-right: 0; border-bottom: 0; cursor: pointer;
+  color: var(--gx-interactive); font-size: var(--gx-text-sm); font-weight: var(--gx-weight-semibold);
+}
+.tb-pop-foot:hover { background: var(--gx-surface-2); }
 
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
