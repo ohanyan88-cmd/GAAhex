@@ -10,16 +10,23 @@
   display:flex; flex-direction:column;
   padding:0;
 }
-.notif-head { display:flex; align-items:center; gap:6px; padding:12px 14px; border-bottom:1px solid var(--gx-border-subtle); }
-.notif-list { overflow-y:auto; max-height:380px; padding:4px 0; }
+.notif-head {
+  padding:var(--gx-space-4) var(--gx-space-5); border-bottom:1px solid var(--gx-border-subtle);
+  font-family:var(--gx-font-mono); font-size:var(--gx-text-xs); font-weight:var(--gx-weight-bold);
+  letter-spacing:.08em; text-transform:uppercase; color:var(--gx-text-2);
+}
+.notif-list { overflow-y:auto; max-height:230px; }   /* match the Email/Messenger list height */
+/* Match the Email/Messenger popovers: bare neutral icon, dividers, no unread tint. */
 .notif-item {
-  display:flex; align-items:flex-start; gap:10px;
-  width:100%; padding:10px 14px;
-  background:transparent; border:0; cursor:pointer; text-align:left;
+  display:flex; align-items:flex-start; gap:var(--gx-space-4);
+  width:100%; padding:var(--gx-space-4) var(--gx-space-5);
+  background:transparent; border:0; border-bottom:1px solid var(--gx-border-subtle);
+  cursor:pointer; text-align:left;
   transition:background var(--gx-dur-fast);
 }
-.notif-item:hover { background:var(--gx-hover); }
-.notif-item.unread { background:var(--gx-primary-soft); }
-.notif-item.unread:hover { background:var(--gx-hover); }
-.notif-ic { flex-shrink:0; width:28px; height:28px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:var(--gx-surface-2); }
-.notif-foot { display:flex; align-items:center; gap:6px; padding:10px 14px; border-top:1px solid var(--gx-border-subtle); }
+.notif-item:last-child { border-bottom:0; }
+.notif-item:hover { background:var(--gx-surface-2); }
+.notif-item.unread { background:transparent; }
+.notif-item.unread:hover { background:var(--gx-surface-2); }
+.notif-ic { flex-shrink:0; color:var(--gx-text-3); display:inline-flex; padding-top:var(--gx-space-1); }
+.notif-foot { display:flex; align-items:center; gap:var(--gx-space-3); padding:var(--gx-space-4) var(--gx-space-5); border-top:1px solid var(--gx-border-subtle); }
