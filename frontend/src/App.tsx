@@ -455,7 +455,7 @@ export default function App() {
       <aside className="sb">
         <div className="sb-head">
           <img
-            src={collapsed ? '/logo/GAAhex-mark.svg' : '/logo/GAAhex-logo-reversed.svg'}
+            src={collapsed ? '/logo/GAAhex-mark-animated.svg' : '/logo/GAAhex-logo-reversed.svg'}
             alt="GAAhex"
             className="wm"
           />
