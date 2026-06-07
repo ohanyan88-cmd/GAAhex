@@ -26,6 +26,8 @@
   gap: var(--gx-space-8) var(--gx-space-12); align-items: end;
   padding-bottom: var(--gx-space-8); border-bottom: 1px solid var(--gx-border-subtle);
 }
+/* Step 1 of the create wizard — Type + Source only, no divider (it's the whole screen). */
+.rec-form-pick { border-bottom: 0; padding-bottom: var(--gx-space-4); }
 .rec-form-section { display: flex; flex-direction: column; gap: var(--gx-space-6); }
 .rec-form-section-head {
   font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);

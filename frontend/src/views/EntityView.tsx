@@ -257,6 +257,9 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
   const [mode, setMode] = useState<Mode>('idle')
+  // Two-step create flow: 'pick' shows only the Type + Lead Source dropdowns, 'form' the full
+  // (segment-appropriate) form. Editing goes straight to 'form'.
+  const [createStep, setCreateStep] = useState<'pick' | 'form'>('pick')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingStatus, setEditingStatus] = useState<string | null>(null)
   const [refLabels, setRefLabels] = useState<Record<string, Record<string, string>>>({})
@@ -379,7 +382,9 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   }
 
   function openCreate() {
-    setError(''); setErrorField(null); setForm({}); setEditingId(null); setEditingStatus(null); setMode('creating')
+    setError(''); setErrorField(null); setForm({}); setEditingId(null); setEditingStatus(null)
+    setCreateStep('pick')   // start at the Type + Source picker; "Next" reveals the full form
+    setMode('creating')
   }
 
   function openEdit(row: Row) {
@@ -390,6 +395,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     setForm(f)
     setEditingId(row.id)
     setEditingStatus(row.status ?? null)
+    setCreateStep('form')   // editing skips the picker — the record's type is already set
     setMode('editing')
   }
 
@@ -825,72 +831,92 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       )}
 
       {/* ── Create / edit form — opens in a modal over the list ─────── */}
-      {formOpen && (
-        <Modal
-          open
-          onClose={closeForm}
-          size="lg"
-          title={mode === 'editing'
-            ? `${t('common.edit', 'Edit')} ${def.label}`
-            : `${t('common.new', 'New')} ${def.label}`}
-          subtitle={mode === 'editing'
-            ? undefined
-            : t('form.fillBelow', `Fill in the information below to create a new ${def.label.toLowerCase()}`)}
-        >
-          <form className="rec-form rec-form-modal" onSubmit={submit}>
-            {(() => {
-              // segment-gated fields show only for the chosen lead Type (B2C / B2B);
-              // untagged fields are common to both.
-              const visible = def.fields.filter((f) => {
-                const segs: string[] | undefined = f.config?.segments
-                return !segs || segs.includes(form.segment)
-              })
-              const renderField = (f: Field) => (
-                <FieldInput
-                  key={f.key}
-                  field={f}
-                  token={token}
-                  mode={mode}
-                  currentStatus={editingStatus}
-                  errorField={errorField}
-                  errorMsg={error}
-                  value={form[f.key]}
-                  onChange={(v) => setForm({ ...form, [f.key]: v })}
-                />
-              )
-              // `header`-flagged fields (Type, Lead Source) are promoted to a strip at the
-              // very top of the modal; everything else renders in its titled section below.
-              const headerFields = visible.filter((f) => f.config?.header)
-              const bodyFields = visible.filter((f) => !f.config?.header)
-              return (
-                <>
-                  {headerFields.length > 0 && (
-                    <div className="rec-form-header">{headerFields.map(renderField)}</div>
+      {formOpen && (() => {
+        const renderField = (f: Field) => (
+          <FieldInput
+            key={f.key}
+            field={f}
+            token={token}
+            mode={mode}
+            currentStatus={editingStatus}
+            errorField={errorField}
+            errorMsg={error}
+            value={form[f.key]}
+            onChange={(v) => setForm({ ...form, [f.key]: v })}
+          />
+        )
+        // segment-gated fields show only for the chosen Type (B2C / B2B); untagged are common.
+        const visible = def.fields.filter((f) => {
+          const segs: string[] | undefined = f.config?.segments
+          return !segs || segs.includes(form.segment)
+        })
+        // `header`-flagged fields (Type, Lead Source) sit in a strip at the top of the modal.
+        const headerFields = visible.filter((f) => f.config?.header)
+        const bodyFields = visible.filter((f) => !f.config?.header)
+        // Entities with a header field (e.g. Lead) use a two-step create: pick Type + Source
+        // first, then "Next" reveals the form for the chosen Type.
+        const hasPicker = def.fields.some((f) => f.config?.header)
+        const inPick = mode === 'creating' && hasPicker && createStep === 'pick'
+        return (
+          <Modal
+            open
+            onClose={closeForm}
+            size="lg"
+            title={mode === 'editing'
+              ? `${t('common.edit', 'Edit')} ${def.label}`
+              : `${t('common.new', 'New')} ${def.label}`}
+            subtitle={inPick
+              ? t('form.pickType', 'Choose the type and source to continue')
+              : mode === 'editing'
+                ? undefined
+                : t('form.fillBelow', `Fill in the information below to create a new ${def.label.toLowerCase()}`)}
+          >
+            {inPick ? (
+              <div className="rec-form rec-form-modal">
+                <div className="rec-form-header rec-form-pick">{headerFields.map(renderField)}</div>
+                <div className="rec-form-actions">
+                  <span className="spacer" />
+                  <Button variant="ghost" size="md" type="button" onClick={closeForm}>
+                    {t('common.cancel', 'Cancel')}
+                  </Button>
+                  <Button variant="primary" size="md" type="button"
+                    disabled={!form.segment}
+                    onClick={() => setCreateStep('form')}>
+                    {t('common.next', 'Next')} <ArrowRightIcon size={14} aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form className="rec-form rec-form-modal" onSubmit={submit}>
+                {headerFields.length > 0 && (
+                  <div className="rec-form-header">{headerFields.map(renderField)}</div>
+                )}
+                {groupFieldsBySection(bodyFields).map((g, gi) => (
+                  <div className="rec-form-section" key={g.section ?? `_${gi}`}>
+                    {g.section && <div className="rec-form-section-head">{g.section}</div>}
+                    <div className="rec-form-grid">{g.fields.map(renderField)}</div>
+                  </div>
+                ))}
+                <div className="rec-form-actions">
+                  {mode === 'creating' && hasPicker && (
+                    <Button variant="ghost" size="md" type="button" onClick={() => setCreateStep('pick')}>
+                      {t('common.back', 'Back')}
+                    </Button>
                   )}
-                  {groupFieldsBySection(bodyFields).map((g, gi) => (
-                    <div className="rec-form-section" key={g.section ?? `_${gi}`}>
-                      {g.section && <div className="rec-form-section-head">{g.section}</div>}
-                      <div className="rec-form-grid">{g.fields.map(renderField)}</div>
-                    </div>
-                  ))}
-                </>
-              )
-            })()}
-            <div className="rec-form-actions">
-              <span className="spacer" />
-              <Button variant="ghost" size="md"
-              type="button"  onClick={closeForm}>
-                {t('common.cancel', 'Cancel')}
-              </Button>
-              <Button variant="primary" size="md"
-              type="submit">
-                <CheckIcon size={14} aria-hidden />
-                {mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+                  <span className="spacer" />
+                  <Button variant="ghost" size="md" type="button" onClick={closeForm}>
+                    {t('common.cancel', 'Cancel')}
+                  </Button>
+                  <Button variant="primary" size="md" type="submit">
+                    <CheckIcon size={14} aria-hidden />
+                    {mode === 'editing' ? t('common.save', 'Save changes') : t('common.create', 'Create')}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </Modal>
+        )
+      })()}
 
       {rows.length === 0 && !loading && !formOpen ? (
         <EmptyState
