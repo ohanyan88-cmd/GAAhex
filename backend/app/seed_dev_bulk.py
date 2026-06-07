@@ -38,6 +38,7 @@ from .db import OwnerSessionLocal as SessionLocal  # privileged — bypasses RLS
 from .models import (
     Tenant, OrgNode, User, EntityDef, Record,
 )
+from .models.notification import Notification
 from .models.party import Party, Account
 from .models.product import Product
 from .models.billing import Subscription, Invoice, InvoiceLine, Payment
@@ -1123,3 +1124,39 @@ async def seed_dev_pipeline_if_empty() -> dict | None:
         summary = {"leads": n_leads, "quotes": n_quotes}
         _log.info("dev-pipeline seeder complete: %s", summary)
         return summary
+
+
+# Demo notifications so the bell + Notifications page are alive (dev only, idempotent).
+_DEMO_NOTIFS = [
+    ("info",    "Նոր լիդ ստեղծվեց",       "Հակոբյան Արամ Սարգսի — Մաշտոցի ֆայբեր (WEBSITE)", False),
+    ("info",    "Պայմանագիր ստորագրվեց",  "Tumo Center — Enterprise կապ՝ CONVERTED", False),
+    ("warning", "SLA զգուշացում",          "Ticket #1042 մոտենում է SLA-ի սահմանին (2ժ մնաց)", False),
+    ("info",    "Վճարում ստացվեց",         "+250,000 ֏ — Erebuni IT Solutions", True),
+    ("info",    "Նոր հաղորդագրություն",     "Մելքոնյան Շուշան — WiFi ծածկույթ 2-րդ հարկում", True),
+]
+
+
+async def seed_dev_notifications_if_empty() -> None:
+    """Idempotent demo notifications for the admin user (bell + Notifications page)."""
+    if not _dev_seed_enabled():
+        return
+    from datetime import datetime, timezone
+    async with SessionLocal() as s:
+        admin = (await s.execute(select(User).where(User.email == "admin@demo.isp"))).scalar_one_or_none()
+        if admin is None:
+            return
+        existing = (await s.execute(
+            select(func.count()).select_from(Notification).where(
+                Notification.user_id == admin.id, Notification.def_key == "demo"
+            )
+        )).scalar() or 0
+        if existing:
+            return
+        for pri, title, body, read in _DEMO_NOTIFS:
+            n = Notification(tenant_id=admin.tenant_id, def_key="demo", user_id=admin.id,
+                             category="system", priority=pri, title=title, body=body)
+            if read:
+                n.read_at = datetime.now(timezone.utc)
+            s.add(n)
+        await s.commit()
+        _log.info("dev notifications seeded: %d", len(_DEMO_NOTIFS))

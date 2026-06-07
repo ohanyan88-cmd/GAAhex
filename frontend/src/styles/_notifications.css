@@ -3,7 +3,7 @@
 .notif-pop {
   position:absolute; top:calc(100% + 6px); right:0;
   z-index:var(--gx-z-popover);
-  width:380px; max-height:520px;
+  width:280px; max-height:520px;   /* match the Email/Messenger popovers (tb-pop) */
   background:var(--gx-surface);
   border:1px solid var(--gx-border);
   border-radius:var(--gx-radius-lg);

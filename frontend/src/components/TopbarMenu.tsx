@@ -1,21 +1,45 @@
-import { useState, type ReactNode } from 'react'
-import { ArrowRightIcon } from './icons'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ArrowRightIcon, TrashIcon } from './icons'
+import { Button } from '../primitives'
 
-// A topbar icon (Email / Messenger) that opens a small popover — quick preview now
-// (empty state until a backend feeds it) with a "View all" link into Communications.
-export default function TopbarMenu({ icon, title, emptyLabel, viewAllLabel, onViewAll }: {
+export type TopbarItem = { title: string; body?: string; time?: string }
+
+// A topbar icon (Email / Messenger) that opens a small popover — a few recent items
+// (scrollable) with the same footer as the bell: "Clear all" (clears the view only, no
+// delete) + "View all" (into Communications). Outside-click + Escape close.
+export default function TopbarMenu({ icon, title, emptyLabel, viewAllLabel, onViewAll, items = [] }: {
   icon: ReactNode
   title: string
   emptyLabel: string
   viewAllLabel: string
   onViewAll: () => void
+  items?: TopbarItem[]
 }) {
   const [open, setOpen] = useState(false)
+  const [list, setList] = useState<TopbarItem[]>(items)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  // Re-fill from the source whenever the popover is opened (Clear all only empties the view).
+  useEffect(() => { if (open) setList(items) }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open) return
+    function onMouseDown(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   return (
-    <div className="tb-pop-wrap">
+    <div className="tb-pop-wrap" ref={wrapRef}>
       <button
-        className="tb-icon"
+        className={'tb-icon' + (open ? ' on' : '')}
         aria-label={title}
         title={title}
         aria-haspopup="menu"
@@ -25,17 +49,31 @@ export default function TopbarMenu({ icon, title, emptyLabel, viewAllLabel, onVi
         {icon}
       </button>
       {open && (
-        <>
-          <button type="button" className="tb-lang-backdrop" aria-label="Close" onClick={() => setOpen(false)} />
-          <div className="tb-pop" role="menu">
-            <div className="tb-pop-head">{title}</div>
+        <div className="tb-pop" role="menu">
+          <div className="tb-pop-head">{title}</div>
+          {list.length === 0 ? (
             <div className="tb-pop-empty">{emptyLabel}</div>
-            <button type="button" className="tb-pop-foot" onClick={() => { onViewAll(); setOpen(false) }}>
-              <span>{viewAllLabel}</span>
-              <ArrowRightIcon size={14} aria-hidden />
-            </button>
+          ) : (
+            <div className="tb-pop-list">
+              {list.map((it, i) => (
+                <div key={i} className="tb-pop-item">
+                  <span className="tb-pop-item-title">{it.title}</span>
+                  {it.body && <span className="tb-pop-item-body">{it.body}</span>}
+                  {it.time && <span className="tb-pop-item-time">{it.time}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="notif-foot">
+            <Button variant="ghost" size="sm" onClick={() => setList([])} disabled={list.length === 0}>
+              <TrashIcon size={13} />Clear all
+            </Button>
+            <span className="spacer" />
+            <Button variant="ghost" size="sm" onClick={() => { setOpen(false); onViewAll() }}>
+              {viewAllLabel}<ArrowRightIcon size={13} />
+            </Button>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

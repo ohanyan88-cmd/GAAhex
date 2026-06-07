@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell, BellOff, Trash2, ArrowRight, AlertTriangle, CheckCircle2, Server as ServerIcon, Receipt, Wand2, Info } from 'lucide-react'
 import { toast } from './Toast'
-import { listNotifications, getUnreadCount, markRead, markAllRead, clearAll, type ServerNote } from '../lib/notifications'
+import { listNotifications, getUnreadCount, markRead, markAllRead, type ServerNote } from '../lib/notifications'
 import { Button } from '../primitives'  // T-P3-7
 
 type EntityRef = { key: string; route_slug: string }
@@ -46,10 +46,12 @@ export default function NotificationBell({
   token,
   entities = [],
   onOpen: onOpenEntity,
+  onViewAll,
 }: {
   token: string
   entities?: EntityRef[]
   onOpen?: (slug: string) => void
+  onViewAll?: () => void
 }) {
   const [items, setItems] = useState<ServerNote[]>([])
   const [unread, setUnread] = useState(0)
@@ -103,16 +105,11 @@ export default function NotificationBell({
     }
   }
 
-  async function handleClearAll() {
+  function handleClearAll() {
+    // Clears the popover view only — does NOT delete. The notifications stay in the DB
+    // and remain on the full Notifications page ("View all").
     if (items.length === 0) return
-    try {
-      const n = await clearAll(token, items.map((it) => it.id))
-      setItems([])
-      await refreshCount()
-      toast.success(n === 1 ? '1 notification cleared' : `${n} notifications cleared`)
-    } catch (err) {
-      toast.error(`Could not clear: ${(err as Error).message}`)
-    }
+    setItems([])
   }
 
   async function handleItemClick(n: ServerNote) {
@@ -197,7 +194,7 @@ export default function NotificationBell({
                 <Trash2 size={13} />Clear all
               </Button>
               <span className="spacer" />
-              <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="sm" onClick={() => { setOpen(false); onViewAll?.() }}>
                 View all<ArrowRight size={13} />
               </Button>
             </div>

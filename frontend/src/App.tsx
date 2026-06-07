@@ -7,6 +7,7 @@ import StudioShell, { type StudioRoute } from './studio/StudioShell'
 import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
+import NotificationsView from './views/NotificationsView'
 import NotificationBell from './components/NotificationBell'
 import LangMenu from './components/LangMenu'
 import TopbarMenu from './components/TopbarMenu'
@@ -75,6 +76,7 @@ type View =
   | { type: 'reports' }
   | { type: 'dashboards' }
   | { type: 'messages' }
+  | { type: 'notifications' }
   | { type: 'activity' }
   | { type: 'my-approvals' }
   | { type: 'saved-views' }
@@ -565,22 +567,44 @@ export default function App() {
 
           <span className="spacer" />
 
-          {/* Topbar quick tools — Email · Messenger · Theme, then Bell, then Language (icons). */}
+          {/* Topbar quick tools — Bell · Mail · Messenger · Language · Theme, equal spacing,
+              shifted left of the user menu. */}
           <div className="tb-tools">
+            <NotificationBell
+              token={token!}
+              entities={entities}
+              onOpen={(slug) => setView({ type: 'entity', slug })}
+              onViewAll={() => setView({ type: 'notifications' })}
+            />
             <TopbarMenu
               icon={<Mail size={18} />}
               title={t('common.email', 'Email')}
               emptyLabel={t('email.empty', 'No new emails')}
-              viewAllLabel={t('email.viewAll', 'Open Communications')}
+              viewAllLabel={t('common.viewAll', 'View all')}
               onViewAll={() => setView({ type: 'messages' })}
+              items={[
+                { title: 'Մելքոնյան Շուշան', body: 'WiFi ծածկույթ 2-րդ հարկում', time: '2ժ' },
+                { title: 'Erebuni IT Solutions', body: 'Պայմանագրի երկարաձգում', time: '5ժ' },
+                { title: 'Հակոբյան Արամ', body: 'Նոր փաթեթի հարցում', time: '1օր' },
+                { title: 'Tumo Center', body: 'Enterprise կապի հարց', time: '1օր' },
+                { title: 'Սարգսյան Լիլիթ', body: 'Հաշիվ-ապրանքագիր #1042', time: '2օր' },
+              ]}
             />
             <TopbarMenu
               icon={<MessageCircle size={18} />}
               title={t('common.messenger', 'Messenger')}
               emptyLabel={t('messenger.empty', 'No new messages')}
-              viewAllLabel={t('messenger.viewAll', 'Open Communications')}
+              viewAllLabel={t('common.viewAll', 'View all')}
               onViewAll={() => setView({ type: 'messages' })}
+              items={[
+                { title: 'Tigran Auto', body: 'Երբ կգաք տեղադրման?', time: '10ր' },
+                { title: 'Ավագյան Նարեկ', body: 'Շնորհակալություն 🙏', time: '1ժ' },
+                { title: 'Davit Group', body: 'Office link-ի կարգավիճակ?', time: '4ժ' },
+                { title: 'Մարտիրոսյան Գոռ', body: 'Վճարումը կատարված է', time: '1օր' },
+                { title: 'Aren Tech', body: 'Fiber quote-ի հարց', time: '2օր' },
+              ]}
             />
+            <LangMenu />
             <button
               className="tb-icon"
               aria-label={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
@@ -590,14 +614,6 @@ export default function App() {
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
-
-          <NotificationBell
-            token={token!}
-            entities={entities}
-            onOpen={(slug) => setView({ type: 'entity', slug })}
-          />
-
-          <LangMenu />
 
           {user && (
             <UserMenu
@@ -656,6 +672,8 @@ export default function App() {
                 ? <AskGaaexView token={token} />
               : view.type === 'messages'
                 ? <MessagesView token={token} capabilities={capabilities} />
+              : view.type === 'notifications'
+                ? <NotificationsView />
               : view.type === 'activity' || view.type === 'activity-feed'
                 ? <ActivityFeedView
                     token={token}
