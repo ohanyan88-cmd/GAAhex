@@ -7,8 +7,9 @@ export type TopbarItem = { title: string; body?: string; time?: string }
 // A topbar icon (Email / Messenger) that opens a small popover — a few recent items
 // (scrollable) with the same footer as the bell: "Clear all" (clears the view only, no
 // delete) + "View all" (into Communications). Outside-click + Escape close.
-export default function TopbarMenu({ icon, title, emptyLabel, viewAllLabel, onViewAll, items = [] }: {
+export default function TopbarMenu({ icon, itemIcon, title, emptyLabel, viewAllLabel, onViewAll, items = [] }: {
   icon: ReactNode
+  itemIcon?: ReactNode
   title: string
   emptyLabel: string
   viewAllLabel: string
@@ -56,11 +57,14 @@ export default function TopbarMenu({ icon, title, emptyLabel, viewAllLabel, onVi
           ) : (
             <div className="tb-pop-list">
               {list.map((it, i) => (
-                <div key={i} className="tb-pop-item">
-                  <span className="tb-pop-item-title">{it.title}</span>
-                  {it.body && <span className="tb-pop-item-body">{it.body}</span>}
-                  {it.time && <span className="tb-pop-item-time">{it.time}</span>}
-                </div>
+                <button key={i} type="button" className="tb-pop-item" onClick={() => { setOpen(false); onViewAll() }}>
+                  {itemIcon && <span className="tb-pop-item-ic">{itemIcon}</span>}
+                  <span className="tb-pop-item-main">
+                    <span className="tb-pop-item-title">{it.title}</span>
+                    {it.body && <span className="tb-pop-item-body">{it.body}</span>}
+                    {it.time && <span className="tb-pop-item-time">{it.time}</span>}
+                  </span>
+                </button>
               ))}
             </div>
           )}

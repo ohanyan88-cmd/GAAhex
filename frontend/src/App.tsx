@@ -578,6 +578,7 @@ export default function App() {
             />
             <TopbarMenu
               icon={<Mail size={18} />}
+              itemIcon={<Mail size={16} />}
               title={t('common.email', 'Email')}
               emptyLabel={t('email.empty', 'No new emails')}
               viewAllLabel={t('common.viewAll', 'View all')}
@@ -592,6 +593,7 @@ export default function App() {
             />
             <TopbarMenu
               icon={<MessageCircle size={18} />}
+              itemIcon={<MessageCircle size={16} />}
               title={t('common.messenger', 'Messenger')}
               emptyLabel={t('messenger.empty', 'No new messages')}
               viewAllLabel={t('common.viewAll', 'View all')}
