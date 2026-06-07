@@ -13,6 +13,12 @@ from .models import (
 )
 from .models.customer_user import CustomerUser
 from .security import hash_password
+from .geo_armenia import (
+    REGIONS as _GEO_REGIONS,
+    ARMAVIR_CITIES as _GEO_CITIES,
+    ARMAVIR_VILLAGES as _GEO_VILLAGES,
+    combined as _combined,
+)
 
 
 # Canonical tenant-controlled business feature flags (Q5 / FEATURE_GATING_POLICY.md system #2).
@@ -262,18 +268,12 @@ async def _make_entity(s, tenant_id, key, label, plural, slug, icon, fields, sta
 # re-provision script). Each non-status field carries a `section` in its config so the form
 # renders grouped. Deep Technical / Billing / detailed-Installation fields are deliberately
 # deferred to the post-conversion Customer / Service records (Standard 11: lead → customer).
-_REGIONS = [
-    "Yerevan", "Aragatsotn", "Ararat", "Armavir", "Gegharkunik", "Kotayk",
-    "Lori", "Shirak", "Syunik", "Tavush", "Vayots Dzor",
-]
-_CITIES = [
-    "Yerevan", "Abovyan", "Agarak", "Alaverdi", "Aparan", "Ararat", "Armavir", "Artashat",
-    "Artik", "Ashtarak", "Berd", "Byureghavan", "Chambarak", "Charentsavan", "Dilijan",
-    "Echmiadzin (Vagharshapat)", "Gavar", "Goris", "Gyumri", "Hrazdan", "Ijevan", "Jermuk",
-    "Kajaran", "Kapan", "Maralik", "Martuni", "Masis", "Meghri", "Metsamor", "Nor Hachn",
-    "Noyemberyan", "Sevan", "Sisian", "Spitak", "Stepanavan", "Talin", "Tashir", "Tsaghkadzor",
-    "Tumanyan", "Vanadzor", "Vardenis", "Vayk", "Vedi", "Yeghegnadzor", "Yeghvard",
-]
+# Region / City / Village dropdown options — trilingual "hy / en / ru" labels built
+# from the digitised geography (app/geo_armenia.py). City + Village currently carry
+# the Armavir marz; other marzes get appended to geo_armenia as they are digitised.
+_REGIONS = _combined(_GEO_REGIONS)
+_CITIES = _combined(_GEO_CITIES)
+_VILLAGES = _combined(_GEO_VILLAGES)
 # Demo sales roster — the rep who owns the lead (top strip, beside Type & Source).
 _SALES_REPS = [
     "Aram Petrosyan", "Lilit Hakobyan", "Davit Sargsyan", "Anush Grigoryan",
@@ -316,8 +316,7 @@ _LEAD_FIELDS = [
     ("contract_term", "Contract Term", "select", False, _sec("Service", {"options": ["Monthly", "12 Months", "24 Months"]})),
     ("region", "Region", "select", False, _sec("Service", {"options": _REGIONS})),
     ("city", "City", "select", False, _sec("Service", {"options": _CITIES})),
-    # Village — single-option flag marking that the address sits in a village
-    ("village", "Village", "select", False, _sec("Service", {"options": ["Village"]})),
+    ("village", "Village", "select", False, _sec("Service", {"options": _VILLAGES})),
     ("address", "Address", "text", False, _sec("Service")),
     ("landmark", "Landmark", "text", False, _sec("Service")),
     # Top strip — Source + owning Sales Representative sit beside Type (all header fields)
