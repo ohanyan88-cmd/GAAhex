@@ -274,6 +274,11 @@ _CITIES = [
     "Noyemberyan", "Sevan", "Sisian", "Spitak", "Stepanavan", "Talin", "Tashir", "Tsaghkadzor",
     "Tumanyan", "Vanadzor", "Vardenis", "Vayk", "Vedi", "Yeghegnadzor", "Yeghvard",
 ]
+# Demo sales roster — the rep who owns the lead (top strip, beside Type & Source).
+_SALES_REPS = [
+    "Aram Petrosyan", "Lilit Hakobyan", "Davit Sargsyan", "Anush Grigoryan",
+    "Tigran Avetisyan", "Mariam Karapetyan", "Narek Hovhannisyan", "Gohar Manukyan",
+]
 B2C = "Individual (B2C)"
 B2B = "Business (B2B)"
 
@@ -308,11 +313,9 @@ _LEAD_FIELDS = [
     ("service_type", "Service Type", "select", False, _sec("Service Interest", {"options": ["Internet", "TV", "VoIP", "Bundle"]})),
     ("package", "Package", "select", False, _sec("Service Interest", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
     ("contract_term", "Contract Term", "select", False, _sec("Service Interest", {"options": ["Monthly", "12 Months", "24 Months"]})),
-    # Sales
+    # Top strip — Source + owning Sales Representative sit beside Type (all header fields)
     ("source", "Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
-    ("sales_representative", "Sales Representative", "text", False, _sec("Sales")),
-    ("campaign", "Campaign", "text", False, _sec("Sales")),
-    ("referral_customer", "Referral Customer", "text", False, _sec("Sales")),
+    ("sales_representative", "Sales Representative", "select", False, _sec("Sales", {"options": _SALES_REPS, "header": True})),
     # Notes & Attachments — one section, notes textarea beside the document dropzone
     ("notes", "General Notes", "textarea", False, _sec("Notes & Attachments")),
     # Documents — ID / passport / agreement / other (drag-drop or click to attach)
