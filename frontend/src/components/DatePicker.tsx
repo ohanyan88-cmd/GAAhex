@@ -40,6 +40,9 @@ export function DatePicker({ value, onChange, placeholder = 'Select date…' }: 
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<CSSProperties | undefined>(undefined)
   const ctrlRef = useRef<HTMLDivElement>(null)
+  // The grid drills down on a title click: days → months → years (12-year page).
+  const [mode, setMode] = useState<'days' | 'months' | 'years'>('days')
+  const [yearStart, setYearStart] = useState(() => new Date().getFullYear())
 
   const now = new Date()
   const sel = parseISO(value)
@@ -51,10 +54,25 @@ export function DatePicker({ value, onChange, placeholder = 'Select date…' }: 
   function openCal() {
     setPos(anchorRect(ctrlRef.current))
     setView(sel ? { y: sel.y, m: sel.m } : { y: now.getFullYear(), m: now.getMonth() })
+    setMode('days')
     setTimeout(() => setOpen(true), 0)
   }
   function toggle() { if (open) setOpen(false); else openCal() }
   function pick(y: number, m: number, d: number) { onChange(toISO(y, m, d)); setOpen(false) }
+
+  // Title click drills one level down (days → months → years).
+  function drill() {
+    setPos(anchorRect(ctrlRef.current))
+    if (mode === 'days') setMode('months')
+    else if (mode === 'months') { setYearStart(Math.floor(view.y / 12) * 12); setMode('years') }
+  }
+  // Header arrows step by the unit the current mode shows.
+  function nav(delta: number) {
+    setPos(anchorRect(ctrlRef.current))
+    if (mode === 'days') step(delta)
+    else if (mode === 'months') setView((v) => ({ y: v.y + delta, m: v.m }))
+    else setYearStart((s) => s + delta * 12)
+  }
 
   // 6×7 grid of day cells (with leading/trailing spill days from adjacent months, dimmed).
   const cells = useMemo(() => {
@@ -106,33 +124,69 @@ export function DatePicker({ value, onChange, placeholder = 'Select date…' }: 
           <button type="button" className="dp-backdrop" aria-label="Close" onClick={() => setOpen(false)} />
           <div className="dp-pop" style={pos}>
             <div className="dp-head">
-              <span className="dp-title">{MONTHS[view.m]} {view.y}</span>
+              {mode === 'years' ? (
+                <span className="dp-title">{yearStart} – {yearStart + 11}</span>
+              ) : (
+                <button type="button" className="dp-title dp-title-btn" onClick={drill}>
+                  {mode === 'days' ? `${MONTHS[view.m]} ${view.y}` : view.y}
+                </button>
+              )}
               <div className="dp-nav">
-                <button type="button" className="dp-nav-btn" aria-label="Previous month" onClick={() => step(-1)}>
+                <button type="button" className="dp-nav-btn" aria-label="Previous" onClick={() => nav(-1)}>
                   <ChevronLeftIcon size={16} />
                 </button>
-                <button type="button" className="dp-nav-btn" aria-label="Next month" onClick={() => step(1)}>
+                <button type="button" className="dp-nav-btn" aria-label="Next" onClick={() => nav(1)}>
                   <ChevronRightIcon size={16} />
                 </button>
               </div>
             </div>
-            <div className="dp-weekdays">
-              {WEEKDAYS.map((w) => <span key={w} className="dp-weekday">{w}</span>)}
-            </div>
-            <div className="dp-grid">
-              {cells.map((c, i) => {
-                const iso = toISO(c.y, c.m, c.d)
-                const cls = 'dp-day'
-                  + (c.cur ? '' : ' dp-day-spill')
-                  + (iso === value ? ' dp-day-sel' : '')
-                  + (iso === todayISO ? ' dp-day-today' : '')
-                return (
-                  <button key={i} type="button" className={cls} onClick={() => pick(c.y, c.m, c.d)}>
-                    {c.d}
-                  </button>
-                )
-              })}
-            </div>
+            {mode === 'days' && (
+              <>
+                <div className="dp-weekdays">
+                  {WEEKDAYS.map((w) => <span key={w} className="dp-weekday">{w}</span>)}
+                </div>
+                <div className="dp-grid">
+                  {cells.map((c, i) => {
+                    const iso = toISO(c.y, c.m, c.d)
+                    const cls = 'dp-day'
+                      + (c.cur ? '' : ' dp-day-spill')
+                      + (iso === value ? ' dp-day-sel' : '')
+                      + (iso === todayISO ? ' dp-day-today' : '')
+                    return (
+                      <button key={i} type="button" className={cls} onClick={() => pick(c.y, c.m, c.d)}>
+                        {c.d}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+            {mode === 'months' && (
+              <div className="dp-mygrid">
+                {MONTHS.map((mn, mi) => {
+                  const on = sel?.y === view.y && sel?.m === mi
+                  return (
+                    <button key={mn} type="button" className={'dp-cell' + (on ? ' dp-cell-sel' : '')}
+                      onClick={() => { setView({ y: view.y, m: mi }); setMode('days') }}>
+                      {mn.slice(0, 3)}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {mode === 'years' && (
+              <div className="dp-mygrid">
+                {Array.from({ length: 12 }, (_, i) => yearStart + i).map((yr) => {
+                  const on = sel?.y === yr
+                  return (
+                    <button key={yr} type="button" className={'dp-cell' + (on ? ' dp-cell-sel' : '')}
+                      onClick={() => { setView((v) => ({ y: yr, m: v.m })); setMode('months') }}>
+                      {yr}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             <div className="dp-foot">
               <button type="button" className="dp-foot-btn" onClick={() => { onChange(''); setOpen(false) }}>Clear</button>
               <button type="button" className="dp-foot-btn dp-foot-today" onClick={() => pick(now.getFullYear(), now.getMonth(), now.getDate())}>Today</button>

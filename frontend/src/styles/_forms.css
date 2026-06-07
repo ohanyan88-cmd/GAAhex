@@ -99,6 +99,14 @@
 }
 .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--gx-space-5); }
 .dp-title { font-weight: var(--gx-weight-semibold); font-size: var(--gx-text-sm); color: var(--gx-text-1); }
+.dp-title-btn { background: transparent; border: 0; cursor: pointer; padding: var(--gx-space-1) var(--gx-space-2); border-radius: var(--gx-radius-sm); }
+.dp-title-btn:hover { background: var(--gx-surface-2); color: var(--gx-interactive); }
+.dp-mygrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gx-space-3); padding: var(--gx-space-2) 0; }
+.dp-cell { display: inline-flex; align-items: center; justify-content: center; padding: var(--gx-space-5) 0;
+  background: transparent; border: 0; border-radius: var(--gx-radius-sm); cursor: pointer;
+  font-size: var(--gx-text-sm); color: var(--gx-text-1); }
+.dp-cell:hover { background: var(--gx-surface-2); }
+.dp-cell-sel, .dp-cell-sel:hover { background: var(--gx-interactive); color: var(--gx-on-primary); }
 .dp-nav { display: flex; gap: var(--gx-space-2); }
 .dp-nav-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
   background: transparent; border: 0; border-radius: var(--gx-radius-sm); cursor: pointer; color: var(--gx-text-2); }
