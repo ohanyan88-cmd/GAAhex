@@ -138,10 +138,25 @@
 .pv-row-act { color: var(--gx-text-3); cursor: pointer; display: inline-flex; }
 .pv-row-act:hover { color: var(--gx-interactive); }
 .pv-benefits { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--gx-space-7); }
-.pv-benefit { display: flex; flex-direction: column; gap: var(--gx-space-2); }
+.pv-benefit { display: flex; flex-direction: column; gap: var(--gx-space-2); align-items: flex-start; text-align: left; cursor: pointer; transition: border-color var(--gx-dur-base); }
+.pv-benefit:hover { border-color: var(--gx-interactive); }
 .pv-benefit-ic { color: var(--gx-text-3); }
 .pv-benefit-title { font-size: var(--gx-text-sm); color: var(--gx-text-3); }
 .pv-benefit-value { font-size: var(--gx-text-lg); font-weight: var(--gx-weight-bold); color: var(--gx-text-1); }
 .pv-benefit-note { font-size: var(--gx-text-11); color: var(--gx-text-3); }
+/* documents upload + requests + modals */
+.pv-pad { margin-bottom: var(--gx-space-7); }
+.pv-sec-title { font-size: var(--gx-text-sm); font-weight: var(--gx-weight-semibold); color: var(--gx-text-2); margin-bottom: var(--gx-space-5); }
+.np-head.pv-reqhead { display: flex; align-items: center; gap: var(--gx-space-3); }
+.pv-row-act { color: var(--gx-text-3); cursor: pointer; }
+.pv-row-btn { width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--gx-border-subtle); cursor: pointer; }
+.pv-row-btn:last-child { border-bottom: 0; }
+.pv-row-btn:hover { background: var(--gx-surface-2); }
+.pv-row-btn:hover .pv-row-act { color: var(--gx-interactive); }
+.pv-req-grid.rec-pick-cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.pv-req-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gx-space-8) var(--gx-space-12); }
+.pv-req-reason { grid-column: 1 / -1; }
+.pv-bene-detail { display: flex; flex-direction: column; gap: var(--gx-space-5); }
+.pv-bene-detail p { margin: 0; font-size: var(--gx-text-sm); color: var(--gx-text-2); line-height: 1.6; }
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
