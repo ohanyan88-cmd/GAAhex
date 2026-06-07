@@ -21,7 +21,7 @@
 .pv-backbar-sub { font-size: var(--gx-text-sm); color: var(--gx-text-3); }
 
 /* ════════════════════════════ HUB — BENTO ═══════════════════════════════ */
-.hub-bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gx-space-4); grid-auto-rows: minmax(120px, auto); }
+.hub-bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gx-space-4); grid-auto-rows: minmax(120px, auto); margin-top: var(--gx-space-3); }
 .hub-bento .b-profile   { grid-column: 1 / span 2; grid-row: 1; }
 .hub-bento .b-requests  { grid-column: 3 / span 4; grid-row: 1 / span 2; }
 .hub-bento .b-documents { grid-column: 1 / span 2; grid-row: 2; }
