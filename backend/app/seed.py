@@ -300,7 +300,9 @@ _LEAD_FIELDS = [
     ("date_of_birth", "Date of Birth", "date", False, _sec("Personal", {"segments": [B2C]})),
     ("phone", "Primary Phone", "phone", False, _sec("Personal")),
     ("secondary_phone", "Second Phone", "phone", False, _sec("Personal")),
+    ("landline", "Landline Phone", "phone", False, _sec("Personal")),
     ("whatsapp", "WhatsApp", "text", False, _sec("Personal")),
+    ("telegram", "Telegram", "text", False, _sec("Personal")),
     ("email", "Email", "email", False, _sec("Personal")),
     # ID document — kept at the bottom of the Personal section
     ("document_type", "Document Type", "select", False, _sec("Personal", {"options": ["ID", "Passport"], "segments": [B2C]})),
