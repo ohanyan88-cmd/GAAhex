@@ -38,8 +38,24 @@
 .lang-opt { background: transparent; color: var(--gx-text-3); border: 0; padding: 5px 9px; font-size: 12px; font-weight: var(--gx-weight-medium); cursor: pointer; }
 .lang-opt:hover { background: var(--gx-surface-2); color: var(--gx-text-1); }
 .lang-opt.on { background: var(--gx-interactive-soft); color: var(--gx-text-1); }
-/* Topbar quick-tools cluster — Email · Messenger · Language · Theme, beside the bell. */
+/* Topbar quick-tools cluster — Email · Messenger · Theme, beside the bell. */
 .tb-tools { display: inline-flex; align-items: center; gap: var(--gx-space-2); }
+/* Language chooser — globe icon + popover, sits at the end of the topbar. */
+.tb-lang { position: relative; display: inline-flex; }
+.tb-lang-backdrop { position: fixed; inset: 0; z-index: 60; background: transparent; border: 0; padding: 0; cursor: default; }
+.tb-lang-pop {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 61;
+  background: var(--gx-elevated); border: 1px solid var(--gx-border); border-radius: var(--gx-radius-md);
+  box-shadow: var(--gx-shadow-md); padding: var(--gx-space-2); min-width: 132px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.tb-lang-opt {
+  background: transparent; border: 0; text-align: left; cursor: pointer;
+  padding: var(--gx-space-3) var(--gx-space-4); border-radius: var(--gx-radius-sm);
+  color: var(--gx-text-2); font-size: var(--gx-text-sm);
+}
+.tb-lang-opt:hover { background: var(--gx-surface-2); color: var(--gx-text-1); }
+.tb-lang-opt.on { background: var(--gx-interactive-soft); color: var(--gx-text-1); font-weight: var(--gx-weight-semibold); }
 
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }

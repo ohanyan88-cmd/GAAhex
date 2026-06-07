@@ -8,6 +8,7 @@ import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
 import NotificationBell from './components/NotificationBell'
+import LangMenu from './components/LangMenu'
 import OrgIdentity from './components/OrgIdentity'
 import UserMenu from './components/UserMenu'
 import ConfigureDrawer from './modals/ConfigureDrawer'
@@ -53,7 +54,7 @@ import CoverageView from './views/CoverageView'
 import NocDashboardView from './views/NocDashboardView'
 import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-config'
 import { loadDynamicNav } from './lib/nav-loader'
-import { useI18n, initI18n, type Lang } from './lib/i18n'
+import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
 import { PanelLeft, Wand, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
@@ -563,7 +564,7 @@ export default function App() {
 
           <span className="spacer" />
 
-          {/* Topbar quick tools — Email · Messenger · Language · Theme, beside the bell. */}
+          {/* Topbar quick tools — Email · Messenger · Theme, then Bell, then Language (icons). */}
           <div className="tb-tools">
             <button className="tb-icon" aria-label={t('common.email', 'Email')} title={t('common.email', 'Email')}>
               <Mail size={18} />
@@ -571,18 +572,6 @@ export default function App() {
             <button className="tb-icon" aria-label={t('common.messenger', 'Messenger')} title={t('common.messenger', 'Messenger')}>
               <MessageCircle size={18} />
             </button>
-            <div className="lang-switch" role="group" aria-label={t('common.language', 'Language')}>
-              {(['en', 'hy', 'ru'] as Lang[]).map((l) => (
-                <button
-                  key={l}
-                  className={'lang-opt' + (lang === l ? ' on' : '')}
-                  onClick={() => setLang(l)}
-                  aria-pressed={lang === l}
-                >
-                  {l === 'en' ? 'EN' : l === 'hy' ? 'AM' : 'RU'}
-                </button>
-              ))}
-            </div>
             <button
               className="tb-icon"
               aria-label={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
@@ -598,6 +587,8 @@ export default function App() {
             entities={entities}
             onOpen={(slug) => setView({ type: 'entity', slug })}
           />
+
+          <LangMenu />
 
           {user && (
             <UserMenu
