@@ -61,7 +61,7 @@ export default function UserMenu({
         aria-expanded={open}
         title={user.name}
       >
-        <span className="avatar" style={{ width: 28, height: 28, fontSize: 'var(--gx-text-11)' }}>
+        <span className="avatar uc-av">
           {user.avatar_url
             ? <img src={user.avatar_url} alt="" className="avatar-img" />
             : initialsOf(user.name)}
@@ -76,7 +76,7 @@ export default function UserMenu({
       {open && (
         <div className="menu fade-fast user-pop" role="menu" onClick={(e) => e.stopPropagation()}>
           <div className="user-card">
-            <span className="avatar" style={{ width: 42, height: 42, fontSize: 'var(--gx-text-md)' }}>
+            <span className="avatar uc-av-lg">
               {user.avatar_url
                 ? <img src={user.avatar_url} alt="" className="avatar-img" />
                 : initialsOf(user.name)}

@@ -40,7 +40,7 @@
 .lang-opt.on { background: var(--gx-interactive-soft); color: var(--gx-text-1); }
 /* Topbar quick-tools cluster — Bell · Mail · Messenger · Language · Theme.
    Equal gap between every icon; shifted ~3cm left of the user menu. */
-.tb-tools { display: inline-flex; align-items: center; gap: var(--gx-space-4); margin-right: 3cm; }
+.tb-tools { display: inline-flex; align-items: center; gap: var(--gx-space-4); margin-right: 1.2cm; }
 /* Language chooser — globe icon + popover, sits at the end of the topbar. */
 .tb-lang { position: relative; display: inline-flex; }
 .tb-lang-pop {
