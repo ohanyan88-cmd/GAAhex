@@ -20,6 +20,12 @@
   display: flex; flex-direction: column; align-items: stretch; gap: var(--gx-space-16);
   background: transparent; border: 0; box-shadow: none; padding: 0; margin: 0;
 }
+/* Promoted header fields (Type, Lead Source) — a strip at the very top of the modal. */
+.rec-form-header {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gx-space-8) var(--gx-space-12); align-items: end;
+  padding-bottom: var(--gx-space-8); border-bottom: 1px solid var(--gx-border-subtle);
+}
 .rec-form-section { display: flex; flex-direction: column; gap: var(--gx-space-6); }
 .rec-form-section-head {
   font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);

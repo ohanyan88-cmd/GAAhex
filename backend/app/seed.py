@@ -286,7 +286,7 @@ def _sec(section: str, extra: dict | None = None) -> dict:
 # to both. The form filters by the chosen segment so B2C and B2B see different forms.
 _LEAD_FIELDS = [
     # Identity & Type
-    ("segment", "Type", "select", False, _sec("Identity & Type", {"options": [B2C, B2B]})),
+    ("segment", "Type", "select", False, _sec("Identity & Type", {"options": [B2C, B2B], "header": True})),
     ("name", "Full Name", "text", True, _sec("Identity & Type")),
     ("company_name", "Company Name", "text", False, _sec("Identity & Type", {"segments": [B2B]})),
     ("tax_id", "Tax ID / Reg №", "text", False, _sec("Identity & Type", {"segments": [B2B]})),
@@ -309,7 +309,7 @@ _LEAD_FIELDS = [
     ("package", "Package", "select", False, _sec("Service Interest", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
     ("contract_term", "Contract Term", "select", False, _sec("Service Interest", {"options": ["Monthly", "12 Months", "24 Months"]})),
     # Sales
-    ("source", "Lead Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"]})),
+    ("source", "Lead Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
     ("sales_representative", "Sales Representative", "text", False, _sec("Sales")),
     ("campaign", "Campaign", "text", False, _sec("Sales")),
     ("referral_customer", "Referral Customer", "text", False, _sec("Sales")),

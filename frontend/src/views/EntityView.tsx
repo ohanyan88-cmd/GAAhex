@@ -838,31 +838,44 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
             : t('form.fillBelow', `Fill in the information below to create a new ${def.label.toLowerCase()}`)}
         >
           <form className="rec-form rec-form-modal" onSubmit={submit}>
-            {groupFieldsBySection(def.fields.filter((f) => {
+            {(() => {
               // segment-gated fields show only for the chosen lead Type (B2C / B2B);
               // untagged fields are common to both.
-              const segs: string[] | undefined = f.config?.segments
-              return !segs || segs.includes(form.segment)
-            })).map((g, gi) => (
-              <div className="rec-form-section" key={g.section ?? `_${gi}`}>
-                {g.section && <div className="rec-form-section-head">{g.section}</div>}
-                <div className="rec-form-grid">
-                  {g.fields.map((f) => (
-                    <FieldInput
-                      key={f.key}
-                      field={f}
-                      token={token}
-                      mode={mode}
-                      currentStatus={editingStatus}
-                      errorField={errorField}
-                      errorMsg={error}
-                      value={form[f.key]}
-                      onChange={(v) => setForm({ ...form, [f.key]: v })}
-                    />
+              const visible = def.fields.filter((f) => {
+                const segs: string[] | undefined = f.config?.segments
+                return !segs || segs.includes(form.segment)
+              })
+              const renderField = (f: Field) => (
+                <FieldInput
+                  key={f.key}
+                  field={f}
+                  token={token}
+                  mode={mode}
+                  currentStatus={editingStatus}
+                  errorField={errorField}
+                  errorMsg={error}
+                  value={form[f.key]}
+                  onChange={(v) => setForm({ ...form, [f.key]: v })}
+                />
+              )
+              // `header`-flagged fields (Type, Lead Source) are promoted to a strip at the
+              // very top of the modal; everything else renders in its titled section below.
+              const headerFields = visible.filter((f) => f.config?.header)
+              const bodyFields = visible.filter((f) => !f.config?.header)
+              return (
+                <>
+                  {headerFields.length > 0 && (
+                    <div className="rec-form-header">{headerFields.map(renderField)}</div>
+                  )}
+                  {groupFieldsBySection(bodyFields).map((g, gi) => (
+                    <div className="rec-form-section" key={g.section ?? `_${gi}`}>
+                      {g.section && <div className="rec-form-section-head">{g.section}</div>}
+                      <div className="rec-form-grid">{g.fields.map(renderField)}</div>
+                    </div>
                   ))}
-                </div>
-              </div>
-            ))}
+                </>
+              )
+            })()}
             <div className="rec-form-actions">
               <span className="spacer" />
               <Button variant="ghost" size="md"
