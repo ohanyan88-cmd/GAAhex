@@ -896,22 +896,51 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                 ? undefined
                 : t('form.fillBelow', `Fill in the information below to create a new ${def.label.toLowerCase()}`)}
           >
-            {inPick ? (
-              <div className="rec-form rec-form-modal">
-                <div className="rec-form-header rec-form-pick">{headerFields.map(renderField)}</div>
-                <div className="rec-form-actions">
-                  <span className="spacer" />
-                  <Button variant="ghost" size="md" type="button" onClick={closeForm}>
-                    {t('common.cancel', 'Cancel')}
-                  </Button>
-                  <Button variant="primary" size="md" type="button"
-                    disabled={!form.segment}
-                    onClick={() => setCreateStep('form')}>
-                    {t('common.next', 'Next')} <ArrowRightIcon size={14} aria-hidden />
-                  </Button>
+            {inPick ? (() => {
+              const segField = headerFields.find((f) => f.key === 'segment')
+              const otherHeader = headerFields.filter((f) => f.key !== 'segment')
+              const opts: string[] = segField?.config?.options ?? []
+              const cardMeta = (opt: string) => opt.toLowerCase().includes('business')
+                ? { icon: <BuildingIcon size={20} aria-hidden />, title: 'Business', desc: 'B2B — company account' }
+                : { icon: <UserIcon size={20} aria-hidden />, title: 'Individual', desc: 'B2C — home subscriber' }
+              return (
+                <div className="rec-form rec-form-modal">
+                  <div className="rec-pick">
+                    {segField && (
+                      <div className="rec-pick-group">
+                        <div className="rec-pick-label">{segField.label}</div>
+                        <div className="rec-pick-cards">
+                          {opts.map((opt) => {
+                            const m = cardMeta(opt)
+                            return (
+                              <button type="button" key={opt}
+                                className={'rec-pick-card' + (form.segment === opt ? ' on' : '')}
+                                onClick={() => setForm({ ...form, segment: opt })}>
+                                <span className="rec-pick-card-icon">{m.icon}</span>
+                                <span className="rec-pick-card-title">{m.title}</span>
+                                <span className="rec-pick-card-desc">{m.desc}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {otherHeader.map(renderField)}
+                  </div>
+                  <div className="rec-form-actions">
+                    <span className="spacer" />
+                    <Button variant="ghost" size="md" type="button" onClick={closeForm}>
+                      {t('common.cancel', 'Cancel')}
+                    </Button>
+                    <Button variant="primary" size="md" type="button"
+                      disabled={!form.segment || !form.source}
+                      onClick={() => setCreateStep('form')}>
+                      {t('common.continue', 'Continue')} <ArrowRightIcon size={14} aria-hidden />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
+              )
+            })() : (
               <form className="rec-form rec-form-modal" onSubmit={submit}>
                 {headerFields.length > 0 && (
                   <div className="rec-form-header">{headerFields.map(renderField)}</div>

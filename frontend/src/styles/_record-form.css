@@ -26,8 +26,30 @@
   gap: var(--gx-space-8) var(--gx-space-12); align-items: end;
   padding-bottom: var(--gx-space-8); border-bottom: 1px solid var(--gx-border-subtle);
 }
-/* Step 1 of the create wizard — Type + Source only, no divider (it's the whole screen). */
-.rec-form-pick { border-bottom: 0; padding-bottom: var(--gx-space-4); }
+/* Step 1 of the create wizard — Type chosen via cards + Lead Source dropdown. */
+.rec-pick { display: flex; flex-direction: column; gap: var(--gx-space-12); }
+.rec-pick-group { display: flex; flex-direction: column; gap: var(--gx-space-5); }
+.rec-pick-label {
+  font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-3);
+}
+.rec-pick-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gx-space-8); }
+.rec-pick-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--gx-space-2);
+  padding: var(--gx-space-12); text-align: left; cursor: pointer; font: inherit;
+  background: var(--gx-surface); border: 1.5px solid var(--gx-border); border-radius: var(--gx-radius-lg);
+  transition: border-color var(--gx-dur-base), background var(--gx-dur-base);
+}
+.rec-pick-card:hover { border-color: var(--gx-border-strong); }
+.rec-pick-card.on { border-color: var(--gx-interactive); background: var(--gx-interactive-soft); box-shadow: 0 0 0 3px var(--gx-interactive-soft); }
+.rec-pick-card-icon { color: var(--gx-interactive); display: inline-flex; margin-bottom: var(--gx-space-2); }
+.rec-pick-card-title { font-size: var(--gx-text-md); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); }
+.rec-pick-card-desc { font-size: var(--gx-text-sm); color: var(--gx-text-3); }
+/* the Lead Source field label in the picker — uppercase to match the Type label */
+.rec-pick .field > span:first-child {
+  font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-3);
+}
 /* Each section is a card: a header bar (icon + title) over a padded field grid. Depth reads
    modal(elevated) > section(surface) > inputs(bg). */
 .rec-form-section {

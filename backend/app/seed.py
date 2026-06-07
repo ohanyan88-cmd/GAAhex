@@ -309,7 +309,7 @@ _LEAD_FIELDS = [
     ("package", "Package", "select", False, _sec("Service Interest", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
     ("contract_term", "Contract Term", "select", False, _sec("Service Interest", {"options": ["Monthly", "12 Months", "24 Months"]})),
     # Sales
-    ("source", "Lead Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
+    ("source", "Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
     ("sales_representative", "Sales Representative", "text", False, _sec("Sales")),
     ("campaign", "Campaign", "text", False, _sec("Sales")),
     ("referral_customer", "Referral Customer", "text", False, _sec("Sales")),
