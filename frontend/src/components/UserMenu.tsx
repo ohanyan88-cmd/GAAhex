@@ -2,7 +2,7 @@
 // Wired to the real session. Hosts the theme toggle + language switcher inside the menu
 // (no standalone theme button in the topbar, no inline language switcher next to it any more).
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronLeft, Sun, Moon, LogOut, SquarePen, User, Keyboard, Settings, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, ChevronLeft, LogOut, SquarePen, User } from 'lucide-react'
 import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
 import { Button } from '../primitives'  // T-P3-7
@@ -112,16 +112,6 @@ export default function UserMenu({
 
               <button className="menu-item" role="menuitem" onClick={() => setView('profile')}>
                 <User size={15} /><span>{t('profile.title', 'My profile')}</span>
-              </button>
-              <button className="menu-item" role="menuitem" onClick={() => { close(); onOpenModal('security') }}>
-                <Settings size={15} /><span>{t('security.title', 'Account settings')}</span>
-              </button>
-              <button className="menu-item" role="menuitem" disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>
-                <SlidersHorizontal size={15} /><span>{t('prefs.comingSoon', 'Preferences (coming soon)')}</span>
-              </button>
-
-              <button className="menu-item" role="menuitem" onClick={() => { close(); onOpenModal('shortcuts') }}>
-                <Keyboard size={15} /><span>{t('shortcuts.title', 'Keyboard shortcuts')}</span>
               </button>
 
               <div className="menu-sep" />

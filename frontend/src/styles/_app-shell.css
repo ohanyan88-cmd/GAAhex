@@ -63,7 +63,7 @@
 .userchip-name { font-size:12.5px; font-weight:600; color:var(--gx-text-1); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .userchip-role { font-size:10.5px; color:var(--gx-text-3); }
 @media (max-width:900px) { .userchip-meta { display:none; } }
-.user-pop { position:absolute; top:calc(100% + 6px); right:0; min-width:280px; padding:8px; z-index:var(--gx-z-popover); }
+.menu.user-pop { position:absolute; top:calc(100% + 6px); right:0; width:280px; padding:8px; z-index:var(--gx-z-popover); }
 .user-pop-head { display:flex; align-items:center; gap:8px; padding:4px 4px 10px; border-bottom:1px solid var(--gx-border-subtle); margin-bottom:8px; }
 .user-card { display:flex; align-items:center; gap:10px; padding:6px 6px 10px; }
 .user-card-name { font-size:13.5px; font-weight:600; color:var(--gx-text-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
