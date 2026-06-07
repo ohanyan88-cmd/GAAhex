@@ -19,18 +19,22 @@ function anchorRect(el: HTMLElement | null): CSSProperties | undefined {
 }
 
 // Single Select — a themed dropdown (styled with the .inp look) replacing the bare <select>.
-export function Select({ value, options, onChange, placeholder = 'Select…' }: {
+export function Select({ value, options, onChange, placeholder = 'Select…', allowCustom = false }: {
   value: string
   options: string[]
   onChange: (v: string) => void
   placeholder?: string
+  /** Let the user keep a typed value that isn't in the list (free-text fallback). */
+  allowCustom?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const [pos, setPos] = useState<CSSProperties | undefined>(undefined)
   const ctrlRef = useRef<HTMLDivElement>(null)
-  const searchable = options.length > SEARCH_THRESHOLD
+  const searchable = options.length > SEARCH_THRESHOLD || allowCustom
   const filtered = useFiltered(options, q)
+  const qx = q.trim()
+  const showCustom = allowCustom && qx.length > 0 && !options.some((o) => o.toLowerCase() === qx.toLowerCase())
 
   // Open on the NEXT tick so the triggering click fully settles before the popup (and its
   // option buttons) mount — otherwise the same click can land on a freshly-rendered option.
@@ -74,7 +78,12 @@ export function Select({ value, options, onChange, placeholder = 'Select…' }: 
                   <span>{o}</span>{o === value && <CheckIcon size={14} />}
                 </button>
               ))}
-              {filtered.length === 0 && <p className="sel-empty muted">No match.</p>}
+              {showCustom && (
+                <button type="button" className="sel-opt" onClick={() => pick(qx)}>
+                  <span className="muted">Use “{qx}”</span>
+                </button>
+              )}
+              {filtered.length === 0 && !showCustom && <p className="sel-empty muted">No match.</p>}
             </div>
           </div>
         </>

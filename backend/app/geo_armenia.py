@@ -131,3 +131,12 @@ ARMAVIR_VILLAGES: list[tuple[str, str, str]] = [
 def combined(rows: list[tuple[str, str, str]]) -> list[str]:
     """Build the 'hy / en / ru' dropdown labels stored as a field's options."""
     return [f"{hy} / {en} / {ru}" for hy, en, ru in rows]
+
+
+def dicts(rows: list[tuple[str, str, str]]) -> list[dict[str, str]]:
+    """Per-language option objects — the form shows only the current system language."""
+    return [{"hy": hy, "en": en, "ru": ru} for hy, en, ru in rows]
+
+
+# Armavir marz only (for now) — the single region the lead form offers.
+ARMAVIR_REGION: tuple[str, str, str] = ("Արմավիր", "Armavir", "Армавир")

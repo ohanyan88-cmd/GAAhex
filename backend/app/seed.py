@@ -14,10 +14,10 @@ from .models import (
 from .models.customer_user import CustomerUser
 from .security import hash_password
 from .geo_armenia import (
-    REGIONS as _GEO_REGIONS,
+    ARMAVIR_REGION as _GEO_REGION,
     ARMAVIR_CITIES as _GEO_CITIES,
     ARMAVIR_VILLAGES as _GEO_VILLAGES,
-    combined as _combined,
+    dicts as _dicts,
 )
 
 
@@ -268,12 +268,13 @@ async def _make_entity(s, tenant_id, key, label, plural, slug, icon, fields, sta
 # re-provision script). Each non-status field carries a `section` in its config so the form
 # renders grouped. Deep Technical / Billing / detailed-Installation fields are deliberately
 # deferred to the post-conversion Customer / Service records (Standard 11: lead → customer).
-# Region / City / Village dropdown options — trilingual "hy / en / ru" labels built
-# from the digitised geography (app/geo_armenia.py). City + Village currently carry
-# the Armavir marz; other marzes get appended to geo_armenia as they are digitised.
-_REGIONS = _combined(_GEO_REGIONS)
-_CITIES = _combined(_GEO_CITIES)
-_VILLAGES = _combined(_GEO_VILLAGES)
+# Region / City / Village dropdown options — per-language {hy,en,ru} objects; the form
+# shows only the current system language and allows a typed value if it isn't listed.
+# Region is Armavir only for now; City + Village carry the Armavir marz (app/geo_armenia.py).
+# Cascade (Village filtered by City) lands once the city→village grouping is supplied.
+_REGION_OPTS = _dicts([_GEO_REGION])
+_CITY_OPTS = _dicts(_GEO_CITIES)
+_VILLAGE_OPTS = _dicts(_GEO_VILLAGES)
 # Demo sales roster — the rep who owns the lead (top strip, beside Type & Source).
 _SALES_REPS = [
     "Aram Petrosyan", "Lilit Hakobyan", "Davit Sargsyan", "Anush Grigoryan",
@@ -314,9 +315,9 @@ _LEAD_FIELDS = [
     ("service_type", "Service Type", "select", False, _sec("Service", {"options": ["Internet", "TV", "VoIP", "Bundle"]})),
     ("package", "Package", "select", False, _sec("Service", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
     ("contract_term", "Contract Term", "select", False, _sec("Service", {"options": ["Monthly", "12 Months", "24 Months"]})),
-    ("region", "Region", "select", False, _sec("Service", {"options": _REGIONS})),
-    ("city", "City", "select", False, _sec("Service", {"options": _CITIES})),
-    ("village", "Village", "select", False, _sec("Service", {"options": _VILLAGES})),
+    ("region", "Region", "select", False, _sec("Service", {"i18n_options": _REGION_OPTS, "allow_custom": True})),
+    ("city", "City", "select", False, _sec("Service", {"i18n_options": _CITY_OPTS, "allow_custom": True})),
+    ("village", "Village", "select", False, _sec("Service", {"i18n_options": _VILLAGE_OPTS, "allow_custom": True})),
     ("address", "Address", "text", False, _sec("Service")),
     ("landmark", "Landmark", "text", False, _sec("Service")),
     # Top strip — Source + owning Sales Representative sit beside Type (all header fields)

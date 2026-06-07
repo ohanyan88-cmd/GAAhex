@@ -1317,6 +1317,7 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
   errorMsg: string
 }) {
   const f = field
+  const { lang } = useI18n()
   const isErr = errorField === f.key
   const cls = 'inp inp-md' + (isErr ? ' is-error' : '')
   let input: React.ReactNode
@@ -1361,7 +1362,15 @@ function FieldInput({ field, value, onChange, token, mode, currentStatus, errorF
   } else if (f.type === 'textarea') {
     input = <textarea className={cls + ' inp-area'} rows={4} value={value ?? ''} onChange={(e) => onChange(e.target.value)} />
   } else if (f.type === 'select') {
-    input = <Select value={value ?? ''} options={f.config?.options ?? []} onChange={onChange} />
+    // Geo / multilingual options: each option carries {hy,en,ru}; show only the
+    // current system language, allow a typed value if it isn't listed.
+    const i18nOpts = f.config?.i18n_options as Array<Record<string, string>> | undefined
+    if (i18nOpts) {
+      const labels = i18nOpts.map((o) => o[lang] || o.en || '').filter(Boolean)
+      input = <Select value={value ?? ''} options={labels} onChange={onChange} allowCustom={!!f.config?.allow_custom} />
+    } else {
+      input = <Select value={value ?? ''} options={f.config?.options ?? []} onChange={onChange} />
+    }
   } else if (f.type === 'multiselect') {
     input = <MultiSelect value={value} options={f.config?.options ?? []} onChange={onChange} />
   } else {
