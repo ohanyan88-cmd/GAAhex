@@ -310,14 +310,16 @@ _LEAD_FIELDS = [
     ("issue_date", "Issue Date", "date", False, _sec("Personal", {"segments": [B2C]})),
     ("date_of_birth", "Date of Birth", "date", False, _sec("Personal", {"segments": [B2C]})),
     ("registration_address", "Registration Address", "text", False, _sec("Personal")),
-    # Service — address + interest merged into one section
-    ("region", "Region", "select", False, _sec("Service", {"options": _REGIONS})),
-    ("city", "City", "select", False, _sec("Service", {"options": _CITIES})),
-    ("address", "Address", "text", False, _sec("Service")),
-    ("landmark", "Landmark", "text", False, _sec("Service")),
+    # Service — interest first, then where it gets installed
     ("service_type", "Service Type", "select", False, _sec("Service", {"options": ["Internet", "TV", "VoIP", "Bundle"]})),
     ("package", "Package", "select", False, _sec("Service", {"options": ["50 Mbps", "100 Mbps", "300 Mbps"]})),
     ("contract_term", "Contract Term", "select", False, _sec("Service", {"options": ["Monthly", "12 Months", "24 Months"]})),
+    ("region", "Region", "select", False, _sec("Service", {"options": _REGIONS})),
+    ("city", "City", "select", False, _sec("Service", {"options": _CITIES})),
+    # Village — single-option flag marking that the address sits in a village
+    ("village", "Village", "select", False, _sec("Service", {"options": ["Village"]})),
+    ("address", "Address", "text", False, _sec("Service")),
+    ("landmark", "Landmark", "text", False, _sec("Service")),
     # Top strip — Source + owning Sales Representative sit beside Type (all header fields)
     ("source", "Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
     ("sales_representative", "Representative", "select", False, _sec("Sales", {"options": _SALES_REPS, "header": True})),
