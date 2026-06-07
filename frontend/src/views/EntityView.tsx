@@ -878,7 +878,8 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
         })
         // `header`-flagged fields (Type, Lead Source) sit in a strip at the top of the modal.
         const headerFields = visible.filter((f) => f.config?.header)
-        const bodyFields = visible.filter((f) => !f.config?.header)
+        // status is lifecycle-managed (set by workflow) — never shown as a form field
+        const bodyFields = visible.filter((f) => !f.config?.header && f.type !== 'status')
         // Entities with a header field (e.g. Lead) use a two-step create: pick Type + Source
         // first, then "Next" reveals the form for the chosen Type.
         const hasPicker = def.fields.some((f) => f.config?.header)
@@ -926,7 +927,9 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                         </div>
                       </div>
                     )}
-                    {otherHeader.map(renderField)}
+                    {otherHeader.length > 0 && (
+                      <div className="rec-pick-row">{otherHeader.map(renderField)}</div>
+                    )}
                   </div>
                   <div className="rec-form-actions">
                     <span className="spacer" />

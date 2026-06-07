@@ -315,7 +315,7 @@ _LEAD_FIELDS = [
     ("contract_term", "Contract Term", "select", False, _sec("Service", {"options": ["Monthly", "12 Months", "24 Months"]})),
     # Top strip — Source + owning Sales Representative sit beside Type (all header fields)
     ("source", "Source", "select", False, _sec("Sales", {"options": ["D2D", "Facebook", "Website", "Referral", "Call Center", "Shop", "Corporate"], "header": True})),
-    ("sales_representative", "Sales Representative", "select", False, _sec("Sales", {"options": _SALES_REPS, "header": True})),
+    ("sales_representative", "Representative", "select", False, _sec("Sales", {"options": _SALES_REPS, "header": True})),
     # Notes & Attachments — one section, notes textarea beside the document dropzone
     ("notes", "General Notes", "textarea", False, _sec("Notes & Attachments")),
     # Documents — ID / passport / agreement / other (drag-drop or click to attach)

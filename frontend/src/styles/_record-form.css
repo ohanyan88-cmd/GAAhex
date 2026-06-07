@@ -37,6 +37,8 @@
   letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-3);
 }
 .rec-pick-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gx-space-8); }
+/* Source + Representative sit side-by-side under the Type cards in step 1. */
+.rec-pick-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--gx-space-12); }
 .rec-pick-card {
   display: flex; flex-direction: column; align-items: flex-start; gap: var(--gx-space-2);
   padding: var(--gx-space-12); text-align: left; cursor: pointer; font: inherit;
