@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getEntityDef, createRecord, transitionRecord, listRecordsPaged, uploadAttachments } from '../lib/api'
+import { getEntityDef, createRecord, transitionRecord, listRecordsPaged, uploadAttachments, generateContractPdf } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
 import { CheckIcon, ArrowRightIcon, SearchIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon, UserIcon, PhoneIcon, MapIcon, GlobeIcon, BriefcaseIcon, InfoIcon, BuildingIcon, PaperclipIcon } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
@@ -272,6 +272,8 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
   const [contractUrl, setContractUrl] = useState<string | null>(null)
+  const [contractPdfUrl, setContractPdfUrl] = useState<string | null>(null)
+  const [contractBusy, setContractBusy] = useState(false)
   const [mode, setMode] = useState<Mode>('idle')
   // Two-step create flow: 'pick' shows only the Type + Lead Source dropdowns, 'form' the full
   // (segment-appropriate) form. Editing goes straight to 'form'.
@@ -396,6 +398,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
 
   function clearContract() {
     setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return null })
+    setContractPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return null })
   }
 
   function closeForm() {
@@ -403,22 +406,34 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     clearContract()
   }
 
-  // Generate a contract from the modal's current values; Download saves the last generated one.
-  function generateContract() {
-    const html = buildContractHtml(form, def?.fields ?? [])
+  // Generate a contract from the modal's current values: an HTML copy (client) plus a
+  // PDF rendered server-side with full Armenian support. Download buttons save each.
+  async function generateContract() {
+    const fields = def?.fields ?? []
+    const html = buildContractHtml(form, fields)
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
     setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(blob) })
+    setContractBusy(true)
+    try {
+      const pdf = await generateContractPdf(token, form, fields.map((f) => ({ key: f.key, label: f.label, type: f.type })))
+      setContractPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(pdf) })
+    } catch {
+      setContractPdfUrl(null)
+    } finally {
+      setContractBusy(false)
+    }
   }
 
-  function downloadContract() {
-    if (!contractUrl) return
+  function _saveAs(url: string, ext: string) {
     const a = document.createElement('a')
-    a.href = contractUrl
-    a.download = contractFileName(form)
+    a.href = url
+    a.download = contractFileName(form).replace(/\.html$/, ext)
     document.body.appendChild(a)
     a.click()
     a.remove()
   }
+  function downloadContract() { if (contractUrl) _saveAs(contractUrl, '.html') }
+  function downloadContractPdf() { if (contractPdfUrl) _saveAs(contractPdfUrl, '.pdf') }
 
   function openCreate() {
     setError(''); setErrorField(null); setForm({}); setEditingId(null); setEditingStatus(null)
@@ -989,11 +1004,14 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                         <div className={'rec-form-grid' + (split ? ' rec-form-grid-split' : '')}>{g.fields.map(renderField)}</div>
                         {split && (
                           <div className="rec-contract-actions">
-                            <Button variant="secondary" size="sm" type="button" onClick={generateContract}>
+                            <Button variant="secondary" size="sm" type="button" loading={contractBusy} onClick={generateContract}>
                               <ReceiptIcon size={14} aria-hidden /> {t('contract.generate', 'Generate Contract')}
                             </Button>
                             <Button variant="ghost" size="sm" type="button" disabled={!contractUrl} onClick={downloadContract}>
                               <DownloadIcon size={14} aria-hidden /> {t('contract.download', 'Download Contract')}
+                            </Button>
+                            <Button variant="ghost" size="sm" type="button" disabled={!contractPdfUrl} onClick={downloadContractPdf}>
+                              <DownloadIcon size={14} aria-hidden /> {t('contract.downloadPdf', 'Download PDF')}
                             </Button>
                           </div>
                         )}

@@ -10,8 +10,8 @@ import html
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,26 @@ from .auth import current_user
 from .records import _node_path
 
 router = APIRouter(prefix="/api", tags=["documents"])
+
+
+@router.post("/leads/contract-pdf")
+async def lead_contract_pdf(payload: dict = Body(...), user: User = Depends(current_user)):
+    """Render a lead contract as an Armenian-capable PDF from the modal's values.
+
+    Body: {"values": {field_key: value, ...}, "fields": [{"key","label","type"}, ...]}.
+    Generated from posted form data (the lead may be unsaved) — no DB write.
+    """
+    from ..contract_pdf import build_contract_pdf  # lazy — keeps reportlab off the import path
+
+    values = payload.get("values") or {}
+    fields = payload.get("fields") or []
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    pdf = build_contract_pdf(values, fields, date_str)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="contract.pdf"'},
+    )
 
 # T-P1-7 — brand palette comes from `app.branding.theme_constants` (D18
 # backend-color-string guard). Local module-level constants below are

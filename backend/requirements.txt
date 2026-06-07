@@ -13,3 +13,4 @@ cryptography>=42.0.0           # SPEC §4.4 field-level encryption at rest (Fern
 httpx>=0.27                    # runtime: lazy-imported by adapters/payment/arca.py, adapters/sms.py, ai.py
 stripe>=15.2,<16               # M1-C.1 Stripe SDK — pinned to the 15.x line for API-version stability
 uuid-utils>=0.9                # Standard 8 (ID): UUIDv7 generator. App-side because PG 16 has no native uuidv7() (landed in PG 18).
+reportlab>=4.5,<5              # server-side Unicode PDF (Armenian/Russian/Latin via DejaVu) — contract generation

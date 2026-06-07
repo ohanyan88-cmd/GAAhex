@@ -150,6 +150,21 @@ export async function uploadAttachments(token: string, entityKey: string, record
   }
 }
 
+// Generate a lead contract PDF (Armenian-capable) from the modal's current values.
+export async function generateContractPdf(
+  token: string,
+  values: Record<string, any>,
+  fields: Array<{ key: string; label: string; type?: string }>,
+): Promise<Blob> {
+  const r = await fetch(`${BASE}/api/leads/contract-pdf`, {
+    method: 'POST',
+    headers: { ...authH(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values, fields }),
+  })
+  if (!r.ok) throw new Error('Contract PDF generation failed')
+  return await r.blob()
+}
+
 export async function createEntity(token: string, def: Record<string, unknown>) {
   const r = await fetch(`${BASE}/meta/entities`, {
     method: 'POST',
