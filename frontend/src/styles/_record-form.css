@@ -91,6 +91,12 @@
 .rec-form-grid-split .field-textarea,
 .rec-form-grid-split .field-file { grid-column: auto; }
 .rec-form-grid-split .field-textarea textarea { min-height: 118px; height: 100%; }
+/* Contract actions — Generate / Download row at the foot of Notes & Attachments. */
+.rec-contract-actions {
+  display: flex; gap: var(--gx-space-4); flex-wrap: wrap;
+  padding: var(--gx-space-8) var(--gx-space-12) var(--gx-space-12);
+  border-top: 1px solid var(--gx-border-subtle);
+}
 .rec-form-modal .rec-form-actions {
   grid-column: auto; justify-content: flex-end;
   padding-top: var(--gx-space-6); border-top: 1px solid var(--gx-border-subtle);

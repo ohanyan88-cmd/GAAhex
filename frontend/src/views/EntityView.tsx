@@ -16,6 +16,7 @@ import { LeadGatesStrip } from '../components/LeadGatesStrip'
 import DatePicker from '../components/DatePicker'
 import FileUpload from '../components/FileUpload'
 import { useI18n } from '../lib/i18n'
+import { buildContractHtml, contractFileName } from '../lib/contract'
 import NoAccess from '../components/NoAccess'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { Button, StatusPill } from '../primitives'
@@ -270,6 +271,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   const [def, setDef] = useState<Def | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [form, setForm] = useState<Record<string, any>>({})
+  const [contractUrl, setContractUrl] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('idle')
   // Two-step create flow: 'pick' shows only the Type + Lead Source dropdowns, 'form' the full
   // (segment-appropriate) form. Editing goes straight to 'form'.
@@ -392,12 +394,35 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     load(slug, 0).catch((e) => setError((e as Error).message))
   }, [slug, appliedQ, filter, sort])
 
+  function clearContract() {
+    setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return null })
+  }
+
   function closeForm() {
     setMode('idle'); setForm({}); setEditingId(null); setEditingStatus(null); setErrorField(null)
+    clearContract()
+  }
+
+  // Generate a contract from the modal's current values; Download saves the last generated one.
+  function generateContract() {
+    const html = buildContractHtml(form, def?.fields ?? [])
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+    setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(blob) })
+  }
+
+  function downloadContract() {
+    if (!contractUrl) return
+    const a = document.createElement('a')
+    a.href = contractUrl
+    a.download = contractFileName(form)
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
 
   function openCreate() {
     setError(''); setErrorField(null); setForm({}); setEditingId(null); setEditingStatus(null)
+    clearContract()
     setCreateStep('pick')   // start at the Type + Source picker; "Next" reveals the full form
     setMode('creating')
   }
@@ -962,6 +987,16 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                           <span>{g.section}</span>
                         </div>
                         <div className={'rec-form-grid' + (split ? ' rec-form-grid-split' : '')}>{g.fields.map(renderField)}</div>
+                        {split && (
+                          <div className="rec-contract-actions">
+                            <Button variant="secondary" size="sm" type="button" onClick={generateContract}>
+                              <ReceiptIcon size={14} aria-hidden /> {t('contract.generate', 'Generate Contract')}
+                            </Button>
+                            <Button variant="ghost" size="sm" type="button" disabled={!contractUrl} onClick={downloadContract}>
+                              <DownloadIcon size={14} aria-hidden /> {t('contract.download', 'Download Contract')}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="rec-form-grid rec-form-grid-bare span-2" key={`_${gi}`}>{g.fields.map(renderField)}</div>
