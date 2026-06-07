@@ -112,5 +112,21 @@
 .np-body { font-size: var(--gx-text-sm); color: var(--gx-text-2); }
 .np-time { font-size: var(--gx-text-11); color: var(--gx-text-3); }
 .np-dot { width: var(--gx-space-3); height: var(--gx-space-3); border-radius: 50%; background: var(--gx-primary); flex-shrink: 0; margin-top: var(--gx-space-2); }
+/* Profile page (user menu → My profile) */
+.pv-card { margin-bottom: var(--gx-space-7); }
+.pv-id { display: flex; align-items: center; gap: var(--gx-space-7); }
+.pv-avatar {
+  width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%;
+  background: var(--gx-surface-2); color: var(--gx-text-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--gx-text-xl); font-weight: var(--gx-weight-bold);
+}
+.pv-name { font-size: var(--gx-text-lg); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); }
+.pv-email { font-size: var(--gx-text-sm); color: var(--gx-text-3); margin-top: var(--gx-space-1); }
+.pv-role { margin-top: var(--gx-space-3); }
+.pv-soon { display: flex; flex-direction: column; align-items: center; gap: var(--gx-space-4); padding: var(--gx-space-20); text-align: center; }
+.pv-soon svg { color: var(--gx-text-3); }
+.pv-soon-title { font-size: var(--gx-text-md); font-weight: var(--gx-weight-semibold); color: var(--gx-text-2); }
+.pv-soon-sub { font-size: var(--gx-text-sm); color: var(--gx-text-3); max-width: 360px; }
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }

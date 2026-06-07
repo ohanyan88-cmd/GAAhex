@@ -1,11 +1,9 @@
-// UserMenu (P5) — right-side user chip + popover that match the kit's UserMenu in Shell.jsx.
-// Wired to the real session. Hosts the theme toggle + language switcher inside the menu
-// (no standalone theme button in the topbar, no inline language switcher next to it any more).
+// UserMenu (P5) — right-side user chip + popover. Slimmed to My profile + Sign out;
+// "My profile" opens the full Profile page (settings land there). Width matches the bell.
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronLeft, LogOut, SquarePen, User } from 'lucide-react'
+import { ChevronDown, LogOut, User } from 'lucide-react'
 import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
-import { Button } from '../primitives'  // T-P3-7
 
 type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
 type ModalKey = 'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew'
@@ -20,42 +18,28 @@ function initialsOf(name: string | null | undefined, fallback = 'U'): string {
 
 export default function UserMenu({
   user,
-  theme,
-  onThemeChange,
   onSignOut,
-  onOpenModal,
-  lang,
-  onLangChange,
+  onProfile,
 }: {
   user: Me
-  theme: 'dark' | 'light'
-  onThemeChange: (t: 'dark' | 'light') => void
+  theme?: 'dark' | 'light'
+  onThemeChange?: (t: 'dark' | 'light') => void
   onSignOut: () => void
-  onOpenModal: (key: ModalKey) => void
-  lang: Lang
-  onLangChange: (l: Lang) => void
+  onOpenModal?: (key: ModalKey) => void
+  onProfile: () => void
+  lang?: Lang
+  onLangChange?: (l: Lang) => void
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
-  const [view, setView] = useState<'menu' | 'profile'>('menu')
   const wrapRef = useRef<HTMLDivElement>(null)
 
-  // Outside-click + Escape close. Always reset the popover to 'menu' on close so the next
-  // open starts on the main menu, not the profile sub-view.
   useEffect(() => {
     if (!open) return
     function onMouseDown(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setView('menu')
-      }
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
     }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false)
-        setView('menu')
-      }
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onMouseDown)
     document.addEventListener('keydown', onKey)
     return () => {
@@ -64,10 +48,7 @@ export default function UserMenu({
     }
   }, [open])
 
-  function close() {
-    setOpen(false)
-    setView('menu')
-  }
+  function close() { setOpen(false) }
 
   const role = user.can_configure ? t('role.admin', 'Administrator') : t('role.member', 'Member')
 
@@ -94,79 +75,29 @@ export default function UserMenu({
 
       {open && (
         <div className="menu fade-fast user-pop" role="menu" onClick={(e) => e.stopPropagation()}>
-          {view === 'menu' ? (
-            <>
-              <div className="user-card">
-                <span className="avatar" style={{ width: 42, height: 42, fontSize: 'var(--gx-text-md)' }}>
-                  {user.avatar_url
-                    ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                    : initialsOf(user.name)}
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="user-card-name">{user.name || t('common.you', 'You')}</div>
-                  <div className="user-card-email mono">{user.email}</div>
-                </div>
-              </div>
+          <div className="user-card">
+            <span className="avatar" style={{ width: 42, height: 42, fontSize: 'var(--gx-text-md)' }}>
+              {user.avatar_url
+                ? <img src={user.avatar_url} alt="" className="avatar-img" />
+                : initialsOf(user.name)}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div className="user-card-name">{user.name || t('common.you', 'You')}</div>
+              <div className="user-card-email mono">{user.email}</div>
+            </div>
+          </div>
 
-              <div className="menu-sep" />
+          <div className="menu-sep" />
 
-              <button className="menu-item" role="menuitem" onClick={() => setView('profile')}>
-                <User size={15} /><span>{t('profile.title', 'My profile')}</span>
-              </button>
+          <button className="menu-item" role="menuitem" onClick={() => { close(); onProfile() }}>
+            <User size={15} /><span>{t('profile.title', 'My profile')}</span>
+          </button>
 
-              <div className="menu-sep" />
+          <div className="menu-sep" />
 
-              <button className="menu-item danger" role="menuitem" onClick={() => { close(); onSignOut() }}>
-                <LogOut size={15} /><span>{t('common.signout', 'Sign out')}</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="user-pop-head">
-                <button
-                  className="tb-icon"
-                  style={{ width: 28, height: 28 }}
-                  onClick={() => setView('menu')}
-                  aria-label={t('common.back', 'Back')}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)' }}>{t('profile.title', 'My profile')}</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--gx-space-3)', padding: 'var(--gx-space-4) 0 var(--gx-space-7)' }}>
-                <span className="avatar" style={{ width: 56, height: 56, fontSize: 'var(--gx-text-xl)' }}>
-                  {user.avatar_url
-                    ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                    : initialsOf(user.name)}
-                </span>
-                <div style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)' }}>{user.name || t('common.you', 'You')}</div>
-                <span className="pill pill-gold">{role}</span>
-              </div>
-              <div className="kv" style={{ padding: '9px 0' }}>
-                <span className="kv-k" style={{ width: 70 }}>{t('auth.email', 'Email')}</span>
-                <span className="kv-v mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{user.email}</span>
-              </div>
-              {/* "Team" is intentionally only rendered when the row has a value — Me has no team
-                  field today, so the row stays hidden until backend wires one. */}
-              <div className="kv" style={{ padding: '9px 0' }}>
-                <span className="kv-k" style={{ width: 70 }}>{t('profile.status', 'Status')}</span>
-                <span className="kv-v">
-                  <span className="pill pill-success">
-                    <span className="d" style={{ background: 'var(--gx-online)' }} />
-                    {t('profile.active', 'Active')}
-                  </span>
-                </span>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                style={{ width: '100%', marginTop: 'var(--gx-space-6)' }}
-                onClick={() => { close(); onOpenModal('profile') }}
-              >
-                <SquarePen size={13} />{t('profile.edit', 'Edit profile')}
-              </Button>
-            </>
-          )}
+          <button className="menu-item danger" role="menuitem" onClick={() => { close(); onSignOut() }}>
+            <LogOut size={15} /><span>{t('common.signout', 'Sign out')}</span>
+          </button>
         </div>
       )}
     </div>

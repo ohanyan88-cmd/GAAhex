@@ -8,6 +8,7 @@ import ReportsView from './views/ReportsView'
 import DashboardView from './views/DashboardView'
 import MessagesView from './views/MessagesView'
 import NotificationsView from './views/NotificationsView'
+import ProfileView from './views/ProfileView'
 import NotificationBell from './components/NotificationBell'
 import LangMenu from './components/LangMenu'
 import TopbarMenu from './components/TopbarMenu'
@@ -77,6 +78,7 @@ type View =
   | { type: 'dashboards' }
   | { type: 'messages' }
   | { type: 'notifications' }
+  | { type: 'profile' }
   | { type: 'activity' }
   | { type: 'my-approvals' }
   | { type: 'saved-views' }
@@ -620,12 +622,8 @@ export default function App() {
           {user && (
             <UserMenu
               user={user}
-              theme={theme}
-              onThemeChange={setTheme}
               onSignOut={logout}
-              onOpenModal={(k) => setAccountModal(k)}
-              lang={lang}
-              onLangChange={setLang}
+              onProfile={() => setView({ type: 'profile' })}
             />
           )}
         </header>
@@ -676,6 +674,8 @@ export default function App() {
                 ? <MessagesView token={token} capabilities={capabilities} />
               : view.type === 'notifications'
                 ? <NotificationsView />
+              : view.type === 'profile'
+                ? <ProfileView />
               : view.type === 'activity' || view.type === 'activity-feed'
                 ? <ActivityFeedView
                     token={token}
