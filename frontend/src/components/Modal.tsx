@@ -4,7 +4,7 @@ import Overlay from './Overlay'
 import { CloseIcon } from './icons'
 import { Button } from '../primitives'  // T-P3-7
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'fullscreen'
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen'
 
 // Constrained kit widths — no more full-bleed `lg` with dead space on the right.
 // The kit RecordModal/RecordDrawer pattern caps detail panels at ~520–640px; we
@@ -13,6 +13,7 @@ const SIZE_MAX: Record<ModalSize, number | undefined> = {
   sm: 420,
   md: 560,
   lg: 640,
+  xl: 920,
   fullscreen: undefined,
 }
 

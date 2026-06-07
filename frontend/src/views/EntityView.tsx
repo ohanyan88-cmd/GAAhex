@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getEntityDef, createRecord, transitionRecord, listRecordsPaged, uploadAttachments } from '../lib/api'
 import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
-import { CheckIcon, ArrowRightIcon, SearchIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon, UserIcon, PhoneIcon, MapIcon, GlobeIcon, BriefcaseIcon, InfoIcon, BuildingIcon } from '../components/icons'
+import { CheckIcon, ArrowRightIcon, SearchIcon, WarningIcon, MessageIcon, ClockIcon, ReceiptIcon, SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon, UserIcon, PhoneIcon, MapIcon, GlobeIcon, BriefcaseIcon, InfoIcon, BuildingIcon, PaperclipIcon } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import { confirmDialog, Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -70,12 +70,13 @@ function groupFieldsBySection(fields: Field[]): Array<{ section: string | null; 
 // A small icon for each form section header (keyword-matched, with a sensible fallback).
 function sectionIcon(section: string): React.ReactNode {
   const s = section.toLowerCase()
-  if (s.includes('identity') || s.includes('type')) return <UserIcon size={14} aria-hidden />
+  if (s.includes('identity') || s.includes('type') || s.includes('personal')) return <UserIcon size={14} aria-hidden />
   if (s.includes('contact')) return <PhoneIcon size={14} aria-hidden />
   if (s.includes('address')) return <MapIcon size={14} aria-hidden />
   if (s.includes('service') || s.includes('interest')) return <GlobeIcon size={14} aria-hidden />
   if (s.includes('sales')) return <BriefcaseIcon size={14} aria-hidden />
   if (s.includes('company') || s.includes('business')) return <BuildingIcon size={14} aria-hidden />
+  if (s.includes('note') || s.includes('attach') || s.includes('document')) return <PaperclipIcon size={14} aria-hidden />
   return <InfoIcon size={14} aria-hidden />
 }
 type Mode = 'idle' | 'creating' | 'editing'
@@ -886,7 +887,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
           <Modal
             open
             onClose={closeForm}
-            size="lg"
+            size={inPick ? 'lg' : 'xl'}
             title={mode === 'editing'
               ? `${t('common.edit', 'Edit')} ${def.label}`
               : `${t('common.new', 'New')} ${def.label}`}
@@ -945,19 +946,28 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
                 {headerFields.length > 0 && (
                   <div className="rec-form-header">{headerFields.map(renderField)}</div>
                 )}
-                {groupFieldsBySection(bodyFields).map((g, gi) => (
-                  g.section ? (
-                    <div className="rec-form-section" key={g.section}>
-                      <div className="rec-form-section-head">
-                        {sectionIcon(g.section)}
-                        <span>{g.section}</span>
+                <div className="rec-form-sections">
+                  {groupFieldsBySection(bodyFields).map((g, gi) => {
+                    // A section holding a wide field (notes / attachments) spans the full row;
+                    // the rest pack two-up so the modal is wider but shorter. When a section
+                    // carries BOTH a note and a document field, the two sit side-by-side.
+                    const hasTextarea = g.fields.some((f) => f.type === 'textarea')
+                    const hasFile = g.fields.some((f) => f.type === 'file')
+                    const split = hasTextarea && hasFile
+                    const wide = hasTextarea || hasFile
+                    return g.section ? (
+                      <div className={'rec-form-section' + (wide ? ' span-2' : '')} key={g.section}>
+                        <div className="rec-form-section-head">
+                          {sectionIcon(g.section)}
+                          <span>{g.section}</span>
+                        </div>
+                        <div className={'rec-form-grid' + (split ? ' rec-form-grid-split' : '')}>{g.fields.map(renderField)}</div>
                       </div>
-                      <div className="rec-form-grid">{g.fields.map(renderField)}</div>
-                    </div>
-                  ) : (
-                    <div className="rec-form-grid rec-form-grid-bare" key={`_${gi}`}>{g.fields.map(renderField)}</div>
-                  )
-                ))}
+                    ) : (
+                      <div className="rec-form-grid rec-form-grid-bare span-2" key={`_${gi}`}>{g.fields.map(renderField)}</div>
+                    )
+                  })}
+                </div>
                 <div className="rec-form-actions">
                   {mode === 'creating' && hasPicker && (
                     <Button variant="ghost" size="md" type="button" onClick={() => setCreateStep('pick')}>

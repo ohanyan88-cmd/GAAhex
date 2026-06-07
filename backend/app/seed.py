@@ -286,13 +286,13 @@ def _sec(section: str, extra: dict | None = None) -> dict:
 # to both. The form filters by the chosen segment so B2C and B2B see different forms.
 _LEAD_FIELDS = [
     # Identity & Type
-    ("segment", "Type", "select", False, _sec("Identity & Type", {"options": [B2C, B2B], "header": True})),
-    ("name", "Full Name", "text", True, _sec("Identity & Type")),
-    ("company_name", "Company Name", "text", False, _sec("Identity & Type", {"segments": [B2B]})),
-    ("tax_id", "Tax ID / Reg №", "text", False, _sec("Identity & Type", {"segments": [B2B]})),
-    ("date_of_birth", "Date of Birth", "date", False, _sec("Identity & Type", {"segments": [B2C]})),
-    ("document_type", "Document Type", "select", False, _sec("Identity & Type", {"options": ["ID", "Passport"], "segments": [B2C]})),
-    ("document_number", "Document Number", "text", False, _sec("Identity & Type", {"segments": [B2C]})),
+    ("segment", "Type", "select", False, _sec("Personal info", {"options": [B2C, B2B], "header": True})),
+    ("name", "Full Name", "text", True, _sec("Personal info")),
+    ("company_name", "Company Name", "text", False, _sec("Personal info", {"segments": [B2B]})),
+    ("tax_id", "Tax ID / Reg №", "text", False, _sec("Personal info", {"segments": [B2B]})),
+    ("date_of_birth", "Date of Birth", "date", False, _sec("Personal info", {"segments": [B2C]})),
+    ("document_type", "Document Type", "select", False, _sec("Personal info", {"options": ["ID", "Passport"], "segments": [B2C]})),
+    ("document_number", "Document Number", "text", False, _sec("Personal info", {"segments": [B2C]})),
     # Contact
     ("phone", "Primary Phone", "phone", False, _sec("Contact")),
     ("secondary_phone", "Second Phone", "phone", False, _sec("Contact")),
@@ -313,10 +313,10 @@ _LEAD_FIELDS = [
     ("sales_representative", "Sales Representative", "text", False, _sec("Sales")),
     ("campaign", "Campaign", "text", False, _sec("Sales")),
     ("referral_customer", "Referral Customer", "text", False, _sec("Sales")),
-    # Notes
-    ("notes", "General Notes", "textarea", False, _sec("Notes")),
+    # Notes & Attachments — one section, notes textarea beside the document dropzone
+    ("notes", "General Notes", "textarea", False, _sec("Notes & Attachments")),
     # Documents — ID / passport / agreement / other (drag-drop or click to attach)
-    ("attachments", "Documents", "file", False, _sec("Documents")),
+    ("attachments", "Documents", "file", False, _sec("Notes & Attachments")),
     # Lifecycle (no section — managed by workflow)
     ("status", "Status", "status", False, None),
 ]

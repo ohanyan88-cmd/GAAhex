@@ -19,6 +19,9 @@
 .rec-form.rec-form-modal {
   display: flex; flex-direction: column; align-items: stretch; gap: var(--gx-space-16);
   background: transparent; border: 0; box-shadow: none; padding: 0; margin: 0;
+  /* base .rec-form caps width at 680px (studio.css) — inside the modal we fill the
+     full body so cards stretch edge-to-edge with symmetric margins. */
+  max-width: none; width: 100%;
 }
 /* Promoted header fields (Type, Lead Source) — a strip at the very top of the modal. */
 .rec-form-header {
@@ -50,6 +53,13 @@
   font-family: var(--gx-font-mono); font-size: var(--gx-text-xs); font-weight: var(--gx-weight-bold);
   letter-spacing: .08em; text-transform: uppercase; color: var(--gx-text-3);
 }
+/* Section grid — sections pack two-up so the modal reads wider but shorter; a section that
+   carries a wide field (notes / attachments) or the chrome-less Status group spans the row. */
+.rec-form-sections {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--gx-space-12); align-items: start;
+}
+.rec-form-sections > .span-2 { grid-column: 1 / -1; }
 /* Each section is a card: a header bar (icon + title) over a padded field grid. Depth reads
    modal(elevated) > section(surface) > inputs(bg). */
 .rec-form-section {
@@ -65,14 +75,19 @@
 }
 .rec-form-section-head svg { color: var(--gx-interactive); flex-shrink: 0; }
 .rec-form-grid {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--gx-space-8) var(--gx-space-12); align-items: end;
-  padding: var(--gx-space-8);
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gx-space-12) var(--gx-space-12); align-items: end;
+  padding: var(--gx-space-12);
 }
 .rec-form-grid-bare { padding: 0; }   /* null-section group (e.g. Status) — no card chrome */
 /* Textareas (notes) and file/attachment fields span the full width of the section grid. */
 .rec-form-grid .field-textarea,
 .rec-form-grid .field-file { grid-column: 1 / -1; }
+/* Notes & Attachments — notes textarea beside the document dropzone (mockup parity). */
+.rec-form-grid-split { align-items: stretch; }
+.rec-form-grid-split .field-textarea,
+.rec-form-grid-split .field-file { grid-column: auto; }
+.rec-form-grid-split .field-textarea textarea { min-height: 118px; height: 100%; }
 .rec-form-modal .rec-form-actions {
   grid-column: auto; justify-content: flex-end;
   padding-top: var(--gx-space-6); border-top: 1px solid var(--gx-border-subtle);
