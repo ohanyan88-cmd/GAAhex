@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from './Toast'
 import { EditIcon, CheckIcon, CloseIcon } from './icons'
-import { Upload } from 'lucide-react'
+import { Camera } from 'lucide-react'
 import { Button } from '../primitives'  // T-P3-7
 
 import { BASE } from '../lib/config'
@@ -125,38 +125,31 @@ export default function OrgIdentity({ token }: { token: string }) {
 
       {open && (
         <div className="menu fade-fast org-pop" onClick={(e) => e.stopPropagation()}>
-          <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', padding: 'var(--gx-space-1) var(--gx-space-2) var(--gx-space-5)' }}>
-            Company identity
-          </div>
-          <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 'var(--gx-space-7)' }}>
-            {draftLogo
-              ? <img src={draftLogo} alt="" className="org-pop-logo-preview" />
-              : <span style={{ width: 46, height: 46, borderRadius: 'var(--gx-radius-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
-                  {initialsOf(draftName)}
-                </span>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
-              <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
-                <Upload size={13} />Upload logo
-              </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-7)' }}>
+            <div className="org-pop-logo-wrap">
+              {draftLogo
+                ? <img src={draftLogo} alt="" className="org-pop-logo-preview" />
+                : <span className="org-badge" style={{ width: 46, height: 46, fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-bold)' }}>{initialsOf(draftName)}</span>}
+              <button type="button" className="user-card-av-edit" onClick={() => fileRef.current?.click()} title="Change logo" aria-label="Change logo">
+                <Camera size={11} />
+              </button>
               {draftLogo && (
-                <Button variant="ghost" size="sm" onClick={() => setDraftLogo(null)} style={{ color: 'var(--gx-text-3)' }}>
-                  <CloseIcon size={13} />Remove logo
-                </Button>
+                <button type="button" className="user-card-av-remove" onClick={() => setDraftLogo(null)} title="Remove logo" aria-label="Remove logo">
+                  <CloseIcon size={10} />
+                </button>
               )}
+              <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} style={{ display: 'none' }} />
             </div>
-            <input ref={fileRef} type="file" accept="image/*" onChange={pickLogo} style={{ display: 'none' }} />
-          </div>
-          <label className="field" style={{ marginBottom: 'var(--gx-space-7)' }}>
-            <span>Company name</span>
             <input
               className="inp inp-sm"
+              style={{ flex: 1 }}
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
               placeholder="Company name"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') void save() }}
             />
-          </label>
+          </div>
           <div style={{ display: 'flex', gap: 'var(--gx-space-3)', justifyContent: 'flex-end' }}>
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
             <Button variant="primary" size="sm" onClick={save} disabled={saving}>

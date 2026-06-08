@@ -22,13 +22,19 @@ import {
 import { BASE } from '../lib/config'
 import { type Capabilities } from '../lib/capabilities'
 import { PageShell, type KPISpec } from '../page-shell'
-import { HomeIcon } from '../components/icons'
+import { useAuth } from '../context/AuthContext'
 import { authH, bget } from '../lib/billing'
 import { DetailTab, DetailTabList } from '../primitives'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
 import CalendarView from './CalendarView'
 import ProfileView from './ProfileView'
+
+function initialsOf(name: string | null | undefined): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'U'
+  return parts.map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
 
 
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
@@ -179,6 +185,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   onNavigate?: (type: string, id?: string) => void
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
+  const { user: authUser } = useAuth()
   const [me, setMe] = useState<Me | null>(null)
   const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
   const [nodes, setNodes] = useState<any[]>([])
@@ -393,7 +400,11 @@ export default function HomeView({ token, onNavigate, capabilities }: {
     <PageShell
       type="WORKSPACE"
       breadcrumb={['Workspace']}
-      icon={<HomeIcon size={18} />}
+      icon={
+        authUser?.avatar_url
+          ? <img src={authUser.avatar_url} alt="" />
+          : <span className="ps-header-icon-initials">{initialsOf(authUser?.name ?? me?.name)}</span>
+      }
       title={me?.name ?? 'Workspace'}
       subtitle={ROLE_SUBTITLE[role]}
       kpis={kpiSpecs}

@@ -1,8 +1,9 @@
 // UserMenu (P5) — right-side user chip + popover. Shows name/email/dept/position/role; Sign out only.
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, LogOut } from 'lucide-react'
+import { ChevronDown, LogOut, Camera } from 'lucide-react'
 import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
+import { useAuth } from '../context/AuthContext'
 
 type Me = {
   email: string
@@ -32,8 +33,10 @@ export default function UserMenu({
   onLangChange?: (l: Lang) => void
 }) {
   const { t } = useI18n()
+  const { setUser } = useAuth()
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -50,6 +53,14 @@ export default function UserMenu({
   }, [open])
 
   function close() { setOpen(false) }
+
+  function onFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const url = URL.createObjectURL(f)
+    setUser(prev => prev ? { ...prev, avatar_url: url } : prev)
+    e.target.value = ''
+  }
 
   const role = user.can_configure ? t('role.admin', 'Administrator') : t('role.member', 'Member')
 
@@ -77,11 +88,23 @@ export default function UserMenu({
       {open && (
         <div className="menu fade-fast user-pop" role="menu" onClick={(e) => e.stopPropagation()}>
           <div className="user-card">
-            <span className="avatar uc-av-lg">
-              {user.avatar_url
-                ? <img src={user.avatar_url} alt="" className="avatar-img" />
-                : initialsOf(user.name)}
-            </span>
+            <div className="user-card-av-wrap">
+              <span className="avatar uc-av-lg">
+                {user.avatar_url
+                  ? <img src={user.avatar_url} alt="" className="avatar-img" />
+                  : initialsOf(user.name)}
+              </span>
+              <button
+                type="button"
+                className="user-card-av-edit"
+                onClick={() => fileRef.current?.click()}
+                title={t('profile.changePhoto', 'Change photo')}
+                aria-label={t('profile.changePhoto', 'Change photo')}
+              >
+                <Camera size={11} />
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFilePick} />
+            </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div className="user-card-name">{user.name || t('common.you', 'You')}</div>
               <div className="user-card-email mono">{user.email}</div>

@@ -307,9 +307,15 @@
   --gx-kpi-card-h:      140px;  /* uniform card height across the whole app */
   --gx-kpi-value-size:  36px;   /* the big cockpit metric value */
   --gx-kpi-bar-h:       8px;    /* progress/utilisation bar thickness */
+  --gx-kpi-col-min:     180px;  /* KPI grid column min-width (normal) */
+  --gx-kpi-col-min-sm:  160px;  /* KPI grid column min-width (responsive ≤900px) */
 
   /* In-header search box width (Zone A search slot, and reusable elsewhere). */
   --gx-search-w:        300px;
+  /* Zone A header icon hexagon — outer box + inner glyph dimensions. */
+  --gx-ps-icon-w:       48px;
+  --gx-ps-icon-h:       42px;   /* ~0.875 × width = flat-top regular hexagon */
+  --gx-ps-menu-w:       180px;  /* Zone A action dropdown menu min-width */
   /* Glyph size inside the 36px header icon box (box itself unchanged). */
   --gx-header-icon-size: 22px;
 

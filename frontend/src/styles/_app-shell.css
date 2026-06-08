@@ -89,6 +89,12 @@
 .user-card-dot { color:var(--gx-border); }
 .user-card-signout { align-self:flex-start; flex-shrink:0; }
 .user-card-signout:hover { background:var(--gx-danger-soft); color:var(--gx-danger); }
+.user-card-av-wrap { position:relative; flex-shrink:0; }
+.user-card-av-edit { position:absolute; bottom:0; right:0; width:18px; height:18px; border-radius:50%; border:none; background:var(--gx-interactive); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:background var(--gx-dur-fast); }
+.user-card-av-edit:hover { background:var(--gx-interactive-hover); }
+.org-pop-logo-wrap { position:relative; display:inline-flex; flex-shrink:0; align-items:center; }
+.user-card-av-remove { position:absolute; top:0; right:0; width:16px; height:16px; border-radius:50%; border:none; background:var(--gx-danger); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; transition:background var(--gx-dur-fast); }
+.user-card-av-remove:hover { background:var(--gx-danger-fg); }
 .menu-lang-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; }
 .menu-lang-label { font-size:11.5px; color:var(--gx-text-3); }
 

@@ -87,8 +87,8 @@
   position: absolute;
   top: calc(100% + var(--gx-space-3));
   right: 0;
-  z-index: 30;
-  min-width: 180px;
+  z-index: var(--gx-z-popover);
+  min-width: var(--gx-ps-menu-w);
   display: flex;
   flex-direction: column;
   gap: var(--gx-space-1);
@@ -138,8 +138,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 42px;       /* ~0.87 × width → a regular (not stretched) flat-top hexagon */
+  width: var(--gx-ps-icon-w);
+  height: var(--gx-ps-icon-h);
   flex-shrink: 0;
   background: var(--gx-border-strong);   /* outer hex = the (tokenized) outline color */
   color: var(--gx-text-2);
@@ -148,17 +148,23 @@
 .ps-header-icon::before {
   content: '';
   position: absolute;
-  inset: 2px;
+  inset: var(--gx-space-1);
   background: var(--gx-surface-2);       /* inner hex = the fill */
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
 }
 /* Bigger glyph inside the hex, above the inner-fill pseudo-element. */
-.ps-header-icon svg { width: 22px; height: 22px; position: relative; z-index: 1; }
+.ps-header-icon svg { width: var(--gx-header-icon-size); height: var(--gx-header-icon-size); position: relative; z-index: 1; }
+/* Avatar mode — image fills the full hex, border pseudo hidden. */
+.ps-header-icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.ps-header-icon:has(img)::before { display: none; }
+.ps-header-icon:has(img) { background: var(--gx-surface-2); }
+/* Initials fallback — text sits above the inner-fill pseudo. */
+.ps-header-icon-initials { position: relative; z-index: 1; font-size: var(--gx-text-sm); font-weight: var(--gx-weight-bold); color: var(--gx-text-1); letter-spacing: .02em; }
 
 .ps-header-titles {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--gx-space-1);
   min-width: 0;
   flex: 1;
 }
@@ -178,15 +184,15 @@
 .ps-header-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  gap: var(--gx-space-3);
+  margin-top: var(--gx-space-1);
 }
 
 /* ─── Zone B · KPIBar ────────────────────────────────────────────────────── */
 
 .ps-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--gx-kpi-col-min), 1fr));
   gap: var(--gx-space-4);
   /* Horizontal padding locked at var(--gx-space-12) per the PageShell
      spacing law. Extra top padding gives the KPI cards breathing room below the header. */
@@ -213,7 +219,7 @@
   .ps-kpis[data-count="3"],
   .ps-kpis[data-count="4"],
   .ps-kpis[data-count="5"] {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--gx-kpi-col-min-sm), 1fr));
   }
 }
 
