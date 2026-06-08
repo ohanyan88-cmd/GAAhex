@@ -6,6 +6,8 @@ Tenant-scoped: a user reads/updates only their OWN tenant. Writes are gated on `
 
 NOTE: fixed paths under /api ("/api/tenant"), so register BEFORE records.router ("/api/{slug}").
 """
+import base64
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +22,10 @@ from .auth import current_user
 router = APIRouter(prefix="/api/tenant", tags=["tenant-settings"])
 
 LOCALES = {"en", "hy"}
+
+# Logo upload limits — mirrors me.py so both upload paths enforce the same policy.
+ALLOWED_LOGO_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
+MAX_LOGO_BYTES = 2 * 1024 * 1024  # 2 MB
 
 # ----- Theme (Studio AppearancePane → design tokens) ---------------------------------------------
 # Keep these allow-lists in lock-step with frontend/src/studio/StudioRichPanes.tsx
@@ -53,14 +59,32 @@ def _serialize(t: Tenant) -> dict:
 
 
 def _validate_logo_url(v: str | None) -> str | None:
-    """Accept either a data:image/...;base64,... URL or a clean http(s) URL. Anything else → 422."""
+    """Accept either a data:image/...;base64,... URL or a clean http(s) URL. Anything else → 422.
+
+    For data URLs, independently validates:
+      1. MIME type is in ALLOWED_LOGO_TYPES (not just any image/* — blocks SVG XSS vectors).
+      2. Base64 payload is syntactically valid.
+      3. Decoded size is ≤ MAX_LOGO_BYTES (prevents unbounded blobs in the tenant row).
+    """
     if v is None or v == "":
         return None
     v = v.strip()
     if v.startswith("data:image/"):
-        # Same shape as app_user.avatar_url (see me.py:71).
         if ";base64," not in v:
             raise HTTPException(422, "logo_url data URL must be base64-encoded (data:image/...;base64,...)")
+        mime_part, b64_part = v.split(";base64,", 1)
+        mime = mime_part[len("data:"):]  # strip leading "data:"
+        if mime not in ALLOWED_LOGO_TYPES:
+            raise HTTPException(
+                422,
+                f"Logo MIME type '{mime}' not allowed; must be one of: {', '.join(sorted(ALLOWED_LOGO_TYPES))}",
+            )
+        try:
+            raw = base64.b64decode(b64_part, validate=True)
+        except Exception:
+            raise HTTPException(422, "logo_url contains invalid base64 data")
+        if len(raw) > MAX_LOGO_BYTES:
+            raise HTTPException(422, f"Logo too large (max {MAX_LOGO_BYTES // (1024 * 1024)}MB)")
         return v
     if v.startswith("http://") or v.startswith("https://"):
         return v

@@ -71,15 +71,18 @@ export default function OrgIdentity({ token }: { token: string }) {
     setOpen(true)
   }
 
+  // Mirrors ALLOWED_LOGO_TYPES in backend/app/routers/tenant_settings.py.
+  const ALLOWED_LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
+  const MAX_LOGO_BYTES = 2 * 1024 * 1024
+
   function pickLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files && e.target.files[0]
     if (!f) return
-    if (!f.type.startsWith('image/')) {
-      toast.error('Logo must be an image')
+    if (!ALLOWED_LOGO_TYPES.has(f.type)) {
+      toast.error('Logo must be a PNG, JPEG, GIF, or WebP image')
       return
     }
-    // 2MB cap — same as me.py MAX_AVATAR_BYTES, keeps the data URL reasonable.
-    if (f.size > 2 * 1024 * 1024) {
+    if (f.size > MAX_LOGO_BYTES) {
       toast.error('Logo too large (max 2MB)')
       return
     }
