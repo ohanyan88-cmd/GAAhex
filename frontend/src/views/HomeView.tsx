@@ -346,29 +346,48 @@ export default function HomeView({ token, onNavigate, capabilities }: {
     })
   }
 
-  // ── Build KPISpec[] for PageShell ────────────────────────────────────────
-  // The old inline <KPI> tile rendered "value / target" with a progress bar +
-  // green/amber/red colorway by progress %. KPIBar (PageShell Zone B) renders
-  // a simpler tile, so we map progress semantics into KPISpec accents:
-  //   • on-track (value >= target, target > 0)  → deltaPositive + delta="on track"
-  //   • behind   (target > 0 && value < target) → warning accent
-  //   • info     (target === 0)                 → plain
-  // The target itself appears in `subtitle` so the X/Y framing is preserved.
-  const kpiSpecs: KPISpec[] = ROLE_KPIS[role].map(k => {
-    const v = kpiValue(k.key)
-    const onTrack = k.target > 0 && v >= k.target
-    const behind  = k.target > 0 && v < k.target
-    return {
-      label: k.label,
-      value: fmtKpi(v, k.unit),
-      unit: k.unit,
-      subtitle: k.target > 0 ? `target ${fmtKpi(k.target, k.unit)}${k.unit ?? ''}` : undefined,
-      delta: onTrack ? 'on track' : undefined,
-      deltaPositive: onTrack ? true : undefined,
-      warning: behind,
-      loading: tasks.state === 'loading' && tickets.state === 'loading',
-    }
-  })
+  // ── 4 scope-locked KPI tiles ─────────────────────────────────────────────
+  // Each tile shows data at a different visibility scope:
+  //   1 YOU   — personal:   only the signed-in user's own metrics
+  //   2 TEAM  — team:       your immediate team's load (company-level until team_id lands)
+  //   3 DEPT  — department: today's dispatches across the org node
+  //   4 ORG   — company:    company-wide health snapshot
+  const kpiSpecs: KPISpec[] = [
+    {
+      label: 'My Open Tasks',
+      value: tasksOpen.length,
+      subtitle: overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : 'up to date',
+      cornerNote: <span className="kpi-scope kpi-scope-you">YOU</span>,
+      warning: overdueTasks.length > 0,
+      loading: tasks.state === 'loading',
+      onClick: () => onNavigate?.('workitems'),
+    },
+    {
+      label: 'Team Tickets Open',
+      value: ticketArr.filter(t => !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(t.status ?? '')).length,
+      subtitle: breachedTickets.length > 0 ? `${breachedTickets.length} past SLA` : 'all within SLA',
+      cornerNote: <span className="kpi-scope kpi-scope-team">TEAM</span>,
+      danger: breachedTickets.length > 0,
+      loading: tickets.state === 'loading',
+      onClick: () => onNavigate?.('helpdesk'),
+    },
+    {
+      label: "Today's Dispatches",
+      value: todaySlots.length,
+      subtitle: myTodaySlots.length > 0 ? `${myTodaySlots.length} assigned to me` : 'none assigned to me',
+      cornerNote: <span className="kpi-scope kpi-scope-dept">DEPT</span>,
+      loading: slots.state === 'loading',
+    },
+    {
+      label: 'Pending Approvals',
+      value: approvalArr.length,
+      subtitle: approvalArr.length > 0 ? 'require your decision' : 'nothing pending',
+      cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
+      warning: approvalArr.length > 0,
+      loading: approvals.state === 'loading',
+      onClick: () => onNavigate?.('my-approvals'),
+    },
+  ]
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

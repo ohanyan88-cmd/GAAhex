@@ -117,3 +117,10 @@
    avoid class collisions — the redesign owns all .pv-* classes. */
 .capitalize { text-transform: capitalize; }
 .num { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* ── KPI scope tags (Home Workspace tiles) ──────────────────────────────── */
+.kpi-scope { display: inline-block; font-size: var(--gx-text-10); font-weight: var(--gx-weight-bold); letter-spacing: .05em; text-transform: uppercase; padding: var(--gx-space-1) var(--gx-space-3); border-radius: var(--gx-radius-sm); line-height: var(--gx-leading-none); }
+.kpi-scope-you  { background: var(--cobalt-100); color: var(--cobalt-700); }
+.kpi-scope-team { background: var(--azure-100);  color: var(--azure-700); }
+.kpi-scope-dept { background: var(--gx-gold-soft); color: var(--gx-gold); }
+.kpi-scope-org  { background: var(--gx-surface-2); border: 1px solid var(--gx-border); color: var(--gx-text-2); }
