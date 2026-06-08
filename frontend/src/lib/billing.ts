@@ -139,6 +139,21 @@ export const bpatch = <T = any>(token: string, path: string, body?: any) => send
 export const bput = <T = any>(token: string, path: string, body?: any) => send<T>(token, 'PUT', path, body)
 export const bdel = <T = any>(token: string, path: string) => send<T>(token, 'DELETE', path)
 
+// Multipart file upload — no Content-Type override; browser sets multipart/form-data + boundary.
+export async function bupload<T = any>(token: string, path: string, form: FormData): Promise<T> {
+  const r = await fetch(`${BASE}${path}`, { method: 'POST', headers: authH(token), body: form })
+  intercept401(r.status)
+  let data: any = null
+  try { data = await r.json() } catch { /* non-json body */ }
+  if (!r.ok) {
+    const d = data?.detail
+    const err = new Error(typeof d === 'string' ? d : d ? JSON.stringify(d) : `Upload failed (${r.status})`) as Error & { status?: number }
+    err.status = r.status
+    throw err
+  }
+  return data as T
+}
+
 // Open an auth'd document endpoint (branded HTML) in a new tab. A plain GET link can't carry the
 // Authorization header, so we fetch→blob→object-URL. Opens a blank tab synchronously (within the
 // click gesture) to avoid popup blocking, then points it at the blob. Returns an error message or null.

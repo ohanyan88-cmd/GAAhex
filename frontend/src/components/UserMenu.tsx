@@ -5,7 +5,7 @@ import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
 import { useAuth } from '../context/AuthContext'
 import { initialsOf } from '../lib/utils'
-import { BASE } from '../lib/config'
+import { bupload } from '../lib/billing'
 
 type Me = {
   email: string
@@ -58,15 +58,9 @@ export default function UserMenu({
     try {
       const form = new FormData()
       form.append('file', f)
-      const res = await fetch(`${BASE}/api/me/avatar`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      })
-      if (!res.ok) return
-      const { avatar_url } = await res.json()
+      const { avatar_url } = await bupload<{ avatar_url: string }>(token, '/api/me/avatar', form)
       setUser(prev => prev ? { ...prev, avatar_url } : prev)
-    } finally {
+    } catch { /* silent — avatar stays unchanged on error */ } finally {
       setUploading(false)
     }
   }
