@@ -11,6 +11,7 @@
  * Page-level surface
  * ───────────────────────────────────────────────────────────────────────── */
 .nms-page {
+  position: relative;
   background: var(--gx-bg);
   color: var(--gx-text-1);
   min-height: 100vh;
@@ -33,9 +34,8 @@
   transition: border-color var(--gx-dur-base) var(--gx-ease-standard);
 }
 
-.nms-card:hover {
-  border-color: var(--gx-border-strong);
-}
+/* NOTE: .nms-card:hover was removed — widget cards are views, not click
+   targets. Interactive elements inside cards have their own hover states. */
 
 .nms-card-header {
   display: flex;
@@ -44,14 +44,20 @@
   gap: var(--gx-space-4);
 }
 
+.nms-card-hd-end {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-3);
+}
+
 .nms-card-title {
-  font-size: 11px;
+  font-size: var(--gx-text-11);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--gx-tracking-wider);
   color: var(--gx-text-2);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
-  min-width: 0;             /* allow truncation instead of pushing into the tag */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -71,8 +77,8 @@
 .nms-card-preview-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
+  gap: var(--gx-space-2);
+  padding: var(--gx-space-1) var(--gx-space-3);
   border-radius: 999px;
   background: var(--gx-surface-2);
   border: 1px solid var(--gx-border-strong);
@@ -80,37 +86,38 @@
   font-size: 9px;
   font-family: var(--gx-font-mono, ui-monospace, monospace);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--gx-tracking-wider);
   font-weight: 600;
   white-space: nowrap;
-  flex-shrink: 0;   /* never let the tag wrap onto / collide with the title */
+  flex-shrink: 0;
 }
 
-/* "Pending data source" empty state body — same chrome as a live widget,
-   honest about what's missing. */
+/* "Pending data source" empty state body. */
 .nms-card-pending {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--gx-space-3);
   padding: var(--gx-space-8);
   border: 1px dashed var(--gx-border-strong);
   border-radius: var(--gx-radius-sm);
   text-align: center;
   color: var(--gx-text-3);
-  font-size: 12px;
+  font-size: var(--gx-text-sm);
   min-height: 100px;
 }
 
 .nms-card-pending-headline {
   font-family: var(--gx-font-mono, ui-monospace, monospace);
-  font-size: 11px;
+  font-size: var(--gx-text-11);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--gx-tracking-wider);
   color: var(--gx-text-2);
 }
+
+.nms-pending-body { max-width: 320px; }
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Status pills (the neon-accent system, used surgically)
@@ -118,18 +125,20 @@
 .nms-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
+  gap: var(--gx-space-3);
+  padding: var(--gx-space-2) var(--gx-space-4);
   border-radius: 999px;
   font-family: var(--gx-font-mono, ui-monospace, monospace);
-  font-size: 10px;
+  font-size: var(--gx-text-10);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--gx-tracking-wide);
   background: var(--gx-surface-2);
   border: 1px solid var(--gx-border-strong);
   color: var(--gx-text-2);
 }
+
+button.nms-pill { cursor: pointer; }
 
 /* Status pill variants — most pills are neutral; cobalt + gold appear only
    when the pill itself signals interactive (cyan) or critical (red/gold).
@@ -143,14 +152,16 @@
 .nms-pill-red   { color: var(--gx-gold);   background: var(--gx-gold-soft); border-color: transparent; font-weight: 700; }
 .nms-pill-cyan  { color: var(--gx-primary); background: var(--gx-primary-soft); border-color: transparent; }
 .nms-pill-gold  { color: var(--gx-gold);   background: var(--gx-gold-soft); border-color: transparent; }
+.nms-pill-sm    { font-size: var(--gx-text-10); }
 
 /* Solid status dot — neutrals for passive states, gold for critical. */
-.nms-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.nms-dot { width: var(--gx-space-4); height: var(--gx-space-4); border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .nms-dot-green { background: var(--gx-text-2); }
 .nms-dot-amber { background: var(--gx-text-3); }
 .nms-dot-red   { background: var(--gx-gold); }
 .nms-dot-cyan  { background: var(--gx-primary); }
 .nms-dot-gold  { background: var(--gx-gold); }
+.nms-dot-lg    { width: var(--gx-space-6); height: var(--gx-space-6); }
 
 /* Quiet alarm cue — gentle opacity pulse. Critical alarms only. */
 @keyframes nms-pulse {
@@ -172,8 +183,9 @@
   color: var(--gx-text-1);
   font-variant-numeric: tabular-nums;
 }
-.nms-value-sm   { font-size: 22px; }
+.nms-value-sm   { font-size: var(--gx-text-2xl); }
 .nms-value-lg   { font-size: 44px; }
+.nms-value-3xl  { font-size: var(--gx-text-3xl); }
 .nms-value-mono { font-family: var(--gx-font-mono, ui-monospace, monospace); }
 /* Big value colorways — most stay neutral; gold only when critical. */
 .nms-value-green { color: var(--gx-text-1); font-weight: 600; }
@@ -191,7 +203,7 @@
   margin-top: var(--gx-space-12);
   margin-bottom: var(--gx-space-6);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
-  font-size: 10px;
+  font-size: var(--gx-text-10);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -224,8 +236,8 @@
 }
 .nms-row > * {
   flex: 1 1 0;
-  min-width: 0; /* prevent flex children from overflowing on narrow content */
-  display: flex;          /* makes the inner .nms-card stretch to full height */
+  min-width: 0;
+  display: flex;
   flex-direction: column;
 }
 .nms-row > * > .nms-card {
@@ -242,32 +254,11 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Widget manager (gear menu)
+ * Widget visibility panel (floats top-right of nms-page)
  * ───────────────────────────────────────────────────────────────────────── */
-.nms-widget-manager {
-  position: relative;
-}
-.nms-widget-manager-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 10px;
-  border-radius: var(--gx-radius-sm);
-  background: var(--gx-surface);
-  border: 1px solid var(--gx-border-strong);
-  color: var(--gx-text-2);
-  font-family: var(--gx-font-mono, ui-monospace, monospace);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  transition: border-color var(--gx-dur-base), color var(--gx-dur-base);
-}
-.nms-widget-manager-btn:hover {
-  border-color: var(--gx-text-1);
-  color: var(--gx-text-1);
-}
-.nms-widget-manager-panel {
+.nms-widget-panel {
   position: absolute;
-  top: calc(100% + 6px);
+  top: 0;
   right: 0;
   width: 320px;
   max-height: 60vh;
@@ -277,28 +268,28 @@
   border-radius: var(--gx-radius-md);
   box-shadow: var(--gx-shadow-md);
   padding: var(--gx-space-6);
-  z-index: 100;
+  z-index: var(--gx-z-popover);
   display: flex;
   flex-direction: column;
   gap: var(--gx-space-6);
 }
 .nms-widget-manager-group {
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: var(--gx-space-2);
 }
 .nms-widget-manager-group-label {
   font-family: var(--gx-font-mono, ui-monospace, monospace);
-  font-size: 10px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
+  font-size: var(--gx-text-10); font-weight: 600;
+  text-transform: uppercase; letter-spacing: var(--gx-tracking-wider);
   color: var(--gx-text-3);
-  padding: 4px 0;
+  padding: var(--gx-space-2) 0;
   border-bottom: 1px solid var(--gx-border);
 }
 .nms-widget-manager-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 6px;
+  display: flex; align-items: center; gap: var(--gx-space-4);
+  padding: var(--gx-space-2) var(--gx-space-3);
   border-radius: var(--gx-radius-sm);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--gx-text-sm);
   color: var(--gx-text-1);
 }
 .nms-widget-manager-row:hover { background: var(--gx-surface-2); }
@@ -310,7 +301,7 @@
  * ───────────────────────────────────────────────────────────────────────── */
 .nms-drawer-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: var(--gx-overlay);
   backdrop-filter: blur(2px);
   z-index: 200;
   opacity: 0;
@@ -345,10 +336,10 @@
 }
 .nms-drawer-title {
   font-family: var(--gx-font-mono, ui-monospace, monospace);
-  font-size: 12px;
+  font-size: var(--gx-text-sm);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--gx-tracking-wider);
   color: var(--gx-text-1);
 }
 .nms-drawer-body {
@@ -364,10 +355,272 @@
   border-radius: var(--gx-radius-sm);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+  font-size: var(--gx-text-md);
   transition: color var(--gx-dur-base), border-color var(--gx-dur-base);
 }
 .nms-drawer-close:hover {
   color: var(--gx-text-1);
   border-color: var(--gx-text-1);
+}
+.nms-drawer-content { display: flex; flex-direction: column; gap: var(--gx-space-8); }
+.nms-drawer-block {
+  padding: var(--gx-space-6);
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-sm);
+  font-size: var(--gx-text-sm);
+  font-family: var(--gx-font-mono, ui-monospace, monospace);
+  color: var(--gx-text-2);
+  white-space: pre-wrap;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * D20 Utility classes — replace ALL inline style={{}} in NocDashboardView.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Typography / layout primitives */
+.nms-value-block { display: flex; flex-direction: column; gap: var(--gx-space-2); }
+.nms-label       { font-size: var(--gx-text-10); color: var(--gx-text-3); text-transform: uppercase; letter-spacing: var(--gx-tracking-wider); font-family: var(--gx-font-mono, monospace); }
+.nms-sub         { font-size: var(--gx-text-11); color: var(--gx-text-3); }
+.nms-hint        { font-size: var(--gx-text-11); color: var(--gx-text-3); font-style: italic; }
+.nms-mono        { font-family: var(--gx-font-mono, monospace); }
+.nms-muted       { color: var(--gx-text-3); }
+
+/* Delta direction (OLTs delta line) */
+.nms-delta       { font-family: var(--gx-font-mono, monospace); font-size: var(--gx-text-11); }
+.nms-delta--up   { color: var(--gx-text-2); }
+.nms-delta--down { color: var(--gx-gold); }
+
+/* ── Progress bar (replaces Bar component inline styles) ── */
+.nms-bar {
+  width: 100%;
+  height: var(--nms-bar-h, var(--gx-space-4));
+  border-radius: var(--gx-radius-full);
+  background: var(--gx-border-strong);
+  overflow: hidden;
+}
+.nms-bar-fill { height: 100%; }
+.nms-bar--green .nms-bar-fill { background: var(--gx-text-2); }
+.nms-bar--amber .nms-bar-fill { background: var(--gx-text-3); }
+.nms-bar--red   .nms-bar-fill,
+.nms-bar--gold  .nms-bar-fill { background: var(--gx-gold); }
+.nms-bar--cyan  .nms-bar-fill { background: var(--gx-interactive); }
+
+/* ── ONU Phase State grid ── */
+.nms-phase-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gx-space-6); }
+.nms-phase-cell {
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border);
+  border-radius: var(--gx-radius-sm);
+  padding: var(--gx-space-6);
+  display: flex; flex-direction: column; gap: var(--gx-space-3);
+  cursor: pointer; color: inherit; text-align: left;
+  transition: border-color var(--gx-dur-base);
+}
+.nms-phase-cell:hover { border-color: var(--gx-border-strong); }
+.nms-phase-bar {
+  display: flex;
+  height: var(--gx-space-3);
+  border-radius: var(--gx-radius-full);
+  overflow: hidden;
+  background: var(--gx-border-strong);
+}
+.nms-phase-seg--working { background: var(--gx-text-2); }
+.nms-phase-seg--dying   { background: var(--gx-text-3); }
+.nms-phase-seg--offline { background: var(--gx-gold); }
+
+/* ── Optical RX bar chart ── */
+.nms-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: var(--gx-space-6);
+  height: 200px;
+  padding-top: var(--gx-space-8);
+}
+.nms-bar-col {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center;
+  background: transparent; border: none; padding: 0; cursor: pointer; color: inherit;
+}
+.nms-bar-col-count  { font-size: var(--gx-text-md); font-family: var(--gx-font-mono, monospace); font-weight: var(--gx-weight-semibold); }
+.nms-bar-col-stem   { width: 60%; border-radius: var(--gx-radius-sm) var(--gx-radius-sm) 0 0; margin-top: var(--gx-space-2); }
+.nms-bar-col-label  { font-size: var(--gx-text-10); font-family: var(--gx-font-mono, monospace); color: var(--gx-text-3); margin-top: var(--gx-space-3); text-align: center; }
+.nms-bar-col-bucket { font-size: var(--gx-text-10); font-weight: var(--gx-weight-semibold); text-transform: uppercase; letter-spacing: var(--gx-tracking-wide); }
+.nms-bar-col--green .nms-bar-col-count,
+.nms-bar-col--green .nms-bar-col-bucket { color: var(--gx-text-2); }
+.nms-bar-col--green .nms-bar-col-stem   { background: var(--gx-text-2); }
+.nms-bar-col--amber .nms-bar-col-count,
+.nms-bar-col--amber .nms-bar-col-bucket { color: var(--gx-text-3); }
+.nms-bar-col--amber .nms-bar-col-stem   { background: var(--gx-text-3); }
+.nms-bar-col--red   .nms-bar-col-count,
+.nms-bar-col--red   .nms-bar-col-bucket { color: var(--gx-gold); }
+.nms-bar-col--red   .nms-bar-col-stem   { background: var(--gx-gold); }
+
+/* ── Stat button (Rogue ONU, Unprovisioned) ── */
+.nms-stat-btn {
+  background: transparent; border: none; padding: 0; cursor: pointer; color: inherit;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; gap: var(--gx-space-3); width: 100%;
+}
+.nms-stat-note { font-size: var(--gx-text-11); color: var(--gx-text-3); text-align: center; max-width: 200px; }
+
+/* ── Generic list rows (PON saturation, density, service profiles) ── */
+.nms-list    { display: flex; flex-direction: column; gap: var(--gx-space-4); }
+.nms-list-sm { gap: var(--gx-space-2); }
+.nms-list-row {
+  display: grid; gap: var(--gx-space-4); align-items: center;
+  background: transparent; border: none;
+  padding: var(--gx-space-2) var(--gx-space-3);
+  cursor: pointer; color: inherit; text-align: left;
+  border-radius: var(--gx-radius-sm);
+}
+.nms-list-row:hover { background: var(--gx-surface-2); }
+.nms-list-row--pon     { grid-template-columns: 52px 1fr 70px; }
+.nms-list-row--density { grid-template-columns: 140px 1fr 50px; font-size: var(--gx-text-sm); }
+.nms-list-row--profile { grid-template-columns: 170px 1fr 40px; font-size: var(--gx-text-11); gap: var(--gx-space-3) var(--gx-space-4); padding: var(--gx-space-2) var(--gx-space-3); }
+.nms-list-label { font-family: var(--gx-font-mono, monospace); font-size: var(--gx-text-11); color: var(--gx-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nms-list-value { font-family: var(--gx-font-mono, monospace); font-weight: var(--gx-weight-semibold); text-align: right; }
+
+.nms-pon-val       { font-family: var(--gx-font-mono, monospace); font-size: var(--gx-text-11); text-align: right; }
+.nms-pon-val--ok   { color: var(--gx-text-1); }
+.nms-pon-val--warn { color: var(--gx-text-3); }
+.nms-pon-val--crit { color: var(--gx-gold); }
+.nms-peak-note     { font-size: var(--gx-text-11); color: var(--gx-text-3); font-style: italic; text-align: center; margin-top: var(--gx-space-2); }
+.nms-peak-note b   { color: var(--gx-gold); }
+
+/* ── Vendor mix donut ── */
+.nms-donut-grid  { display: grid; grid-template-columns: auto 1fr; gap: var(--gx-space-6); align-items: center; }
+.nms-vendor-list { display: flex; flex-direction: column; gap: var(--gx-space-3); }
+.nms-vendor-row {
+  display: grid;
+  grid-template-columns: var(--gx-space-5) 1fr auto auto;
+  gap: var(--gx-space-3); align-items: center;
+  background: transparent; border: none;
+  padding: var(--gx-space-2) var(--gx-space-3);
+  cursor: pointer; color: inherit; text-align: left;
+  border-radius: var(--gx-radius-sm);
+  font-size: var(--gx-text-sm);
+}
+.nms-vendor-row:hover { background: var(--gx-surface-2); }
+.nms-vendor-swatch { width: var(--gx-space-5); height: var(--gx-space-5); border-radius: var(--gx-space-1); flex-shrink: 0; }
+.nms-vendor-count  { font-family: var(--gx-font-mono, monospace); color: var(--gx-text-2); }
+.nms-vendor-pct    { font-family: var(--gx-font-mono, monospace); color: var(--gx-text-3); }
+
+/* ── Segmentation strip ── */
+.nms-seg-strip { display: flex; flex-wrap: wrap; gap: var(--gx-space-3); }
+.nms-seg-note  { font-size: var(--gx-text-11); color: var(--gx-text-3); font-style: italic; }
+
+/* ── Speed tier mix chart ── */
+.nms-tier-chart {
+  display: grid;
+  gap: var(--gx-space-4);
+  align-items: flex-end;
+  padding-top: var(--gx-space-7);
+  position: relative;
+}
+.nms-tier-col {
+  background: transparent; border: none; padding: 0; cursor: pointer; color: inherit;
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: var(--gx-space-2);
+}
+.nms-tier-peak-tag {
+  position: absolute;
+  background: var(--gx-surface-2);
+  border: 1px solid var(--gx-border-strong);
+  border-radius: var(--gx-radius-sm);
+  padding: var(--gx-space-1) var(--gx-space-4);
+  font-size: var(--gx-text-10); font-family: var(--gx-font-mono, monospace);
+  color: var(--gx-text-1); white-space: nowrap; font-weight: var(--gx-weight-semibold);
+}
+.nms-tier-stem {
+  position: absolute; bottom: var(--gx-space-12); width: 2px;
+  background: var(--gx-text-2); opacity: 0.6; border-radius: 1px;
+}
+.nms-tier-dot {
+  position: absolute; width: var(--gx-space-5); height: var(--gx-space-5); border-radius: 50%;
+  background: var(--gx-text-1); border: 2px solid var(--gx-bg);
+}
+.nms-tier-dot--leader  { outline: 1px solid var(--gx-text-1); outline-offset: 1px; }
+.nms-tier-name         { font-size: var(--gx-text-10); font-family: var(--gx-font-mono, monospace); }
+.nms-tier-name--leader { color: var(--gx-text-1); font-weight: var(--gx-weight-semibold); }
+.nms-tier-name--rest   { color: var(--gx-text-3); }
+.nms-tier-count        { font-size: var(--gx-text-10); font-family: var(--gx-font-mono, monospace); color: var(--gx-text-3); }
+
+/* ── Technician fleet ── */
+.nms-fleet-list {
+  display: flex; flex-direction: column; gap: var(--gx-space-4);
+  flex: 1; justify-content: center;
+}
+.nms-fleet-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--gx-space-4) var(--gx-space-6);
+  border-radius: var(--gx-radius-sm);
+  background: var(--gx-surface-2); border: 1px solid var(--gx-border);
+  cursor: pointer; color: inherit;
+  font-size: var(--gx-text-sm); font-family: var(--gx-font-mono, monospace);
+  transition: border-color var(--gx-dur-base);
+}
+.nms-fleet-row:hover { border-color: var(--gx-border-strong); }
+.nms-fleet-count { font-size: var(--gx-text-lg); font-weight: var(--gx-weight-semibold); }
+
+/* ── Regional outage map legend ── */
+.nms-map-svg    { width: 100%; background: var(--gx-surface-2); border-radius: var(--gx-radius-sm); border: 1px solid var(--gx-border); }
+.nms-map-legend { display: flex; gap: var(--gx-space-8); font-size: var(--gx-text-11); color: var(--gx-text-3); justify-content: center; margin-top: var(--gx-space-2); }
+.nms-map-legend-dot         { display: inline-block; width: var(--gx-space-4); height: var(--gx-space-4); border-radius: 50%; margin-right: var(--gx-space-2); flex-shrink: 0; vertical-align: middle; }
+.nms-map-legend-dot--ok     { background: var(--gx-text-2); }
+.nms-map-legend-dot--warn   { border: 2px solid var(--gx-text-3); }
+.nms-map-legend-dot--outage { background: var(--gx-gold); }
+
+/* ── ISP Hierarchy Explorer ── */
+.nms-hier-grid { display: grid; grid-template-columns: 180px 220px 1fr; gap: var(--gx-space-6); min-height: 320px; }
+.nms-hier-col  { display: flex; flex-direction: column; gap: var(--gx-space-2); }
+.nms-hier-col--border { border-right: 1px solid var(--gx-border); padding-right: var(--gx-space-4); }
+.nms-hier-col-header { font-size: var(--gx-text-10); color: var(--gx-text-3); text-transform: uppercase; letter-spacing: var(--gx-tracking-wider); padding: 0 var(--gx-space-3); }
+.nms-hier-row {
+  width: 100%; padding: var(--gx-space-2) var(--gx-space-5);
+  border-radius: var(--gx-radius-sm);
+  background: transparent; border: 1px solid transparent;
+  cursor: pointer; color: inherit; text-align: left;
+  font-size: var(--gx-text-sm); font-family: var(--gx-font-mono, monospace);
+  transition: background var(--gx-dur-base), border-color var(--gx-dur-base);
+}
+.nms-hier-row:hover   { background: var(--gx-surface-2); }
+.nms-hier-row--active { background: var(--gx-surface-2); border-color: var(--gx-border-strong); }
+.nms-hier-port-list { display: flex; flex-direction: column; gap: var(--gx-space-1); padding-left: var(--gx-space-4); margin-top: var(--gx-space-1); }
+.nms-hier-port {
+  padding: var(--gx-space-1) var(--gx-space-3);
+  border-radius: var(--gx-radius-sm);
+  background: transparent; border: none;
+  cursor: pointer; color: inherit; text-align: left;
+  font-size: var(--gx-text-11); font-family: var(--gx-font-mono, monospace);
+  display: flex; justify-content: space-between;
+  transition: background var(--gx-dur-base);
+}
+.nms-hier-port:hover   { background: var(--gx-surface-2); }
+.nms-hier-port--active { background: var(--gx-border-strong); }
+.nms-hier-onu-list {
+  display: flex; flex-direction: column; gap: var(--gx-space-1);
+  background: var(--gx-surface-2); border-radius: var(--gx-radius-sm);
+  border: 1px solid var(--gx-border); padding: var(--gx-space-4);
+  max-height: 280px; overflow-y: auto;
+}
+.nms-hier-onu-row {
+  display: grid; grid-template-columns: 1fr 1fr 80px; gap: var(--gx-space-4);
+  align-items: center; background: transparent; border: none;
+  padding: var(--gx-space-2) var(--gx-space-3);
+  cursor: pointer; color: inherit; text-align: left;
+  border-radius: var(--gx-radius-sm);
+  font-size: var(--gx-text-11); font-family: var(--gx-font-mono, monospace);
+  transition: background var(--gx-dur-base);
+}
+.nms-hier-onu-row:hover  { background: var(--gx-surface-2); }
+.nms-hier-onu-profile    { color: var(--gx-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nms-hier-onu-phase      { font-size: var(--gx-text-10); justify-self: end; }
+.nms-hier-empty  { font-size: var(--gx-text-11); color: var(--gx-text-3); text-align: center; padding: var(--gx-space-2) var(--gx-space-3); }
+.nms-hier-phase2 {
+  background: var(--gx-surface-2); border-radius: var(--gx-radius-sm);
+  border: 1px solid var(--gx-border); padding: var(--gx-space-6);
+  font-size: var(--gx-text-11); color: var(--gx-text-3); font-style: italic;
 }

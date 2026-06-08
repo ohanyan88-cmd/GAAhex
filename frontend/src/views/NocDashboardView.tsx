@@ -300,7 +300,7 @@ function NMSCard({
     <div className="nms-card">
       <div className="nms-card-header">
         <div className="nms-card-title">{title}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
+        <div className="nms-card-hd-end">
           {action}
           {status !== 'live' && (
             <span className="nms-card-preview-tag" title="This widget shows sample data while we finalize the design.">
@@ -318,34 +318,16 @@ function PendingState({ headline, body }: { headline: string; body: string }) {
   return (
     <div className="nms-card-pending">
       <div className="nms-card-pending-headline">{headline}</div>
-      <div style={{ maxWidth: 320 }}>{body}</div>
+      <div className="nms-pending-body">{body}</div>
     </div>
   )
 }
 
 function Bar({ pct, variant = 'cyan', height = 8 }: { pct: number; variant?: 'green'|'amber'|'red'|'cyan'|'gold'; height?: number }) {
-  // D18: slate neutrals by default; gold only when critical/peak; azure
-  // (--gx-interactive) when the bar fills a drillable row / interactive
-  // selection (variant: 'cyan'). Cobalt brand-spine is reserved for
-  // structural chrome only and never appears here.
-  const color =
-    variant === 'red' || variant === 'gold'
-      ? 'var(--gx-gold)'
-      : variant === 'amber'
-        ? 'var(--gx-text-3)'
-        : variant === 'cyan'
-          ? 'var(--gx-interactive)' // D18: drillable-row bar fill = azure (interactive)
-          : 'var(--gx-text-2)'
+  // D18: variant drives fill color via CSS class; height is a CSS custom property.
   return (
-    <div style={{
-      height, width: '100%', borderRadius: 'var(--gx-radius-full)',
-      background: 'var(--gx-border-strong)', overflow: 'hidden',
-    }}>
-      <div style={{
-        width: `${Math.max(0, Math.min(100, pct))}%`,
-        height: '100%',
-        background: color,
-      }} />
+    <div className={`nms-bar nms-bar--${variant}`} style={{ '--nms-bar-h': `${height}px` } as React.CSSProperties}>
+      <div className="nms-bar-fill" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
     </div>
   )
 }
@@ -363,10 +345,10 @@ function ValueBlock({ label, value, sub, variant = 'default' }: {
       variant === 'red'   ? 'nms-value-red'   : ''
     )
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
-      <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'var(--gx-font-mono, monospace)' }}>{label}</div>
+    <div className="nms-value-block">
+      <div className="nms-label">{label}</div>
       <div className={valueCls}>{value}</div>
-      {sub && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{sub}</div>}
+      {sub && <div className="nms-sub">{sub}</div>}
     </div>
   )
 }
@@ -387,7 +369,7 @@ const WOltsOnline: React.FC<WidgetCtx> = ({ nocData }) => {
         label="ACTIVE CHASSIS"
         value={count}
         sub={
-          <span style={{ color: delta >= 0 ? 'var(--gx-text-2)' : 'var(--gx-gold)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+          <span className={`nms-delta ${delta >= 0 ? 'nms-delta--up' : 'nms-delta--down'}`}>
             {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} in last 60 s
           </span>
         }
@@ -434,8 +416,8 @@ const WIpPool: React.FC<WidgetCtx> = () => {
         label="USED / TOTAL"
         value={
           <span>
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_IP_POOL.used.toLocaleString()}</span>
-            <span style={{ color: 'var(--gx-text-3)' }}>/{SAMPLE_IP_POOL.total.toLocaleString()}</span>
+            <span className="nms-mono">{SAMPLE_IP_POOL.used.toLocaleString()}</span>
+            <span className="nms-muted">/{SAMPLE_IP_POOL.total.toLocaleString()}</span>
           </span>
         }
         sub={`${remaining.toLocaleString()} available addresses remaining`}
@@ -467,39 +449,29 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   ]
   return (
     <NMSCard title="ONU Phase State Grid" status={nocData ? 'partial' : 'partial'}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--gx-space-6)' }}>
+      <div className="nms-phase-grid">
         {cells.map(c => (
           <button
             key={c.key}
             type="button"
             onClick={() => openDrawer({ kind: 'segment', id: `phase:${c.key}`, label: c.label })}
-            style={{
-              background: 'var(--gx-surface-2)',
-              border: '1px solid var(--gx-border)',
-              borderRadius: 'var(--gx-radius-sm)',
-              padding: 'var(--gx-space-6)',
-              display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)',
-              cursor: 'pointer',
-              color: 'inherit',
-              textAlign: 'left',
-            }}
+            className="nms-phase-cell"
           >
             <span className={'nms-pill ' + c.pillCls}>
               {c.dot && <span className={'nms-dot ' + c.dot} />}
               {c.label}
             </span>
-            <div className="nms-value nms-value-mono" style={{ fontSize: 'var(--gx-text-3xl)' }}>{c.value}</div>
+            <div className="nms-value nms-value-mono nms-value-3xl">{c.value}</div>
             {c.isTotal ? (
-              // Neutral stacked bar: text-2 (working) → text-3 (dying_gasp) → gold (offline).
-              <div style={{ display: 'flex', height: 'var(--gx-space-3)', borderRadius: 'var(--gx-radius-full)', overflow: 'hidden', background: 'var(--gx-border-strong)' }}>
-                <div style={{ flex: s.working,    background: 'var(--gx-text-2)' }} />
-                <div style={{ flex: s.dying_gasp, background: 'var(--gx-text-3)' }} />
-                <div style={{ flex: s.offline,    background: 'var(--gx-gold)' }} />
+              <div className="nms-phase-bar">
+                <div className="nms-phase-seg--working" style={{ flex: s.working }} />
+                <div className="nms-phase-seg--dying"   style={{ flex: s.dying_gasp }} />
+                <div className="nms-phase-seg--offline" style={{ flex: s.offline }} />
               </div>
             ) : (
               <Bar pct={c.share * 100} variant={c.pillCls.includes('green') ? 'green' : c.pillCls.includes('amber') ? 'amber' : 'red'} height={5} />
             )}
-            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
+            <div className="nms-label">
               {c.isTotal ? '100%' : `${(c.share * 100).toFixed(1)}%`}
             </div>
           </button>
@@ -513,29 +485,20 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const max = Math.max(...SAMPLE_OPTICAL_RX.map(b => b.count))
   return (
     <NMSCard title="Optical RX Power Distribution" status="pending">
-      <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-around', gap: 'var(--gx-space-6)', height: 200, paddingTop: 'var(--gx-space-8)' }}>
+      <div className="nms-bar-chart">
         {SAMPLE_OPTICAL_RX.map(b => {
           const h = (b.count / max) * 160
-          // Neutral by default; gold only for the Critical bucket.
-          const color =
-            b.variant === 'green' ? 'var(--gx-text-2)' :
-            b.variant === 'amber' ? 'var(--gx-text-3)' :
-                                    'var(--gx-gold)'
           return (
             <button
               key={b.label}
               type="button"
               onClick={() => openDrawer({ kind: 'segment', id: `rx:${b.variant}`, label: `Optical RX · ${b.bucket}` })}
-              style={{
-                flex: 1,
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
-              }}
+              className={`nms-bar-col nms-bar-col--${b.variant}`}
             >
-              <div style={{ fontSize: 'var(--gx-text-md)', fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 'var(--gx-weight-semibold)', color }}>{b.count}</div>
-              <div style={{ width: '60%', height: h, background: color, borderRadius: '4px 4px 0 0', marginTop: 'var(--gx-space-2)' }} />
-              <div style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{b.label}</div>
-              <div style={{ fontSize: 'var(--gx-text-10)', color, fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{b.bucket}</div>
+              <div className="nms-bar-col-count">{b.count}</div>
+              <div className="nms-bar-col-stem" style={{ height: h }} />
+              <div className="nms-bar-col-label">{b.label}</div>
+              <div className="nms-bar-col-bucket">{b.bucket}</div>
             </button>
           )
         })}
@@ -551,15 +514,11 @@ const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
       <button
         type="button"
         onClick={() => openDrawer({ kind: 'segment', id: 'rogue', label: 'Rogue ONU Alarm' })}
-        style={{
-          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          flex: 1, gap: 'var(--gx-space-3)',
-        }}
+        className="nms-stat-btn"
       >
-        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-6)' }} />
-        <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-red' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{SAMPLE_ROGUE.count}</div>
-        <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', maxWidth: 200 }}>
+        <span className={'nms-dot nms-dot-lg ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} />
+        <div className={'nms-value nms-value-lg nms-mono ' + (isAlarm ? 'nms-value-red' : 'nms-value-green')}>{SAMPLE_ROGUE.count}</div>
+        <div className="nms-stat-note">
           {isAlarm ? 'Blinded ports — uncontrolled light' : 'No rogue ONUs · all ports stable'}
         </div>
       </button>
@@ -580,34 +539,27 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   const peakPct = (peak.count / peak.max) * 100
   return (
     <NMSCard title="PON Port Saturation" status={nocData?.analytics ? 'live' : 'live'}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
+      <div className="nms-list">
         {ports.map(p => {
           const pct = (p.count / p.max) * 100
           const variant = pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'green'
+          const ponVariant = variant === 'red' ? 'crit' : variant === 'amber' ? 'warn' : 'ok'
           return (
             <button
               key={p.id}
               type="button"
               onClick={() => openDrawer({ kind: 'port', id: p.id, label: `Port ${p.id}` })}
-              style={{
-                display: 'grid', gridTemplateColumns: '52px 1fr 70px',
-                gap: 'var(--gx-space-4)', alignItems: 'center',
-                background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)',
-                cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                borderRadius: 'var(--gx-radius-sm)',
-              }}
+              className="nms-list-row nms-list-row--pon"
             >
-              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-2)' }}>{p.id}</span>
+              <span className="nms-list-label">{p.id}</span>
               <Bar pct={pct} variant={variant} height={10} />
-              <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontSize: 'var(--gx-text-11)', textAlign: 'right', color: variant === 'red' ? 'var(--gx-gold)' : variant === 'amber' ? 'var(--gx-text-3)' : 'var(--gx-text-1)' }}>
-                {p.count}/{p.max}
-              </span>
+              <span className={`nms-pon-val nms-pon-val--${ponVariant}`}>{p.count}/{p.max}</span>
             </button>
           )
         })}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 'var(--gx-space-2)' }}>
-        Peak port: <b style={{ color: 'var(--gx-gold)' }}>{peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
+      <div className="nms-peak-note">
+        Peak port: <b>{peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
       </div>
     </NMSCard>
   )
@@ -632,7 +584,7 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   ]
   return (
     <NMSCard title="ONU Vendor Diversity Mix" status={nocData?.analytics ? 'live' : 'live'}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--gx-space-6)', alignItems: 'center' }}>
+      <div className="nms-donut-grid">
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
           <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--gx-border-strong)" strokeWidth={STROKE} />
           {vendors.map((v, i) => {
@@ -657,26 +609,19 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
           <text x={SIZE/2} y={SIZE/2 - 6} textAnchor="middle" fontSize="22" fontWeight="600" fill="var(--gx-text-1)" fontFamily="var(--gx-font-display, sans-serif)">{total}</text>
           <text x={SIZE/2} y={SIZE/2 + 14} textAnchor="middle" fontSize="10" fill="var(--gx-text-3)" letterSpacing="0.08em">ONUs</text>
         </svg>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
+        <div className="nms-vendor-list">
           {vendors.map((v, i) => {
             const pct = Math.round((v.count / total) * 100)
             return (
               <button key={v.vendor}
                 type="button"
                 onClick={() => openDrawer({ kind: 'vendor', prefix: v.prefix, label: v.vendor })}
-                style={{
-                  display: 'grid', gridTemplateColumns: '10px 1fr auto auto',
-                  gap: 'var(--gx-space-3)', alignItems: 'center',
-                  background: 'transparent', border: 'none', padding: '3px 6px',
-                  cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                  borderRadius: 'var(--gx-radius-sm)',
-                  fontSize: 'var(--gx-text-sm)',
-                }}
+                className="nms-vendor-row"
               >
-                <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: colors[i % colors.length] }} />
+                <span className="nms-vendor-swatch" style={{ background: colors[i % colors.length] }} />
                 <span>{v.vendor}</span>
-                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)' }}>{v.count}</span>
-                <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>{pct}%</span>
+                <span className="nms-vendor-count">{v.count}</span>
+                <span className="nms-vendor-pct">{pct}%</span>
               </button>
             )
           })}
@@ -690,23 +635,16 @@ const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
   const max = Math.max(...SAMPLE_DENSITY.map(d => d.count))
   return (
     <NMSCard title="Subscriber Density per OLT" status="partial">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
+      <div className="nms-list">
         {SAMPLE_DENSITY.map(d => (
           <button key={d.olt}
             type="button"
             onClick={() => openDrawer({ kind: 'olt', id: d.olt, label: d.olt })}
-            style={{
-              display: 'grid', gridTemplateColumns: '140px 1fr 50px',
-              gap: 'var(--gx-space-4)', alignItems: 'center',
-              background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)',
-              cursor: 'pointer', color: 'inherit', textAlign: 'left',
-              borderRadius: 'var(--gx-radius-sm)',
-              fontSize: 'var(--gx-text-sm)',
-            }}
+            className="nms-list-row nms-list-row--density"
           >
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.olt}</span>
+            <span className="nms-list-label">{d.olt}</span>
             <Bar pct={(d.count / max) * 100} height={10} />
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 'var(--gx-weight-semibold)', textAlign: 'right' }}>{d.count}</span>
+            <span className="nms-list-value">{d.count}</span>
           </button>
         ))}
       </div>
@@ -730,12 +668,10 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   const CHART_H = 160
   return (
     <NMSCard title="Subscription Speed Tier Mix" status={nocData ? 'live' : 'live'}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))`,
-        gap: 'var(--gx-space-4)', alignItems: 'end',
-        height: CHART_H + 40, paddingTop: 'var(--gx-space-7)', position: 'relative',
-      }}>
+      <div
+        className="nms-tier-chart"
+        style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))`, height: CHART_H + 40 }}
+      >
         {tiers.map(t => {
           const isLeader = t.tier === peak.tier
           const stem = (t.count / max) * CHART_H
@@ -743,38 +679,21 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
             <button key={t.tier}
               type="button"
               onClick={() => openDrawer({ kind: 'tier', name: t.tier })}
-              style={{
-                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
-                position: 'relative', height: CHART_H + 40,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
-                gap: 'var(--gx-space-2)',
-              }}
+              className="nms-tier-col"
+              style={{ height: CHART_H + 40 }}
             >
               {isLeader && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: stem + 24,
-                  background: 'var(--gx-surface-2)',
-                  border: '1px solid var(--gx-border-strong)',
-                  borderRadius: 'var(--gx-radius-sm)',
-                  padding: 'var(--gx-space-1) var(--gx-space-4)',
-                  fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)',
-                  color: 'var(--gx-text-1)', whiteSpace: 'nowrap', fontWeight: 'var(--gx-weight-semibold)',
-                }}>▼ Peak Plan · {peakPct}%</div>
+                <div className="nms-tier-peak-tag" style={{ bottom: stem + 24 }}>
+                  ▼ Peak Plan · {peakPct}%
+                </div>
               )}
-              <div style={{
-                position: 'absolute', bottom: 'var(--gx-space-12)', width: 2, height: stem,
-                background: 'var(--gx-text-2)', opacity: 0.6, borderRadius: 1,
-              }} />
-              <div style={{
-                position: 'absolute', bottom: 24 + stem - 5, width: 10, height: 10, borderRadius: '50%',
-                background: 'var(--gx-text-1)',
-                border: '2px solid var(--gx-bg)',
-                outline: isLeader ? '1px solid var(--gx-text-1)' : 'none',
-                outlineOffset: 1,
-              }} />
-              <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: isLeader ? 'var(--gx-text-1)' : 'var(--gx-text-3)', fontWeight: isLeader ? 600 : 400 }}>{t.tier}</span>
-              <span style={{ fontSize: 'var(--gx-text-10)', fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-3)' }}>{t.count}</span>
+              <div className="nms-tier-stem" style={{ height: stem }} />
+              <div
+                className={`nms-tier-dot${isLeader ? ' nms-tier-dot--leader' : ''}`}
+                style={{ bottom: 24 + stem - 5 }}
+              />
+              <span className={`nms-tier-name ${isLeader ? 'nms-tier-name--leader' : 'nms-tier-name--rest'}`}>{t.tier}</span>
+              <span className="nms-tier-count">{t.count}</span>
             </button>
           )
         })}
@@ -791,22 +710,16 @@ const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   const max = Math.max(...profiles.map(p => p.count), 1)
   return (
     <NMSCard title="Service Profiles Breakdown" status={rawProfiles.length ? 'live' : 'live'}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
+      <div className="nms-list nms-list-sm">
         {profiles.map(p => (
           <button key={p.name}
             type="button"
             onClick={() => openDrawer({ kind: 'profile', name: p.name })}
-            style={{
-              display: 'grid', gridTemplateColumns: '170px 1fr 40px',
-              gap: 'var(--gx-space-4)', alignItems: 'center',
-              background: 'transparent', border: 'none', padding: '3px 6px',
-              cursor: 'pointer', color: 'inherit', textAlign: 'left',
-              borderRadius: 'var(--gx-radius-sm)', fontSize: 'var(--gx-text-11)',
-            }}
+            className="nms-list-row nms-list-row--profile"
           >
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.name}>{p.name}</span>
+            <span className="nms-list-label" title={p.name}>{p.name}</span>
             <Bar pct={(p.count / max) * 100} height={8} />
-            <span style={{ fontFamily: 'var(--gx-font-mono, monospace)', fontWeight: 'var(--gx-weight-semibold)', textAlign: 'right' }}>{p.count}</span>
+            <span className="nms-list-value">{p.count}</span>
           </button>
         ))}
       </div>
@@ -822,15 +735,11 @@ const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
       <button
         type="button"
         onClick={() => openDrawer({ kind: 'segment', id: 'unprov', label: 'Unprovisioned ONUs' })}
-        style={{
-          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          flex: 1, gap: 'var(--gx-space-3)',
-        }}
+        className="nms-stat-btn"
       >
-        <span className={'nms-dot ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-6)' }} />
-        <div className={'nms-value nms-value-lg ' + (isAlarm ? 'nms-value-amber' : 'nms-value-green')} style={{ fontFamily: 'var(--gx-font-mono, monospace)' }}>{n}</div>
-        <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', maxWidth: 200 }}>
+        <span className={'nms-dot nms-dot-lg ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} />
+        <div className={'nms-value nms-value-lg nms-mono ' + (isAlarm ? 'nms-value-amber' : 'nms-value-green')}>{n}</div>
+        <div className="nms-stat-note">
           Pending activation from billing CRM
         </div>
       </button>
@@ -853,19 +762,18 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
     k === 'bng'        ? 'nms-pill-red'  : ''
   return (
     <NMSCard title="Global Segmentation · VLAN / BNG" status={liveVlans.length ? 'live' : 'live'}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)' }}>
+      <div className="nms-seg-strip">
         {segments.map(s => (
           <button key={s.id}
             type="button"
             onClick={() => openDrawer({ kind: 'segment', id: s.id, label: s.label })}
-            className={'nms-pill ' + kindColor(s.kind)}
-            style={{ cursor: 'pointer', fontSize: 'var(--gx-text-11)' }}
+            className={'nms-pill nms-pill-sm ' + kindColor(s.kind)}
           >
             {s.label}
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+      <div className="nms-seg-note">
         Click a chip to filter every widget on the dashboard to that traffic segment.
       </div>
     </NMSCard>
@@ -925,42 +833,18 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
   const phaseColor = (p: string) =>
     p === 'working' ? 'nms-pill-green' : p === 'dying_gasp' ? 'nms-pill-amber' : 'nms-pill-red'
 
-  const colStyle = (withBorder: boolean): React.CSSProperties => ({
-    display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)',
-    borderRight: withBorder ? '1px solid var(--gx-border)' : undefined,
-    paddingRight: withBorder ? 'var(--gx-space-4)' : undefined,
-  })
-  const colHeaderStyle: React.CSSProperties = {
-    fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase',
-    letterSpacing: '0.08em', padding: '0 var(--gx-space-3)',
-  }
-  const rowBtnStyle = (active: boolean): React.CSSProperties => ({
-    width: '100%', padding: 'var(--gx-space-2) var(--gx-space-5)', borderRadius: 'var(--gx-radius-sm)',
-    background: active ? 'var(--gx-surface-2)' : 'transparent',
-    border: active ? '1px solid var(--gx-border-strong)' : '1px solid transparent',
-    cursor: 'pointer', color: 'inherit', textAlign: 'left',
-    fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
-  })
-  const portBtnStyle = (active: boolean): React.CSSProperties => ({
-    padding: 'var(--gx-space-1) var(--gx-space-3)', borderRadius: 'var(--gx-radius-sm)',
-    background: active ? 'var(--gx-border-strong)' : 'transparent',
-    border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left',
-    fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)',
-    display: 'flex', justifyContent: 'space-between',
-  })
-
   return (
     <NMSCard title="ISP Hierarchy Explorer" status={usingSample ? 'partial' : 'live'}>
-      <div style={{ display: 'grid', gridTemplateColumns: '180px 220px 1fr', gap: 'var(--gx-space-6)', minHeight: 320 }}>
+      <div className="nms-hier-grid">
 
         {/* Column 1 — Regions */}
-        <div style={colStyle(true)}>
-          <div style={colHeaderStyle}>Regions</div>
+        <div className="nms-hier-col nms-hier-col--border">
+          <div className="nms-hier-col-header">Regions</div>
           {regionList.map(r => (
             <button key={r.id} type="button"
               onClick={() => onRegion(r.id)}
               onDoubleClick={() => openDrawer({ kind: 'region', id: r.id, label: r.name })}
-              style={rowBtnStyle(regionId === r.id)}
+              className={`nms-hier-row${regionId === r.id ? ' nms-hier-row--active' : ''}`}
             >
               {r.name}
             </button>
@@ -968,8 +852,8 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
         </div>
 
         {/* Column 2 — OLTs + ports */}
-        <div style={colStyle(true)}>
-          <div style={colHeaderStyle}>OLT · PON</div>
+        <div className="nms-hier-col nms-hier-col--border">
+          <div className="nms-hier-col-header">OLT · PON</div>
           {(usingSample ? sampleRegion?.olts ?? [] : oltItems).map(o => {
             const oId  = o.id
             const name = usingSample
@@ -980,27 +864,31 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
                 <button type="button"
                   onClick={() => onOlt(oId)}
                   onDoubleClick={() => openDrawer({ kind: 'olt', id: oId, label: name })}
-                  style={rowBtnStyle(oltId === oId)}
+                  className={`nms-hier-row${oltId === oId ? ' nms-hier-row--active' : ''}`}
                 >
                   {name}
                 </button>
                 {oltId === oId && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-4)', marginTop: 'var(--gx-space-1)' }}>
+                  <div className="nms-hier-port-list">
                     {usingSample
                       ? (o as typeof sampleRegion.olts[0]).ports.map(p => (
-                          <button key={p.id} type="button" onClick={() => setPortId(p.id)} style={portBtnStyle(portId === p.id)}>
+                          <button key={p.id} type="button" onClick={() => setPortId(p.id)}
+                            className={`nms-hier-port${portId === p.id ? ' nms-hier-port--active' : ''}`}
+                          >
                             <span>{p.label}</span>
-                            <span style={{ color: 'var(--gx-text-3)' }}>{p.onus.length}</span>
+                            <span className="nms-muted">{p.onus.length}</span>
                           </button>
                         ))
                       : treeLoading
-                        ? <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) var(--gx-space-3)' }}>Loading ports…</div>
+                        ? <div className="nms-hier-empty">Loading ports…</div>
                         : treePorts.length === 0
-                          ? <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) var(--gx-space-3)' }}>No ports synced. Run a refresh first.</div>
+                          ? <div className="nms-hier-empty">No ports synced. Run a refresh first.</div>
                           : treePorts.map(p => (
-                              <button key={p.id} type="button" onClick={() => setPortId(p.id)} style={portBtnStyle(portId === p.id)}>
+                              <button key={p.id} type="button" onClick={() => setPortId(p.id)}
+                                className={`nms-hier-port${portId === p.id ? ' nms-hier-port--active' : ''}`}
+                              >
                                 <span>0/{p.port_no}</span>
-                                <span style={{ color: 'var(--gx-text-3)' }}>{p.onu_count}</span>
+                                <span className="nms-muted">{p.onu_count}</span>
                               </button>
                             ))
                     }
@@ -1012,22 +900,22 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
         </div>
 
         {/* Column 3 — ONU detail */}
-        <div style={colStyle(false)}>
+        <div className="nms-hier-col">
           {usingSample ? (
             <>
-              <div style={colHeaderStyle}>
+              <div className="nms-hier-col-header">
                 {samplePort ? `Port ${samplePort.label}` : '—'} · {samplePort?.onus.length ?? 0} ONUs
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)', padding: 'var(--gx-space-4)', maxHeight: 280, overflowY: 'auto' }}>
+              <div className="nms-hier-onu-list">
                 {!samplePort || samplePort.onus.length === 0
-                  ? <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', padding: 'var(--gx-space-6)' }}>No ONUs on this port.</div>
+                  ? <div className="nms-hier-empty">No ONUs on this port.</div>
                   : samplePort.onus.map(o => (
                       <button key={o.id} type="button" onClick={() => openDrawer({ kind: 'onu', serial: o.serial })}
-                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px', gap: 'var(--gx-space-4)', alignItems: 'center', background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)', cursor: 'pointer', color: 'inherit', textAlign: 'left', borderRadius: 'var(--gx-radius-sm)', fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)' }}
+                        className="nms-hier-onu-row"
                       >
                         <span>{o.serial}</span>
-                        <span style={{ color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
-                        <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 'var(--gx-text-10)', justifySelf: 'end' }}>{o.phase}</span>
+                        <span className="nms-hier-onu-profile">{o.profile}</span>
+                        <span className={'nms-pill nms-hier-onu-phase ' + phaseColor(o.phase)}>{o.phase}</span>
                       </button>
                     ))
                 }
@@ -1035,12 +923,12 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
             </>
           ) : (
             <>
-              <div style={colHeaderStyle}>
+              <div className="nms-hier-col-header">
                 {portId
                   ? `Port 0/${treePorts.find(p => p.id === portId)?.port_no ?? '?'} · ${treePorts.find(p => p.id === portId)?.onu_count ?? 0} ONUs`
                   : 'Select a port'}
               </div>
-              <div style={{ background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)', padding: 'var(--gx-space-6)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+              <div className="nms-hier-phase2">
                 Per-ONU serial list via port drill-down is Phase 2.
               </div>
             </>
@@ -1081,7 +969,7 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   }
   return (
     <NMSCard title="Regional Outage Field Map" status={liveHubs.length ? 'live' : 'partial'}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)' }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="nms-map-svg" style={{ height: H }}>
         {Array.from({ length: 10 }).map((_, i) => (
           <line key={'h' + i} x1={0} y1={(i * H) / 10} x2={W} y2={(i * H) / 10} stroke="var(--gx-border)" strokeWidth={1} opacity={0.4} />
         ))}
@@ -1115,10 +1003,10 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
           )
         })}
       </svg>
-      <div style={{ display: 'flex', gap: 'var(--gx-space-8)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', justifyContent: 'center', marginTop: 'var(--gx-space-2)' }}>
-        <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: 'var(--gx-text-2)', marginRight: 'var(--gx-space-2)' }} /> Operational</span>
-        <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', border: '2px solid var(--gx-text-3)', marginRight: 'var(--gx-space-2)' }} /> Warning</span>
-        <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', borderRadius: '50%', background: 'var(--gx-gold)', marginRight: 'var(--gx-space-2)' }} /> Outage</span>
+      <div className="nms-map-legend">
+        <span><span className="nms-map-legend-dot nms-map-legend-dot--ok" /> Operational</span>
+        <span><span className="nms-map-legend-dot nms-map-legend-dot--warn" /> Warning</span>
+        <span><span className="nms-map-legend-dot nms-map-legend-dot--outage" /> Outage</span>
       </div>
     </NMSCard>
   )
@@ -1132,21 +1020,15 @@ const WTechnicianFleet: React.FC<WidgetCtx> = ({ openDrawer }) => {
   ]
   return (
     <NMSCard title="Technician Fleet Status" status="pending">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)', flex: 1, justifyContent: 'center' }}>
+      <div className="nms-fleet-list">
         {groups.map(g => (
           <button key={g.key}
             type="button"
             onClick={() => openDrawer({ kind: 'tech-group', group: g.key })}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 'var(--gx-space-4) var(--gx-space-6)', borderRadius: 'var(--gx-radius-sm)',
-              background: 'var(--gx-surface-2)', border: '1px solid var(--gx-border)',
-              cursor: 'pointer', color: 'inherit',
-              fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
-            }}
+            className="nms-fleet-row"
           >
             <span className={'nms-pill ' + g.pill}>{g.label}</span>
-            <span style={{ fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-semibold)' }}>{g.count}</span>
+            <span className="nms-fleet-count">{g.count}</span>
           </button>
         ))}
       </div>
@@ -1251,25 +1133,40 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
       type="WORKSPACE"
       breadcrumb={['NMS', 'Network Management System']}
       title="Network Management System"
-      subtitle="Network operations · alarms · provisioning · field"
       icon={<ServerIcon size={20} />}
+      secondaryActions={[{
+        label: `WIDGETS · ${WIDGETS.filter(w => visibility[w.id] !== false).length}/${WIDGETS.length}`,
+        onClick: () => setManagerOpen(o => !o),
+      }]}
     >
       <div className="nms-page">
-        {/* Top bar — design-preview banner + gear menu */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--gx-space-8)' }}>
-          <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
-            <span style={{ color: nocData ? 'var(--gx-text-2)' : 'var(--gx-gold)' }}>● </span>
-            {nocData ? 'Phase 1B · live data active · sample-tagged widgets await backend pipeline' : 'Phase 1B · loading live data…'}
+        {managerOpen && (
+          <div className="nms-widget-panel" onMouseLeave={() => setManagerOpen(false)}>
+            {MODULE_ORDER.map(mod => {
+              const list = WIDGETS.filter(w => w.module === mod)
+              if (list.length === 0) return null
+              return (
+                <div key={mod} className="nms-widget-manager-group">
+                  <div className="nms-widget-manager-group-label">{MODULE_LABELS[mod]}</div>
+                  {list.map(w => (
+                    <label key={w.id} className="nms-widget-manager-row">
+                      <input
+                        type="checkbox"
+                        checked={visibility[w.id] !== false}
+                        onChange={e => setVisibility({ ...visibility, [w.id]: e.target.checked })}
+                      />
+                      <span>{w.title}</span>
+                      <span className={'nms-pill nms-pill-sm ' + (
+                        w.dataStatus === 'live' ? 'nms-pill-green' :
+                        w.dataStatus === 'partial' ? 'nms-pill-amber' : 'nms-pill-cyan'
+                      )}>{w.dataStatus}</span>
+                    </label>
+                  ))}
+                </div>
+              )
+            })}
           </div>
-          <WidgetManager
-            widgets={WIDGETS}
-            visibility={visibility}
-            onChange={setVisibility}
-            open={managerOpen}
-            setOpen={setManagerOpen}
-          />
-        </div>
-
+        )}
         {/* Render each module band + per-module row layout.
             Wide widgets get their own row (100%); all other visible widgets
             share one row, splitting the module's width equally and matching
@@ -1293,7 +1190,6 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
           )
           return (
             <section key={mod}>
-              <div className="nms-module-band">{MODULE_LABELS[mod]}</div>
               <div className="nms-module-stack">
                 {/* Each wide widget on its own row */}
                 {wides.map(w => (
@@ -1329,72 +1225,7 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// 12. WIDGET MANAGER (gear menu)
-// ═══════════════════════════════════════════════════════════════════════
-
-function WidgetManager({
-  widgets, visibility, onChange, open, setOpen,
-}: {
-  widgets: WidgetDef[]
-  visibility: Record<string, boolean>
-  onChange: (v: Record<string, boolean>) => void
-  open: boolean
-  setOpen: (b: boolean) => void
-}) {
-  const byMod = useMemo(() => {
-    const m = new Map<ModuleNum, WidgetDef[]>()
-    for (const w of widgets) {
-      if (!m.has(w.module)) m.set(w.module, [])
-      m.get(w.module)!.push(w)
-    }
-    return m
-  }, [widgets])
-
-  return (
-    <div className="nms-widget-manager">
-      <button
-        type="button"
-        className="nms-widget-manager-btn"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-      >
-        ⚙ Widgets · {Object.values(visibility).filter(Boolean).length}/{widgets.length}
-      </button>
-      {open && (
-        <div className="nms-widget-manager-panel" onMouseLeave={() => setOpen(false)}>
-          {MODULE_ORDER.map(mod => {
-            const list = byMod.get(mod) ?? []
-            if (list.length === 0) return null
-            return (
-              <div key={mod} className="nms-widget-manager-group">
-                <div className="nms-widget-manager-group-label">{MODULE_LABELS[mod]}</div>
-                {list.map(w => (
-                  <label key={w.id} className="nms-widget-manager-row">
-                    <input
-                      type="checkbox"
-                      checked={visibility[w.id] ?? true}
-                      onChange={e => onChange({ ...visibility, [w.id]: e.target.checked })}
-                    />
-                    <span>{w.title}</span>
-                    <span className={'nms-pill ' + (
-                      w.dataStatus === 'live' ? 'nms-pill-green' :
-                      w.dataStatus === 'partial' ? 'nms-pill-amber' : 'nms-pill-cyan'
-                    )} style={{ fontSize: 'var(--gx-text-10)' }}>
-                      {w.dataStatus}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// 13. DRAWER BODY (context-aware)
+// 12. DRAWER BODY (context-aware)
 // ═══════════════════════════════════════════════════════════════════════
 
 function drawerTitleFor(p: DrawerPayload): string {
@@ -1427,22 +1258,13 @@ function drawerSubtitleFor(p: DrawerPayload): string {
 
 function DrawerBody({ payload }: { payload: DrawerPayload }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
-      <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+    <div className="nms-drawer-content">
+      <div className="nms-hint">
         Slide-out drawer body — Phase 1A design preview. Real per-asset detail will
         render here once each widget is wired to live data and the matching backend
         endpoint exists.
       </div>
-      <div style={{
-        padding: 'var(--gx-space-6)',
-        background: 'var(--gx-surface-2)',
-        border: '1px solid var(--gx-border)',
-        borderRadius: 'var(--gx-radius-sm)',
-        fontSize: 'var(--gx-text-sm)',
-        fontFamily: 'var(--gx-font-mono, monospace)',
-        color: 'var(--gx-text-2)',
-        whiteSpace: 'pre-wrap',
-      }}>
+      <div className="nms-drawer-block">
         {JSON.stringify(payload, null, 2)}
       </div>
     </div>
