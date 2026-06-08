@@ -21,6 +21,7 @@ import { GearIcon, ChartIcon } from '../components/icons'
 import { money } from '../lib/money'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { BASE, authH } from '../lib/billing'
+import { DASHBOARD_BULK, PARETO_TOP_N } from '../lib/pagination'
 import { loadSelected, saveSelected } from '../lib/dashboard-catalog'
 import ChartPicker from '../components/ChartPicker'
 import { PageShell } from '../page-shell'
@@ -741,7 +742,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
   const ragHealth   = useFetched<any>('/api/analytics/rag-health',
     (d: any) => d != null && ((d.red ?? 0) + (d.amber ?? 0) + (d.green ?? 0)) > 0)
   const gantt       = useFetched<any[]>('/api/analytics/gantt', nonEmptyArr)
-  const pareto      = useFetched<any[]>('/api/analytics/pareto/lead?group_field=source&limit=8', nonEmptyArr)
+  const pareto      = useFetched<any[]>(`/api/analytics/pareto/lead?group_field=source&limit=${PARETO_TOP_N}`, nonEmptyArr)
   const sankey      = useFetched<any>('/api/analytics/sankey-leads',
     (d: any) => d?.nodes ? d.nodes.reduce((s: number, n: any) => s + (Number(n.value) || 0), 0) > 0 : false)
   const geoPoints   = useFetched<any[]>('/api/analytics/geo-points', nonEmptyArr)
@@ -785,10 +786,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
     if (!token) return
     let alive = true
     Promise.all([
-      fetch(`${BASE}/api/leads?limit=1000`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
-      fetch(`${BASE}/api/opportunities?limit=1000`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
-      fetch(`${BASE}/api/deals?limit=1000`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
-      fetch(`${BASE}/api/customers?limit=1000`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE}/api/leads?limit=${DASHBOARD_BULK}`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE}/api/opportunities?limit=${DASHBOARD_BULK}`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE}/api/deals?limit=${DASHBOARD_BULK}`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE}/api/customers?limit=${DASHBOARD_BULK}`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
     ]).then(([leads, opps, deals, customers]) => {
       if (!alive) return
       const stages = [

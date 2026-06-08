@@ -8,6 +8,7 @@ import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { ShieldIcon } from '../components/icons'
 import { BASE, authH } from '../lib/billing'
+import { COVERAGE_CHECKS } from '../lib/pagination'
 
 type Check = { id: string; status: string | null; data: Record<string, unknown> }
 
@@ -18,7 +19,7 @@ export default function CoverageView({ token }: { token: string }) {
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/coverage-checks?limit=200`, { headers: authH(token) })
+    fetch(`${BASE}/api/coverage-checks?limit=${COVERAGE_CHECKS}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setChecks(Array.isArray(d) ? d : d.records ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

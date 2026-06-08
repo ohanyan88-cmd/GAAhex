@@ -7,6 +7,7 @@ import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { GearIcon } from '../components/icons'
 import { BASE, authH } from '../lib/billing'
+import { PENDING_SERVICES } from '../lib/pagination'
 
 
 type Service = {
@@ -26,7 +27,7 @@ export default function ProvisioningView({ token }: { token: string }) {
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/services?status=PENDING&limit=200`, { headers: authH(token) })
+    fetch(`${BASE}/api/services?status=PENDING&limit=${PENDING_SERVICES}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setServices(Array.isArray(d) ? d : d.services ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

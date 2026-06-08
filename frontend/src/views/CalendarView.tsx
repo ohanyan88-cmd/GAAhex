@@ -9,6 +9,7 @@ import { usePageConfig } from '../lib/pageConfig'
 import { PageShell } from '../page-shell'
 
 import { BASE } from '../lib/config'
+import { CALENDAR_EVENTS } from '../lib/pagination'
 
 type CalEvent = {
   id: string; title: string; start_at: string; end_at: string | null
@@ -146,7 +147,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
         startStr = isoDate(first); endStr = isoDate(last)
       }
       const er = await fetch(
-        `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=500`,
+        `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=${CALENDAR_EVENTS}`,
         { headers: { Authorization: `Bearer ${token}` } },
       )
       if (er.ok) setEvents(await er.json())

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { bget, bpost, type Subscription, type Invoice } from '../lib/billing'
+import { ENTITY_RECORDS, CUSTOMER_TICKETS } from '../lib/pagination'
 import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -271,12 +272,12 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
       // tab still works on backends that haven't grown the filter clause we ask for.
       const slug = key  // /api/contacts, /api/sites, /api/contracts
       const filterExpr = encodeURIComponent(`customer == "${customerId}"`)
-      let r = await bget<EntityRow[]>(token, `/api/${slug}?filter=${filterExpr}&limit=500`)
+      let r = await bget<EntityRow[]>(token, `/api/${slug}?filter=${filterExpr}&limit=${ENTITY_RECORDS}`)
       if (r.status === 403) return setOne(null, 'denied')
       if (r.status === 404) return setOne(null, 'notfound')
       if (!r.ok || !Array.isArray(r.data)) {
         // Fall back to fetch-all and client-filter (treats a busted filter as "fetch everything").
-        r = await bget<EntityRow[]>(token, `/api/${slug}?limit=500`)
+        r = await bget<EntityRow[]>(token, `/api/${slug}?limit=${ENTITY_RECORDS}`)
         if (r.status === 403) return setOne(null, 'denied')
         if (r.status === 404) return setOne(null, 'notfound')
         if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
@@ -294,7 +295,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     if (key === 'slas') {
       // Helpdesk doesn't expose a customer filter — fetch and client-filter. Cap to keep this
       // bounded; the SLAs tab is meant to highlight problem tickets, not be the full list.
-      const r = await bget<SlaRow[]>(token, `/api/helpdesk/tickets?limit=200`)
+      const r = await bget<SlaRow[]>(token, `/api/helpdesk/tickets?limit=${CUSTOMER_TICKETS}`)
       if (r.status === 403) return setOne(null, 'denied')
       if (r.status === 404) return setOne(null, 'notfound')
       if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')

@@ -7,6 +7,7 @@ import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { ServerIcon } from '../components/icons'
 import { BASE, authH } from '../lib/billing'
+import { NETWORK_SITES } from '../lib/pagination'
 
 
 type Site = { id: string; status: string | null; data: Record<string, unknown> }
@@ -25,7 +26,7 @@ export default function NetworkTopologyView({ token }: { token: string }) {
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/sites?limit=200`, { headers: authH(token) })
+    fetch(`${BASE}/api/sites?limit=${NETWORK_SITES}`, { headers: authH(token) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setSites(Array.isArray(d) ? d : d.records ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

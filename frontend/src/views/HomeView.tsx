@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext'
 import { authH, bget } from '../lib/billing'
 import { initialsOf } from '../lib/utils'
 import { TICKET_CLOSED } from '../lib/status-constants'
+import { WIDGET_ITEMS, WIDGET_APPROVALS } from '../lib/pagination'
 import { DetailTab, DetailTabList } from '../primitives'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
@@ -158,10 +159,10 @@ export default function HomeView({ token, onNavigate, capabilities }: {
     const opts = { headers: authH(token) }
     const fetchJson = (url: string) => fetch(url, opts).then(r => r.ok ? r.json() : []).catch(() => [])
     Promise.all([
-      fetchJson(`${BASE}/api/workitems?assignee=${me.id}&limit=100`),
-      fetchJson(`${BASE}/api/helpdesk/tickets?limit=100`),
-      fetchJson(`${BASE}/api/mandatory-approvals?status=PENDING&limit=50`),
-      fetchJson(`${BASE}/api/schedule-slots?limit=100`),
+      fetchJson(`${BASE}/api/workitems?assignee=${me.id}&limit=${WIDGET_ITEMS}`),
+      fetchJson(`${BASE}/api/helpdesk/tickets?limit=${WIDGET_ITEMS}`),
+      fetchJson(`${BASE}/api/mandatory-approvals?status=PENDING&limit=${WIDGET_APPROVALS}`),
+      fetchJson(`${BASE}/api/schedule-slots?limit=${WIDGET_ITEMS}`),
     ]).then(([wi, tk, ap, sl]) => {
       const toArr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
       setTasks    (toArr(wi).length ? { state: 'ok', value: toArr(wi) } : { state: 'hide' })
