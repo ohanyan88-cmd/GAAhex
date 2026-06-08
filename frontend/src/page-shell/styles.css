@@ -170,6 +170,8 @@
   margin: 0;
 }
 
+.ps-header-desc { font-size: var(--gx-text-sm); color: var(--gx-text-3); display: flex; align-items: center; gap: var(--gx-space-3); flex-wrap: wrap; }
+
 .ps-header-status {
   display: inline-flex;
   align-items: center;

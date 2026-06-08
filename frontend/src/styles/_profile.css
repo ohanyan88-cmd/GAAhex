@@ -22,11 +22,7 @@
 
 /* ════════════════════════════ HUB — BENTO ═══════════════════════════════ */
 .hub-bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--gx-space-4); grid-auto-rows: minmax(120px, auto); margin-top: var(--gx-space-3); }
-.hub-bento .b-profile   { grid-column: 1 / span 2; grid-row: 1; }
-.hub-bento .b-requests  { grid-column: 3 / span 4; grid-row: 1 / span 2; }
-.hub-bento .b-documents { grid-column: 1 / span 2; grid-row: 2; }
-.hub-bento .b-benefits  { grid-column: 1 / span 2; grid-row: 3; }
-.hub-bento .b-kb        { grid-column: 3 / span 4; grid-row: 3; }
+.hub-bento .b-profile { grid-column: 1 / span 6; grid-row: 1; }
 
 .hub-tile {
   height: 100%; width: 100%; text-align: left; font-family: inherit; cursor: pointer;
@@ -39,6 +35,15 @@
 /* non-interactive tile (Profile card shows its info inline — nothing to drill into) */
 .hub-tile.is-static { cursor: default; }
 .hub-tile.is-static:hover { box-shadow: none; transform: none; border-color: var(--gx-border); }
+.b-profile-inner { display: flex; gap: var(--gx-space-8); align-items: flex-start; }
+.b-profile-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--gx-space-5); }
+.b-profile-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gx-space-3); align-content: start; flex-shrink: 0; width: 340px; }
+.b-nav-btn { display: flex; align-items: center; gap: var(--gx-space-3); padding: var(--gx-space-4) var(--gx-space-5); background: var(--gx-surface-2); border: 1px solid var(--gx-border-subtle); border-radius: var(--gx-radius-md); cursor: pointer; font-family: inherit; text-align: left; transition: border-color var(--gx-dur-fast), background var(--gx-dur-fast); }
+.b-nav-btn:hover { border-color: var(--gx-interactive); background: var(--gx-interactive-soft); }
+.b-nav-ic { color: var(--gx-text-3); display: inline-flex; flex-shrink: 0; }
+.b-nav-label { flex: 1; font-size: var(--gx-text-sm); font-weight: var(--gx-weight-semibold); color: var(--gx-text-1); }
+.b-nav-count { font-size: var(--gx-text-xs); color: var(--gx-text-3); font-family: var(--gx-font-display); font-weight: var(--gx-weight-bold); }
+
 .pv-hub-id { display: flex; align-items: center; gap: var(--gx-space-5); min-width: 0; }
 .pv-hub-av-wrap { position: relative; background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; flex-shrink: 0; }
 .pv-hub-av-wrap:hover .pv-hub-av { filter: brightness(0.75); }
@@ -77,6 +82,16 @@
 .hub-dot.is-rejected { background: var(--gx-danger); }
 .hub-prev-ic { color: var(--gx-text-3); display: inline-flex; flex-shrink: 0; }
 
+/* ══════════════════ PAGE HEADER — clickable avatar icon ═════════════════ */
+.pv-header-av { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: none; border: none; padding: 0; cursor: pointer; color: var(--gx-text-2); }
+.pv-header-av-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ══════════════════ TOP BAR — email · phone · role ══════════════════════ */
+.pv-top-bar { display: flex; align-items: center; gap: var(--gx-space-3); flex-wrap: wrap; margin-bottom: var(--gx-space-5); font-size: var(--gx-text-sm); color: var(--gx-text-2); }
+.pv-meta { color: var(--gx-text-2); }
+.pv-meta-sep { color: var(--gx-text-3); user-select: none; }
+.pv-meta-edit { font-size: var(--gx-text-sm); color: var(--gx-text-1); font-family: inherit; background: transparent; border: none; border-bottom: 1px solid var(--gx-interactive); outline: none; padding: 0; width: 120px; }
+
 /* ════════════════════════ AVATAR POSITION PICKER ════════════════════════ */
 .pv-pos-stage { position: relative; width: 260px; height: 260px; overflow: hidden; background: var(--gx-surface-2); cursor: grab; margin: 0 auto; user-select: none; }
 .pv-pos-stage:active { cursor: grabbing; }
@@ -93,6 +108,7 @@
 .pv-hero-role { margin-top: var(--gx-space-2); align-self: flex-start; }
 
 .pv-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gx-space-4); }
+.pv-info-grid.pv-info-grid-padded { padding: var(--gx-space-6); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .pv-info-cell { display: flex; flex-direction: column; gap: var(--gx-space-2); padding: var(--gx-space-5) var(--gx-space-6); background: var(--gx-surface-2); border-radius: var(--gx-radius-md); border: 1px solid var(--gx-border-subtle); }
 .pv-info-label { font-size: var(--gx-text-11); font-weight: var(--gx-weight-semibold); text-transform: uppercase; letter-spacing: 0.05em; color: var(--gx-text-3); }
 .pv-info-value { font-size: var(--gx-text-sm); color: var(--gx-text-1); font-weight: var(--gx-weight-medium); }

@@ -13,6 +13,7 @@ interface PageHeaderProps {
   icon?: ReactNode
   title: string
   subtitle?: string
+  description?: ReactNode
   statusSummary?: string | StatusSummary
   pageTabs?: ReactNode
   primaryAction?: PrimaryAction
@@ -37,6 +38,7 @@ export function PageHeader({
   // Props stay on the interface so callers don't break; PageHeader just doesn't paint them.
   icon,
   title,
+  description,
   statusSummary,
   pageTabs,
   primaryAction,
@@ -65,6 +67,7 @@ export function PageHeader({
           )}
           <div className="ps-header-titles">
             <h1 className="ps-header-title">{title}</h1>
+            {description && <div className="ps-header-desc">{description}</div>}
             {statusSummary && (
               <div className="ps-header-status">
                 <StatusChip summary={statusSummary} />

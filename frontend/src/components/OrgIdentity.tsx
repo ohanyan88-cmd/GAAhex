@@ -117,7 +117,7 @@ export default function OrgIdentity({ token }: { token: string }) {
     <div className="org-wrap" ref={wrapRef}>
       <button className="org" onClick={openEditor} title="Edit company name & logo">
         {logoUrl
-          ? <img className="org-badge" src={logoUrl} alt="" />
+          ? <img className="org-badge org-badge-img" src={logoUrl} alt="" />
           : <span className="org-badge">{initialsOf(name)}</span>}
         <span className="org-name">{name || 'Company'}</span>
         <EditIcon size={12} className="org-edit" style={{ color: 'var(--gx-text-3)' }} />
@@ -130,7 +130,7 @@ export default function OrgIdentity({ token }: { token: string }) {
           </div>
           <div style={{ display: 'flex', gap: 'var(--gx-space-4)', alignItems: 'center', marginBottom: 'var(--gx-space-7)' }}>
             {draftLogo
-              ? <img src={draftLogo} alt="" style={{ width: 46, height: 46, borderRadius: 'var(--gx-radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+              ? <img src={draftLogo} alt="" className="org-pop-logo-preview" />
               : <span style={{ width: 46, height: 46, borderRadius: 'var(--gx-radius-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-lg)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-on-gold)', background: 'linear-gradient(135deg,var(--gold-400),var(--gold-700))' }}>
                   {initialsOf(draftName)}
                 </span>}

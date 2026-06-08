@@ -202,23 +202,23 @@ export default function ProfileView() {
   function hub() {
     return (
       <div className="hub-bento">
-        {/* Profile — static (not clickable); all the info lives on the card */}
+        {/* Profile — static info card */}
         <div className="hub-tile b-profile is-static">
-          <div className="hub-tile-top">
-            <div className="pv-hub-id">
-              <button type="button" className="pv-hub-av-wrap" onClick={() => avatarInputRef.current?.click()} title={t('profile.changePhoto', 'Change photo')}>
-                <span className="pv-hub-av">
-                  {avatarUrl
-                    ? <img src={avatarUrl} className="pv-hub-av-img" style={{ objectPosition: `${avatarPos.x}% ${avatarPos.y}%` }} alt="" />
-                    : initials(user?.name)
-                  }
-                </span>
-                <span className="pv-hub-av-badge" aria-hidden><EditIcon size={10} /></span>
-              </button>
-              <input ref={avatarInputRef} type="file" accept="image/*" className="pv-av-input" onChange={onAvatarPick} />
+          <div className="pv-hub-id">
+            <button type="button" className="pv-hub-av-wrap" onClick={() => avatarInputRef.current?.click()} title={t('profile.changePhoto', 'Change photo')}>
+              <span className="pv-hub-av">
+                {avatarUrl
+                  ? <img src={avatarUrl} className="pv-hub-av-img" style={{ objectPosition: `${avatarPos.x}% ${avatarPos.y}%` }} alt="" />
+                  : initials(user?.name)
+                }
+              </span>
+              <span className="pv-hub-av-badge" aria-hidden><EditIcon size={10} /></span>
+            </button>
+            <input ref={avatarInputRef} type="file" accept="image/*" className="pv-av-input" onChange={onAvatarPick} />
+            <div>
               <div className="hub-tile-title">{name}</div>
+              <div className="hub-tile-blurb">{role}</div>
             </div>
-            <span className="hub-stat"><span className="hub-stat-v">{role}</span><span className="hub-stat-l">{t('profile.access', 'access')}</span></span>
           </div>
           <div className="pv-info-grid pv-hub-grid">
             <div className="pv-info-cell"><span className="pv-info-label">{t('auth.email', 'Email')}</span><span className="pv-info-value mono">{user?.email}</span></div>
@@ -229,75 +229,10 @@ export default function ProfileView() {
                 : <span className="pv-info-value pv-info-editable" onClick={() => setEditPhone(true)}>{phone}</span>
               }
             </div>
-            <div className="pv-info-cell"><span className="pv-info-label">{t('profile.jobTitle', 'Job title')}</span><span className="pv-info-value">{role}</span></div>
             <div className="pv-info-cell"><span className="pv-info-label">{t('profile.team', 'Team')}</span><span className="pv-info-value">Operations</span></div>
             <div className="pv-info-cell"><span className="pv-info-label">{t('profile.joined', 'Joined')}</span><span className="pv-info-value">2024-03-01</span></div>
           </div>
         </div>
-
-        {/* My Requests (wide, with preview) */}
-        <button type="button" className="hub-tile b-requests" onClick={() => setView('requests')}>
-          <div className="hub-tile-top">
-            <span className="hub-ic"><ReceiptIcon size={20} /></span>
-            <span className="hub-stat"><span className="hub-stat-v">{pending}</span><span className="hub-stat-l">{t('profile.pending', 'pending')}</span></span>
-          </div>
-          <div>
-            <div className="hub-tile-title">{t('profile.tab.requests', 'My Requests')}</div>
-            <div className="hub-tile-blurb">{requests.length} {t('profile.total', 'total')} · {pending} {t('profile.awaiting', 'awaiting review')}</div>
-          </div>
-          {requests.length > 0 && (
-            <div className="hub-tile-foot"><div className="hub-prev">
-              {requests.slice(0, 3).map((r) => {
-                const st = r.status || 'DRAFT'
-                return (
-                  <div key={r.id} className="hub-prev-row">
-                    <span className={'hub-dot is-' + reqState(st)} />
-                    <span className="hub-prev-main">{r.subject || r.request_type}</span>
-                    <span className={'pill ' + reqPill(st)}>{st}</span>
-                  </div>
-                )
-              })}
-            </div></div>
-          )}
-        </button>
-
-        {/* My Documents */}
-        <button type="button" className="hub-tile b-documents" onClick={() => setView('documents')}>
-          <div className="hub-tile-top">
-            <span className="hub-ic"><FolderIcon size={20} /></span>
-            <span className="hub-stat"><span className="hub-stat-v">{allDocs.length}</span><span className="hub-stat-l">{t('profile.files', 'files')}</span></span>
-          </div>
-          <div><div className="hub-tile-title">{t('profile.tab.documents', 'My Documents')}</div><div className="hub-tile-blurb">Contracts, ID, tax &amp; HR records</div></div>
-        </button>
-
-        {/* My Benefits */}
-        <button type="button" className="hub-tile b-benefits" onClick={() => setView('benefits')}>
-          <div className="hub-tile-top">
-            <span className="hub-ic"><BriefcaseIcon size={20} /></span>
-            <span className="hub-stat"><span className="hub-stat-v">{benefits.length}</span><span className="hub-stat-l">{t('profile.enrolled', 'enrolled')}</span></span>
-          </div>
-          <div><div className="hub-tile-title">{t('profile.tab.benefits', 'My Benefits')}</div><div className="hub-tile-blurb">Health, leave, learning &amp; more</div></div>
-        </button>
-
-        {/* Knowledge Base (wide, with preview) */}
-        <button type="button" className="hub-tile b-kb" onClick={() => setView('kb')}>
-          <div className="hub-tile-top">
-            <span className="hub-ic"><BookmarkIcon size={20} /></span>
-            <span className="hub-stat"><span className="hub-stat-v">{articles.length}</span><span className="hub-stat-l">{t('profile.articles', 'articles')}</span></span>
-          </div>
-          <div><div className="hub-tile-title">{t('profile.tab.kb', 'Knowledge Base')}</div><div className="hub-tile-blurb">{t('profile.guides', 'Guides & how-tos')}</div></div>
-          {articles.length > 0 && (
-            <div className="hub-tile-foot"><div className="hub-prev">
-              {articles.slice(0, 3).map((a) => (
-                <div key={a.id} className="hub-prev-row">
-                  <span className="hub-prev-ic"><BookmarkIcon size={15} /></span>
-                  <span className="hub-prev-main">{a.title}</span>
-                  <span className="hub-prev-ic"><ArrowRightIcon size={14} /></span>
-                </div>
-              ))}
-            </div></div>
-          )}
-        </button>
       </div>
     )
   }
@@ -321,10 +256,15 @@ export default function ProfileView() {
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['Workspace', 'My Profile']}
       icon={<UserIcon size={18} />}
-      title={t('profile.title', 'My profile')}
-      subtitle={t('profile.subtitle2', 'Everything about your account, in one place')}
+      title={name}
+      secondaryActions={[
+        { label: name,                                        icon: <UserIcon size={15} />,      onClick: () => setView('profile')   },
+        { label: t('profile.tab.requests', 'My Requests'),  icon: <ReceiptIcon size={15} />,   onClick: () => setView('requests')  },
+        { label: t('profile.tab.documents', 'My Documents'), icon: <FolderIcon size={15} />,    onClick: () => setView('documents') },
+        { label: t('profile.tab.benefits', 'My Benefits'),  icon: <BriefcaseIcon size={15} />, onClick: () => setView('benefits')  },
+        { label: t('profile.tab.kb', 'Knowledge Base'),     icon: <BookmarkIcon size={15} />,  onClick: () => setView('kb')        },
+      ]}
     >
       {view === 'hub' && hub()}
 
@@ -352,6 +292,28 @@ export default function ProfileView() {
       )}
 
       {/* ════════════ REQUESTS ════════════ */}
+      {/* ════════════ PROFILE INFO ════════════ */}
+      {view === 'profile' && (
+        <>
+          {backBar(name, role)}
+          <div className="pv-surface pv-card-flush">
+            <div className="pv-info-grid pv-info-grid-padded">
+              <div className="pv-info-cell"><span className="pv-info-label">{t('auth.email', 'Email')}</span><span className="pv-info-value mono">{user?.email}</span></div>
+              <div className="pv-info-cell">
+                <span className="pv-info-label">{t('profile.phone', 'Phone')}</span>
+                {editPhone
+                  ? <input className="pv-info-edit" value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => setEditPhone(false)} autoFocus />
+                  : <span className="pv-info-value pv-info-editable" onClick={() => setEditPhone(true)}>{phone}</span>
+                }
+              </div>
+              <div className="pv-info-cell"><span className="pv-info-label">{t('profile.jobTitle', 'Job title')}</span><span className="pv-info-value">{role}</span></div>
+              <div className="pv-info-cell"><span className="pv-info-label">{t('profile.team', 'Team')}</span><span className="pv-info-value">Operations</span></div>
+              <div className="pv-info-cell"><span className="pv-info-label">{t('profile.joined', 'Joined')}</span><span className="pv-info-value">2024-03-01</span></div>
+            </div>
+          </div>
+        </>
+      )}
+
       {view === 'requests' && (
         <>
           {backBar(

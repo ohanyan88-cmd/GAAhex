@@ -163,6 +163,7 @@ export interface PageShellProps {
   icon?: ReactNode
   title: string
   subtitle?: string
+  description?: ReactNode
   statusSummary?: string | StatusSummary
   /** Optional page-level tab strip (e.g. a <DetailTabList>) rendered under the
    *  title — composes sub-pages (e.g. Overview / Work) into one logical page.

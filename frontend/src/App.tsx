@@ -566,6 +566,7 @@ export default function App() {
           </button>
 
           <OrgIdentity token={token!} />
+          <span className="tb-divider" aria-hidden />
 
           <span className="spacer" />
 

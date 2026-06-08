@@ -51,6 +51,7 @@ export function PageShell({
   icon,
   title,
   subtitle,
+  description,
   statusSummary,
   pageTabs,
   kpis,
@@ -111,6 +112,7 @@ export function PageShell({
         icon={icon}
         title={title}
         subtitle={subtitle}
+        description={description}
         statusSummary={statusSummary}
         pageTabs={pageTabs}
         primaryAction={headerPrimary}
