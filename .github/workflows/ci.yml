@@ -258,6 +258,10 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
+      - name: Unit tests (vitest)
+        working-directory: frontend
+        run: npm run test:unit
+
       - name: Dependency audit (npm audit, warn only)
         working-directory: frontend
         continue-on-error: true
