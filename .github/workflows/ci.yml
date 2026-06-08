@@ -131,14 +131,10 @@ jobs:
   #      growing an alembic-managed path (so policies install via migration
   #      and tables are owned by `gaahex`).
   #
-  # `continue-on-error: true` on landing: this job is catching real bugs and
-  # is allowed to surface them without blocking PRs while the team triages.
-  # REMOVE `continue-on-error` once this run is consistently green.
   backend-rls:
     name: Backend (RLS subset under gaahex_app role)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
 
     services:
       postgres:

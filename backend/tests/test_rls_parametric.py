@@ -48,7 +48,7 @@ import sqlalchemy as sa
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.db import engine          # gaahex (owner) — seeds + RLS toggles + cleanup
+from app.db import owner_engine as engine  # gaahex (owner) — bypasses RLS, seeds + RLS toggles + cleanup
 from app.models import Base
 from tests.test_rls import (   # reuse Wave 3 helpers — same predicate shape as the spot tests
     _disable_rls,

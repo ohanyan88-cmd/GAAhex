@@ -14,7 +14,7 @@ from urllib.parse import urlparse, urlunparse
 import pytest_asyncio
 from sqlalchemy import text
 
-from app.db import engine        # gaahex (owner) engine on gaahex_test — used here only for setup
+from app.db import owner_engine as engine  # gaahex (owner) engine — bypasses RLS, used only for setup/DDL
 from sqlalchemy.ext.asyncio import create_async_engine
 
 

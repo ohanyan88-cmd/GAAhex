@@ -32,12 +32,13 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _setup_db():
-    # (re)create a clean test database. Derive the admin URL (database='postgres') from the
-    # configured DATABASE_URL so this works against whatever host/port the environment uses —
-    # localhost:5433 locally, CI's postgres-service port in CI. Strip the SQLAlchemy driver
-    # prefix because asyncpg.connect takes a plain libpq-style URL.
+    # (re)create a clean test database. Use OWNER_DATABASE_URL (the gaahex owner role) for the
+    # admin connection — in the backend-rls CI job DATABASE_URL is gaahex_app (NOSUPERUSER) which
+    # cannot DROP a database it doesn't own. OWNER_DATABASE_URL is always gaahex (owner/superuser).
+    # Falls back to DATABASE_URL when OWNER_DATABASE_URL is unset (local dev, regular backend job).
     from urllib.parse import urlparse, urlunparse
-    p = urlparse(os.environ["DATABASE_URL"].replace("postgresql+asyncpg://", "postgresql://"))
+    owner_url_raw = (os.environ.get("OWNER_DATABASE_URL") or os.environ["DATABASE_URL"])
+    p = urlparse(owner_url_raw.replace("postgresql+asyncpg://", "postgresql://"))
     admin_url = urlunparse(p._replace(path="/postgres"))
     admin = await asyncpg.connect(admin_url)
     await admin.execute("DROP DATABASE IF EXISTS gaahex_test WITH (FORCE)")
@@ -45,16 +46,18 @@ async def _setup_db():
     await admin.close()
 
     from sqlalchemy import text
-    from app.db import engine
+    from app.db import engine, owner_engine
     from app.models import Base
     # SM-5 — apply_test_seeds is the canonical minimum set, shared with main.py:lifespan.
     from app.seed import apply_test_seeds
 
-    # CREATE EXTENSION IF NOT EXISTS is NOT atomic in Postgres: two concurrent
-    # transactions can both see "doesn't exist", both try to create, one hits the
-    # unique-violation on pg_extension_name_index. Run on a dedicated connection
-    # OUTSIDE the bulk transaction, with retry-swallowing for the race. Idempotent.
-    async with engine.connect() as c:
+    # Extensions and DDL MUST run as the owner (gaahex) so:
+    # (a) CREATE EXTENSION succeeds — gaahex_app is NOSUPERUSER and cannot create extensions.
+    # (b) gaahex becomes TABLE OWNER → RLS policies fire against gaahex_app in the backend-rls job.
+    #     (table owners bypass RLS unless FORCE ROW LEVEL SECURITY is set; running create_all as
+    #     gaahex_app would make gaahex_app the owner and silently bypass RLS in that CI job.)
+    # In the regular backend job owner_engine == engine (both gaahex), so no behavioral change.
+    async with owner_engine.connect() as c:
         try:
             await c.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
             await c.commit()
@@ -71,7 +74,7 @@ async def _setup_db():
     # NOC Phase C: PostGIS extension — needed for fiber_route/outage_path partial indexes
     # that may CAST to geometry in raw SQL. Install before create_all so the extension is
     # available for any migration that references PostGIS types / functions.
-    async with engine.connect() as c:
+    async with owner_engine.connect() as c:
         try:
             await c.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
             await c.commit()
@@ -81,11 +84,12 @@ async def _setup_db():
                 raise
             await c.rollback()
 
-    async with engine.begin() as c:
+    async with owner_engine.begin() as c:
         await c.run_sync(Base.metadata.create_all)
     await apply_test_seeds()
     yield
     await engine.dispose()
+    await owner_engine.dispose()
 
 
 @pytest_asyncio.fixture(scope="session")

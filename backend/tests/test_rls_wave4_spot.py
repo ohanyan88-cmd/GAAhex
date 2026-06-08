@@ -53,7 +53,7 @@ import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.db import engine  # gaahex (owner) — seeds + RLS toggles + cleanup
+from app.db import owner_engine as engine  # gaahex (owner) — bypasses RLS, seeds + RLS toggles + cleanup
 from tests.test_rls import (  # reuse helpers — same predicate shape as the Wave 3 spot tests
     _disable_rls,
     _enable_rls_and_grant,
