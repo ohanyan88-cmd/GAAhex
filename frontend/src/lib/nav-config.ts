@@ -78,7 +78,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('br-revenue-assurance',   'Revenue Assurance',   ShieldIcon,     'revenue-assurance'),
   ]),
 
-  s('tech_noc', 'NMS', ServerIcon, [
+  s('tech_noc', 'Tech & NOC', ServerIcon, [
     i('noc-dashboard',           'Network Management System', ServerIcon,   'noc-dashboard'),
     i('noc-service-qualification','Service Qualification',   CheckIcon,    'coverage-gis'),
     i('noc-installation-board',  'Installation Board',       TruckIcon,    'installation-board'),
@@ -86,7 +86,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
     i('noc-support-dispatch',    'Support Dispatch Board',   ActivityIcon, 'dispatch-board'),
     i('noc-provisioning',        'Provisioning',             GearIcon,     'provisioning'),
     i('noc-incidents',           'Incidents & Outages',      ShieldIcon,   'entity', { slug: 'incidents' }),
-    i('noc-infra-projects',      'Infrastructure Projects',  LayersIcon,   'coming-soon', { id: 'infrastructure-projects', title: 'Infrastructure Projects', parent: 'NMS' }),
+    i('noc-infra-projects',      'Infrastructure Projects',  LayersIcon,   'coming-soon', { id: 'infrastructure-projects', title: 'Infrastructure Projects', parent: 'Tech & NOC' }),
     i('noc-inventory',           'Network & Stock Inventory',PackageIcon,  'network-inventory'),
     i('noc-topology',            'Network Topology',         ServerIcon,   'network-topology'),
   ]),

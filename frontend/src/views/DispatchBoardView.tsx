@@ -57,7 +57,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['NMS', 'Support Dispatch Board']}
+      breadcrumb={['Tech & NOC', 'Support Dispatch Board']}
       icon={<TruckIcon size={20} />}
       title="Support Dispatch Board"
       subtitle="Field operations dispatch"

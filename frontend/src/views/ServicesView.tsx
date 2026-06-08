@@ -163,7 +163,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['NMS', page.title]}
+      breadcrumb={['Tech & NOC', page.title]}
       icon={<ServerIcon size={18} />}
       title={page.title}
       subtitle="Active subscriber services"

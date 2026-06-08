@@ -53,7 +53,7 @@ export default function NetworkTopologyView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['NMS', 'Network Topology']}
+      breadcrumb={['Tech & NOC', 'Network Topology']}
       icon={<ServerIcon size={20} />}
       title="Network Topology"
       subtitle="Logical connectivity graph"

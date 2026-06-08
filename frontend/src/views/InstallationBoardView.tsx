@@ -210,7 +210,7 @@ export default function InstallationBoardView({
   return (
     <PageShell
       type="PIPELINE"
-      breadcrumb={['NMS', 'Installation Board']}
+      breadcrumb={['Tech & NOC', 'Installation Board']}
       icon={<TruckIcon size={18} />}
       title="Installation Board"
       subtitle="Service activation pipeline · stages 9–11"

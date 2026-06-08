@@ -52,7 +52,7 @@ export default function CoverageView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['NMS', 'Service Qualification']}
+      breadcrumb={['Tech & NOC', 'Service Qualification']}
       icon={<ShieldIcon size={20} />}
       title="Service Qualification"
       subtitle="Network coverage check & feasibility"

@@ -321,7 +321,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
   return (
     <PageShell
       type="OPERATIONS"
-      breadcrumb={['NMS', 'Network & Stock Inventory']}
+      breadcrumb={['Tech & NOC', 'Network & Stock Inventory']}
       icon={<PackageIcon size={18} />}
       title="Network & Stock Inventory"
       subtitle="Fiber routes · IPAM · RADIUS sessions · broadcasts"

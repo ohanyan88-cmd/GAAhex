@@ -191,7 +191,7 @@ export default function HelpdeskView({
     return (
       <PageShell
         type="OPERATIONS"
-        breadcrumb={['NMS', 'Support Tickets']}
+        breadcrumb={['Tech & NOC', 'Support Tickets']}
         icon={<InboxIcon size={18} />}
         title="Support Tickets"
         subtitle="Helpdesk queue · SLA tracking"
@@ -208,7 +208,7 @@ export default function HelpdeskView({
   return (
     <PageShell
       type="OPERATIONS"
-      breadcrumb={['NMS', 'Support Tickets']}
+      breadcrumb={['Tech & NOC', 'Support Tickets']}
       icon={<InboxIcon size={18} />}
       title="Support Tickets"
       subtitle="Helpdesk queue · SLA tracking"

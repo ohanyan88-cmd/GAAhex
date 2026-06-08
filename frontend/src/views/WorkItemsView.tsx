@@ -219,7 +219,7 @@ export default function WorkItemsView({
     return (
       <PageShell
         type="OPERATIONS"
-        breadcrumb={['NMS', 'Work Items']}
+        breadcrumb={['Tech & NOC', 'Work Items']}
         icon={<RowsIcon size={18} />}
         title="Work Items"
         subtitle="Field operations work queue"
@@ -236,7 +236,7 @@ export default function WorkItemsView({
   return (
     <PageShell
       type="OPERATIONS"
-      breadcrumb={['NMS', 'Work Items']}
+      breadcrumb={['Tech & NOC', 'Work Items']}
       icon={<RowsIcon size={18} />}
       title="Work Items"
       subtitle="Field operations work queue"

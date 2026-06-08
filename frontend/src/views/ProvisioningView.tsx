@@ -52,7 +52,7 @@ export default function ProvisioningView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['NMS', 'Provisioning']}
+      breadcrumb={['Tech & NOC', 'Provisioning']}
       icon={<GearIcon size={20} />}
       title="Provisioning"
       subtitle="Service activation pipeline · Stages 9–11"
