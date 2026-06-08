@@ -1,4 +1,4 @@
-// NetworkTopologyView — Tech & NOC → Network Topology.
+// NetworkTopologyView — NMS → Network Topology.
 // Lists sites/POPs from /api/sites (entity records with entity_key='site').
 // Shows status, kind, address. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
@@ -53,7 +53,7 @@ export default function NetworkTopologyView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Tech & NOC', 'Network Topology']}
+      breadcrumb={['NMS', 'Network Topology']}
       icon={<ServerIcon size={20} />}
       title="Network Topology"
       subtitle="Logical connectivity graph"

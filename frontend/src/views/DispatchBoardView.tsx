@@ -1,4 +1,4 @@
-// DispatchBoardView — Tech & NOC → Support Dispatch Board.
+// DispatchBoardView — NMS → Support Dispatch Board.
 // Workitems grouped by status — TODO / IN_PROGRESS / DONE / BLOCKED columns.
 // Real data from GET /api/workitems. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
@@ -57,7 +57,7 @@ export default function DispatchBoardView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Tech & NOC', 'Support Dispatch Board']}
+      breadcrumb={['NMS', 'Support Dispatch Board']}
       icon={<TruckIcon size={20} />}
       title="Support Dispatch Board"
       subtitle="Field operations dispatch"

@@ -1265,7 +1265,7 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
 
   if (!canViewService) {
     return (
-      <PageShell type="OPERATIONS" breadcrumb={['Tech & NOC', 'NMS Dashboard']} title="NMS Dashboard">
+      <PageShell type="OPERATIONS" breadcrumb={['NMS', 'Network Management System']} title="Network Management System">
         <PermissionDenied message="You don't have permission to view NOC monitoring." />
       </PageShell>
     )
@@ -1274,8 +1274,8 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['Tech & NOC', 'NMS Dashboard']}
-      title="NMS Dashboard"
+      breadcrumb={['NMS', 'Network Management System']}
+      title="Network Management System"
       subtitle="Network operations · alarms · provisioning · field"
     >
       <div className="nms-page">

@@ -1,4 +1,4 @@
-// NetworkInventoryView — Tech & NOC → Network & Stock Inventory.
+// NetworkInventoryView — NMS → Network & Stock Inventory.
 //
 // Consumes the Phase NOC.C backend surface:
 //   GET    /api/fiber-routes?status=&page=
@@ -321,7 +321,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
   return (
     <PageShell
       type="OPERATIONS"
-      breadcrumb={['Tech & NOC', 'Network & Stock Inventory']}
+      breadcrumb={['NMS', 'Network & Stock Inventory']}
       icon={<PackageIcon size={18} />}
       title="Network & Stock Inventory"
       subtitle="Fiber routes · IPAM · RADIUS sessions · broadcasts"

@@ -83,7 +83,7 @@ SPEC_NAV_STRUCTURE: list[tuple[str, str, int, list[tuple[str, str, int, str, lis
         ('revenue_assurance',    'Revenue Assurance',    7, 'V', [],                             '/revenue-assurance'),
     ]),
     ('network_operations', 'Network & Operations', 5, [
-        ('noc_dashboard',        'NOC Dashboard',          1,  'V', [],                  '/noc'),
+        ('noc_dashboard',        'Network Management System', 1,  'V', [],                  '/noc'),
         ('network_monitoring',   'Network Monitoring',     2,  'O', ['alarm'],           '/network-monitoring'),
         ('incidents_outages',    'Incidents & Outages',    3,  'O', ['incident'],        '/incidents'),
         ('coverage_gis',         'Coverage & GIS',         4,  'O', ['coverage_check'],  '/coverage'),

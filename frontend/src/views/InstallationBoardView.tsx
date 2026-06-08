@@ -1,4 +1,4 @@
-// InstallationBoardView — Tech & NOC → Installation Board.
+// InstallationBoardView — NMS → Installation Board.
 //
 // Real kanban over orders currently in PROVISIONING, fed by NOC Phase A backend
 // (GET /api/install-board). Columns map to the four install substages:
@@ -210,7 +210,7 @@ export default function InstallationBoardView({
   return (
     <PageShell
       type="PIPELINE"
-      breadcrumb={['Tech & NOC', 'Installation Board']}
+      breadcrumb={['NMS', 'Installation Board']}
       icon={<TruckIcon size={18} />}
       title="Installation Board"
       subtitle="Service activation pipeline · stages 9–11"

@@ -1,4 +1,4 @@
-// CoverageView — Tech & NOC → Service Qualification.
+// CoverageView — NMS → Service Qualification.
 // Lists coverage_check records with pass/fail stats.
 // When lat/lon data is present, shows coordinates.
 // Real data from GET /api/coverage-checks. Real data only.
@@ -52,7 +52,7 @@ export default function CoverageView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Tech & NOC', 'Service Qualification']}
+      breadcrumb={['NMS', 'Service Qualification']}
       icon={<ShieldIcon size={20} />}
       title="Service Qualification"
       subtitle="Network coverage check & feasibility"

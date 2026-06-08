@@ -1,4 +1,4 @@
-// ProvisioningView — Tech & NOC → Provisioning.
+// ProvisioningView — NMS → Provisioning.
 // Activation queue: services in PENDING status, ordered by created_at.
 // Real data from GET /api/services?status=PENDING. Real data only.
 import { useEffect, useState } from 'react'
@@ -52,7 +52,7 @@ export default function ProvisioningView({ token }: { token: string }) {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Tech & NOC', 'Provisioning']}
+      breadcrumb={['NMS', 'Provisioning']}
       icon={<GearIcon size={20} />}
       title="Provisioning"
       subtitle="Service activation pipeline · Stages 9–11"
