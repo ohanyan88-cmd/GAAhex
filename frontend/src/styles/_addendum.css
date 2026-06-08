@@ -124,3 +124,9 @@
 .kpi-scope-team { background: var(--azure-100);  color: var(--azure-700); }
 .kpi-scope-dept { background: var(--gx-gold-soft); color: var(--gx-gold); }
 .kpi-scope-org  { background: var(--gx-surface-2); border: 1px solid var(--gx-border); color: var(--gx-text-2); }
+
+/* ── Workspace ME | TEAM layout ─────────────────────────────────────────── */
+.ws-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gx-space-18); align-items: start; }
+.ws-col { display: flex; flex-direction: column; gap: var(--gx-space-8); }
+.ws-col-head { font-size: var(--gx-text-xl); font-weight: var(--gx-weight-bold); letter-spacing: .06em; text-transform: uppercase; color: var(--gx-text-2); padding: 0 var(--gx-space-2) var(--gx-space-4); }
+@media (max-width: 860px) { .ws-layout { grid-template-columns: 1fr; } }

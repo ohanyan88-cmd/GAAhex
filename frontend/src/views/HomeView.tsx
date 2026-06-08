@@ -16,8 +16,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
   CheckSquare, Clock, Shield, Inbox,
-  AlertTriangle, Users, Banknote, MapPin,
-  FileText,
+  AlertTriangle, Users, MapPin,
   type LucideIcon,
 } from 'lucide-react'
 import { BASE } from '../lib/config'
@@ -412,220 +411,110 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       }
     >
 
-      {tab === 'workspace' && (<>
-      {/* Attention Center — the cockpit hero: what needs my action right now.
-          Always present; cascades to a positive "all clear" state when empty so
-          the page is never blank (the operational-cockpit rule). */}
-      <section aria-label="Requires your attention" style={{ marginBottom: 'var(--gx-space-8)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-5)' }}>
-          <AlertTriangle size={15} color={urgentItems.length > 0 ? 'var(--gx-warning)' : 'var(--gx-text-3)'} />
-          <h2 style={{ fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', margin: 0 }}>Requires your attention</h2>
-          {urgentItems.length > 0 && <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{urgentItems.length}</span>}
-        </div>
-        {urgentItems.length === 0 ? (
-          <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', padding: 'var(--gx-space-7) var(--gx-space-8)' }}>
-            <CheckSquare size={16} color="var(--gx-success-fg)" />
-            <span style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>You're clear — nothing needs your attention right now.</span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
-            {urgentItems.map((u, i) => (
-              <div
-                key={i}
-                role={u.onClick ? 'button' : undefined}
-                tabIndex={u.onClick ? 0 : undefined}
-                onClick={u.onClick}
-                onKeyDown={u.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); u.onClick?.() } } : undefined}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)',
-                  padding: 'var(--gx-space-5) var(--gx-space-8)',
-                  borderRadius: 'var(--gx-radius-sm)',
-                  background: u.severity === 'red' ? 'var(--gx-danger-soft)' : 'var(--gx-warning-soft)',
-                  border: `1px solid ${u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'}`,
-                  cursor: u.onClick ? 'pointer' : 'default',
-                }}
-              >
-                <u.icon size={16} color={u.severity === 'red' ? 'var(--gx-danger)' : 'var(--gx-warning)'} />
-                <span style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{u.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {tab === 'workspace' && (
+        <div className="ws-layout">
 
-      {/* Role-specific widgets */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
+          {/* ── ME ──────────────────────────────────────────────────────────── */}
+          <div className="ws-col">
+            <div className="ws-col-head">ME</div>
 
-        {(role === 'support' || isAdmin) && (
-          <>
-            <Widget icon={Inbox} title="My Open Tickets" count={myTickets.filter(t => !['RESOLVED','CLOSED'].includes(t.status)).length}>
+            <Widget icon={Inbox} title="My Tickets" count={myTickets.filter(t => !['RESOLVED','CLOSED','CANCELLED'].includes(t.status ?? '')).length}>
               {tickets.state === 'loading' && <Skel />}
-              {myTickets.length === 0 ? <Empty msg="All clear" /> : myTickets.slice(0, 6).map(t => (
-                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+              {myTickets.length === 0 ? <Empty msg="No tickets assigned to you" /> : myTickets.slice(0, 8).map(t => (
+                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-primary" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
                 </div>
               ))}
             </Widget>
 
-            <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
-              {breachedTickets.length === 0 ? <Empty msg="No tickets past SLA" /> : breachedTickets.slice(0, 6).map(t => (
-                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('helpdesk', t.id))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <AlertTriangle size={13} color="var(--gx-danger)" />
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
-                  <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>{Math.round((Date.now()-Date.parse(t.created_at))/3600000)}h</span>
-                </div>
-              ))}
-            </Widget>
-          </>
-        )}
-
-        {(role === 'sales' || isAdmin) && (
-          <>
-            <Widget icon={Users} title="My Pipeline" count={myLeads.length}>
-              {myLeads.length === 0 ? <Empty msg="No leads assigned" /> : myLeads.slice(0, 6).map(l => (
-                <div key={l.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'leads')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'leads'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{l.data?.name ?? l.name ?? '(unnamed)'}</span>
-                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{l.status}</span>
-                </div>
+            <Widget icon={CheckSquare} title="My Open Tasks" count={tasksOpen.length}>
+              {tasks.state === 'loading' && <Skel />}
+              {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 8).map(t => (
+                <button key={t.id} type="button" onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', cursor: 'pointer', width: '100%', background: 'none', border: 'none', borderBottom: '1px solid var(--gx-border)', font: 'inherit', textAlign: 'left' }}>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                  <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status?.replace(/_/g, ' ')}</span>
+                </button>
               ))}
             </Widget>
 
-            <Widget icon={FileText} title="Active Quotes" count={quoteArr.filter(q => q.status === 'SENT').length}>
-              {quoteArr.length === 0 ? <Empty msg="No quotes yet" /> : quoteArr.filter(q => q.status === 'SENT').slice(0, 6).map(q => (
-                <div key={q.id} role="button" tabIndex={0} onClick={() => onNavigate?.('entity', 'quotes')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('entity', 'quotes'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{q.data?.number ?? q.number ?? 'QUO-' + String(q.id).slice(0,6)}</span>
-                  {(q.data?.amount ?? q.amount) && <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{Math.round(Number(q.data?.amount ?? q.amount)/100).toLocaleString()}֏</span>}
-                </div>
-              ))}
-            </Widget>
-          </>
-        )}
-
-        {(role === 'tech' || isAdmin) && (
-          <>
-            <Widget icon={MapPin} title="Today's Dispatches" count={myTodaySlots.length}>
-              {myTodaySlots.length === 0 ? <Empty msg="No dispatches scheduled today" /> : myTodaySlots.slice(0, 6).map(s => (
+            <Widget icon={MapPin} title="My Dispatches Today" count={myTodaySlots.length}>
+              {slots.state === 'loading' && <Skel />}
+              {myTodaySlots.length === 0 ? <Empty msg="No dispatches for you today" /> : myTodaySlots.slice(0, 8).map(s => (
                 <div key={s.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
                   <Clock size={13} color="var(--gx-text-3)" />
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{s.data?.title ?? 'Slot'}</span>
-                  {s.data?.time_from && <span className="mono muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{String(s.data.time_from)}</span>}
+                  {s.data?.time_from && <span className="mono" style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>{String(s.data.time_from)}</span>}
                 </div>
               ))}
             </Widget>
 
-            <Widget icon={CheckSquare} title="Open Work Orders" count={tasksOpen.length}>
-              {tasksOpen.length === 0 ? <Empty msg="No open work orders" /> : tasksOpen.slice(0, 6).map(t => (
-                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('workitems')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('workitems'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+            {overdueTasks.length > 0 && (
+              <Widget icon={AlertTriangle} title="Overdue" count={overdueTasks.length}>
+                {overdueTasks.slice(0, 6).map(t => (
+                  <div key={t.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
+                    <AlertTriangle size={13} color="var(--gx-danger)" />
+                    <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>{t.due_at ? `${Math.round((Date.now() - Date.parse(t.due_at)) / 86400000)}d` : '!'}</span>
+                  </div>
+                ))}
+              </Widget>
+            )}
+          </div>
+
+          {/* ── TEAM ────────────────────────────────────────────────────────── */}
+          <div className="ws-col">
+            <div className="ws-col-head">TEAM</div>
+
+            <Widget icon={Inbox} title="Team Tickets" count={ticketArr.filter(t => !['RESOLVED','CLOSED','CANCELLED'].includes(t.status ?? '')).length}>
+              {tickets.state === 'loading' && <Skel />}
+              {ticketArr.length === 0 ? <Empty msg="No open tickets" /> : ticketArr.filter(t => !['RESOLVED','CLOSED','CANCELLED'].includes(t.status ?? '')).slice(0, 8).map(t => (
+                <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
                 </div>
               ))}
             </Widget>
-          </>
-        )}
 
-        {(role === 'finance' || isAdmin) && (
-          <>
-            <Widget icon={Banknote} title="Issued Invoices" count={invoiceArr.length}>
-              {invoiceArr.length === 0 ? <Empty msg="No outstanding invoices" /> : invoiceArr.slice(0, 6).map(i => (
-                <div key={i.id} role="button" tabIndex={0} onClick={() => onNavigate?.('invoices')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('invoices'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
-                  <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{i.number}</span>
-                  <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>{Math.round(Number(i.total)/100).toLocaleString()}֏</span>
-                </div>
-              ))}
-            </Widget>
+            {breachedTickets.length > 0 && (
+              <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
+                {breachedTickets.slice(0, 6).map(t => (
+                  <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                    <AlertTriangle size={13} color="var(--gx-danger)" />
+                    <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</span>
+                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>{Math.round((Date.now() - Date.parse(t.created_at)) / 3600000)}h</span>
+                  </div>
+                ))}
+              </Widget>
+            )}
 
             <Widget icon={Shield} title="Pending Approvals" count={approvalArr.length}>
-              {approvalArr.length === 0 ? <Empty msg="Nothing waiting on you" /> : approvalArr.slice(0, 6).map(a => (
-                <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); (() => onNavigate?.('my-approvals'))() } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+              {approvals.state === 'loading' && <Skel />}
+              {approvalArr.length === 0 ? <Empty msg="Nothing pending" /> : approvalArr.slice(0, 8).map(a => (
+                <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('my-approvals') } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{a.action_type?.replace(/_/g, ' ')}</span>
-                  <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{relTime(a.created_at)}</span>
+                  <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{relTime(a.created_at)}</span>
                 </div>
               ))}
             </Widget>
-          </>
-        )}
 
-        {/* No separate admin block — `isAdmin` (above) makes the super-admin/owner see
-            every role's widgets (support · sales · tech · finance) on one My Day. */}
-      </div>
+            {(nodes.length > 0 || orgMembers.length > 0) && (
+              <Widget icon={Users} title="Team Members" count={orgMembers.length}>
+                {orgMembers.slice(0, 8).map((m: any) => (
+                  <div key={m.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gx-interactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-on-primary)', flexShrink: 0 }}>
+                      {(m.name ?? '?').split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                    <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{m.department ?? ''}</span>
+                  </div>
+                ))}
+              </Widget>
+            )}
+          </div>
 
-      {/* ── My Work ──────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
-          <Widget icon={CheckSquare} title="Open Tasks" count={tasksOpen.length}>
-            {tasks.state === 'loading' && <Skel />}
-            {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 10).map(t => (
-              <button key={t.id} type="button"
-                onClick={() => onNavigate?.('workitems')}
-                style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', cursor: 'pointer', width: '100%', background: 'none', border: 'none', borderBottom: '1px solid var(--gx-border)', font: 'inherit', textAlign: 'left' }}>
-                <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status?.replace(/_/g, ' ')}</span>
-              </button>
-            ))}
-          </Widget>
-          <Widget icon={Clock} title="Overdue" count={overdueTasks.length}>
-            {overdueTasks.length === 0 ? <Empty msg="Nothing overdue" /> : overdueTasks.slice(0, 10).map(t => (
-              <div key={t.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
-                <AlertTriangle size={13} color="var(--gx-danger)" />
-                <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>
-                  {t.due_at ? `${Math.round((Date.now() - Date.parse(t.due_at)) / 86400000)}d overdue` : 'overdue'}
-                </span>
-              </div>
-            ))}
-          </Widget>
         </div>
-
-      {/* ── Team ─────────────────────────────────────────────────────────────── */}
-        <div>
-          {nodes.length === 0 && orgMembers.length === 0
-            ? <Empty msg="No team data found" />
-            : (<>
-              {nodes.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px,1fr))', gap: 'var(--gx-space-8)', marginBottom: 'var(--gx-space-18)' }}>
-                  {nodes.map((n: any) => {
-                    const nm = orgMembers.filter((m: any) => m.primary_node_id === n.id || m.department === n.name)
-                    return (
-                      <div key={n.id} className="card" style={{ padding: 'var(--gx-space-8)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-6)' }}>
-                          <Users size={14} color="var(--gx-text-3)" />
-                          <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)', flex: 1 }}>{n.name}</span>
-                          <span className="badge badge-neutral">{nm.length}</span>
-                        </div>
-                        {nm.slice(0, 4).map((m: any) => (
-                          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', padding: 'var(--gx-space-2) 0', fontSize: 'var(--gx-text-12)', color: 'var(--gx-text-2)' }}>
-                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gx-interactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-on-primary)', flexShrink: 0 }}>
-                              {(m.name ?? '?').split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()}
-                            </div>
-                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                          </div>
-                        ))}
-                        {nm.length > 4 && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', paddingTop: 'var(--gx-space-3)' }}>+{nm.length - 4} more</div>}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {(() => {
-                const nodeIds = new Set(nodes.map((n: any) => n.id))
-                const unassigned = orgMembers.filter((m: any) => !m.primary_node_id || !nodeIds.has(m.primary_node_id))
-                if (!unassigned.length) return null
-                return (
-                  <Widget icon={Users} title="Unassigned" count={unassigned.length}>
-                    {unassigned.slice(0, 8).map((m: any) => (
-                      <div key={m.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
-                        <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{m.name}</span>
-                        <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{m.department ?? m.email}</span>
-                      </div>
-                    ))}
-                  </Widget>
-                )
-              })()}
-            </>)
-          }
-        </div>
-      </>)}
+      )}
 
       {tab === 'ask' && <AskGaaexView token={token} embedded />}
       {tab === 'messages' && <MessagesView token={token} embedded />}
