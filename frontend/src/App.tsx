@@ -623,14 +623,19 @@ export default function App() {
                 { title: 'Aren Tech', body: 'Fiber quote-ի հարց', time: '2օր' },
               ]}
             />
-            <button
-              className={'tb-icon' + (view.type === 'calendar' ? ' on' : '')}
-              aria-label="Calendar"
-              title="Calendar"
-              onClick={() => setView({ type: 'calendar' })}
-            >
-              <Calendar size={18} />
-            </button>
+            <TopbarMenu
+              icon={<Calendar size={18} />}
+              itemIcon={<Calendar size={16} />}
+              title={t('common.calendar', 'Calendar')}
+              emptyLabel={t('calendar.empty', 'No upcoming events')}
+              viewAllLabel={t('common.viewAll', 'View all')}
+              onViewAll={() => setView({ type: 'calendar' })}
+              items={[
+                { title: 'Team sync', body: 'Weekly standup', time: '10:00' },
+                { title: 'Customer call', body: 'Tumo Center onboarding', time: '14:00' },
+                { title: 'Network maintenance', body: 'Scheduled downtime', time: 'Tomorrow' },
+              ]}
+            />
             <LangMenu />
             <button
               className="tb-icon"
