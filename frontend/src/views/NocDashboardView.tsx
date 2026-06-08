@@ -955,7 +955,7 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
       return { id: r.id, label: r.name, lat: coords[0], lng: coords[1], status }
     })
     .filter((h): h is NonNullable<typeof h> => h !== null)
-  const hubs = liveHubs.length ? liveHubs : SAMPLE_REGIONAL_HUBS
+  const hubs = liveHubs.length >= 3 ? liveHubs : SAMPLE_REGIONAL_HUBS
 
   const lats = hubs.map(h => h.lat)
   const lngs = hubs.map(h => h.lng)

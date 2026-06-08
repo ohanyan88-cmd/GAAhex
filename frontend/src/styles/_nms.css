@@ -58,9 +58,8 @@
   color: var(--gx-text-2);
   font-family: var(--gx-font-mono, ui-monospace, monospace);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  line-height: 1.4;
 }
 
 .nms-card-body {
@@ -574,7 +573,7 @@ button.nms-pill { cursor: pointer; }
 .nms-map-legend-dot--outage { background: var(--gx-gold); }
 
 /* ── ISP Hierarchy Explorer ── */
-.nms-hier-grid { display: grid; grid-template-columns: 180px 220px 1fr; gap: var(--gx-space-6); min-height: 320px; }
+.nms-hier-grid { display: grid; grid-template-columns: 180px 220px 1fr; gap: var(--gx-space-6); min-height: 220px; }
 .nms-hier-col  { display: flex; flex-direction: column; gap: var(--gx-space-2); }
 .nms-hier-col--border { border-right: 1px solid var(--gx-border); padding-right: var(--gx-space-4); }
 .nms-hier-col-header { font-size: var(--gx-text-10); color: var(--gx-text-3); text-transform: uppercase; letter-spacing: var(--gx-tracking-wider); padding: 0 var(--gx-space-3); }
