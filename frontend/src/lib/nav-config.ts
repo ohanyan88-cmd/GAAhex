@@ -79,7 +79,7 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   ]),
 
   s('tech_noc', 'Tech & NOC', ServerIcon, [
-    i('noc-dashboard',           'Network Management System', ServerIcon,   'noc-dashboard'),
+    i('noc-dashboard',           'NMS',                       ServerIcon,   'noc-dashboard'),
     i('noc-service-qualification','Service Qualification',   CheckIcon,    'coverage-gis'),
     i('noc-installation-board',  'Installation Board',       TruckIcon,    'installation-board'),
     i('noc-support-tickets',     'Support Tickets',          InboxIcon,    'helpdesk'),

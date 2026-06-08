@@ -18,12 +18,12 @@
 // The CSS grid is `repeat(12, 1fr)` with auto-flow:row dense. When a
 // widget is hidden via the gear menu, the remaining ones repack tightly
 // — no empty holes.
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { PageShell, SlideOutPanel } from '../page-shell'
 import { PermissionDenied } from '../components/States'
+import { ServerIcon } from '../components/icons'
 import { can, type Capabilities } from '../lib/capabilities'
-import { BASE } from '../lib/config'
-import { authH } from '../lib/billing'
+import { useFetch } from '../hooks/useFetch'
 
 // ═══════════════════════════════════════════════════════════════════════
 // 1. SAMPLE DATA — used by every widget during PHASE 1A design preview.
@@ -886,34 +886,21 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
     usingSample ? SAMPLE_HIERARCHY.regions[0]?.olts[0]?.id : oltItems[0]?.id)
   const [portId, setPortId]     = useState<string | undefined>(undefined)
 
-  const [treePorts, setTreePorts] = useState<{ id: string; port_no: number; onu_count: number }[]>([])
-  const [treeLoading, setTreeLoading] = useState(false)
-
-  useEffect(() => {
-    if (usingSample || !oltId || !token) return
-    let alive = true
-    setTreeLoading(true)
-    setTreePorts([])
-    setPortId(undefined)
-    fetch(`${BASE}/api/noc/olts/${oltId}/tree`, { headers: authH(token) })
-      .then(r => r.ok ? r.json() : null)
-      .then((d: { chassis?: { cards?: { ports?: { id: string; port_no: number; onu_count?: number }[] }[] }[] } | null) => {
-        if (!alive || !d) return
-        const ports: { id: string; port_no: number; onu_count: number }[] = []
-        for (const ch of d.chassis ?? []) {
-          for (const card of ch.cards ?? []) {
-            for (const p of card.ports ?? []) {
-              ports.push({ id: p.id, port_no: p.port_no, onu_count: p.onu_count ?? 0 })
-            }
-          }
+  type _TreeResp = { chassis?: { cards?: { ports?: { id: string; port_no: number; onu_count?: number }[] }[] }[] }
+  const { data: treeRaw, loading: treeLoading } = useFetch<_TreeResp>(
+    !usingSample && oltId ? `/api/noc/olts/${oltId}/tree` : null
+  )
+  const treePorts = useMemo(() => {
+    const ports: { id: string; port_no: number; onu_count: number }[] = []
+    for (const ch of treeRaw?.chassis ?? []) {
+      for (const card of ch.cards ?? []) {
+        for (const p of card.ports ?? []) {
+          ports.push({ id: p.id, port_no: p.port_no, onu_count: p.onu_count ?? 0 })
         }
-        setTreePorts(ports)
-        setPortId(ports[0]?.id)
-      })
-      .catch(() => {})
-      .finally(() => { if (alive) setTreeLoading(false) })
-    return () => { alive = false }
-  }, [oltId, token, usingSample])
+      }
+    }
+    return ports
+  }, [treeRaw])
 
   const sampleRegion = SAMPLE_HIERARCHY.regions.find(r => r.id === regionId) ?? SAMPLE_HIERARCHY.regions[0]
   const sampleOlt    = sampleRegion?.olts.find(o => o.id === oltId) ?? sampleRegion?.olts[0]
@@ -1210,37 +1197,25 @@ interface NocDashboardProps {
 export default function NocDashboardView({ token, capabilities }: NocDashboardProps) {
   const canViewService = can(capabilities, 'service', 'view')
 
-  const [nocData, setNocData] = useState<NocData | null>(null)
+  const oltListFetch   = useFetch<{ items: OltRecord[]; total: number }>('/api/noc/olts')
+  const onuFetch       = useFetch<{ total: number }>('/api/noc/onus?page_size=1')
+  const subMixFetch    = useFetch<SubMixItem[]>('/api/analytics/subscription-mix')
+  const regionsFetch   = useFetch<RegionItem[]>('/api/regions')
+  const sessionsFetch  = useFetch<unknown[]>('/api/radius/sessions?status=active')
+  const firstOltId     = oltListFetch.data?.items[0]?.id ?? null
+  const analyticsFetch = useFetch<OltAnalytics>(firstOltId ? `/api/noc/olts/${firstOltId}/analytics` : null)
 
-  useEffect(() => {
-    let alive = true
-    Promise.all([
-      fetch(`${BASE}/api/noc/olts`,                   { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${BASE}/api/noc/onus?page_size=1`,        { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${BASE}/api/analytics/subscription-mix`, { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${BASE}/api/regions`,                    { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${BASE}/api/radius/sessions?status=active`, { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
-    ]).then(async ([oltListRaw, onuRaw, subMixRaw, regionsRaw, sessionsRaw]) => {
-      if (!alive) return
-      const oltList: NocData['oltList'] = { items: oltListRaw?.items ?? [], total: oltListRaw?.total ?? 0 }
-      const firstOlt = oltList.items[0]
-      let analytics: OltAnalytics | null = null
-      if (firstOlt) {
-        analytics = await fetch(`${BASE}/api/noc/olts/${firstOlt.id}/analytics`, { headers: authH(token) })
-          .then(r => r.ok ? r.json() : null).catch(() => null)
-      }
-      if (!alive) return
-      setNocData({
-        oltList,
-        analytics,
-        onuTotal:        onuRaw?.total ?? 0,
-        subscriptionMix: Array.isArray(subMixRaw) ? subMixRaw : [],
-        regions:         Array.isArray(regionsRaw) ? regionsRaw : [],
-        radiusSessions:  Array.isArray(sessionsRaw) ? sessionsRaw : [],
-      })
-    }).catch(() => {})
-    return () => { alive = false }
-  }, [token])
+  const nocData = useMemo<NocData | null>(() => {
+    if (oltListFetch.loading) return null
+    return {
+      oltList:         oltListFetch.data   ?? { items: [], total: 0 },
+      analytics:       analyticsFetch.data ?? null,
+      onuTotal:        (onuFetch.data as any)?.total ?? 0,
+      subscriptionMix: Array.isArray(subMixFetch.data)   ? subMixFetch.data   : [],
+      regions:         Array.isArray(regionsFetch.data)  ? regionsFetch.data  : [],
+      radiusSessions:  Array.isArray(sessionsFetch.data) ? sessionsFetch.data : [],
+    }
+  }, [oltListFetch, analyticsFetch, onuFetch, subMixFetch, regionsFetch, sessionsFetch])
 
   // Widget visibility — every widget on by default. Gear menu toggles individual ones.
   const [visibility, setVisibility] = useState<Record<string, boolean>>(
@@ -1265,7 +1240,7 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
 
   if (!canViewService) {
     return (
-      <PageShell type="OPERATIONS" breadcrumb={['NMS', 'Network Management System']} title="Network Management System">
+      <PageShell type="OPERATIONS" breadcrumb={['NMS', 'Network Management System']} title="Network Management System" icon={<ServerIcon size={20} />}>
         <PermissionDenied message="You don't have permission to view NOC monitoring." />
       </PageShell>
     )
@@ -1277,6 +1252,7 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
       breadcrumb={['NMS', 'Network Management System']}
       title="Network Management System"
       subtitle="Network operations · alarms · provisioning · field"
+      icon={<ServerIcon size={20} />}
     >
       <div className="nms-page">
         {/* Top bar — design-preview banner + gear menu */}
