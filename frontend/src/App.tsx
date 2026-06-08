@@ -566,23 +566,18 @@ export default function App() {
             The three right-of-toggle slots render placeholder skeletons here; they get real
             implementations in P3 (OrgIdentity), P4 (NotificationBell), P5 (UserMenu). */}
         <header className="tb">
-          <button
-            className="tb-icon"
-            aria-label="Toggle sidebar"
-            onClick={() => {
-              // On narrow screens the sidebar is an off-canvas drawer (navOpen).
-              // On wide screens it collapses to the icon rail (collapsed).
-              if (window.matchMedia('(max-width: 900px)').matches) setNavOpen((o) => !o)
-              else setCollapsed((c) => !c)
-            }}
-          >
-            <PanelLeft size={18} />
-          </button>
-
-          <span className="tb-divider" aria-hidden />
-
-          {/* Topbar quick tools — Bell · Mail · Messenger · Calendar · Language · Theme */}
+          {/* Topbar quick tools — Toggle · Bell · Mail · Messenger · Calendar · Language · Theme, uniform spacing */}
           <div className="tb-tools">
+            <button
+              className="tb-icon"
+              aria-label="Toggle sidebar"
+              onClick={() => {
+                if (window.matchMedia('(max-width: 900px)').matches) setNavOpen((o) => !o)
+                else setCollapsed((c) => !c)
+              }}
+            >
+              <PanelLeft size={18} />
+            </button>
             <NotificationBell
               token={token!}
               entities={entities}
