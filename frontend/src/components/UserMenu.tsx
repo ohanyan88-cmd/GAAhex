@@ -82,7 +82,7 @@ export default function UserMenu({
                 ? <img src={user.avatar_url} alt="" className="avatar-img" />
                 : initialsOf(user.name)}
             </span>
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div className="user-card-name">{user.name || t('common.you', 'You')}</div>
               <div className="user-card-email mono">{user.email}</div>
               <div className="user-card-meta">
@@ -91,13 +91,16 @@ export default function UserMenu({
                 <span>{user.position || role}</span>
               </div>
             </div>
+            <button
+              className="tb-icon user-card-signout"
+              role="menuitem"
+              onClick={() => { close(); onSignOut() }}
+              title={t('common.signout', 'Sign out')}
+              aria-label={t('common.signout', 'Sign out')}
+            >
+              <LogOut size={15} />
+            </button>
           </div>
-
-          <div className="menu-sep" />
-
-          <button className="menu-item danger" role="menuitem" onClick={() => { close(); onSignOut() }}>
-            <LogOut size={15} /><span>{t('common.signout', 'Sign out')}</span>
-          </button>
         </div>
       )}
     </div>
