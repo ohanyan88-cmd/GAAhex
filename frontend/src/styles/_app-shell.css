@@ -51,7 +51,8 @@
 .tb-icon:hover { background:var(--gx-hover); color:var(--gx-text-1); }
 .tb-icon .ndot { position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:var(--gx-danger); border:1.5px solid var(--gx-topbar); }
 .tb-icon.on { background:var(--gx-hover); color:var(--gx-text-1); }
-.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--cobalt-600),var(--cobalt-800)); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; flex-shrink:0; }
+.avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--cobalt-600),var(--cobalt-800)); color:var(--gx-on-primary); display:flex; align-items:center; justify-content:center; font-size:var(--gx-text-11); font-weight:var(--gx-weight-semibold); flex-shrink:0; overflow:hidden; }
+.avatar-img { width:100%; height:100%; object-fit:cover; display:block; }
 /* User-menu avatar = HEXAGON (brand motif). Width:height ≈ 1.13 → a regular flat-top hex. */
 .uc-av { width:38px; height:34px; font-size:var(--gx-text-sm); border-radius:0; clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
 .uc-av-lg { width:46px; height:40px; font-size:var(--gx-text-md); border-radius:0; clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
@@ -62,9 +63,9 @@
 .org:hover { background:var(--gx-hover); border-color:var(--gx-border-subtle); }
 .org:hover .org-edit { opacity:1; }
 /* DI badge = HEXAGON (brand motif), sized to match the user-menu avatar. */
-.org-badge { width:44px; height:44px; border-radius:var(--gx-radius-md); flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:var(--gx-text-sm); font-weight:700; color:#2A1E07; background:linear-gradient(135deg,var(--gold-400),var(--gold-700)); object-fit:cover; overflow:hidden; }
+.org-badge { width:calc(var(--gx-header-h) / 2); height:calc(var(--gx-header-h) / 2); border-radius:var(--gx-radius-md); flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; font-size:var(--gx-text-11); font-weight:var(--gx-weight-bold); color:var(--gx-text-on-gold); background:linear-gradient(135deg,var(--gold-400),var(--gold-700)); object-fit:cover; overflow:hidden; }
 /* When a real logo image is uploaded — wider pill, contain-fit so the full logo shows */
-.org-badge-img { width:auto; max-width:140px; height:36px; background:var(--gx-surface-raised); object-fit:contain; padding:0 var(--gx-space-2); }
+.org-badge-img { width:auto; max-width:120px; height:calc(var(--gx-header-h) / 2); background:var(--gx-surface-raised); object-fit:contain; padding:0 var(--gx-space-2); }
 /* Logo preview in the edit popover */
 .org-pop-logo-preview { width:140px; height:46px; border-radius:var(--gx-radius-md); object-fit:contain; background:var(--gx-surface-raised); flex-shrink:0; padding:0 var(--gx-space-2); }
 .org-name { font-size:14px; font-weight:600; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
