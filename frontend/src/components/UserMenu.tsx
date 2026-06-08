@@ -5,6 +5,7 @@ import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
 import { useAuth } from '../context/AuthContext'
 import { initialsOf } from '../lib/utils'
+import { BASE } from '../lib/config'
 
 type Me = {
   email: string
@@ -27,8 +28,9 @@ export default function UserMenu({
   onLangChange?: (l: Lang) => void
 }) {
   const { t } = useI18n()
-  const { setUser } = useAuth()
+  const { token, setUser } = useAuth()
   const [open, setOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -48,12 +50,25 @@ export default function UserMenu({
 
   function close() { setOpen(false) }
 
-  function onFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
-    if (!f) return
-    const url = URL.createObjectURL(f)
-    setUser(prev => prev ? { ...prev, avatar_url: url } : prev)
+    if (!f || !token) return
     e.target.value = ''
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', f)
+      const res = await fetch(`${BASE}/api/me/avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      })
+      if (!res.ok) return
+      const { avatar_url } = await res.json()
+      setUser(prev => prev ? { ...prev, avatar_url } : prev)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const role = user.can_configure ? t('role.admin', 'Administrator') : t('role.member', 'Member')
@@ -91,9 +106,10 @@ export default function UserMenu({
               <button
                 type="button"
                 className="user-card-av-edit"
-                onClick={() => fileRef.current?.click()}
-                title={t('profile.changePhoto', 'Change photo')}
+                onClick={() => !uploading && fileRef.current?.click()}
+                title={uploading ? 'Uploading…' : t('profile.changePhoto', 'Change photo')}
                 aria-label={t('profile.changePhoto', 'Change photo')}
+                disabled={uploading}
               >
                 <Camera size={11} />
               </button>
