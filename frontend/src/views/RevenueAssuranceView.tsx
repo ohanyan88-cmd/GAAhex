@@ -22,114 +22,37 @@
 //
 // Permissions: gated on `invoice.view` (the data layer all four overview widgets live on).
 // The Findings tab additionally treats backend 403 as PermissionDenied and 404 as "not available".
-import { useEffect, useMemo, useState } from 'react'
-import { ShieldIcon, GearIcon, ReceiptIcon, SearchIcon, CheckIcon, EditIcon, CloseIcon } from '../components/icons'
-import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'  // TL-4
-import {
-  Banknote, AlertTriangle, TrendingUp, BarChart3,
-  ListChecks, Play, RefreshCw, ChevronLeft, ChevronRight,
-} from 'lucide-react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { ShieldIcon, GearIcon } from '../components/icons'
+import { BarChart3, ListChecks } from 'lucide-react'
 import { bget, bpost, loadCustomers, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
-import { LineChart } from '../components/charts/LineChart'
-import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
-import { PermissionDenied, EmptyState, ErrorBanner } from '../components/States'
+import { Button, DetailTab } from '../primitives'
+import { PermissionDenied } from '../components/States'
 import { PageShell, type KPISpec } from '../page-shell'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
-import { fmtDate, timeAgo } from '../lib/time'
+import type {
+  Overview, TrendPoint, AgingBuckets, Fetched,
+  RaFinding, RaScanRun, TabKey, FindingsState, DetailState, ActionModalState,
+  FindingStatus, FindingType, FindingSeverity,
+} from './ra/types'
+import { OverviewTab } from './ra/OverviewTab'
+import { FindingsTab } from './ra/FindingsTab'
+import { FindingDrawer } from './ra/FindingDrawer'
 
-// ── Types ────────────────────────────────────────────────────────────────────
-type Overview = {
-  mrr?: number
-  active_subscriptions?: number
-  ar_outstanding?: number
-  overdue_total?: number
-  overdue_count?: number
-  collected_this_month?: number
-  collected_prev_month?: number
-  [k: string]: any
+// TB-1 — local tab button delegates to the canonical DetailTab primitive.
+function RaTabButton({ active, onClick, icon, label, sub }: {
+  active: boolean; onClick: () => void; icon: ReactNode; label: string; sub: string
+}) {
+  return (
+    <DetailTab active={active} onSelect={onClick} icon={icon} subtitle={sub}>
+      {label}
+    </DetailTab>
+  )
 }
 
-type TrendPoint = { month: string; collected: number; invoiced: number }
-type AgingBuckets = { current: number; d1_30: number; d31_60: number; d61_90: number; d90_plus: number }
-
-// Per-widget fetch state machine. 'hide' is silent — the widget is omitted, not greyed out.
-type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
-
-// ── Phase B.3 types ─────────────────────────────────────────────────────────
-type FindingType = 'unbilled_service' | 'uninvoiced_subscription' | 'orphan_invoice'
-type FindingSeverity = 'low' | 'medium' | 'high' | 'critical'
-type FindingStatus = 'open' | 'investigating' | 'resolved' | 'false_positive'
-
-interface RaFinding {
-  id: string
-  tenant_id: string
-  finding_type: FindingType
-  severity: FindingSeverity
-  entity_type: 'service' | 'subscription' | 'invoice'
-  entity_id: string
-  summary: string
-  detail_json: Record<string, any>
-  detected_at: string
-  status: FindingStatus
-  ack_at: string | null
-  ack_by: string | null
-  resolved_at: string | null
-  resolved_by: string | null
-  resolution: string | null
-  scan_run_id: string | null
-}
-
-interface RaScanRun {
-  id: string
-  tenant_id: string
-  started_at: string
-  completed_at: string | null
-  status: 'running' | 'success' | 'failed'
-  findings_count: number
-  error_message: string | null
-  triggered_by: string | null
-}
-
-type TabKey = 'overview' | 'findings'
-
-const FINDING_TYPE_LABEL: Record<FindingType, string> = {
-  unbilled_service: 'Unbilled Service',
-  uninvoiced_subscription: 'Uninvoiced Sub',
-  orphan_invoice: 'Orphan Invoice',
-}
-
-const STATUS_LABEL: Record<FindingStatus, string> = {
-  open: 'Open',
-  investigating: 'Investigating',
-  resolved: 'Resolved',
-  false_positive: 'False positive',
-}
-
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
-
-function statusToPill(s: FindingStatus): PillVariant {
-  switch (s) {
-    case 'open':           return 'critical'
-    case 'investigating':  return 'degraded'
-    case 'resolved':       return 'active'
-    case 'false_positive': return 'neutral'
-  }
-}
-
-function severityToPill(sev: FindingSeverity): PillVariant {
-  switch (sev) {
-    case 'critical': return 'critical'
-    case 'high':     return 'degraded'
-    case 'medium':   return 'info'
-    case 'low':      return 'neutral'
-  }
-}
-
-
-// ── View ─────────────────────────────────────────────────────────────────────
 export default function RevenueAssuranceView({
   token, canConfigure = false, onConfigure, capabilities,
 }: {
@@ -144,7 +67,6 @@ export default function RevenueAssuranceView({
   const capsLoaded = capabilities !== undefined
   const [denied, setDenied] = useState(false)
 
-  // Tab state — Overview (default) wraps the original dashboard; Findings is the B.3 worklist.
   const [tab, setTab] = useState<TabKey>('overview')
 
   // Each widget is independently fetched + hideable.
@@ -153,9 +75,6 @@ export default function RevenueAssuranceView({
   const [aging, setAging] = useState<Fetched<AgingBuckets>>({ state: 'loading' })
   const [overdue, setOverdue] = useState<Fetched<Invoice[]>>({ state: 'loading' })
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
-
-  // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
-  // The capsLoaded flag derives from "did App pass us caps yet" (vs. the placeholder).
 
   const canView = canDo(caps, 'invoice', 'view')
 
@@ -241,7 +160,7 @@ export default function RevenueAssuranceView({
     return () => { alive = false }
   }, [token, capsLoaded, canView])
 
-  // ── Findings tab state (FindingsState is declared below near the FindingsTab subcomponent) ──
+  // ── Findings tab state ────────────────────────────────────────────────────────
   const [findings, setFindings] = useState<FindingsState>({ state: 'loading' })
   const [statusFilter, setStatusFilter] = useState<FindingStatus | 'all'>('open')
   const [typeFilter, setTypeFilter] = useState<FindingType | 'all'>('all')
@@ -249,34 +168,18 @@ export default function RevenueAssuranceView({
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 25
 
-  // Last successful scan run (newest first), for the "Last scan: …" line.
   const [lastScan, setLastScan] = useState<RaScanRun | null>(null)
 
-  // Resolve / FP modal state — null when closed.
-  const [actionModal, setActionModal] = useState<
-    | { kind: 'resolve' | 'false_positive'; finding: RaFinding; resolution: string; submitting: boolean }
-    | null
-  >(null)
+  const [actionModal, setActionModal] = useState<ActionModalState>(null)
 
-  // Drilldown drawer state — holds the currently-open finding plus a per-id fetch state.
-  // The detail endpoint returns the full row (same shape as list, but always fresh from DB),
-  // so we re-fetch on open to pick up status transitions made by other operators.
-  type DetailState =
-    | { state: 'loading' }
-    | { state: 'ok'; value: RaFinding }
-    | { state: 'error'; message: string }
+  // Drilldown drawer state. Detail is refetched on each open to pick up status transitions.
   const [drawerFinding, setDrawerFinding] = useState<RaFinding | null>(null)
   const [drawerDetail, setDrawerDetail] = useState<DetailState>({ state: 'loading' })
-  // Cache customer names so re-opening the same row doesn't refetch. Keyed by customer_id (uuid).
   const [customerNameCache, setCustomerNameCache] = useState<Record<string, string | null>>({})
-  // null = not yet looked up; '' = lookup completed but no name (we'll just show uuid)
   const [drawerCustomer, setDrawerCustomer] = useState<{ id: string; name: string | null } | null>(null)
 
-  // Capability test for admin actions (Run Scan / mark FP). Backend enforces; this gates the UI.
   const canAdmin = canConfigure || canDo(caps, 'finding', 'edit')
 
-  // Build the findings query string from filters. Status='all' omits the param so the backend
-  // returns every status; finding_type and severity follow the same pattern.
   function buildFindingsQuery(): string {
     const qs: string[] = ['page=1', 'page_size=200']
     if (statusFilter !== 'all') qs.push(`status=${encodeURIComponent(statusFilter)}`)
@@ -294,7 +197,6 @@ export default function RevenueAssuranceView({
       setFindings({ state: 'error', message: `Failed to load findings (${res.status})` })
       return
     }
-    // Tolerant shape — backend may return either an array or { items: [...] } pagination envelope.
     const raw = res.data
     const items: RaFinding[] = Array.isArray(raw)
       ? raw as RaFinding[]
@@ -319,7 +221,6 @@ export default function RevenueAssuranceView({
           ? raw.results as RaScanRun[]
           : []
     if (items.length === 0) { setLastScan(null); return }
-    // Newest first per API contract — but defend against ordering surprises.
     const sorted = [...items].sort((a, b) => {
       const ta = new Date(a.started_at).getTime(); const tb = new Date(b.started_at).getTime()
       return tb - ta
@@ -327,7 +228,6 @@ export default function RevenueAssuranceView({
     setLastScan(sorted[0] ?? null)
   }
 
-  // Initial + filter-driven fetch when the Findings tab becomes (or stays) active.
   useEffect(() => {
     if (!capsLoaded || !canView) return
     if (tab !== 'findings') return
@@ -337,9 +237,6 @@ export default function RevenueAssuranceView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, capsLoaded, canView, tab, statusFilter, typeFilter, severityFilter])
 
-  // Derived KPI counts — always from the loaded list (status filter may scope these to the
-  // currently filtered view, which is the intentional behavior: the KPI strip reflects what
-  // the user is looking at).
   const findingsList = findings.state === 'ok' ? findings.items : []
   const kpiCounts = useMemo(() => {
     const counts = { open: 0, investigating: 0, resolved: 0, false_positive: 0 }
@@ -351,7 +248,7 @@ export default function RevenueAssuranceView({
   const pageRows = findingsList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   useEffect(() => { if (page > pageCount) setPage(1) }, [page, pageCount])
 
-  // ── Action handlers ────────────────────────────────────────────────────────
+  // ── Action handlers ────────────────────────────────────────────────────────────
   async function runScan() {
     try {
       const run = await bpost<RaScanRun>(token, '/api/revenue-assurance/scan', {})
@@ -387,7 +284,7 @@ export default function RevenueAssuranceView({
   async function submitActionModal() {
     if (!actionModal) return
     const { kind, finding, resolution } = actionModal
-    if (kind === 'resolve' && !resolution.trim()) return // resolution required
+    if (kind === 'resolve' && !resolution.trim()) return
     setActionModal({ ...actionModal, submitting: true })
     try {
       if (kind === 'resolve') {
@@ -399,8 +296,6 @@ export default function RevenueAssuranceView({
         toast.success('Marked false positive')
       }
       setActionModal(null)
-      // Close the drilldown drawer too (action centralized through it would otherwise
-      // leave it open showing stale status — reload happens regardless via loadFindings).
       setDrawerFinding(null)
       setDrawerDetail({ state: 'loading' })
       setDrawerCustomer(null)
@@ -411,21 +306,16 @@ export default function RevenueAssuranceView({
     }
   }
 
-  // Drilldown drawer: open on row click, fetch fresh detail + (optional) customer name.
   async function openDrawer(f: RaFinding) {
     setDrawerFinding(f)
     setDrawerDetail({ state: 'loading' })
     setDrawerCustomer(null)
-    // Detail fetch — keep the seed finding visible (from the list) while the fresh row loads.
     const res = await bget<RaFinding>(token, `/api/revenue-assurance/findings/${f.id}`)
     if (!res.ok || !res.data || typeof res.data !== 'object') {
-      // Fall back to the list row — the list row IS the same shape, just possibly stale.
-      // We still show the drawer; the detail-state stays 'error' so a small note appears.
       setDrawerDetail({ state: 'error', message: `Could not fetch latest details (${res.status})` })
     } else {
       setDrawerDetail({ state: 'ok', value: res.data })
     }
-    // Customer lookup — only if detail_json carries a customer_id.
     const fresh = res.ok && res.data ? res.data : f
     const cid = fresh.detail_json?.customer_id
     if (cid && typeof cid === 'string') {
@@ -437,7 +327,6 @@ export default function RevenueAssuranceView({
         if (cres.ok && cres.data && typeof cres.data === 'object') {
           name = cres.data.name ?? cres.data.title ?? cres.data.display_name ?? null
         }
-        // Cache even on 404/403 (as null) so we don't refetch a known-missing customer.
         setCustomerNameCache((m) => ({ ...m, [cid]: name }))
         setDrawerCustomer({ id: cid, name })
       }
@@ -450,7 +339,6 @@ export default function RevenueAssuranceView({
     setDrawerCustomer(null)
   }
 
-  // Drawer-action wrappers: same backend calls, but close the drawer on completion.
   async function drawerAck() {
     const target = drawerDetail.state === 'ok' ? drawerDetail.value : drawerFinding
     if (!target) return
@@ -462,18 +350,15 @@ export default function RevenueAssuranceView({
     return <PermissionDenied message="You don't have permission to view revenue assurance." />
   }
   if (denied) return <PermissionDenied />
-  // silence unused setter warning (kept for symmetry with other views' deny path)
   void setDenied
 
-  // KPI visibility derived from the overview payload — hide each tile if its underlying number
-  // is absent (vs. a real 0, which we show).
+  // KPI visibility derived from the overview payload — hide each tile if its underlying
+  // number is absent (vs. a real 0, which we do show).
   const ovOk = overview.state === 'ok' ? overview.value : null
   const showAr = ovOk && typeof ovOk.ar_outstanding === 'number'
   const showOverdue = ovOk && typeof ovOk.overdue_total === 'number'
   const showOverdueCount = ovOk && typeof ovOk.overdue_count === 'number'
   const showCollected = ovOk && typeof ovOk.collected_this_month === 'number'
-
-  // Collections delta — only meaningful if both this/prev are present.
   const collectedDelta = (ovOk && typeof ovOk.collected_this_month === 'number' && typeof ovOk.collected_prev_month === 'number')
     ? (ovOk.collected_this_month - ovOk.collected_prev_month)
     : null
@@ -481,7 +366,6 @@ export default function RevenueAssuranceView({
     ? (collectedDelta / ovOk.collected_prev_month) * 100
     : null
 
-  // Build KPI specs from real overview data (hide tiles where data is absent)
   const kpis: KPISpec[] = [
     ...(showCollected ? [{
       label: 'Collected this month',
@@ -510,7 +394,6 @@ export default function RevenueAssuranceView({
         { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
       ] : undefined}
     >
-        {/* Tab strip — PipelineView pattern (button row, bottom border on active). */}
         <div
           role="tablist"
           aria-label="Revenue Assurance views"
@@ -539,134 +422,16 @@ export default function RevenueAssuranceView({
           />
         </div>
 
-        {tab === 'overview' && kpis.length > 0 && (
-          <div className="kpi-strip">
-            {showCollected && (
-              <KPITile
-                label="Collected this month"
-                icon={Banknote}
-                value={money(ovOk!.collected_this_month!)}
-                size="sm"
-                delta={collectedDelta != null
-                  ? (collectedPct != null
-                      ? `${Math.abs(collectedPct).toFixed(0)}% vs prev`
-                      : `${money(Math.abs(collectedDelta))} vs prev`)
-                  : undefined}
-                deltaPositive={collectedDelta != null ? collectedDelta >= 0 : undefined}
-              />
-            )}
-            {showAr && (
-              <KPITile
-                label="AR outstanding"
-                icon={TrendingUp}
-                value={money(ovOk!.ar_outstanding!)}
-                size="sm"
-              />
-            )}
-            {showOverdue && (
-              <KPITile
-                label="Overdue value"
-                icon={AlertTriangle}
-                value={money(ovOk!.overdue_total!)}
-                size="sm"
-                danger
-              />
-            )}
-            {showOverdueCount && (
-              <KPITile
-                label="Overdue invoices"
-                icon={ReceiptIcon}
-                value={(ovOk!.overdue_count!).toLocaleString()}
-                size="sm"
-              />
-            )}
-          </div>
+        {tab === 'overview' && (
+          <OverviewTab
+            ovOk={ovOk}
+            trend={trend}
+            aging={aging}
+            overdue={overdue}
+            customerNames={customerNames}
+          />
         )}
 
-        {/* Two-column body: main chart left, AR aging right. Hide each independently. */}
-        {tab === 'overview' && (trend.state !== 'hide' || aging.state !== 'hide') && (
-          <div className="cols">
-            {trend.state !== 'hide' && (
-              <div className="card">
-                <div className="card-head">
-                  <BarChart3 size={16} style={{ color: 'var(--gx-text-3)' }} />
-                  <h3>Revenue trend</h3>
-                  <span className="spacer" />
-                  <span className="pill pill-neutral">6 mo</span>
-                </div>
-                <div className="card-pad">
-                  {trend.state === 'loading' && <p className="muted">Loading…</p>}
-                  {trend.state === 'ok' && (
-                    <LineChart
-                      series={[
-                        { label: 'Collected', values: trend.value.map(b => b.collected), color: 'var(--viz-1)', fillUnder: true },
-                        { label: 'Invoiced',  values: trend.value.map(b => b.invoiced),  color: 'var(--viz-2)' },
-                      ]}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {aging.state !== 'hide' && (
-              <div className="card">
-                <div className="card-head">
-                  <AlertTriangle size={16} style={{ color: 'var(--gx-text-3)' }} />
-                  <h3>AR aging</h3>
-                </div>
-                <div className="card-pad">
-                  {aging.state === 'loading' && <p className="muted">Loading…</p>}
-                  {aging.state === 'ok' && <AgingBars buckets={aging.value} />}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Needs-attention table: overdue invoices, sorted by balance. */}
-        {tab === 'overview' && overdue.state !== 'hide' && (
-          <div className="card" style={{ marginTop: 'var(--gx-space-18)' }}>
-            <div className="card-head">
-              <AlertTriangle size={16} style={{ color: 'var(--gx-text-3)' }} />
-              <h3>Overdue invoices — needs attention</h3>
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              {overdue.state === 'loading' && <p className="muted" style={{ padding: 'var(--gx-space-18)' }}>Loading…</p>}
-              {overdue.state === 'ok' && (
-                <table className="grid">
-                  <thead>
-                    <tr>
-                      <th>Invoice</th>
-                      <th>Customer</th>
-                      <th>Due</th>
-                      <th>Status</th>
-                      <th className="num">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {overdue.value.map((inv) => {
-                      const cust = inv.customer_id
-                        ? (customerNames[inv.customer_id] ?? inv.customer_id.slice(0, 8))
-                        : '—'
-                      const bal = inv.balance ?? inv.total ?? 0
-                      return (
-                        <tr key={inv.id}>
-                          <td><span className="mono">{inv.number ?? inv.id.slice(0, 8)}</span></td>
-                          <td>{cust}</td>
-                          <td>{fmtDate(inv.due_at)}</td>
-                          <td><StatusPill variant="critical" label={inv.status ?? 'OVERDUE'} size="sm" /></td>
-                          <td className="num"><span className="mono tnum">{money(bal)}</span></td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Findings tab ──────────────────────────────────────────────── */}
         {tab === 'findings' && (
           <FindingsTab
             state={findings}
@@ -694,7 +459,6 @@ export default function RevenueAssuranceView({
           />
         )}
 
-        {/* Resolve / mark-FP modal — used by the Findings tab actions. */}
         {actionModal && (
           <Modal
             open
@@ -741,7 +505,6 @@ export default function RevenueAssuranceView({
           </Modal>
         )}
 
-        {/* Drilldown drawer — opens on row click in the Findings table. */}
         {drawerFinding && (
           <FindingDrawer
             seed={drawerFinding}
@@ -755,722 +518,5 @@ export default function RevenueAssuranceView({
           />
         )}
     </PageShell>
-  )
-}
-
-// ── Subcomponents ────────────────────────────────────────────────────────────
-// Note: the previous inline KpiTile was deleted in the KPI design-system sweep.
-// This view now uses the shared `<KPITile>` primitive imported above.
-
-// TB-1 — local RaTabButton delegates to the canonical `DetailTab` primitive.
-function RaTabButton({ active, onClick, icon, label, sub }: {
-  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string
-}) {
-  return (
-    <DetailTab active={active} onSelect={onClick} icon={icon} subtitle={sub}>
-      {label}
-    </DetailTab>
-  )
-}
-
-// ── Findings tab ─────────────────────────────────────────────────────────────
-type FindingsState =
-  | { state: 'loading' }
-  | { state: 'ok'; items: RaFinding[] }
-  | { state: 'empty' }
-  | { state: 'denied' }
-  | { state: 'unavailable' }
-  | { state: 'error'; message: string }
-
-function FindingsTab(props: {
-  state: FindingsState
-  statusFilter: FindingStatus | 'all'
-  onStatusFilter: (s: FindingStatus | 'all') => void
-  typeFilter: FindingType | 'all'
-  onTypeFilter: (t: FindingType | 'all') => void
-  severityFilter: FindingSeverity | 'all'
-  onSeverityFilter: (s: FindingSeverity | 'all') => void
-  canAdmin: boolean
-  onRunScan: () => void
-  lastScan: RaScanRun | null
-  kpiCounts: { open: number; investigating: number; resolved: number; false_positive: number }
-  pageRows: RaFinding[]
-  page: number
-  pageCount: number
-  onPage: (p: number) => void
-  totalRows: number
-  pageSize: number
-  onRetry: () => void
-  onAck: (f: RaFinding) => void
-  onOpenResolve: (f: RaFinding) => void
-  onOpenMarkFP: (f: RaFinding) => void
-  onOpenDrawer: (f: RaFinding) => void
-}) {
-  const {
-    state, statusFilter, onStatusFilter, typeFilter, onTypeFilter,
-    severityFilter, onSeverityFilter, canAdmin, onRunScan, lastScan,
-    kpiCounts, pageRows, page, pageCount, onPage, totalRows, pageSize,
-    onRetry, onAck, onOpenResolve, onOpenMarkFP, onOpenDrawer,
-  } = props
-
-  if (state.state === 'denied') {
-    return <PermissionDenied message="You don't have permission to view revenue assurance findings." />
-  }
-
-  if (state.state === 'unavailable') {
-    return (
-      <EmptyState
-        icon={<ListChecks size={40} />}
-        title="Revenue Assurance endpoints not yet available"
-        message="The findings worklist will appear once the Phase B.3 backend is live."
-      />
-    )
-  }
-
-  return (
-    <div>
-      {/* Header row: filters + Run Scan + Last scan stamp */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-4)', alignItems: 'center',
-        marginBottom: 'var(--gx-space-5)',
-      }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', alignItems: 'center' }}>
-          <FilterSelect
-            label="Status"
-            value={statusFilter}
-            onChange={(v) => onStatusFilter(v as FindingStatus | 'all')}
-            options={[
-              ['all', 'All statuses'],
-              ['open', 'Open'],
-              ['investigating', 'Investigating'],
-              ['resolved', 'Resolved'],
-              ['false_positive', 'False positive'],
-            ]}
-          />
-          <FilterSelect
-            label="Type"
-            value={typeFilter}
-            onChange={(v) => onTypeFilter(v as FindingType | 'all')}
-            options={[
-              ['all', 'All types'],
-              ['unbilled_service', FINDING_TYPE_LABEL.unbilled_service],
-              ['uninvoiced_subscription', FINDING_TYPE_LABEL.uninvoiced_subscription],
-              ['orphan_invoice', FINDING_TYPE_LABEL.orphan_invoice],
-            ]}
-          />
-          <FilterSelect
-            label="Severity"
-            value={severityFilter}
-            onChange={(v) => onSeverityFilter(v as FindingSeverity | 'all')}
-            options={[
-              ['all', 'All severities'],
-              ['critical', 'Critical'],
-              ['high', 'High'],
-              ['medium', 'Medium'],
-              ['low', 'Low'],
-            ]}
-          />
-        </div>
-
-        <span style={{ flex: 1 }} />
-
-        {lastScan && (
-          <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
-            Last scan: <strong style={{ color: 'var(--gx-text-2)' }} title={lastScan.started_at}>
-              {timeAgo(lastScan.started_at) || 'just now'}
-            </strong>
-            {' '}· {lastScan.findings_count} finding{lastScan.findings_count === 1 ? '' : 's'}
-          </span>
-        )}
-        <Button variant="ghost" size="sm"
-            onClick={onRetry}
-          title="Reload findings">
-          <RefreshCw size={13} /> Refresh
-        </Button>
-        {canAdmin && (
-          <Button variant="primary" size="sm"
-            onClick={onRunScan}
-            title="Start a new scan run">
-            <Play size={13} /> Run Scan
-          </Button>
-        )}
-      </div>
-
-      {/* KPI strip — derived client-side from loaded list */}
-      {state.state === 'ok' && (
-        <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-8)' }}>
-          <KPITile
-            label="Open"
-            value={kpiCounts.open}
-            size="sm"
-            danger={kpiCounts.open > 0}
-          />
-          <KPITile
-            label="Investigating"
-            value={kpiCounts.investigating}
-            size="sm"
-            warning={kpiCounts.investigating > 0}
-          />
-          <KPITile
-            label="Resolved"
-            value={kpiCounts.resolved}
-            size="sm"
-          />
-          <KPITile
-            label="False positives"
-            value={kpiCounts.false_positive}
-            size="sm"
-            muted
-          />
-        </div>
-      )}
-
-      {/* Body — loading / error / empty / table */}
-      {state.state === 'loading' && (
-        <p className="muted" style={{ padding: 'var(--gx-space-18)' }}>Loading findings…</p>
-      )}
-
-      {state.state === 'error' && (
-        <ErrorBanner message={state.message} onRetry={onRetry} />
-      )}
-
-      {state.state === 'empty' && (
-        <EmptyState
-          icon={<SearchIcon size={40} />}
-          title="No findings to triage."
-          message={lastScan
-            ? `Last scan ${timeAgo(lastScan.started_at) || 'just now'}.`
-            : 'Run a scan to detect revenue leakage.'}
-          action={canAdmin ? (
-            <Button variant="primary" size="sm"
-            onClick={onRunScan}>
-              <Play size={13} /> Run Scan
-            </Button>
-          ) : undefined}
-        />
-      )}
-
-      {state.state === 'ok' && (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <div className="grid-wrap" style={{ overflowX: 'auto' }}>
-            <table className="grid">
-              <thead>
-                <tr>
-                  <th scope="col">Detected</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Severity</th>
-                  <th scope="col">Entity</th>
-                  <th scope="col">Summary</th>
-                  <th scope="col">Status</th>
-                  <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageRows.map((f) => {
-                  const actionable = f.status === 'open' || f.status === 'investigating'
-                  return (
-                    <tr
-                      key={f.id}
-                      onClick={() => onOpenDrawer(f)}
-                      style={{ cursor: 'pointer' }}
-                      title="View finding details"
-                    >
-                      <td>
-                        <span title={f.detected_at} style={{ color: 'var(--gx-text-2)' }}>
-                          {timeAgo(f.detected_at) || '—'}
-                        </span>
-                      </td>
-                      <td>
-                        <TypeChip type={f.finding_type} severity={f.severity} />
-                      </td>
-                      <td>
-                        <StatusPill
-                          variant={severityToPill(f.severity)}
-                          label={f.severity}
-                          size="sm"
-                        />
-                      </td>
-                      <td>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
-                          <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase' }}>
-                            {f.entity_type}
-                          </span>
-                          <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }}>
-                            {f.entity_id ? f.entity_id.slice(0, 8) : '—'}
-                          </span>
-                        </span>
-                      </td>
-                      <td style={{ maxWidth: 360 }}>
-                        <span style={{
-                          display: 'inline-block', maxWidth: '100%',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          verticalAlign: 'bottom',
-                        }} title={f.summary}>
-                          {f.summary}
-                        </span>
-                      </td>
-                      <td>
-                        <StatusPill
-                          variant={statusToPill(f.status)}
-                          label={STATUS_LABEL[f.status]}
-                          size="sm"
-                        />
-                      </td>
-                      <td className="actions-col" onClick={(e) => e.stopPropagation()}>
-                        {/* TL-4 — Ack/Resolve/False-positive collapse into RowActionsMenu. */}
-                        {(() => {
-                          const actions: RowAction[] = []
-                          if (actionable && f.status === 'open') {
-                            actions.push({ key: 'ack', label: 'Acknowledge', icon: <CheckIcon size={14} />, onClick: () => onAck(f) })
-                          }
-                          if (actionable) {
-                            actions.push({ key: 'resolve', label: 'Resolve', icon: <EditIcon size={14} />, onClick: () => onOpenResolve(f) })
-                          }
-                          if (actionable && canAdmin) {
-                            actions.push({ key: 'fp', label: 'Mark false positive', icon: <CloseIcon size={14} />, danger: true, onClick: () => onOpenMarkFP(f) })
-                          }
-                          if (actions.length === 0) return null
-                          return <RowActionsMenu actions={actions} ariaLabel="Finding actions" />
-                        })()}
-                      </td>
-                    </tr>
-                  )
-                })}
-                {pageRows.length === 0 && (
-                  <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
-                      No findings on this page.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="table-foot">
-            <span className="hint">
-              {totalRows === 0
-                ? '0 findings'
-                : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} of ${totalRows}`}
-            </span>
-            <span className="spacer" />
-            <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>
-              <Button variant="ghost" size="sm" iconOnly
-            disabled={page <= 1}
-                onClick={() => onPage(Math.max(1, page - 1))}
-                aria-label="Previous page"
-              >
-                <ChevronLeft size={15} />
-              </Button>
-              {Array.from({ length: pageCount }, (_, i) => i + 1).slice(0, 5).map((p) => (
-                <button
-                  key={p}
-                  className={'btn btn-sm btn-icon ' + (p === page ? 'btn-secondary' : 'btn-ghost')}
-                  onClick={() => onPage(p)}
-                >{p}</button>
-              ))}
-              <Button variant="ghost" size="sm" iconOnly
-            disabled={page>= pageCount}
-                onClick={() => onPage(Math.min(pageCount, page + 1))}
-                aria-label="Next page"
-              >
-                <ChevronRight size={15} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FilterSelect({ label, value, onChange, options }: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  options: [string, string][]
-}) {
-  return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
-      <span>{label}</span>
-      <select
-        className="inp inp-sm"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ fontSize: 'var(--gx-text-sm)' }}
-      >
-        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-    </label>
-  )
-}
-
-// Compact type chip with a tinted background driven by severity bucket.
-function TypeChip({ type, severity }: { type: FindingType; severity: FindingSeverity }) {
-  const tone = severity === 'critical' || severity === 'high'
-    ? { bg: 'var(--gx-danger-soft)', fg: 'var(--gx-danger)' }
-    : severity === 'medium'
-      ? { bg: 'var(--gx-warning-soft)', fg: 'var(--gx-warning)' }
-      : { bg: 'var(--gx-bg-subtle)', fg: 'var(--gx-text-2)' }
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: 'var(--gx-space-1) var(--gx-space-4)',
-      background: tone.bg,
-      color: tone.fg,
-      borderRadius: 'var(--gx-radius-full)',
-      fontSize: 'var(--gx-text-11)',
-      fontWeight: 'var(--gx-weight-semibold)',
-      whiteSpace: 'nowrap',
-    }}>
-      {FINDING_TYPE_LABEL[type]}
-    </span>
-  )
-}
-
-// AR aging bars — same visual idiom as AnalyticsView.Aging, but driven by the typed buckets shape.
-function AgingBars({ buckets }: { buckets: AgingBuckets }) {
-  const rows: { label: string; amount: number; danger?: boolean }[] = [
-    { label: 'Current', amount: buckets.current },
-    { label: '1–30 days', amount: buckets.d1_30 },
-    { label: '31–60 days', amount: buckets.d31_60 },
-    { label: '61–90 days', amount: buckets.d61_90 },
-    { label: '90+ days', amount: buckets.d90_plus, danger: true },
-  ]
-  const max = rows.reduce((m, r) => Math.max(m, r.amount), 0)
-  return (
-    <div className="bars">
-      {rows.map((r, i) => (
-        <div key={i} className="bar-row">
-          <span className="bar-label">{r.label}</span>
-          <div className="bar-track">
-            <div
-              className="bar-fill"
-              style={{
-                width: (max > 0 ? (r.amount / max) * 100 : 0) + '%',
-                ...(r.danger ? { background: 'var(--gx-danger)' } : null),
-              }}
-            />
-          </div>
-          <span className="bar-val">{money(r.amount)}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ── Drilldown drawer ─────────────────────────────────────────────────────────
-// Opens when a row in the Findings table is clicked. Surfaces:
-//   • header: type label + severity pill + detected_at relative
-//   • summary text
-//   • entity context (entity_type/uuid + optional customer name + decoded detail_json fields)
-//   • status flow (open → investigating → resolved/false_positive)
-//   • ack + resolution blocks (when present)
-//   • centralized action buttons (Ack / Resolve / Mark FP) gated by canAdmin
-//
-// The drawer reuses the SAME backend endpoints as the per-row buttons (ack/resolve/mark-FP)
-// — the row-resolution/false-positive flow goes through the existing actionModal so the user
-// gets the resolution textarea modal on top of the drawer, which keeps the drawer state
-// intact until success (the parent closes the drawer on submit success).
-function FindingDrawer(props: {
-  seed: RaFinding                                            // the row that was clicked (immediate paint)
-  detail:                                                     // fresh fetch state for /findings/{id}
-    | { state: 'loading' }
-    | { state: 'ok'; value: RaFinding }
-    | { state: 'error'; message: string }
-  customer: { id: string; name: string | null } | null       // resolved customer (null until lookup done)
-  canAdmin: boolean
-  onClose: () => void
-  onAck: () => void
-  onOpenResolve: (f: RaFinding) => void
-  onOpenMarkFP: (f: RaFinding) => void
-}) {
-  const { seed, detail, customer, canAdmin, onClose, onAck, onOpenResolve, onOpenMarkFP } = props
-  // Prefer the fresh-fetched row; fall back to the clicked row while loading or on detail error.
-  const f: RaFinding = detail.state === 'ok' ? detail.value : seed
-  const actionable = f.status === 'open' || f.status === 'investigating'
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title={FINDING_TYPE_LABEL[f.finding_type] ?? f.finding_type}
-      subtitle={f.id ? f.id : undefined}
-      size="lg"
-      hero={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-5)', flexWrap: 'wrap' }}>
-          <StatusPill variant={severityToPill(f.severity)} label={f.severity} size="sm" />
-          <StatusPill variant={statusToPill(f.status)} label={STATUS_LABEL[f.status]} size="sm" />
-          <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }} title={f.detected_at}>
-            Detected {timeAgo(f.detected_at) || fmtDate(f.detected_at)}
-          </span>
-          {detail.state === 'loading' && (
-            <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', marginLeft: 'auto' }}>Refreshing…</span>
-          )}
-          {detail.state === 'error' && (
-            <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-warning)', marginLeft: 'auto' }} title={detail.message}>
-              Using cached row
-            </span>
-          )}
-        </div>
-      }
-      footer={
-        <>
-          {canAdmin && actionable && f.status === 'open' && (
-            <Button variant="ghost" size="md" onClick={onAck}>Acknowledge</Button>
-          )}
-          {canAdmin && actionable && (
-            <Button variant="secondary" size="md" onClick={() => onOpenMarkFP(f)}>Mark False Positive…</Button>
-          )}
-          {canAdmin && actionable && (
-            <Button variant="primary" size="md" onClick={() => onOpenResolve(f)}>Resolve…</Button>
-          )}
-          <Button variant="ghost" size="md" onClick={onClose}>Close</Button>
-        </>
-      }
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
-        {/* Summary text */}
-        <section>
-          <div style={drawerSectionTitleStyle}>Summary</div>
-          <p style={{ margin: 0, color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)', lineHeight: 1.5 }}>
-            {f.summary || <span style={{ color: 'var(--gx-text-3)' }}>No summary recorded.</span>}
-          </p>
-        </section>
-
-        {/* Entity context card */}
-        <section style={drawerCardStyle}>
-          <div style={drawerSectionTitleStyle}>Entity context</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-13)' }}>
-            <div>
-              <span style={drawerLabelStyle}>Entity</span>
-              <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textTransform: 'uppercase', marginRight: 'var(--gx-space-3)' }}>
-                {f.entity_type}
-              </span>
-              <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={f.entity_id}>
-                {f.entity_id ? f.entity_id.slice(0, 8) : '—'}
-              </span>
-            </div>
-
-            {customer && (
-              <div>
-                <span style={drawerLabelStyle}>Customer</span>
-                {customer.name
-                  ? <span style={{ color: 'var(--gx-text-1)' }}>{customer.name}</span>
-                  : <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={customer.id}>{customer.id.slice(0, 8)}</span>}
-              </div>
-            )}
-
-            <DetailJsonFields detail={f.detail_json} />
-          </div>
-        </section>
-
-        {/* Status flow card */}
-        <section style={drawerCardStyle}>
-          <div style={drawerSectionTitleStyle}>Status flow</div>
-          <StatusFlow current={f.status} />
-        </section>
-
-        {/* Acknowledgement block */}
-        {f.ack_at && (
-          <section style={drawerCardStyle}>
-            <div style={drawerSectionTitleStyle}>Acknowledged</div>
-            <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
-              {f.ack_by && (
-                <>
-                  <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={f.ack_by}>{f.ack_by.slice(0, 8)}</span>
-                  <span> · </span>
-                </>
-              )}
-              <span title={f.ack_at}>{timeAgo(f.ack_at) || fmtDate(f.ack_at)}</span>
-            </div>
-          </section>
-        )}
-
-        {/* Resolution block */}
-        {(f.status === 'resolved' || f.status === 'false_positive' || f.resolved_at) && (
-          <section style={drawerCardStyle}>
-            <div style={drawerSectionTitleStyle}>
-              {f.status === 'false_positive' ? 'Marked false positive' : 'Resolved'}
-            </div>
-            <div style={{ fontSize: 'var(--gx-text-13)', color: 'var(--gx-text-2)' }}>
-              {f.resolved_by && (
-                <>
-                  <span className="mono" style={{ fontSize: 'var(--gx-text-sm)' }} title={f.resolved_by}>{f.resolved_by.slice(0, 8)}</span>
-                  <span> · </span>
-                </>
-              )}
-              {f.resolved_at && <span title={f.resolved_at}>{timeAgo(f.resolved_at) || fmtDate(f.resolved_at)}</span>}
-              {f.resolution && (
-                <p style={{ marginTop: 'var(--gx-space-3)', marginBottom: 0, color: 'var(--gx-text-1)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                  {f.resolution}
-                </p>
-              )}
-            </div>
-          </section>
-        )}
-      </div>
-    </Modal>
-  )
-}
-
-const drawerSectionTitleStyle: React.CSSProperties = {
-  fontSize: 'var(--gx-text-11)',
-  fontWeight: 'var(--gx-weight-semibold)',
-  textTransform: 'uppercase',
-  letterSpacing: 0.4,
-  color: 'var(--gx-text-3)',
-  marginBottom: 8,
-}
-
-const drawerCardStyle: React.CSSProperties = {
-  padding: 12,
-  background: 'var(--gx-surface-2)',
-  border: '1px solid var(--gx-border-subtle)',
-  borderRadius: 8,
-}
-
-const drawerLabelStyle: React.CSSProperties = {
-  display: 'inline-block',
-  minWidth: 84,
-  fontSize: 'var(--gx-text-11)',
-  color: 'var(--gx-text-3)',
-  fontWeight: 'var(--gx-weight-medium)',
-}
-
-// Decode the known detail_json fields nicely; fall back to formatted JSON for the rest.
-function DetailJsonFields({ detail }: { detail: Record<string, any> | null | undefined }) {
-  if (!detail || typeof detail !== 'object' || Object.keys(detail).length === 0) {
-    return (
-      <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>No additional context.</div>
-    )
-  }
-  // Known keys we render nicely; everything else goes into the catch-all <pre>.
-  const KNOWN = new Set(['customer_id', 'gap_days', 'activated_at', 'cycle_start', 'cycle_end'])
-  const rest: Record<string, any> = {}
-  for (const [k, v] of Object.entries(detail)) {
-    if (!KNOWN.has(k)) rest[k] = v
-  }
-  const gap = typeof detail.gap_days === 'number' ? detail.gap_days : null
-  const activatedAt = typeof detail.activated_at === 'string' ? detail.activated_at : null
-  const cycleStart = typeof detail.cycle_start === 'string' ? detail.cycle_start : null
-  const cycleEnd = typeof detail.cycle_end === 'string' ? detail.cycle_end : null
-  const hasCycle = !!(cycleStart || cycleEnd)
-  const restHasContent = Object.keys(rest).length > 0
-
-  return (
-    <>
-      {gap != null && (
-        <div>
-          <span style={drawerLabelStyle}>Gap</span>
-          <span>Service has been active {gap} day{gap === 1 ? '' : 's'} without billing</span>
-        </div>
-      )}
-      {activatedAt && (
-        <div>
-          <span style={drawerLabelStyle}>Activated</span>
-          <span title={activatedAt}>
-            {timeAgo(activatedAt) || fmtDate(activatedAt)}
-            <span style={{ marginLeft: 'var(--gx-space-3)', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-11)' }}>{activatedAt}</span>
-          </span>
-        </div>
-      )}
-      {hasCycle && (
-        <div>
-          <span style={drawerLabelStyle}>Cycle</span>
-          <span>
-            {cycleStart ? fmtDate(cycleStart) : '?'} → {cycleEnd ? fmtDate(cycleEnd) : '?'}
-          </span>
-        </div>
-      )}
-      {restHasContent && (
-        <div>
-          <div style={{ ...drawerLabelStyle, marginBottom: 'var(--gx-space-2)' }}>Other</div>
-          <pre style={{
-            margin: 0,
-            padding: 'var(--gx-space-3)',
-            background: 'var(--gx-surface)',
-            border: '1px solid var(--gx-border-subtle)',
-            borderRadius: 'var(--gx-radius-sm)',
-            fontSize: 'var(--gx-text-11)',
-            lineHeight: 1.5,
-            color: 'var(--gx-text-2)',
-            overflowX: 'auto',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}>{JSON.stringify(rest, null, 2)}</pre>
-        </div>
-      )}
-    </>
-  )
-}
-
-// Visual status flow: open → investigating → resolved (or → false_positive).
-// The terminal state replaces "Resolved" when status is false_positive.
-function StatusFlow({ current }: { current: FindingStatus }) {
-  const steps: { key: FindingStatus; label: string }[] = current === 'false_positive'
-    ? [
-        { key: 'open', label: 'Open' },
-        { key: 'investigating', label: 'Investigating' },
-        { key: 'false_positive', label: 'False positive' },
-      ]
-    : [
-        { key: 'open', label: 'Open' },
-        { key: 'investigating', label: 'Investigating' },
-        { key: 'resolved', label: 'Resolved' },
-      ]
-  // Steps prior to (and including) `current` are highlighted.
-  const order = { open: 0, investigating: 1, resolved: 2, false_positive: 2 } as const
-  const currentIdx = order[current]
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
-      {steps.map((s, i) => {
-        const reached = order[s.key] <= currentIdx
-        const isCurrent = s.key === current
-        return (
-          <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)' }}>
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: 'var(--gx-space-2) var(--gx-space-5)',
-              borderRadius: 'var(--gx-radius-full)',
-              fontSize: 'var(--gx-text-11)',
-              fontWeight: isCurrent ? 600 : 500,
-              background: isCurrent
-                ? (s.key === 'resolved'
-                    ? 'var(--gx-success-soft)'
-                    : s.key === 'false_positive'
-                      ? 'var(--gx-bg-subtle)'
-                      : s.key === 'investigating'
-                        ? 'var(--gx-warning-soft)'
-                        : 'var(--gx-danger-soft)')
-                : reached ? 'var(--gx-surface)' : 'transparent',
-              color: isCurrent
-                ? (s.key === 'resolved'
-                    ? 'var(--gx-success)'
-                    : s.key === 'false_positive'
-                      ? 'var(--gx-text-2)'
-                      : s.key === 'investigating'
-                        ? 'var(--gx-warning)'
-                        : 'var(--gx-danger)')
-                : reached ? 'var(--gx-text-2)' : 'var(--gx-text-3)',
-              border: '1px solid ' + (isCurrent
-                ? 'transparent'
-                : reached ? 'var(--gx-border-subtle)' : 'var(--gx-border-subtle)'),
-            }}>
-              {s.label}
-            </span>
-            {i < steps.length - 1 && (
-              <span style={{
-                width: 'var(--gx-space-18)',
-                height: 1,
-                background: 'var(--gx-border)',
-                display: 'inline-block',
-              }} />
-            )}
-          </div>
-        )
-      })}
-    </div>
   )
 }
