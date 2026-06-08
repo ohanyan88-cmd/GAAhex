@@ -19,6 +19,7 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
 import { humanizeStatus } from '../lib/humanize'
+import { INVOICE_OUTSTANDING } from '../lib/status-constants'
 import {
   ReceiptIcon, ArrowRightIcon, ChevronLeftIcon, PrinterIcon,
   CreditCardIcon, SearchIcon,
@@ -256,7 +257,7 @@ export default function InvoicesView({
   const all = list ?? []
   const countFor = (s: string) => all.filter(i => (i.status ?? '').toUpperCase() === s).length
   const totalBilled = all.reduce((a, i) => a + (i.total ?? 0), 0)
-  const outstanding = all.filter(i => ['ISSUED', 'OVERDUE'].includes((i.status ?? '').toUpperCase())).reduce((a, i) => a + (i.total ?? 0), 0)
+  const outstanding = all.filter(i => INVOICE_OUTSTANDING.includes((i.status ?? '').toUpperCase() as any)).reduce((a, i) => a + (i.total ?? 0), 0)
   const paidCount = countFor('PAID')
   const overdueCount = countFor('OVERDUE')
 

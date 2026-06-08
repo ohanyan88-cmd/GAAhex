@@ -21,6 +21,7 @@ import {
 } from '../lib/workitems'
 import { listUsers, type User } from '../lib/users'
 import { loadCustomers } from '../lib/billing'
+import { WORKITEM_OPEN, WORKITEM_ALL } from '../lib/status-constants'
 import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import UserPicker from '../components/UserPicker'
@@ -38,9 +39,7 @@ const MY_TASKS_COLUMNS = [
   { key: 'scheduled', label: 'Scheduled', visible: true },
 ]
 
-const OPEN_STATUSES: WorkItemStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED']
 const PRIORITIES: WorkItemPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT']
-const STATUS_FILTERS: WorkItemStatus[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'CANCELLED']
 const KINDS: WorkItemKind[] = ['task', 'install', 'repair', 'survey']
 
 type ViewMode = 'table' | 'board'
@@ -145,7 +144,7 @@ export default function MyTasksView({
 
   // Real counts: backend gave us this user's items only, so .filter on status
   // is doctrine-compliant (every value is a true fetched field).
-  const openCount = items.filter((i) => i.status && OPEN_STATUSES.includes(i.status as WorkItemStatus)).length
+  const openCount = items.filter((i) => i.status && (WORKITEM_OPEN as readonly string[]).includes(i.status)).length
   const overdueCount = items.filter((i) => {
     if (!i.due_at) return false
     if (i.status && (i.status === 'DONE' || i.status === 'CANCELLED')) return false
@@ -233,7 +232,7 @@ export default function MyTasksView({
         value: statusFilter,
         options: [
           { label: 'All statuses', value: '' },
-          ...STATUS_FILTERS.map((s) => ({ label: statusLabel(s), value: s })),
+          ...WORKITEM_ALL.map((s) => ({ label: statusLabel(s), value: s })),
         ],
         onChange: (next) => setStatusFilter(next as WorkItemStatus | ''),
       },

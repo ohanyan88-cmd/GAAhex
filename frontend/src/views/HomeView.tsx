@@ -25,6 +25,7 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { useAuth } from '../context/AuthContext'
 import { authH, bget } from '../lib/billing'
 import { initialsOf } from '../lib/utils'
+import { TICKET_CLOSED } from '../lib/status-constants'
 import { DetailTab, DetailTabList } from '../primitives'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
@@ -59,7 +60,6 @@ const ROLE_SUBTITLE: Record<Role, string> = {
   general: 'Your workspace',
 }
 
-const CLOSED_STATUSES = ['RESOLVED', 'CLOSED', 'CANCELLED'] as const
 
 
 // ── helpers ─────────────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
   const myTickets   = me ? ticketArr.filter(t => t.assigned_user_id === me.id) : []
   const breachedTickets = myTickets.filter(t => {
-    if (CLOSED_STATUSES.includes(t.status)) return false
+    if (TICKET_CLOSED.includes(t.status)) return false
     const age = (Date.now() - Date.parse(t.created_at)) / (1000 * 3600)
     return age > 24
   })
@@ -210,7 +210,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
     },
     {
       label: 'Team Tickets Open',
-      value: ticketArr.filter(t => !CLOSED_STATUSES.includes(t.status ?? '')).length,
+      value: ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length,
       subtitle: breachedTickets.length > 0 ? `${breachedTickets.length} past SLA` : 'all within SLA',
       cornerNote: <span className="kpi-scope kpi-scope-team">TEAM</span>,
       danger: breachedTickets.length > 0,
@@ -269,7 +269,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <div className="ws-col">
             <div className="ws-col-head">ME</div>
 
-            <Widget icon={Inbox} title="My Tickets" count={myTickets.filter(t => !CLOSED_STATUSES.includes(t.status ?? '')).length}>
+            <Widget icon={Inbox} title="My Tickets" count={myTickets.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
               {tickets.state === 'loading' && <Skel />}
               {myTickets.length === 0 ? <Empty msg="No tickets assigned to you" /> : myTickets.slice(0, 8).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
@@ -317,9 +317,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <div className="ws-col">
             <div className="ws-col-head">TEAM</div>
 
-            <Widget icon={Inbox} title="Team Tickets" count={ticketArr.filter(t => !CLOSED_STATUSES.includes(t.status ?? '')).length}>
+            <Widget icon={Inbox} title="Team Tickets" count={ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
               {tickets.state === 'loading' && <Skel />}
-              {ticketArr.length === 0 ? <Empty msg="No open tickets" /> : ticketArr.filter(t => !CLOSED_STATUSES.includes(t.status ?? '')).slice(0, 8).map(t => (
+              {ticketArr.length === 0 ? <Empty msg="No open tickets" /> : ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).slice(0, 8).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>

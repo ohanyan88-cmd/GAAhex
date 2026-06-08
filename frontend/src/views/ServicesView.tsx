@@ -17,6 +17,7 @@ import { useCustomFields } from '../components/CustomCells'
 import { StatusPill, Button, Pagination } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { humanizeStatus } from '../lib/humanize'
+import { SERVICE_ALL } from '../lib/status-constants'
 
 // Services UI (A14 /api/services) — list + RecordDrawer detail with resources + lifecycle.
 // SPEC §4.5 mandatory-approval gate is wired on the backend `suspend` transition:
@@ -26,7 +27,6 @@ import { humanizeStatus } from '../lib/humanize'
 type Service = { id: string; customer_id?: string | null; subscription_id?: string | null; type?: string; name?: string; status?: string | null; activated_at?: string | null; created_at?: string | null; resources?: Resource[] }
 type Resource = { id: string; kind?: string; value?: string; label?: string | null; status?: string | null; created_at?: string | null }
 
-const STATUSES = ['PENDING', 'ACTIVE', 'SUSPENDED', 'TERMINATED']
 const TYPES = ['internet', 'tv', 'voip', 'hosting', 'other']
 const KINDS = ['ip', 'mac', 'port', 'device', 'circuit', 'other']
 
@@ -191,7 +191,7 @@ export default function ServicesView({ token, canConfigure = false, configVersio
           <button className={'tab' + (status === '' ? ' on' : '')} onClick={() => setStatus('')}>
             All <span className="tab-count">{all.length}</span>
           </button>
-          {STATUSES.map((s) => (
+          {SERVICE_ALL.map((s) => (
             <button key={s} className={'tab' + (status === s ? ' on' : '')} onClick={() => setStatus(s)}>
               {humanizeStatus(s)} <span className="tab-count">{all.filter(x => (x.status ?? '').toUpperCase() === s).length}</span>
             </button>

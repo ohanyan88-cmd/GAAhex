@@ -23,7 +23,7 @@ vi.mock('../views/ProfileView', () => ({ default: ({ initialSection }: { initial
 
 // Silence fetch so workspace data calls don't leak into test output.
 beforeEach(() => {
-  global.fetch = vi.fn().mockResolvedValue({ ok: false, json: async () => [] })
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => [] }))
 })
 
 // ── Tests ──────────────────────────────────────────────────────────────────
