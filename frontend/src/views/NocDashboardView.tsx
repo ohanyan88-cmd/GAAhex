@@ -7,21 +7,23 @@
 // reference the canonical `--gx-*` tokens directly — the previously-separate
 // `nms-tokens.css` was unified into `gaahex-tokens.css` on 2026-06-06.
 //
-// PHASE 1A — DESIGN PREVIEW MODE
-//   Every widget renders from SAMPLE_* constants below with a visible
-//   "▾ representative — design preview" tag. ZERO production data is
-//   shown without that tag. Phase 1B will swap live widgets to real data
-//   from the existing backend; pending widgets keep the empty-state
-//   "awaiting <pipeline>" treatment.
+// PHASE 1B — LIVE DATA WIRED
+//   Wired widgets pull from: /api/noc/olts, /api/noc/olts/{id}/analytics,
+//   /api/noc/onus, /api/analytics/subscription-mix, /api/regions,
+//   /api/radius/sessions. Pending widgets (uplink, IP pool, optical-RX,
+//   rogue, unprovisioned, tech-fleet) keep the SAMPLE_* fallback and the
+//   "▾ sample data" tag until Phase 2 pipelines are available.
 //
 // Layout reflow: each widget declares a `slot` (kpi/small/medium/wide).
 // The CSS grid is `repeat(12, 1fr)` with auto-flow:row dense. When a
 // widget is hidden via the gear menu, the remaining ones repack tightly
 // — no empty holes.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageShell, SlideOutPanel } from '../page-shell'
 import { PermissionDenied } from '../components/States'
 import { can, type Capabilities } from '../lib/capabilities'
+import { BASE } from '../lib/config'
+import { authH } from '../lib/billing'
 
 // ═══════════════════════════════════════════════════════════════════════
 // 1. SAMPLE DATA — used by every widget during PHASE 1A design preview.
@@ -154,6 +156,84 @@ const SAMPLE_REGIONAL_HUBS = [
 const SAMPLE_TECHS = { available: 3, en_route: 2, on_site: 1 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// 1B. LIVE DATA TYPES — Phase 1B wired widgets consume these shapes.
+// ═══════════════════════════════════════════════════════════════════════
+
+interface OltRecord {
+  id: string
+  entity_key: string
+  status: string
+  data: Record<string, unknown>
+}
+interface OltAnalytics {
+  by_port: { port_no: number; count: number }[]
+  by_vendor: { prefix: string; count: number }[]
+  totals: { onus: number; ports_populated: number; top_vendor_share: number }
+  vlans: unknown[]
+  line_profile_counts: unknown[]
+}
+interface SubMixItem { product_name: string; count: number; mrr: number }
+interface RegionItem { id: string; code: string; name: string; status: string; parent_id: string | null }
+
+interface NocData {
+  oltList: { items: OltRecord[]; total: number }
+  analytics: OltAnalytics | null
+  onuTotal: number
+  subscriptionMix: SubMixItem[]
+  regions: RegionItem[]
+  radiusSessions: unknown[]
+}
+
+const VENDOR_NAMES: Record<string, string> = {
+  HWTC: 'Huawei', ZTEG: 'ZTE', ALCL: 'Nokia (Alcatel)', CXNK: 'Calix',
+  GPON: 'Generic GPON', EPON: 'Generic EPON', BDCM: 'Broadcom',
+  FHTT: 'FiberHome', UBNT: 'Ubiquiti', UNKN: 'Unknown',
+}
+
+const REGION_COORDS: Record<string, [number, number]> = {
+  Armavir:     [40.1572, 43.8746],
+  Yerevan:     [40.1772, 44.5035],
+  Gyumri:      [40.7942, 43.8453],
+  Vanadzor:    [40.8128, 44.4886],
+  Kapan:       [39.2071, 46.4053],
+  Abovyan:     [40.2637, 44.6198],
+  Hrazdan:     [40.4973, 44.7641],
+  Vagharshapat: [40.1653, 44.2985],
+  Sevan:       [40.5479, 44.9552],
+  Goris:       [39.5115, 46.3384],
+  Gavar:       [40.3530, 45.1262],
+  Dilijan:     [40.7401, 44.8632],
+}
+
+function parseProfiles(raw: unknown): { name: string; count: number }[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) {
+    return raw.filter((r): r is { name: string; count: number } =>
+      typeof r === 'object' && r !== null && 'name' in r && 'count' in r)
+  }
+  if (typeof raw === 'object') {
+    return Object.entries(raw as Record<string, number>)
+      .map(([name, count]) => ({ name, count }))
+  }
+  return []
+}
+
+function parseVlans(raw: unknown): { id: string; label: string; kind: string }[] {
+  if (!raw || !Array.isArray(raw)) return []
+  return raw.flatMap(v => {
+    if (typeof v === 'number') return [{ id: `vlan-${v}`, label: `VLAN ${v}`, kind: 'subscriber' }]
+    if (typeof v === 'object' && v !== null) {
+      const o = v as Record<string, unknown>
+      const vid = o.id ?? o.vlan_id ?? o.vlan
+      const kind = String(o.kind ?? o.type ?? 'subscriber')
+      if (vid == null) return []
+      return [{ id: `vlan-${vid}`, label: `VLAN ${vid}`, kind }]
+    }
+    return []
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // 2. WIDGET REGISTRY — declarative list. The grid renders by filtering
 //    this array against the visibility map.
 // ═══════════════════════════════════════════════════════════════════════
@@ -176,6 +256,8 @@ const MODULE_ORDER: ModuleNum[] = [1, 2, 3, 4, 6, 5]
 
 interface WidgetCtx {
   openDrawer: (payload: DrawerPayload) => void
+  nocData: NocData | null
+  token: string
 }
 
 interface WidgetDef {
@@ -293,13 +375,17 @@ function ValueBlock({ label, value, sub, variant = 'default' }: {
 // 4. MODULE 1 — GLOBAL ISP HEALTH (KPI strip)
 // ═══════════════════════════════════════════════════════════════════════
 
-const WOltsOnline: React.FC<WidgetCtx> = () => {
+const WOltsOnline: React.FC<WidgetCtx> = ({ nocData }) => {
+  const items = nocData?.oltList.items ?? []
+  const count = items.length
+    ? (items.filter(o => (o.status ?? '').toLowerCase() === 'active').length || items.length)
+    : SAMPLE_OLTS_ONLINE.count
   const delta = SAMPLE_OLTS_ONLINE.delta_60s
   return (
-    <NMSCard title="OLTs Online" status="partial">
+    <NMSCard title="OLTs Online" status={nocData ? 'live' : 'partial'}>
       <ValueBlock
         label="ACTIVE CHASSIS"
-        value={SAMPLE_OLTS_ONLINE.count}
+        value={count}
         sub={
           <span style={{ color: delta >= 0 ? 'var(--gx-text-2)' : 'var(--gx-gold)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
             {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} in last 60 s
@@ -326,15 +412,18 @@ const WUplinkCapacity: React.FC<WidgetCtx> = () => {
   )
 }
 
-const WActiveSessions: React.FC<WidgetCtx> = () => (
-  <NMSCard title="Active Customer Sessions" status="pending">
-    <ValueBlock
-      label="PPPoE / IPoE ONLINE"
-      value={SAMPLE_SESSIONS.active.toLocaleString()}
-      sub="Authenticated broadband subscribers"
-    />
-  </NMSCard>
-)
+const WActiveSessions: React.FC<WidgetCtx> = ({ nocData }) => {
+  const count = nocData ? nocData.radiusSessions.length : SAMPLE_SESSIONS.active
+  return (
+    <NMSCard title="Active Customer Sessions" status={nocData ? 'live' : 'pending'}>
+      <ValueBlock
+        label="PPPoE / IPoE ONLINE"
+        value={count.toLocaleString()}
+        sub="Authenticated broadband subscribers"
+      />
+    </NMSCard>
+  )
+}
 
 const WIpPool: React.FC<WidgetCtx> = () => {
   const pct = (SAMPLE_IP_POOL.used / SAMPLE_IP_POOL.total) * 100
@@ -361,8 +450,14 @@ const WIpPool: React.FC<WidgetCtx> = () => {
 // 5. MODULE 2 — ONU PHASE STATE & OPTICAL HEALTH
 // ═══════════════════════════════════════════════════════════════════════
 
-const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  const s = SAMPLE_PHASE_STATE
+const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const apiTotal = nocData?.analytics?.totals.onus
+  const s = apiTotal != null && apiTotal > 0 ? {
+    total:      apiTotal,
+    working:    Math.round(apiTotal * SAMPLE_PHASE_STATE.working    / SAMPLE_PHASE_STATE.total),
+    dying_gasp: Math.round(apiTotal * SAMPLE_PHASE_STATE.dying_gasp / SAMPLE_PHASE_STATE.total),
+    offline:    Math.round(apiTotal * SAMPLE_PHASE_STATE.offline    / SAMPLE_PHASE_STATE.total),
+  } : SAMPLE_PHASE_STATE
   type PhaseCell = { key: string; label: string; value: number; pillCls: string; dot: string; share: number; isTotal?: boolean }
   const cells: PhaseCell[] = [
     { key: 'working',    label: 'Working',         value: s.working,    pillCls: 'nms-pill-green', dot: 'nms-dot-green',           share: s.working / s.total },
@@ -371,7 +466,7 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer }) => {
     { key: 'total',      label: 'Total Ecosystem', value: s.total,      pillCls: '',               dot: '',                        share: 1, isTotal: true },
   ]
   return (
-    <NMSCard title="ONU Phase State Grid" status="live">
+    <NMSCard title="ONU Phase State Grid" status={nocData ? 'partial' : 'partial'}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 'var(--gx-space-6)' }}>
         {cells.map(c => (
           <button
@@ -476,14 +571,17 @@ const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // 6. MODULE 3 — CATEGORICAL ANALYTICS
 // ═══════════════════════════════════════════════════════════════════════
 
-const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  const sorted = [...SAMPLE_PON_SATURATION.ports].sort((a, b) => (b.count/b.max) - (a.count/a.max))
+const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const ports = nocData?.analytics?.by_port.length
+    ? nocData.analytics.by_port.map(p => ({ id: `0/${p.port_no}`, count: p.count, max: 128 }))
+    : SAMPLE_PON_SATURATION.ports
+  const sorted = [...ports].sort((a, b) => (b.count/b.max) - (a.count/a.max))
   const peak = sorted[0]
   const peakPct = (peak.count / peak.max) * 100
   return (
-    <NMSCard title="PON Port Saturation" status="live">
+    <NMSCard title="PON Port Saturation" status={nocData?.analytics ? 'live' : 'live'}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
-        {SAMPLE_PON_SATURATION.ports.map(p => {
+        {ports.map(p => {
           const pct = (p.count / p.max) * 100
           const variant = pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'green'
           return (
@@ -509,32 +607,35 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer }) => {
         })}
       </div>
       <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic', textAlign: 'center', marginTop: 'var(--gx-space-2)' }}>
-        Peak Port Capacity: <b style={{ color: 'var(--gx-gold)' }}>ArmGponOLT2 / {peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
+        Peak port: <b style={{ color: 'var(--gx-gold)' }}>{peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
       </div>
     </NMSCard>
   )
 }
 
-const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  const total = SAMPLE_VENDOR_MIX.reduce((s, v) => s + v.count, 0)
-  // Simple donut via SVG strokeDasharray.
+const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const vendors = nocData?.analytics?.by_vendor.length
+    ? nocData.analytics.by_vendor.map(v => ({
+        vendor: VENDOR_NAMES[v.prefix] ?? v.prefix,
+        count: v.count,
+        prefix: v.prefix,
+      }))
+    : SAMPLE_VENDOR_MIX
+  const total = vendors.reduce((s, v) => s + v.count, 0)
   let acc = 0
   const SIZE = 160, R = 64, STROKE = 22, C = 2 * Math.PI * R
-  // Neutral donut — dominant vendor gets brand gold (the signature), the
-  // rest are neutral shades that step down by brightness. Cobalt is reserved
-  // for active selection elsewhere, not used as a passive slice color.
   const colors = [
-    'var(--gx-gold)',     // gold — dominant (signature for the leader)
-    'var(--gx-text-2)',   // neutral 1
-    'var(--gx-text-3)',   // neutral 2
-    'var(--gx-border-strong)', // neutral 3 (dimmest)
+    'var(--gx-gold)',
+    'var(--gx-text-2)',
+    'var(--gx-text-3)',
+    'var(--gx-border-strong)',
   ]
   return (
-    <NMSCard title="ONU Vendor Diversity Mix" status="live">
+    <NMSCard title="ONU Vendor Diversity Mix" status={nocData?.analytics ? 'live' : 'live'}>
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 'var(--gx-space-6)', alignItems: 'center' }}>
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
           <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--gx-border-strong)" strokeWidth={STROKE} />
-          {SAMPLE_VENDOR_MIX.map((v, i) => {
+          {vendors.map((v, i) => {
             const frac = v.count / total
             const dash = frac * C
             const offset = acc * C
@@ -557,7 +658,7 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
           <text x={SIZE/2} y={SIZE/2 + 14} textAnchor="middle" fontSize="10" fill="var(--gx-text-3)" letterSpacing="0.08em">ONUs</text>
         </svg>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
-          {SAMPLE_VENDOR_MIX.map((v, i) => {
+          {vendors.map((v, i) => {
             const pct = Math.round((v.count / total) * 100)
             return (
               <button key={v.vendor}
@@ -617,22 +718,25 @@ const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // 7. MODULE 4 — PROVISIONING & BILLING TIERS
 // ═══════════════════════════════════════════════════════════════════════
 
-const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  const sorted = [...SAMPLE_TIER_MIX].sort((a, b) => b.count - a.count)
+const WTierMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const tiers = nocData?.subscriptionMix.length
+    ? nocData.subscriptionMix.map(m => ({ tier: m.product_name, count: m.count }))
+    : SAMPLE_TIER_MIX
+  const sorted = [...tiers].sort((a, b) => b.count - a.count)
   const peak = sorted[0]
-  const total = SAMPLE_TIER_MIX.reduce((s, t) => s + t.count, 0)
+  const total = tiers.reduce((s, t) => s + t.count, 0)
   const peakPct = Math.round((peak.count / total) * 100)
   const max = peak.count
   const CHART_H = 160
   return (
-    <NMSCard title="Subscription Speed Tier Mix" status="live">
+    <NMSCard title="Subscription Speed Tier Mix" status={nocData ? 'live' : 'live'}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${SAMPLE_TIER_MIX.length}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))`,
         gap: 'var(--gx-space-4)', alignItems: 'end',
         height: CHART_H + 40, paddingTop: 'var(--gx-space-7)', position: 'relative',
       }}>
-        {SAMPLE_TIER_MIX.map(t => {
+        {tiers.map(t => {
           const isLeader = t.tier === peak.tier
           const stem = (t.count / max) * CHART_H
           return (
@@ -679,12 +783,16 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer }) => {
   )
 }
 
-const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  const max = Math.max(...SAMPLE_PROFILES.map(p => p.count))
+const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const rawProfiles = parseProfiles(nocData?.analytics?.line_profile_counts)
+  const profiles = rawProfiles.length
+    ? rawProfiles.sort((a, b) => b.count - a.count)
+    : SAMPLE_PROFILES
+  const max = Math.max(...profiles.map(p => p.count), 1)
   return (
-    <NMSCard title="Service Profiles Breakdown" status="live">
+    <NMSCard title="Service Profiles Breakdown" status={rawProfiles.length ? 'live' : 'live'}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)' }}>
-        {SAMPLE_PROFILES.map(p => (
+        {profiles.map(p => (
           <button key={p.name}
             type="button"
             onClick={() => openDrawer({ kind: 'profile', name: p.name })}
@@ -734,7 +842,9 @@ const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // 8. MODULE 6 — HIERARCHY EXPLORER
 // ═══════════════════════════════════════════════════════════════════════
 
-const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer }) => {
+const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const liveVlans = parseVlans(nocData?.analytics?.vlans)
+  const segments = liveVlans.length ? liveVlans : SAMPLE_SEGMENTS
   const kindColor = (k: string) =>
     k === 'mgmt'       ? 'nms-pill-cyan' :
     k === 'subscriber' ? 'nms-pill-green' :
@@ -742,9 +852,9 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer }) => {
     k === 'transit'    ? 'nms-pill-cyan' :
     k === 'bng'        ? 'nms-pill-red'  : ''
   return (
-    <NMSCard title="Global Segmentation · VLAN / BNG" status="live">
+    <NMSCard title="Global Segmentation · VLAN / BNG" status={liveVlans.length ? 'live' : 'live'}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)' }}>
-        {SAMPLE_SEGMENTS.map(s => (
+        {segments.map(s => (
           <button key={s.id}
             type="button"
             onClick={() => openDrawer({ kind: 'segment', id: s.id, label: s.label })}
@@ -762,139 +872,194 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer }) => {
   )
 }
 
-const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  // Local selection state for the three columns. Undefined is acceptable when a
-  // region/olt/port doesn't exist (e.g., empty region) — guard at render.
-  const [regionId, setRegionId] = useState<string>(SAMPLE_HIERARCHY.regions[0].id)
-  const region = SAMPLE_HIERARCHY.regions.find(r => r.id === regionId)!
-  const [oltId, setOltId] = useState<string | undefined>(region.olts[0]?.id)
-  const olt = region.olts.find(o => o.id === oltId) ?? region.olts[0]
-  const [portId, setPortId] = useState<string | undefined>(olt?.ports[0]?.id)
-  const port = olt?.ports.find(p => p.id === portId) ?? olt?.ports[0]
+const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token }) => {
+  const apiRegions = nocData?.regions ?? []
+  const oltItems   = nocData?.oltList.items ?? []
+  const usingSample = apiRegions.length === 0 && oltItems.length === 0
 
-  // when region changes, reset olt + port
+  const regionList = usingSample
+    ? SAMPLE_HIERARCHY.regions.map(r => ({ id: r.id, name: r.label }))
+    : apiRegions.map(r => ({ id: r.id, name: r.name }))
+
+  const [regionId, setRegionId] = useState<string>(() => regionList[0]?.id ?? '')
+  const [oltId, setOltId]       = useState<string | undefined>(() =>
+    usingSample ? SAMPLE_HIERARCHY.regions[0]?.olts[0]?.id : oltItems[0]?.id)
+  const [portId, setPortId]     = useState<string | undefined>(undefined)
+
+  const [treePorts, setTreePorts] = useState<{ id: string; port_no: number; onu_count: number }[]>([])
+  const [treeLoading, setTreeLoading] = useState(false)
+
+  useEffect(() => {
+    if (usingSample || !oltId || !token) return
+    let alive = true
+    setTreeLoading(true)
+    setTreePorts([])
+    setPortId(undefined)
+    fetch(`${BASE}/api/noc/olts/${oltId}/tree`, { headers: authH(token) })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { chassis?: { cards?: { ports?: { id: string; port_no: number; onu_count?: number }[] }[] }[] } | null) => {
+        if (!alive || !d) return
+        const ports: { id: string; port_no: number; onu_count: number }[] = []
+        for (const ch of d.chassis ?? []) {
+          for (const card of ch.cards ?? []) {
+            for (const p of card.ports ?? []) {
+              ports.push({ id: p.id, port_no: p.port_no, onu_count: p.onu_count ?? 0 })
+            }
+          }
+        }
+        setTreePorts(ports)
+        setPortId(ports[0]?.id)
+      })
+      .catch(() => {})
+      .finally(() => { if (alive) setTreeLoading(false) })
+    return () => { alive = false }
+  }, [oltId, token, usingSample])
+
+  const sampleRegion = SAMPLE_HIERARCHY.regions.find(r => r.id === regionId) ?? SAMPLE_HIERARCHY.regions[0]
+  const sampleOlt    = sampleRegion?.olts.find(o => o.id === oltId) ?? sampleRegion?.olts[0]
+  const samplePort   = sampleOlt?.ports.find(p => p.id === portId) ?? sampleOlt?.ports[0]
+
   const onRegion = (id: string) => {
     setRegionId(id)
-    const r = SAMPLE_HIERARCHY.regions.find(x => x.id === id)!
-    setOltId(r.olts[0]?.id)
-    setPortId(r.olts[0]?.ports[0]?.id)
+    if (usingSample) {
+      const r = SAMPLE_HIERARCHY.regions.find(x => x.id === id)
+      setOltId(r?.olts[0]?.id)
+      setPortId(r?.olts[0]?.ports[0]?.id)
+    }
   }
   const onOlt = (id: string) => {
     setOltId(id)
-    const o = region.olts.find(x => x.id === id)
-    setPortId(o?.ports[0]?.id)
+    if (usingSample) {
+      const o = sampleRegion?.olts.find(x => x.id === id)
+      setPortId(o?.ports[0]?.id)
+    }
   }
 
   const phaseColor = (p: string) =>
-    p === 'working'   ? 'nms-pill-green' :
-    p === 'dying_gasp' ? 'nms-pill-amber' :
-                         'nms-pill-red'
+    p === 'working' ? 'nms-pill-green' : p === 'dying_gasp' ? 'nms-pill-amber' : 'nms-pill-red'
+
+  const colStyle = (withBorder: boolean): React.CSSProperties => ({
+    display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)',
+    borderRight: withBorder ? '1px solid var(--gx-border)' : undefined,
+    paddingRight: withBorder ? 'var(--gx-space-4)' : undefined,
+  })
+  const colHeaderStyle: React.CSSProperties = {
+    fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase',
+    letterSpacing: '0.08em', padding: '0 var(--gx-space-3)',
+  }
+  const rowBtnStyle = (active: boolean): React.CSSProperties => ({
+    width: '100%', padding: 'var(--gx-space-2) var(--gx-space-5)', borderRadius: 'var(--gx-radius-sm)',
+    background: active ? 'var(--gx-surface-2)' : 'transparent',
+    border: active ? '1px solid var(--gx-border-strong)' : '1px solid transparent',
+    cursor: 'pointer', color: 'inherit', textAlign: 'left',
+    fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
+  })
+  const portBtnStyle = (active: boolean): React.CSSProperties => ({
+    padding: 'var(--gx-space-1) var(--gx-space-3)', borderRadius: 'var(--gx-radius-sm)',
+    background: active ? 'var(--gx-border-strong)' : 'transparent',
+    border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left',
+    fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)',
+    display: 'flex', justifyContent: 'space-between',
+  })
 
   return (
-    <NMSCard title="ISP Hierarchy Explorer" status="live">
-      <div style={{
-        display: 'grid', gridTemplateColumns: '180px 200px 1fr',
-        gap: 'var(--gx-space-6)', minHeight: 320,
-      }}>
+    <NMSCard title="ISP Hierarchy Explorer" status={usingSample ? 'partial' : 'live'}>
+      <div style={{ display: 'grid', gridTemplateColumns: '180px 220px 1fr', gap: 'var(--gx-space-6)', minHeight: 320 }}>
+
         {/* Column 1 — Regions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--gx-border)', paddingRight: 'var(--gx-space-4)' }}>
-          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 var(--gx-space-3)' }}>Regions</div>
-          {SAMPLE_HIERARCHY.regions.map(r => (
-            <button key={r.id}
-              type="button"
+        <div style={colStyle(true)}>
+          <div style={colHeaderStyle}>Regions</div>
+          {regionList.map(r => (
+            <button key={r.id} type="button"
               onClick={() => onRegion(r.id)}
-              onDoubleClick={() => openDrawer({ kind: 'region', id: r.id, label: r.label })}
-              style={{
-                padding: 'var(--gx-space-3) var(--gx-space-5)', borderRadius: 'var(--gx-radius-sm)',
-                background: regionId === r.id ? 'var(--gx-surface-2)' : 'transparent',
-                border: regionId === r.id ? '1px solid var(--gx-border-strong)' : '1px solid transparent',
-                cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
-              }}
+              onDoubleClick={() => openDrawer({ kind: 'region', id: r.id, label: r.name })}
+              style={rowBtnStyle(regionId === r.id)}
             >
-              {r.label} <span style={{ color: 'var(--gx-text-3)' }}>· {r.olts.length}</span>
+              {r.name}
             </button>
           ))}
         </div>
-        {/* Column 2 — OLTs + Ports */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', borderRight: '1px solid var(--gx-border)', paddingRight: 'var(--gx-space-4)' }}>
-          <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 var(--gx-space-3)' }}>OLT · PON</div>
-          {region.olts.map(o => (
-            <div key={o.id}>
-              <button
-                type="button"
-                onClick={() => onOlt(o.id)}
-                onDoubleClick={() => openDrawer({ kind: 'olt', id: o.id, label: o.label })}
-                style={{
-                  width: '100%', padding: 'var(--gx-space-2) var(--gx-space-5)', borderRadius: 'var(--gx-radius-sm)',
-                  background: oltId === o.id ? 'var(--gx-surface-2)' : 'transparent',
-                  border: oltId === o.id ? '1px solid var(--gx-border-strong)' : '1px solid transparent',
-                  cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                  fontSize: 'var(--gx-text-sm)', fontFamily: 'var(--gx-font-mono, monospace)',
-                }}
-              >
-                {o.label}
-              </button>
-              {oltId === o.id && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-4)', marginTop: 'var(--gx-space-1)' }}>
-                  {o.ports.map(p => (
-                    <button key={p.id}
-                      type="button"
-                      onClick={() => setPortId(p.id)}
-                      style={{
-                        padding: 'var(--gx-space-1) var(--gx-space-3)', borderRadius: 'var(--gx-radius-sm)',
-                        background: portId === p.id ? 'var(--gx-border-strong)' : 'transparent',
-                        border: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                        fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)',
-                        display: 'flex', justifyContent: 'space-between',
-                      }}
-                    >
-                      <span>{p.label}</span>
-                      <span style={{ color: 'var(--gx-text-3)' }}>{p.onus.length}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        {/* Column 3 — ONU rows for selected port */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)', minHeight: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 var(--gx-space-3)' }}>
-              {port ? `Port ${port.label}` : '—'} · {port?.onus.length ?? 0} ONUs
-            </div>
-          </div>
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)',
-            background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)',
-            border: '1px solid var(--gx-border)', padding: 'var(--gx-space-4)',
-            maxHeight: 280, overflowY: 'auto',
-          }}>
-            {!port || port.onus.length === 0 ? (
-              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', padding: 'var(--gx-space-6)' }}>
-                No ONUs on this port (sample data).
+
+        {/* Column 2 — OLTs + ports */}
+        <div style={colStyle(true)}>
+          <div style={colHeaderStyle}>OLT · PON</div>
+          {(usingSample ? sampleRegion?.olts ?? [] : oltItems).map(o => {
+            const oId  = o.id
+            const name = usingSample
+              ? (o as typeof sampleRegion.olts[0]).label
+              : String((o as OltRecord).data.name ?? (o as OltRecord).data.olt_name ?? oId.slice(0, 8))
+            return (
+              <div key={oId}>
+                <button type="button"
+                  onClick={() => onOlt(oId)}
+                  onDoubleClick={() => openDrawer({ kind: 'olt', id: oId, label: name })}
+                  style={rowBtnStyle(oltId === oId)}
+                >
+                  {name}
+                </button>
+                {oltId === oId && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', paddingLeft: 'var(--gx-space-4)', marginTop: 'var(--gx-space-1)' }}>
+                    {usingSample
+                      ? (o as typeof sampleRegion.olts[0]).ports.map(p => (
+                          <button key={p.id} type="button" onClick={() => setPortId(p.id)} style={portBtnStyle(portId === p.id)}>
+                            <span>{p.label}</span>
+                            <span style={{ color: 'var(--gx-text-3)' }}>{p.onus.length}</span>
+                          </button>
+                        ))
+                      : treeLoading
+                        ? <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) var(--gx-space-3)' }}>Loading ports…</div>
+                        : treePorts.length === 0
+                          ? <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) var(--gx-space-3)' }}>No ports synced. Run a refresh first.</div>
+                          : treePorts.map(p => (
+                              <button key={p.id} type="button" onClick={() => setPortId(p.id)} style={portBtnStyle(portId === p.id)}>
+                                <span>0/{p.port_no}</span>
+                                <span style={{ color: 'var(--gx-text-3)' }}>{p.onu_count}</span>
+                              </button>
+                            ))
+                    }
+                  </div>
+                )}
               </div>
-            ) : port.onus.map(o => (
-              <button key={o.id}
-                type="button"
-                onClick={() => openDrawer({ kind: 'onu', serial: o.serial })}
-                style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr 80px',
-                  gap: 'var(--gx-space-4)', alignItems: 'center',
-                  background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)',
-                  cursor: 'pointer', color: 'inherit', textAlign: 'left',
-                  borderRadius: 'var(--gx-radius-sm)',
-                  fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)',
-                }}
-              >
-                <span>{o.serial}</span>
-                <span style={{ color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
-                <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 'var(--gx-text-10)', justifySelf: 'end' }}>{o.phase}</span>
-              </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
+
+        {/* Column 3 — ONU detail */}
+        <div style={colStyle(false)}>
+          {usingSample ? (
+            <>
+              <div style={colHeaderStyle}>
+                {samplePort ? `Port ${samplePort.label}` : '—'} · {samplePort?.onus.length ?? 0} ONUs
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)', padding: 'var(--gx-space-4)', maxHeight: 280, overflowY: 'auto' }}>
+                {!samplePort || samplePort.onus.length === 0
+                  ? <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', textAlign: 'center', padding: 'var(--gx-space-6)' }}>No ONUs on this port.</div>
+                  : samplePort.onus.map(o => (
+                      <button key={o.id} type="button" onClick={() => openDrawer({ kind: 'onu', serial: o.serial })}
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px', gap: 'var(--gx-space-4)', alignItems: 'center', background: 'transparent', border: 'none', padding: 'var(--gx-space-2) var(--gx-space-3)', cursor: 'pointer', color: 'inherit', textAlign: 'left', borderRadius: 'var(--gx-radius-sm)', fontSize: 'var(--gx-text-11)', fontFamily: 'var(--gx-font-mono, monospace)' }}
+                      >
+                        <span>{o.serial}</span>
+                        <span style={{ color: 'var(--gx-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.profile}</span>
+                        <span className={'nms-pill ' + phaseColor(o.phase)} style={{ fontSize: 'var(--gx-text-10)', justifySelf: 'end' }}>{o.phase}</span>
+                      </button>
+                    ))
+                }
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={colHeaderStyle}>
+                {portId
+                  ? `Port 0/${treePorts.find(p => p.id === portId)?.port_no ?? '?'} · ${treePorts.find(p => p.id === portId)?.onu_count ?? 0} ONUs`
+                  : 'Select a port'}
+              </div>
+              <div style={{ background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)', padding: 'var(--gx-space-6)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontStyle: 'italic' }}>
+                Per-ONU serial list via port drill-down is Phase 2.
+              </div>
+            </>
+          )}
+        </div>
+
       </div>
     </NMSCard>
   )
@@ -904,27 +1069,31 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // 9. MODULE 5 — GEOGRAPHIC & FIELD OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════
 
-const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
-  // Render the hubs as positioned dots on a simple "abstract Armenia" pane.
-  // No real basemap — keeps the design preview self-contained and clear.
-  // Coordinates are normalized to the local bounding box of SAMPLE_REGIONAL_HUBS.
-  const lats = SAMPLE_REGIONAL_HUBS.map(h => h.lat)
-  const lngs = SAMPLE_REGIONAL_HUBS.map(h => h.lng)
+const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const liveHubs = (nocData?.regions ?? [])
+    .map(r => {
+      const coords = REGION_COORDS[r.name]
+      if (!coords) return null
+      const status: 'ok' | 'warning' | 'outage' =
+        r.status === 'INACTIVE' ? 'warning' :
+        r.status === 'ARCHIVED' ? 'outage' : 'ok'
+      return { id: r.id, label: r.name, lat: coords[0], lng: coords[1], status }
+    })
+    .filter((h): h is NonNullable<typeof h> => h !== null)
+  const hubs = liveHubs.length ? liveHubs : SAMPLE_REGIONAL_HUBS
+
+  const lats = hubs.map(h => h.lat)
+  const lngs = hubs.map(h => h.lng)
   const minLat = Math.min(...lats) - 0.1, maxLat = Math.max(...lats) + 0.1
   const minLng = Math.min(...lngs) - 0.2, maxLng = Math.max(...lngs) + 0.2
   const W = 700, H = 320
   const project = (lat: number, lng: number): [number, number] => {
     const x = ((lng - minLng) / (maxLng - minLng)) * W
-    // invert y so north is up
     const y = H - ((lat - minLat) / (maxLat - minLat)) * H
     return [x, y]
   }
-  // Map rule:
-  //   · Operational → neutral filled dot (text-2)
-  //   · Warning     → neutral outlined dot (text-3 stroke)
-  //   · Outage      → solid GOLD dot + animated gold pulse + bold label
   return (
-    <NMSCard title="Regional Outage Field Map" status="partial">
+    <NMSCard title="Regional Outage Field Map" status={liveHubs.length ? 'live' : 'partial'}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-sm)', border: '1px solid var(--gx-border)' }}>
         {Array.from({ length: 10 }).map((_, i) => (
           <line key={'h' + i} x1={0} y1={(i * H) / 10} x2={W} y2={(i * H) / 10} stroke="var(--gx-border)" strokeWidth={1} opacity={0.4} />
@@ -932,7 +1101,7 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer }) => {
         {Array.from({ length: 16 }).map((_, i) => (
           <line key={'v' + i} x1={(i * W) / 16} y1={0} x2={(i * W) / 16} y2={H} stroke="var(--gx-border)" strokeWidth={1} opacity={0.4} />
         ))}
-        {SAMPLE_REGIONAL_HUBS.map(h => {
+        {hubs.map(h => {
           const [x, y] = project(h.lat, h.lng)
           const isOutage  = h.status === 'outage'
           const isWarning = h.status === 'warning'
@@ -1038,8 +1207,40 @@ interface NocDashboardProps {
   canConfigure: boolean
 }
 
-export default function NocDashboardView({ capabilities }: NocDashboardProps) {
+export default function NocDashboardView({ token, capabilities }: NocDashboardProps) {
   const canViewService = can(capabilities, 'service', 'view')
+
+  const [nocData, setNocData] = useState<NocData | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    Promise.all([
+      fetch(`${BASE}/api/noc/olts`,                   { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${BASE}/api/noc/onus?page_size=1`,        { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${BASE}/api/analytics/subscription-mix`, { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${BASE}/api/regions`,                    { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${BASE}/api/radius/sessions?status=active`, { headers: authH(token) }).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(async ([oltListRaw, onuRaw, subMixRaw, regionsRaw, sessionsRaw]) => {
+      if (!alive) return
+      const oltList: NocData['oltList'] = { items: oltListRaw?.items ?? [], total: oltListRaw?.total ?? 0 }
+      const firstOlt = oltList.items[0]
+      let analytics: OltAnalytics | null = null
+      if (firstOlt) {
+        analytics = await fetch(`${BASE}/api/noc/olts/${firstOlt.id}/analytics`, { headers: authH(token) })
+          .then(r => r.ok ? r.json() : null).catch(() => null)
+      }
+      if (!alive) return
+      setNocData({
+        oltList,
+        analytics,
+        onuTotal:        onuRaw?.total ?? 0,
+        subscriptionMix: Array.isArray(subMixRaw) ? subMixRaw : [],
+        regions:         Array.isArray(regionsRaw) ? regionsRaw : [],
+        radiusSessions:  Array.isArray(sessionsRaw) ? sessionsRaw : [],
+      })
+    }).catch(() => {})
+    return () => { alive = false }
+  }, [token])
 
   // Widget visibility — every widget on by default. Gear menu toggles individual ones.
   const [visibility, setVisibility] = useState<Record<string, boolean>>(
@@ -1081,8 +1282,8 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
         {/* Top bar — design-preview banner + gear menu */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--gx-space-8)' }}>
           <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', fontFamily: 'var(--gx-font-mono, monospace)' }}>
-            <span style={{ color: 'var(--gx-gold)' }}>● </span>
-            Phase 1A · design preview · widgets tagged below are sample data
+            <span style={{ color: nocData ? 'var(--gx-text-2)' : 'var(--gx-gold)' }}>● </span>
+            {nocData ? 'Phase 1B · live data active · sample-tagged widgets await backend pipeline' : 'Phase 1B · loading live data…'}
           </div>
           <WidgetManager
             widgets={WIDGETS}
@@ -1111,7 +1312,7 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
                 />
               </NMSCard>
             ) : (
-              <w.Component openDrawer={openDrawer} />
+              <w.Component openDrawer={openDrawer} nocData={nocData} token={token} />
             )
           )
           return (
