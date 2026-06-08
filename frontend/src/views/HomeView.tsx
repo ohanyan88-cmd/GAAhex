@@ -26,6 +26,9 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { HomeIcon } from '../components/icons'
 import { authH, bget } from '../lib/billing'
 import { DetailTab, DetailTabList } from '../primitives'
+import AskGaaexView from './AskGaaexView'
+import MessagesView from './MessagesView'
+import CalendarView from './CalendarView'
 
 
 type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
@@ -177,7 +180,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
   const [me, setMe] = useState<Me | null>(null)
-  const [tab, setTab] = useState<'overview' | 'work' | 'team'>('overview')
+  const [tab, setTab] = useState<'overview' | 'work' | 'team' | 'ask' | 'messages' | 'calendar'>('overview')
   const [nodes, setNodes] = useState<any[]>([])
   const [orgMembers, setOrgMembers] = useState<any[]>([])
   // SM-2 — receive caps via prop instead of refetching.
@@ -380,6 +383,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <DetailTab active={tab === 'overview'} onSelect={() => setTab('overview')}>Overview</DetailTab>
           <DetailTab active={tab === 'work'} onSelect={() => setTab('work')}>My Work</DetailTab>
           <DetailTab active={tab === 'team'} onSelect={() => setTab('team')}>Team</DetailTab>
+          <DetailTab active={tab === 'ask'} onSelect={() => setTab('ask')}>Ask Me</DetailTab>
+          <DetailTab active={tab === 'messages'} onSelect={() => setTab('messages')}>Messages</DetailTab>
+          <DetailTab active={tab === 'calendar'} onSelect={() => setTab('calendar')}>Calendar</DetailTab>
         </DetailTabList>
       }
     >
@@ -600,6 +606,10 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           }
         </div>
       )}
+
+      {tab === 'ask' && <AskGaaexView token={token} embedded />}
+      {tab === 'messages' && <MessagesView token={token} embedded />}
+      {tab === 'calendar' && <CalendarView token={token} embedded />}
 
     </PageShell>
   )

@@ -84,9 +84,11 @@ function dayLabel(iso: string | null): string {
 export default function MessagesView({
   token,
   capabilities: _capabilities = FULL_ACCESS,
+  embedded = false,
 }: {
   token: string
   capabilities?: Capabilities
+  embedded?: boolean
 }) {
   const [me, setMe] = useState<Me | null>(null)
   const [threads, setThreads] = useState<Thread[] | null>(null)
@@ -194,32 +196,7 @@ export default function MessagesView({
     return !!me && m.author_user_id === me.id
   }
 
-  return (
-    <PageShell
-      type="COMMUNICATION"
-      breadcrumb={['Workspace', 'Communications']}
-      icon={<MessageIcon size={20} />}
-      title="Communications"
-      subtitle="Conversations with leads, customers, orders, and tickets across approved channels"
-      statusSummary={{
-        label: 'Channel = how we talk · Lead Source = how the lead came in',
-        variant: 'info',
-      }}
-      filters={{
-        quick: [
-          {
-            label: 'Channel',
-            value: channel,
-            options: [
-              { label: 'All', value: 'All' },
-              ...COMMUNICATION_CHANNELS.map((c) => ({ label: COMMUNICATION_CHANNEL_LABELS[c], value: c })),
-            ],
-            onChange: (v) => setChannel(v as typeof channel),
-          },
-        ],
-      }}
-      workspaceClassName="gx-comms"
-    >
+  const viewBody = (
       <div className="msgr" style={{ gridColumn: '1 / -1' }}>
         {/* Conversation list */}
         <div className="msgr-list">
@@ -447,6 +424,35 @@ export default function MessagesView({
           )}
         </div>
       </div>
+  )
+  if (embedded) return viewBody
+  return (
+    <PageShell
+      type="COMMUNICATION"
+      breadcrumb={['Workspace', 'Communications']}
+      icon={<MessageIcon size={20} />}
+      title="Communications"
+      subtitle="Conversations with leads, customers, orders, and tickets across approved channels"
+      statusSummary={{
+        label: 'Channel = how we talk · Lead Source = how the lead came in',
+        variant: 'info',
+      }}
+      filters={{
+        quick: [
+          {
+            label: 'Channel',
+            value: channel,
+            options: [
+              { label: 'All', value: 'All' },
+              ...COMMUNICATION_CHANNELS.map((c) => ({ label: COMMUNICATION_CHANNEL_LABELS[c], value: c })),
+            ],
+            onChange: (v) => setChannel(v as typeof channel),
+          },
+        ],
+      }}
+      workspaceClassName="gx-comms"
+    >
+      {viewBody}
     </PageShell>
   )
 }

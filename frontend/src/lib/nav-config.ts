@@ -53,10 +53,7 @@ const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavIte
 export const NAV_SECTIONS: NavSectionDef[] = [
 
   s('workspace', 'Workspace', HomeIcon, [
-    i('ws-home',           'Home',             HomeIcon,     'home'),
-    i('ws-ask',            'Ask Me',           SparkleIcon,  'ask'),
-    i('ws-communications', 'Communications',   MessageIcon,  'messages'),
-    i('ws-calendar',       'Calendar',         CalendarIcon, 'calendar'),
+    i('ws-home', 'Home', HomeIcon, 'home'),
   ], { defaultOpen: true }),
 
   s('crm', 'CRM', UsersIcon, [

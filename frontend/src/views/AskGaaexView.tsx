@@ -31,7 +31,7 @@ const SUGGESTIONS = [
   'How much did we collect this month vs last month?',
 ]
 
-export default function AskGaaexView({ token }: { token: string }) {
+export default function AskGaaexView({ token, embedded = false }: { token: string; embedded?: boolean }) {
   const { t } = useI18n()
   const [status, setStatus] = useState<Status | null>(null)
   const [denied, setDenied] = useState(false)
@@ -99,18 +99,7 @@ export default function AskGaaexView({ token }: { token: string }) {
     : status.live ? t('ask.brainLive', 'Live · {p}').replace('{p}', status.provider)
     : t('ask.brainLocal', 'Built-in (no external AI configured)')
 
-  return (
-    <PageShell
-      type="COMMUNICATION"
-      breadcrumb={['Analytics & AI', t('ask.title', 'Ask GAAhex')]}
-      icon={<SparkleIcon size={18} />}
-      title={t('ask.titleShort', 'Ask Me')}
-      subtitle={status?.live ? `${t('ask.brain', 'AI')} · ${status.provider}` : brain}
-      statusSummary={{
-        label: status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain,
-        variant: status?.live ? 'success' : 'neutral',
-      }}
-    >
+  const viewBody = (
     <div className="gx-comms fade" style={{ gridColumn: '1 / -1', height: '100%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 'var(--gx-space-8) var(--gx-space-20)', gap: 'var(--gx-space-7)' }}>
       <div className="msgr" style={{ gridTemplateColumns: '1fr 244px' }}>
         {/* ── Chat pane ───────────────────────────────────────────── */}
@@ -220,6 +209,21 @@ export default function AskGaaexView({ token }: { token: string }) {
         </aside>
       </div>
     </div>
+  )
+  if (embedded) return viewBody
+  return (
+    <PageShell
+      type="COMMUNICATION"
+      breadcrumb={['Analytics & AI', t('ask.title', 'Ask GAAhex')]}
+      icon={<SparkleIcon size={18} />}
+      title={t('ask.titleShort', 'Ask Me')}
+      subtitle={status?.live ? `${t('ask.brain', 'AI')} · ${status.provider}` : brain}
+      statusSummary={{
+        label: status?.live ? `${t('ask.brain', 'AI')}: ${status.provider}` : brain,
+        variant: status?.live ? 'success' : 'neutral',
+      }}
+    >
+      {viewBody}
     </PageShell>
   )
 }

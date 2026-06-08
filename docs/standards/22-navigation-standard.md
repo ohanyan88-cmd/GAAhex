@@ -35,12 +35,14 @@ route, status`. `(tenantId, groupId, key)` unique and `(tenantId, groupId, order
   records** (`placement='O'`).
 - **Workspace** itself owns nothing (`placement='V'` for hub items).
 - **Studio** is first-class top-level — **not** nested under System.
-- **My Work and Team Workspace are merged into the Home landing page** (2026-06-08, Gev).
-  The Home page (`ws-home`) is a unified workspace hub titled with the logged-in user's full
-  name. It exposes three inline tabs — Overview (role-aware KPIs + attention center), My Work
-  (personal task list), Team (org nodes + members). The separate `ws-my-work` and `ws-team`
-  nav items are removed from the left sidebar. The `mytasks` and `team-workspace` view routes
-  remain available for deep-links but are no longer surfaced in the nav.
+- **The entire Workspace section is a single Home page** (2026-06-08, Gev). The Home page
+  (`ws-home`) is a unified workspace hub titled with the logged-in user's full name. It exposes
+  six inline tabs — Overview (role-aware KPIs + attention center), My Work (personal task list),
+  Team (org nodes + members), Ask Me (AI copilot), Messages (communications), Calendar
+  (schedules). The separate `ws-my-work`, `ws-team`, `ws-ask`, `ws-communications`, and
+  `ws-calendar` nav items are all removed from the left sidebar; the Workspace nav section
+  contains only `ws-home`. The underlying view routes (`ask`, `messages`, `calendar`,
+  `mytasks`, `team-workspace`) remain available for deep-links.
 
 ## 5. Bespoke pages (`page_config`)
 A page that is not an entity (a hand-built view, e.g. Services) carries a tenant-scoped,
