@@ -579,13 +579,9 @@ export default function App() {
             <PanelLeft size={18} />
           </button>
 
-          <OrgIdentity token={token!} />
           <span className="tb-divider" aria-hidden />
 
-          <span className="spacer" />
-
-          {/* Topbar quick tools — Bell · Mail · Messenger · Language · Theme, equal spacing,
-              shifted left of the user menu. */}
+          {/* Topbar quick tools — Bell · Mail · Messenger · Calendar · Language · Theme */}
           <div className="tb-tools">
             <NotificationBell
               token={token!}
@@ -646,6 +642,9 @@ export default function App() {
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
+
+          <span className="spacer" />
+          <OrgIdentity token={token!} />
 
           {user && (
             <UserMenu
