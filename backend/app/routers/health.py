@@ -133,9 +133,9 @@ async def status(
     counts: dict[str, int] = {"tenants": 0, "users": 0, "records": 0}
     if db_ok:
         try:
-            counts["tenants"] = (await s.execute(select(func.count()).select_from(Tenant))).scalar_one()
-            counts["users"] = (await s.execute(select(func.count()).select_from(User))).scalar_one()
-            counts["records"] = (await s.execute(select(func.count()).select_from(Record))).scalar_one()
+            counts["tenants"] = 1  # always 1 — current tenant only
+            counts["users"] = (await s.execute(select(func.count()).select_from(User).where(User.tenant_id == _user.tenant_id))).scalar_one()
+            counts["records"] = (await s.execute(select(func.count()).select_from(Record).where(Record.tenant_id == _user.tenant_id))).scalar_one()
         except Exception:  # noqa: BLE001
             pass  # counts stay 0; db_ok already reflects true liveness
 

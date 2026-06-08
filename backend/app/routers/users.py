@@ -15,6 +15,7 @@ The GET serializer is extended to include each user's `assignments`
 (role+node tuples) so the Users pane can show role chips inline.
 """
 
+import re
 import uuid
 
 from sqlalchemy import select, func
@@ -159,7 +160,7 @@ async def create_user(
     password = payload.get("password") or ""
     if not name:
         raise HTTPException(422, "name is required")
-    if not email or "@" not in email:
+    if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
         raise HTTPException(422, "valid email is required")
     validate_password_strength(password)  # 422 on weak
 
@@ -227,7 +228,7 @@ async def update_user(
 
     if "email" in payload:
         email = (payload.get("email") or "").strip().lower()
-        if not email or "@" not in email:
+        if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
             raise HTTPException(422, "valid email is required")
         if email != target.email:
             clash = (await s.execute(

@@ -4,6 +4,7 @@ import { ChevronDown, LogOut, Camera } from 'lucide-react'
 import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
 import { useAuth } from '../context/AuthContext'
+import { initialsOf } from '../lib/utils'
 
 type Me = {
   email: string
@@ -12,13 +13,6 @@ type Me = {
   avatar_url?: string | null
   department?: string | null
   position?: string | null
-}
-
-function initialsOf(name: string | null | undefined, fallback = 'U'): string {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return fallback
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase()
-  return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase()
 }
 
 export default function UserMenu({

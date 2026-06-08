@@ -135,8 +135,8 @@ async def approve(approval_id: uuid.UUID, payload: dict | None = None,
     pa.status = "APPROVED"
     pa.approver_user_id = user.id
     pa.decided_at = datetime.now(timezone.utc)
-    if payload and payload.get("note"):
-        pa.note = payload["note"]
+    if payload and isinstance(payload.get("note"), str) and payload["note"]:
+        pa.note = payload["note"][:2000]
 
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="TRANSITION", entity_key=pa.entity_key,
                             record=rec, actor_user_id=user.id, extra={"from": pa.from_status, "to": pa.to_status})
@@ -168,8 +168,8 @@ async def reject(approval_id: uuid.UUID, payload: dict | None = None,
     pa.status = "REJECTED"
     pa.approver_user_id = user.id
     pa.decided_at = datetime.now(timezone.utc)
-    if payload and payload.get("note"):
-        pa.note = payload["note"]
+    if payload and isinstance(payload.get("note"), str) and payload["note"]:
+        pa.note = payload["note"][:2000]
 
     await workflow.emit(s, user.tenant_id, "approval_rejected", pa.entity_key, pa.record_id, user.id,
                         {"from": pa.from_status, "to": pa.to_status, "approval_id": str(pa.id)})
