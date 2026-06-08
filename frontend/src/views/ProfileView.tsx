@@ -61,10 +61,10 @@ function reqState(status: string): 'approved' | 'rejected' | 'pending' {
   return 'pending'
 }
 
-export default function ProfileView() {
+export default function ProfileView({ embedded = false, initialSection }: { embedded?: boolean; initialSection?: SectionKey } = {}) {
   const { t } = useI18n()
   const { user, token } = useAuth()
-  const [view, setView] = useState<View>('hub')
+  const [view, setView] = useState<View>(embedded && initialSection ? initialSection : 'hub')
 
   const [uploads, setUploads] = useState<File[]>([])
 
@@ -239,6 +239,7 @@ export default function ProfileView() {
 
   // ── section back bar ───────────────────────────────────────────────────────
   function backBar(title: string, sub: string, action?: React.ReactNode) {
+    if (embedded) return null
     return (
       <div className="pv-backbar">
         <Button variant="secondary" size="sm" onClick={() => setView('hub')}>
@@ -253,20 +254,9 @@ export default function ProfileView() {
     )
   }
 
-  return (
-    <PageShell
-      type="WORKSPACE"
-      icon={<UserIcon size={18} />}
-      title={name}
-      secondaryActions={[
-        { label: name,                                        icon: <UserIcon size={15} />,      onClick: () => setView('profile')   },
-        { label: t('profile.tab.requests', 'My Requests'),  icon: <ReceiptIcon size={15} />,   onClick: () => setView('requests')  },
-        { label: t('profile.tab.documents', 'My Documents'), icon: <FolderIcon size={15} />,    onClick: () => setView('documents') },
-        { label: t('profile.tab.benefits', 'My Benefits'),  icon: <BriefcaseIcon size={15} />, onClick: () => setView('benefits')  },
-        { label: t('profile.tab.kb', 'Knowledge Base'),     icon: <BookmarkIcon size={15} />,  onClick: () => setView('kb')        },
-      ]}
-    >
-      {view === 'hub' && hub()}
+  const inner = (
+    <>
+      {!embedded && view === 'hub' && hub()}
 
       {/* ════════════ DOCUMENTS ════════════ */}
       {view === 'documents' && (
@@ -293,7 +283,7 @@ export default function ProfileView() {
 
       {/* ════════════ REQUESTS ════════════ */}
       {/* ════════════ PROFILE INFO ════════════ */}
-      {view === 'profile' && (
+      {!embedded && view === 'profile' && (
         <>
           {backBar(name, role)}
           <div className="pv-surface pv-card-flush">
@@ -465,7 +455,7 @@ export default function ProfileView() {
       )}
 
       {/* ── Avatar position picker ─────────────────────────────────────────── */}
-      {posOpen && avatarUrl && (
+      {!embedded && posOpen && avatarUrl && (
         <Modal
           open
           onClose={() => setPosOpen(false)}
@@ -506,6 +496,20 @@ export default function ProfileView() {
           <p className="pv-pos-hint">{t('profile.dragToReposition', 'Drag to reposition')}</p>
         </Modal>
       )}
+    </>
+  )
+
+  if (embedded) return inner
+  return (
+    <PageShell
+      type="WORKSPACE"
+      icon={<UserIcon size={18} />}
+      title={name}
+      secondaryActions={[
+        { label: name, icon: <UserIcon size={15} />, onClick: () => setView('profile') },
+      ]}
+    >
+      {inner}
     </PageShell>
   )
 }
