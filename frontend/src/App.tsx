@@ -645,7 +645,6 @@ export default function App() {
             <UserMenu
               user={user}
               onSignOut={logout}
-              onProfile={() => setView({ type: 'profile' })}
             />
           )}
         </header>

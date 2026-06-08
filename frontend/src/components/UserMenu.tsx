@@ -1,14 +1,18 @@
-// UserMenu (P5) — right-side user chip + popover. Slimmed to My profile + Sign out;
-// "My profile" opens the full Profile page (settings land there). Width matches the bell.
+// UserMenu (P5) — right-side user chip + popover. Shows name/email/dept/position/role; Sign out only.
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, LogOut, User } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 import type { Lang } from '../lib/i18n'
 import { useI18n } from '../lib/i18n'
 
-type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
-type ModalKey = 'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew'
+type Me = {
+  email: string
+  name: string
+  can_configure?: boolean
+  avatar_url?: string | null
+  department?: string | null
+  position?: string | null
+}
 
-// Same fallback the rest of App.tsx uses for users with empty names.
 function initialsOf(name: string | null | undefined, fallback = 'U'): string {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return fallback
@@ -19,14 +23,11 @@ function initialsOf(name: string | null | undefined, fallback = 'U'): string {
 export default function UserMenu({
   user,
   onSignOut,
-  onProfile,
 }: {
   user: Me
   theme?: 'dark' | 'light'
   onThemeChange?: (t: 'dark' | 'light') => void
   onSignOut: () => void
-  onOpenModal?: (key: ModalKey) => void
-  onProfile: () => void
   lang?: Lang
   onLangChange?: (l: Lang) => void
 }) {
@@ -84,14 +85,13 @@ export default function UserMenu({
             <div style={{ minWidth: 0 }}>
               <div className="user-card-name">{user.name || t('common.you', 'You')}</div>
               <div className="user-card-email mono">{user.email}</div>
+              <div className="user-card-meta">
+                <span>{user.department || '—'}</span>
+                <span className="user-card-dot" aria-hidden>·</span>
+                <span>{user.position || role}</span>
+              </div>
             </div>
           </div>
-
-          <div className="menu-sep" />
-
-          <button className="menu-item" role="menuitem" onClick={() => { close(); onProfile() }}>
-            <User size={15} /><span>{t('profile.title', 'My profile')}</span>
-          </button>
 
           <div className="menu-sep" />
 
