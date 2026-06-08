@@ -55,8 +55,6 @@ export const NAV_SECTIONS: NavSectionDef[] = [
   s('workspace', 'Workspace', HomeIcon, [
     i('ws-home',           'Home',             HomeIcon,     'home'),
     i('ws-ask',            'Ask Me',           SparkleIcon,  'ask'),
-    i('ws-my-work',        'My Work',          CheckIcon,    'mytasks'),
-    i('ws-team',           'Team Workspace',   UsersIcon,    'team-workspace'),
     i('ws-communications', 'Communications',   MessageIcon,  'messages'),
     i('ws-calendar',       'Calendar',         CalendarIcon, 'calendar'),
   ], { defaultOpen: true }),

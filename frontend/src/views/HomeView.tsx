@@ -177,6 +177,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
   const [me, setMe] = useState<Me | null>(null)
+  const [tab, setTab] = useState<'overview' | 'work' | 'team'>('overview')
+  const [nodes, setNodes] = useState<any[]>([])
+  const [orgMembers, setOrgMembers] = useState<any[]>([])
   // SM-2 — receive caps via prop instead of refetching.
   const caps: Capabilities = capabilities ?? {}
   const capsLoaded = capabilities !== undefined
@@ -207,6 +210,19 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   }, [token])
 
   // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
+
+  // Fetch org nodes + members for Team tab
+  useEffect(() => {
+    const opts = { headers: authH(token) }
+    Promise.all([
+      fetch(`${BASE}/api/org/nodes`, opts).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${BASE}/api/users`, opts).then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([n, m]) => {
+      const arr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
+      setNodes(arr(n))
+      setOrgMembers(arr(m))
+    })
+  }, [token])
 
   // Fetch all the raw data the page might need (in parallel; each role uses a subset)
   useEffect(() => {
@@ -355,20 +371,21 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['Workspace', 'My Day']}
+      breadcrumb={['Workspace']}
       icon={<HomeIcon size={18} />}
-      title="My Day"
+      title={me?.name ?? 'Workspace'}
       subtitle={ROLE_SUBTITLE[role]}
-      statusSummary={{ label: `You · ${ROLE_LABEL[role]}`, variant: 'info' }}
       kpis={kpiSpecs}
       pageTabs={
-        <DetailTabList ariaLabel="My Day sections">
-          <DetailTab active onSelect={() => {}}>Overview</DetailTab>
-          <DetailTab active={false} onSelect={() => onNavigate?.('mytasks')}>Work</DetailTab>
+        <DetailTabList ariaLabel="Workspace sections">
+          <DetailTab active={tab === 'overview'} onSelect={() => setTab('overview')}>Overview</DetailTab>
+          <DetailTab active={tab === 'work'} onSelect={() => setTab('work')}>My Work</DetailTab>
+          <DetailTab active={tab === 'team'} onSelect={() => setTab('team')}>Team</DetailTab>
         </DetailTabList>
       }
     >
 
+      {tab === 'overview' && (<>
       {/* Attention Center — the cockpit hero: what needs my action right now.
           Always present; cascades to a positive "all clear" state when empty so
           the page is never blank (the operational-cockpit rule). */}
@@ -506,6 +523,85 @@ export default function HomeView({ token, onNavigate, capabilities }: {
         {/* No separate admin block — `isAdmin` (above) makes the super-admin/owner see
             every role's widgets (support · sales · tech · finance) on one My Day. */}
       </div>
+      </>)}
+
+      {tab === 'work' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
+          <Widget icon={CheckSquare} title="Open Tasks" count={tasksOpen.length}>
+            {tasks.state === 'loading' && <Skel />}
+            {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 10).map(t => (
+              <div key={t.id} role="button" tabIndex={0}
+                onClick={() => onNavigate?.('workitems')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('workitems') } }}
+                style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status?.replace(/_/g, ' ')}</span>
+              </div>
+            ))}
+          </Widget>
+          <Widget icon={Clock} title="Overdue" count={overdueTasks.length}>
+            {overdueTasks.length === 0 ? <Empty msg="Nothing overdue" /> : overdueTasks.slice(0, 10).map(t => (
+              <div key={t.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
+                <AlertTriangle size={13} color="var(--gx-danger)" />
+                <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+                <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-danger)' }}>
+                  {t.due_at ? `${Math.round((Date.now() - Date.parse(t.due_at)) / 86400000)}d overdue` : 'overdue'}
+                </span>
+              </div>
+            ))}
+          </Widget>
+        </div>
+      )}
+
+      {tab === 'team' && (
+        <div>
+          {nodes.length === 0 && orgMembers.length === 0
+            ? <Empty msg="No team data found" />
+            : (<>
+              {nodes.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px,1fr))', gap: 'var(--gx-space-8)', marginBottom: 'var(--gx-space-18)' }}>
+                  {nodes.map((n: any) => {
+                    const nm = orgMembers.filter((m: any) => m.primary_node_id === n.id || m.department === n.name)
+                    return (
+                      <div key={n.id} className="card" style={{ padding: 'var(--gx-space-8)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-6)' }}>
+                          <Users size={14} color="var(--gx-text-3)" />
+                          <span style={{ fontWeight: 'var(--gx-weight-semibold)', fontSize: 'var(--gx-text-13)', flex: 1 }}>{n.name}</span>
+                          <span className="badge badge-neutral">{nm.length}</span>
+                        </div>
+                        {nm.slice(0, 4).map((m: any) => (
+                          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)', padding: 'var(--gx-space-2) 0', fontSize: 'var(--gx-text-12)', color: 'var(--gx-text-2)' }}>
+                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gx-interactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-on-primary)', flexShrink: 0 }}>
+                              {(m.name ?? '?').split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                          </div>
+                        ))}
+                        {nm.length > 4 && <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', paddingTop: 'var(--gx-space-3)' }}>+{nm.length - 4} more</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {(() => {
+                const nodeIds = new Set(nodes.map((n: any) => n.id))
+                const unassigned = orgMembers.filter((m: any) => !m.primary_node_id || !nodeIds.has(m.primary_node_id))
+                if (!unassigned.length) return null
+                return (
+                  <Widget icon={Users} title="Unassigned" count={unassigned.length}>
+                    {unassigned.slice(0, 8).map((m: any) => (
+                      <div key={m.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
+                        <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{m.name}</span>
+                        <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{m.department ?? m.email}</span>
+                      </div>
+                    ))}
+                  </Widget>
+                )
+              })()}
+            </>)
+          }
+        </div>
+      )}
 
     </PageShell>
   )
