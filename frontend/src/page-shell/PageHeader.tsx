@@ -58,7 +58,7 @@ export function PageHeader({
   }, [openMenu])
   return (
     <header className="ps-header">
-      <div className="ps-header-row">
+      <div className={['ps-header-row', pageTabs ? 'ps-header-row--tabbed' : ''].filter(Boolean).join(' ')}>
         <div className="ps-header-main">
           {icon && (
             <span className="ps-header-icon" aria-hidden>
@@ -75,6 +75,9 @@ export function PageHeader({
             )}
           </div>
         </div>
+        {pageTabs && (
+          <div className="ps-header-tabs">{pageTabs}</div>
+        )}
         {search && (
           <div className="ps-header-search">
             <Input
@@ -129,9 +132,6 @@ export function PageHeader({
           </div>
         )}
       </div>
-      {pageTabs && (
-        <div className="ps-header-tabs">{pageTabs}</div>
-      )}
     </header>
   )
 }

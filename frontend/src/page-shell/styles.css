@@ -62,7 +62,10 @@
 }
 
 /* breadcrumb + page-subtitle styles removed — the header no longer renders them (Gev 2026-06-08). */
-.ps-header-tabs { margin-top: var(--gx-space-6); }
+/* Tabs are now inline inside ps-header-row. When tabbed, main loses its auto-push
+   margin so tabs can center between title and actions. */
+.ps-header-tabs { flex: 1; display: flex; justify-content: center; align-items: center; }
+.ps-header-row--tabbed .ps-header-main { margin-right: 0; }
 
 /* Zone A title row: title block (left) + primary/secondary actions (right).
    Actions live in the header now (not a separate ActionBar row). */

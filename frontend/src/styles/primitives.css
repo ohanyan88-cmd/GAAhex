@@ -103,13 +103,13 @@ select.inp { cursor:pointer; appearance:none; background-image:url("data:image/s
   background:var(--gx-surface);
   border:1px solid var(--gx-border);
   border-radius:var(--gx-radius-lg);
-  padding:16px;
+  padding:var(--gx-space-8);
   box-shadow:var(--gx-shadow-sm);
   transition:
     box-shadow var(--gx-dur-base),
     transform var(--gx-dur-base),
     border-color var(--gx-dur-base);
-  display:flex; flex-direction:column; gap:6px;
+  display:flex; flex-direction:column; gap:var(--gx-space-3);
   min-width:0; position:relative;
   /* defaults so the same rule works when rendered as <button> / <a> */
   color:inherit; text-align:left;
@@ -139,7 +139,7 @@ button.kpi-tile, a.kpi-tile {
 .kpi-tile[data-clickable="true"] { cursor:pointer; }
 .kpi-tile:hover {
   border-color:var(--gx-gold);
-  box-shadow:0 6px 24px var(--gx-gold-soft);
+  box-shadow:0 var(--gx-space-3) var(--gx-space-12) var(--gx-gold-soft);
 }
 .kpi-tile[data-clickable="true"]:focus { outline:none; }
 /* D18: KPI tile is drillable/clickable when data-clickable="true" → focus-visible on an interactive surface = azure ring, not cobalt brand spine. D17 hover stays gold (signature); D18 focus stays azure (interactive). */
@@ -150,14 +150,14 @@ button.kpi-tile, a.kpi-tile {
 
 /* Sub-element typography */
 .kpi-tile-head { display:flex; align-items:center; justify-content:space-between; gap:var(--gx-space-4); }
-.kpi-tile-label { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); font-family:var(--gx-font-mono); }
-.kpi-tile-corner { font-family:var(--gx-font-mono); font-size:10px; font-weight:600; letter-spacing:.04em; color:var(--gx-text-3); white-space:nowrap; }
-.kpi-tile-value { font-family:var(--gx-font-display); font-size:28px; font-weight:600; letter-spacing:-.02em; margin:2px 0 6px; line-height:1; color:var(--gx-text-1); font-variant-numeric:tabular-nums; }
-.kpi-tile-value.sm { font-size:18px; } .kpi-tile-value.lg { font-size:36px; }
+.kpi-tile-label { display:flex; align-items:center; gap:var(--gx-space-3); font-size:var(--gx-text-10); font-weight:var(--gx-weight-semibold); letter-spacing:.12em; text-transform:uppercase; color:var(--gx-text-3); font-family:var(--gx-font-mono); }
+.kpi-tile-corner { font-family:var(--gx-font-mono); font-size:var(--gx-text-10); font-weight:var(--gx-weight-semibold); letter-spacing:.04em; color:var(--gx-text-3); white-space:nowrap; }
+.kpi-tile-value { font-family:var(--gx-font-display); font-size:var(--gx-text-3xl); font-weight:var(--gx-weight-semibold); letter-spacing:-.02em; margin:var(--gx-space-1) 0 var(--gx-space-3); line-height:var(--gx-leading-none); color:var(--gx-text-1); font-variant-numeric:tabular-nums; }
+.kpi-tile-value.sm { font-size:var(--gx-text-xl); } .kpi-tile-value.lg { font-size:var(--gx-kpi-value-size); }
 .kpi-tile-value.danger { color:var(--gx-danger-fg); }
 .kpi-tile-value.warning { color:var(--gx-warning-fg); }
 .kpi-tile-value.muted { color:var(--gx-text-3); }
-.kpi-tile-sub { font-size:11px; color:var(--gx-text-3); margin-top:-2px; }
+.kpi-tile-sub { font-size:var(--gx-text-11); color:var(--gx-text-3); margin-top:calc(var(--gx-space-1) * -1); }
 /* Bottom group — pinned to the card floor. The WoW delta row (.kpi-tile-foot) is the
    last child, sits at the floor, and is never allowed to shrink; the chart/bar above it
    clips rather than growing. This LOCKS the delta row onto one line at the floor across
@@ -165,12 +165,12 @@ button.kpi-tile, a.kpi-tile {
    chart/value. */
 .kpi-tile-bottom { margin-top:auto; display:flex; flex-direction:column; justify-content:flex-end; gap:var(--gx-space-3); min-height:0; }
 .kpi-tile-foot { display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; }
-.kpi-tile-delta-base { color:var(--gx-text-3); font-size:10px; }
+.kpi-tile-delta-base { color:var(--gx-text-3); font-size:var(--gx-text-10); }
 /* progress / utilisation bar — thickness from token, fill width from the live --gx-kpi-pct.
    Bar + inline percent share a row so the rate reads right next to its visual. */
 .kpi-tile-progress { display:flex; align-items:center; gap:var(--gx-space-4); flex:0 0 auto; }
 .kpi-tile-progress .kpi-tile-bar { flex:1; }
-.kpi-tile-pct { font-family:var(--gx-font-mono); font-size:12px; font-weight:var(--gx-weight-semibold); color:var(--gx-text-2); white-space:nowrap; }
+.kpi-tile-pct { font-family:var(--gx-font-mono); font-size:var(--gx-text-sm); font-weight:var(--gx-weight-semibold); color:var(--gx-text-2); white-space:nowrap; }
 /* mini-chart slot (sparkline) — fixed-height SVG so it can never push the delta row off
    the floor; clips rather than overflowing if the card is ever shortened. */
 .kpi-tile-chart { width:100%; flex:0 1 auto; min-height:0; overflow:hidden; }
@@ -180,7 +180,7 @@ button.kpi-tile, a.kpi-tile {
 .kpi-tile-bar[data-variant="gold"]    > i { background:var(--gx-gold); }
 .kpi-tile-bar[data-variant="success"] > i { background:var(--gx-success-fg); }
 .kpi-tile-bar[data-variant="danger"]  > i { background:var(--gx-danger-fg); }
-.kpi-tile-delta { display:inline-flex; align-items:center; gap:4px; font-family:var(--gx-font-mono); font-size:15px; }
+.kpi-tile-delta { display:inline-flex; align-items:center; gap:var(--gx-space-2); font-family:var(--gx-font-mono); font-size:var(--gx-text-md); }
 .kpi-tile-delta.up { color:var(--gx-success-fg); } .kpi-tile-delta.down { color:var(--gx-danger-fg); }
 .kpi-tile.error { border-color:var(--gx-danger); }
 .kpi-tile.error .kpi-tile-value { color:var(--gx-danger); }
