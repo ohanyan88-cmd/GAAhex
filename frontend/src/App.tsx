@@ -59,7 +59,7 @@ import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-con
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
-import { PanelLeft, Wand, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle } from 'lucide-react'
+import { PanelLeft, Wand, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle, Calendar } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import { useAuth } from './context/AuthContext'
 import ProfileModal from './modals/ProfileModal'
@@ -464,6 +464,20 @@ export default function App() {
         <div className="sb-scroll">
           {navSections.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
             const isOpen = openSections.has(sec.id)
+            if (sec.standalone) {
+              const synth: NavItemDef = { id: sec.id, label: sec.label, icon: sec.icon, viewType: sec.viewType }
+              return (
+                <div key={sec.id} className="sb-sec">
+                  <button
+                    className={'sb-sec-btn' + (isItemActive(synth) ? ' on' : '')}
+                    onClick={(e) => navItemClick(synth, e)}
+                  >
+                    <sec.icon size={16} />
+                    <span>{sec.label}</span>
+                  </button>
+                </div>
+              )
+            }
             return (
               <div key={sec.id} className="sb-sec">
                 <button
@@ -609,6 +623,14 @@ export default function App() {
                 { title: 'Aren Tech', body: 'Fiber quote-ի հարց', time: '2օր' },
               ]}
             />
+            <button
+              className={'tb-icon' + (view.type === 'calendar' ? ' on' : '')}
+              aria-label="Calendar"
+              title="Calendar"
+              onClick={() => setView({ type: 'calendar' })}
+            >
+              <Calendar size={18} />
+            </button>
             <LangMenu />
             <button
               className="tb-icon"

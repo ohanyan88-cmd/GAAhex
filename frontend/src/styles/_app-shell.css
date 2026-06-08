@@ -19,6 +19,7 @@
 .sb-sec-btn:hover { background:rgba(130,161,204,.06); color:var(--gx-text-1); }
 .sb-sec-btn .chev { margin-left:auto; color:var(--gx-text-3); transition:transform var(--gx-dur-base) var(--gx-ease-standard); }
 .sb-sec-btn.open .chev { transform:rotate(90deg); }
+.sb-sec-btn.on { background:rgba(59,123,224,.07); color:var(--gx-on-primary); }
 .sb-items { overflow:hidden; }
 .sb-item { width:100%; display:flex; align-items:center; gap:10px; height:32px; padding:0 10px 0 34px; border:none; background:none; color:var(--gx-text-2); font-family:var(--gx-font-sans); font-size:12.5px; cursor:pointer; border-radius:var(--gx-radius-sm); position:relative; transition:all var(--gx-dur-fast); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sb-item > span:not(.ic) { overflow:hidden; text-overflow:ellipsis; }

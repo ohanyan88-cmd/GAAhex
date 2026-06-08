@@ -28,6 +28,10 @@ export type NavSectionDef = {
   adminOnly?: boolean
   /** Pre-expanded on first render. */
   defaultOpen?: boolean
+  /** When true, renders as a direct top-level nav link instead of a collapsible group. */
+  standalone?: boolean
+  /** View type to navigate to when standalone=true. */
+  viewType?: string
 }
 
 const i = (
@@ -52,9 +56,7 @@ const s = (id: string, label: string, icon: NavSectionDef['icon'], items: NavIte
 // ─────────────────────────────────────────────────────────────────────────────
 export const NAV_SECTIONS: NavSectionDef[] = [
 
-  s('workspace', 'Workspace', HomeIcon, [
-    i('ws-home', 'Home', HomeIcon, 'home'),
-  ], { defaultOpen: true }),
+  s('workspace', 'Home', HomeIcon, [], { standalone: true, viewType: 'home' }),
 
   s('crm', 'CRM', UsersIcon, [
     i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
