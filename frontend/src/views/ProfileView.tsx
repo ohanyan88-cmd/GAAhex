@@ -63,7 +63,7 @@ function reqState(status: string): 'approved' | 'rejected' | 'pending' {
 
 export default function ProfileView({ embedded = false, initialSection }: { embedded?: boolean; initialSection?: SectionKey } = {}) {
   const { t } = useI18n()
-  const { user, token } = useAuth()
+  const { user, token, setUser } = useAuth()
   const [view, setView] = useState<View>(embedded && initialSection ? initialSection : 'hub')
 
   const [uploads, setUploads] = useState<File[]>([])
@@ -87,7 +87,7 @@ export default function ProfileView({ embedded = false, initialSection }: { embe
   const [phone, setPhone] = useState('+374 10 100000')
   const [editPhone, setEditPhone] = useState(false)
 
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => user?.avatar_url ?? null)
   const [avatarPos, setAvatarPos] = useState({ x: 50, y: 50 })
   const [posOpen, setPosOpen] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -463,8 +463,8 @@ export default function ProfileView({ embedded = false, initialSection }: { embe
           title={t('profile.positionPhoto', 'Position photo')}
           footer={
             <>
-              <Button variant="ghost" size="md" onClick={() => { setAvatarUrl(null); setPosOpen(false) }}>{t('common.remove', 'Remove')}</Button>
-              <Button variant="primary" size="md" onClick={() => setPosOpen(false)}>{t('common.apply', 'Apply')}</Button>
+              <Button variant="ghost" size="md" onClick={() => { setAvatarUrl(null); setUser(prev => prev ? { ...prev, avatar_url: null } : prev); setPosOpen(false) }}>{t('common.remove', 'Remove')}</Button>
+              <Button variant="primary" size="md" onClick={() => { if (avatarUrl) setUser(prev => prev ? { ...prev, avatar_url: avatarUrl } : prev); setPosOpen(false) }}>{t('common.apply', 'Apply')}</Button>
             </>
           }
         >

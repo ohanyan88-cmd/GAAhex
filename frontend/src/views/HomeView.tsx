@@ -181,7 +181,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
   const [me, setMe] = useState<Me | null>(null)
-  const [tab, setTab] = useState<'overview' | 'work' | 'team' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('overview')
+  const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
   const [nodes, setNodes] = useState<any[]>([])
   const [orgMembers, setOrgMembers] = useState<any[]>([])
   // SM-2 — receive caps via prop instead of refetching.
@@ -381,9 +381,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       kpis={kpiSpecs}
       pageTabs={
         <DetailTabList ariaLabel="Workspace sections">
-          <DetailTab active={tab === 'overview'} onSelect={() => setTab('overview')}>Overview</DetailTab>
-          <DetailTab active={tab === 'work'} onSelect={() => setTab('work')}>My Work</DetailTab>
-          <DetailTab active={tab === 'team'} onSelect={() => setTab('team')}>Team</DetailTab>
+          <DetailTab active={tab === 'workspace'} onSelect={() => setTab('workspace')}>Workspace</DetailTab>
           <DetailTab active={tab === 'ask'} onSelect={() => setTab('ask')}>Ask Me</DetailTab>
           <DetailTab active={tab === 'messages'} onSelect={() => setTab('messages')}>Messages</DetailTab>
           <DetailTab active={tab === 'calendar'} onSelect={() => setTab('calendar')}>Calendar</DetailTab>
@@ -395,7 +393,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
       }
     >
 
-      {tab === 'overview' && (<>
+      {tab === 'workspace' && (<>
       {/* Attention Center — the cockpit hero: what needs my action right now.
           Always present; cascades to a positive "all clear" state when empty so
           the page is never blank (the operational-cockpit rule). */}
@@ -533,10 +531,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
         {/* No separate admin block — `isAdmin` (above) makes the super-admin/owner see
             every role's widgets (support · sales · tech · finance) on one My Day. */}
       </div>
-      </>)}
 
-      {tab === 'work' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
+      {/* ── My Work ──────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-20)' }}>
           <Widget icon={CheckSquare} title="Open Tasks" count={tasksOpen.length}>
             {tasks.state === 'loading' && <Skel />}
             {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 10).map(t => (
@@ -560,9 +557,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             ))}
           </Widget>
         </div>
-      )}
 
-      {tab === 'team' && (
+      {/* ── Team ─────────────────────────────────────────────────────────────── */}
         <div>
           {nodes.length === 0 && orgMembers.length === 0
             ? <Empty msg="No team data found" />
@@ -610,7 +606,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
             </>)
           }
         </div>
-      )}
+      </>)}
 
       {tab === 'ask' && <AskGaaexView token={token} embedded />}
       {tab === 'messages' && <MessagesView token={token} embedded />}
