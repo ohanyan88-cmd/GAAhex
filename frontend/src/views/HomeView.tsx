@@ -24,7 +24,7 @@ import { BASE } from '../lib/config'
 import { type Capabilities } from '../lib/capabilities'
 import { PageShell, type KPISpec } from '../page-shell'
 import { HomeIcon } from '../components/icons'
-import { authH } from '../lib/billing'
+import { authH, bget } from '../lib/billing'
 import { DetailTab, DetailTabList } from '../primitives'
 
 
@@ -213,10 +213,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
   // Fetch org nodes + members for Team tab
   useEffect(() => {
-    const opts = { headers: authH(token) }
     Promise.all([
-      fetch(`${BASE}/api/org/nodes`, opts).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${BASE}/api/users`, opts).then(r => r.ok ? r.json() : []).catch(() => []),
+      bget(token, '/api/org/nodes').then(r => (r.ok && r.data) ? r.data : []),
+      bget(token, '/api/users').then(r => (r.ok && r.data) ? r.data : []),
     ]).then(([n, m]) => {
       const arr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
       setNodes(arr(n))
@@ -530,13 +529,12 @@ export default function HomeView({ token, onNavigate, capabilities }: {
           <Widget icon={CheckSquare} title="Open Tasks" count={tasksOpen.length}>
             {tasks.state === 'loading' && <Skel />}
             {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 10).map(t => (
-              <div key={t.id} role="button" tabIndex={0}
+              <button key={t.id} type="button"
                 onClick={() => onNavigate?.('workitems')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('workitems') } }}
-                style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
+                style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', cursor: 'pointer', width: '100%', background: 'none', border: 'none', borderBottom: '1px solid var(--gx-border)', font: 'inherit', textAlign: 'left' }}>
                 <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                 <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status?.replace(/_/g, ' ')}</span>
-              </div>
+              </button>
             ))}
           </Widget>
           <Widget icon={Clock} title="Overdue" count={overdueTasks.length}>
