@@ -106,3 +106,243 @@
 .timeline-dot.muted { background: var(--gx-text-3); }
 .timeline-body { font-size: 13px; color: var(--gx-text-1); }
 .timeline-meta { font-size: 11px; color: var(--gx-text-3); font-family: var(--gx-font-mono); margin-top: 2px; }
+
+/* ── D20 DashboardView layout helpers ─────────────────────────────────────── */
+/* Root content wrapper */
+.d-dash-root { max-width: 1400px; width: 100%; }
+
+/* Section heading (uppercase label above a chart group) */
+.d-section-heading {
+  font-size: var(--gx-text-13);
+  font-weight: var(--gx-weight-bold);
+  color: var(--gx-text-2);
+  text-transform: uppercase;
+  letter-spacing: var(--gx-tracking-wide);
+  margin-top: var(--gx-space-4);
+  margin-bottom: var(--gx-space-7);
+}
+.d-section-heading--top { margin-top: var(--gx-space-6); margin-bottom: var(--gx-space-7); }
+
+/* Legend row inside a chart card (flex row with icon swatch) */
+.d-legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gx-space-2);
+}
+
+/* Colour swatch used in chart legend rows */
+.d-swatch {
+  width: var(--gx-space-5);
+  height: var(--gx-space-5);
+  border-radius: var(--gx-radius-xs);
+  flex-shrink: 0;
+}
+
+/* Risk-heatmap grid wrapper */
+.d-risk-grid {
+  display: grid;
+  grid-template-columns: auto repeat(3, 1fr);
+  gap: var(--gx-space-2);
+  padding: var(--gx-space-3);
+}
+
+/* Individual risk-heatmap cell */
+.d-risk-cell {
+  height: var(--gx-space-9);   /* 40px — closest token to design 44px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--gx-radius-xs);
+  font-size: var(--gx-text-md);
+  font-weight: var(--gx-weight-bold);
+}
+
+/* Salesperson ranked-list row header (name / count line) */
+.d-salesperson-row-hd {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--gx-text-sm);
+  margin-bottom: var(--gx-space-2);
+}
+
+/* Empty-state (no charts selected) */
+.d-empty-state {
+  padding: var(--gx-space-9);   /* 40px — closest token to design 60px */
+  text-align: center;
+  color: var(--gx-text-3);
+}
+
+/* Muted icon inside empty states (dim decorative icon) */
+.d-icon-muted { opacity: 0.4; }
+
+/* ── D20 charts.tsx static-style classes ──────────────────────────────────── */
+
+/* ChartSkeleton — bars row wrapper (height is dynamic via style prop) */
+.d-skel-row { display: flex; align-items: flex-end; gap: var(--gx-space-3); padding: var(--gx-space-2) 0; }
+/* ChartSkeleton — individual bar (flex:1 + height are dynamic) */
+.d-skel-bar { flex: 1; border-radius: var(--gx-radius-xs) var(--gx-radius-xs) 0 0; }
+
+/* BarChart — bars area (height:160 is a fixed constant, not a prop) */
+.d-bar-row { display: flex; align-items: flex-end; gap: var(--gx-space-3); height: 160px; }
+/* BarChart — per-bar column */
+.d-bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: var(--gx-space-1); }
+/* BarChart — primary revenue bar (height + minHeight are dynamic) */
+.d-bar-primary { background: linear-gradient(180deg, var(--gx-interactive-hover), var(--gx-interactive-active)); border-radius: var(--gx-radius-xs) var(--gx-radius-xs) 0 0; }
+/* BarChart — secondary/churn band (height + minHeight dynamic) */
+.d-bar-secondary { background: var(--gx-gold); border-radius: 0 0 var(--gx-radius-xs) var(--gx-radius-xs); min-height: var(--gx-space-1); }
+/* BarChart — x-axis label row */
+.d-bar-labels { display: flex; justify-content: space-between; margin-top: var(--gx-space-3); font-size: var(--gx-text-10); color: var(--gx-text-3); }
+/* BarChart — individual x-axis label */
+.d-bar-xlabel { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+
+/* AreaChart — relative wrapper */
+.d-area-wrap { position: relative; }
+/* AreaChart — bottom label row */
+.d-area-labels { display: flex; justify-content: space-between; font-size: var(--gx-text-10); color: var(--gx-text-3); margin-top: var(--gx-space-2); }
+
+/* LineChart — legend row */
+.d-line-legend { display: flex; gap: var(--gx-space-5); margin-top: var(--gx-space-3); font-size: var(--gx-text-11); color: var(--gx-text-3); }
+/* LineChart / GroupedBarChart / MultiLineChart — legend item (inline flex + small gap) */
+.d-legend-item { display: flex; align-items: center; gap: var(--gx-space-2); }
+/* Line/MultiLine — swatch for line-type legend (narrow rectangle) */
+.d-swatch-line { width: var(--gx-space-6); height: var(--gx-space-1); display: inline-block; border-radius: var(--gx-radius-xs); }
+
+/* DonutChart — legend list */
+.d-donut-legend { flex: 1; min-width: 120px; }
+/* DonutChart — legend row */
+.d-donut-legend-row { display: flex; align-items: center; gap: var(--gx-space-3); margin-bottom: var(--gx-space-4); }
+/* DonutChart — color swatch (background is dynamic per-slice) */
+.d-donut-swatch { width: var(--gx-space-5); height: var(--gx-space-5); border-radius: var(--gx-radius-xs); flex-shrink: 0; }
+/* DonutChart — plan label */
+.d-donut-label { flex: 1; font-size: var(--gx-text-sm); }
+/* DonutChart — plan value */
+.d-donut-value { font-size: var(--gx-text-sm); font-weight: var(--gx-weight-semibold); }
+
+/* FunnelChart — outer column */
+.d-funnel-wrap { display: flex; flex-direction: column; gap: var(--gx-space-3); }
+/* FunnelChart — label+value header row */
+.d-funnel-label-row { display: flex; justify-content: space-between; margin-bottom: var(--gx-space-2); font-size: var(--gx-text-sm); }
+/* FunnelChart — right-side values group */
+.d-funnel-values { display: flex; gap: var(--gx-space-4); }
+
+/* KPICard — static card chrome (padding + overflow) */
+.d-kpicard { padding: var(--gx-space-6) var(--gx-space-18); position: relative; overflow: hidden; }
+/* KPICard — header flex row */
+.d-kpicard-header { display: flex; align-items: flex-start; justify-content: space-between; }
+/* KPICard — icon + muted label row */
+.d-kpicard-meta { display: flex; align-items: center; gap: var(--gx-space-3); margin-bottom: var(--gx-space-3); }
+/* KPICard — big value (color is a dynamic prop, set inline; only line-height is static here) */
+.d-kpicard-value { font-size: var(--gx-text-3xl); font-weight: var(--gx-weight-bold); line-height: 1; }
+/* KPICard — sublabel below big value */
+.d-kpicard-sublabel { font-size: var(--gx-text-11); margin-top: var(--gx-space-2); }
+
+/* DashboardCard — outer wrapper (the .card class covers surface/border/radius/shadow) */
+.d-dashcard { display: flex; flex-direction: column; }
+/* DashboardCard — card-pad flex:1 so it fills remaining height */
+.d-dashcard-pad { flex: 1; }
+
+/* GanttChart — scroll container */
+.d-gantt-wrap { display: flex; flex-direction: column; gap: var(--gx-space-3); max-height: 280px; overflow-y: auto; padding: var(--gx-space-2); }
+/* GanttChart — single project row */
+.d-gantt-row { display: flex; align-items: center; gap: var(--gx-space-3); font-size: var(--gx-text-11); }
+/* GanttChart — project name label (fixed-width, right-aligned) */
+.d-gantt-name { width: 110px; text-align: right; color: var(--gx-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* GanttChart — timeline track (background rail) */
+.d-gantt-track { flex: 1; position: relative; height: var(--gx-space-8); background: var(--gx-surface-2); border-radius: var(--gx-radius-xs); }
+/* GanttChart — colored project bar (left/width are dynamic, computed from dates) */
+.d-gantt-bar { position: absolute; top: 1px; bottom: 1px; border-radius: var(--gx-radius-xs); }
+/* GanttChart — status text label (fixed-width, right-aligned) */
+.d-gantt-status { width: 60px; font-size: var(--gx-text-10); color: var(--gx-text-3); text-align: right; }
+
+/* ParetoChart — chart area (bars + SVG overlay) */
+.d-pareto-chart { position: relative; display: flex; align-items: flex-end; gap: var(--gx-space-2); height: 160px; }
+/* ParetoChart — legend row below chart */
+.d-pareto-legend { display: flex; gap: var(--gx-space-4); margin-top: var(--gx-space-3); font-size: var(--gx-text-10); color: var(--gx-text-3); }
+/* ParetoChart — 9x9 square swatch (inline-block, static size) */
+.d-pareto-swatch-sq { display: inline-block; width: 9px; height: 9px; border-radius: var(--gx-radius-xs); margin-right: var(--gx-space-2); vertical-align: middle; }
+/* ParetoChart — 9x2 line swatch */
+.d-pareto-swatch-ln { display: inline-block; width: 9px; height: 2px; margin-right: var(--gx-space-2); vertical-align: middle; }
+
+/* SankeyChart — node column (flex: 0 0 16%, static layout) */
+.d-sankey-col { flex: 0 0 16%; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+/* SankeyChart — node bar inner content (background and height are dynamic) */
+.d-sankey-bar { width: 80%; display: flex; align-items: center; justify-content: center; color: var(--gx-on-primary); font-weight: var(--gx-weight-bold); font-size: var(--gx-text-13); border-radius: var(--gx-radius-xs); }
+/* SankeyChart — node name label */
+.d-sankey-label { font-size: var(--gx-text-11); margin-top: var(--gx-space-2); font-weight: var(--gx-weight-semibold); }
+/* SankeyChart — conversion rate sub-label */
+.d-sankey-conv { font-size: var(--gx-text-10); color: var(--gx-text-3); }
+/* SankeyChart — gradient connector bar */
+.d-sankey-arrow { flex: 1; height: var(--gx-space-1); background: linear-gradient(90deg, var(--gx-chart-active), var(--gx-text-3)); position: relative; }
+/* SankeyChart — CSS arrowhead triangle */
+.d-sankey-arrowhead { position: absolute; right: -5px; top: -3px; width: 0; height: 0; border-left: 6px solid var(--gx-text-3); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+
+/* NetGrowthChart — bars row wrapper (height:140 is a fixed constant) */
+.d-netgrowth-bars { display: flex; align-items: flex-end; gap: var(--gx-space-2); height: 140px; }
+/* NetGrowthChart — per-week column */
+.d-netgrowth-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: var(--gx-space-1); }
+/* NetGrowthChart — new-subscriber bar (height + minHeight dynamic) */
+.d-netgrowth-new { background: var(--gx-success); border-radius: var(--gx-radius-xs) var(--gx-radius-xs) 0 0; min-height: var(--gx-space-1); }
+/* NetGrowthChart — churned bar (height + minHeight dynamic) */
+.d-netgrowth-churned { background: var(--gx-danger); border-radius: 0 0 var(--gx-radius-xs) var(--gx-radius-xs); min-height: var(--gx-space-1); }
+/* NetGrowthChart — footer stats row */
+.d-netgrowth-foot { display: flex; justify-content: space-between; margin-top: var(--gx-space-3); font-size: var(--gx-text-10); color: var(--gx-text-3); }
+/* NetGrowthChart — right legend group */
+.d-netgrowth-legend { display: flex; gap: var(--gx-space-5); }
+/* NetGrowthChart — legend swatch box */
+.d-netgrowth-swatch { display: inline-block; width: var(--gx-space-4); height: var(--gx-space-4); border-radius: var(--gx-radius-xs); margin-right: var(--gx-space-2); vertical-align: middle; }
+
+/* ComparisonCard — card padding */
+.d-comparison { padding: var(--gx-space-7) var(--gx-space-18); }
+/* ComparisonCard — muted uppercase period label */
+.d-comparison-label { font-size: var(--gx-text-11); margin-bottom: var(--gx-space-3); text-transform: uppercase; letter-spacing: var(--gx-tracking-wide); }
+/* ComparisonCard — value + delta row */
+.d-comparison-values { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--gx-space-2); }
+/* ComparisonCard — big "this period" value */
+.d-comparison-this { font-size: var(--gx-text-2xl); font-weight: var(--gx-weight-bold); }
+/* ComparisonCard — delta badge (color is dynamic/computed) */
+.d-comparison-delta { display: flex; align-items: center; gap: var(--gx-space-2); font-size: var(--gx-text-sm); font-weight: var(--gx-weight-semibold); }
+/* ComparisonCard — prior period muted label */
+.d-comparison-prior { font-size: var(--gx-text-11); }
+
+/* GroupedBarChart — bars area (height:160 fixed) */
+.d-grouped-bars { display: flex; align-items: flex-end; gap: var(--gx-space-5); height: 160px; padding: var(--gx-space-2) 0; }
+/* GroupedBarChart — per-group column */
+.d-grouped-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--gx-space-2); height: 100%; }
+/* GroupedBarChart — inner pair of bars (85% height, centered flex-end) */
+.d-grouped-inner { display: flex; align-items: flex-end; justify-content: center; gap: var(--gx-space-1); height: 85%; }
+/* GroupedBarChart / StackedBarChart / ParetoChart — x-axis label */
+.d-chart-xlabel { font-size: var(--gx-text-10); color: var(--gx-text-3); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* GroupedBarChart — "this period" bar (height + minHeight dynamic) */
+.d-grouped-bar-this { width: 40%; background: linear-gradient(180deg, var(--gx-interactive-hover), var(--gx-interactive-active)); border-radius: var(--gx-radius-xs) var(--gx-radius-xs) 0 0; }
+/* GroupedBarChart — "last period" bar (height + minHeight dynamic) */
+.d-grouped-bar-last { width: 40%; background: var(--gx-text-3); opacity: 0.5; border-radius: var(--gx-radius-xs) var(--gx-radius-xs) 0 0; }
+/* GroupedBarChart — legend row */
+.d-grouped-legend { display: flex; gap: var(--gx-space-7); margin-top: var(--gx-space-3); font-size: var(--gx-text-11); color: var(--gx-text-3); }
+/* GroupedBarChart — "this period" legend swatch */
+.d-grouped-swatch-this { width: var(--gx-space-5); height: var(--gx-space-5); background: var(--gx-chart-active); border-radius: var(--gx-radius-xs); }
+/* GroupedBarChart — "last period" legend swatch */
+.d-grouped-swatch-last { width: var(--gx-space-5); height: var(--gx-space-5); background: var(--gx-text-3); opacity: 0.5; border-radius: var(--gx-radius-xs); }
+
+/* MultiLineChart — legend row */
+.d-multiline-legend { display: flex; gap: var(--gx-space-7); margin-top: var(--gx-space-3); font-size: var(--gx-text-11); color: var(--gx-text-3); flex-wrap: wrap; }
+/* MultiLineChart — legend swatch (background is dynamic per-series) */
+.d-multiline-swatch { width: var(--gx-space-6); height: var(--gx-space-1); border-radius: var(--gx-radius-xs); }
+
+/* HeatmapChart — footer label row */
+.d-heatmap-foot { display: flex; justify-content: space-between; margin-top: var(--gx-space-5); font-size: var(--gx-text-10); color: var(--gx-text-3); }
+/* HeatmapChart — gradient scale swatch row */
+.d-heatmap-scale { display: flex; gap: var(--gx-space-1); }
+/* HeatmapChart — individual scale step swatch (background is dynamic intensity) */
+.d-heatmap-step { width: var(--gx-space-5); height: var(--gx-space-5); border-radius: var(--gx-radius-xs); }
+
+/* StackedBarChart — outer flex container */
+.d-stacked-bars { display: flex; align-items: flex-end; gap: var(--gx-space-3); height: 160px; }
+/* StackedBarChart — per-bucket column */
+.d-stacked-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; gap: var(--gx-space-1); }
+/* StackedBarChart — bar stack (height dynamic; borderRadius + overflow static) */
+.d-stacked-stack { display: flex; flex-direction: column-reverse; border-radius: var(--gx-radius-xs) var(--gx-radius-xs) 0 0; overflow: hidden; }
+
+/* StatusBreakdown — outer column */
+.d-status-wrap { display: flex; flex-direction: column; gap: var(--gx-space-4); }
+/* StatusBreakdown — label row */
+.d-status-row-hd { display: flex; justify-content: space-between; font-size: var(--gx-text-11); margin-bottom: var(--gx-space-2); }

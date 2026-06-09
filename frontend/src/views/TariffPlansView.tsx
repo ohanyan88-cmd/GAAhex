@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { bget, bpost, bpatch, bdel } from '../lib/billing'
 import { can, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { toast } from '../components/Toast'
 import { confirmDialog } from '../components/Modal'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
@@ -136,7 +137,7 @@ export default function TariffPlansView({
 
   // Writes are admin-only. Tolerant: prefer canConfigure (the superadmin flag we
   // already have) and fall back to the per-entity capability if it's seeded.
-  const canWrite = canConfigure || can(capabilities, 'tariff_plan', 'edit')
+  const canWrite = canConfigure || can(capabilities, OBJ.TARIFF_PLAN, 'edit')
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)

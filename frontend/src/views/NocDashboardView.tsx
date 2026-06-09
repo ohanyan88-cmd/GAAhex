@@ -24,6 +24,7 @@ import { PageShell, SlideOutPanel } from '../page-shell'
 import { PermissionDenied } from '../components/States'
 import { ServerIcon } from '../components/icons'
 import { can, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { useFetch } from '../hooks/useFetch'
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1078,7 +1079,7 @@ interface NocDashboardProps {
 
 export default function NocDashboardView({ capabilities }: NocDashboardProps) {
   const { token } = useAuth()
-  const canViewService = can(capabilities, 'service', 'view')
+  const canViewService = can(capabilities, OBJ.SERVICE, 'view')
 
   const oltListFetch   = useFetch<{ items: OltRecord[]; total: number }>('/api/noc/olts')
   const onuFetch       = useFetch<{ total: number }>('/api/noc/onus?page_size=1')

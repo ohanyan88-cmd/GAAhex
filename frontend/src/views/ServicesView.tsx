@@ -17,6 +17,7 @@ import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill, Button, Pagination } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { humanizeStatus } from '../lib/humanize'
 import { SERVICE_ALL } from '../lib/status-constants'
 
@@ -72,7 +73,7 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
   const page = usePageConfig(token!, 'services', configVersion)
   const cf = useCustomFields('services', page.customFields, (list ?? []).map((sv) => sv.id))
 
-  const canCreate = can(capabilities, 'service', 'create')
+  const canCreate = can(capabilities, OBJ.SERVICE, 'create')
 
   // Interaction state for reskin.
   const [query, setQuery] = useState('')
@@ -343,7 +344,7 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
   const [allocOpen, setAllocOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const canEdit = can(capabilities, 'service', 'edit')
+  const canEdit = can(capabilities, OBJ.SERVICE, 'edit')
 
   async function load() {
     setError('')

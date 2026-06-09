@@ -3,6 +3,7 @@ import { BarChart3, TrendingUp, Users, Banknote, AlertTriangle, PieChart, ArrowR
 import { GearIcon, ChartIcon } from '../components/icons'
 import { money } from '../lib/money'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { BASE, authH } from '../lib/billing'
 import { DASHBOARD_BULK, PARETO_TOP_N } from '../lib/pagination'
 import { loadSelected, saveSelected } from '../lib/dashboard-catalog'
@@ -129,7 +130,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
     return () => { alive = false }
   }, [token, range])
 
-  const showRevenue = capsLoaded && can(caps, 'invoice', 'view')
+  const showRevenue = capsLoaded && can(caps, OBJ.INVOICE, 'view')
   const ov = overview.state === 'ok' ? overview.value : null
 
   // KPIs from overview data — only rendered when data is available and user can view revenue
@@ -156,7 +157,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         { label: `Customize (${selected.size})`, onClick: () => setPickerOpen(true) },
       ]}
     >
-      <div style={{ maxWidth: 1400, width: '100%' }}>
+      <div className="d-dash-root">
 
         {/* Row 1: Revenue bar + Subscription donut */}
         {(isShown('revenue-bar') || isShown('sub-donut')) && (
@@ -171,12 +172,12 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                       label: b.month, primary: b.collected, secondary: b.churn ?? 0
                     }))} />
                     <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span className="d-legend-row">
                         {/* D18: legend swatch matches BarChart primary fill → --gx-chart-active. */}
-                        <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-chart-active)', borderRadius: 2 }} />Collected
+                        <span className="d-swatch" style={{ background: 'var(--gx-chart-active)' }} />Collected
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-gold)', borderRadius: 2 }} />Churn events
+                      <span className="d-legend-row">
+                        <span className="d-swatch" style={{ background: 'var(--gx-gold)' }} />Churn events
                       </span>
                     </div>
                   </>
@@ -276,7 +277,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Week vs Week Comparisons === */}
         {isShown('wow-cards') && compare.state === 'ok' && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="d-section-heading d-section-heading--top">
               Week vs Last Week
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
@@ -295,7 +296,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Month vs Last Month === */}
         {isShown('mom-cards') && compare.state === 'ok' && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="d-section-heading">
               Month vs Last Month
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
@@ -314,7 +315,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Quarter & Year Comparisons === */}
         {(isShown('qoq-bars') || isShown('yoy-bars')) && compare.state === 'ok' && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="d-section-heading">
               Quarter & Year Comparisons
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -380,7 +381,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Status Breakdown (individually toggleable) === */}
         {statusBreak.state === 'ok' && (isShown('status-workitems') || isShown('status-tickets') || isShown('status-invoices') || isShown('status-subs')) && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="d-section-heading">
               Current Status Breakdown
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -449,7 +450,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: New charts (RAG, aging, risk, leads, sales) === */}
         {(isShown('rag-health') || isShown('task-aging') || isShown('issue-aging') || isShown('risk-heatmap') || isShown('lead-source-donut') || isShown('salesperson-rank')) && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="d-section-heading">
               Execution Insights
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -492,7 +493,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
               {isShown('risk-heatmap') && riskHeatmap.state === 'ok' && (
                 <DashboardCard title="Risk Heat Map" icon={AlertTriangle}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(3, 1fr)', gap: 3, padding: 'var(--gx-space-3)' }}>
+                  <div className="d-risk-grid">
                     <div></div>
                     {['Low', 'Medium', 'High'].map(im => (
                       <div key={im} style={{ fontSize: 'var(--gx-text-10)', textAlign: 'center', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) 0' }}>{im}</div>
@@ -508,10 +509,9 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                                   : score >= 1 ? 'rgba(234,179,8,0.5)'
                                   : 'rgba(34,197,94,0.5)'
                           return (
-                            <div key={`${li}-${im}`} style={{
+                            <div key={`${li}-${im}`} className="d-risk-cell" style={{
                               background: v > 0 ? bg : 'var(--gx-surface-2)',
-                              height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: 'var(--gx-radius-xs)', fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-bold)', color: v > 0 ? 'var(--gx-on-primary)' : 'var(--gx-text-3)',
+                              color: v > 0 ? 'var(--gx-on-primary)' : 'var(--gx-text-3)',
                             }}>{v}</div>
                           )
                         })}
@@ -540,7 +540,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                         const max = Math.max(...Object.values(salesByUser.value).map((v: any) => Number(v)))
                         return (
                           <div key={name}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-sm)', marginBottom: 3 }}>
+                            <div className="d-salesperson-row-hd">
                               <span>{name}</span>
                               <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{Number(cnt)}</span>
                             </div>
@@ -562,7 +562,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {/* === SECTION: Advanced execution charts === */}
         {(isShown('gantt') || isShown('exec-summary') || isShown('sankey-leads') || isShown('pareto-leads') || isShown('geographic-map') || isShown('net-subscriber-growth')) && (
           <>
-            <div style={{ marginTop: 'var(--gx-space-4)', marginBottom: 'var(--gx-space-7)', fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-text-2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="d-section-heading">
               Strategic & Operational Charts
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
@@ -608,8 +608,8 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
         {/* Empty state */}
         {selected.size === 0 && (
-          <div style={{ padding: 60, textAlign: 'center', color: 'var(--gx-text-3)' }}>
-            <Settings size={40} style={{ marginBottom: 'var(--gx-space-5)', opacity: 0.4 }} />
+          <div className="d-empty-state">
+            <Settings size={40} className="d-icon-muted" style={{ marginBottom: 'var(--gx-space-5)' }} />
             <p style={{ fontSize: 'var(--gx-text-md)' }}>No charts selected. Click <strong>Customize</strong> above to choose what to display.</p>
           </div>
         )}

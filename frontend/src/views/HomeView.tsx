@@ -25,6 +25,7 @@ import { useAuth } from '../context/AuthContext'
 import { initialsOf } from '../lib/utils'
 import { TICKET_CLOSED } from '../lib/status-constants'
 import { WIDGET_ITEMS, WIDGET_APPROVALS } from '../lib/pagination'
+import { OBJ } from '../lib/permissions-constants'
 import { DetailTab, DetailTabList } from '../primitives'
 import { useFetch, useFetched } from '../hooks/useFetch'
 import AskGaaexView from './AskGaaexView'
@@ -36,29 +37,58 @@ import ProfileView from './ProfileView'
 const toArr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
 
 type Me = { id: string; name: string; email: string }
-type Role = 'support' | 'sales' | 'tech' | 'finance' | 'admin' | 'general'
+// Covers all 11 system roles seeded by the backend (seed.py) plus workspace-module roles.
+// Mapped to 8 distinct UI personalities:
+//   admin        ← super_admin
+//   manager      ← manager
+//   support      ← customer_care, sales_agent (helpdesk-heavy)
+//   sales        ← sales_agent, sales_d2d, sales_retail, sales_b2b
+//   tech         ← field_technician, network_noc, noc_engineer
+//   finance      ← billing, billing_specialist, revenue_control, finance
+//   hr           ← hr
+//   executive    ← executive
+//   general      ← fallback
+type Role = 'admin' | 'manager' | 'support' | 'sales' | 'tech' | 'finance' | 'hr' | 'executive' | 'general'
 
 // ── role detection from capabilities ──────────────────────────────────────────
 function detectRole(caps: Capabilities): Role {
-  // Priority: most specific role first. Empty caps = FULL_ACCESS = admin.
+  // Priority: most specific role first. Empty caps = FULL_ACCESS = super_admin.
   if (Object.keys(caps).length === 0) return 'admin'
   const has = (k: string, v: 'view' | 'create' | 'edit' | 'delete') =>
     caps[k] === undefined ? true : caps[k]?.[v] === true
-  if (has('helpdesk_ticket', 'edit')) return 'support'
-  if (has('lead', 'create') || has('opportunity', 'edit')) return 'sales'
-  if (has('workitem', 'edit') || has('schedule_slot', 'edit')) return 'tech'
-  if (has('invoice', 'create') || has('payment', 'create')) return 'finance'
-  if (caps['config']?.['edit']) return 'admin'
+  const hasAny = (k: string, v: string) => (caps as any)[k]?.[v] === true
+
+  // configuration.manage = super_admin / admin
+  if (hasAny(OBJ.CONFIGURATION, 'manage')) return 'admin'
+  // role.manage = manager (has broad permissions but not full config)
+  if (hasAny(OBJ.ROLE, 'manage')) return 'manager'
+  // HR: employee management
+  if (caps['employee']?.['edit']) return 'hr'
+  // Executive: KPI/dashboard read-only, no write on operational objects
+  if (caps['kpi']?.['view'] && !has(OBJ.HELPDESK_TICKET, 'create') && !has(OBJ.WORKITEM, 'create')) return 'executive'
+  // Finance: billing, invoices, payments, collections
+  if (has(OBJ.INVOICE, 'create') || has(OBJ.PAYMENT, 'create') || caps['billing_account']?.['view']) return 'finance'
+  // Revenue Control / Billing: payment_order + billing_account but no invoice creation
+  if (hasAny(OBJ.PAYMENT_ORDER, 'collect') || caps['credit_note']?.['view']) return 'finance'
+  // Helpdesk / Customer Care: can edit helpdesk tickets
+  if (has(OBJ.HELPDESK_TICKET, 'edit')) return 'support'
+  // Sales (all variants: agent, D2D, retail, B2B): lead create/edit
+  if (has(OBJ.LEAD, 'create') || has(OBJ.DEAL, 'edit')) return 'sales'
+  // Field Technician / NOC / Network: work orders or workitem + schedule/service
+  if (has(OBJ.WORKITEM, 'edit') || has(OBJ.SCHEDULE_SLOT, 'edit') || caps['alarm']?.['view']) return 'tech'
   return 'general'
 }
 
 const ROLE_SUBTITLE: Record<Role, string> = {
-  support: 'Support center',
-  sales:   'Sales overview',
-  tech:    'Tech bench',
-  finance: 'Finance desk',
-  admin:   'Administrator overview',
-  general: 'Your workspace',
+  admin:     'Administrator overview',
+  manager:   'Manager dashboard',
+  support:   'Support center',
+  sales:     'Sales overview',
+  tech:      'Tech bench',
+  finance:   'Finance desk',
+  hr:        'HR overview',
+  executive: 'Executive overview',
+  general:   'Your workspace',
 }
 
 

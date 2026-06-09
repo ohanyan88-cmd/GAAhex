@@ -14,6 +14,16 @@
 .gx-dialog { width:100%; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-radius:var(--gx-radius-xl); box-shadow:var(--gx-shadow-xl); overflow:hidden; }
 .gx-dialog-head { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
 
+/* D20 — Modal chrome classes (replaces static inline styles in Modal.tsx) */
+.gx-dialog-panel { display:flex; flex-direction:column; width:100%; }
+.gx-dialog-title-col { display:flex; flex-direction:column; gap:var(--gx-space-1); min-width:0; flex:1; }
+.gx-dialog-title { margin:0; font-size:var(--gx-text-md); font-weight:var(--gx-weight-semibold); color:var(--gx-text-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-dialog-subtitle { font-size:var(--gx-text-11); color:var(--gx-text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-dialog-hero { padding:var(--gx-space-7) var(--gx-space-20); border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); flex-shrink:0; }
+.gx-dialog-body { padding:var(--gx-space-18) var(--gx-space-20); overflow-y:auto; flex:1; min-height:0; }
+.gx-dialog-footer { display:flex; gap:var(--gx-space-5); justify-content:flex-end; padding:var(--gx-space-6) var(--gx-space-20); border-top:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
+.gx-confirm-message { margin:0; color:var(--gx-text-2); font-size:var(--gx-text-13); line-height:1.5; }
+
 /* toasts */
 .gx-toast-host { position:fixed; bottom:20px; right:20px; z-index:var(--gx-z-toast); display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
 .gx-toast { display:flex; align-items:center; gap:10px; min-width:240px; max-width:360px; padding:11px 12px 11px 14px; background:var(--gx-elevated); border:1px solid var(--gx-border-strong); border-left:3px solid var(--gx-primary); border-radius:var(--gx-radius-md); box-shadow:var(--gx-shadow-lg); font-size:13px; color:var(--gx-text-1); animation:gxtoastin .24s var(--gx-ease-emphasis); }

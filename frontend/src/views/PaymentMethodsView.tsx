@@ -19,6 +19,7 @@ import { CreditCardIcon, PlusIcon, StarIcon } from '../components/icons'
 import { Button, StatusPill } from '../primitives'
 import { PageShell, type KPISpec } from '../page-shell'
 import { can, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { timeAgo } from '../lib/time'
 import RowActionsMenu from '../components/RowActionsMenu'
 
@@ -96,7 +97,7 @@ export default function PaymentMethodsView({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
 
   // Permission gates. Reads = capabilities.payment.view OR canConfigure (admin). Writes = admin only.
-  const canView = can(capabilities, 'payment', 'view') || canConfigure
+  const canView = can(capabilities, OBJ.PAYMENT, 'view') || canConfigure
   const canWrite = canConfigure
 
   async function load() {

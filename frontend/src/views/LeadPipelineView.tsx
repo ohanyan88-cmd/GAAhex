@@ -14,6 +14,7 @@ import {
 import { useI18n } from '../lib/i18n'
 import FieldInput, { type Field } from '../components/FieldInput'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { LEAD_SOURCES } from '../lib/lifecycle'
 import { PageShell, type KPISpec } from '../page-shell'
 
@@ -35,8 +36,8 @@ const initials = (name: string) =>
 
 export default function LeadPipelineView({ onOpenCustomer, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, embedded = false }: { onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void; capabilities?: Capabilities; /** When true, skip the outer PageShell (used when nested inside PipelineView's tab panel). */ embedded?: boolean }) {
   const { token } = useAuth()
-  const canCreate = can(capabilities, 'lead', 'create')
-  const canEdit   = can(capabilities, 'lead', 'edit')
+  const canCreate = can(capabilities, OBJ.LEAD, 'create')
+  const canEdit   = can(capabilities, OBJ.LEAD, 'edit')
   const { t } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [leads, setLeads] = useState<Lead[] | null>(null)

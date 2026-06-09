@@ -32,6 +32,7 @@ import { PageShell, Stack, Inline, Card, SectionHeading, type KPISpec } from '..
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 
 // A.3 endpoints return Decimal STRINGS in major units (e.g. "100.50"). Existing money() expects
 // integer luma (minor). Convert at the boundary so we keep one display formatter.
@@ -203,10 +204,10 @@ export default function InvoicesView({
   const [cycleBusy, setCycleBusy] = useState(false)
 
   // Permission gates (rule 6) — backend re-checks too, this just hides buttons the user can't use.
-  const canEditInvoice = can(capabilities, 'invoice', 'edit')
-  const canCreatePayment = can(capabilities, 'payment', 'create')
+  const canEditInvoice = can(capabilities, OBJ.INVOICE, 'edit')
+  const canCreatePayment = can(capabilities, OBJ.PAYMENT, 'create')
   // Allocate is admin-gated server-side — front-end mirrors with payment.edit, or canConfigure as fallback.
-  const canAllocatePayment = can(capabilities, 'payment', 'edit') || canConfigure
+  const canAllocatePayment = can(capabilities, OBJ.PAYMENT, 'edit') || canConfigure
 
   // When the parent flips the deep-link status (e.g. switching customers in 360), re-sync the filter.
   useEffect(() => { setStatus(initialStatus ?? '') }, [initialStatus])

@@ -1,4 +1,5 @@
 import type { ReactNode, CSSProperties } from 'react'
+// D20 — static chrome classes live in _overlays.css (.gx-dialog-panel, .gx-dialog-title-col, etc.)
 import { useEffect, useId, useState } from 'react'
 import Overlay from './Overlay'
 import { CloseIcon } from './icons'
@@ -61,12 +62,12 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
       style={wrapperStyle}
       bare
     >
-      <div style={panelStyle}>
+      <div className="gx-dialog-panel" style={panelStyle}>
         <div className="gx-dialog-head">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-1)', minWidth: 0, flex: 1 }}>
-            <h3 id={titleId} style={{ margin: 0, fontSize: 'var(--gx-text-md)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
+          <div className="gx-dialog-title-col">
+            <h3 id={titleId} className="gx-dialog-title">{title}</h3>
             {subtitle && (
-              <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div className="gx-dialog-subtitle">
                 {subtitle}
               </div>
             )}
@@ -76,22 +77,15 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
           </button>
         </div>
         {hero && (
-          <div style={{ padding: 'var(--gx-space-7) var(--gx-space-20)', borderBottom: '1px solid var(--gx-border-subtle)', background: 'var(--gx-surface-2)', flexShrink: 0 }}>
+          <div className="gx-dialog-hero">
             {hero}
           </div>
         )}
-        <div style={{ padding: 'var(--gx-space-18) var(--gx-space-20)', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+        <div className="gx-dialog-body">
           {children}
         </div>
         {footer && (
-          <div style={{
-            display: 'flex',
-            gap: 'var(--gx-space-5)',
-            justifyContent: 'flex-end',
-            padding: 'var(--gx-space-6) var(--gx-space-20)',
-            borderTop: '1px solid var(--gx-border-subtle)',
-            background: 'var(--gx-surface-2)',
-          }}>
+          <div className="gx-dialog-footer">
             {footer}
           </div>
         )}
@@ -192,7 +186,7 @@ export function ConfirmHost() {
         />
       }
     >
-      <p style={{ margin: 0, color: 'var(--gx-text-2)', fontSize: 'var(--gx-text-13)', lineHeight: 1.5 }}>{opts.message}</p>
+      <p className="gx-confirm-message">{opts.message}</p>
     </Modal>
   )
 }

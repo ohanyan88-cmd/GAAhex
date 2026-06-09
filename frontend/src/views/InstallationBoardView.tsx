@@ -23,6 +23,7 @@ import { EmptyState, ErrorBanner, PermissionDenied, SkeletonRows } from '../comp
 import { TruckIcon, RefreshIcon, ServerIcon, CheckIcon, PlusIcon, EditIcon, InfoIcon } from '../components/icons'
 import { timeAgo } from '../lib/time'
 import { can, type Capabilities, FULL_ACCESS } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { Button, StatusPill } from '../primitives'
 import { PageShell, type KPISpec } from '../page-shell'
 
@@ -113,7 +114,7 @@ export default function InstallationBoardView({
   capabilities = FULL_ACCESS,
 }: ViewProps) {
   const { token } = useAuth()
-  const canEdit = canConfigure || can(capabilities, 'order', 'edit')
+  const canEdit = canConfigure || can(capabilities, OBJ.ORDER, 'edit')
 
   const [orders, setOrders] = useState<InstallOrder[] | null>(null)
   const [loading, setLoading] = useState(true)

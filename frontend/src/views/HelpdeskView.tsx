@@ -17,6 +17,7 @@ import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 import { humanizeStatus } from '../lib/humanize'
 import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
@@ -109,8 +110,8 @@ export default function HelpdeskView({
 }) {
   const { token } = useAuth()
   const cfg = usePageConfig(token!, 'helpdesk', configVersion)
-  const canCreateTicket = can(capabilities, 'helpdesk_ticket', 'create')
-  const canEditTicket = can(capabilities, 'helpdesk_ticket', 'edit')
+  const canCreateTicket = can(capabilities, OBJ.HELPDESK_TICKET, 'create')
+  const canEditTicket = can(capabilities, OBJ.HELPDESK_TICKET, 'edit')
 
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)

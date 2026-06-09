@@ -17,6 +17,7 @@ import { useI18n } from '../lib/i18n'
 import { usePageConfig } from '../lib/pageConfig'
 import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
+import { OBJ } from '../lib/permissions-constants'
 // Canonical Object Detail tabs (file 10 §Object Detail). These nine render BEFORE the
 // CustomerView's own related-record tabs (accounts/contacts/sites/contracts/slas). Each
 // component self-fetches its slice from a documented endpoint and renders its own empty
@@ -170,7 +171,7 @@ export default function CustomerView({ customerId, onBack, configVersion = 0, ca
   onOpenInvoices?: (initialStatus?: string) => void
 }) {
   const { token } = useAuth()
-  const canEditInvoice = can(capabilities, 'invoice', 'edit')
+  const canEditInvoice = can(capabilities, OBJ.INVOICE, 'edit')
   const { t } = useI18n()
   // Hook called so the Configure button (via BESPOKE_PAGE_KEYS) lights up for this page.
   usePageConfig(token!, 'customer', configVersion)

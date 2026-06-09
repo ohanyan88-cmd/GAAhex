@@ -15,9 +15,9 @@ import { PLAN_COLORS } from './types'
 
 export function ChartSkeleton({ h = 160 }: { h?: number }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: h, padding: 'var(--gx-space-2) 0' }}>
+    <div className="d-skel-row" style={{ height: h }}>
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="skel" style={{ flex: 1, height: `${28 + (i % 5) * 14}%`, borderRadius: '4px 4px 0 0' }} />
+        <div key={i} className="skel d-skel-bar" style={{ height: `${28 + (i % 5) * 14}%` }} />
       ))}
     </div>
   )
@@ -31,19 +31,19 @@ export function BarChart({ data }: { data: { label: string; primary: number; sec
   const maxS = Math.max(...data.map(d => d.secondary ?? 0), 1)
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-3)', height: 160 }}>
+      <div className="d-bar-row">
         {data.map(b => (
-          <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', gap: 'var(--gx-space-1)' }} title={b.label}>
+          <div key={b.label} className="d-bar-col" title={b.label}>
             {/* D18: primary revenue bar = drillable/active series → --gx-chart-active (= --gx-interactive). */}
-            <div style={{ height: `${b.primary / maxP * 82}%`, background: 'linear-gradient(180deg,var(--gx-interactive-hover),var(--gx-interactive-active))', borderRadius: '4px 4px 0 0', minHeight: b.primary > 0 ? 'var(--gx-space-2)' : 0 }} />
+            <div className="d-bar-primary" style={{ height: `${b.primary / maxP * 82}%`, minHeight: b.primary > 0 ? 'var(--gx-space-2)' : 0 }} />
             {b.secondary != null && b.secondary > 0 && (
-              <div style={{ height: `${b.secondary / maxS * 14}%`, background: 'var(--gx-gold)', borderRadius: '0 0 4px 4px', minHeight: 'var(--gx-space-1)' }} />
+              <div className="d-bar-secondary" style={{ height: `${b.secondary / maxS * 14}%` }} />
             )}
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
-        {data.map(b => <span key={b.label} style={{ flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.label.slice(5)}</span>)}
+      <div className="d-bar-labels">
+        {data.map(b => <span key={b.label} className="d-bar-xlabel">{b.label.slice(5)}</span>)}
       </div>
     </div>
   )
@@ -63,7 +63,7 @@ export function AreaChart({ data }: { data: { label: string; value: number }[] }
   const polyline = pts.join(' ')
   const area = `0,${H} ${polyline} ${W},${H}`
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="d-area-wrap">
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 120, overflow: 'visible' }}>
         <defs>
           {/* D18: area chart fill + stroke = active drillable series → --gx-chart-active. */}
@@ -75,7 +75,7 @@ export function AreaChart({ data }: { data: { label: string; value: number }[] }
         <polygon points={area} fill="url(#areafill)" />
         <polyline points={polyline} fill="none" stroke="var(--gx-chart-active)" strokeWidth="2" strokeLinejoin="round" />
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', marginTop: 'var(--gx-space-2)' }}>
+      <div className="d-area-labels">
         <span>{data[0].label.slice(5)}</span>
         <span>{data[data.length - 1].label.slice(5)}</span>
       </div>
@@ -104,12 +104,12 @@ export function LineChart({ data, series1Label = 'Series 1', series2Label = 'Ser
         <polyline points={pts1} fill="none" stroke="var(--gx-chart-active)" strokeWidth="2" strokeLinejoin="round" />
         <polyline points={pts2} fill="none" stroke="var(--gx-gold)" strokeWidth="2" strokeLinejoin="round" strokeDasharray="4 3" />
       </svg>
-      <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-1)', background: 'var(--gx-chart-active)', display: 'inline-block', borderRadius: 1 }} />{series1Label}
+      <div className="d-line-legend">
+        <span className="d-legend-item">
+          <span className="d-swatch-line" style={{ background: 'var(--gx-chart-active)' }} />{series1Label}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 'var(--gx-space-6)', height: 'var(--gx-space-1)', background: 'var(--gx-gold)', display: 'inline-block', borderRadius: 1 }} />{series2Label}
+        <span className="d-legend-item">
+          <span className="d-swatch-line" style={{ background: 'var(--gx-gold)' }} />{series2Label}
         </span>
       </div>
     </div>
@@ -133,7 +133,7 @@ export function DonutChart({ slices }: { slices: { label: string; value: number;
     return { d: `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`, color: sl.color, pct, label: sl.label, value: sl.value }
   })
   return (
-    <div style={{ display: 'flex', gap: 'var(--gx-space-18)', alignItems: 'center', flexWrap: 'wrap' }}>
+    <div className="gx-donut">
       <svg viewBox="0 0 140 140" style={{ width: 140, height: 140, flexShrink: 0 }}>
         {paths.map((p, i) => (
           <path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={sw} strokeLinecap="butt" />
@@ -143,12 +143,12 @@ export function DonutChart({ slices }: { slices: { label: string; value: number;
           {slices.reduce((s, sl) => s + sl.value, 0)}
         </text>
       </svg>
-      <div style={{ flex: 1, minWidth: 120 }}>
+      <div className="d-donut-legend">
         {slices.map((sl, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)' }}>
-            <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: sl.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 'var(--gx-text-sm)' }}>{sl.label}</span>
-            <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{sl.value}</span>
+          <div key={i} className="d-donut-legend-row">
+            <span className="d-donut-swatch" style={{ background: sl.color }} />
+            <span className="d-donut-label">{sl.label}</span>
+            <span className="d-donut-value">{sl.value}</span>
             <span className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{Math.round(sl.value / total * 100)}%</span>
           </div>
         ))}
