@@ -1,0 +1,97 @@
+// Orders domain — shared types and pure helper functions.
+// Extracted from OrdersView.tsx; no logic changes.
+
+export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+
+// ── Stage 8 types ────────────────────────────────────────────────────────────
+// Mirrors the response shape of POST /api/orders/{id}/stage8-check.
+export type Stage8CheckKey = 'credit_check' | 'deposit' | 'payment_method' | 'mandatory_approvals'
+export type Stage8CheckStatus = 'PASS' | 'FAIL' | 'PENDING' | 'NOT_REQUIRED' | 'EXPIRED' | 'NOT_LINKED'
+export type Stage8Status = {
+  pass: boolean
+  blockers: string[]
+  checks: Record<Stage8CheckKey, Stage8CheckStatus>
+}
+
+// ── Order row ────────────────────────────────────────────────────────────────
+// Mirrors the dict shape from orders.py::_order(). Stage 8 fields are optional —
+// when the backend serializer hasn't been extended to include them they're simply
+// undefined and the UI degrades (pill shows "Pending", deposit buttons hide).
+export type OrderRow = {
+  id: string
+  number: string
+  customer_id: string | null
+  owner_node_id: string | null
+  status: string                          // DRAFT | SUBMITTED | PROVISIONING | COMPLETED | CANCELLED
+  total: number                           // luma
+  created_at: string | null
+  items?: OrderItemRow[]
+  // ── Stage 8 (Phase B.1) ──
+  control_pass?: boolean | null
+  control_pass_at?: string | null
+  control_gate_block_reason?: string | null
+  deposit_required?: string | number | null     // Decimal AMD, serialized as string
+  deposit_collected?: string | number | null
+  deposit_held_until?: string | null
+  payment_method_id?: string | null
+  deposit_payment_id?: string | null
+}
+
+export type OrderItemRow = {
+  id: string
+  product_id: string | null
+  description: string
+  quantity: number
+  unit_amount: number                     // luma
+  line_total: number                      // luma
+}
+
+// ── Pure helpers ─────────────────────────────────────────────────────────────
+
+export function mapOrderStatus(s: string | null | undefined): PillVariant {
+  const v = (s ?? '').toUpperCase()
+  if (v === 'COMPLETED') return 'active'
+  if (v === 'PROVISIONING') return 'degraded'
+  if (v === 'SUBMITTED') return 'info'
+  if (v === 'CANCELLED') return 'neutral'
+  return 'info' // DRAFT
+}
+
+// Friendly verb for the next /advance hop, derived from the order's current status.
+export function nextAdvanceLabel(status: string): string | null {
+  const v = (status ?? '').toUpperCase()
+  if (v === 'SUBMITTED') return 'Provision'
+  if (v === 'PROVISIONING') return 'Complete'
+  return null
+}
+
+// Stage 8 column pill — derived from the persisted control_pass verdict on the
+// order row. Clicking the pill opens the full Stage 8 drawer (which fetches the
+// fresh predicate via /stage8-check).
+export function stage8RowPill(o: OrderRow): { variant: PillVariant; label: string; title?: string } {
+  const cp = o.control_pass
+  if (cp === true)  return { variant: 'active',   label: 'Pass' }
+  if (cp === false) return { variant: 'critical', label: 'Fail', title: o.control_gate_block_reason ?? undefined }
+  return { variant: 'neutral', label: 'Pending' }
+}
+
+// Map a Stage 8 per-check status → pill variant.
+export function stage8CheckVariant(s: Stage8CheckStatus): PillVariant {
+  switch (s) {
+    case 'PASS':         return 'active'
+    case 'FAIL':         return 'critical'
+    case 'PENDING':      return 'info'
+    case 'NOT_REQUIRED': return 'neutral'
+    case 'EXPIRED':      return 'critical'
+    case 'NOT_LINKED':   return 'critical'
+    default:             return 'neutral'
+  }
+}
+
+// Decimal-or-number → number (luma-free; the deposit fields are AMD Decimals
+// serialized as strings, NOT luma — backend collect_deposit body is "amount").
+export function toAmd(v: string | number | null | undefined): number {
+  if (v == null) return 0
+  const n = typeof v === 'string' ? parseFloat(v) : v
+  return isFinite(n) ? n : 0
+}
