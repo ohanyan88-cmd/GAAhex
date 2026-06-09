@@ -3,9 +3,9 @@
 // Degrades gracefully: if the endpoint 404s the whole panel is hidden.
 // Rules: zero emoji, --gx-* tokens only, all strings via t(), a11y.
 
-import { useEffect, useState } from 'react'
-import { bget, bpost, authH, BASE } from '../lib/billing'
-import type { Fetched } from '../lib/billing'
+import { useState } from 'react'
+import { bpost, authH, BASE } from '../lib/billing'
+import { useFetch } from '../hooks/useFetch'
 import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
@@ -290,24 +290,11 @@ export default function ReportSchedulePanel({
 }: {
   reports: Report[]
 }) {
-  const { token } = useAuth()
-  const [schedules, setSchedules] = useState<Schedule[] | null>(null)
-  const [unavailable, setUnavailable] = useState(false)
-  const [error, setError] = useState('')
+  const { data: schedules, loading: schedulesLoading, ok: schedulesOk, status: schedulesStatus, error: schedulesError, refetch } = useFetch<Schedule[]>('/api/report-schedules')
   const [showForm, setShowForm] = useState(false)
 
-  async function load() {
-    setError('')
-    const res: Fetched<Schedule[]> = await bget(token!, '/api/report-schedules')
-    if (res.status === 404) { setUnavailable(true); setSchedules([]); return }
-    if (!res.ok) { setError(t('sched.loadError', 'Failed to load schedules')); setSchedules([]); return }
-    setSchedules(Array.isArray(res.data) ? res.data : [])
-  }
-
-  useEffect(() => { load() }, [token])
-
   // Hidden entirely if the endpoint is 404 — graceful degradation
-  if (unavailable) return null
+  if (schedulesStatus === 404) return null
 
   return (
     <section className="card" aria-label={t('sched.title', 'Schedules')}>
@@ -330,23 +317,23 @@ export default function ReportSchedulePanel({
       {showForm && (
         <ScheduleForm
           reports={reports}
-          onCreated={() => { setShowForm(false); load() }}
+          onCreated={() => { setShowForm(false); refetch() }}
           onCancel={() => setShowForm(false)}
         />
       )}
 
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {schedulesError && !schedulesLoading && <ErrorBanner message={t('sched.loadError', 'Failed to load schedules')} onRetry={refetch} />}
 
-      {schedules === null && !error && <SkeletonRows rows={2} />}
+      {schedulesLoading && <SkeletonRows rows={2} />}
 
-      {schedules !== null && schedules.length === 0 && !error && (
+      {!schedulesLoading && schedulesOk && (!schedules || schedules.length === 0) && (
         <EmptyState
           title={t('sched.noSchedules', 'No schedules yet')}
           message={t('sched.noSchedulesMsg', 'Schedule a report to receive it on a recurring cadence.')}
         />
       )}
 
-      {schedules !== null && schedules.length > 0 && (
+      {schedulesOk && schedules && schedules.length > 0 && (
         <div className="grid-wrap">
           <table className="grid" role="list">
             <thead>
@@ -361,7 +348,7 @@ export default function ReportSchedulePanel({
             </thead>
             <tbody>
               {schedules.map((s) => (
-                <ScheduleItem key={s.id} sched={s} onMutate={load} />
+                <ScheduleItem key={s.id} sched={s} onMutate={refetch} />
               ))}
             </tbody>
           </table>

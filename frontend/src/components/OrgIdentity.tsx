@@ -8,12 +8,18 @@
 // markup and behavior (chip → popover → save → toast). Outside-click + Escape close.
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useFetch } from '../hooks/useFetch'
 import { toast } from './Toast'
 import { EditIcon, CheckIcon, CloseIcon } from './icons'
 import { Camera } from 'lucide-react'
 import { Button } from '../primitives'  // T-P3-7
 
 import { BASE } from '../lib/config'
+
+interface TenantSettings {
+  name: string
+  logo_url: string | null
+}
 
 // "Yerevan Net" → "YN", "Tenant" → "T", "" → "GX". Matches the kit's ini() but keeps the GAAhex
 // fallback the rest of the app uses for empty user names.
@@ -26,29 +32,15 @@ function initialsOf(name: string | null | undefined, fallback = 'GX'): string {
 
 export default function OrgIdentity() {
   const { token } = useAuth()
-  const [name, setName] = useState<string>('')
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const { data: settings, refetch: reloadSettings } = useFetch<TenantSettings>('/api/tenant/settings')
+  const name = settings?.name ?? ''
+  const logoUrl = settings?.logo_url ?? null
   const [open, setOpen] = useState(false)
   const [draftName, setDraftName] = useState('')
   const [draftLogo, setDraftLogo] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-
-  // Initial fetch — also re-fetches after a save to confirm what the server committed.
-  async function load() {
-    try {
-      const res = await fetch(`${BASE}/api/tenant/settings`, { headers: { Authorization: `Bearer ${token!}` } })
-      if (!res.ok) return
-      const data = await res.json()
-      setName(data.name || '')
-      setLogoUrl(data.logo_url || null)
-    } catch {
-      // Network/auth failure → leave empty; the chip just shows initials.
-    }
-  }
-
-  useEffect(() => { load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token])
 
   // Outside-click + Escape — same UX as user-menu / create-menu.
   useEffect(() => {
@@ -110,7 +102,7 @@ export default function OrgIdentity() {
       setOpen(false)
       // Re-fetch so the chip reflects what the server committed (and to surface server-side
       // normalization, e.g. trimmed name).
-      await load()
+      reloadSettings()
     } catch (err) {
       toast.error(`Could not save: ${(err as Error).message}`)
     } finally {

@@ -1,14 +1,13 @@
 // DispatchBoardView — NMS → Support Dispatch Board.
 // Workitems grouped by status — TODO / IN_PROGRESS / DONE / BLOCKED columns.
 // Real data from GET /api/workitems. Real data only — missing → empty state.
-import { useEffect, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { TruckIcon } from '../components/icons'
-import { BASE, authH } from '../lib/billing'
+import { BASE } from '../lib/billing'
 import { DISPATCH_BOARD } from '../lib/pagination'
+import { useFetch } from '../hooks/useFetch'
 
 
 type WorkItem = {
@@ -21,19 +20,10 @@ const COL_LABELS: Record<string, string> = { TODO: 'To Do', IN_PROGRESS: 'In Pro
 const PRIORITY_DOT: Record<string, string> = { HIGH: 'var(--gx-danger-fg)', NORMAL: 'var(--gx-text-3)', LOW: 'var(--gx-interactive)' }
 
 export default function DispatchBoardView() {
-  const { token } = useAuth()
-  const [items, setItems] = useState<WorkItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    fetch(`${BASE}/api/workitems?limit=${DISPATCH_BOARD}`, { headers: authH(token!) })
-      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
-      .then(d => { if (alive) { setItems(Array.isArray(d) ? d : d.items ?? []); setLoading(false) } })
-      .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })
-    return () => { alive = false }
-  }, [token])
+  const { data: rawData, loading, error } = useFetch<WorkItem[] | { items?: WorkItem[] }>(
+    `${BASE}/api/workitems?limit=${DISPATCH_BOARD}`
+  )
+  const items: WorkItem[] = rawData == null ? [] : Array.isArray(rawData) ? rawData : (rawData.items ?? [])
 
   const byStatus = COLUMNS.reduce<Record<string, WorkItem[]>>((acc, s) => {
     acc[s] = items.filter(i => i.status === s)

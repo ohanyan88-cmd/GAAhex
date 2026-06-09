@@ -8,6 +8,7 @@ import {
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useFetch } from '../hooks/useFetch'
 
 class FetchError extends Error {
   status: number
@@ -300,18 +301,8 @@ function TransitionsEditor({
 // ---------------------------------------------------------------------------
 export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug?: string; lockEntity?: boolean }) {
   const { token } = useAuth()
-  const [entities, setEntities] = useState<EntitySummary[]>([])
-  const [entLoading, setEntLoading] = useState(true)
-  const [entError, setEntError] = useState('')
-  const [entDenied, setEntDenied] = useState(false)
 
   const [slug, setSlug] = useState<string | null>(initialSlug ?? null)
-
-  const [statuses, setStatuses] = useState<StatusDef[]>([])
-  const [transitions, setTransitions] = useState<TransitionDef[]>([])
-  const [wfLoading, setWfLoading] = useState(false)
-  const [wfError, setWfError] = useState('')
-  const [wfDenied, setWfDenied] = useState(false)
 
   const [deletingKey, setDeletingKey] = useState<string | null>(null)
   const [editingStatusKey, setEditingStatusKey] = useState<string | null>(null)
@@ -320,55 +311,59 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
   const [reordering, setReordering] = useState(false)
   const [reorderErr, setReorderErr] = useState('')
 
-  // Load entity list
-  function loadEntities() {
-    let alive = true
-    setEntLoading(true); setEntError(''); setEntDenied(false)
-    apiFetch(token!, '/meta/entities')
-      .then((d: EntitySummary[]) => {
-        if (!alive) return
-        const list = Array.isArray(d) ? d : []
-        setEntities(list)
-        if (list.length && !slug) setSlug(list[0].route_slug)
-      })
-      .catch((ex) => {
-        if (!alive) return
-        if (ex instanceof FetchError && ex.status === 403) setEntDenied(true)
-        else setEntError((ex as Error).message)
-      })
-      .finally(() => { if (alive) setEntLoading(false) })
-    return () => { alive = false }
-  }
+  // GET /meta/entities
+  const {
+    data: entData,
+    loading: entLoading,
+    status: entStatus,
+    error: entError,
+    refetch: refetchEntities,
+  } = useFetch<EntitySummary[]>('/meta/entities')
 
-  // Load statuses + transitions for selected entity
-  function loadWorkflow(s: string) {
-    let alive = true
-    setWfLoading(true); setWfError(''); setWfDenied(false)
-    setStatuses([]); setTransitions([]); setShowAddStatus(false); setDeleteErr(''); setEditingStatusKey(null)
-    apiFetch(token!, `/meta/entities/${s}`)
-      .then((d: { statuses: StatusDef[]; transitions: TransitionDef[] }) => {
-        if (!alive) return
-        setStatuses(d.statuses ?? [])
-        setTransitions(d.transitions ?? [])
-      })
-      .catch((ex) => {
-        if (!alive) return
-        if (ex instanceof FetchError && ex.status === 403) setWfDenied(true)
-        else setWfError((ex as Error).message)
-      })
-      .finally(() => { if (alive) setWfLoading(false) })
-    return () => { alive = false }
-  }
+  const entities = entData ?? []
+  const entDenied = !entLoading && entStatus === 403
 
-  useEffect(() => { loadEntities() }, [token])
-  useEffect(() => { if (slug) loadWorkflow(slug) }, [token, slug])
+  // Auto-select first entity once the list arrives
+  useEffect(() => {
+    if (!slug && entities.length) setSlug(entities[0].route_slug)
+  }, [entities])
+
+  // GET /meta/entities/{slug}
+  const {
+    data: wfData,
+    loading: wfLoading,
+    status: wfStatus,
+    error: wfError,
+    refetch: refetchWorkflow,
+  } = useFetch<{ statuses: StatusDef[]; transitions: TransitionDef[] }>(slug ? `/meta/entities/${slug}` : null)
+
+  const serverStatuses = wfData?.statuses ?? []
+  const transitions = wfData?.transitions ?? []
+  const wfDenied = !wfLoading && wfStatus === 403
+
+  // Local override for optimistic reorder (reset when server data changes)
+  const [localStatuses, setLocalStatuses] = useState<StatusDef[] | null>(null)
+  const statuses = localStatuses ?? serverStatuses
+
+  // Reset per-entity UI state when slug changes
+  useEffect(() => {
+    setShowAddStatus(false)
+    setDeleteErr('')
+    setEditingStatusKey(null)
+    setLocalStatuses(null)
+  }, [slug])
+
+  // Discard optimistic override once new server data arrives
+  useEffect(() => {
+    if (!wfLoading) setLocalStatuses(null)
+  }, [wfData])
 
   async function deleteStatus(key: string) {
     if (!slug) return
     setDeletingKey(key); setDeleteErr('')
     try {
       await apiFetch(token!, `/meta/entities/${slug}/statuses/${key}`, { method: 'DELETE' })
-      loadWorkflow(slug)
+      refetchWorkflow()
     } catch (ex) {
       setDeleteErr((ex as Error).message)
     } finally {
@@ -381,7 +376,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
     const reordered = [...statuses]
     const [item] = reordered.splice(fromIdx, 1)
     reordered.splice(toIdx, 0, item)
-    setStatuses(reordered)
+    setLocalStatuses(reordered)
     setReordering(true); setReorderErr('')
     try {
       await apiFetch(token!, `/meta/entities/${slug}/statuses/reorder`, {
@@ -390,7 +385,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
       })
     } catch (ex) {
       setReorderErr((ex as Error).message)
-      loadWorkflow(slug) // restore server order on failure
+      refetchWorkflow() // restore server order on failure
     } finally {
       setReordering(false)
     }
@@ -399,7 +394,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
   // --- render ---
   if (entLoading) return <LoadingState />
   if (entDenied) return <PermissionDenied message="You don't have permission to manage workflows." />
-  if (entError) return <ErrorBanner message={entError} onRetry={loadEntities} />
+  if (entError) return <ErrorBanner message={entError} onRetry={refetchEntities} />
 
   return (
     <div>
@@ -444,7 +439,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
             <>
               {wfLoading && <LoadingState />}
               {wfDenied && <PermissionDenied />}
-              {wfError && <ErrorBanner message={wfError} onRetry={() => loadWorkflow(slug)} />}
+              {wfError && <ErrorBanner message={wfError} onRetry={refetchWorkflow} />}
 
               {!wfLoading && !wfDenied && !wfError && (
                 <>
@@ -489,7 +484,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
                                 slug={slug}
                                 token={token!}
                                 status={st}
-                                onDone={() => { setEditingStatusKey(null); loadWorkflow(slug) }}
+                                onDone={() => { setEditingStatusKey(null); refetchWorkflow() }}
                               />
                             ) : (
                               <tr key={st.key}>
@@ -554,7 +549,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
                     <AddStatusForm
                       slug={slug}
                       token={token!}
-                      onAdded={() => { setShowAddStatus(false); loadWorkflow(slug) }}
+                      onAdded={() => { setShowAddStatus(false); refetchWorkflow() }}
                     />
                   )}
 
@@ -571,7 +566,7 @@ export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug
                       token={token!}
                       statuses={statuses}
                       initialTransitions={transitions}
-                      onSaved={() => loadWorkflow(slug)}
+                      onSaved={() => refetchWorkflow()}
                     />
                   )}
 

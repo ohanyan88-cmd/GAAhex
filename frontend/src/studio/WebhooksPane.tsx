@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useFetch } from '../hooks/useFetch'
 import { Button, KPITile, StatusPill } from '../primitives'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { timeAgo } from '../lib/time'
@@ -320,8 +321,13 @@ function DetailDrawer({
   const [testErr, setTestErr] = useState('')
 
   // Deliveries
-  const [deliveries, setDeliveries] = useState<Delivery[] | null>(null)
-  const [delErr, setDelErr] = useState('')
+  const {
+    data: deliveriesData,
+    loading: deliveriesLoading,
+    error: delErr,
+    refetch: refetchDeliveries,
+  } = useFetch<Delivery[]>(hookId ? `/api/webhooks/${hookId}/deliveries` : null)
+  const deliveries = deliveriesLoading ? null : (Array.isArray(deliveriesData) ? deliveriesData : [])
 
   // Delete
   const [confirmDel, setConfirmDel] = useState(false)
@@ -349,17 +355,6 @@ function DetailDrawer({
   }, [token, hookId])
 
   useEffect(() => { load() }, [load])
-
-  const loadDeliveries = useCallback(() => {
-    let alive = true
-    setDelErr('')
-    apiFetch<Delivery[]>(token, `/api/webhooks/${hookId}/deliveries`)
-      .then((rows) => { if (alive) setDeliveries(Array.isArray(rows) ? rows : []) })
-      .catch((ex) => { if (alive) setDelErr((ex as Error).message); setDeliveries([]) })
-    return () => { alive = false }
-  }, [token, hookId])
-
-  useEffect(() => { loadDeliveries() }, [loadDeliveries])
 
   function toggleEvent(ev: string) {
     setEvents(es => es.includes(ev) ? es.filter(x => x !== ev) : [...es, ev])
@@ -411,7 +406,7 @@ function DetailDrawer({
       })
       setTestResult(d)
       // Refresh the delivery log so the new attempt shows up at the top.
-      loadDeliveries()
+      refetchDeliveries()
     } catch (ex) {
       setTestErr((ex as Error).message)
     } finally {
@@ -597,7 +592,7 @@ function DetailDrawer({
           <div className="section-head" style={{ marginTop: 22 }}>
             <ActivityIcon size={15} className="section-icon" /> Delivery log
           </div>
-          {delErr && <ErrorBanner message={delErr} onRetry={loadDeliveries} />}
+          {delErr && <ErrorBanner message={delErr} onRetry={refetchDeliveries} />}
           {!deliveries && !delErr && <LoadingState />}
           {deliveries && deliveries.length === 0 && (
             <p className="hint" style={{ margin: 0 }}>No deliveries yet.</p>
@@ -699,34 +694,17 @@ function DrawerShell({
 // ---------------------------------------------------------------------------
 export default function WebhooksPane() {
   const { token } = useAuth()
-  const [hooks, setHooks] = useState<Webhook[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [denied, setDenied] = useState(false)
+  const { data: hooksData, loading, status, error, refetch } = useFetch<Webhook[]>('/api/webhooks')
 
   const [showCreate, setShowCreate] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  const load = useCallback(() => {
-    let alive = true
-    setLoading(true); setError(''); setDenied(false)
-    apiFetch<Webhook[]>(token!, '/api/webhooks')
-      .then((d) => { if (alive) setHooks(Array.isArray(d) ? d : []) })
-      .catch((ex) => {
-        if (!alive) return
-        if (ex instanceof FetchError && ex.status === 403) setDenied(true)
-        else setError((ex as Error).message)
-      })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
-  }, [token])
-
-  useEffect(() => load(), [load])
-
   if (loading) return <LoadingState />
-  if (denied) return <PermissionDenied message="You don't have permission to manage webhooks." />
-  if (error) return <ErrorBanner message={error} onRetry={load} />
+  if (status === 403) return <PermissionDenied message="You don't have permission to manage webhooks." />
+  if (error) return <ErrorBanner message={error} onRetry={refetch} />
+
+  const hooks: Webhook[] = Array.isArray(hooksData) ? hooksData : []
 
   const total = hooks.length
   const activeCount = hooks.filter(w => w.active !== false).length
@@ -873,7 +851,7 @@ export default function WebhooksPane() {
           onClose={() => setShowCreate(false)}
           onCreated={(id) => {
             setShowCreate(false)
-            load()
+            refetch()
             setOpenId(id)
           }}
         />
@@ -884,8 +862,8 @@ export default function WebhooksPane() {
           token={token!}
           hookId={openId}
           onClose={() => setOpenId(null)}
-          onChanged={() => load()}
-          onDeleted={() => { setOpenId(null); load() }}
+          onChanged={() => refetch()}
+          onDeleted={() => { setOpenId(null); refetch() }}
         />
       )}
     </div>

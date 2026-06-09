@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useFetch } from '../hooks/useFetch'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1/2/3 — canonical modal chrome
 import { Button, StudioDrawer} from '../primitives'  // DR-1
@@ -761,34 +762,16 @@ function DrawerShell({
 // ---------------------------------------------------------------------------
 export default function NotificationsPane({ channel, rulesView }: Props) {
   const { token } = useAuth()
-  const [defs, setDefs] = useState<NotifDef[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [denied, setDenied] = useState(false)
 
   const [showCreate, setShowCreate] = useState(false)
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  const load = useCallback(() => {
-    let alive = true
-    setLoading(true); setError(''); setDenied(false)
-    const qs = channel ? `?channel=${encodeURIComponent(channel)}` : ''
-    apiFetch(token!, `/meta/notification-defs${qs}`)
-      .then((d: NotifDef[]) => {
-        if (!alive) return
-        setDefs(Array.isArray(d) ? d : [])
-      })
-      .catch((ex) => {
-        if (!alive) return
-        if (ex instanceof FetchError && ex.status === 403) setDenied(true)
-        else setError((ex as Error).message)
-      })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
-  }, [token, channel])
+  const qs = channel ? `?channel=${encodeURIComponent(channel)}` : ''
+  const { data: defsRaw, loading, status, error, refetch: load } = useFetch<NotifDef[]>(`/meta/notification-defs${qs}`)
 
-  useEffect(() => load(), [load])
+  const denied = status === 403
+  const defs = Array.isArray(defsRaw) ? defsRaw : []
 
   if (loading) return <LoadingState />
   if (denied) return <PermissionDenied message="You don't have permission to manage notifications." />

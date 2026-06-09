@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Modal } from '../components/Modal'
 import Composer from '../components/Composer'
 import { toast } from '../components/Toast'
@@ -7,6 +6,7 @@ import { timeAgo } from '../lib/time'
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
 import { useAuth } from '../context/AuthContext'
+import { useFetch } from '../hooks/useFetch'
 
 type Comment = {
   id: string
@@ -25,25 +25,9 @@ export default function CommentsModal({ slug, recordId, label, onClose }: {
   onClose: () => void
 }) {
   const { token } = useAuth()
-  const [items, setItems] = useState<Comment[] | null>(null)
-  const [error, setError] = useState('')
-
-  async function load() {
-    setError('')
-    try {
-      const r = await fetch(`${BASE}/api/records/${slug}/${recordId}/comments`, { headers: authH(token!) })
-      if (!r.ok) {
-        const e = await r.json().catch(() => ({ detail: r.status === 403 ? 'Not allowed to view this record' : 'Failed to load comments' }))
-        throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to load comments')
-      }
-      setItems(await r.json())
-    } catch (e) {
-      setError((e as Error).message)
-      setItems([])
-    }
-  }
-
-  useEffect(() => { load() }, [slug, recordId])
+  const { data: items, loading, error, refetch } = useFetch<Comment[]>(
+    `/api/records/${slug}/${recordId}/comments`
+  )
 
   async function post(body: string) {
     const r = await fetch(`${BASE}/api/records/${slug}/${recordId}/comments`, {
@@ -58,13 +42,13 @@ export default function CommentsModal({ slug, recordId, label, onClose }: {
       throw new Error(msg)
     }
     toast.success('Comment added')
-    await load()
+    refetch()
   }
 
   return (
     <Modal open onClose={onClose} title={`Comments · ${label}`} size="md">
       <div className="comments">
-        {items === null && !error && <p className="muted">Loading…</p>}
+        {loading && <p className="muted">Loading…</p>}
         {error && <p className="err">{error}</p>}
         {items && !error && items.length === 0 && <p className="muted">No comments yet — start the thread.</p>}
         {items && items.map((c) => (

@@ -1,5 +1,5 @@
 import { Button } from '../primitives'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Modal } from '../components/Modal'
 import {
   CalendarIcon, ChevronLeftIcon, ChevronRightIcon,
@@ -8,6 +8,7 @@ import {
 import { usePageConfig } from '../lib/pageConfig'
 import { PageShell } from '../page-shell'
 import { useAuth } from '../context/AuthContext'
+import { useFetch } from '../hooks/useFetch'
 
 import { BASE } from '../lib/config'
 import { CALENDAR_EVENTS } from '../lib/pagination'
@@ -24,7 +25,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const SWATCH_COLORS = ['#3A6FB5', '#C5A059', '#2ECC71', '#E63946', '#F5A623', '#AEB7C2']
+const SWATCH_COLORS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-7)', 'var(--viz-5)', 'var(--viz-8)']
 
 function buildGrid(year: number, month: number): (Date | null)[][] {
   const first = new Date(year, month, 1)
@@ -70,10 +71,30 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     mon.setHours(0, 0, 0, 0)
     return mon
   })
-  const [events, setEvents] = useState<CalEvent[]>([])
-  const [cals, setCals] = useState<Cal[]>([])
-  const [loading, setLoading] = useState(false)
-  const [loadError, setLoadError] = useState('')
+  // ── Canonical data fetching via useFetch ─────────────────────────────────
+  const { data: cals, loading: calsLoading, refetch: refetchCals } = useFetch<Cal[]>(`${BASE}/api/calendar/calendars`)
+
+  const eventsUrl = (() => {
+    let startStr: string, endStr: string
+    if (calView === 'week') {
+      startStr = isoDate(weekStart)
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
+      endStr = isoDate(weekEnd)
+    } else {
+      const first = new Date(year, month, 1)
+      const last = new Date(year, month + 1, 0)
+      startStr = isoDate(first); endStr = isoDate(last)
+    }
+    return `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=${CALENDAR_EVENTS}`
+  })()
+  const { data: eventsData, loading: eventsLoading, error: eventsError, refetch: refetchEvents } = useFetch<CalEvent[]>(eventsUrl)
+
+  const events: CalEvent[] = eventsData ?? []
+  const loading = calsLoading || eventsLoading
+  const loadError = eventsError ?? ''
+
+  function refetchAll() { refetchCals(); refetchEvents() }
+
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<CalEvent | null>(null)
   const [prefillDate, setPrefillDate] = useState<string | null>(null)
@@ -129,39 +150,6 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     return `${start.toLocaleDateString('en', opts)} – ${end.toLocaleDateString('en', { ...opts, year: 'numeric' })}`
   }
 
-  async function load() {
-    setLoading(true)
-    setLoadError('')
-    try {
-      const cr = await fetch(`${BASE}/api/calendar/calendars`, {
-        headers: { Authorization: `Bearer ${token!}` },
-      })
-      if (cr.ok) setCals(await cr.json())
-      else { setLoadError('Failed to load calendars'); setLoading(false); return }
-      let startStr: string, endStr: string
-      if (calView === 'week') {
-        startStr = isoDate(weekStart)
-        const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6)
-        endStr = isoDate(weekEnd)
-      } else {
-        const first = new Date(year, month, 1)
-        const last = new Date(year, month + 1, 0)
-        startStr = isoDate(first); endStr = isoDate(last)
-      }
-      const er = await fetch(
-        `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=${CALENDAR_EVENTS}`,
-        { headers: { Authorization: `Bearer ${token!}` } },
-      )
-      if (er.ok) setEvents(await er.json())
-      else setLoadError('Failed to load events')
-    } catch {
-      setLoadError('Network error')
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => { load() }, [token, year, month, calView, weekStart])
-
   function eventsForDay(date: Date): CalEvent[] {
     const iso = isoDate(date)
     return events
@@ -172,7 +160,7 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
 
   function calColor(ev: CalEvent): string {
     if (ev.color) return ev.color
-    const cal = cals.find(c => c.id === ev.calendar_id)
+    const cal = cals?.find(c => c.id === ev.calendar_id)
     if (cal) return cal.color
     // D18: calendar event chip fallback fill = azure-soft (chips are interactive/drillable)
     return 'var(--gx-interactive-soft)'
@@ -187,7 +175,7 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     setFEndTime('10:00')
     setFAllDay(false)
     setFDesc('')
-    setFCalId(cals[0]?.id ?? '')
+    setFCalId(cals?.[0]?.id ?? '')
     setFColor(null)
     setFError('')
     setModalOpen(true)
@@ -202,7 +190,7 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
     setFEndTime(ev.end_at && ev.end_at.length > 10 ? ev.end_at.slice(11, 16) : '10:00')
     setFAllDay(ev.all_day)
     setFDesc(ev.description ?? '')
-    setFCalId(ev.calendar_id ?? (cals[0]?.id ?? ''))
+    setFCalId(ev.calendar_id ?? (cals?.[0]?.id ?? ''))
     setFColor(ev.color)
     setFError('')
     setModalOpen(true)
@@ -234,7 +222,7 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
       }
       if (!resp.ok) { setFError('Save failed'); setFSaving(false); return }
       setModalOpen(false)
-      await load()
+      refetchAll()
     } catch {
       setFError('Network error')
     }
@@ -251,7 +239,7 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
         headers: { Authorization: `Bearer ${token!}` },
       })
       setModalOpen(false)
-      await load()
+      refetchAll()
     } catch {
       setFError('Network error')
     }
@@ -432,10 +420,10 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
           <MiniCal />
 
           {/* Calendar filters (toggle visibility) */}
-          {cals.length > 0 && (
+          {(cals?.length ?? 0) > 0 && (
             <>
               <div className="lbl" style={{ fontSize: 'var(--gx-text-10)', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--gx-text-3)', margin: '18px 0 8px' }}>Calendars</div>
-              {cals.map(cal => {
+              {cals!.map(cal => {
                 const on = !hiddenCals.has(cal.id)
                 return (
                   <label key={cal.id} className="cal-cal" onClick={() => toggleCal(cal.id)}>
@@ -632,12 +620,12 @@ export default function CalendarView({ configVersion = 0, canConfigure: _canConf
               placeholder="Optional description"
             />
           </div>
-          {cals.length > 0 && (
+          {(cals?.length ?? 0) > 0 && (
             <div className="field">
               <label>Calendar</label>
               <select className="inp inp-md" value={fCalId} onChange={e => setFCalId(e.target.value)}>
                 <option value="">— none —</option>
-                {cals.map(c => (
+                {cals!.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

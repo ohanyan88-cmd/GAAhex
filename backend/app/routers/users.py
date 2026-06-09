@@ -15,9 +15,9 @@ The GET serializer is extended to include each user's `assignments`
 (role+node tuples) so the Users pane can show role chips inline.
 """
 
-import re
 import uuid
 
+from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +32,20 @@ from .. import workflow
 from .auth import current_user, validate_password_strength, revoke_all_refresh_tokens_for_user
 
 router = APIRouter(prefix="/api/users", tags=["users"])
+
+
+class UserCreateIn(BaseModel):
+    name: str
+    email: str
+    password: str
+    primary_node_id: uuid.UUID | None = None
+
+
+class UserUpdateIn(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    password: str | None = None
+    primary_node_id: uuid.UUID | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +159,7 @@ async def get_user(
 # ---------------------------------------------------------------------------
 @router.post("", status_code=201)
 async def create_user(
-    payload: dict,
+    payload: UserCreateIn,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
@@ -155,22 +169,16 @@ async def create_user(
     """
     await _require_config_manage(s, user)
 
-    name = (payload.get("name") or "").strip()
-    email = (payload.get("email") or "").strip().lower()
-    password = payload.get("password") or ""
+    name = (payload.name or "").strip()
+    email = str(payload.email).strip().lower()
+    password = payload.password or ""
     if not name:
         raise HTTPException(422, "name is required")
-    if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
-        raise HTTPException(422, "valid email is required")
     validate_password_strength(password)  # 422 on weak
 
     primary_node_id = None
-    raw_pn = payload.get("primary_node_id")
-    if raw_pn:
-        try:
-            primary_node_id = uuid.UUID(str(raw_pn))
-        except (ValueError, TypeError):
-            raise HTTPException(422, "primary_node_id is not a valid id")
+    if payload.primary_node_id:
+        primary_node_id = payload.primary_node_id
         # Confirm node lives in caller's tenant.
         node = (await s.execute(
             select(OrgNode).where(OrgNode.id == primary_node_id, OrgNode.tenant_id == user.tenant_id)
@@ -205,7 +213,7 @@ async def create_user(
 @router.patch("/{user_id}")
 async def update_user(
     user_id: uuid.UUID,
-    payload: dict,
+    payload: UserUpdateIn,
     user: User = Depends(current_user),
     s: AsyncSession = Depends(get_session),
 ):
@@ -218,18 +226,16 @@ async def update_user(
 
     changed: dict = {}
 
-    if "name" in payload:
-        name = (payload.get("name") or "").strip()
+    if payload.name is not None:
+        name = payload.name.strip()
         if not name:
             raise HTTPException(422, "name cannot be empty")
         if name != target.name:
             changed["name"] = name
             target.name = name
 
-    if "email" in payload:
-        email = (payload.get("email") or "").strip().lower()
-        if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
-            raise HTTPException(422, "valid email is required")
+    if payload.email is not None:
+        email = str(payload.email).strip().lower()
         if email != target.email:
             clash = (await s.execute(
                 select(User).where(User.email == email, User.id != target.id)
@@ -239,16 +245,12 @@ async def update_user(
             changed["email"] = email
             target.email = email
 
-    if "primary_node_id" in payload:
-        raw_pn = payload.get("primary_node_id")
-        if raw_pn in (None, ""):
+    if "primary_node_id" in payload.model_fields_set:
+        pn = payload.primary_node_id
+        if pn is None:
             target.primary_node_id = None
             changed["primary_node_id"] = None
         else:
-            try:
-                pn = uuid.UUID(str(raw_pn))
-            except (ValueError, TypeError):
-                raise HTTPException(422, "primary_node_id is not a valid id")
             node = (await s.execute(
                 select(OrgNode).where(OrgNode.id == pn, OrgNode.tenant_id == user.tenant_id)
             )).scalar_one_or_none()
@@ -257,8 +259,8 @@ async def update_user(
             target.primary_node_id = pn
             changed["primary_node_id"] = str(pn)
 
-    if "password" in payload:
-        pw = payload.get("password") or ""
+    if payload.password is not None:
+        pw = payload.password
         validate_password_strength(pw)
         target.password_hash = hash_password(pw)
         changed["password"] = "***"

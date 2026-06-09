@@ -1,6 +1,7 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useFetch } from '../hooks/useFetch'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ChartIcon, PlusIcon, EditIcon, TrashIcon, CloseIcon, CheckIcon, InfoIcon,
@@ -69,9 +70,8 @@ export default function DashboardsPane() {
   const [loadErr, setLoadErr] = useState('')
 
   const [selected, setSelected] = useState<string | null>(null)
-  const [detail, setDetail] = useState<BoardDetail | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailErr, setDetailErr] = useState('')
+  const { data: detail, loading: detailLoading, error: detailErr } = useFetch<BoardDetail>(selected ? `/dashboards/${selected}` : null)
+  const [deleteErr, setDeleteErr] = useState('')
 
   // edit / create form
   const [mode, setMode] = useState<'idle' | 'edit' | 'create'>('idle')
@@ -107,18 +107,6 @@ export default function DashboardsPane() {
   }
 
   useEffect(loadAll, [token])
-
-  // ---- load board detail on selection ----
-  useEffect(() => {
-    if (!selected) { setDetail(null); return }
-    let alive = true
-    setDetailLoading(true); setDetailErr(''); setDetail(null)
-    jfetch(token!,'GET', `/dashboards/${selected}`)
-      .then((d: BoardDetail) => { if (alive) setDetail(d) })
-      .catch((e: FetchError) => { if (alive) setDetailErr(e.message) })
-      .finally(() => { if (alive) setDetailLoading(false) })
-    return () => { alive = false }
-  }, [token, selected])
 
   // ---- open edit form ----
   function openEdit() {
@@ -201,7 +189,7 @@ export default function DashboardsPane() {
       setSelected(b.length ? b[0].key : null)
       setMode('idle')
     } catch (e) {
-      setDetailErr((e as Error).message)
+      setDeleteErr((e as Error).message)
     }
   }
 
@@ -256,7 +244,8 @@ export default function DashboardsPane() {
       {mode === 'idle' && selected && (
         <>
           {detailLoading && <LoadingState />}
-          {detailErr && <ErrorBanner message={detailErr} />}
+          {detailErr && <ErrorBanner message={detailErr ?? ''} />}
+          {deleteErr && <ErrorBanner message={deleteErr} />}
           {!detailLoading && !detailErr && detail && (
             <div>
               <div className="section-head" style={{ marginTop: 0 }}>

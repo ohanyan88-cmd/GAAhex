@@ -65,11 +65,10 @@ function brandLabel(b: string): string {
 }
 function brandTone(b: string): { bg: string; fg: string } {
   const k = (b || '').toLowerCase()
-  // D18: Visa brand color is its own identity (not GAAhex brand spine); use hex literal like the other card brands
-  if (k === 'visa') return { bg: 'rgba(31,90,209,0.14)', fg: '#1f5ad1' }
-  if (k === 'mastercard') return { bg: 'rgba(214,51,108,0.14)', fg: '#d6336c' }
-  if (k === 'amex') return { bg: 'rgba(47,158,68,0.14)', fg: '#2f9e44' }
-  if (k === 'discover') return { bg: 'rgba(214,140,51,0.14)', fg: '#d68c33' }
+  if (k === 'visa')       return { bg: 'var(--gx-payment-visa-bg)',       fg: 'var(--gx-payment-visa)' }
+  if (k === 'mastercard') return { bg: 'var(--gx-payment-mastercard-bg)', fg: 'var(--gx-payment-mastercard)' }
+  if (k === 'amex')       return { bg: 'var(--gx-payment-amex-bg)',       fg: 'var(--gx-payment-amex)' }
+  if (k === 'discover')   return { bg: 'var(--gx-payment-discover-bg)',   fg: 'var(--gx-payment-discover)' }
   return { bg: 'var(--gx-surface-2)', fg: 'var(--gx-text-3)' }
 }
 

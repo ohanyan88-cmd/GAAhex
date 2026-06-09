@@ -1,10 +1,11 @@
 import { Button } from '../primitives'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon,
 } from '../components/icons'
+import { useFetch } from '../hooks/useFetch'
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
@@ -217,72 +218,50 @@ function EditFieldRow({
 // Main pane
 // ---------------------------------------------------------------------------
 export default function FieldsPane({ initialSlug, lockEntity }: { initialSlug?: string; lockEntity?: boolean }) {
-  const { token } = useAuth()
-  const [entities, setEntities] = useState<EntitySummary[]>([])
-  const [entLoading, setEntLoading] = useState(true)
-  const [entError, setEntError] = useState('')
-  const [entDenied, setEntDenied] = useState(false)
-
   const [slug, setSlug] = useState<string | null>(initialSlug ?? null)
-
-  const [fields, setFields] = useState<FieldDef[]>([])
-  const [fieldsLoading, setFieldsLoading] = useState(false)
-  const [fieldsError, setFieldsError] = useState('')
-  const [fieldsDenied, setFieldsDenied] = useState(false)
 
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [deletingKey, setDeletingKey] = useState<string | null>(null)
   const [deleteErr, setDeleteErr] = useState('')
   const [showAdd, setShowAdd] = useState(false)
 
-  // Load entity list
-  function loadEntities() {
-    let alive = true
-    setEntLoading(true); setEntError(''); setEntDenied(false)
-    apiFetch(token!, '/meta/entities')
-      .then((d: EntitySummary[]) => {
-        if (!alive) return
-        const list = Array.isArray(d) ? d : []
-        setEntities(list)
-        if (list.length && !slug) setSlug(list[0].route_slug)
-      })
-      .catch((ex) => {
-        if (!alive) return
-        if (ex instanceof FetchError && ex.status === 403) setEntDenied(true)
-        else setEntError((ex as Error).message)
-      })
-      .finally(() => { if (alive) setEntLoading(false) })
-    return () => { alive = false }
+  const {
+    data: entData,
+    loading: entLoading,
+    ok: entOk,
+    status: entStatus,
+    error: entError,
+    refetch: refetchEntities,
+  } = useFetch<EntitySummary[]>('/meta/entities')
+
+  const entities: EntitySummary[] = Array.isArray(entData) ? entData : []
+  const entDenied = !entLoading && !entOk && entStatus === 403
+
+  // Auto-select first entity when list loads and no slug is set
+  if (!slug && entities.length > 0) {
+    setSlug(entities[0].route_slug)
   }
 
-  // Load fields for selected entity
-  function loadFields(s: string) {
-    let alive = true
-    setFieldsLoading(true); setFieldsError(''); setFieldsDenied(false)
-    setFields([]); setEditingKey(null); setShowAdd(false); setDeleteErr('')
-    apiFetch(token!, `/meta/entities/${s}`)
-      .then((d: { fields: FieldDef[] }) => {
-        if (!alive) return
-        setFields(d.fields ?? [])
-      })
-      .catch((ex) => {
-        if (!alive) return
-        if (ex instanceof FetchError && ex.status === 403) setFieldsDenied(true)
-        else setFieldsError((ex as Error).message)
-      })
-      .finally(() => { if (alive) setFieldsLoading(false) })
-    return () => { alive = false }
-  }
+  const {
+    data: entityData,
+    loading: fieldsLoading,
+    ok: fieldsOk,
+    status: fieldsStatus,
+    error: fieldsError,
+    refetch: refetchFields,
+  } = useFetch<{ fields: FieldDef[] }>(slug ? `/meta/entities/${slug}` : null)
 
-  useEffect(() => { loadEntities() }, [token])
-  useEffect(() => { if (slug) loadFields(slug) }, [token, slug])
+  const fields: FieldDef[] = entityData?.fields ?? []
+  const fieldsDenied = !fieldsLoading && !fieldsOk && fieldsStatus === 403
+
+  const { token } = useAuth()
 
   async function deleteField(fieldKey: string) {
     if (!slug) return
     setDeletingKey(fieldKey); setDeleteErr('')
     try {
       await apiFetch(token!, `/meta/entities/${slug}/fields/${fieldKey}`, { method: 'DELETE' })
-      loadFields(slug)
+      refetchFields()
     } catch (ex) {
       setDeleteErr((ex as Error).message)
     } finally {
@@ -293,7 +272,7 @@ export default function FieldsPane({ initialSlug, lockEntity }: { initialSlug?: 
   // --- render ---
   if (entLoading) return <LoadingState />
   if (entDenied) return <PermissionDenied message="You don't have permission to manage fields." />
-  if (entError) return <ErrorBanner message={entError} onRetry={loadEntities} />
+  if (entError) return <ErrorBanner message={entError} onRetry={refetchEntities} />
 
   return (
     <div>
@@ -353,7 +332,7 @@ export default function FieldsPane({ initialSlug, lockEntity }: { initialSlug?: 
 
               {fieldsLoading && <LoadingState />}
               {fieldsDenied && <PermissionDenied />}
-              {fieldsError && <ErrorBanner message={fieldsError} onRetry={() => loadFields(slug)} />}
+              {fieldsError && <ErrorBanner message={fieldsError} onRetry={refetchFields} />}
 
               {!fieldsLoading && !fieldsDenied && !fieldsError && (
                 <>
@@ -383,7 +362,7 @@ export default function FieldsPane({ initialSlug, lockEntity }: { initialSlug?: 
                                 slug={slug}
                                 token={token!}
                                 field={f}
-                                onDone={() => { setEditingKey(null); loadFields(slug) }}
+                                onDone={() => { setEditingKey(null); refetchFields() }}
                               />
                             ) : (
                               <tr key={f.key}>
@@ -429,7 +408,7 @@ export default function FieldsPane({ initialSlug, lockEntity }: { initialSlug?: 
                     <AddFieldForm
                       slug={slug}
                       token={token!}
-                      onAdded={() => { setShowAdd(false); loadFields(slug) }}
+                      onAdded={() => { setShowAdd(false); refetchFields() }}
                     />
                   )}
 

@@ -30,6 +30,7 @@ import {
 import { ChevronUp } from 'lucide-react'
 import { bget } from '../lib/billing'
 import { timeAgo } from '../lib/time'
+import { useFetch } from '../hooks/useFetch'
 
 // ---------------------------------------------------------------------------
 // Types — mirror backend/app/routers/audit_log.py
@@ -136,19 +137,11 @@ export default function AuditLogPane() {
   const [appliedUntil, setAppliedUntil] = useState('')
 
   // Event-type catalog for the dropdown (best-effort; falls back to fixed list).
-  const [eventTypes, setEventTypes] = useState<EventTypeDef[]>(FALLBACK_EVENT_TYPES)
-
-  useEffect(() => {
-    if (!token) return
-    let alive = true
-    bget<EventTypeDef[]>(token!,'/api/events/types').then(res => {
-      if (!alive) return
-      if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
-        setEventTypes(res.data.map(t => ({ type: t.type, label: t.label })))
-      }
-    })
-    return () => { alive = false }
-  }, [token])
+  const { data: eventTypesData } = useFetch<EventTypeDef[]>('/api/events/types')
+  const eventTypes =
+    Array.isArray(eventTypesData) && eventTypesData.length > 0
+      ? eventTypesData
+      : FALLBACK_EVENT_TYPES
 
   const buildQuery = useCallback((offset: number): string => {
     const p = new URLSearchParams()

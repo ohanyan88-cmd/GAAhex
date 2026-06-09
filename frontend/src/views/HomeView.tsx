@@ -13,28 +13,28 @@
 // Migrated onto the PageShell framework (type=workspace): title / subtitle /
 // breadcrumb / icon / KPIs are now PageShell props; the body keeps the urgent
 // alerts band and role-specific widgets.
-import { useEffect, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   CheckSquare, Clock, Shield, Inbox,
   AlertTriangle, Users, MapPin,
   type LucideIcon,
 } from 'lucide-react'
-import { BASE } from '../lib/config'
 import { type Capabilities } from '../lib/capabilities'
 import { PageShell, type KPISpec } from '../page-shell'
 import { useAuth } from '../context/AuthContext'
-import { authH, bget } from '../lib/billing'
 import { initialsOf } from '../lib/utils'
 import { TICKET_CLOSED } from '../lib/status-constants'
 import { WIDGET_ITEMS, WIDGET_APPROVALS } from '../lib/pagination'
 import { DetailTab, DetailTabList } from '../primitives'
+import { useFetch, useFetched } from '../hooks/useFetch'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
 import CalendarView from './CalendarView'
 import ProfileView from './ProfileView'
 
+// ── helpers shared in component scope ────────────────────────────────────────
+const toArr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
 
-type Fetched<T> = { state: 'loading' } | { state: 'ok'; value: T } | { state: 'hide' }
 type Me = { id: string; name: string; email: string }
 type Role = 'support' | 'sales' | 'tech' | 'finance' | 'admin' | 'general'
 
@@ -112,11 +112,9 @@ export default function HomeView({ onNavigate, capabilities }: {
   onNavigate?: (type: string, id?: string) => void
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
-  const { user: authUser, token } = useAuth()
-  const [me, setMe] = useState<Me | null>(null)
+  const { user: authUser } = useAuth()
   const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
-  const [nodes, setNodes] = useState<any[]>([])
-  const [orgMembers, setOrgMembers] = useState<any[]>([])
+
   // SM-2 — receive caps via prop instead of refetching.
   const caps: Capabilities = capabilities ?? {}
   const capsLoaded = capabilities !== undefined
@@ -124,60 +122,29 @@ export default function HomeView({ onNavigate, capabilities }: {
   // role: auto-detected from caps
   const role: Role = capsLoaded ? detectRole(caps) : 'general'
 
-  // raw data state
-  const [tasks, setTasks]         = useState<Fetched<any[]>>({ state: 'loading' })
-  const [tickets, setTickets]     = useState<Fetched<any[]>>({ state: 'loading' })
-  const [approvals, setApprovals] = useState<Fetched<any[]>>({ state: 'loading' })
-  const [slots, setSlots]         = useState<Fetched<any[]>>({ state: 'loading' })
-
   // Identity
-  useEffect(() => {
-    fetch(`${BASE}/auth/me`, { headers: authH(token!) })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.id) setMe({ id: d.id, name: d.name ?? '', email: d.email ?? '' }) })
-      .catch(() => {})
-  }, [token])
+  const { data: me } = useFetch<Me>('/auth/me')
 
+  // Org nodes + members for Team tab
+  const { data: rawNodes }      = useFetch<any>('/api/org/nodes')
+  const { data: rawOrgMembers } = useFetch<any>('/api/users')
+  const nodes      = useMemo(() => toArr(rawNodes),      [rawNodes])
+  const orgMembers = useMemo(() => toArr(rawOrgMembers), [rawOrgMembers])
+
+  // Workspace data — 4 endpoints the ME|TEAM layout renders
   // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
-
-  // Fetch org nodes + members for Team tab
-  useEffect(() => {
-    Promise.all([
-      bget(token!, '/api/org/nodes').then(r => (r.ok && r.data) ? r.data : []),
-      bget(token!, '/api/users').then(r => (r.ok && r.data) ? r.data : []),
-    ]).then(([n, m]) => {
-      const arr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
-      setNodes(arr(n))
-      setOrgMembers(arr(m))
-    })
-  }, [token])
-
-  // Fetch workspace data in parallel — 4 endpoints the ME|TEAM layout actually renders
-  useEffect(() => {
-    if (!me) return
-    const opts = { headers: authH(token!) }
-    const fetchJson = (url: string) => fetch(url, opts).then(r => r.ok ? r.json() : []).catch(() => [])
-    Promise.all([
-      fetchJson(`${BASE}/api/workitems?assignee=${me.id}&limit=${WIDGET_ITEMS}`),
-      fetchJson(`${BASE}/api/helpdesk/tickets?limit=${WIDGET_ITEMS}`),
-      fetchJson(`${BASE}/api/mandatory-approvals?status=PENDING&limit=${WIDGET_APPROVALS}`),
-      fetchJson(`${BASE}/api/schedule-slots?limit=${WIDGET_ITEMS}`),
-    ]).then(([wi, tk, ap, sl]) => {
-      const toArr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
-      setTasks    (toArr(wi).length ? { state: 'ok', value: toArr(wi) } : { state: 'hide' })
-      setTickets  (toArr(tk).length ? { state: 'ok', value: toArr(tk) } : { state: 'hide' })
-      setApprovals(toArr(ap).length ? { state: 'ok', value: toArr(ap) } : { state: 'hide' })
-      setSlots    (toArr(sl).length ? { state: 'ok', value: toArr(sl) } : { state: 'hide' })
-    })
-  }, [token, me])
+  const tasks     = useFetched<any[]>(me?.id ? `/api/workitems?assignee=${me.id}&limit=${WIDGET_ITEMS}` : null, d => toArr(d).length > 0)
+  const tickets   = useFetched<any[]>(`/api/helpdesk/tickets?limit=${WIDGET_ITEMS}`,                           d => toArr(d).length > 0)
+  const approvals = useFetched<any[]>(`/api/mandatory-approvals?status=PENDING&limit=${WIDGET_APPROVALS}`,     d => toArr(d).length > 0)
+  const slots     = useFetched<any[]>(`/api/schedule-slots?limit=${WIDGET_ITEMS}`,                             d => toArr(d).length > 0)
 
   // ── Derived state ────────────────────────────────────────────────────────────
   const today = useMemo(() => todayKey(), [])
 
-  const taskArr     = tasks.state     === 'ok' ? tasks.value     : []
-  const ticketArr   = tickets.state   === 'ok' ? tickets.value   : []
-  const approvalArr = approvals.state === 'ok' ? approvals.value : []
-  const slotArr     = slots.state     === 'ok' ? slots.value     : []
+  const taskArr     = tasks.state     === 'ok' ? toArr(tasks.value)     : []
+  const ticketArr   = tickets.state   === 'ok' ? toArr(tickets.value)   : []
+  const approvalArr = approvals.state === 'ok' ? toArr(approvals.value) : []
+  const slotArr     = slots.state     === 'ok' ? toArr(slots.value)     : []
 
   const myTickets   = me ? ticketArr.filter(t => t.assigned_user_id === me.id) : []
   const breachedTickets = myTickets.filter(t => {

@@ -53,8 +53,9 @@ export function HeatmapLayout({ roots, defs, cf }: { roots: OrgTreeNode[]; defs:
   }
 
   // Sequential ramp: faint surface-2 (low) → brand gold (high).
-  const LOW = '#182943'  // --gx-surface-2 (dark)
-  const HIGH = '#C5A059' // --gx-gold (dark)
+  // Read live from CSS tokens so the ramp honors the active theme (dark / light).
+  const LOW  = getComputedStyle(document.documentElement).getPropertyValue('--gx-surface-2').trim() || '#182943'
+  const HIGH = getComputedStyle(document.documentElement).getPropertyValue('--gx-gold').trim()      || '#C5A059'
   const tint = (v: number): string => (max <= 0 ? LOW : mixHex(LOW, HIGH, Math.min(1, v / max)))
   const metricLabel = effMetric === 'headcount' ? 'Headcount' : 'Descendants'
 

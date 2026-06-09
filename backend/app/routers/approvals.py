@@ -21,6 +21,7 @@ These look up by Approval.id (not PendingApproval.id) — a different table from
 import uuid
 from datetime import datetime, timezone
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +34,10 @@ from .. import workflow, notify_hooks
 from .auth import current_user
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
+
+
+class ApprovalDecideIn(BaseModel):
+    note: str | None = None
 
 
 def _serialize(pa: PendingApproval) -> dict:
@@ -101,7 +106,7 @@ async def list_approvals(status: str = "PENDING", user: User = Depends(current_u
 
 
 @router.post("/{approval_id}/approve")
-async def approve(approval_id: uuid.UUID, payload: dict | None = None,
+async def approve(approval_id: uuid.UUID, payload: ApprovalDecideIn | None = None,
                   user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Approve a pending transition: complete the move (status → to_status, transition Event +
     on-enter actions), mark APPROVED, and notify the requester. Eligible approvers only."""
@@ -135,8 +140,8 @@ async def approve(approval_id: uuid.UUID, payload: dict | None = None,
     pa.status = "APPROVED"
     pa.approver_user_id = user.id
     pa.decided_at = datetime.now(timezone.utc)
-    if payload and isinstance(payload.get("note"), str) and payload["note"]:
-        pa.note = payload["note"][:2000]
+    if payload and payload.note:
+        pa.note = payload.note[:2000]
 
     await notify_hooks.fire(s, tenant_id=user.tenant_id, event_type="TRANSITION", entity_key=pa.entity_key,
                             record=rec, actor_user_id=user.id, extra={"from": pa.from_status, "to": pa.to_status})
@@ -148,7 +153,7 @@ async def approve(approval_id: uuid.UUID, payload: dict | None = None,
 
 
 @router.post("/{approval_id}/reject")
-async def reject(approval_id: uuid.UUID, payload: dict | None = None,
+async def reject(approval_id: uuid.UUID, payload: ApprovalDecideIn | None = None,
                  user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Reject a pending transition: the record stays at from_status; mark REJECTED + notify the
     requester. Eligible approvers only."""
@@ -168,8 +173,8 @@ async def reject(approval_id: uuid.UUID, payload: dict | None = None,
     pa.status = "REJECTED"
     pa.approver_user_id = user.id
     pa.decided_at = datetime.now(timezone.utc)
-    if payload and isinstance(payload.get("note"), str) and payload["note"]:
-        pa.note = payload["note"][:2000]
+    if payload and payload.note:
+        pa.note = payload.note[:2000]
 
     await workflow.emit(s, user.tenant_id, "approval_rejected", pa.entity_key, pa.record_id, user.id,
                         {"from": pa.from_status, "to": pa.to_status, "approval_id": str(pa.id)})

@@ -9,7 +9,9 @@ Partial-failure model: each id is processed and committed independently. A forbi
 500. The response carries a per-id result plus a summary.
 """
 import uuid
+from typing import Literal
 
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +27,12 @@ router = APIRouter(prefix="/api", tags=["bulk"])
 
 BULK_MAX = 200
 ALLOWED_ACTIONS = ("delete", "transition")
+
+
+class BulkActionIn(BaseModel):
+    action: Literal['delete', 'transition']
+    ids: list[str]
+    to: str | None = None
 
 
 async def _do_delete(s, user, ent, grants, paths, rec) -> dict | None:
@@ -76,18 +84,14 @@ async def _do_transition(s, user, ent, grants, paths, rec, to, transitions) -> d
 
 
 @router.post("/{slug}/bulk")
-async def bulk(slug: str, payload: dict, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+async def bulk(slug: str, payload: BulkActionIn, user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
     """Apply `action` ('delete'|'transition') to `ids`. transition also needs `to`.
     Returns per-id results + a {requested, succeeded, failed} summary."""
-    action = payload.get("action")
-    if action not in ALLOWED_ACTIONS:
-        raise HTTPException(422, f"action must be one of {list(ALLOWED_ACTIONS)}")
-    ids = payload.get("ids")
-    if not isinstance(ids, list):
-        raise HTTPException(422, "ids must be a list")
+    action = payload.action
+    ids = payload.ids
     if len(ids) > BULK_MAX:
         raise HTTPException(422, f"Too many ids: {len(ids)} (max {BULK_MAX})")
-    to = payload.get("to")
+    to = payload.to
     if action == "transition" and not to:
         raise HTTPException(422, "transition action requires 'to'")
 

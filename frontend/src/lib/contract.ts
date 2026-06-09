@@ -8,6 +8,17 @@
 
 export type FieldLike = { key: string; label: string; type?: string }
 
+// Email template color palette (mirrors --gx-* brand tokens; hardcoded because
+// email clients don't support CSS custom properties).
+const E = {
+  text:    '#15233b',  // --gx-text-1 (cobalt dark)
+  muted:   '#5b6b85',  // --gx-text-3
+  heading: '#1f3a63',  // --gx-cobalt-800
+  border:  '#c9d4e5',  // --gx-border
+  row:     '#eef2f7',  // --gx-surface-1
+  caption: '#8a98ad',  // --gx-text-4
+} as const
+
 function esc(v: unknown): string {
   return String(v ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -34,17 +45,17 @@ function renderTemplate(values: Record<string, any>, fields: FieldLike[], dateSt
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>Service Contract — ${esc(fullName)}</title>
 <style>
-  body { font-family: Georgia, "Times New Roman", serif; color: #15233b; max-width: 800px; margin: 40px auto; padding: 0 32px; line-height: 1.6; }
+  body { font-family: Georgia, "Times New Roman", serif; color: ${E.text}; max-width: 800px; margin: 40px auto; padding: 0 32px; line-height: 1.6; }
   h1 { font-size: 22px; text-align: center; margin: 0 0 4px; }
-  .sub { text-align: center; color: #5b6b85; font-size: 13px; margin-bottom: 28px; }
-  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: #1f3a63; border-bottom: 1px solid #c9d4e5; padding-bottom: 4px; margin: 26px 0 10px; }
+  .sub { text-align: center; color: ${E.muted}; font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: ${E.heading}; border-bottom: 1px solid ${E.border}; padding-bottom: 4px; margin: 26px 0 10px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid #eef2f7; }
-  td.k { width: 38%; color: #5b6b85; }
+  td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid ${E.row}; }
+  td.k { width: 38%; color: ${E.muted}; }
   td.v { font-weight: 600; }
   .sign { display: flex; justify-content: space-between; margin-top: 48px; font-size: 13px; }
-  .sign div { width: 45%; border-top: 1px solid #15233b; padding-top: 6px; text-align: center; color: #5b6b85; }
-  .note { margin-top: 36px; font-size: 11px; color: #8a98ad; text-align: center; }
+  .sign div { width: 45%; border-top: 1px solid ${E.text}; padding-top: 6px; text-align: center; color: ${E.muted}; }
+  .note { margin-top: 36px; font-size: 11px; color: ${E.caption}; text-align: center; }
 </style></head><body>
   <h1>Service Contract</h1>
   <div class="sub">HouseNet ISP · ${esc(dateStr)}</div>

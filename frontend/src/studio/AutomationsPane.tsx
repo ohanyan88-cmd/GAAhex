@@ -8,6 +8,7 @@ import {
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useFetch } from '../hooks/useFetch'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -116,11 +117,44 @@ function automationToForm(a: Automation): FormState {
 // ---------------------------------------------------------------------------
 export default function AutomationsPane() {
   const { token } = useAuth()
+
+  const {
+    data: automationsData,
+    loading: automationsLoading,
+    status: automationsStatus,
+    error: automationsError,
+    refetch: refetchAutomations,
+  } = useFetch<Automation[]>('/api/automations')
+
+  const {
+    data: entitiesData,
+    loading: entitiesLoading,
+    error: entitiesError,
+    refetch: refetchEntities,
+  } = useFetch<EntityMeta[]>('/meta/entities')
+
+  // Local copies — needed so mutations (PATCH/POST/DELETE) can update list
+  // optimistically without a round-trip refetch.
   const [automations, setAutomations] = useState<Automation[]>([])
   const [entities, setEntities] = useState<EntityMeta[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [denied, setDenied] = useState(false)
+
+  // Seed / refresh local copies whenever the fetch resolves
+  useEffect(() => {
+    if (automationsData !== null) setAutomations(Array.isArray(automationsData) ? automationsData : [])
+  }, [automationsData])
+
+  useEffect(() => {
+    if (entitiesData !== null) setEntities(Array.isArray(entitiesData) ? entitiesData : [])
+  }, [entitiesData])
+
+  const loading = automationsLoading || entitiesLoading
+  const denied = automationsStatus === 403
+  const error = (!denied && (automationsError || entitiesError)) || ''
+
+  const load = useCallback(() => {
+    refetchAutomations()
+    refetchEntities()
+  }, [refetchAutomations, refetchEntities])
 
   // Edit/create form
   const [formOpen, setFormOpen] = useState(false)
@@ -130,33 +164,13 @@ export default function AutomationsPane() {
   const [formErr, setFormErr] = useState('')
   const [formOk, setFormOk] = useState('')
 
+  // Toggle-active inline error
+  const [toggleErr, setToggleErr] = useState('')
+
   // Delete confirmation
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteErr, setDeleteErr] = useState('')
-
-  const load = useCallback(() => {
-    let alive = true
-    setLoading(true); setError(''); setDenied(false)
-    Promise.all([
-      jreq(token!,'/api/automations'),
-      jreq(token!,'/meta/entities'),
-    ])
-      .then(([a, e]) => {
-        if (!alive) return
-        setAutomations(Array.isArray(a) ? a : [])
-        setEntities(Array.isArray(e) ? e : [])
-      })
-      .catch((e) => {
-        if (!alive) return
-        if (e instanceof FetchError && e.status === 403) setDenied(true)
-        else setError((e as Error).message)
-      })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
-  }, [token])
-
-  useEffect(() => { return load() }, [load])
 
   function openCreate() {
     setEditTarget(null)
@@ -212,6 +226,7 @@ export default function AutomationsPane() {
   }
 
   async function toggleActive(a: Automation) {
+    setToggleErr('')
     try {
       const updated = await jreq(token!,`/api/automations/${a.id}`, {
         method: 'PATCH',
@@ -219,7 +234,7 @@ export default function AutomationsPane() {
       })
       setAutomations((prev) => prev.map((x) => x.id === a.id ? updated : x))
     } catch (err) {
-      setError((err as Error).message)
+      setToggleErr((err as Error).message)
     }
   }
 
@@ -261,6 +276,7 @@ export default function AutomationsPane() {
       </div>
 
       {deleteErr && <ErrorBanner message={deleteErr} />}
+      {toggleErr && <ErrorBanner message={toggleErr} />}
 
       {/* List */}
       {sorted.length === 0 && !formOpen ? (

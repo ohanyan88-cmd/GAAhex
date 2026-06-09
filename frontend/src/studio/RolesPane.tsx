@@ -1,5 +1,5 @@
 import { Button } from '../primitives'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
@@ -8,6 +8,7 @@ import {
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useFetch } from '../hooks/useFetch'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,11 +49,21 @@ function groupPerms(perms: Permission[]): Record<string, Permission[]> {
 // ---------------------------------------------------------------------------
 export default function RolesPane() {
   const { token } = useAuth()
+
+  const { data: rolesData, loading: rolesLoading, status: rolesStatus, error: rolesError, refetch: refetchRoles } = useFetch<Role[]>('/api/roles')
+  const { data: permsData, loading: permsLoading, status: permsStatus } = useFetch<Permission[]>('/api/permissions')
+
+  // Local mutable copy of roles — seeded from hook, updated optimistically by mutations
   const [roles, setRoles] = useState<Role[]>([])
-  const [allPerms, setAllPerms] = useState<Permission[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [denied, setDenied] = useState(false)
+
+  useEffect(() => {
+    if (rolesData !== null) setRoles(rolesData)
+  }, [rolesData])
+
+  const loading = rolesLoading || permsLoading
+  const denied = rolesStatus === 403 || permsStatus === 403
+  const error = (!denied && (rolesError ?? '')) || ''
+  const allPerms: Permission[] = permsData ?? []
 
   // Selected role for permission editing
   const [selected, setSelected] = useState<Role | null>(null)
@@ -72,29 +83,6 @@ export default function RolesPane() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteErr, setDeleteErr] = useState('')
-
-  const load = useCallback(() => {
-    let alive = true
-    setLoading(true); setError(''); setDenied(false)
-    Promise.all([
-      jreq(token!,'/api/roles'),
-      jreq(token!,'/api/permissions'),
-    ])
-      .then(([r, p]) => {
-        if (!alive) return
-        setRoles(Array.isArray(r) ? r : [])
-        setAllPerms(Array.isArray(p) ? p : [])
-      })
-      .catch((e) => {
-        if (!alive) return
-        if (e instanceof FetchError && e.status === 403) setDenied(true)
-        else setError((e as Error).message)
-      })
-      .finally(() => { if (alive) setLoading(false) })
-    return () => { alive = false }
-  }, [token])
-
-  useEffect(() => { return load() }, [load])
 
   // When a role is selected, seed editPerms from its current permissions
   function selectRole(role: Role) {
@@ -163,7 +151,7 @@ export default function RolesPane() {
 
   if (loading) return <LoadingState />
   if (denied) return <PermissionDenied message="You don't have permission to manage roles." />
-  if (error) return <ErrorBanner message={error} onRetry={load} />
+  if (error) return <ErrorBanner message={error} onRetry={refetchRoles} />
 
   const grouped = groupPerms(allPerms)
 

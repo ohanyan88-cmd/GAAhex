@@ -182,6 +182,16 @@
   --viz-1:#3B7BE0; --viz-2:#C5A059; --viz-3:#1F9D57; --viz-4:#8B6FD6;
   --viz-5:#E0901A; --viz-6:#2A9DB5; --viz-7:#E5484D; --viz-8:#82A1CC;
 
+  /* Payment card brand colors (third-party identity; not GAAhex palette — token-gated per D20) */
+  --gx-payment-visa:          #1f5ad1;
+  --gx-payment-visa-bg:       rgba(31,90,209,0.14);
+  --gx-payment-mastercard:    #d6336c;
+  --gx-payment-mastercard-bg: rgba(214,51,108,0.14);
+  --gx-payment-amex:          #2f9e44;
+  --gx-payment-amex-bg:       rgba(47,158,68,0.14);
+  --gx-payment-discover:      #d68c33;
+  --gx-payment-discover-bg:   rgba(214,140,51,0.14);
+
   /* ── SPACING — 4px base unit ─────────────────────────── */
   /* T-P3-6 — removed orphan space endpoints --gx-space-0 (0px is the implicit
      default) and --gx-space-1 (2px — too tight for visible spacing; -2 covers

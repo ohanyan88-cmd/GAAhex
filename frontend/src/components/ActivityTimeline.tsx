@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useMemo } from 'react'
 import { timeAgo } from '../lib/time'
 import {
   humanizeEntity, humanizeAction, indefinite,
@@ -11,9 +10,7 @@ import {
   UsersIcon, ActivityIcon,
 } from './icons'
 import { EmptyState, PermissionDenied, ErrorBanner } from './States'
-
-import { BASE } from '../lib/config'
-import { authH } from '../lib/billing'
+import { useFetch } from '../hooks/useFetch'
 
 type Item = {
   id: string
@@ -114,29 +111,16 @@ export default function ActivityTimeline({ entity, record, onNavigate }: {
   /** Called when a row is clicked AND the row has a navigable target. */
   onNavigate?: (target: ActivityNavTarget) => void
 }) {
-  const { token } = useAuth()
-  const [items, setItems] = useState<Item[] | null>(null)
-  const [error, setError] = useState('')
-  const [denied, setDenied] = useState(false)
+  const p = new URLSearchParams()
+  if (entity) p.set('entity', entity)
+  if (record) p.set('record', record)
+  const qs = p.toString()
+  const path = `/api/activity${qs ? `?${qs}` : ''}`
 
-  async function load() {
-    setError(''); setDenied(false); setItems(null)
-    try {
-      const p = new URLSearchParams()
-      if (entity) p.set('entity', entity)
-      if (record) p.set('record', record)
-      const qs = p.toString()
-      const r = await fetch(`${BASE}/api/activity${qs ? `?${qs}` : ''}`, { headers: authH(token!) })
-      if (r.status === 403) { setDenied(true); return }
-      if (!r.ok) throw new Error('Failed to load activity')
-      setItems(await r.json())
-    } catch (e) {
-      setError((e as Error).message)
-      setItems([])
-    }
-  }
+  const { data: items, loading, status, error: fetchError, refetch } = useFetch<Item[]>(path)
 
-  useEffect(() => { load() }, [token, entity, record])
+  const denied = status === 403
+  const error = fetchError && !denied ? fetchError : ''
 
   // Drawer (per-record) context — keep the kit's simpler look. The global feed
   // (no entity/record) gets the full redesigned treatment.
@@ -163,9 +147,9 @@ export default function ActivityTimeline({ entity, record, onNavigate }: {
   }, [items])
 
   if (denied) return <PermissionDenied />
-  if (error) return <ErrorBanner message={error} onRetry={load} />
-  if (items === null) return <ActivitySkeleton />
-  if (items.length === 0) {
+  if (error) return <ErrorBanner message={error} onRetry={refetch} />
+  if (loading) return <ActivitySkeleton />
+  if (!items || items.length === 0) {
     return (
       <EmptyState
         icon={<ActivityIcon size={40} />}
