@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bput } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { PermissionDenied, SkeletonRows, EmptyState } from '../components/States'
@@ -18,7 +19,8 @@ type AppSettings = {
   onboarded_at?: string | null
 }
 
-export default function SettingsView({ token, onSaved }: { token: string; onSaved?: (s: AppSettings) => void }) {
+export default function SettingsView({ onSaved }: { onSaved?: (s: AppSettings) => void }) {
+  const { token } = useAuth()
   const { t } = useI18n()
   const [loaded, setLoaded] = useState<AppSettings | null>(null)
   const [unavailable, setUnavailable] = useState(false)
@@ -34,7 +36,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
 
   async function load() {
     setLoading(true); setUnavailable(false); setDenied(false); setLoaded(null)
-    const res = await bget<AppSettings>(token, '/api/tenant/settings')
+    const res = await bget<AppSettings>(token!, '/api/tenant/settings')
     setLoading(false)
     if (res.status === 404) { setUnavailable(true); return }
     if (res.status === 403) { setDenied(true); return }
@@ -58,7 +60,7 @@ export default function SettingsView({ token, onSaved }: { token: string; onSave
         locale,
         logo_text: logoText.trim() || null,
       }
-      const updated = await bput<AppSettings>(token, '/api/tenant/settings', payload)
+      const updated = await bput<AppSettings>(token!, '/api/tenant/settings', payload)
       toast.success(t('settings.saved', 'Settings saved'))
       setLang(locale)
       setLoaded(updated)

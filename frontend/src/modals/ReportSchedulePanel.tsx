@@ -11,6 +11,7 @@ import { t } from '../lib/i18n'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { CalendarIcon, PauseIcon, PlayIcon, TrashIcon, CloseIcon } from '../components/icons'
 import { Button, StatusPill} from '../primitives'
+import { useAuth } from '../context/AuthContext'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,13 +77,12 @@ function parseRecipients(raw: string): string[] {
 
 function ScheduleItem({
   sched,
-  token,
   onMutate,
 }: {
   sched: Schedule
-  token: string
   onMutate: () => void
 }) {
+  const { token } = useAuth()
   const [busy, setBusy] = useState(false)
   const isPaused = sched.status === 'PAUSED'
   const pill = mapStatus(sched.status)
@@ -93,7 +93,7 @@ function ScheduleItem({
     try {
       const r = await fetch(`${BASE}/api/report-schedules/${sched.id}/${action}`, {
         method: 'POST',
-        headers: authH(token),
+        headers: authH(token!),
       })
       if (!r.ok) throw new Error(`${r.status}`)
       toast.success(
@@ -112,7 +112,7 @@ function ScheduleItem({
     try {
       const r = await fetch(`${BASE}/api/report-schedules/${sched.id}`, {
         method: 'DELETE',
-        headers: authH(token),
+        headers: authH(token!),
       })
       if (!r.ok) throw new Error(`${r.status}`)
       toast.success(t('sched.deleted', 'Schedule deleted'))
@@ -169,16 +169,15 @@ function ScheduleItem({
 // ── New-schedule form ─────────────────────────────────────────────────────────
 
 function ScheduleForm({
-  token,
   reports,
   onCreated,
   onCancel,
 }: {
-  token: string
   reports: Report[]
   onCreated: () => void
   onCancel: () => void
 }) {
+  const { token } = useAuth()
   const [reportId, setReportId] = useState(reports[0]?.id ?? '')
   const [cadence, setCadence] = useState<'daily' | 'weekly' | 'monthly'>('daily')
   const [channel, setChannel] = useState<'email' | 'slack' | 'webhook'>('email')
@@ -196,7 +195,7 @@ function ScheduleForm({
         channel,
         recipients: parseRecipients(recipients),
       }
-      await bpost(token, '/api/report-schedules', payload)
+      await bpost(token!, '/api/report-schedules', payload)
       toast.success(t('sched.created', 'Schedule created'))
       onCreated()
     } catch (err) {
@@ -287,12 +286,11 @@ function ScheduleForm({
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export default function ReportSchedulePanel({
-  token,
   reports,
 }: {
-  token: string
   reports: Report[]
 }) {
+  const { token } = useAuth()
   const [schedules, setSchedules] = useState<Schedule[] | null>(null)
   const [unavailable, setUnavailable] = useState(false)
   const [error, setError] = useState('')
@@ -300,7 +298,7 @@ export default function ReportSchedulePanel({
 
   async function load() {
     setError('')
-    const res: Fetched<Schedule[]> = await bget(token, '/api/report-schedules')
+    const res: Fetched<Schedule[]> = await bget(token!, '/api/report-schedules')
     if (res.status === 404) { setUnavailable(true); setSchedules([]); return }
     if (!res.ok) { setError(t('sched.loadError', 'Failed to load schedules')); setSchedules([]); return }
     setSchedules(Array.isArray(res.data) ? res.data : [])
@@ -331,7 +329,6 @@ export default function ReportSchedulePanel({
 
       {showForm && (
         <ScheduleForm
-          token={token}
           reports={reports}
           onCreated={() => { setShowForm(false); load() }}
           onCancel={() => setShowForm(false)}
@@ -364,7 +361,7 @@ export default function ReportSchedulePanel({
             </thead>
             <tbody>
               {schedules.map((s) => (
-                <ScheduleItem key={s.id} sched={s} token={token} onMutate={load} />
+                <ScheduleItem key={s.id} sched={s} onMutate={load} />
               ))}
             </tbody>
           </table>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, loadCustomers, type Payment, type Invoice } from '../lib/billing'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner } from '../components/States'
@@ -16,10 +17,11 @@ import { StatusPill, Pagination } from '../primitives'
 import { fmtDate } from '../lib/time'
 
 
-export default function PaymentsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'payments', configVersion)
+export default function PaymentsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'payments', configVersion)
   const [payments, setPayments] = useState<Payment[] | null>(null)
-  const cf = useCustomFields(token, 'payments', cfg.customFields, (payments ?? []).map((p) => p.id))
+  const cf = useCustomFields('payments', cfg.customFields, (payments ?? []).map((p) => p.id))
   const [invoiceMap, setInvoiceMap] = useState<Record<string, Invoice>>({})
   const [names, setNames] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -36,9 +38,9 @@ export default function PaymentsView({ token, canConfigure = false, configVersio
     setPayments(null)
 
     const [pr, ir, customers] = await Promise.all([
-      bget<Payment[]>(token, '/api/payments'),
-      bget<Invoice[]>(token, '/api/invoices'),
-      loadCustomers(token),
+      bget<Payment[]>(token!, '/api/payments'),
+      bget<Invoice[]>(token!, '/api/invoices'),
+      loadCustomers(token!),
     ])
 
     if (!pr.ok) {

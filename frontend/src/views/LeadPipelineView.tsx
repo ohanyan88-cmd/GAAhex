@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost } from '../lib/billing'
 import { createRecord, transitionRecord } from '../lib/api'
 import { EmptyState as StatesEmptyState, ErrorBanner, PermissionDenied } from '../components/States'
@@ -32,7 +33,8 @@ const SLUG = 'leads'
 const initials = (name: string) =>
   (name || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'
 
-export default function LeadPipelineView({ token, onOpenCustomer, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, embedded = false }: { token: string; onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void; capabilities?: Capabilities; /** When true, skip the outer PageShell (used when nested inside PipelineView's tab panel). */ embedded?: boolean }) {
+export default function LeadPipelineView({ onOpenCustomer, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, embedded = false }: { onOpenCustomer?: (id: string) => void; canConfigure?: boolean; onConfigure?: () => void; capabilities?: Capabilities; /** When true, skip the outer PageShell (used when nested inside PipelineView's tab panel). */ embedded?: boolean }) {
+  const { token } = useAuth()
   const canCreate = can(capabilities, 'lead', 'create')
   const canEdit   = can(capabilities, 'lead', 'edit')
   const { t } = useI18n()
@@ -52,10 +54,10 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
 
   async function load() {
     setLoading(true); setDenied(false); setError('')
-    const d = await bget<any>(token, `/meta/entities/${SLUG}`)
+    const d = await bget<any>(token!,`/meta/entities/${SLUG}`)
     if (d.status === 403) { setDenied(true); setLoading(false); return }
     if (!d.ok || !d.data) { setError(t('leads.loadError', 'Failed to load the lead pipeline')); setLoading(false); return }
-    const r = await bget<any>(token, `/api/${SLUG}`)
+    const r = await bget<any>(token!,`/api/${SLUG}`)
     if (r.status === 403) { setDenied(true); setLoading(false); return }
     if (!r.ok) { setError(t('leads.loadError', 'Failed to load the lead pipeline')); setLoading(false); return }
     setDef({ fields: d.data.fields ?? [], statuses: d.data.statuses ?? [], transitions: d.data.transitions ?? [] })
@@ -73,7 +75,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
 
   async function move(id: string, to: string) {
     setBusy(id)
-    try { await transitionRecord(token, SLUG, id, to); await load() }
+    try { await transitionRecord(token!, SLUG, id, to); await load() }
     catch (e: any) { setError(e?.message || t('leads.moveError', 'Could not move the lead')) }
     finally { setBusy(null) }
   }
@@ -81,7 +83,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
   async function scoreLead(id: string) {
     setScores((s) => ({ ...s, [id]: 'loading' }))
     try {
-      const data = await bpost<Score>(token, '/api/ai/score-lead', { record_id: id })
+      const data = await bpost<Score>(token!,'/api/ai/score-lead', { record_id: id })
       setScores((s) => ({ ...s, [id]: data }))
     } catch {
       setScores((s) => ({ ...s, [id]: 'error' }))
@@ -93,7 +95,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
   async function convert(lead: Lead) {
     setConverting(lead.id)
     try {
-      const res = await bpost<{ customer_id?: string; id?: string; already?: boolean; customer?: { id?: string } }>(token, `/api/leads/${lead.id}/convert`)
+      const res = await bpost<{ customer_id?: string; id?: string; already?: boolean; customer?: { id?: string } }>(token!, `/api/leads/${lead.id}/convert`)
       const cid = res.customer_id ?? res.customer?.id ?? res.id ?? null
       if (res.already) {
         toast.info(t('leads.alreadyCustomer', 'This lead is already a customer'))
@@ -123,7 +125,7 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
     if (!canSubmit) return
     setSaving(true)
     try {
-      await createRecord(token, SLUG, form)
+      await createRecord(token!, SLUG, form)
       setShowNew(false); setForm({}); await load()
     } catch (e: any) { setError(e?.message || t('leads.createError', 'Could not create the lead')) }
     finally { setSaving(false) }
@@ -218,7 +220,6 @@ export default function LeadPipelineView({ token, onOpenCustomer, canConfigure =
               <FieldInput
                 key={f.key}
                 field={f}
-                token={token}
                 mode="creating"
                 currentStatus={null}
                 errorField={null}

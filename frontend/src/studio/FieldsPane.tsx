@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   EditIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon,
@@ -215,7 +216,8 @@ function EditFieldRow({
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function FieldsPane({ token, initialSlug, lockEntity }: { token: string; initialSlug?: string; lockEntity?: boolean }) {
+export default function FieldsPane({ initialSlug, lockEntity }: { initialSlug?: string; lockEntity?: boolean }) {
+  const { token } = useAuth()
   const [entities, setEntities] = useState<EntitySummary[]>([])
   const [entLoading, setEntLoading] = useState(true)
   const [entError, setEntError] = useState('')
@@ -237,7 +239,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
   function loadEntities() {
     let alive = true
     setEntLoading(true); setEntError(''); setEntDenied(false)
-    apiFetch(token, '/meta/entities')
+    apiFetch(token!, '/meta/entities')
       .then((d: EntitySummary[]) => {
         if (!alive) return
         const list = Array.isArray(d) ? d : []
@@ -258,7 +260,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
     let alive = true
     setFieldsLoading(true); setFieldsError(''); setFieldsDenied(false)
     setFields([]); setEditingKey(null); setShowAdd(false); setDeleteErr('')
-    apiFetch(token, `/meta/entities/${s}`)
+    apiFetch(token!, `/meta/entities/${s}`)
       .then((d: { fields: FieldDef[] }) => {
         if (!alive) return
         setFields(d.fields ?? [])
@@ -279,7 +281,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
     if (!slug) return
     setDeletingKey(fieldKey); setDeleteErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/fields/${fieldKey}`, { method: 'DELETE' })
+      await apiFetch(token!, `/meta/entities/${slug}/fields/${fieldKey}`, { method: 'DELETE' })
       loadFields(slug)
     } catch (ex) {
       setDeleteErr((ex as Error).message)
@@ -379,7 +381,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
                               <EditFieldRow
                                 key={f.key}
                                 slug={slug}
-                                token={token}
+                                token={token!}
                                 field={f}
                                 onDone={() => { setEditingKey(null); loadFields(slug) }}
                               />
@@ -426,7 +428,7 @@ export default function FieldsPane({ token, initialSlug, lockEntity }: { token: 
                   {showAdd && (
                     <AddFieldForm
                       slug={slug}
-                      token={token}
+                      token={token!}
                       onAdded={() => { setShowAdd(false); loadFields(slug) }}
                     />
                   )}

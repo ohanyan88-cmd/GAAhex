@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost, type Subscription } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { Modal } from '../components/Modal'
@@ -32,10 +33,11 @@ type Usage = {
 
 const METRICS = ['gb', 'minutes', 'messages', 'other']
 
-export default function UsageView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'usage', configVersion)
+export default function UsageView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'usage', configVersion)
   const [list, setList] = useState<Usage[] | null>(null)
-  const cf = useCustomFields(token, 'usage', cfg.customFields, (list ?? []).map((u) => u.id))
+  const cf = useCustomFields('usage', cfg.customFields, (list ?? []).map((u) => u.id))
   const [subs, setSubs] = useState<Subscription[]>([])
   const [rated, setRated] = useState('')   // '' | 'true' | 'false'
   const [error, setError] = useState('')
@@ -54,7 +56,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
     const p = new URLSearchParams()
     if (rated) p.set('rated', rated)
     const qs = p.toString()
-    const res = await bget<Usage[]>(token, `/api/usage${qs ? `?${qs}` : ''}`)
+    const res = await bget<Usage[]>(token!, `/api/usage${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) { setError(t('usage.loadError', 'Failed to load usage')); setList([]); return }
@@ -62,7 +64,7 @@ export default function UsageView({ token, canConfigure = false, configVersion =
   }
 
   useEffect(() => { load() }, [token, rated])
-  useEffect(() => { bget<Subscription[]>(token, '/api/subscriptions').then((r) => setSubs(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
+  useEffect(() => { bget<Subscription[]>(token!, '/api/subscriptions').then((r) => setSubs(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
   useEffect(() => { setPage(1) }, [rated, query, sortKey, sortDir])
 
   const subName = (sid: string | null | undefined) => (sid ? (subs.find((s) => s.id === sid)?.plan_name ?? sid.slice(0, 8)) : '—')
@@ -255,12 +257,13 @@ export default function UsageView({ token, canConfigure = false, configVersion =
           </div>
         )}
 
-        {logOpen && <RecordUsageModal token={token} subs={subs} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />}
+        {logOpen && <RecordUsageModal subs={subs} onClose={() => setLogOpen(false)} onDone={() => { setLogOpen(false); load() }} />}
     </PageShell>
   )
 }
 
-function RecordUsageModal({ token, subs, onClose, onDone }: { token: string; subs: Subscription[]; onClose: () => void; onDone: () => void }) {
+function RecordUsageModal({ subs, onClose, onDone }: { subs: Subscription[]; onClose: () => void; onDone: () => void }) {
+  const { token } = useAuth()
   const [subscriptionId, setSubscriptionId] = useState('')
   const [metric, setMetric] = useState('gb')
   const [quantity, setQuantity] = useState('')
@@ -271,7 +274,7 @@ function RecordUsageModal({ token, subs, onClose, onDone }: { token: string; sub
     if (!quantity || saving) return
     setSaving(true)
     try {
-      await bpost(token, '/api/usage', {
+      await bpost(token!, '/api/usage', {
         subscription_id: subscriptionId || undefined,
         metric, quantity: Number(quantity), unit_rate: toMinor(rate),
       })

@@ -18,10 +18,8 @@ import { ActivityIcon } from '../components/icons'
 import { PageShell } from '../page-shell'
 
 export default function ActivityFeedView({
-  token,
   onNavigate,
 }: {
-  token: string
   onNavigate?: (target: ActivityNavTarget) => void
 }) {
   return (
@@ -33,7 +31,7 @@ export default function ActivityFeedView({
       subtitle="System-wide event stream"
     >
       <div className="card act-feed-card">
-        <ActivityTimeline token={token} onNavigate={onNavigate} />
+        <ActivityTimeline onNavigate={onNavigate} />
       </div>
     </PageShell>
   )

@@ -1,6 +1,7 @@
 import { Button, Input } from '../primitives'
 import { useEffect, useRef, useState } from 'react'
 import { bget, bpost } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 import { PermissionDenied } from '../components/States'
 import { SparkleIcon, SendHorizontalIcon } from '../components/icons'
 import { useI18n } from '../lib/i18n'
@@ -31,7 +32,8 @@ const SUGGESTIONS = [
   'How much did we collect this month vs last month?',
 ]
 
-export default function AskGaaexView({ token, embedded = false }: { token: string; embedded?: boolean }) {
+export default function AskGaaexView({ embedded = false }: { embedded?: boolean }) {
+  const { token } = useAuth()
   const { t } = useI18n()
   const [status, setStatus] = useState<Status | null>(null)
   const [denied, setDenied] = useState(false)
@@ -46,7 +48,7 @@ export default function AskGaaexView({ token, embedded = false }: { token: strin
 
   useEffect(() => {
     (async () => {
-      const r = await bget<Status>(token, '/api/ai/status')
+      const r = await bget<Status>(token!, '/api/ai/status')
       if (r.status === 403) { setDenied(true); return }
       if (r.ok && r.data) setStatus(r.data)
     })()
@@ -59,7 +61,7 @@ export default function AskGaaexView({ token, embedded = false }: { token: strin
     setMsgs((m) => [...m, { role: 'user', text }])
     setQ(''); setBusy(true)
     try {
-      const r = await bpost<ChatResp>(token, '/api/ai/chat', { question: text })
+      const r = await bpost<ChatResp>(token!, '/api/ai/chat', { question: text })
       if (r.kind === 'proposal') {
         setMsgs((m) => [...m, { role: 'proposal', proposal: { action: r.action, args: r.args, summary: r.summary }, state: 'pending' }])
       } else {
@@ -78,7 +80,7 @@ export default function AskGaaexView({ token, embedded = false }: { token: strin
     if (m.role !== 'proposal' || m.state !== 'pending' || busy) return
     setBusy(true)
     try {
-      const r = await bpost<{ ok: boolean; message: string }>(token, '/api/ai/act', { action: m.proposal.action, args: m.proposal.args })
+      const r = await bpost<{ ok: boolean; message: string }>(token!, '/api/ai/act', { action: m.proposal.action, args: m.proposal.args })
       setMsgs((ms) => ms.map((x, i) => i === idx && x.role === 'proposal' ? { ...x, state: 'done', result: r.message } : x))
     } catch (e: any) {
       setMsgs((ms) => ms.map((x, i) => i === idx && x.role === 'proposal' ? { ...x, state: 'done', result: e?.message || t('ask.actError', 'Action failed.') } : x))

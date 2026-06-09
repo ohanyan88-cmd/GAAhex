@@ -6,6 +6,7 @@ import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState } from '../components/States'
 import { PrinterIcon, CreditCardIcon } from '../components/icons'
+import { useAuth } from '../context/AuthContext'
 
 type Service = { id: string; type?: string; name?: string; status?: string | null }
 type Acct = { id: string; type?: string; currency?: string; billing_cycle?: string; status?: string | null }
@@ -14,12 +15,12 @@ type Payment = { id: string; invoice_id: string; amount: number; method: string;
 // A customer's billing-at-a-glance: their subscriptions + recent invoices, with generate-invoice and
 // a product-prefilled new-subscription form. Reads /api/subscriptions?customer= and /api/invoices?customer=.
 // Degrades quietly (shows "not available") when the billing endpoints 404.
-export default function CustomerBillingModal({ token, customerId, customerLabel, onClose }: {
-  token: string
+export default function CustomerBillingModal({ customerId, customerLabel, onClose }: {
   customerId: string
   customerLabel: string
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [subs, setSubs] = useState<Subscription[] | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -37,30 +38,30 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
   async function load() {
     setError(''); setUnavailable(false); setSubs(null)
-    const sr = await bget<Subscription[]>(token, `/api/subscriptions?customer=${encodeURIComponent(customerId)}`)
+    const sr = await bget<Subscription[]>(token!, `/api/subscriptions?customer=${encodeURIComponent(customerId)}`)
     if (sr.status === 404) { setUnavailable(true); setSubs([]); return }
     if (!sr.ok) { setError('Failed to load billing'); setSubs([]); return }
     setSubs(Array.isArray(sr.data) ? sr.data : [])
-    const ir = await bget<Invoice[]>(token, `/api/invoices?customer=${encodeURIComponent(customerId)}`)
+    const ir = await bget<Invoice[]>(token!, `/api/invoices?customer=${encodeURIComponent(customerId)}`)
     if (ir.ok && Array.isArray(ir.data)) setInvoices(ir.data)
-    const svr = await bget<Service[]>(token, `/api/services?customer=${encodeURIComponent(customerId)}`)
+    const svr = await bget<Service[]>(token!, `/api/services?customer=${encodeURIComponent(customerId)}`)
     setServices(svr.ok && Array.isArray(svr.data) ? svr.data : [])
     // accounts layer (17a, Stage-1 dormant — empty until the accounts↔customer link is wired)
-    const ar = await bget<Acct[]>(token, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
+    const ar = await bget<Acct[]>(token!, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
     setAccounts(ar.ok && Array.isArray(ar.data) ? ar.data : [])
     // unrated usage counts per subscription (light: one query, counted client-side)
-    const ur = await bget<any[]>(token, '/api/usage?rated=false')
+    const ur = await bget<any[]>(token!, '/api/usage?rated=false')
     const m: Record<string, number> = {}
     if (ur.ok && Array.isArray(ur.data)) for (const u of ur.data) if (u.subscription_id) m[u.subscription_id] = (m[u.subscription_id] || 0) + 1
     setUnrated(m)
     // fetch payments for this customer
-    const pr = await bget<Payment[]>(token, `/api/payments?customer=${encodeURIComponent(customerId)}`)
+    const pr = await bget<Payment[]>(token!, `/api/payments?customer=${encodeURIComponent(customerId)}`)
     if (pr.status === 404) setPayments([])
     else setPayments(pr.ok && Array.isArray(pr.data) ? pr.data : [])
   }
 
   useEffect(() => { load() }, [token, customerId])
-  useEffect(() => { loadProducts(token, true).then(setProducts) }, [token])
+  useEffect(() => { loadProducts(token!, true).then(setProducts) }, [token])
 
   function pickProduct(id: string) {
     setProductId(id)
@@ -74,7 +75,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
   async function generate(subId: string) {
     try {
-      await bpost(token, `/api/subscriptions/${subId}/generate-invoice`)
+      await bpost(token!, `/api/subscriptions/${subId}/generate-invoice`)
       toast.success('Invoice generated')
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -82,7 +83,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
 
   async function rateUsage(subId: string) {
     try {
-      await bpost(token, '/api/usage/rate', { subscription_id: subId })
+      await bpost(token!, '/api/usage/rate', { subscription_id: subId })
       toast.success('Usage rated into a draft invoice')
       await load()
     } catch (e) {
@@ -94,7 +95,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
   async function createSub() {
     if (!planName.trim()) return
     try {
-      await bpost(token, '/api/subscriptions', {
+      await bpost(token!, '/api/subscriptions', {
         customer_id: customerId, product_id: productId || undefined,
         plan_name: planName.trim(), amount: toMinor(amount), cycle,
       })
@@ -115,7 +116,7 @@ export default function CustomerBillingModal({ token, customerId, customerLabel,
           <div className="bill-section-head">
             <h3>Account</h3>
             <Button variant="ghost" size="sm"
-            onClick={async () => { const e = await openDocument(token, `/api/customers/${customerId}/statement`); if (e) toast.error(e) }}>
+            onClick={async () => { const e = await openDocument(token!, `/api/customers/${customerId}/statement`); if (e) toast.error(e) }}>
               <PrinterIcon size={14} /> Statement
             </Button>
           </div>

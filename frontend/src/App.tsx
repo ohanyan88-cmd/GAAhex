@@ -85,11 +85,10 @@ const AppShellContext = createContext<AppShellContextValue>({ canConfigure: fals
 function EntityRouteAdapter() {
   const { slug = '' } = useParams()
   const navigate = useNavigate()
-  const { token, capabilities } = useAuth()
+  const { capabilities } = useAuth()
   const { canConfigure } = useContext(AppShellContext)
   return (
     <EntityView
-      token={token!}
       slug={slug}
       onOpenCustomer={(id) => navigate(`/customer/${id}`)}
       onOpenPipeline={() => navigate('/lead-pipeline')}
@@ -103,11 +102,10 @@ function EntityRouteAdapter() {
 function CustomerRouteAdapter() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const { token, capabilities } = useAuth()
+  const { capabilities } = useAuth()
   const { canConfigure, pageConfigVersion } = useContext(AppShellContext)
   return (
     <CustomerView
-      token={token!}
       customerId={id}
       onBack={() => navigate(-1)}
       configVersion={pageConfigVersion}
@@ -123,11 +121,9 @@ function CustomerRouteAdapter() {
 function StudioRouteAdapter() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { token } = useAuth()
   const { canConfigure } = useContext(AppShellContext)
   return (
     <StudioShell
-      token={token}
       canConfigure={canConfigure}
       route={{
         group:  searchParams.get('group')  ?? undefined,
@@ -148,11 +144,10 @@ function StudioRouteAdapter() {
 
 function InvoicesRouteAdapter() {
   const [searchParams] = useSearchParams()
-  const { token, capabilities } = useAuth()
+  const { capabilities } = useAuth()
   const { canConfigure, pageConfigVersion } = useContext(AppShellContext)
   return (
     <InvoicesView
-      token={token!}
       canConfigure={canConfigure}
       configVersion={pageConfigVersion}
       initialStatus={searchParams.get('status') ?? undefined}
@@ -163,11 +158,10 @@ function InvoicesRouteAdapter() {
 
 function HelpdeskRouteAdapter() {
   const [searchParams] = useSearchParams()
-  const { token, capabilities } = useAuth()
+  const { capabilities } = useAuth()
   const { canConfigure, pageConfigVersion } = useContext(AppShellContext)
   return (
     <HelpdeskView
-      token={token!}
       canConfigure={canConfigure}
       configVersion={pageConfigVersion}
       capabilities={capabilities}
@@ -570,7 +564,6 @@ export default function App() {
                 <PanelLeft size={18} />
               </button>
               <NotificationBell
-                token={token!}
                 entities={entities}
                 onOpen={(slug) => navigate(`/entity/${slug}`)}
                 onViewAll={() => navigate('/notifications')}
@@ -630,7 +623,7 @@ export default function App() {
             </div>
 
             <span className="spacer" />
-            <OrgIdentity token={token!} />
+            <OrgIdentity />
 
             {user && (
               <UserMenu
@@ -643,61 +636,61 @@ export default function App() {
           <main id="main-content" className="view">
             <ErrorBoundary>
               <Routes>
-                <Route path="/"                   element={<HomeView token={token} capabilities={capabilities} onNavigate={(type, id) => {
+                <Route path="/"                   element={<HomeView capabilities={capabilities} onNavigate={(type, id) => {
                   if (type === 'workitems') navigate('/workitems')
                   else if (type === 'mytasks') navigate('/mytasks')
                   else if (type === 'my-approvals') navigate('/my-approvals')
                   else if (type === 'helpdesk') navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
                   else if (type === 'entity' && id) navigate(`/entity/${id}`)
                 }} />} />
-                <Route path="/org"                element={<OrgView nodes={orgNodes} configVersion={pageConfigVersion} token={token} canConfigure={canConfigure} onRefresh={async () => setOrgNodes((await orgTree()).nodes)} />} />
+                <Route path="/org"                element={<OrgView nodes={orgNodes} configVersion={pageConfigVersion} canConfigure={canConfigure} onRefresh={async () => setOrgNodes((await orgTree()).nodes)} />} />
                 <Route path="/dashboards"         element={<DashboardView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} onNavigate={(target) => {
                   if (target.type === 'subscriptions') navigate('/subscriptions')
                   else if (target.type === 'invoices') navigate('/invoices')
                   else if (target.type === 'helpdesk') navigate('/helpdesk')
                   else if (target.type === 'workitems') navigate('/workitems')
                 }} />} />
-                <Route path="/analytics"          element={<AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
-                <Route path="/lead-pipeline"      element={<PipelineView token={token} onOpenCustomer={openCustomer} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/ask"                element={<AskGaaexView token={token} />} />
-                <Route path="/messages"           element={<MessagesView token={token} capabilities={capabilities} />} />
+                <Route path="/analytics"          element={<AnalyticsView configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
+                <Route path="/lead-pipeline"      element={<PipelineView onOpenCustomer={openCustomer} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/ask"                element={<AskGaaexView />} />
+                <Route path="/messages"           element={<MessagesView capabilities={capabilities} />} />
                 <Route path="/notifications"      element={<NotificationsView />} />
                 <Route path="/profile"            element={<ProfileView />} />
-                <Route path="/activity-feed"      element={<ActivityFeedView token={token} onNavigate={(target) => {
+                <Route path="/activity-feed"      element={<ActivityFeedView onNavigate={(target) => {
                   if (target.type === 'helpdesk') navigate(`/helpdesk?ticket=${encodeURIComponent(target.openTicketId ?? '')}`)
                   else if (target.type === 'entity') navigate(`/entity/${target.slug}`)
                 }} />} />
                 <Route path="/activity"           element={<Navigate to="/activity-feed" replace />} />
-                <Route path="/my-approvals"       element={<MyApprovalsView token={token} />} />
-                <Route path="/team-workspace"     element={<TeamWorkspaceView token={token} />} />
-                <Route path="/network-topology"   element={<NetworkTopologyView token={token} />} />
-                <Route path="/network-inventory"  element={<NetworkInventoryView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/provisioning"       element={<ProvisioningView token={token} />} />
-                <Route path="/dispatch-board"     element={<DispatchBoardView token={token} />} />
-                <Route path="/installation-board" element={<InstallationBoardView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/coverage-gis"       element={<CoverageView token={token} />} />
-                <Route path="/noc-dashboard"      element={<NocDashboardView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/saved-views"        element={<SavedViewsView token={token} onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />} />
-                <Route path="/payments"           element={<PaymentsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/payment-methods"    element={<PaymentMethodsView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/gateway"            element={<PaymentGatewayView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/subscriptions"      element={<SubscriptionsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/products"           element={<ProductsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/tariff-plans"       element={<TariffPlansView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/webhooks"           element={<WebhooksView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />} />
-                <Route path="/services"           element={<ServicesView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} capabilities={capabilities} />} />
-                <Route path="/usage"              element={<UsageView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/resource-pools"     element={<ResourcePoolsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/accounts"           element={<AccountsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/workitems"          element={<WorkItemsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
-                <Route path="/mytasks"            element={<MyTasksView token={token} canConfigure={canConfigure} onNavigate={(t) => { if (t === 'home') navigate('/') }} />} />
-                <Route path="/customer-tasks"     element={<CustomerTasksView token={token} />} />
-                <Route path="/calendar"           element={<CalendarView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
-                <Route path="/settings"           element={<SettingsView token={token} />} />
-                <Route path="/reports"            element={<ReportsView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/orders"             element={<OrdersView token={token} capabilities={capabilities} />} />
-                <Route path="/revenue-assurance"  element={<RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
-                <Route path="/collections"        element={<CollectionsView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/my-approvals"       element={<MyApprovalsView />} />
+                <Route path="/team-workspace"     element={<TeamWorkspaceView />} />
+                <Route path="/network-topology"   element={<NetworkTopologyView />} />
+                <Route path="/network-inventory"  element={<NetworkInventoryView canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/provisioning"       element={<ProvisioningView />} />
+                <Route path="/dispatch-board"     element={<DispatchBoardView />} />
+                <Route path="/installation-board" element={<InstallationBoardView canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/coverage-gis"       element={<CoverageView />} />
+                <Route path="/noc-dashboard"      element={<NocDashboardView canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/saved-views"        element={<SavedViewsView onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />} />
+                <Route path="/payments"           element={<PaymentsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/payment-methods"    element={<PaymentMethodsView canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/gateway"            element={<PaymentGatewayView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/subscriptions"      element={<SubscriptionsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/products"           element={<ProductsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/tariff-plans"       element={<TariffPlansView canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/webhooks"           element={<WebhooksView canConfigure={canConfigure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />} />
+                <Route path="/services"           element={<ServicesView canConfigure={canConfigure} configVersion={pageConfigVersion} capabilities={capabilities} />} />
+                <Route path="/usage"              element={<UsageView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/resource-pools"     element={<ResourcePoolsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/accounts"           element={<AccountsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/workitems"          element={<WorkItemsView canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/mytasks"            element={<MyTasksView canConfigure={canConfigure} onNavigate={(t) => { if (t === 'home') navigate('/') }} />} />
+                <Route path="/customer-tasks"     element={<CustomerTasksView />} />
+                <Route path="/calendar"           element={<CalendarView configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
+                <Route path="/settings"           element={<SettingsView />} />
+                <Route path="/reports"            element={<ReportsView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/orders"             element={<OrdersView capabilities={capabilities} />} />
+                <Route path="/revenue-assurance"  element={<RevenueAssuranceView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/collections"        element={<CollectionsView canConfigure={canConfigure} capabilities={capabilities} />} />
                 {/* Param-bearing routes use module-level adapters */}
                 <Route path="/invoices"           element={<InvoicesRouteAdapter />} />
                 <Route path="/helpdesk"           element={<HelpdeskRouteAdapter />} />
@@ -714,7 +707,6 @@ export default function App() {
 
         {cfgSlug && (
           <ConfigureDrawer
-            token={token}
             slug={cfgSlug}
             entities={entities}
             onClose={() => setCfgSlug(null)}
@@ -727,7 +719,6 @@ export default function App() {
 
         {cfgPageKey && (
           <ConfigureDrawer
-            token={token}
             pageKey={cfgPageKey}
             entities={entities}
             onClose={() => setCfgPageKey(null)}
@@ -738,7 +729,6 @@ export default function App() {
         <ProfileModal
           open={accountModal === 'profile'}
           onClose={() => setAccountModal(null)}
-          token={token}
           name={user?.name ?? ''}
           email={user?.email ?? ''}
           avatarUrl={user?.avatar_url ?? null}
@@ -747,7 +737,6 @@ export default function App() {
         <SecurityModal
           open={accountModal === 'security'}
           onClose={() => setAccountModal(null)}
-          token={token}
         />
         <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
         <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />

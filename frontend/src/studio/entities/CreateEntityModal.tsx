@@ -8,10 +8,12 @@ import { ErrorBanner } from '../../components/States'
 import type { DraftField, DraftStatus } from './types'
 import { FIELD_TYPES, buildConfig } from './types'
 import { apiFetch } from './api'
+import { useAuth } from '../../context/AuthContext'
 
 export function CreateEntityModal({
-  token, onClose, onCreated,
-}: { token: string; onClose: () => void; onCreated: (slug: string) => void }) {
+  onClose, onCreated,
+}: { onClose: () => void; onCreated: (slug: string) => void }) {
+  const { token } = useAuth()
   const [label, setLabel] = useState('')
   const [labelPlural, setLabelPlural] = useState('')
   const [key, setKey] = useState('')
@@ -78,7 +80,7 @@ export function CreateEntityModal({
           })),
         statuses: statuses.map((s) => ({ key: s.key, label: s.label, is_initial: s.is_initial })),
       }
-      await apiFetch(token, '/meta/entities', { method: 'POST', body: JSON.stringify(payload) })
+      await apiFetch(token!, '/meta/entities', { method: 'POST', body: JSON.stringify(payload) })
       onCreated(slug.trim())
     } catch (ex) {
       setErr((ex as Error).message)

@@ -31,6 +31,7 @@ import RelatedTab from './customer-tabs/RelatedTab'
 import CommunicationsTab from './customer-tabs/CommunicationsTab'
 import AuditTab from './customer-tabs/AuditTab'
 import { fmtDate } from '../lib/time'
+import { useAuth } from '../context/AuthContext'
 
 // CustomerView — the single-customer workspace (doc 17 "Customer 360"). One screen for an operator
 // to see ONE customer's whole life: header money summary, services, subscriptions, invoices (with
@@ -157,8 +158,7 @@ function mapCustomerStatus(s: string | null | undefined): PillVariant {
   return 'info'
 }
 
-export default function CustomerView({ token, customerId, onBack, configVersion = 0, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, onOpenInvoices }: {
-  token: string
+export default function CustomerView({ customerId, onBack, configVersion = 0, canConfigure = false, onConfigure, capabilities = FULL_ACCESS, onOpenInvoices }: {
   customerId: string
   onBack: () => void
   configVersion?: number
@@ -169,10 +169,11 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   /** Optional: jump to the Invoices list filtered by this customer's status (clickable invoice number). */
   onOpenInvoices?: (initialStatus?: string) => void
 }) {
+  const { token } = useAuth()
   const canEditInvoice = can(capabilities, 'invoice', 'edit')
   const { t } = useI18n()
   // Hook called so the Configure button (via BESPOKE_PAGE_KEYS) lights up for this page.
-  usePageConfig(token, 'customer', configVersion)
+  usePageConfig(token!, 'customer', configVersion)
   const [data, setData] = useState<C360 | null>(null)
   const [services, setServices] = useState<Service[]>([])
   const [error, setError] = useState('')
@@ -213,7 +214,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
   async function loadAccountsAndBalances() {
     setAccounts(undefined); setBalances({}); setSelectedAccountId(null)
     setConsolidated(null); setBalanceFatal(false); setShowConsolidated(false)
-    const ar = await bget<Account[]>(token, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
+    const ar = await bget<Account[]>(token!, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
     if (ar.status === 403 || ar.status === 404 || !ar.ok || !Array.isArray(ar.data) || ar.data.length === 0) {
       setAccounts(ar.ok && Array.isArray(ar.data) ? ar.data : null)
       return
@@ -224,7 +225,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     // Parallel balance fetch — each row independent; one failure doesn't block the others.
     const results = await Promise.all(
       accts.map(async (a) => {
-        const r = await bget<BalanceSnapshot>(token, `/api/accounts/${a.id}/balance`)
+        const r = await bget<BalanceSnapshot>(token!, `/api/accounts/${a.id}/balance`)
         if (r.ok && r.data) return [a.id, r.data] as const
         return [a.id, null] as const
       })
@@ -238,7 +239,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     // (account with no parent) or fall back to the first account. Degrades silently on 404.
     if (accts.length > 1) {
       const root = accts.find((a) => !a.parent_account_id) ?? accts[0]
-      const cr = await bget<ConsolidatedBalance>(token, `/api/accounts/${root.id}/balance/consolidated`)
+      const cr = await bget<ConsolidatedBalance>(token!, `/api/accounts/${root.id}/balance/consolidated`)
       if (cr.ok && cr.data) setConsolidated(cr.data)
     }
   }
@@ -259,7 +260,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     }
     if (key === 'accounts') {
       // Mirror loadAccountsAndBalances: same endpoint shape, but as a flat list for the table.
-      const r = await bget<Account[]>(token, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
+      const r = await bget<Account[]>(token!, `/api/accounts?customer=${encodeURIComponent(customerId)}`)
       if (r.status === 403) return setOne(null, 'denied')
       if (r.status === 404) return setOne(null, 'notfound')
       if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
@@ -272,12 +273,12 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
       // tab still works on backends that haven't grown the filter clause we ask for.
       const slug = key  // /api/contacts, /api/sites, /api/contracts
       const filterExpr = encodeURIComponent(`customer == "${customerId}"`)
-      let r = await bget<EntityRow[]>(token, `/api/${slug}?filter=${filterExpr}&limit=${ENTITY_RECORDS}`)
+      let r = await bget<EntityRow[]>(token!, `/api/${slug}?filter=${filterExpr}&limit=${ENTITY_RECORDS}`)
       if (r.status === 403) return setOne(null, 'denied')
       if (r.status === 404) return setOne(null, 'notfound')
       if (!r.ok || !Array.isArray(r.data)) {
         // Fall back to fetch-all and client-filter (treats a busted filter as "fetch everything").
-        r = await bget<EntityRow[]>(token, `/api/${slug}?limit=${ENTITY_RECORDS}`)
+        r = await bget<EntityRow[]>(token!, `/api/${slug}?limit=${ENTITY_RECORDS}`)
         if (r.status === 403) return setOne(null, 'denied')
         if (r.status === 404) return setOne(null, 'notfound')
         if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
@@ -295,7 +296,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     if (key === 'slas') {
       // Helpdesk doesn't expose a customer filter — fetch and client-filter. Cap to keep this
       // bounded; the SLAs tab is meant to highlight problem tickets, not be the full list.
-      const r = await bget<SlaRow[]>(token, `/api/helpdesk/tickets?limit=${CUSTOMER_TICKETS}`)
+      const r = await bget<SlaRow[]>(token!, `/api/helpdesk/tickets?limit=${CUSTOMER_TICKETS}`)
       if (r.status === 403) return setOne(null, 'denied')
       if (r.status === 404) return setOne(null, 'notfound')
       if (!r.ok || !Array.isArray(r.data)) return setOne(null, 'error')
@@ -307,7 +308,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
 
   async function load() {
     setError(''); setFatal(null); setData(null)
-    const res = await bget<C360>(token, `/api/customers/${customerId}/360`)
+    const res = await bget<C360>(token!, `/api/customers/${customerId}/360`)
     if (res.status === 403) { setFatal('denied'); return }
     if (res.status === 404) { setFatal('notfound'); return }
     if (!res.ok || !res.data) { setError(t('cust.loadError', 'Failed to load this customer')); return }
@@ -317,7 +318,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
     if (Array.isArray(c.services)) {
       setServices(c.services)
     } else {
-      const sv = await bget<Service[]>(token, `/api/services?customer=${encodeURIComponent(customerId)}`)
+      const sv = await bget<Service[]>(token!, `/api/services?customer=${encodeURIComponent(customerId)}`)
       setServices(sv.ok && Array.isArray(sv.data) ? sv.data : [])
     }
   }
@@ -349,7 +350,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
 
   async function issue(id: string) {
     try {
-      await bpost(token, `/api/invoices/${id}/issue`)
+      await bpost(token!, `/api/invoices/${id}/issue`)
       toast.success(t('cust.issued', 'Invoice issued'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -525,7 +526,6 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
                 rows={tabData[tab]}
                 fatal={tabFatal[tab]}
                 t={t}
-                token={token}
                 customerId={customerId}
                 profile={p ?? null}
               />
@@ -644,7 +644,7 @@ export default function CustomerView({ token, customerId, onBack, configVersion 
         )}
 
         {payInvoice && (
-          <PaymentModal token={token} invoiceId={payInvoice.id} onClose={() => setPayInvoice(null)} onDone={() => { setPayInvoice(null); load() }} />
+          <PaymentModal token={token!} invoiceId={payInvoice.id} onClose={() => setPayInvoice(null)} onDone={() => { setPayInvoice(null); load() }} />
         )}
     </PageShell>
   )
@@ -938,26 +938,25 @@ function CustomerTabButton({ active, label, count, icon, onClick }: {
 // Canonical Object Detail tabs (file 10) self-fetch from dedicated components in
 // ./customer-tabs/ — they bypass the rows/fatal pipeline entirely and own their own
 // loading/empty/error states.
-function CustomerTabBody({ tab, rows, fatal, t, token, customerId, profile }: {
+function CustomerTabBody({ tab, rows, fatal, t, customerId, profile }: {
   tab: TabKey
   rows: any[] | null | undefined
   fatal: '' | 'denied' | 'notfound' | 'error'
   t: (k: string, fb?: string) => string
-  token: string
   customerId: string
   profile: Profile | null
 }) {
   // ── Canonical Object Detail tabs (file 10) ────────────────────────────────────
   // These nine come BEFORE the customer-specific tabs and each self-fetches.
   if (tab === 'overview')       return <OverviewTab customerId={customerId} profile={profile} />
-  if (tab === 'timeline')       return <TimelineTab token={token} entity="customer" id={customerId} />
-  if (tab === 'tasks')          return <TasksTab token={token} entity="customer" id={customerId} />
-  if (tab === 'comments')       return <CommentsTab token={token} entity="customer" id={customerId} />
-  if (tab === 'attachments')    return <AttachmentsTab token={token} entity="customer" id={customerId} />
-  if (tab === 'approvals')      return <ApprovalsTab token={token} entity="customer" id={customerId} />
-  if (tab === 'related')        return <RelatedTab token={token} entity="customer" id={customerId} />
-  if (tab === 'communications') return <CommunicationsTab token={token} entity="customer" id={customerId} />
-  if (tab === 'audit')          return <AuditTab token={token} entity="customer" id={customerId} />
+  if (tab === 'timeline')       return <TimelineTab entity="customer" id={customerId} />
+  if (tab === 'tasks')          return <TasksTab entity="customer" id={customerId} />
+  if (tab === 'comments')       return <CommentsTab entity="customer" id={customerId} />
+  if (tab === 'attachments')    return <AttachmentsTab entity="customer" id={customerId} />
+  if (tab === 'approvals')      return <ApprovalsTab entity="customer" id={customerId} />
+  if (tab === 'related')        return <RelatedTab entity="customer" id={customerId} />
+  if (tab === 'communications') return <CommunicationsTab entity="customer" id={customerId} />
+  if (tab === 'audit')          return <AuditTab entity="customer" id={customerId} />
 
   // ── Customer-specific tabs (legacy path with shared rows/fatal pipeline) ──────
   // Loading skeleton — 4 shimmering rows so the tab visually communicates "data incoming".

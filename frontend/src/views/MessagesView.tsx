@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { timeAgo } from '../lib/time'
 import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
 import { Button } from '../primitives'  // T-P3-7
@@ -82,14 +83,13 @@ function dayLabel(iso: string | null): string {
 }
 
 export default function MessagesView({
-  token,
   capabilities: _capabilities = FULL_ACCESS,
   embedded = false,
 }: {
-  token: string
   capabilities?: Capabilities
   embedded?: boolean
 }) {
+  const { token } = useAuth()
   const [me, setMe] = useState<Me | null>(null)
   const [threads, setThreads] = useState<Thread[] | null>(null)
   const [error, setError] = useState('')
@@ -117,7 +117,7 @@ export default function MessagesView({
 
   async function loadMe() {
     try {
-      const r = await fetch(`${BASE}/auth/me`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/auth/me`, { headers: authH(token!) })
       if (!r.ok) return
       setMe(await r.json())
     } catch {
@@ -128,7 +128,7 @@ export default function MessagesView({
   async function loadThreads() {
     setError('')
     try {
-      const r = await fetch(`${BASE}/api/threads`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/api/threads`, { headers: authH(token!) })
       if (!r.ok) throw new Error('Failed to load threads')
       const data: Thread[] = await r.json()
       setThreads(Array.isArray(data) ? data : [])
@@ -141,7 +141,7 @@ export default function MessagesView({
   async function loadMessages(id: string) {
     setMsgError(''); setMessages(null); setSendError('')
     try {
-      const r = await fetch(`${BASE}/api/threads/${id}/messages`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/api/threads/${id}/messages`, { headers: authH(token!) })
       if (!r.ok) throw new Error('Failed to load messages')
       setMessages(await r.json())
     } catch (e) {
@@ -162,7 +162,7 @@ export default function MessagesView({
     try {
       const r = await fetch(`${BASE}/api/threads/${selected}/messages`, {
         method: 'POST',
-        headers: { ...authH(token), 'Content-Type': 'application/json' },
+        headers: { ...authH(token!), 'Content-Type': 'application/json' },
         body: JSON.stringify({ body: v }),
       })
       if (!r.ok) {

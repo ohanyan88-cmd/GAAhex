@@ -22,7 +22,6 @@ import { DetailTab } from '../primitives'  // TB-1 — canonical detail-tab prim
 type PipelineTab = 'sales' | 'lifecycle' | 'delivery'
 
 interface PipelineViewProps {
-  token:        string
   onOpenCustomer?: (id: string) => void
   canConfigure?: boolean
   onConfigure?: () => void

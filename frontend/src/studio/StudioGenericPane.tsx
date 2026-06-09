@@ -9,6 +9,7 @@
 // buttons anymore. If a leaf has no real backend wiring, the surface tells
 // the user that plainly instead of pretending.
 
+import { useAuth } from '../context/AuthContext'
 import { type FlatLeaf } from './tree'
 import { iconFor } from './iconMap'
 import { richPaneFor, FeatureFlagsPane } from './StudioRichPanes'
@@ -35,7 +36,8 @@ import SystemHealthPane from './SystemHealthPane'
 // uses ONE shared component (NotificationsPane) parameterised per leaf.
 //
 // Leaf id format = `${groupId}.${moduleId?}.${leafId}` (see tree.ts).
-const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<any>> = {
   'data.models.entities':                       EntitiesPane,
   'data.models.fields':                         FieldsPane,
   'experience.pages.page-registry':             ViewsPane,
@@ -67,7 +69,8 @@ const REAL_PANE_BY_LEAF_ID: Record<string, React.ComponentType<{ token: string }
 
 // ── StudioGenericPane (exported default) ─────────────────────────────────────
 
-export default function StudioGenericPane({ leaf, token }: { leaf: FlatLeaf; token: string | null }) {
+export default function StudioGenericPane({ leaf }: { leaf: FlatLeaf }) {
+  const { token } = useAuth()
   // Real-data panes take top priority — backend-wired CRUD for these leaves.
   // They require a token; if absent (not logged in), fall through so the
   // surface still renders rather than crashing.

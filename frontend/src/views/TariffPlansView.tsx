@@ -12,6 +12,7 @@
 //
 // Soft-delete: POST is via DELETE /api/tariff-plans/{id} which flips active=false.
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost, bpatch, bdel } from '../lib/billing'
 import { can, type Capabilities } from '../lib/capabilities'
 import { toast } from '../components/Toast'
@@ -114,14 +115,13 @@ function parseTiers(text: string): { ok: true; tiers: Array<{ from: number; to: 
 }
 
 export default function TariffPlansView({
-  token,
   canConfigure = false,
   capabilities = {},
 }: {
-  token: string
   canConfigure?: boolean
   capabilities?: Capabilities
 }) {
+  const { token } = useAuth()
   const [list, setList] = useState<TariffPlan[] | null>(null)
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -140,7 +140,7 @@ export default function TariffPlansView({
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
-    const res = await bget<TariffPlan[]>(token, '/api/tariff-plans')
+    const res = await bget<TariffPlan[]>(token!, '/api/tariff-plans')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) { setError('Failed to load tariff plans'); setList([]); return }
@@ -209,11 +209,11 @@ export default function TariffPlansView({
     try {
       if (draft.id) {
         // key is immutable on PATCH — don't send it.
-        await bpatch(token, `/api/tariff-plans/${draft.id}`, payload)
+        await bpatch(token!, `/api/tariff-plans/${draft.id}`, payload)
         toast.success('Tariff plan updated')
       } else {
         payload.key = draft.key.trim()
-        await bpost(token, '/api/tariff-plans', payload)
+        await bpost(token!, '/api/tariff-plans', payload)
         toast.success('Tariff plan created')
       }
       setDraft(null)
@@ -233,7 +233,7 @@ export default function TariffPlansView({
     if (!ok) return
     try {
       // Backend soft-deletes via DELETE (sets active=false).
-      await bdel(token, `/api/tariff-plans/${p.id}`)
+      await bdel(token!, `/api/tariff-plans/${p.id}`)
       toast.success('Tariff plan retired')
       await load()
     } catch (e) {

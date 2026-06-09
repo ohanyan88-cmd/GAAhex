@@ -3,7 +3,7 @@
 // bespoke page. Pairs with pageConfig.ts (defs in the descriptor) and the page_field_value store.
 //
 // ADOPT ON ANOTHER BESPOKE PAGE (~5-10 lines) — see ServicesView.tsx for the live example:
-//   const cf = useCustomFields(token, 'yourKey', page.customFields, rows.map(r => r.id))
+//   const cf = useCustomFields('yourKey', page.customFields, rows.map(r => r.id))
 //   ...in <thead>:  {cf.headers()}
 //   ...in each <tr>: {cf.cells(row.id)}
 // `page.customFields` comes from usePageConfig(...).customFields. `rows` is whatever the page
@@ -11,12 +11,14 @@
 // page's own data fetch, actions and detail panes are untouched.
 // -----------------------------------------------------------------------------
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { toast } from './Toast'
 import { fetchPageValues, savePageValue, type CustomFieldDef, type PageValueMap } from '../lib/pageConfig'
 
 // Hook: batch-fetch values for the given row ids, expose <th> headers + per-row <td> cells (each
 // editable inline), and persist edits optimistically. Re-fetches when ids or defs change.
-export function useCustomFields(token: string, pageKey: string, defs: CustomFieldDef[], ids: string[]) {
+export function useCustomFields(pageKey: string, defs: CustomFieldDef[], ids: string[]) {
+  const { token } = useAuth()
   const [values, setValues] = useState<PageValueMap>({})
   const idKey = ids.join(',')          // stable dep — re-fetch when the visible row set changes
   const hasFields = defs.length > 0
@@ -24,7 +26,7 @@ export function useCustomFields(token: string, pageKey: string, defs: CustomFiel
   useEffect(() => {
     let alive = true
     if (!hasFields || ids.length === 0) { setValues({}); return }
-    fetchPageValues(token, pageKey, ids).then((m) => { if (alive) setValues(m) })
+    fetchPageValues(token!, pageKey, ids).then((m) => { if (alive) setValues(m) })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, pageKey, idKey, defs.length])
@@ -34,7 +36,7 @@ export function useCustomFields(token: string, pageKey: string, defs: CustomFiel
     const nextRow = { ...prev, [fieldKey]: value }
     setValues((v) => ({ ...v, [rowId]: nextRow }))   // optimistic
     try {
-      const saved = await savePageValue(token, pageKey, rowId, nextRow)
+      const saved = await savePageValue(token!, pageKey, rowId, nextRow)
       setValues((v) => ({ ...v, [rowId]: saved }))
     } catch (e) {
       setValues((v) => ({ ...v, [rowId]: prev }))    // rollback

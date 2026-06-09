@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { WarningIcon } from './icons'
 
 // RefPicker — resolves a `ref` field to a dropdown of the target entity's records.
@@ -43,12 +44,12 @@ export async function loadRefLabels(token: string, targetKey: string): Promise<R
   return map
 }
 
-export default function RefPicker({ token, targetKey, value, onChange }: {
-  token: string
+export default function RefPicker({ targetKey, value, onChange }: {
   targetKey: string | null
   value: any
   onChange: (v: any) => void
 }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<Row[]>([])
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,9 +60,9 @@ export default function RefPicker({ token, targetKey, value, onChange }: {
       if (!targetKey) { setErr('no target entity configured'); return }
       setLoading(true); setErr('')
       try {
-        const slug = await resolveSlug(token, targetKey)
+        const slug = await resolveSlug(token!, targetKey)
         if (!slug) throw new Error(`unknown target '${targetKey}'`)
-        const r = await fetch(`${BASE}/api/${slug}`, { headers: authH(token) })
+        const r = await fetch(`${BASE}/api/${slug}`, { headers: authH(token!) })
         if (!r.ok) throw new Error('failed to load options')
         const data: Row[] = await r.json()
         if (alive) setRows(data)

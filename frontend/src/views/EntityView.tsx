@@ -24,6 +24,7 @@ import { PageShell } from '../page-shell'
 import type { SecondaryAction } from '../page-shell'
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 import type { Def, Row, Mode, SavedView, StatusTab, ExportFormats } from './entity/types'
 import { deriveStatusGroups, pagePropsForSlug, mapEntityStatus, errFieldOf, capitalize } from './entity/types'
 import { deriveEntityKPIs, deriveLeadsWeeklyKPIs } from './entity/kpis'
@@ -33,8 +34,7 @@ import { EntityFormModal } from './entity/EntityFormModal'
 const PAGE_SIZE = 50
 
 // One generic component renders EVERY entity from its config — no per-entity code.
-export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
-  token: string
+export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capabilities = FULL_ACCESS, onBack, canConfigure = false, onConfigure }: {
   slug: string
   onOpenCustomer?: (id: string) => void
   /** Opens the Pipeline page — drill-through from the Leads control-gate strip. */
@@ -48,6 +48,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   /** P1: opens the ConfigureDrawer for this entity (set by parent — see App.tsx). */
   onConfigure?: () => void
 }) {
+  const { token } = useAuth()
   const { t, lang } = useI18n()
   const [def, setDef] = useState<Def | null>(null)
   const [rows, setRows] = useState<Row[]>([])
@@ -94,7 +95,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     setLoading(true); setFatal(null)
     try {
       let d: Def
-      try { d = await getEntityDef(token, s) } catch { setFatal('notfound'); return }
+      try { d = await getEntityDef(token!, s) } catch { setFatal('notfound'); return }
       setDef(d)
       const params = new URLSearchParams()
       if (appliedQ) params.set('q', appliedQ)
@@ -102,7 +103,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       params.set('sort', sort || '-created_at')
       params.set('limit', String(PAGE_SIZE))
       params.set('offset', String(pageOffset))
-      const { rows: fetched, total: tot, status } = await listRecordsPaged(token, s, params)
+      const { rows: fetched, total: tot, status } = await listRecordsPaged(token!, s, params)
       if (status === 403) { setFatal('denied'); return }
       if (status >= 400 && status !== 403) throw new Error('Failed to load records')
       setRows(fetched)
@@ -111,7 +112,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       const maps: Record<string, Record<string, string>> = {}
       for (const f of d.fields.filter((x) => x.type === 'ref')) {
         const tk = refTargetKey(f.config)
-        if (tk) maps[f.key] = await loadRefLabels(token, tk)
+        if (tk) maps[f.key] = await loadRefLabels(token!, tk)
       }
       setRefLabels(maps)
     } finally {
@@ -126,7 +127,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
 
   async function loadViews(s: string) {
     try {
-      const r = await fetch(`${BASE}/api/views?entity=${encodeURIComponent(s)}`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/api/views?entity=${encodeURIComponent(s)}`, { headers: authH(token!) })
       if (!r.ok) { setViewsAvailable(false); setViews([]); return }
       const data = await r.json()
       setViews(Array.isArray(data) ? data : [])
@@ -147,7 +148,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   useEffect(() => {
     setExportFormats(null)
     let alive = true
-    probeEntityExportFormats(token, slug).then((f) => { if (alive) setExportFormats(f) })
+    probeEntityExportFormats(token!, slug).then((f) => { if (alive) setExportFormats(f) })
     return () => { alive = false }
   }, [slug])
 
@@ -178,7 +179,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     setContractUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(blob) })
     setContractBusy(true)
     try {
-      const pdf = await generateContractPdf(token, form, fields.map((f) => ({ key: f.key, label: f.label, type: f.type })))
+      const pdf = await generateContractPdf(token!, form, fields.map((f) => ({ key: f.key, label: f.label, type: f.type })))
       setContractPdfUrl((u) => { if (u) URL.revokeObjectURL(u); return URL.createObjectURL(pdf) })
     } catch {
       setContractPdfUrl(null)
@@ -235,13 +236,13 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       })
       const wasEditing = mode === 'editing'
       let recordId = editingId
-      if (wasEditing && editingId) await patchRecord(token, slug, editingId, payload)
-      else { const created = await createRecord(token, slug, payload); recordId = created?.id ?? null }
+      if (wasEditing && editingId) await patchRecord(token!, slug, editingId, payload)
+      else { const created = await createRecord(token!, slug, payload); recordId = created?.id ?? null }
       if (recordId) {
         for (const ff of def!.fields.filter((f) => f.type === 'file')) {
           const picked = form[ff.key]
           if (Array.isArray(picked) && picked.length > 0) {
-            await uploadAttachments(token, def!.key, recordId, picked as File[])
+            await uploadAttachments(token!, def!.key, recordId, picked as File[])
           }
         }
       }
@@ -258,7 +259,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
   async function doTransition(id: string, to: string) {
     setError(''); setErrorField(null)
     try {
-      await transitionRecord(token, slug, id, to)
+      await transitionRecord(token!, slug, id, to)
       await load(slug)
     } catch (err) {
       setError((err as Error).message)
@@ -275,7 +276,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     if (!ok) return
     setError(''); setErrorField(null)
     try {
-      const r = await fetch(`${BASE}/api/${slug}/${row.id}`, { method: 'DELETE', headers: authH(token) })
+      const r = await fetch(`${BASE}/api/${slug}/${row.id}`, { method: 'DELETE', headers: authH(token!) })
       if (!r.ok) {
         const e = await r.json().catch(() => ({ detail: r.status === 403 ? 'Not allowed to delete this record' : 'Error' }))
         const d = e.detail ?? 'Error'
@@ -297,7 +298,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     try {
       const r = await fetch(`${BASE}/api/views`, {
         method: 'POST',
-        headers: { ...authH(token), 'Content-Type': 'application/json' },
+        headers: { ...authH(token!), 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), entity: slug, q: appliedQ, filter, sort }),
       })
       if (!r.ok) throw new Error('Could not save view')
@@ -398,7 +399,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
       if (filter) params.set('filter', filter)
       if (sort) params.set('sort', sort)
       const r = await fetch(`${BASE}/api/${slug}/export?${params.toString()}`, {
-        headers: authH(token),
+        headers: authH(token!),
       })
       if (!r.ok) {
         const detail = await r.json().catch(() => null)
@@ -445,7 +446,7 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
     try {
       const r = await fetch(`${BASE}/api/${slug}/bulk`, {
         method: 'POST',
-        headers: { ...authH(token), 'Content-Type': 'application/json' },
+        headers: { ...authH(token!), 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ids, to }),
       })
       const data = await r.json().catch(() => null)
@@ -633,7 +634,6 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
           editingStatus={editingStatus}
           errorField={errorField}
           error={error}
-          token={token}
           onClose={closeForm}
           onSubmit={submit}
           onFormChange={(k, v) => setForm({ ...form, [k]: v })}
@@ -882,7 +882,6 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
 
       {commentsRow && (
         <CommentsModal
-          token={token}
           slug={slug}
           recordId={commentsRow.id}
           label={def.label}
@@ -892,13 +891,12 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
 
       {activityRow && (
         <Modal open onClose={() => setActivityRow(null)} title={`Activity · ${def.label}`} size="md">
-          <ActivityTimeline token={token} entity={slug} record={activityRow.id} />
+          <ActivityTimeline entity={slug} record={activityRow.id} />
         </Modal>
       )}
 
       {billingRow && (
         <CustomerBillingModal
-          token={token}
           customerId={billingRow.id}
           customerLabel={billingRow.name ?? billingRow.title ?? String(billingRow.id).slice(0, 8)}
           onClose={() => setBillingRow(null)}
@@ -907,7 +905,6 @@ export default function EntityView({ token, slug, onOpenCustomer, onOpenPipeline
 
       {aiRow && (
         <AiAssistModal
-          token={token}
           entityKey={def.key}
           recordId={aiRow.id}
           label={aiRow.name ?? aiRow.title ?? aiRow.subject ?? String(aiRow.id).slice(0, 8)}

@@ -6,6 +6,7 @@ import { timeAgo } from '../lib/time'
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 
 type Comment = {
   id: string
@@ -17,20 +18,20 @@ type Comment = {
 }
 
 // Record comments — a Modal listing a record's comment thread + a Composer (with emoji) to post.
-export default function CommentsModal({ token, slug, recordId, label, onClose }: {
-  token: string
+export default function CommentsModal({ slug, recordId, label, onClose }: {
   slug: string
   recordId: string
   label: string
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [items, setItems] = useState<Comment[] | null>(null)
   const [error, setError] = useState('')
 
   async function load() {
     setError('')
     try {
-      const r = await fetch(`${BASE}/api/records/${slug}/${recordId}/comments`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/api/records/${slug}/${recordId}/comments`, { headers: authH(token!) })
       if (!r.ok) {
         const e = await r.json().catch(() => ({ detail: r.status === 403 ? 'Not allowed to view this record' : 'Failed to load comments' }))
         throw new Error(typeof e.detail === 'string' ? e.detail : 'Failed to load comments')
@@ -47,7 +48,7 @@ export default function CommentsModal({ token, slug, recordId, label, onClose }:
   async function post(body: string) {
     const r = await fetch(`${BASE}/api/records/${slug}/${recordId}/comments`, {
       method: 'POST',
-      headers: { ...authH(token), 'Content-Type': 'application/json' },
+      headers: { ...authH(token!), 'Content-Type': 'application/json' },
       body: JSON.stringify({ body }),
     })
     if (!r.ok) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost, bdel, loadCustomers } from '../lib/billing'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -56,7 +57,8 @@ function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) 
   }
 }
 
-export default function ServicesView({ token, canConfigure = false, configVersion = 0, onConfigure, capabilities = FULL_ACCESS }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void; capabilities?: Capabilities }) {
+export default function ServicesView({ canConfigure = false, configVersion = 0, onConfigure, capabilities = FULL_ACCESS }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void; capabilities?: Capabilities }) {
+  const { token } = useAuth()
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -67,8 +69,8 @@ export default function ServicesView({ token, canConfigure = false, configVersio
   const [detailId, setDetailId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
 
-  const page = usePageConfig(token, 'services', configVersion)
-  const cf = useCustomFields(token, 'services', page.customFields, (list ?? []).map((sv) => sv.id))
+  const page = usePageConfig(token!, 'services', configVersion)
+  const cf = useCustomFields('services', page.customFields, (list ?? []).map((sv) => sv.id))
 
   const canCreate = can(capabilities, 'service', 'create')
 
@@ -85,12 +87,12 @@ export default function ServicesView({ token, canConfigure = false, configVersio
     if (status) p.set('status', status)
     if (type) p.set('type', type)
     const qs = p.toString()
-    const res = await bget<Service[]>(token, `/api/services${qs ? `?${qs}` : ''}`)
+    const res = await bget<Service[]>(token!, `/api/services${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) { setError('Failed to load services'); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
-    setNames(await loadCustomers(token))
+    setNames(await loadCustomers(token!))
   }
 
   useEffect(() => { load() }, [token, status, type])
@@ -269,7 +271,6 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
         {detailId && (
           <ServiceDrawer
-            token={token}
             id={detailId}
             names={names}
             capabilities={capabilities}
@@ -279,7 +280,6 @@ export default function ServicesView({ token, canConfigure = false, configVersio
 
         {createOpen && (
           <CreateServiceModal
-            token={token}
             onClose={() => setCreateOpen(false)}
             onDone={() => { setCreateOpen(false); load() }}
           />
@@ -288,7 +288,8 @@ export default function ServicesView({ token, canConfigure = false, configVersio
   )
 }
 
-function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose: () => void; onDone: () => void }) {
+function CreateServiceModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const { token } = useAuth()
   const [name, setName] = useState('')
   const [type, setType] = useState('internet')
   const [saving, setSaving] = useState(false)
@@ -297,7 +298,7 @@ function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose
     if (!name.trim() || saving) return
     setSaving(true)
     try {
-      await bpost(token, '/api/services', { name: name.trim(), type })
+      await bpost(token!, '/api/services', { name: name.trim(), type })
       toast.success('Service created')
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
@@ -329,13 +330,13 @@ function CreateServiceModal({ token, onClose, onDone }: { token: string; onClose
 // (same pattern as HelpdeskView ticket drawer). The lifecycle actions live in
 // the drawer footer (Activate / Suspend / Terminate) and the resources table
 // renders inline as a related-records card under the hero.
-function ServiceDrawer({ token, id, names, capabilities, onClose }: {
-  token: string
+function ServiceDrawer({ id, names, capabilities, onClose }: {
   id: string
   names: Record<string, string>
   capabilities: Capabilities
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [sv, setSv] = useState<Service | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [error, setError] = useState('')
@@ -346,7 +347,7 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
 
   async function load() {
     setError('')
-    const res = await bget<Service>(token, `/api/services/${id}`)
+    const res = await bget<Service>(token!, `/api/services/${id}`)
     if (!res.ok) { setError(res.status === 404 ? 'Service not found' : 'Failed to load service'); return }
     setSv(res.data)
     setResources(res.data?.resources ?? [])
@@ -364,7 +365,7 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
     if (busy) return
     setBusy(true)
     try {
-      const result: any = await bpost(token, `/api/services/${id}/${verb}`)
+      const result: any = await bpost(token!, `/api/services/${id}/${verb}`)
       // The mandatory-approval gate parks a PENDING approval and the backend response
       // body is `{ detail: { status: 'approval_required', approval_id, action_type } }`.
       // It still arrives with a 2xx status (202), so bpost resolves normally — inspect
@@ -383,7 +384,7 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
 
   async function release(rid: string) {
     try {
-      await bdel(token, `/api/services/${id}/resources/${rid}`)
+      await bdel(token!, `/api/services/${id}/resources/${rid}`)
       toast.success('Resource released')
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -491,12 +492,13 @@ function ServiceDrawer({ token, id, names, capabilities, onClose }: {
           <ErrorBanner message={error} onRetry={load} />
         </div>
       )}
-      {allocOpen && <AllocateModal token={token} serviceId={id} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
+      {allocOpen && <AllocateModal serviceId={id} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
     </>
   )
 }
 
-function AllocateModal({ token, serviceId, onClose, onDone }: { token: string; serviceId: string; onClose: () => void; onDone: () => void }) {
+function AllocateModal({ serviceId, onClose, onDone }: { serviceId: string; onClose: () => void; onDone: () => void }) {
+  const { token } = useAuth()
   const [kind, setKind] = useState('ip')
   const [value, setValue] = useState('')
   const [label, setLabel] = useState('')
@@ -506,7 +508,7 @@ function AllocateModal({ token, serviceId, onClose, onDone }: { token: string; s
     if (!value.trim() || saving) return
     setSaving(true)
     try {
-      await bpost(token, `/api/services/${serviceId}/resources`, { kind, value: value.trim(), label: label.trim() || undefined })
+      await bpost(token!, `/api/services/${serviceId}/resources`, { kind, value: value.trim(), label: label.trim() || undefined })
       toast.success('Resource allocated')
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }

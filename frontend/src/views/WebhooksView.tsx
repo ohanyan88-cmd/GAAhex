@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { Modal } from '../components/Modal'
 import { MultiSelect } from '../components/Select'
 import { toast } from '../components/Toast'
@@ -55,10 +56,11 @@ async function jfetch(token: string, path: string, init?: RequestInit) {
   return { r, data }
 }
 
-export default function WebhooksView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'webhooks', configVersion)
+export default function WebhooksView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'webhooks', configVersion)
   const [list, setList] = useState<Webhook[] | null>(null)
-  const cf = useCustomFields(token, 'webhooks', cfg.customFields, (list ?? []).map((w) => w.id))
+  const cf = useCustomFields('webhooks', cfg.customFields, (list ?? []).map((w) => w.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
@@ -74,7 +76,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
     try {
-      const { r, data } = await jfetch(token, '/api/webhooks')
+      const { r, data } = await jfetch(token!, '/api/webhooks')
       if (r.status === 404) { setUnavailable(true); setList([]); return }
       if (r.status === 403) { setDenied(true); setList([]); return }
       if (!r.ok) { setError(t('webhooks.loadError', 'Failed to load webhooks')); setList([]); return }
@@ -92,11 +94,11 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
     const body = { name: draft.name.trim(), url: draft.url.trim(), events: draft.events, active: draft.active }
     try {
       if (draft.id) {
-        const { r, data } = await jfetch(token, `/api/webhooks/${draft.id}`, { method: 'PATCH', body: JSON.stringify(body) })
+        const { r, data } = await jfetch(token!, `/api/webhooks/${draft.id}`, { method: 'PATCH', body: JSON.stringify(body) })
         if (!r.ok) throw new Error(data?.detail || `Save failed (${r.status})`)
         toast.success(t('webhooks.updated', 'Webhook updated'))
       } else {
-        const { r, data } = await jfetch(token, '/api/webhooks', { method: 'POST', body: JSON.stringify(body) })
+        const { r, data } = await jfetch(token!, '/api/webhooks', { method: 'POST', body: JSON.stringify(body) })
         if (!r.ok) throw new Error(data?.detail || `Create failed (${r.status})`)
         toast.success(t('webhooks.created', 'Webhook created'))
       }
@@ -109,7 +111,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
     const ok = await confirmDialog({ title: `Delete ${w.name}`, message: 'Delete this webhook? Deliveries to it will stop.', confirmLabel: 'Delete', danger: true })
     if (!ok) return
     try {
-      const { r, data } = await jfetch(token, `/api/webhooks/${w.id}`, { method: 'DELETE' })
+      const { r, data } = await jfetch(token!, `/api/webhooks/${w.id}`, { method: 'DELETE' })
       if (!r.ok) throw new Error(data?.detail || `Delete failed (${r.status})`)
       toast.success(t('webhooks.deleted', 'Webhook deleted'))
       await load()
@@ -118,7 +120,7 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
 
   async function test(w: Webhook) {
     try {
-      const { r, data } = await jfetch(token, `/api/webhooks/${w.id}/test`, { method: 'POST' })
+      const { r, data } = await jfetch(token!, `/api/webhooks/${w.id}/test`, { method: 'POST' })
       if (!r.ok) throw new Error(data?.detail || `Test failed (${r.status})`)
       toast.success(t('webhooks.testSent', 'Test event sent'))
     } catch (e) { toast.error((e as Error).message) }
@@ -309,20 +311,21 @@ export default function WebhooksView({ token, canConfigure = false, configVersio
         )}
 
         {deliveriesFor && (
-          <DeliveriesModal token={token} webhook={deliveriesFor} onClose={() => setDeliveriesFor(null)} />
+          <DeliveriesModal webhook={deliveriesFor} onClose={() => setDeliveriesFor(null)} />
         )}
     </PageShell>
   )
 }
 
-function DeliveriesModal({ token, webhook, onClose }: { token: string; webhook: Webhook; onClose: () => void }) {
+function DeliveriesModal({ webhook, onClose }: { webhook: Webhook; onClose: () => void }) {
+  const { token } = useAuth()
   const [list, setList] = useState<Delivery[] | null>(null)
   const [error, setError] = useState('')
 
   async function load() {
     setError(''); setList(null)
     try {
-      const { r, data } = await jfetch(token, `/api/webhooks/${webhook.id}/deliveries`)
+      const { r, data } = await jfetch(token!, `/api/webhooks/${webhook.id}/deliveries`)
       if (!r.ok) { setError(r.status === 404 ? t('webhooks.deliveriesLoadError', 'Deliveries log not available') : t('webhooks.deliveriesLoadError', 'Failed to load deliveries')); setList([]); return }
       setList(Array.isArray(data) ? data : [])
     } catch { setError(t('webhooks.deliveriesLoadError', 'Failed to load deliveries')); setList([]) }

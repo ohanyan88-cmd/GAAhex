@@ -6,6 +6,7 @@ import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { StatusPill } from '../../primitives'
 import { fmtDate } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type TaskRow = {
   id: string
@@ -27,13 +28,14 @@ function taskPill(s: string | null | undefined): 'active' | 'neutral' | 'critica
 }
 
 // TB-4 — parameterized over (entity, id) so all detail views share this one component.
-export default function TasksTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function TasksTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<TaskRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<TaskRow[]>(token, `/api/tasks?parent_entity_type=${encodeURIComponent(entity)}&parent_entity_id=${encodeURIComponent(id)}`)
+    bget<TaskRow[]>(token!, `/api/tasks?parent_entity_type=${encodeURIComponent(entity)}&parent_entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }  // missing endpoint → empty state

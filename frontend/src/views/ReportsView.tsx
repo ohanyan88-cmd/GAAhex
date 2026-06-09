@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { SkeletonRows, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { BookmarkIcon } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
@@ -70,19 +71,18 @@ function normalizeByStatus(raw: any): StatusCount[] {
 const fmtNum = (n: number) => n.toLocaleString('en-US')
 
 export default function ReportsView({
-  token,
   configVersion = 0,
   canConfigure = false,
   capabilities,
   onConfigure,
 }: {
-  token: string
   configVersion?: number
   canConfigure?: boolean
   capabilities?: Capabilities
   onConfigure?: () => void
 }) {
-  const cfg = usePageConfig(token, 'reports', configVersion)
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'reports', configVersion)
   const [summary, setSummary] = useState<Summary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -96,7 +96,7 @@ export default function ReportsView({
   function loadSummary() {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
-    fetchJson(token, '/reports/summary')
+    fetchJson(token!, '/reports/summary')
       .then((data) => {
         // Doctrine rule 6: client-side capability gate matches server-side filter,
         // so we never even surface entities the user can't `view`.
@@ -125,7 +125,7 @@ export default function ReportsView({
     setSelected(slug)
     setStatusLoading(true); setStatusError(''); setByStatus([])
     try {
-      const raw = await fetchJson(token, `/reports/${slug}/by-status`)
+      const raw = await fetchJson(token!, `/reports/${slug}/by-status`)
       setByStatus(normalizeByStatus(raw))
     } catch (err) {
       // eslint-disable-next-line no-console

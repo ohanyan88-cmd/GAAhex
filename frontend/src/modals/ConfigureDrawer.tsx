@@ -6,6 +6,7 @@ import FieldsPane from '../studio/FieldsPane'
 import WorkflowsPane from '../studio/WorkflowsPane'
 import PageSettingsPane from './PageSettingsPane'
 import { PAGE_SPECS } from '../lib/pageConfig'
+import { useAuth } from '../context/AuthContext'
 
 // -----------------------------------------------------------------------
 // ConfigureDrawer — right-side slide-in overlay for per-page configuration.
@@ -29,7 +30,6 @@ type Tab = 'fields' | 'workflows'
 
 export type ConfigureDrawerProps =
   | {
-      token: string
       slug: string
       entities: EntitySummary[]
       onClose: () => void
@@ -38,7 +38,6 @@ export type ConfigureDrawerProps =
       onSaved?: undefined
     }
   | {
-      token: string
       pageKey: string
       entities: EntitySummary[]
       onClose: () => void
@@ -162,7 +161,8 @@ function PageSwitcher({
 // Drawer panel (portal, right-side slide-in)
 // ---------------------------------------------------------------------------
 export default function ConfigureDrawer(props: ConfigureDrawerProps) {
-  const { token, entities, onClose } = props
+  const { token } = useAuth()
+  const { entities, onClose } = props
   const isPageMode = props.pageKey != null
   const slug = props.slug
   const pageKey = props.pageKey
@@ -306,7 +306,6 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           {isPageMode && (
             <PageSettingsPane
               key={`page-${pageKey}`}
-              token={token}
               pageKey={pageKey!}
               onSaved={props.onSaved}
             />
@@ -314,7 +313,6 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           {!isPageMode && tab === 'fields' && (
             <FieldsPane
               key={`fields-${slug}`}
-              token={token}
               initialSlug={slug!}
               lockEntity
             />
@@ -322,7 +320,6 @@ export default function ConfigureDrawer(props: ConfigureDrawerProps) {
           {!isPageMode && tab === 'workflows' && (
             <WorkflowsPane
               key={`workflows-${slug}`}
-              token={token}
               initialSlug={slug!}
               lockEntity
             />

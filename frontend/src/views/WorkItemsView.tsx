@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import {
   listWorkItems, getWorkItem, createWorkItem, patchWorkItem,
   startWorkItem, completeWorkItem, blockWorkItem,
@@ -75,19 +76,18 @@ type Tab = 'active' | 'all' | 'mine'
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function WorkItemsView({
-  token,
   canConfigure = false,
   configVersion = 0,
   onConfigure,
 }: {
-  token: string
   canConfigure?: boolean
   configVersion?: number
   onConfigure?: () => void
 }) {
-  const cfg = usePageConfig(token, 'workitems', configVersion)
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'workitems', configVersion)
   const [items, setItems] = useState<WorkItem[] | null>(null)
-  const cf = useCustomFields(token, 'workitems', cfg.customFields, (items ?? []).map((item) => item.id))
+  const cf = useCustomFields('workitems', cfg.customFields, (items ?? []).map((item) => item.id))
   const [allItems, setAllItems] = useState<WorkItem[]>([])   // unfiltered, used for counts
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
@@ -108,7 +108,7 @@ export default function WorkItemsView({
   const PAGE_SIZE = 25
 
   async function loadUsers() {
-    const res = await listUsers(token)
+    const res = await listUsers(token!)
     if (res.ok && Array.isArray(res.data)) setUsers(res.data)
   }
 
@@ -122,7 +122,7 @@ export default function WorkItemsView({
     if (kindFilter) filters.kind = kindFilter
 
     // Load all items once for tab counts, then filter per tab
-    const res = await listWorkItems(token, filters)
+    const res = await listWorkItems(token!, filters)
     if (res.status === 404) { setUnavailable(true); setItems([]); setAllItems([]); return }
     if (!res.ok) { setError('Failed to load work items'); setItems([]); setAllItems([]); return }
     let list = Array.isArray(res.data) ? res.data : []
@@ -134,7 +134,7 @@ export default function WorkItemsView({
     }
 
     setItems(list)
-    setCustomerNames(await loadCustomers(token))
+    setCustomerNames(await loadCustomers(token!))
   }
 
   useEffect(() => { loadUsers() }, [token])
@@ -315,7 +315,7 @@ export default function WorkItemsView({
               sortDir={sortDir}
               onSortChange={toggleSort}
               onRowClick={(item) => setDetailId(item.id)}
-              onStatusChange={makeStatusChangeHandler(token, loadData)}
+              onStatusChange={makeStatusChangeHandler(token!, loadData)}
               cfHeaders={cf.headers()}
               cfCellsFor={(id) => cf.cells(id)}
               customFieldCount={cfg.customFields.length}
@@ -335,7 +335,6 @@ export default function WorkItemsView({
         {/* Detail/edit modal */}
         {detailId && (
           <WorkItemDetailModal
-            token={token}
             id={detailId}
             users={users}
             customerNames={customerNames}
@@ -346,7 +345,6 @@ export default function WorkItemsView({
         {/* Create modal */}
         {createOpen && (
           <CreateWorkItemModal
-            token={token}
             onClose={() => setCreateOpen(false)}
             onDone={() => { setCreateOpen(false); loadData() }}
           />
@@ -358,14 +356,14 @@ export default function WorkItemsView({
 // ── Detail / Edit Modal ───────────────────────────────────────────────────────
 
 function WorkItemDetailModal({
-  token, id, users, customerNames, onClose,
+  id, users, customerNames, onClose,
 }: {
-  token: string
   id: string
   users: User[]
   customerNames: Record<string, string>
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [item, setItem] = useState<WorkItem | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -386,7 +384,7 @@ function WorkItemDetailModal({
 
   async function load() {
     setError('')
-    const res = await getWorkItem(token, id)
+    const res = await getWorkItem(token!, id)
     if (!res.ok) { setError(res.status === 404 ? 'Work item not found' : 'Failed to load'); return }
     const wi = res.data!
     setItem(wi)
@@ -407,7 +405,7 @@ function WorkItemDetailModal({
     if (!title.trim() || busy) return
     setBusy(true)
     try {
-      await patchWorkItem(token, id, {
+      await patchWorkItem(token!, id, {
         title: title.trim(),
         description: description.trim() || undefined,
         kind: (kind as WorkItemKind) || undefined,
@@ -428,11 +426,11 @@ function WorkItemDetailModal({
     if (busy) return
     setBusy(true)
     try {
-      if (action === 'start') await startWorkItem(token, id)
-      else if (action === 'complete') await completeWorkItem(token, id)
-      else if (action === 'block') await blockWorkItem(token, id)
-      else if (action === 'cancel') await cancelWorkItem(token, id)
-      else await reopenWorkItem(token, id)
+      if (action === 'start') await startWorkItem(token!, id)
+      else if (action === 'complete') await completeWorkItem(token!, id)
+      else if (action === 'block') await blockWorkItem(token!, id)
+      else if (action === 'cancel') await cancelWorkItem(token!, id)
+      else await reopenWorkItem(token!, id)
       toast.success(`Work item ${action === 'complete' ? 'completed' : action + 'ed'}`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -444,7 +442,7 @@ function WorkItemDetailModal({
     if (!window.confirm('Delete this work item? This cannot be undone.')) return
     setBusy(true)
     try {
-      await deleteWorkItem(token, id)
+      await deleteWorkItem(token!, id)
       toast.success('Deleted')
       onClose()
     } catch (e) { toast.error((e as Error).message); setBusy(false) }
@@ -574,7 +572,6 @@ function WorkItemDetailModal({
             <label className="field">
               <span>Assignee</span>
               <UserPicker
-                token={token}
                 value={assigneeId}
                 onChange={setAssigneeId}
                 aria-label="Assignee"
@@ -645,12 +642,12 @@ function WorkItemDetailModal({
 // ── Create Modal ──────────────────────────────────────────────────────────────
 
 function CreateWorkItemModal({
-  token, onClose, onDone,
+  onClose, onDone,
 }: {
-  token: string
   onClose: () => void
   onDone: () => void
 }) {
+  const { token } = useAuth()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<WorkItemKind | ''>('')
@@ -677,7 +674,7 @@ function CreateWorkItemModal({
         scheduled_at: scheduledAt || undefined,
         location: location.trim() || undefined,
       }
-      await createWorkItem(token, payload)
+      await createWorkItem(token!, payload)
       toast.success('Work item created')
       onDone()
     } catch (e) {
@@ -747,7 +744,6 @@ function CreateWorkItemModal({
         <label className="field">
           <span>Assignee</span>
           <UserPicker
-            token={token}
             value={assigneeId}
             onChange={setAssigneeId}
             aria-label="Assignee"

@@ -2,6 +2,7 @@
 // Lists sites/POPs from /api/sites (entity records with entity_key='site').
 // Shows status, kind, address. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
@@ -19,14 +20,15 @@ const KIND_COLORS: Record<string, string> = {
   tower: 'var(--gx-warning)',
 }
 
-export default function NetworkTopologyView({ token }: { token: string }) {
+export default function NetworkTopologyView() {
+  const { token } = useAuth()
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/sites?limit=${NETWORK_SITES}`, { headers: authH(token) })
+    fetch(`${BASE}/api/sites?limit=${NETWORK_SITES}`, { headers: authH(token!) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setSites(Array.isArray(d) ? d : d.records ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

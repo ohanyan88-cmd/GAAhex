@@ -3,6 +3,7 @@
 // When lat/lon data is present, shows coordinates.
 // Real data from GET /api/coverage-checks. Real data only.
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
@@ -12,14 +13,15 @@ import { COVERAGE_CHECKS } from '../lib/pagination'
 
 type Check = { id: string; status: string | null; data: Record<string, unknown> }
 
-export default function CoverageView({ token }: { token: string }) {
+export default function CoverageView() {
+  const { token } = useAuth()
   const [checks, setChecks] = useState<Check[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/coverage-checks?limit=${COVERAGE_CHECKS}`, { headers: authH(token) })
+    fetch(`${BASE}/api/coverage-checks?limit=${COVERAGE_CHECKS}`, { headers: authH(token!) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setChecks(Array.isArray(d) ? d : d.records ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

@@ -13,6 +13,7 @@
 // be 403 to this user); a fully empty aggregate → empty state.
 
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { EmptyState, SkeletonRows, ErrorBanner } from '../components/States'
 import { BookmarkIcon, InboxIcon } from '../components/icons'
 import { getEntities } from '../lib/api'
@@ -39,18 +40,17 @@ type LoadState =
   | { kind: 'error'; message: string }
 
 export default function SavedViewsView({
-  token,
   onOpenEntity,
 }: {
-  token: string
   onOpenEntity?: (slug: string) => void
 }) {
+  const { token } = useAuth()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
 
   async function load() {
     setState({ kind: 'loading' })
     try {
-      const entities: Entity[] = await getEntities(token)
+      const entities: Entity[] = await getEntities(token!)
       // Fan out one request per entity. Each can independently 403/404 — we keep
       // only successful responses. This is a real fetch on each entity; nothing
       // is faked.
@@ -59,7 +59,7 @@ export default function SavedViewsView({
           try {
             const r = await fetch(
               `${BASE}/api/views?entity=${encodeURIComponent(e.key)}`,
-              { headers: authH(token) },
+              { headers: authH(token!) },
             )
             if (!r.ok) return [] as SavedView[]
             const data = await r.json()

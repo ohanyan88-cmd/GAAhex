@@ -18,13 +18,11 @@ import { LEAF_BY_ID } from './tree'
 export type StudioRoute = { group?: string; module?: string; leaf?: string }
 
 export default function StudioShell({
-  token,
   canConfigure,
   route,
   onRoute,
   onBack,
 }: {
-  token: string | null
   canConfigure: boolean
   route: StudioRoute
   onRoute: (r: StudioRoute) => void
@@ -140,7 +138,7 @@ export default function StudioShell({
         <StudioTree activeId={activeId} onPick={onPick} />
         <section className="studio-pane">
           {leaf ? (
-            <StudioGenericPane leaf={leaf} token={token} />
+            <StudioGenericPane leaf={leaf} />
           ) : (
             <StudioOverview onPick={onPick} />
           )}

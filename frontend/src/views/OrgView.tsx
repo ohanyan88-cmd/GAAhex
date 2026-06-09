@@ -1,6 +1,7 @@
 // OrgView coordinator — renders one of 13 switchable layouts. Layout logic lives in
 // views/org/layouts/; shared types/utils/context in views/org/.
 import { useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button } from '../primitives'
@@ -45,20 +46,20 @@ const SWITCHER: { id: OrgLayout; label: string; Icon: typeof LayersIcon }[] = [
   { id: 'raci', label: 'RACI', Icon: ShieldIcon },
 ]
 
-export default function OrgView({ nodes, token, configVersion, canConfigure = false, onRefresh, onConfigure }: {
+export default function OrgView({ nodes, configVersion, canConfigure = false, onRefresh, onConfigure }: {
   nodes: OrgNode[]
-  token: string
   configVersion: number
   canConfigure?: boolean
   onRefresh?: () => Promise<void>
   onConfigure?: () => void
 }) {
-  const cfg = usePageConfig(token, 'org', configVersion)
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'org', configVersion)
   const [layout, setLayout] = useState<OrgLayout>(loadLayout)
   const roots = useMemo(() => buildTree(nodes), [nodes])
 
   const allNodeIds = useMemo(() => nodes.map((n) => n.id), [nodes])
-  const cf = useCustomFields(token, 'org', cfg.customFields, allNodeIds)
+  const cf = useCustomFields('org', cfg.customFields, allNodeIds)
   const defs = cfg.customFields
 
   const [editState, setEditState] = useState<EditState>(null)
@@ -162,16 +163,16 @@ export default function OrgView({ nodes, token, configVersion, canConfigure = fa
         )}
 
         {editState?.kind === 'add' && (
-          <AddNodeModal token={token} parent={editState.parent} onClose={() => setEditState(null)} onDone={refresh} />
+          <AddNodeModal parent={editState.parent} onClose={() => setEditState(null)} onDone={refresh} />
         )}
         {editState?.kind === 'rename' && (
-          <RenameNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
+          <RenameNodeModal node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
         )}
         {editState?.kind === 'move' && (
-          <MoveNodeModal token={token} node={editState.node} nodes={nodes} onClose={() => setEditState(null)} onDone={refresh} />
+          <MoveNodeModal node={editState.node} nodes={nodes} onClose={() => setEditState(null)} onDone={refresh} />
         )}
         {editState?.kind === 'delete' && (
-          <DeleteNodeModal token={token} node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
+          <DeleteNodeModal node={editState.node} onClose={() => setEditState(null)} onDone={refresh} />
         )}
       </PageShell>
     </OrgEditContext.Provider>

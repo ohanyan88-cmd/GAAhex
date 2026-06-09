@@ -69,6 +69,7 @@ type BalanceCell = BalanceSnapshot | null
 // DF-6 — balance is a Decimal string in MAJOR units (֏). Canonical formatter
 // in lib/money.ts; local alias keeps existing call sites unchanged.
 import { moneyDecStr as moneyDecimal } from '../lib/money'
+import { useAuth } from '../context/AuthContext'
 
 // Balance sign tone: NEGATIVE = customer owes us (red), POSITIVE = credit on account (green),
 // zero = default. Returns an inline style snippet to keep the column tnum + right-aligned.
@@ -107,11 +108,12 @@ function mapBillingStatus(s: string | null | undefined): PillVariant {
   return 'info'
 }
 
-export default function AccountsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+export default function AccountsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
   const { t } = useI18n()
-  const cfg = usePageConfig(token, 'accounts', configVersion)
+  const cfg = usePageConfig(token!, 'accounts', configVersion)
   const [list, setList] = useState<Account[] | null>(null)
-  const cf = useCustomFields(token, 'accounts', cfg.customFields, (list ?? []).map((a) => a.id))
+  const cf = useCustomFields('accounts', cfg.customFields, (list ?? []).map((a) => a.id))
   const [parties, setParties] = useState<Party[]>([])
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -146,7 +148,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   // attempts. Other errors are swallowed (cell shows '—' until next refresh).
   async function fetchBalance(accountId: string, opts?: { silent?: boolean }): Promise<BalanceCell> {
     if (balanceApiDown) return null
-    const res = await bget<BalanceSnapshot>(token, `/api/accounts/${accountId}/balance`)
+    const res = await bget<BalanceSnapshot>(token!, `/api/accounts/${accountId}/balance`)
     if (res.status === 404 && !opts?.silent) {
       // First 404 ⇒ feature unavailable. Toast once and stop further fetches.
       setBalanceApiDown((prev) => {
@@ -183,7 +185,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
     if (recomputing[accountId]) return
     setRecomputing((m) => ({ ...m, [accountId]: true }))
     try {
-      const snap = await bpost<BalanceSnapshot>(token, `/api/accounts/${accountId}/recompute-balance`)
+      const snap = await bpost<BalanceSnapshot>(token!, `/api/accounts/${accountId}/recompute-balance`)
       // Trust the response body to avoid a second round-trip, but fall back to a refetch if shape
       // is unexpected (defensive — the endpoint contract is documented but admin-only).
       if (snap && typeof snap === 'object' && 'current_balance' in snap) {
@@ -203,7 +205,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
-    const res = await bget<Account[]>(token, '/api/accounts')
+    const res = await bget<Account[]>(token!, '/api/accounts')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) { setError(t('accounts.loadError', 'Failed to load accounts')); setList([]); return }
@@ -214,7 +216,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   }
 
   useEffect(() => { load() }, [token])
-  useEffect(() => { bget<Party[]>(token, '/api/parties').then((r) => setParties(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
+  useEffect(() => { bget<Party[]>(token!, '/api/parties').then((r) => setParties(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
   useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
   const holderName = (a: Account) => a.holder_party_name ?? (a.holder_party_id ? (parties.find((p) => p.id === a.holder_party_id)?.name ?? a.holder_party_id.slice(0, 8)) : '—')
@@ -222,7 +224,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   async function create() {
     if (!holder) return
     try {
-      await bpost(token, '/api/accounts', { holder_party_id: holder, type, currency, billing_cycle: cycle })
+      await bpost(token!, '/api/accounts', { holder_party_id: holder, type, currency, billing_cycle: cycle })
       toast.success(t('accounts.created', 'Account created'))
       setCreating(false); setHolder(''); setType('residential'); setCurrency('AMD'); setCycle('monthly')
       await load()
@@ -230,7 +232,7 @@ export default function AccountsView({ token, canConfigure = false, configVersio
   }
 
   if (denied) return <PermissionDenied message={t('accounts.denied', "You don't have permission to view accounts.")} />
-  if (detailId) return <AccountDetail token={token} id={detailId} parties={parties} canRecompute={canRecompute} onBack={() => { setDetailId(null); load() }} />
+  if (detailId) return <AccountDetail token={token!} id={detailId} parties={parties} canRecompute={canRecompute} onBack={() => { setDetailId(null); load() }} />
 
   const all = list ?? []
   const activeCount = all.filter(a => (a.status ?? '').toUpperCase() === 'ACTIVE').length
@@ -606,14 +608,14 @@ function AccountDetail({ token, id, parties, onBack }: { token: string; id: stri
               {/* TB-4 — account detail tabs reuse the canonical
                   `customer-tabs/*` components. The 8 Account*Tab locals
                   below were deleted (~300 LOC of pure copy-paste). */}
-              {tab === 'timeline'       && <TimelineTab token={token} entity="account" id={id} />}
-              {tab === 'tasks'          && <TasksTab token={token} entity="account" id={id} />}
-              {tab === 'comments'       && <CommentsTab token={token} entity="account" id={id} />}
-              {tab === 'attachments'    && <AttachmentsTab token={token} entity="account" id={id} />}
-              {tab === 'approvals'      && <ApprovalsTab token={token} entity="account" id={id} />}
-              {tab === 'related'        && <RelatedTab token={token} entity="account" id={id} />}
-              {tab === 'communications' && <CommunicationsTab token={token} entity="account" id={id} />}
-              {tab === 'audit'          && <AuditTab token={token} entity="account" id={id} />}
+              {tab === 'timeline'       && <TimelineTab entity="account" id={id} />}
+              {tab === 'tasks'          && <TasksTab entity="account" id={id} />}
+              {tab === 'comments'       && <CommentsTab entity="account" id={id} />}
+              {tab === 'attachments'    && <AttachmentsTab entity="account" id={id} />}
+              {tab === 'approvals'      && <ApprovalsTab entity="account" id={id} />}
+              {tab === 'related'        && <RelatedTab entity="account" id={id} />}
+              {tab === 'communications' && <CommunicationsTab entity="account" id={id} />}
+              {tab === 'audit'          && <AuditTab entity="account" id={id} />}
             </div>
           </>
         )}

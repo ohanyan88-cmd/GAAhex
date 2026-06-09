@@ -8,6 +8,7 @@ import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
 import { GearIcon } from '../components/icons'
 import { BASE, authH } from '../lib/billing'
 import { PENDING_SERVICES } from '../lib/pagination'
+import { useAuth } from '../context/AuthContext'
 
 
 type Service = {
@@ -20,14 +21,15 @@ type Service = {
 // '—' for empty, which is compatible at every call site here.
 import { fmtDate } from '../lib/time'
 
-export default function ProvisioningView({ token }: { token: string }) {
+export default function ProvisioningView() {
+  const { token } = useAuth()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/services?status=PENDING&limit=${PENDING_SERVICES}`, { headers: authH(token) })
+    fetch(`${BASE}/api/services?status=PENDING&limit=${PENDING_SERVICES}`, { headers: authH(token!) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setServices(Array.isArray(d) ? d : d.services ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

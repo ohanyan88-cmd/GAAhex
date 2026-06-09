@@ -14,6 +14,7 @@
 // the SVG wrapper set in components/icons.tsx.
 
 import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { Button, KPITile, StatusPill } from '../primitives'
 import { ErrorBanner } from '../components/States'
 import {
@@ -204,7 +205,8 @@ function ProbePanel({
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function SystemHealthPane({ token }: { token: string }) {
+export default function SystemHealthPane() {
+  const { token } = useAuth()
   const [liveness, setLiveness] = useState<ProbeState<Liveness>>({
     data: null, status: -1, lastCheckedMs: 0, loading: true, netError: null,
   })
@@ -230,7 +232,7 @@ export default function SystemHealthPane({ token }: { token: string }) {
 
   const checkStatus = useCallback(async () => {
     setStatus(p => ({ ...p, loading: true }))
-    const r = await runProbe<StatusSummary>('/api/health/status', token)
+    const r = await runProbe<StatusSummary>('/api/health/status', token ?? undefined)
     setStatus({ data: r.data, status: r.status, lastCheckedMs: Date.now(), loading: false, netError: r.netError })
   }, [token])
 

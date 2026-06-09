@@ -8,6 +8,7 @@
 
 import { Button } from '../primitives'
 import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import {
   ChevronDown,
   ChevronUp,
@@ -523,7 +524,8 @@ function AuditLogTab({ token }: { token?: string }) {
 
 // ── VersionHistory: top-level two-tab shell ────────────────────────────────────
 
-export function VersionHistory({ token }: { token?: string } = {}) {
+export function VersionHistory() {
+  const { token } = useAuth()
   const [tab, setTab] = useState<'versions' | 'audit'>('versions')
 
   return (
@@ -544,8 +546,8 @@ export function VersionHistory({ token }: { token?: string } = {}) {
         }
       />
       {tab === 'versions'
-        ? <PageVersionsTab token={token} />
-        : <AuditLogTab token={token} />
+        ? <PageVersionsTab token={token ?? undefined} />
+        : <AuditLogTab token={token ?? undefined} />
       }
     </div>
   )

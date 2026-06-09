@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost, loadCustomers, loadCustomerOptions, loadProducts, type Subscription, type Product } from '../lib/billing'
 import { money, toMinor } from '../lib/money'
 import { toast } from '../components/Toast'
@@ -33,10 +34,11 @@ function mapSubStatus(s: string | null | undefined): PillVariant {
   return 'info'
 }
 
-export default function SubscriptionsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'subscriptions', configVersion)
+export default function SubscriptionsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'subscriptions', configVersion)
   const [list, setList] = useState<Subscription[] | null>(null)
-  const cf = useCustomFields(token, 'subscriptions', cfg.customFields, (list ?? []).map((s) => s.id))
+  const cf = useCustomFields('subscriptions', cfg.customFields, (list ?? []).map((s) => s.id))
   const [names, setNames] = useState<Record<string, string>>({})
   const [customers, setCustomers] = useState<{ id: string; label: string }[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -53,17 +55,17 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
-    const res = await bget<Subscription[]>(token, '/api/subscriptions')
+    const res = await bget<Subscription[]>(token!, '/api/subscriptions')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (!res.ok) { setError('Failed to load subscriptions'); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
-    setNames(await loadCustomers(token))
+    setNames(await loadCustomers(token!))
   }
 
   useEffect(() => { load() }, [token])
   useEffect(() => {
-    loadCustomerOptions(token).then(setCustomers)
-    loadProducts(token, true).then(setProducts)
+    loadCustomerOptions(token!).then(setCustomers)
+    loadProducts(token!, true).then(setProducts)
   }, [token])
   useEffect(() => { setPage(1) }, [query, sortKey, sortDir])
 
@@ -83,7 +85,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
   async function createSub() {
     if (!draft || !draft.plan_name.trim()) return
     try {
-      await bpost(token, '/api/subscriptions', {
+      await bpost(token!, '/api/subscriptions', {
         customer_id: draft.customer_id || undefined,
         product_id: draft.product_id || undefined,
         plan_name: draft.plan_name.trim(),
@@ -98,7 +100,7 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   async function action(id: string, verb: 'cancel' | 'suspend' | 'resume') {
     try {
-      await bpost(token, `/api/subscriptions/${id}/${verb}`)
+      await bpost(token!, `/api/subscriptions/${id}/${verb}`)
       toast.success(`Subscription ${verb === 'resume' ? 'resumed' : verb + 'ed'}`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -106,14 +108,14 @@ export default function SubscriptionsView({ token, canConfigure = false, configV
 
   async function generate(id: string) {
     try {
-      await bpost(token, `/api/subscriptions/${id}/generate-invoice`)
+      await bpost(token!, `/api/subscriptions/${id}/generate-invoice`)
       toast.success('Invoice generated')
     } catch (e) { toast.error((e as Error).message) }
   }
 
   async function rateUsage(id: string) {
     try {
-      const res: any = await bpost(token, '/api/usage/rate', { subscription_id: id })
+      const res: any = await bpost(token!, '/api/usage/rate', { subscription_id: id })
       const inv = res?.invoice_number ?? res?.number ?? (res?.invoice_id ? `#${String(res.invoice_id).slice(0, 8)}` : '')
       const total = res?.total
       toast.success(`Usage rated${inv ? ` → ${inv}` : ''}${typeof total === 'number' ? ` (${money(total)})` : ''}`)

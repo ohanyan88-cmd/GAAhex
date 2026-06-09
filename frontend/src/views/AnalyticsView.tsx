@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { bget } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 import { money } from '../lib/money'
 import { EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { ChartIcon } from '../components/icons'
@@ -30,9 +31,10 @@ function pick(o: Overview, key: string): { value: number; prev?: number } {
   return { value: Number(raw) || 0, prev: p != null ? Number(p) : undefined }
 }
 
-export default function AnalyticsView({ token, configVersion = 0, canConfigure = false, onConfigure }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
+export default function AnalyticsView({ configVersion = 0, canConfigure = false, onConfigure }: { configVersion?: number; canConfigure?: boolean; onConfigure?: () => void }) {
+  const { token } = useAuth()
   const { t } = useI18n()
-  const cfg = usePageConfig(token, 'analytics', configVersion)
+  const cfg = usePageConfig(token!, 'analytics', configVersion)
   const [overview, setOverview] = useState<Overview | null>(null)
   const [trend, setTrend] = useState<TrendPoint[] | null>(null)
   const [mix, setMix] = useState<MixSlice[] | null>(null)
@@ -46,16 +48,16 @@ export default function AnalyticsView({ token, configVersion = 0, canConfigure =
 
   async function load() {
     setLoading(true); setUnavailable(false); setDenied(false); setError('')
-    const ov = await bget<Overview>(token, '/api/analytics/overview')
+    const ov = await bget<Overview>(token!, '/api/analytics/overview')
     if (ov.status === 404) { setUnavailable(true); setLoading(false); return }
     if (ov.status === 403) { setDenied(true); setLoading(false); return }
     if (!ov.ok) { setError(t('analytics.loadError', 'Failed to load analytics')); setLoading(false); return }
     setOverview(ov.data || {})
 
     const [tr, mx, ag] = await Promise.all([
-      bget<any>(token, '/api/analytics/revenue-trend?months=6'),
-      bget<MixSlice[]>(token, '/api/analytics/subscription-mix'),
-      bget<any>(token, '/api/analytics/ar-aging'),
+      bget<any>(token!, '/api/analytics/revenue-trend?months=6'),
+      bget<MixSlice[]>(token!, '/api/analytics/subscription-mix'),
+      bget<any>(token!, '/api/analytics/ar-aging'),
     ])
     setTrend(tr.ok && Array.isArray(tr.data) ? tr.data.map((d: any) => ({ month: String(d.month ?? ''), collected: Number(d.collected) || 0, invoiced: Number(d.invoiced) || 0 })) : [])
     setMix(mx.ok && Array.isArray(mx.data) ? mx.data.map((d: any) => ({ product: String(d.product ?? '—'), count: Number(d.count) || 0, mrr: Number(d.mrr) || 0 })) : [])

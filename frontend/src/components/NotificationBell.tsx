@@ -3,6 +3,7 @@
 // refetches the list every time the popover opens. Same shape as the kit's NotificationBell
 // in design-system/ui_kits/portal/Shell.jsx — no kit mock SEED, just live data.
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { Bell, BellOff, Trash2, ArrowRight, AlertTriangle, CheckCircle2, Server as ServerIcon, Receipt, Wand2, Info } from 'lucide-react'
 import { toast } from './Toast'
 import { listNotifications, getUnreadCount, markRead, markAllRead, type ServerNote } from '../lib/notifications'
@@ -43,16 +44,15 @@ function relTime(iso: string | null): string {
 }
 
 export default function NotificationBell({
-  token,
   entities = [],
   onOpen: onOpenEntity,
   onViewAll,
 }: {
-  token: string
   entities?: EntityRef[]
   onOpen?: (slug: string) => void
   onViewAll?: () => void
 }) {
+  const { token } = useAuth()
   const [items, setItems] = useState<ServerNote[]>([])
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
@@ -60,10 +60,10 @@ export default function NotificationBell({
 
   // Poll the unread badge every 60s; reload the list every time the popover opens.
   async function refreshCount() {
-    try { setUnread(await getUnreadCount(token)) } catch { /* keep last */ }
+    try { setUnread(await getUnreadCount(token!)) } catch { /* keep last */ }
   }
   async function reloadList() {
-    try { setItems(await listNotifications(token)) } catch { /* keep last */ }
+    try { setItems(await listNotifications(token!)) } catch { /* keep last */ }
   }
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function NotificationBell({
 
   async function handleMarkAll() {
     try {
-      await markAllRead(token)
+      await markAllRead(token!)
       setItems((prev) => prev.map((n) => (n.read_at ? n : { ...n, read_at: new Date().toISOString() })))
       setUnread(0)
     } catch (err) {
@@ -115,7 +115,7 @@ export default function NotificationBell({
   async function handleItemClick(n: ServerNote) {
     // Mark read first (cheap & idempotent), then navigate if the note points at an entity record.
     if (!n.read_at) {
-      try { await markRead(token, n.id) } catch { /* navigate anyway */ }
+      try { await markRead(token!, n.id) } catch { /* navigate anyway */ }
       setItems((prev) => prev.map((it) => (it.id === n.id ? { ...it, read_at: new Date().toISOString() } : it)))
       setUnread((u) => Math.max(0, u - 1))
     }

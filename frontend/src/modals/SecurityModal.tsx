@@ -4,6 +4,7 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
 import { BASE as API } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 
 // SecurityModal — "Security & Sign-in" for the signed-in user only: change own password
 // (POST /api/me/password). MFA + active sessions are honest "Coming soon" placeholders — they are
@@ -11,12 +12,11 @@ import { BASE as API } from '../lib/billing'
 export default function SecurityModal({
   open,
   onClose,
-  token,
 }: {
   open: boolean
   onClose: () => void
-  token: string
 }) {
+  const { token } = useAuth()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [err, setErr] = useState('')
@@ -33,7 +33,7 @@ export default function SecurityModal({
     try {
       const r = await fetch(`${API}/api/me/password`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token!}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password: current, new_password: next }),
       })
       const data = await r.json().catch(() => ({}))

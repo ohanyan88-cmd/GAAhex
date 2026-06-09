@@ -19,6 +19,7 @@
 // the SVG wrapper set in components/icons.tsx.
 
 import { Fragment, useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { Button, StatusPill } from '../primitives'
 import {
   EmptyState, ErrorBanner, PermissionDenied, SkeletonRows,
@@ -112,7 +113,8 @@ function PayloadDetail({ data }: { data: unknown }) {
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function AuditLogPane({ token }: { token: string }) {
+export default function AuditLogPane() {
+  const { token } = useAuth()
   const [items, setItems] = useState<AuditEvent[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -139,7 +141,7 @@ export default function AuditLogPane({ token }: { token: string }) {
   useEffect(() => {
     if (!token) return
     let alive = true
-    bget<EventTypeDef[]>(token, '/api/events/types').then(res => {
+    bget<EventTypeDef[]>(token!,'/api/events/types').then(res => {
       if (!alive) return
       if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
         setEventTypes(res.data.map(t => ({ type: t.type, label: t.label })))
@@ -163,7 +165,7 @@ export default function AuditLogPane({ token }: { token: string }) {
   const load = useCallback(async () => {
     if (!token) return
     setLoading(true); setError(''); setDenied(false); setExpanded(new Set())
-    const res = await bget<AuditResp>(token, `/api/audit-log?${buildQuery(0)}`)
+    const res = await bget<AuditResp>(token!,`/api/audit-log?${buildQuery(0)}`)
     if (res.status === 403) {
       setDenied(true); setItems([]); setTotal(0); setLoading(false); return
     }
@@ -181,7 +183,7 @@ export default function AuditLogPane({ token }: { token: string }) {
   const loadMore = async () => {
     if (!token) return
     setLoadingMore(true)
-    const res = await bget<AuditResp>(token, `/api/audit-log?${buildQuery(items.length)}`)
+    const res = await bget<AuditResp>(token!,`/api/audit-log?${buildQuery(items.length)}`)
     if (res.ok && res.data && Array.isArray(res.data.items)) {
       setItems(prev => [...prev, ...res.data!.items])
       if (typeof res.data.total === 'number') setTotal(res.data.total)

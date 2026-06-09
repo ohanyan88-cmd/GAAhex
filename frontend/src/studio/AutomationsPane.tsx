@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   SparkleIcon, PlusIcon, CloseIcon, CheckIcon, EditIcon, TrashIcon, InfoIcon,
@@ -113,7 +114,8 @@ function automationToForm(a: Automation): FormState {
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function AutomationsPane({ token }: { token: string }) {
+export default function AutomationsPane() {
+  const { token } = useAuth()
   const [automations, setAutomations] = useState<Automation[]>([])
   const [entities, setEntities] = useState<EntityMeta[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,8 +139,8 @@ export default function AutomationsPane({ token }: { token: string }) {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
     Promise.all([
-      jreq(token, '/api/automations'),
-      jreq(token, '/meta/entities'),
+      jreq(token!,'/api/automations'),
+      jreq(token!,'/meta/entities'),
     ])
       .then(([a, e]) => {
         if (!alive) return
@@ -185,7 +187,7 @@ export default function AutomationsPane({ token }: { token: string }) {
     try {
       const payload = formToPayload(form)
       if (editTarget) {
-        const updated = await jreq(token, `/api/automations/${editTarget.id}`, {
+        const updated = await jreq(token!,`/api/automations/${editTarget.id}`, {
           method: 'PATCH',
           body: JSON.stringify(payload),
         })
@@ -193,7 +195,7 @@ export default function AutomationsPane({ token }: { token: string }) {
         setFormOk('Automation updated.')
         setEditTarget(updated)
       } else {
-        const created = await jreq(token, '/api/automations', {
+        const created = await jreq(token!,'/api/automations', {
           method: 'POST',
           body: JSON.stringify(payload),
         })
@@ -211,7 +213,7 @@ export default function AutomationsPane({ token }: { token: string }) {
 
   async function toggleActive(a: Automation) {
     try {
-      const updated = await jreq(token, `/api/automations/${a.id}`, {
+      const updated = await jreq(token!,`/api/automations/${a.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ is_active: !a.is_active }),
       })
@@ -224,7 +226,7 @@ export default function AutomationsPane({ token }: { token: string }) {
   async function deleteAutomation(id: number) {
     setDeleting(true); setDeleteErr('')
     try {
-      await jreq(token, `/api/automations/${id}`, { method: 'DELETE' })
+      await jreq(token!,`/api/automations/${id}`, { method: 'DELETE' })
       setAutomations((prev) => prev.filter((a) => a.id !== id))
       setDeleteId(null)
       if (editTarget?.id === id) closeForm()

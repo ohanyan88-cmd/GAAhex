@@ -20,6 +20,7 @@
 // value. Light + dark via --gx-* tokens; zero raw hex. No emoji.
 
 import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { Button, KPITile, StatusPill } from '../primitives'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { timeAgo } from '../lib/time'
@@ -696,7 +697,8 @@ function DrawerShell({
 // ---------------------------------------------------------------------------
 // Main pane — list + filters + create + drill-in
 // ---------------------------------------------------------------------------
-export default function WebhooksPane({ token }: { token: string }) {
+export default function WebhooksPane() {
+  const { token } = useAuth()
   const [hooks, setHooks] = useState<Webhook[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -709,7 +711,7 @@ export default function WebhooksPane({ token }: { token: string }) {
   const load = useCallback(() => {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
-    apiFetch<Webhook[]>(token, '/api/webhooks')
+    apiFetch<Webhook[]>(token!, '/api/webhooks')
       .then((d) => { if (alive) setHooks(Array.isArray(d) ? d : []) })
       .catch((ex) => {
         if (!alive) return
@@ -867,7 +869,7 @@ export default function WebhooksPane({ token }: { token: string }) {
 
       {showCreate && (
         <CreateWebhookModal
-          token={token}
+          token={token!}
           onClose={() => setShowCreate(false)}
           onCreated={(id) => {
             setShowCreate(false)
@@ -879,7 +881,7 @@ export default function WebhooksPane({ token }: { token: string }) {
 
       {openId && (
         <DetailDrawer
-          token={token}
+          token={token!}
           hookId={openId}
           onClose={() => setOpenId(null)}
           onChanged={() => load()}

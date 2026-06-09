@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { fmtDateTime } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type CommunicationRow = {
   id: string
@@ -21,13 +22,14 @@ type CommunicationRow = {
 }
 
 
-export default function CommunicationsTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function CommunicationsTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<CommunicationRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<CommunicationRow[]>(token, `/api/communications?related_entity_type=${encodeURIComponent(entity)}&related_entity_id=${encodeURIComponent(id)}`)
+    bget<CommunicationRow[]>(token!, `/api/communications?related_entity_type=${encodeURIComponent(entity)}&related_entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }

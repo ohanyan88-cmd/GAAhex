@@ -8,6 +8,7 @@ import {
   PAGE_SPECS, defaultDescriptor, resolveDescriptor, savePageConfig, deriveFieldKey,
   type PageDescriptor, type ColumnDef, type CustomFieldDef, type CustomFieldType,
 } from '../lib/pageConfig'
+import { useAuth } from '../context/AuthContext'
 
 const CUSTOM_FIELD_TYPES: CustomFieldType[] = ['text', 'number', 'date', 'select', 'boolean']
 
@@ -17,8 +18,9 @@ const CUSTOM_FIELD_TYPES: CustomFieldType[] = ['text', 'number', 'date', 'select
 // Lives inside ConfigureDrawer; persists via PUT /api/page-config/{pageKey}.
 // -----------------------------------------------------------------------------
 export default function PageSettingsPane({
-  token, pageKey, onSaved,
-}: { token: string; pageKey: string; onSaved?: () => void }) {
+  pageKey, onSaved,
+}: { pageKey: string; onSaved?: () => void }) {
+  const { token } = useAuth()
   const spec = PAGE_SPECS[pageKey]
   const [descriptor, setDescriptor] = useState<PageDescriptor | null>(null)
   const [error, setError] = useState('')
@@ -29,7 +31,7 @@ export default function PageSettingsPane({
     if (!spec) { setError(`Unknown page "${pageKey}"`); return }
     let alive = true
     setError(''); setDescriptor(null); setDirty(false)
-    bget<{ config?: Partial<PageDescriptor> }>(token, `/api/page-config/${pageKey}`)
+    bget<{ config?: Partial<PageDescriptor> }>(token!, `/api/page-config/${pageKey}`)
       .then((res) => {
         if (!alive) return
         if (!res.ok && res.status !== 404) { setError('Failed to load page settings'); setDescriptor(defaultDescriptor(spec)); return }
@@ -87,7 +89,7 @@ export default function PageSettingsPane({
           ...(f.type === 'select' ? { options: (f.options ?? []).map((o) => o.trim()).filter(Boolean) } : {}),
         })),
       }
-      await savePageConfig(token, pageKey, clean)
+      await savePageConfig(token!, pageKey, clean)
       toast.success('Page settings saved')
       setDirty(false)
       onSaved?.()

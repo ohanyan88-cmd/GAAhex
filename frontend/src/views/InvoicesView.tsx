@@ -27,6 +27,7 @@ import {
   ShieldIcon, LayersIcon, MailIcon, ActivityIcon,
 } from '../components/icons'
 import { useI18n } from '../lib/i18n'
+import { useAuth } from '../context/AuthContext'
 import { PageShell, Stack, Inline, Card, SectionHeading, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
@@ -179,9 +180,8 @@ function colTdClass(colKey: string): string {
 }
 
 export default function InvoicesView({
-  token, canConfigure = false, configVersion = 0, initialStatus, capabilities = FULL_ACCESS,
+  canConfigure = false, configVersion = 0, initialStatus, capabilities = FULL_ACCESS,
 }: {
-  token: string
   canConfigure?: boolean
   configVersion?: number
   /** Home-page / Customer 360 deep link: pre-filter the list by this status when set. */
@@ -189,10 +189,11 @@ export default function InvoicesView({
   /** Per-entity caps; mutation buttons (Issue / Void / Pay / Record) gate on these. */
   capabilities?: Capabilities
 }) {
+  const { token } = useAuth()
   const { t } = useI18n()
-  const cfg = usePageConfig(token, 'invoices', configVersion)
+  const cfg = usePageConfig(token!, 'invoices', configVersion)
   const [list, setList] = useState<Invoice[] | null>(null)
-  const cf = useCustomFields(token, 'invoices', cfg.customFields, (list ?? []).map((inv) => inv.id))
+  const cf = useCustomFields('invoices', cfg.customFields, (list ?? []).map((inv) => inv.id))
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState(initialStatus ?? '')
   const [error, setError] = useState('')
@@ -215,18 +216,18 @@ export default function InvoicesView({
     const p = new URLSearchParams()
     if (status) p.set('status', status)
     const qs = p.toString()
-    const res = await bget<Invoice[]>(token, `/api/invoices${qs ? `?${qs}` : ''}`)
+    const res = await bget<Invoice[]>(token!, `/api/invoices${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (!res.ok) { setError('Failed to load invoices'); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
-    setNames(await loadCustomers(token))
+    setNames(await loadCustomers(token!))
   }
 
   useEffect(() => { load() }, [token, status])
 
   async function runDunning() {
     try {
-      await bpost(token, '/api/invoices/run-dunning')
+      await bpost(token!, '/api/invoices/run-dunning')
       toast.success('Dunning run complete')
       await load()
     } catch (e) {
@@ -239,7 +240,7 @@ export default function InvoicesView({
     if (cycleBusy) return
     setCycleBusy(true)
     try {
-      const r = await bpost<{ generated?: number; skipped?: number }>(token, '/api/billing/run-cycle')
+      const r = await bpost<{ generated?: number; skipped?: number }>(token!, '/api/billing/run-cycle')
       const msg = t('billing.cycleResult', 'Billing cycle: {generated} generated, {skipped} skipped')
         .replace('{generated}', String(r?.generated ?? 0)).replace('{skipped}', String(r?.skipped ?? 0))
       toast.success(msg)
@@ -277,7 +278,7 @@ export default function InvoicesView({
     ['VOID', 'Void'],
   ]
 
-  if (detailId) return <InvoiceDetail token={token} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} canAllocatePayment={canAllocatePayment} onBack={() => { setDetailId(null); load() }} />
+  if (detailId) return <InvoiceDetail token={token!} id={detailId} names={names} canEditInvoice={canEditInvoice} canCreatePayment={canCreatePayment} canAllocatePayment={canAllocatePayment} onBack={() => { setDetailId(null); load() }} />
 
   return (
     <PageShell
@@ -341,7 +342,7 @@ export default function InvoicesView({
                     <td className="actions-col">
                       <div className="row-actions">
                         {canCreatePayment && (inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
-                          <PayOnlineButton token={token} invoiceId={inv.id} onDone={load} />
+                          <PayOnlineButton token={token!} invoiceId={inv.id} onDone={load} />
                         )}
                         <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
                           <ArrowRightIcon size={13} />
@@ -637,14 +638,14 @@ function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayment, can
             {/* TB-4 — invoice detail tabs now reuse the canonical `customer-tabs/*`
                 components (parameterized over entity + id). The 8 Invoice*Tab
                 local copies were deleted — ~250 LOC of pure copy-paste. */}
-            {tab === 'timeline'       && <TimelineTab token={token} entity="invoice" id={id} />}
-            {tab === 'tasks'          && <TasksTab token={token} entity="invoice" id={id} />}
-            {tab === 'comments'       && <CommentsTab token={token} entity="invoice" id={id} />}
-            {tab === 'attachments'    && <AttachmentsTab token={token} entity="invoice" id={id} />}
-            {tab === 'approvals'      && <ApprovalsTab token={token} entity="invoice" id={id} />}
-            {tab === 'related'        && <RelatedTab token={token} entity="invoice" id={id} />}
-            {tab === 'communications' && <CommunicationsTab token={token} entity="invoice" id={id} />}
-            {tab === 'audit'          && <AuditTab token={token} entity="invoice" id={id} />}
+            {tab === 'timeline'       && <TimelineTab entity="invoice" id={id} />}
+            {tab === 'tasks'          && <TasksTab entity="invoice" id={id} />}
+            {tab === 'comments'       && <CommentsTab entity="invoice" id={id} />}
+            {tab === 'attachments'    && <AttachmentsTab entity="invoice" id={id} />}
+            {tab === 'approvals'      && <ApprovalsTab entity="invoice" id={id} />}
+            {tab === 'related'        && <RelatedTab entity="invoice" id={id} />}
+            {tab === 'communications' && <CommunicationsTab entity="invoice" id={id} />}
+            {tab === 'audit'          && <AuditTab entity="invoice" id={id} />}
           </div>
         </>
       )}

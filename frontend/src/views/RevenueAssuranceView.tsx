@@ -23,6 +23,7 @@
 // Permissions: gated on `invoice.view` (the data layer all four overview widgets live on).
 // The Findings tab additionally treats backend 403 as PermissionDenied and 404 as "not available".
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { ShieldIcon, GearIcon } from '../components/icons'
 import { BarChart3, ListChecks } from 'lucide-react'
 import { bget, bpost, loadCustomers, type Invoice } from '../lib/billing'
@@ -54,14 +55,14 @@ function RaTabButton({ active, onClick, icon, label, sub }: {
 }
 
 export default function RevenueAssuranceView({
-  token, canConfigure = false, onConfigure, capabilities,
+  canConfigure = false, onConfigure, capabilities,
 }: {
-  token: string
   configVersion?: number
   canConfigure?: boolean
   onConfigure?: () => void
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
+  const { token } = useAuth()
   // SM-2 — receive caps via prop instead of refetching.
   const caps: Capabilities = capabilities ?? FULL_ACCESS
   const capsLoaded = capabilities !== undefined
@@ -82,7 +83,7 @@ export default function RevenueAssuranceView({
   useEffect(() => {
     if (!capsLoaded || !canView) return
     let alive = true
-    bget<any[]>(token, '/api/analytics/revenue-trend?months=6').then((res) => {
+    bget<any[]>(token!, '/api/analytics/revenue-trend?months=6').then((res) => {
       if (!alive) return
       if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
         if (res.status === 403) console.warn('[revenue-assurance] trend 403 (analytics.view denied)')
@@ -103,7 +104,7 @@ export default function RevenueAssuranceView({
   useEffect(() => {
     if (!capsLoaded || !canView) return
     let alive = true
-    bget<Overview>(token, '/api/analytics/overview').then((res) => {
+    bget<Overview>(token!, '/api/analytics/overview').then((res) => {
       if (!alive) return
       if (!res.ok || !res.data || typeof res.data !== 'object') {
         if (!res.ok) console.error('[revenue-assurance] overview fetch failed', res.status)
@@ -118,7 +119,7 @@ export default function RevenueAssuranceView({
   useEffect(() => {
     if (!capsLoaded || !canView) return
     let alive = true
-    bget<any>(token, '/api/analytics/ar-aging').then((res) => {
+    bget<any>(token!, '/api/analytics/ar-aging').then((res) => {
       if (!alive) return
       if (!res.ok || !res.data || typeof res.data !== 'object') {
         if (!res.ok) console.error('[revenue-assurance] aging fetch failed', res.status)
@@ -144,8 +145,8 @@ export default function RevenueAssuranceView({
     if (!capsLoaded || !canView) return
     let alive = true
     Promise.all([
-      bget<Invoice[]>(token, '/api/invoices?status=OVERDUE'),
-      loadCustomers(token),
+      bget<Invoice[]>(token!, '/api/invoices?status=OVERDUE'),
+      loadCustomers(token!),
     ]).then(([res, names]) => {
       if (!alive) return
       setCustomerNames(names)
@@ -190,7 +191,7 @@ export default function RevenueAssuranceView({
 
   async function loadFindings() {
     setFindings({ state: 'loading' })
-    const res = await bget<any>(token, `/api/revenue-assurance/findings?${buildFindingsQuery()}`)
+    const res = await bget<any>(token!, `/api/revenue-assurance/findings?${buildFindingsQuery()}`)
     if (res.status === 403) { setFindings({ state: 'denied' }); return }
     if (res.status === 404) { setFindings({ state: 'unavailable' }); return }
     if (!res.ok) {
@@ -210,7 +211,7 @@ export default function RevenueAssuranceView({
   }
 
   async function loadLastScan() {
-    const res = await bget<any>(token, '/api/revenue-assurance/scans?page=1')
+    const res = await bget<any>(token!, '/api/revenue-assurance/scans?page=1')
     if (!res.ok) { setLastScan(null); return }
     const raw = res.data
     const items: RaScanRun[] = Array.isArray(raw)
@@ -251,7 +252,7 @@ export default function RevenueAssuranceView({
   // ── Action handlers ────────────────────────────────────────────────────────────
   async function runScan() {
     try {
-      const run = await bpost<RaScanRun>(token, '/api/revenue-assurance/scan', {})
+      const run = await bpost<RaScanRun>(token!, '/api/revenue-assurance/scan', {})
       const id = run?.id ? String(run.id).slice(0, 8) : 'unknown'
       const count = typeof run?.findings_count === 'number' ? run.findings_count : null
       toast.success(count != null
@@ -266,7 +267,7 @@ export default function RevenueAssuranceView({
 
   async function ackFinding(f: RaFinding) {
     try {
-      await bpost(token, `/api/revenue-assurance/findings/${f.id}/ack`, {})
+      await bpost(token!, `/api/revenue-assurance/findings/${f.id}/ack`, {})
       toast.success('Acknowledged')
       await loadFindings()
     } catch (e) {
@@ -288,11 +289,11 @@ export default function RevenueAssuranceView({
     setActionModal({ ...actionModal, submitting: true })
     try {
       if (kind === 'resolve') {
-        await bpost(token, `/api/revenue-assurance/findings/${finding.id}/resolve`, { resolution: resolution.trim() })
+        await bpost(token!, `/api/revenue-assurance/findings/${finding.id}/resolve`, { resolution: resolution.trim() })
         toast.success('Finding resolved')
       } else {
         const body = resolution.trim() ? { resolution: resolution.trim() } : {}
-        await bpost(token, `/api/revenue-assurance/findings/${finding.id}/mark-false-positive`, body)
+        await bpost(token!, `/api/revenue-assurance/findings/${finding.id}/mark-false-positive`, body)
         toast.success('Marked false positive')
       }
       setActionModal(null)
@@ -310,7 +311,7 @@ export default function RevenueAssuranceView({
     setDrawerFinding(f)
     setDrawerDetail({ state: 'loading' })
     setDrawerCustomer(null)
-    const res = await bget<RaFinding>(token, `/api/revenue-assurance/findings/${f.id}`)
+    const res = await bget<RaFinding>(token!, `/api/revenue-assurance/findings/${f.id}`)
     if (!res.ok || !res.data || typeof res.data !== 'object') {
       setDrawerDetail({ state: 'error', message: `Could not fetch latest details (${res.status})` })
     } else {
@@ -322,7 +323,7 @@ export default function RevenueAssuranceView({
       if (cid in customerNameCache) {
         setDrawerCustomer({ id: cid, name: customerNameCache[cid] })
       } else {
-        const cres = await bget<any>(token, `/api/customers/${cid}`)
+        const cres = await bget<any>(token!, `/api/customers/${cid}`)
         let name: string | null = null
         if (cres.ok && cres.data && typeof cres.data === 'object') {
           name = cres.data.name ?? cres.data.title ?? cres.data.display_name ?? null

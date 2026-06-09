@@ -11,6 +11,7 @@ import { FetchError } from './types'
 import { apiFetch } from './api'
 import { AddFieldInline, EditFieldInline, AddStatusInline, AddTransitionInline } from './InlineEditors'
 import { configExtra } from './types'
+import { useAuth } from '../../context/AuthContext'
 
 function DrawerShell({
   onClose, title, children,
@@ -56,11 +57,12 @@ function ConfirmDeleteDialog({
 }
 
 export function DetailDrawer({
-  token, slug, onClose, onChanged, onDeleted,
+  slug, onClose, onChanged, onDeleted,
 }: {
-  token: string; slug: string; onClose: () => void;
+  slug: string; onClose: () => void;
   onChanged: () => void; onDeleted: () => void
 }) {
+  const { token } = useAuth()
   const [detail, setDetail] = useState<EntityDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -90,7 +92,7 @@ export function DetailDrawer({
   const load = useCallback(() => {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
-    apiFetch(token, `/meta/entities/${slug}`)
+    apiFetch(token!, `/meta/entities/${slug}`)
       .then((d: EntityDetail) => {
         if (!alive) return
         setDetail(d)
@@ -118,7 +120,7 @@ export function DetailDrawer({
       if (pluralEdit.trim() !== detail.label_plural) body.label_plural = pluralEdit.trim()
       if ((iconEdit || null) !== (detail.icon || null)) body.icon = iconEdit.trim() || null
       if (Object.keys(body).length === 0) { setMetaMsg('No changes.'); setSavingMeta(false); return }
-      await apiFetch(token, `/meta/entities/${slug}`, { method: 'PATCH', body: JSON.stringify(body) })
+      await apiFetch(token!, `/meta/entities/${slug}`, { method: 'PATCH', body: JSON.stringify(body) })
       setMetaMsg('Saved.')
       onChanged(); load()
     } catch (ex) {
@@ -131,7 +133,7 @@ export function DetailDrawer({
   async function deleteField(k: string) {
     setFieldErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/fields/${k}`, { method: 'DELETE' })
+      await apiFetch(token!, `/meta/entities/${slug}/fields/${k}`, { method: 'DELETE' })
       onChanged(); load()
     } catch (ex) { setFieldErr((ex as Error).message) }
   }
@@ -144,7 +146,7 @@ export function DetailDrawer({
     const tmp = arr[idx]; arr[idx] = arr[ni]; arr[ni] = tmp
     setStatusErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/statuses/reorder`, {
+      await apiFetch(token!, `/meta/entities/${slug}/statuses/reorder`, {
         method: 'PATCH',
         body: JSON.stringify({ order: arr.map((s) => s.key) }),
       })
@@ -155,7 +157,7 @@ export function DetailDrawer({
   async function deleteStatus(k: string) {
     setStatusErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/statuses/${k}`, { method: 'DELETE' })
+      await apiFetch(token!, `/meta/entities/${slug}/statuses/${k}`, { method: 'DELETE' })
       onChanged(); load()
     } catch (ex) { setStatusErr((ex as Error).message) }
   }
@@ -163,7 +165,7 @@ export function DetailDrawer({
   async function setInitialStatus(k: string) {
     setStatusErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/statuses/${k}`, {
+      await apiFetch(token!, `/meta/entities/${slug}/statuses/${k}`, {
         method: 'PATCH',
         body: JSON.stringify({ is_initial: true }),
       })
@@ -176,7 +178,7 @@ export function DetailDrawer({
     const next = detail.transitions.filter((x) => !(x.from === t.from && x.to === t.to))
     setTransErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/transitions`, {
+      await apiFetch(token!, `/meta/entities/${slug}/transitions`, {
         method: 'PUT',
         body: JSON.stringify({ transitions: next }),
       })
@@ -188,7 +190,7 @@ export function DetailDrawer({
     if (!detail) return
     setTransErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/transitions`, {
+      await apiFetch(token!, `/meta/entities/${slug}/transitions`, {
         method: 'PUT',
         body: JSON.stringify({ transitions: [...detail.transitions, { from, to }] }),
       })
@@ -199,7 +201,7 @@ export function DetailDrawer({
   async function deleteEntity() {
     setDeleting(true); setDelErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}`, { method: 'DELETE' })
+      await apiFetch(token!, `/meta/entities/${slug}`, { method: 'DELETE' })
       onDeleted()
     } catch (ex) {
       setDelErr((ex as Error).message)
@@ -279,7 +281,7 @@ export function DetailDrawer({
               {detail.fields.map((f) =>
                 editingFieldKey === f.key ? (
                   <EditFieldInline
-                    key={f.key} field={f} token={token} slug={slug}
+                    key={f.key} field={f} slug={slug}
                     onDone={() => { setEditingFieldKey(null); onChanged(); load() }}
                   />
                 ) : (
@@ -314,7 +316,7 @@ export function DetailDrawer({
       )}
       {showAddField && (
         <AddFieldInline
-          token={token} slug={slug}
+          slug={slug}
           onAdded={() => { setShowAddField(false); onChanged(); load() }}
           onCancel={() => setShowAddField(false)}
         />
@@ -385,7 +387,7 @@ export function DetailDrawer({
       )}
       {showAddStatus && (
         <AddStatusInline
-          token={token} slug={slug}
+          slug={slug}
           onAdded={() => { setShowAddStatus(false); onChanged(); load() }}
           onCancel={() => setShowAddStatus(false)}
         />

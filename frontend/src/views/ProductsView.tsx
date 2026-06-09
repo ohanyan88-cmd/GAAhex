@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { bget, bpost, bpatch, type Product } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 import {
   COMMERCIAL_PRODUCT_CATEGORIES, SUPPORTING_PRODUCT_CATEGORIES,
   type ProductCategory,
@@ -46,10 +47,11 @@ function renderProductCell(colKey: string, p: Product) {
   }
 }
 
-export default function ProductsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'products', configVersion)
+export default function ProductsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'products', configVersion)
   const [list, setList] = useState<Product[] | null>(null)
-  const cf = useCustomFields(token, 'products', cfg.customFields, (list ?? []).map((p) => p.id))
+  const cf = useCustomFields('products', cfg.customFields, (list ?? []).map((p) => p.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -67,7 +69,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
 
   async function load() {
     setError(''); setUnavailable(false); setList(null)
-    const res = await bget<Product[]>(token, '/api/products')
+    const res = await bget<Product[]>(token!, '/api/products')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (!res.ok) { setError('Failed to load products'); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
@@ -80,12 +82,12 @@ export default function ProductsView({ token, canConfigure = false, configVersio
     if (!draft || !draft.name.trim() || (!draft.id && !draft.key.trim())) return
     try {
       if (draft.id) {
-        await bpatch(token, `/api/products/${draft.id}`, {
+        await bpatch(token!, `/api/products/${draft.id}`, {
           name: draft.name.trim(), default_amount: toMinor(draft.default_amount), cycle: draft.cycle, active: draft.active,
         })
         toast.success('Product updated')
       } else {
-        await bpost(token, '/api/products', {
+        await bpost(token!, '/api/products', {
           key: draft.key.trim(), name: draft.name.trim(), default_amount: toMinor(draft.default_amount), cycle: draft.cycle, active: draft.active,
         })
         toast.success('Product created')
@@ -99,7 +101,7 @@ export default function ProductsView({ token, canConfigure = false, configVersio
     const ok = await confirmDialog({ title: `Retire ${p.name}`, message: 'Retire this product? Existing subscriptions are unaffected.', confirmLabel: 'Retire', danger: true })
     if (!ok) return
     try {
-      await bpost(token, `/api/products/${p.id}/retire`)
+      await bpost(token!, `/api/products/${p.id}/retire`)
       toast.success('Product retired')
       await load()
     } catch (e) { toast.error((e as Error).message) }

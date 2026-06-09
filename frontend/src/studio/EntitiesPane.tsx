@@ -7,8 +7,10 @@ import { FetchError } from './entities/types'
 import { apiFetch } from './entities/api'
 import { CreateEntityModal } from './entities/CreateEntityModal'
 import { DetailDrawer } from './entities/DetailDrawer'
+import { useAuth } from '../context/AuthContext'
 
-export default function EntitiesPane({ token }: { token: string }) {
+export default function EntitiesPane() {
+  const { token } = useAuth()
   const [entities, setEntities] = useState<EntitySummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -21,7 +23,7 @@ export default function EntitiesPane({ token }: { token: string }) {
   const load = useCallback(() => {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
-    apiFetch(token, '/meta/entities')
+    apiFetch(token!, '/meta/entities')
       .then((d: EntitySummary[]) => {
         if (!alive) return
         setEntities(Array.isArray(d) ? d : [])
@@ -122,7 +124,6 @@ export default function EntitiesPane({ token }: { token: string }) {
 
       {showCreate && (
         <CreateEntityModal
-          token={token}
           onClose={() => setShowCreate(false)}
           onCreated={(slug) => { setShowCreate(false); load(); setOpenSlug(slug) }}
         />
@@ -130,7 +131,6 @@ export default function EntitiesPane({ token }: { token: string }) {
 
       {openSlug && (
         <DetailDrawer
-          token={token}
           slug={openSlug}
           onClose={() => setOpenSlug(null)}
           onChanged={() => load()}

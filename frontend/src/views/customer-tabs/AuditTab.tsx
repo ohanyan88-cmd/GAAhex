@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { fmtDateTime } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type AuditRow = {
   id: string
@@ -20,13 +21,14 @@ type AuditRow = {
 }
 
 
-export default function AuditTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function AuditTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<AuditRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<AuditRow[]>(token, `/api/audit-log?entity_key=${encodeURIComponent(entity)}&record_id=${encodeURIComponent(id)}`)
+    bget<AuditRow[]>(token!, `/api/audit-log?entity_key=${encodeURIComponent(entity)}&record_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }

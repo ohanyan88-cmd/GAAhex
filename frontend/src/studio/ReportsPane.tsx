@@ -1,6 +1,7 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
+import { useAuth } from '../context/AuthContext'
 import {
   DownloadIcon, PlusIcon, EditIcon, TrashIcon, PlayIcon,
   CloseIcon, CalendarIcon, PauseIcon, CheckIcon, InfoIcon,
@@ -55,7 +56,8 @@ function fmtDt(iso?: string | null) {
 
 // ── Main pane ─────────────────────────────────────────────────────────────────
 
-export default function ReportsPane({ token }: { token: string }) {
+export default function ReportsPane() {
+  const { token } = useAuth()
   const [tab, setTab] = useState<'reports' | 'schedules'>('reports')
 
   return (
@@ -78,8 +80,8 @@ export default function ReportsPane({ token }: { token: string }) {
         </button>
       </div>
 
-      {tab === 'reports' && <ReportsList token={token} />}
-      {tab === 'schedules' && <SchedulesList token={token} />}
+      {tab === 'reports' && <ReportsList token={token!} />}
+      {tab === 'schedules' && <SchedulesList token={token!} />}
     </div>
   )
 }

@@ -7,11 +7,10 @@ import { WarningIcon } from '../../components/icons'
 import { useI18n } from '../../lib/i18n'
 import type { Field, Mode } from './types'
 
-export function FieldInput({ field, value, onChange, token, mode, currentStatus, errorField, errorMsg }: {
+export function FieldInput({ field, value, onChange, mode, currentStatus, errorField, errorMsg }: {
   field: Field
   value: any
   onChange: (v: any) => void
-  token: string
   mode: Mode
   currentStatus: string | null
   errorField: string | null
@@ -43,7 +42,7 @@ export function FieldInput({ field, value, onChange, token, mode, currentStatus,
       </label>
     )
   } else if (f.type === 'ref') {
-    input = <RefPicker token={token} targetKey={refTargetKey(f.config)} value={value} onChange={onChange} />
+    input = <RefPicker targetKey={refTargetKey(f.config)} value={value} onChange={onChange} />
   } else if (f.type === 'boolean') {
     input = <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
   } else if (f.type === 'number' || f.type === 'money') {

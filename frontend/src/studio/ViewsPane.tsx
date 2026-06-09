@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   RowsIcon, PlusIcon, EditIcon, TrashIcon, CloseIcon, CheckIcon, InfoIcon,
@@ -55,7 +56,8 @@ function emptyConfig() {
 
 // ---- ViewsPane ----
 
-export default function ViewsPane({ token }: { token: string }) {
+export default function ViewsPane() {
+  const { token } = useAuth()
   const [entities, setEntities] = useState<EntityMeta[]>([])
   const [entLoading, setEntLoading] = useState(true)
   const [entErr, setEntErr] = useState('')
@@ -85,7 +87,7 @@ export default function ViewsPane({ token }: { token: string }) {
   function loadEntities() {
     let alive = true
     setEntLoading(true); setEntErr(''); setDenied(false)
-    jfetch(token, 'GET', '/meta/entities')
+    jfetch(token!,'GET', '/meta/entities')
       .then((e: EntityMeta[]) => {
         if (!alive) return
         const list = Array.isArray(e) ? e : []
@@ -108,7 +110,7 @@ export default function ViewsPane({ token }: { token: string }) {
     if (!entityKey) { setViews([]); return }
     let alive = true
     setViewsLoading(true); setViewsErr(''); setViewsDenied(false); setViews([])
-    jfetch(token, 'GET', `/api/views?entity=${encodeURIComponent(entityKey)}`)
+    jfetch(token!,'GET', `/api/views?entity=${encodeURIComponent(entityKey)}`)
       .then((v: SavedView[]) => { if (alive) setViews(Array.isArray(v) ? v : []) })
       .catch((e: FetchError) => {
         if (!alive) return
@@ -156,14 +158,14 @@ export default function ViewsPane({ token }: { token: string }) {
 
     try {
       if (mode === 'create') {
-        await jfetch(token, 'POST', '/api/views', {
+        await jfetch(token!,'POST', '/api/views', {
           entity_key: selectedEntity,
           name: formName.trim(),
           config,
           shared: formShared,
         })
       } else {
-        await jfetch(token, 'PATCH', `/api/views/${editId}`, {
+        await jfetch(token!,'PATCH', `/api/views/${editId}`, {
           name: formName.trim(),
           config,
         })
@@ -181,7 +183,7 @@ export default function ViewsPane({ token }: { token: string }) {
   async function deleteView(v: SavedView) {
     if (!window.confirm(`Delete view "${v.name}"?`)) return
     try {
-      await jfetch(token, 'DELETE', `/api/views/${v.id}`)
+      await jfetch(token!,'DELETE', `/api/views/${v.id}`)
       loadViews(selectedEntity)
     } catch (e) {
       setViewsErr((e as Error).message)

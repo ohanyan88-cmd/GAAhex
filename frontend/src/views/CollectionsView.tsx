@@ -25,6 +25,7 @@ import { Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PageShell } from '../page-shell'
 import { Button, DetailTab, KPITile, StatusPill } from '../primitives'
 import { useI18n } from '../lib/i18n'
+import { useAuth } from '../context/AuthContext'
 import { timeAgo } from '../lib/time'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -123,14 +124,13 @@ const PAGE_SIZE = 25
 type CollectionsTab = 'cases' | 'policies'
 
 export default function CollectionsView({
-  token,
   canConfigure = false,
   capabilities = FULL_ACCESS,
 }: {
-  token: string
   canConfigure?: boolean
   capabilities?: Capabilities
 }) {
+  const { token } = useAuth()
   const { t } = useI18n()
   const [tab, setTab] = useState<CollectionsTab>('cases')
 
@@ -149,7 +149,7 @@ export default function CollectionsView({
 
   async function loadPolicies() {
     setPoliciesError(''); setPoliciesUnavailable(false); setPoliciesDenied(false); setPolicies(null)
-    const res = await bget<unknown>(token, '/api/dunning/policies')
+    const res = await bget<unknown>(token!, '/api/dunning/policies')
     if (res.status === 403) { setPoliciesDenied(true); setPolicies([]); return }
     if (res.status === 404) { setPoliciesUnavailable(true); setPolicies([]); return }
     if (!res.ok) { setPoliciesError('Failed to load policies'); setPolicies([]); return }
@@ -200,7 +200,7 @@ export default function CollectionsView({
 
         {tab === 'cases' && (
           <CasesTab
-            token={token}
+            token={token!}
             isAdmin={isAdmin}
             policyNameById={policyNameById}
             policyCount={(policies ?? []).length}
@@ -209,7 +209,7 @@ export default function CollectionsView({
 
         {tab === 'policies' && (
           <PoliciesTab
-            token={token}
+            token={token!}
             isAdmin={isAdmin}
             policies={policies}
             policiesUnavailable={policiesUnavailable}

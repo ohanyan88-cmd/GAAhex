@@ -4,6 +4,7 @@ import { Modal } from '../components/Modal'
 import { toast } from '../components/Toast'
 import { t } from '../lib/i18n'
 import { BASE as API } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 
 // ProfileModal — "My Profile": view + edit the signed-in user's own name, show their email,
 // and upload a profile picture (POST /api/me/avatar). On a successful upload the new avatar data
@@ -13,7 +14,6 @@ import { BASE as API } from '../lib/billing'
 export default function ProfileModal({
   open,
   onClose,
-  token,
   name,
   email,
   avatarUrl,
@@ -21,12 +21,12 @@ export default function ProfileModal({
 }: {
   open: boolean
   onClose: () => void
-  token: string
   name: string
   email: string
   avatarUrl: string | null
   onAvatarChange: (avatarUrl: string) => void
 }) {
+  const { token } = useAuth()
   const [nameDraft, setNameDraft] = useState(name)
   const [uploading, setUploading] = useState(false)
   const [err, setErr] = useState('')
@@ -49,7 +49,7 @@ export default function ProfileModal({
       fd.append('file', file)
       const r = await fetch(`${API}/api/me/avatar`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token!}` },
         body: fd,
       })
       const data = await r.json().catch(() => ({}))

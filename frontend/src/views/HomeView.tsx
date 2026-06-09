@@ -108,12 +108,11 @@ function Skel({ rows = 3 }: { rows?: number }) {
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function HomeView({ token, onNavigate, capabilities }: {
-  token: string
+export default function HomeView({ onNavigate, capabilities }: {
   onNavigate?: (type: string, id?: string) => void
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
-  const { user: authUser } = useAuth()
+  const { user: authUser, token } = useAuth()
   const [me, setMe] = useState<Me | null>(null)
   const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
   const [nodes, setNodes] = useState<any[]>([])
@@ -133,7 +132,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
 
   // Identity
   useEffect(() => {
-    fetch(`${BASE}/auth/me`, { headers: authH(token) })
+    fetch(`${BASE}/auth/me`, { headers: authH(token!) })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.id) setMe({ id: d.id, name: d.name ?? '', email: d.email ?? '' }) })
       .catch(() => {})
@@ -144,8 +143,8 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   // Fetch org nodes + members for Team tab
   useEffect(() => {
     Promise.all([
-      bget(token, '/api/org/nodes').then(r => (r.ok && r.data) ? r.data : []),
-      bget(token, '/api/users').then(r => (r.ok && r.data) ? r.data : []),
+      bget(token!, '/api/org/nodes').then(r => (r.ok && r.data) ? r.data : []),
+      bget(token!, '/api/users').then(r => (r.ok && r.data) ? r.data : []),
     ]).then(([n, m]) => {
       const arr = (d: any): any[] => Array.isArray(d) ? d : (d?.items ?? d?.records ?? [])
       setNodes(arr(n))
@@ -156,7 +155,7 @@ export default function HomeView({ token, onNavigate, capabilities }: {
   // Fetch workspace data in parallel — 4 endpoints the ME|TEAM layout actually renders
   useEffect(() => {
     if (!me) return
-    const opts = { headers: authH(token) }
+    const opts = { headers: authH(token!) }
     const fetchJson = (url: string) => fetch(url, opts).then(r => r.ok ? r.json() : []).catch(() => [])
     Promise.all([
       fetchJson(`${BASE}/api/workitems?assignee=${me.id}&limit=${WIDGET_ITEMS}`),
@@ -368,9 +367,9 @@ export default function HomeView({ token, onNavigate, capabilities }: {
         </div>
       )}
 
-      {tab === 'ask' && <AskGaaexView token={token} embedded />}
-      {tab === 'messages' && <MessagesView token={token} embedded />}
-      {tab === 'calendar' && <CalendarView token={token} embedded />}
+      {tab === 'ask' && <AskGaaexView embedded />}
+      {tab === 'messages' && <MessagesView embedded />}
+      {tab === 'calendar' && <CalendarView embedded />}
       {tab === 'requests' && <ProfileView embedded initialSection="requests" />}
       {tab === 'documents' && <ProfileView embedded initialSection="documents" />}
       {tab === 'benefits' && <ProfileView embedded initialSection="benefits" />}

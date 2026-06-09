@@ -19,6 +19,7 @@
 // widget is hidden via the gear menu, the remaining ones repack tightly
 // — no empty holes.
 import { useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageShell, SlideOutPanel } from '../page-shell'
 import { PermissionDenied } from '../components/States'
 import { ServerIcon } from '../components/icons'
@@ -1071,12 +1072,12 @@ const WIDGETS: WidgetDef[] = [
 // ═══════════════════════════════════════════════════════════════════════
 
 interface NocDashboardProps {
-  token: string
   capabilities: Capabilities
   canConfigure: boolean
 }
 
-export default function NocDashboardView({ token, capabilities }: NocDashboardProps) {
+export default function NocDashboardView({ capabilities }: NocDashboardProps) {
+  const { token } = useAuth()
   const canViewService = can(capabilities, 'service', 'view')
 
   const oltListFetch   = useFetch<{ items: OltRecord[]; total: number }>('/api/noc/olts')
@@ -1185,7 +1186,7 @@ export default function NocDashboardView({ token, capabilities }: NocDashboardPr
                 />
               </NMSCard>
             ) : (
-              <w.Component openDrawer={openDrawer} nocData={nocData} token={token} />
+              <w.Component openDrawer={openDrawer} nocData={nocData} token={token!} />
             )
           )
           return (

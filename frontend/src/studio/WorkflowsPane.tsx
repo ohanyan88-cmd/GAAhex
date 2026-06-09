@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ArrowRightIcon, PlusIcon, CloseIcon, CheckIcon, InfoIcon, RowsIcon, TrashIcon, ChartIcon, EditIcon,
@@ -297,7 +298,8 @@ function TransitionsEditor({
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function WorkflowsPane({ token, initialSlug, lockEntity }: { token: string; initialSlug?: string; lockEntity?: boolean }) {
+export default function WorkflowsPane({ initialSlug, lockEntity }: { initialSlug?: string; lockEntity?: boolean }) {
+  const { token } = useAuth()
   const [entities, setEntities] = useState<EntitySummary[]>([])
   const [entLoading, setEntLoading] = useState(true)
   const [entError, setEntError] = useState('')
@@ -322,7 +324,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
   function loadEntities() {
     let alive = true
     setEntLoading(true); setEntError(''); setEntDenied(false)
-    apiFetch(token, '/meta/entities')
+    apiFetch(token!, '/meta/entities')
       .then((d: EntitySummary[]) => {
         if (!alive) return
         const list = Array.isArray(d) ? d : []
@@ -343,7 +345,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
     let alive = true
     setWfLoading(true); setWfError(''); setWfDenied(false)
     setStatuses([]); setTransitions([]); setShowAddStatus(false); setDeleteErr(''); setEditingStatusKey(null)
-    apiFetch(token, `/meta/entities/${s}`)
+    apiFetch(token!, `/meta/entities/${s}`)
       .then((d: { statuses: StatusDef[]; transitions: TransitionDef[] }) => {
         if (!alive) return
         setStatuses(d.statuses ?? [])
@@ -365,7 +367,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
     if (!slug) return
     setDeletingKey(key); setDeleteErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/statuses/${key}`, { method: 'DELETE' })
+      await apiFetch(token!, `/meta/entities/${slug}/statuses/${key}`, { method: 'DELETE' })
       loadWorkflow(slug)
     } catch (ex) {
       setDeleteErr((ex as Error).message)
@@ -382,7 +384,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
     setStatuses(reordered)
     setReordering(true); setReorderErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/statuses/reorder`, {
+      await apiFetch(token!, `/meta/entities/${slug}/statuses/reorder`, {
         method: 'PATCH',
         body: JSON.stringify({ order: reordered.map((s) => s.key) }),
       })
@@ -485,7 +487,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                               <EditStatusRow
                                 key={st.key}
                                 slug={slug}
-                                token={token}
+                                token={token!}
                                 status={st}
                                 onDone={() => { setEditingStatusKey(null); loadWorkflow(slug) }}
                               />
@@ -551,7 +553,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                   {showAddStatus && (
                     <AddStatusForm
                       slug={slug}
-                      token={token}
+                      token={token!}
                       onAdded={() => { setShowAddStatus(false); loadWorkflow(slug) }}
                     />
                   )}
@@ -566,7 +568,7 @@ export default function WorkflowsPane({ token, initialSlug, lockEntity }: { toke
                   ) : (
                     <TransitionsEditor
                       slug={slug}
-                      token={token}
+                      token={token!}
                       statuses={statuses}
                       initialTransitions={transitions}
                       onSaved={() => loadWorkflow(slug)}

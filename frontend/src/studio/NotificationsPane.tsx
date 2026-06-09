@@ -22,6 +22,7 @@
 // Tokens: --gx-* only, no raw hex. Icons: lucide via ../components/icons.
 
 import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { Modal, ModalFooterActions } from '../components/Modal'  // MO-1/2/3 — canonical modal chrome
 import { Button, StudioDrawer} from '../primitives'  // DR-1
@@ -73,7 +74,6 @@ type NotifDef = {
 }
 
 type Props = {
-  token: string
   /** When set, the list is filtered by channel and the create form locks `channel`. */
   channel?: NotifChannel
   /** When true, surface notification rules (any def with a non-empty gxl_condition). */
@@ -759,7 +759,8 @@ function DrawerShell({
 // ---------------------------------------------------------------------------
 // Main pane — list + create + drill-in
 // ---------------------------------------------------------------------------
-export default function NotificationsPane({ token, channel, rulesView }: Props) {
+export default function NotificationsPane({ channel, rulesView }: Props) {
+  const { token } = useAuth()
   const [defs, setDefs] = useState<NotifDef[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -773,7 +774,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
     let alive = true
     setLoading(true); setError(''); setDenied(false)
     const qs = channel ? `?channel=${encodeURIComponent(channel)}` : ''
-    apiFetch(token, `/meta/notification-defs${qs}`)
+    apiFetch(token!, `/meta/notification-defs${qs}`)
       .then((d: NotifDef[]) => {
         if (!alive) return
         setDefs(Array.isArray(d) ? d : [])
@@ -910,7 +911,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
 
       {showCreate && (
         <CreateDefModal
-          token={token}
+          token={token!}
           channel={channel}
           rulesView={rulesView}
           onClose={() => setShowCreate(false)}
@@ -924,7 +925,7 @@ export default function NotificationsPane({ token, channel, rulesView }: Props) 
 
       {openKey && (
         <DetailDrawer
-          token={token}
+          token={token!}
           defKey={openKey}
           onClose={() => setOpenKey(null)}
           onChanged={() => load()}

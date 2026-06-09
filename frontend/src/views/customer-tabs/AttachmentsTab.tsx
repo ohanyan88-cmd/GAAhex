@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { fmtDateTime } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type AttachmentRow = {
   id: string
@@ -27,13 +28,14 @@ function fmtSize(n: number | null | undefined): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export default function AttachmentsTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function AttachmentsTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<AttachmentRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<AttachmentRow[]>(token, `/api/attachments?owner_entity_type=${encodeURIComponent(entity)}&owner_entity_id=${encodeURIComponent(id)}`)
+    bget<AttachmentRow[]>(token!, `/api/attachments?owner_entity_type=${encodeURIComponent(entity)}&owner_entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }

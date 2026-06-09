@@ -7,6 +7,7 @@ import {
 } from '../components/icons'
 import { usePageConfig } from '../lib/pageConfig'
 import { PageShell } from '../page-shell'
+import { useAuth } from '../context/AuthContext'
 
 import { BASE } from '../lib/config'
 import { CALENDAR_EVENTS } from '../lib/pagination'
@@ -54,8 +55,9 @@ function todayStr(): string {
 
 // P1 note: CalendarView has no `.view-head`/ViewHead surface today, so the Configure
 // gear isn't rendered here yet — props are accepted so App.tsx can wire it uniformly.
-export default function CalendarView({ token, configVersion = 0, canConfigure: _canConfigure = false, onConfigure: _onConfigure, embedded = false }: { token: string; configVersion?: number; canConfigure?: boolean; onConfigure?: () => void; embedded?: boolean }) {
-  const cfg = usePageConfig(token, 'calendar', configVersion)
+export default function CalendarView({ configVersion = 0, canConfigure: _canConfigure = false, onConfigure: _onConfigure, embedded = false }: { configVersion?: number; canConfigure?: boolean; onConfigure?: () => void; embedded?: boolean }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'calendar', configVersion)
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth())
   const [calView, setCalView] = useState<'month' | 'week'>('month')
@@ -132,7 +134,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     setLoadError('')
     try {
       const cr = await fetch(`${BASE}/api/calendar/calendars`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token!}` },
       })
       if (cr.ok) setCals(await cr.json())
       else { setLoadError('Failed to load calendars'); setLoading(false); return }
@@ -148,7 +150,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
       }
       const er = await fetch(
         `${BASE}/api/calendar/events?start=${startStr}&end=${endStr}&limit=${CALENDAR_EVENTS}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token!}` } },
       )
       if (er.ok) setEvents(await er.json())
       else setLoadError('Failed to load events')
@@ -220,13 +222,13 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
       if (editing) {
         resp = await fetch(`${BASE}/api/calendar/events/${editing.id}`, {
           method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: `Bearer ${token!}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
       } else {
         resp = await fetch(`${BASE}/api/calendar/events`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: `Bearer ${token!}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
       }
@@ -246,7 +248,7 @@ export default function CalendarView({ token, configVersion = 0, canConfigure: _
     try {
       await fetch(`${BASE}/api/calendar/events/${editing.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token!}` },
       })
       setModalOpen(false)
       await load()

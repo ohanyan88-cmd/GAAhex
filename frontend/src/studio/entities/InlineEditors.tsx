@@ -5,10 +5,12 @@ import { ErrorBanner } from '../../components/States'
 import type { FieldDef, StatusDefT } from './types'
 import { FIELD_TYPES, configExtra, buildConfig } from './types'
 import { apiFetch } from './api'
+import { useAuth } from '../../context/AuthContext'
 
 export function AddFieldInline({
-  token, slug, onAdded, onCancel,
-}: { token: string; slug: string; onAdded: () => void; onCancel: () => void }) {
+  slug, onAdded, onCancel,
+}: { slug: string; onAdded: () => void; onCancel: () => void }) {
+  const { token } = useAuth()
   const [k, setK] = useState('')
   const [label, setLabel] = useState('')
   const [type, setType] = useState('text')
@@ -22,7 +24,7 @@ export function AddFieldInline({
     if (!k.trim()) { setErr('Field key is required'); return }
     setSaving(true); setErr('')
     try {
-      await apiFetch(token, `/meta/entities/${slug}/fields`, {
+      await apiFetch(token!, `/meta/entities/${slug}/fields`, {
         method: 'POST',
         body: JSON.stringify({
           key: k.trim(),
@@ -85,8 +87,9 @@ export function AddFieldInline({
 }
 
 export function EditFieldInline({
-  field, token, slug, onDone,
-}: { field: FieldDef; token: string; slug: string; onDone: () => void }) {
+  field, slug, onDone,
+}: { field: FieldDef; slug: string; onDone: () => void }) {
+  const { token } = useAuth()
   const [label, setLabel] = useState(field.label)
   const [required, setRequired] = useState(field.required)
   const [extra, setExtra] = useState(configExtra(field))
@@ -100,7 +103,7 @@ export function EditFieldInline({
       const cfg = buildConfig(field.type, extra)
       if (field.type === 'select') body.config = cfg ?? { options: [] }
       if (field.type === 'ref') body.config = cfg
-      await apiFetch(token, `/meta/entities/${slug}/fields/${field.key}`, {
+      await apiFetch(token!, `/meta/entities/${slug}/fields/${field.key}`, {
         method: 'PATCH', body: JSON.stringify(body),
       })
       onDone()
@@ -151,8 +154,9 @@ export function EditFieldInline({
 }
 
 export function AddStatusInline({
-  token, slug, onAdded, onCancel,
-}: { token: string; slug: string; onAdded: () => void; onCancel: () => void }) {
+  slug, onAdded, onCancel,
+}: { slug: string; onAdded: () => void; onCancel: () => void }) {
+  const { token } = useAuth()
   const [k, setK] = useState('')
   const [label, setLabel] = useState('')
   const [isInitial, setIsInitial] = useState(false)
@@ -165,7 +169,7 @@ export function AddStatusInline({
     setSaving(true); setErr('')
     try {
       const upperKey = k.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_')
-      await apiFetch(token, `/meta/entities/${slug}/statuses`, {
+      await apiFetch(token!, `/meta/entities/${slug}/statuses`, {
         method: 'POST',
         body: JSON.stringify({ key: upperKey, label: label.trim() || upperKey, is_initial: isInitial }),
       })

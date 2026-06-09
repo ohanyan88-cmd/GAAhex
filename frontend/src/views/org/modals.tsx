@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { Modal } from '../../components/Modal'
 import { Button } from '../../primitives'
 import { SearchIcon } from '../../components/icons'
@@ -27,9 +28,10 @@ function selfAndDescendantIds(rootId: string, nodes: OrgNode[]): Set<string> {
   return out
 }
 
-export function AddNodeModal({ token, parent, onClose, onDone }: {
-  token: string; parent: OrgNode | null; onClose: () => void; onDone: () => Promise<void>
+export function AddNodeModal({ parent, onClose, onDone }: {
+  parent: OrgNode | null; onClose: () => void; onDone: () => Promise<void>
 }) {
+  const { token } = useAuth()
   const [type, setType] = useState('')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -41,7 +43,7 @@ export function AddNodeModal({ token, parent, onClose, onDone }: {
     if (!type.trim() || !name.trim()) { setErr('Type and name are required.'); return }
     setBusy(true); setErr('')
     try {
-      await createOrgNode(token, {
+      await createOrgNode(token!, {
         type: type.trim(),
         name: name.trim(),
         code: code.trim() || undefined,
@@ -106,9 +108,10 @@ export function AddNodeModal({ token, parent, onClose, onDone }: {
   )
 }
 
-export function RenameNodeModal({ token, node, onClose, onDone }: {
-  token: string; node: OrgNode; onClose: () => void; onDone: () => Promise<void>
+export function RenameNodeModal({ node, onClose, onDone }: {
+  node: OrgNode; onClose: () => void; onDone: () => Promise<void>
 }) {
+  const { token } = useAuth()
   const [name, setName] = useState(node.name)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -119,7 +122,7 @@ export function RenameNodeModal({ token, node, onClose, onDone }: {
     if (!trimmed) { setErr('Name cannot be empty.'); return }
     setBusy(true); setErr('')
     try {
-      await renameOrgNode(token, node.id, trimmed)
+      await renameOrgNode(token!, node.id, trimmed)
       toast.success('Renamed')
       await onDone()
       onClose()
@@ -154,9 +157,10 @@ export function RenameNodeModal({ token, node, onClose, onDone }: {
   )
 }
 
-export function MoveNodeModal({ token, node, nodes, onClose, onDone }: {
-  token: string; node: OrgNode; nodes: OrgNode[]; onClose: () => void; onDone: () => Promise<void>
+export function MoveNodeModal({ node, nodes, onClose, onDone }: {
+  node: OrgNode; nodes: OrgNode[]; onClose: () => void; onDone: () => Promise<void>
 }) {
+  const { token } = useAuth()
   const [query, setQuery] = useState('')
   const [target, setTarget] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -177,7 +181,7 @@ export function MoveNodeModal({ token, node, nodes, onClose, onDone }: {
     if (target === null) return
     setBusy(true); setErr('')
     try {
-      await moveOrgNode(token, node.id, target === '' ? null : target)
+      await moveOrgNode(token!, node.id, target === '' ? null : target)
       toast.success(`Moved "${node.name}"`)
       await onDone()
       onClose()
@@ -239,16 +243,17 @@ export function MoveNodeModal({ token, node, nodes, onClose, onDone }: {
   )
 }
 
-export function DeleteNodeModal({ token, node, onClose, onDone }: {
-  token: string; node: OrgNode; onClose: () => void; onDone: () => Promise<void>
+export function DeleteNodeModal({ node, onClose, onDone }: {
+  node: OrgNode; onClose: () => void; onDone: () => Promise<void>
 }) {
+  const { token } = useAuth()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
   async function doDelete() {
     setBusy(true); setErr('')
     try {
-      await deleteOrgNode(token, node.id)
+      await deleteOrgNode(token!, node.id)
       toast.success(`Deleted "${node.name}"`)
       await onDone()
       onClose()

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost } from '../lib/billing'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -49,10 +50,11 @@ function allocCount(p: Pool): string {
   return typeof n === 'number' ? String(n) : '—'
 }
 
-export default function ResourcePoolsView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'resource-pools', configVersion)
+export default function ResourcePoolsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'resource-pools', configVersion)
   const [list, setList] = useState<Pool[] | null>(null)
-  const cf = useCustomFields(token, 'resource-pools', cfg.customFields, (list ?? []).map((p) => p.id))
+  const cf = useCustomFields('resource-pools', cfg.customFields, (list ?? []).map((p) => p.id))
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
   const [denied, setDenied] = useState(false)
@@ -72,7 +74,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
-    const res = await bget<Pool[]>(token, '/api/resource-pools')
+    const res = await bget<Pool[]>(token!, '/api/resource-pools')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) { setError(t('pools.loadError', 'Failed to load resource pools')); setList([]); return }
@@ -86,7 +88,7 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
     if (!name.trim()) return
     const spec = (kind === 'ipv4' || kind === 'ipv6') ? { cidr: cidr.trim() } : (kind === 'vlan' || kind === 'phone') ? { from: from.trim(), to: to.trim() } : {}
     try {
-      await bpost(token, '/api/resource-pools', { name: name.trim(), kind, spec })
+      await bpost(token!, '/api/resource-pools', { name: name.trim(), kind, spec })
       toast.success(t('pools.created', 'Pool created'))
       setCreating(false); setName(''); setKind('ipv4'); setCidr(''); setFrom(''); setTo('')
       await load()
@@ -294,7 +296,6 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 
         {detailId && (
           <PoolDrawer
-            token={token}
             id={detailId}
             onClose={() => { setDetailId(null); load() }}
           />
@@ -304,7 +305,8 @@ export default function ResourcePoolsView({ token, canConfigure = false, configV
 }
 
 // ── Pool detail (RecordDrawer slide-over) ────────────────────────────────────
-function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose: () => void }) {
+function PoolDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const { token } = useAuth()
   const [pool, setPool] = useState<Pool | null>(null)
   const [allocs, setAllocs] = useState<Allocation[]>([])
   const [services, setServices] = useState<Svc[]>([])
@@ -313,14 +315,14 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
 
   async function load() {
     setError('')
-    const pr = await bget<Pool>(token, `/api/resource-pools/${id}`)
+    const pr = await bget<Pool>(token!, `/api/resource-pools/${id}`)
     if (!pr.ok) { setError(pr.status === 404 ? t('pools.poolNotFound', 'Pool not found') : t('pools.poolLoadError', 'Failed to load pool')); return }
     setPool(pr.data)
-    const ar = await bget<Allocation[]>(token, `/api/resource-pools/${id}/allocations`)
+    const ar = await bget<Allocation[]>(token!, `/api/resource-pools/${id}/allocations`)
     setAllocs(ar.ok && Array.isArray(ar.data) ? ar.data : [])
   }
   useEffect(() => { load() }, [token, id])
-  useEffect(() => { bget<Svc[]>(token, '/api/services').then((r) => setServices(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
+  useEffect(() => { bget<Svc[]>(token!, '/api/services').then((r) => setServices(r.ok && Array.isArray(r.data) ? r.data : [])) }, [token])
 
   const svcName = (sid: string | null | undefined) => (sid ? (services.find((s) => s.id === sid)?.name ?? sid.slice(0, 8)) : '—')
 
@@ -329,7 +331,7 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
     if (!ok) return
     try {
       // Backend exposes release as POST .../allocations/{alloc_id}/release (not DELETE).
-      await bpost(token, `/api/resource-pools/${id}/allocations/${aid}/release`, {})
+      await bpost(token!, `/api/resource-pools/${id}/allocations/${aid}/release`, {})
       toast.success(t('pools.valueReleased', 'Value released'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -409,12 +411,13 @@ function PoolDrawer({ token, id, onClose }: { token: string; id: string; onClose
           <ErrorBanner message={error} onRetry={load} />
         </div>
       )}
-      {allocOpen && <AllocateModal token={token} poolId={id} services={services} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
+      {allocOpen && <AllocateModal poolId={id} services={services} onClose={() => setAllocOpen(false)} onDone={() => { setAllocOpen(false); load() }} />}
     </>
   )
 }
 
-function AllocateModal({ token, poolId, services, onClose, onDone }: { token: string; poolId: string; services: Svc[]; onClose: () => void; onDone: () => void }) {
+function AllocateModal({ poolId, services, onClose, onDone }: { poolId: string; services: Svc[]; onClose: () => void; onDone: () => void }) {
+  const { token } = useAuth()
   const [value, setValue] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [saving, setSaving] = useState(false)
@@ -424,7 +427,7 @@ function AllocateModal({ token, poolId, services, onClose, onDone }: { token: st
     setSaving(true)
     try {
       // Backend route is POST .../allocate (not .../allocations).
-      await bpost(token, `/api/resource-pools/${poolId}/allocate`, { value: value.trim(), service_id: serviceId || undefined })
+      await bpost(token!, `/api/resource-pools/${poolId}/allocate`, { value: value.trim(), service_id: serviceId || undefined })
       toast.success(t('pools.valueAllocated', 'Value allocated'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }

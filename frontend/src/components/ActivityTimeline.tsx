@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { timeAgo } from '../lib/time'
 import {
   humanizeEntity, humanizeAction, indefinite,
@@ -107,13 +108,13 @@ function navTargetFor(item: Item): ActivityNavTarget | null {
 // ActivityTimeline — vertical timeline over GET /api/activity. With entity+record → that
 // record's timeline (kit's per-record drawer); with neither → the global recent feed
 // shown on the Activity Feed page.
-export default function ActivityTimeline({ token, entity, record, onNavigate }: {
-  token: string
+export default function ActivityTimeline({ entity, record, onNavigate }: {
   entity?: string
   record?: string
   /** Called when a row is clicked AND the row has a navigable target. */
   onNavigate?: (target: ActivityNavTarget) => void
 }) {
+  const { token } = useAuth()
   const [items, setItems] = useState<Item[] | null>(null)
   const [error, setError] = useState('')
   const [denied, setDenied] = useState(false)
@@ -125,7 +126,7 @@ export default function ActivityTimeline({ token, entity, record, onNavigate }: 
       if (entity) p.set('entity', entity)
       if (record) p.set('record', record)
       const qs = p.toString()
-      const r = await fetch(`${BASE}/api/activity${qs ? `?${qs}` : ''}`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/api/activity${qs ? `?${qs}` : ''}`, { headers: authH(token!) })
       if (r.status === 403) { setDenied(true); return }
       if (!r.ok) throw new Error('Failed to load activity')
       setItems(await r.json())

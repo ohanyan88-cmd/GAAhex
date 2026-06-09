@@ -7,6 +7,7 @@
 // Mirrors the kit OrgIdentity in design-system/ui_kits/portal/Shell.jsx — same `.org`/`.org-pop`
 // markup and behavior (chip → popover → save → toast). Outside-click + Escape close.
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { toast } from './Toast'
 import { EditIcon, CheckIcon, CloseIcon } from './icons'
 import { Camera } from 'lucide-react'
@@ -23,7 +24,8 @@ function initialsOf(name: string | null | undefined, fallback = 'GX'): string {
   return ((parts[0][0] || '') + (parts[1][0] || '')).toUpperCase()
 }
 
-export default function OrgIdentity({ token }: { token: string }) {
+export default function OrgIdentity() {
+  const { token } = useAuth()
   const [name, setName] = useState<string>('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -36,7 +38,7 @@ export default function OrgIdentity({ token }: { token: string }) {
   // Initial fetch — also re-fetches after a save to confirm what the server committed.
   async function load() {
     try {
-      const res = await fetch(`${BASE}/api/tenant/settings`, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(`${BASE}/api/tenant/settings`, { headers: { Authorization: `Bearer ${token!}` } })
       if (!res.ok) return
       const data = await res.json()
       setName(data.name || '')
@@ -97,7 +99,7 @@ export default function OrgIdentity({ token }: { token: string }) {
     try {
       const res = await fetch(`${BASE}/api/tenant/settings`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token!}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: next, logo_url: draftLogo }),
       })
       if (!res.ok) {

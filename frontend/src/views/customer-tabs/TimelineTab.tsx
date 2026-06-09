@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { fmtDateTime } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type ActivityRow = {
   id: string
@@ -20,13 +21,14 @@ type ActivityRow = {
 
 
 // TB-4 — parameterized over (entity, id) so all detail views share this one component.
-export default function TimelineTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function TimelineTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<ActivityRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<ActivityRow[]>(token, `/api/activity?entity_key=${encodeURIComponent(entity)}&record_id=${encodeURIComponent(id)}`)
+    bget<ActivityRow[]>(token!, `/api/activity?entity_key=${encodeURIComponent(entity)}&record_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (!r.ok || !Array.isArray(r.data)) { setRows(null); return }

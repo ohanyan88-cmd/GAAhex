@@ -2,6 +2,7 @@
 // Shows org nodes (departments/teams) with member counts pulled from /api/org/nodes
 // and /api/users. No mock fallbacks: missing data → empty state per section.
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
@@ -12,7 +13,8 @@ import { BASE, authH } from '../lib/billing'
 type OrgNode = { id: string; name: string; kind: string; path: string; parent_id: string | null }
 type Member = { id: string; name: string; email: string; role: string; owner_node_id: string | null }
 
-export default function TeamWorkspaceView({ token }: { token: string }) {
+export default function TeamWorkspaceView() {
+  const { token } = useAuth()
   const [nodes, setNodes] = useState<OrgNode[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,8 +23,8 @@ export default function TeamWorkspaceView({ token }: { token: string }) {
   useEffect(() => {
     let alive = true
     Promise.all([
-      fetch(`${BASE}/api/org/nodes`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
-      fetch(`${BASE}/api/users`, { headers: authH(token) }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE}/api/org/nodes`, { headers: authH(token!) }).then(r => r.ok ? r.json() : []),
+      fetch(`${BASE}/api/users`, { headers: authH(token!) }).then(r => r.ok ? r.json() : []),
     ])
       .then(([n, m]) => { if (alive) { setNodes(Array.isArray(n) ? n : n.nodes ?? []); setMembers(Array.isArray(m) ? m : m.users ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

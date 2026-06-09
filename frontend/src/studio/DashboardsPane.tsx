@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   ChartIcon, PlusIcon, EditIcon, TrashIcon, CloseIcon, CheckIcon, InfoIcon,
@@ -59,7 +60,8 @@ function emptyWidget(): Widget {
 
 // ---- DashboardsPane ----
 
-export default function DashboardsPane({ token }: { token: string }) {
+export default function DashboardsPane() {
+  const { token } = useAuth()
   const [entities, setEntities] = useState<EntityMeta[]>([])
   const [boards, setBoards] = useState<BoardSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -86,8 +88,8 @@ export default function DashboardsPane({ token }: { token: string }) {
     let alive = true
     setLoading(true); setLoadErr(''); setDenied(false)
     Promise.all([
-      jfetch(token, 'GET', '/dashboards'),
-      jfetch(token, 'GET', '/meta/entities'),
+      jfetch(token!,'GET', '/dashboards'),
+      jfetch(token!,'GET', '/meta/entities'),
     ])
       .then(([b, e]) => {
         if (!alive) return
@@ -111,7 +113,7 @@ export default function DashboardsPane({ token }: { token: string }) {
     if (!selected) { setDetail(null); return }
     let alive = true
     setDetailLoading(true); setDetailErr(''); setDetail(null)
-    jfetch(token, 'GET', `/dashboards/${selected}`)
+    jfetch(token!,'GET', `/dashboards/${selected}`)
       .then((d: BoardDetail) => { if (alive) setDetail(d) })
       .catch((e: FetchError) => { if (alive) setDetailErr(e.message) })
       .finally(() => { if (alive) setDetailLoading(false) })
@@ -165,12 +167,12 @@ export default function DashboardsPane({ token }: { token: string }) {
     }))
     try {
       if (mode === 'create') {
-        await jfetch(token, 'POST', '/dashboards', {
+        await jfetch(token!,'POST', '/dashboards', {
           key: formKey.trim(), label: formLabel.trim(),
           description: formDesc.trim() || null, order: formOrder, widgets,
         })
       } else {
-        await jfetch(token, 'PATCH', `/dashboards/${selected}`, {
+        await jfetch(token!,'PATCH', `/dashboards/${selected}`, {
           label: formLabel.trim(),
           description: formDesc.trim() || null,
           order: formOrder, widgets,
@@ -179,7 +181,7 @@ export default function DashboardsPane({ token }: { token: string }) {
       setMode('idle')
       const newKey = mode === 'create' ? formKey.trim() : selected!
       // reload list then set selection
-      const b: BoardSummary[] = await jfetch(token, 'GET', '/dashboards')
+      const b: BoardSummary[] = await jfetch(token!,'GET', '/dashboards')
       setBoards(b)
       setSelected(newKey)
     } catch (e) {
@@ -193,8 +195,8 @@ export default function DashboardsPane({ token }: { token: string }) {
   async function deleteBoard() {
     if (!selected || !window.confirm('Delete this dashboard?')) return
     try {
-      await jfetch(token, 'DELETE', `/dashboards/${selected}`)
-      const b: BoardSummary[] = await jfetch(token, 'GET', '/dashboards')
+      await jfetch(token!,'DELETE', `/dashboards/${selected}`)
+      const b: BoardSummary[] = await jfetch(token!,'GET', '/dashboards')
       setBoards(b)
       setSelected(b.length ? b[0].key : null)
       setMode('idle')

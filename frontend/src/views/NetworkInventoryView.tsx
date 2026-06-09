@@ -16,6 +16,7 @@
 // Doctrine: real data only. Empty fetch → friendly empty state. 404 across the board → endpoints
 // not yet live. 403 → PermissionDenied. 409 → toast. No mock/placeholder rows ever.
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageShell, type KPISpec } from '../page-shell'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -164,12 +165,12 @@ async function fetchList<T>(token: string, path: string, set: (s: LoadState<T>) 
 
 // ── View ─────────────────────────────────────────────────────────────────────
 interface NetworkInventoryViewProps {
-  token: string
   canConfigure?: boolean
   capabilities?: Capabilities
 }
 
-export default function NetworkInventoryView({ token, canConfigure = false, capabilities }: NetworkInventoryViewProps) {
+export default function NetworkInventoryView({ canConfigure = false, capabilities }: NetworkInventoryViewProps) {
+  const { token } = useAuth()
   // SM-2 — capabilities flow as a prop from App.tsx. The previous fallback fetch is
   // gone; App is the single source. Until App finishes its initial fetch the prop
   // is undefined and we default-open via FULL_ACCESS so first-paint isn't blank.
@@ -207,7 +208,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
   const loadFiber = useCallback(async () => {
     if (!capsLoaded || !canView) return
     const qs = fiberStatus !== 'all' ? `?status=${encodeURIComponent(fiberStatus)}` : ''
-    await fetchList<FiberRoute>(token, `/api/fiber-routes${qs}`, setFiber)
+    await fetchList<FiberRoute>(token!, `/api/fiber-routes${qs}`, setFiber)
   }, [token, capsLoaded, canView, fiberStatus])
 
   const loadIpam = useCallback(async () => {
@@ -215,7 +216,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
     const params: string[] = []
     params.push(`status=${ipamStatus}`)
     if (ipamDebounced.trim()) params.push(`address=${encodeURIComponent(ipamDebounced.trim())}`)
-    await fetchList<IpamAssignment>(token, `/api/ipam/assignments?${params.join('&')}`, setIpam)
+    await fetchList<IpamAssignment>(token!, `/api/ipam/assignments?${params.join('&')}`, setIpam)
   }, [token, capsLoaded, canView, ipamStatus, ipamDebounced])
 
   const loadRadius = useCallback(async () => {
@@ -224,13 +225,13 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
     if (radiusStatus !== 'all') params.push(`status=${radiusStatus}`)
     if (radiusDebounced.trim()) params.push(`username=${encodeURIComponent(radiusDebounced.trim())}`)
     const qs = params.length ? `?${params.join('&')}` : ''
-    await fetchList<RadiusSession>(token, `/api/radius/sessions${qs}`, setRadius)
+    await fetchList<RadiusSession>(token!, `/api/radius/sessions${qs}`, setRadius)
   }, [token, capsLoaded, canView, radiusStatus, radiusDebounced])
 
   const loadBroadcasts = useCallback(async () => {
     if (!capsLoaded || !canView) return
     const qs = bcastStatus !== 'all' ? `?status=${encodeURIComponent(bcastStatus)}` : ''
-    await fetchList<Broadcast>(token, `/api/broadcasts${qs}`, setBcast)
+    await fetchList<Broadcast>(token!, `/api/broadcasts${qs}`, setBcast)
   }, [token, capsLoaded, canView, bcastStatus])
 
   // Tab-scoped initial / filter fetches.
@@ -253,7 +254,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
     })
     if (!ok) return
     try {
-      await bpost(token, '/api/ipam/release', { assignment_id: a.id })
+      await bpost(token!, '/api/ipam/release', { assignment_id: a.id })
       toast.success('Assignment released')
       await loadIpam()
     } catch (e) {
@@ -272,7 +273,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
     })
     if (!ok) return
     try {
-      await bpatch(token, `/api/radius/sessions/${s.id}/stop`, { acct_stop: new Date().toISOString() })
+      await bpatch(token!, `/api/radius/sessions/${s.id}/stop`, { acct_stop: new Date().toISOString() })
       toast.success('Session stopped')
       await loadRadius()
     } catch (e) {
@@ -284,7 +285,7 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
 
   async function sendBroadcast(b: Broadcast) {
     try {
-      await bpost(token, `/api/broadcasts/${b.id}/send`, {})
+      await bpost(token!, `/api/broadcasts/${b.id}/send`, {})
       toast.success('Broadcast sent')
       await loadBroadcasts()
     } catch (e) {
@@ -399,21 +400,18 @@ export default function NetworkInventoryView({ token, canConfigure = false, capa
       {/* Modals */}
       {fiberCreating && (
         <FiberCreateModal
-          token={token}
           onClose={() => setFiberCreating(false)}
           onCreated={() => { setFiberCreating(false); void loadFiber() }}
         />
       )}
       {openFiberId && (
         <FiberDetailDrawer
-          token={token}
           id={openFiberId}
           onClose={() => setOpenFiberId(null)}
         />
       )}
       {bcastCreating && (
         <BroadcastCreateModal
-          token={token}
           onClose={() => setBcastCreating(false)}
           onCreated={() => { setBcastCreating(false); void loadBroadcasts() }}
         />
@@ -592,9 +590,10 @@ function FiberTab({ state, status, onStatus, canAdmin, onNew, onReload, onOpen }
   )
 }
 
-function FiberCreateModal({ token, onClose, onCreated }: {
-  token: string; onClose: () => void; onCreated: () => void
+function FiberCreateModal({ onClose, onCreated }: {
+  onClose: () => void; onCreated: () => void
 }) {
+  const { token } = useAuth()
   const [name, setName] = useState('')
   const [originPop, setOriginPop] = useState('')
   const [destPop, setDestPop] = useState('')
@@ -614,7 +613,7 @@ function FiberCreateModal({ token, onClose, onCreated }: {
         if (isNaN(n)) { toast.error('Capacity must be a number'); setSubmitting(false); return }
         body.capacity_gbps = n
       }
-      await bpost(token, '/api/fiber-routes', body)
+      await bpost(token!, '/api/fiber-routes', body)
       toast.success('Fiber route created')
       onCreated()
     } catch (e) {
@@ -669,9 +668,10 @@ function FiberCreateModal({ token, onClose, onCreated }: {
   )
 }
 
-function FiberDetailDrawer({ token, id, onClose }: {
-  token: string; id: string; onClose: () => void
+function FiberDetailDrawer({ id, onClose }: {
+  id: string; onClose: () => void
 }) {
+  const { token } = useAuth()
   const [route, setRoute] = useState<FiberRoute | null>(null)
   const [outages, setOutages] = useState<OutagePath[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -682,8 +682,8 @@ function FiberDetailDrawer({ token, id, onClose }: {
     let alive = true
     setLoading(true); setError(null); setOutagesUnavailable(false)
     Promise.all([
-      bget<FiberRoute>(token, `/api/fiber-routes/${id}`),
-      bget<any>(token, `/api/fiber-routes/${id}/outage-paths`),
+      bget<FiberRoute>(token!, `/api/fiber-routes/${id}`),
+      bget<any>(token!, `/api/fiber-routes/${id}/outage-paths`),
     ]).then(([r, o]) => {
       if (!alive) return
       if (!r.ok) { setError(`Failed to load route (${r.status})`); setLoading(false); return }
@@ -1087,9 +1087,10 @@ function BroadcastTab({ state, status, onStatus, canAdmin, onNew, onSend, onRelo
   )
 }
 
-function BroadcastCreateModal({ token, onClose, onCreated }: {
-  token: string; onClose: () => void; onCreated: () => void
+function BroadcastCreateModal({ onClose, onCreated }: {
+  onClose: () => void; onCreated: () => void
 }) {
+  const { token } = useAuth()
   const [channel, setChannel] = useState<BroadcastChannel>('sms')
   const [templateId, setTemplateId] = useState('')
   const [audienceJson, setAudienceJson] = useState('{}')
@@ -1112,7 +1113,7 @@ function BroadcastCreateModal({ token, onClose, onCreated }: {
       }
       if (templateId.trim())  body.template_id = templateId.trim()
       if (incidentId.trim())  body.incident_record_id = incidentId.trim()
-      await bpost(token, '/api/broadcasts', body)
+      await bpost(token!, '/api/broadcasts', body)
       toast.success('Broadcast drafted')
       onCreated()
     } catch (e) {

@@ -22,6 +22,7 @@ import { humanizeEntity } from '../lib/humanize'
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 
 type Approval = {
   id: string
@@ -43,14 +44,15 @@ type LoadState =
   | { kind: 'forbidden' }
   | { kind: 'error'; message: string }
 
-export default function MyApprovalsView({ token }: { token: string }) {
+export default function MyApprovalsView() {
+  const { token } = useAuth()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [busy, setBusy] = useState<string | null>(null)
 
   async function load() {
     setState({ kind: 'loading' })
     try {
-      const r = await fetch(`${BASE}/api/approvals?status=PENDING`, { headers: authH(token) })
+      const r = await fetch(`${BASE}/api/approvals?status=PENDING`, { headers: authH(token!) })
       if (r.status === 403) { setState({ kind: 'forbidden' }); return }
       if (!r.ok) { setState({ kind: 'error', message: 'Failed to load approvals' }); return }
       const data = await r.json()
@@ -68,7 +70,7 @@ export default function MyApprovalsView({ token }: { token: string }) {
     try {
       const r = await fetch(`${BASE}/api/approvals/${id}/${decision}`, {
         method: 'POST',
-        headers: { ...authH(token), 'Content-Type': 'application/json' },
+        headers: { ...authH(token!), 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
       if (!r.ok) {

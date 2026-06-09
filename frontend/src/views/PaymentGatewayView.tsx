@@ -3,6 +3,7 @@ import {
   listPaymentOrders, reconcileOrders, openReceipt,
   type PaymentOrder, type PaymentOrderStatus,
 } from '../lib/paymentgw'
+import { useAuth } from '../context/AuthContext'
 import { money } from '../lib/money'
 import { toast } from '../components/Toast'
 import { EmptyState, ErrorBanner } from '../components/States'
@@ -36,8 +37,9 @@ const TAB_DEFS: Array<[string, string]> = [
   ['CANCELLED', 'Cancelled'],
 ]
 
-export default function PaymentGatewayView({ token, canConfigure = false, configVersion = 0, onConfigure }: { token: string; canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
-  const cfg = usePageConfig(token, 'gateway', configVersion)
+export default function PaymentGatewayView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'gateway', configVersion)
   const [orders, setOrders] = useState<PaymentOrder[] | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [error, setError] = useState('')
@@ -52,7 +54,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
 
   async function load() {
     setError(''); setUnavailable(false); setOrders(null)
-    const res = await listPaymentOrders(token, { status: statusFilter || undefined })
+    const res = await listPaymentOrders(token!, { status: statusFilter || undefined })
     if (res.status === 404) { setUnavailable(true); setOrders([]); return }
     if (!res.ok) { setError('Failed to load payment orders'); setOrders([]); return }
     setOrders(Array.isArray(res.data) ? res.data : [])
@@ -65,7 +67,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
     if (reconciling) return
     setReconciling(true)
     try {
-      const result = await reconcileOrders(token)
+      const result = await reconcileOrders(token!)
       toast.success(`Reconciled ${result.reconciled} order(s); ${result.expired} expired.`)
       await load()
     } catch (e) {
@@ -76,7 +78,7 @@ export default function PaymentGatewayView({ token, canConfigure = false, config
   }
 
   async function handleOpenReceipt(paymentId: string) {
-    const err = await openReceipt(token, paymentId)
+    const err = await openReceipt(token!, paymentId)
     if (err) toast.error(err)
   }
 

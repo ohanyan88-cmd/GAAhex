@@ -7,6 +7,7 @@ import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { StatusPill } from '../../primitives'
 import { fmtDateTime } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type ApprovalRow = {
   id: string
@@ -29,13 +30,14 @@ function approvalPill(s: string | null | undefined): 'active' | 'critical' | 'ne
   return 'info'
 }
 
-export default function ApprovalsTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function ApprovalsTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<ApprovalRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<ApprovalRow[]>(token, `/api/approvals?target_entity_key=${encodeURIComponent(entity)}&target_record_id=${encodeURIComponent(id)}`)
+    bget<ApprovalRow[]>(token!, `/api/approvals?target_entity_key=${encodeURIComponent(entity)}&target_record_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         // 404 = endpoint missing → empty state (per spec: handle gracefully).

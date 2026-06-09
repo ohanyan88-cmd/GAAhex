@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
 import { fmtDateTime } from '../../lib/time'
+import { useAuth } from '../../context/AuthContext'
 
 type CommentRow = {
   id: string
@@ -17,13 +18,14 @@ type CommentRow = {
 }
 
 
-export default function CommentsTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function CommentsTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<CommentRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<CommentRow[]>(token, `/api/comments?owner_entity_type=${encodeURIComponent(entity)}&owner_entity_id=${encodeURIComponent(id)}`)
+    bget<CommentRow[]>(token!, `/api/comments?owner_entity_type=${encodeURIComponent(entity)}&owner_entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }

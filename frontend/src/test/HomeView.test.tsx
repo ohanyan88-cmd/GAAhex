@@ -32,7 +32,6 @@ describe('HomeView tab switching', () => {
   function mount() {
     return render(
       <HomeView
-        token="tok"
         capabilities={{}}
       />
     )

@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { Modal } from '../../components/Modal'
 import { Button } from '../../primitives'
 import {
@@ -22,7 +23,6 @@ export function EntityFormModal(props: {
   editingStatus: string | null
   errorField: string | null
   error: string
-  token: string
   onClose: () => void
   onSubmit: (e: FormEvent) => void
   onFormChange: (key: string, value: any) => void
@@ -31,9 +31,10 @@ export function EntityFormModal(props: {
   onDownloadContract: () => void
   onDownloadContractPdf: () => void
 }) {
+  const { token } = useAuth()
   const {
     mode, def, form, createStep,
-    contractUrl, contractPdfUrl, contractBusy, editingStatus, errorField, error, token,
+    contractUrl, contractPdfUrl, contractBusy, editingStatus, errorField, error,
     onClose, onSubmit, onFormChange, onSetCreateStep,
     onGenerateContract, onDownloadContract, onDownloadContractPdf,
   } = props
@@ -43,7 +44,6 @@ export function EntityFormModal(props: {
     <FieldInput
       key={f.key}
       field={f}
-      token={token}
       mode={mode}
       currentStatus={editingStatus}
       errorField={errorField}

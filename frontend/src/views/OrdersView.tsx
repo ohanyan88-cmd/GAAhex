@@ -13,6 +13,7 @@
 // for the New-order button, `order.edit` for the lifecycle buttons. The backend re-enforces, but
 // hiding here keeps the UI honest.
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost, loadCustomers, loadCustomerOptions } from '../lib/billing'
 import { money } from '../lib/money'
 import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -126,10 +127,10 @@ function toAmd(v: string | number | null | undefined): number {
 }
 
 // ── View ─────────────────────────────────────────────────────────────────────
-export default function OrdersView({ token, capabilities }: {
-  token: string
+export default function OrdersView({ capabilities }: {
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
+  const { token } = useAuth()
   const [list, setList] = useState<OrderRow[] | null>(null)
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
   const [customerOptions, setCustomerOptions] = useState<{ id: string; label: string }[]>([])
@@ -154,7 +155,7 @@ export default function OrdersView({ token, capabilities }: {
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
-    const res = await bget<OrderRow[]>(token, '/api/orders')
+    const res = await bget<OrderRow[]>(token!, '/api/orders')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) {
@@ -171,8 +172,8 @@ export default function OrdersView({ token, capabilities }: {
   useEffect(() => {
     let alive = true
     // SM-2 — capabilities now flow as a prop from App.tsx; no per-view refetch.
-    loadCustomers(token).then((m) => { if (alive) setCustomerNames(m) }).catch(() => {})
-    loadCustomerOptions(token).then((opts) => { if (alive) setCustomerOptions(opts) }).catch(() => {})
+    loadCustomers(token!).then((m) => { if (alive) setCustomerNames(m) }).catch(() => {})
+    loadCustomerOptions(token!).then((opts) => { if (alive) setCustomerOptions(opts) }).catch(() => {})
     return () => { alive = false }
   }, [token])
 
@@ -253,7 +254,7 @@ export default function OrdersView({ token, capabilities }: {
   // Lifecycle actions. Each maps to one backend route; on success we toast + refresh.
   async function doAdvance(o: OrderRow) {
     try {
-      const updated: any = await bpost(token, `/api/orders/${o.id}/advance`)
+      const updated: any = await bpost(token!, `/api/orders/${o.id}/advance`)
       const to = (updated?.status ?? '').toLowerCase()
       toast.success(`Order ${o.number} → ${to}`)
       await load()
@@ -261,7 +262,7 @@ export default function OrdersView({ token, capabilities }: {
   }
   async function doSubmit(o: OrderRow) {
     try {
-      await bpost(token, `/api/orders/${o.id}/submit`)
+      await bpost(token!, `/api/orders/${o.id}/submit`)
       toast.success(`Order ${o.number} submitted`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -269,7 +270,7 @@ export default function OrdersView({ token, capabilities }: {
   async function doCancel(o: OrderRow) {
     if (!window.confirm(`Cancel order ${o.number}? This cannot be undone.`)) return
     try {
-      await bpost(token, `/api/orders/${o.id}/cancel`)
+      await bpost(token!, `/api/orders/${o.id}/cancel`)
       toast.success(`Order ${o.number} cancelled`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -447,7 +448,6 @@ export default function OrdersView({ token, capabilities }: {
         {/* Create modal — single draft order with a single line item. */}
         {createOpen && (
           <CreateOrderModal
-            token={token}
             customerOptions={customerOptions}
             onClose={() => setCreateOpen(false)}
             onDone={() => { setCreateOpen(false); load() }}
@@ -457,7 +457,6 @@ export default function OrdersView({ token, capabilities }: {
         {/* Detail / edit modal */}
         {detailId && (
           <OrderDetailModal
-            token={token}
             id={detailId}
             customerNames={customerNames}
             canEdit={canEdit}
@@ -470,7 +469,6 @@ export default function OrdersView({ token, capabilities }: {
           const ord = all.find((o) => o.id === stage8Id) ?? null
           return (
             <Stage8Modal
-              token={token}
               order={ord}
               orderId={stage8Id}
               canEdit={canEdit}
@@ -485,13 +483,13 @@ export default function OrdersView({ token, capabilities }: {
 
 // ── Create modal ─────────────────────────────────────────────────────────────
 function CreateOrderModal({
-  token, customerOptions, onClose, onDone,
+  customerOptions, onClose, onDone,
 }: {
-  token: string
   customerOptions: { id: string; label: string }[]
   onClose: () => void
   onDone: () => void
 }) {
+  const { token } = useAuth()
   const [customerId, setCustomerId] = useState('')
   const [description, setDescription] = useState('')
   const [quantity, setQuantity] = useState('1')
@@ -504,7 +502,7 @@ function CreateOrderModal({
     try {
       const qty = Math.max(1, parseInt(quantity, 10) || 1)
       const unitMinor = Math.round((parseFloat(unitAmount) || 0) * 100)
-      await bpost(token, '/api/orders', {
+      await bpost(token!, '/api/orders', {
         customer_id: customerId,
         items: [{
           description: description.trim(),
@@ -589,21 +587,21 @@ function CreateOrderModal({
 
 // ── Detail modal ─────────────────────────────────────────────────────────────
 function OrderDetailModal({
-  token, id, customerNames, canEdit, onClose,
+  id, customerNames, canEdit, onClose,
 }: {
-  token: string
   id: string
   customerNames: Record<string, string>
   canEdit: boolean
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [order, setOrder] = useState<OrderRow | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   async function load() {
     setError('')
-    const res = await bget<OrderRow>(token, `/api/orders/${id}`)
+    const res = await bget<OrderRow>(token!, `/api/orders/${id}`)
     if (!res.ok) {
       setError(res.status === 404 ? 'Order not found' : 'Failed to load order')
       return
@@ -617,7 +615,7 @@ function OrderDetailModal({
     if (verb === 'cancel' && !window.confirm(`Cancel order ${order.number}?`)) return
     setBusy(true)
     try {
-      await bpost(token, `/api/orders/${order.id}/${verb}`)
+      await bpost(token!, `/api/orders/${order.id}/${verb}`)
       toast.success(`Order ${verb}${verb === 'cancel' ? 'led' : verb === 'advance' ? 'd' : 'ted'}`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -709,15 +707,15 @@ function OrderDetailModal({
 // On mount fetches POST /api/orders/{id}/stage8-check. Re-run reuses the same
 // route. Apply / Release / Collect-deposit hit their own routes and refetch.
 function Stage8Modal({
-  token, order, orderId, canEdit, onClose, onChanged,
+  order, orderId, canEdit, onClose, onChanged,
 }: {
-  token: string
   order: OrderRow | null            // snapshot from the list (for deposit_required/status); null if list missed
   orderId: string
   canEdit: boolean
   onClose: () => void
   onChanged: () => void             // tell parent to refetch /api/orders
 }) {
+  const { token } = useAuth()
   const [check, setCheck] = useState<Stage8Status | null>(null)
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -731,7 +729,7 @@ function Stage8Modal({
     try {
       // /stage8-check is a POST predicate (read-only) — call via bpost so the
       // helper raises on non-2xx, then catch + classify here.
-      const data = await bpost<Stage8Status>(token, `/api/orders/${orderId}/stage8-check`)
+      const data = await bpost<Stage8Status>(token!, `/api/orders/${orderId}/stage8-check`)
       setCheck(data)
     } catch (e) {
       const err = e as Error & { status?: number }
@@ -748,7 +746,7 @@ function Stage8Modal({
     if (busy) return
     setBusy(true)
     try {
-      const updated = await bpost<{ stage8?: Stage8Status }>(token, `/api/orders/${orderId}/stage8-apply`)
+      const updated = await bpost<{ stage8?: Stage8Status }>(token!, `/api/orders/${orderId}/stage8-apply`)
       toast.success('Stage 8 verdict applied')
       if (updated?.stage8) setCheck(updated.stage8)
       onChanged()
@@ -763,7 +761,7 @@ function Stage8Modal({
     if (busy) return
     setBusy(true)
     try {
-      await bpost(token, `/api/orders/${orderId}/release`)
+      await bpost(token!, `/api/orders/${orderId}/release`)
       toast.success(`Order released to provisioning`)
       onChanged()
       onClose()
@@ -923,7 +921,6 @@ function Stage8Modal({
       {/* Collect-deposit nested modal */}
       {depositOpen && (
         <CollectDepositModal
-          token={token}
           orderId={orderId}
           suggested={depositShortfall ? (depositReq - depositColl) : 0}
           onClose={() => setDepositOpen(false)}
@@ -936,14 +933,14 @@ function Stage8Modal({
 
 // ── Collect-deposit nested modal ─────────────────────────────────────────────
 function CollectDepositModal({
-  token, orderId, suggested, onClose, onDone,
+  orderId, suggested, onClose, onDone,
 }: {
-  token: string
   orderId: string
   suggested: number                  // AMD shortfall to pre-fill
   onClose: () => void
   onDone: () => void
 }) {
+  const { token } = useAuth()
   const [amount, setAmount] = useState<string>(suggested > 0 ? String(suggested) : '')
   const [paymentMethodId, setPaymentMethodId] = useState<string>('')
   const [busy, setBusy] = useState(false)
@@ -956,7 +953,7 @@ function CollectDepositModal({
       const body: { amount: number; payment_method_id?: string } = { amount: amt }
       const pm = paymentMethodId.trim()
       if (pm) body.payment_method_id = pm
-      await bpost(token, `/api/orders/${orderId}/collect-deposit`, body)
+      await bpost(token!, `/api/orders/${orderId}/collect-deposit`, body)
       toast.success(`Deposit collected: ${amt.toLocaleString()} ֏`)
       onDone()
     } catch (e) {

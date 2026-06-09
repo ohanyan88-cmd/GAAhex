@@ -22,6 +22,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 
 import { BASE } from '../lib/config'
 import { authH } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 
 // ---------------------------------------------------------------------------
 // OpenAPI shape (the subset we actually use)
@@ -602,7 +603,8 @@ function EndpointRow({ spec, endpoint, token }: { spec: OAS; endpoint: Endpoint;
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function ApiDocsPane({ token }: { token: string }) {
+export default function ApiDocsPane() {
+  const { token } = useAuth()
   const [spec, setSpec] = useState<OAS | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -612,7 +614,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
   const load = useCallback(() => {
     let alive = true
     setLoading(true); setError('')
-    fetch(BASE + '/openapi.json', { headers: authH(token) })
+    fetch(BASE + '/openapi.json', { headers: authH(token!) })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         const j = await r.json()
@@ -792,7 +794,7 @@ export default function ApiDocsPane({ token }: { token: string }) {
               </div>
               <div>
                 {list.map((ep) => (
-                  <EndpointRow key={ep.id} spec={spec} endpoint={ep} token={token} />
+                  <EndpointRow key={ep.id} spec={spec} endpoint={ep} token={token!} />
                 ))}
               </div>
             </div>

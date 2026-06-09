@@ -1,5 +1,6 @@
 import { Button } from '../primitives'
 import { useEffect, useState, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import {
   LockIcon, PlusIcon, CloseIcon, CheckIcon, EditIcon, TrashIcon, InfoIcon,
@@ -45,7 +46,8 @@ function groupPerms(perms: Permission[]): Record<string, Permission[]> {
 // ---------------------------------------------------------------------------
 // Main pane
 // ---------------------------------------------------------------------------
-export default function RolesPane({ token }: { token: string }) {
+export default function RolesPane() {
+  const { token } = useAuth()
   const [roles, setRoles] = useState<Role[]>([])
   const [allPerms, setAllPerms] = useState<Permission[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,8 +77,8 @@ export default function RolesPane({ token }: { token: string }) {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
     Promise.all([
-      jreq(token, '/api/roles'),
-      jreq(token, '/api/permissions'),
+      jreq(token!,'/api/roles'),
+      jreq(token!,'/api/permissions'),
     ])
       .then(([r, p]) => {
         if (!alive) return
@@ -113,7 +115,7 @@ export default function RolesPane({ token }: { token: string }) {
     if (!selected) return
     setSaving(true); setSaveErr(''); setSaveMsg('')
     try {
-      await jreq(token, `/api/roles/${selected.id}`, {
+      await jreq(token!,`/api/roles/${selected.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ permissions: Array.from(editPerms) }),
       })
@@ -132,7 +134,7 @@ export default function RolesPane({ token }: { token: string }) {
     e.preventDefault()
     setCreating(true); setCreateErr('')
     try {
-      const created = await jreq(token, '/api/roles', {
+      const created = await jreq(token!,'/api/roles', {
         method: 'POST',
         body: JSON.stringify({ key: newKey.trim(), label: newLabel.trim(), permissions: [] }),
       })
@@ -148,7 +150,7 @@ export default function RolesPane({ token }: { token: string }) {
   async function deleteRole(id: number) {
     setDeleting(true); setDeleteErr('')
     try {
-      await jreq(token, `/api/roles/${id}`, { method: 'DELETE' })
+      await jreq(token!,`/api/roles/${id}`, { method: 'DELETE' })
       setRoles((prev) => prev.filter((r) => r.id !== id))
       if (selected?.id === id) setSelected(null)
       setDeleteId(null)

@@ -11,9 +11,7 @@ import EntityView from './EntityView'
 import { type Capabilities } from '../lib/capabilities'
 import { UsersIcon, SparkleIcon } from '../components/icons'
 import { PageShell } from '../page-shell'
-
 export interface CustomersListViewProps {
-  token:        string
   capabilities?: Capabilities
   canConfigure?: boolean
   onOpenCustomer?: (id: string) => void
@@ -37,7 +35,6 @@ export default function CustomersListView(props: CustomersListViewProps) {
     >
       {/* Standard customers entity view — CRUD, filters, columns, permissions all preserved */}
       <EntityView
-        token={props.token}
         slug="customers"
         capabilities={props.capabilities ?? ({} as Capabilities)}
         canConfigure={props.canConfigure}

@@ -10,6 +10,7 @@
 //  - 403 ⇒ <PermissionDenied/>.
 //  - Mutation errors (4xx) inside the vault modal surface the backend `detail` and DON'T close.
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost, bpatch, loadCustomers } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { Modal, confirmDialog } from '../components/Modal'
@@ -79,14 +80,13 @@ function fmtExpiry(m: number, y: number): string {
 }
 
 export default function PaymentMethodsView({
-  token,
   canConfigure = false,
   capabilities,
 }: {
-  token: string
   canConfigure?: boolean
   capabilities: Capabilities
 }) {
+  const { token } = useAuth()
   const [list, setList] = useState<PaymentMethod[] | null>(null)
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -102,7 +102,7 @@ export default function PaymentMethodsView({
 
   async function load() {
     setError(''); setUnavailable(false); setDenied(false); setList(null)
-    const res = await bget<PaymentMethod[]>(token, '/api/payment-methods')
+    const res = await bget<PaymentMethod[]>(token!, '/api/payment-methods')
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) {
@@ -116,13 +116,13 @@ export default function PaymentMethodsView({
   useEffect(() => {
     if (!canView) return
     load()
-    loadCustomers(token).then(setCustomerNames).catch(() => setCustomerNames({}))
+    loadCustomers(token!).then(setCustomerNames).catch(() => setCustomerNames({}))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, canView])
 
   async function setDefault(pm: PaymentMethod) {
     try {
-      await bpatch(token, `/api/payment-methods/${pm.id}`, { is_default: true })
+      await bpatch(token!, `/api/payment-methods/${pm.id}`, { is_default: true })
       toast.success(`Default card set · •••• ${pm.last4}`)
       await load()
     } catch (e) {
@@ -139,7 +139,7 @@ export default function PaymentMethodsView({
     })
     if (!ok) return
     try {
-      await bpatch(token, `/api/payment-methods/${pm.id}`, { status: 'removed' })
+      await bpatch(token!, `/api/payment-methods/${pm.id}`, { status: 'removed' })
       toast.success('Card removed')
       await load()
     } catch (e) {
@@ -355,7 +355,6 @@ export default function PaymentMethodsView({
 
       {showNew && canWrite && (
         <VaultModal
-          token={token}
           onClose={() => setShowNew(false)}
           onCreated={async (last4) => {
             setShowNew(false)
@@ -373,14 +372,13 @@ export default function PaymentMethodsView({
 // drop them by closing the modal. The backend never echoes them back. On 4xx, we surface the
 // backend `detail` message inside the modal and keep it open.
 function VaultModal({
-  token,
   onClose,
   onCreated,
 }: {
-  token: string
   onClose: () => void
   onCreated: (last4: string) => Promise<void> | void
 }) {
+  const { token } = useAuth()
   const [customerId, setCustomerId] = useState('')
   const [accountId, setAccountId] = useState('')
   const [cardNumber, setCardNumber] = useState('')
@@ -413,7 +411,7 @@ function VaultModal({
       }
       if (accountId.trim()) body.account_id = accountId.trim()
       if (cardholderName.trim()) body.cardholder_name = cardholderName.trim()
-      const created = await bpost<{ last4: string }>(token, '/api/payment-methods', body)
+      const created = await bpost<{ last4: string }>(token!, '/api/payment-methods', body)
       await onCreated(created.last4 ?? cardNumber.trim().slice(-4))
     } catch (e) {
       setFormError((e as Error).message || 'Failed to vault card')

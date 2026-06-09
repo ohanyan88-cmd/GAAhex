@@ -18,6 +18,7 @@ import { useCustomFields } from '../components/CustomCells'
 import { Button, StatusPill, Input, FormField, DataTableCell } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { humanizeStatus } from '../lib/humanize'
+import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 
@@ -90,10 +91,9 @@ const PRIORITIES: TicketPriority[] = ['low', 'normal', 'high', 'urgent']
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function HelpdeskView({
-  token, canConfigure = false, configVersion = 0, capabilities = FULL_ACCESS,
+  canConfigure = false, configVersion = 0, capabilities = FULL_ACCESS,
   initialStatus, initialOpenTicketId, openTicketId,
 }: {
-  token: string
   canConfigure?: boolean
   configVersion?: number
   capabilities?: Capabilities
@@ -107,13 +107,14 @@ export default function HelpdeskView({
   openTicketId?: string
   initialOpenTicketId?: string
 }) {
-  const cfg = usePageConfig(token, 'helpdesk', configVersion)
+  const { token } = useAuth()
+  const cfg = usePageConfig(token!, 'helpdesk', configVersion)
   const canCreateTicket = can(capabilities, 'helpdesk_ticket', 'create')
   const canEditTicket = can(capabilities, 'helpdesk_ticket', 'edit')
 
   const [queues, setQueues] = useState<Queue[]>([])
   const [tickets, setTickets] = useState<Ticket[] | null>(null)
-  const cf = useCustomFields(token, 'helpdesk', cfg.customFields, (tickets ?? []).map((t) => t.id))
+  const cf = useCustomFields('helpdesk', cfg.customFields, (tickets ?? []).map((t) => t.id))
   const [names, setNames] = useState<Record<string, string>>({})
   const [users, setUsers] = useState<User[]>([])
   const [error, setError] = useState('')
@@ -134,7 +135,7 @@ export default function HelpdeskView({
   const [queueCounts, setQueueCounts] = useState<Record<string, number>>({})
 
   async function loadQueues() {
-    const res = await listQueues(token)
+    const res = await listQueues(token!)
     if (res.ok && Array.isArray(res.data)) setQueues(res.data)
   }
 
@@ -152,14 +153,14 @@ export default function HelpdeskView({
     const effectiveQueue = selectedQueue ?? queueFilter
     if (effectiveQueue) filters.queue = effectiveQueue
 
-    const res = await listTickets(token, filters)
+    const res = await listTickets(token!, filters)
     if (res.status === 404) { setUnavailable(true); setTickets([]); return }
     if (!res.ok) { setError('Failed to load tickets'); setTickets([]); return }
     const list = Array.isArray(res.data) ? res.data : []
     setTickets(list)
 
     // Recompute counts across ALL tickets for the queue rail (load without filters)
-    const allRes = await listTickets(token, {})
+    const allRes = await listTickets(token!, {})
     if (allRes.ok && Array.isArray(allRes.data)) {
       const counts: Record<string, number> = {}
       for (const t of allRes.data) {
@@ -168,9 +169,9 @@ export default function HelpdeskView({
       setQueueCounts(counts)
     }
 
-    setNames(await loadCustomers(token))
+    setNames(await loadCustomers(token!))
     // Load users for the assignee column — real names rather than UUID slices.
-    const usersRes = await listUsers(token)
+    const usersRes = await listUsers(token!)
     if (usersRes.ok && Array.isArray(usersRes.data)) setUsers(usersRes.data)
   }
 
@@ -337,7 +338,7 @@ export default function HelpdeskView({
       {/* Ticket detail modal */}
       {detailId && (
         <TicketDetailModal
-          token={token}
+          token={token!}
           id={detailId}
           queues={queues}
           names={names}
@@ -350,7 +351,7 @@ export default function HelpdeskView({
       {/* Create ticket modal */}
       {createOpen && (
         <CreateTicketModal
-          token={token}
+          token={token!}
           queues={queues}
           onClose={() => setCreateOpen(false)}
           onDone={() => { setCreateOpen(false); loadData() }}
@@ -360,7 +361,7 @@ export default function HelpdeskView({
       {/* Create queue modal */}
       {createQueueOpen && canConfigure && (
         <CreateQueueModal
-          token={token}
+          token={token!}
           onClose={() => setCreateQueueOpen(false)}
           onDone={() => { setCreateQueueOpen(false); loadQueues() }}
         />
@@ -469,7 +470,6 @@ function TicketDetailModal({
       value: (
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-4)' }}>
           <UserPicker
-            token={token}
             value={agentId}
             onChange={setAgentId}
             className="inp inp-sm"

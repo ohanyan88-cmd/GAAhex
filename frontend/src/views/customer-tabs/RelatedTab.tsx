@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { bget } from '../../lib/billing'
 import { EmptyState } from '../../page-shell'
+import { useAuth } from '../../context/AuthContext'
 
 type RelatedRow = {
   id?: string
@@ -29,13 +30,14 @@ function normalize(payload: RelatedGraph | null | undefined): RelatedRow[] {
   return payload.rows ?? payload.edges ?? payload.nodes ?? []
 }
 
-export default function RelatedTab({ token, entity, id }: { token: string; entity: string; id: string }) {
+export default function RelatedTab({ entity, id }: { entity: string; id: string }) {
+  const { token } = useAuth()
   const [rows, setRows] = useState<RelatedRow[] | null | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     setRows(undefined)
-    bget<RelatedGraph>(token, `/api/relationships/graph?entity_type=${encodeURIComponent(entity)}&entity_id=${encodeURIComponent(id)}`)
+    bget<RelatedGraph>(token!, `/api/relationships/graph?entity_type=${encodeURIComponent(entity)}&entity_id=${encodeURIComponent(id)}`)
       .then((r) => {
         if (cancelled) return
         if (r.status === 404) { setRows([]); return }

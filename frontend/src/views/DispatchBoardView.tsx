@@ -2,6 +2,7 @@
 // Workitems grouped by status — TODO / IN_PROGRESS / DONE / BLOCKED columns.
 // Real data from GET /api/workitems. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
 import { EmptyState, ErrorBanner, SkeletonRows } from '../components/States'
@@ -19,14 +20,15 @@ const COLUMNS = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']
 const COL_LABELS: Record<string, string> = { TODO: 'To Do', IN_PROGRESS: 'In Progress', BLOCKED: 'Blocked', DONE: 'Done' }
 const PRIORITY_DOT: Record<string, string> = { HIGH: 'var(--gx-danger-fg)', NORMAL: 'var(--gx-text-3)', LOW: 'var(--gx-interactive)' }
 
-export default function DispatchBoardView({ token }: { token: string }) {
+export default function DispatchBoardView() {
+  const { token } = useAuth()
   const [items, setItems] = useState<WorkItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
-    fetch(`${BASE}/api/workitems?limit=${DISPATCH_BOARD}`, { headers: authH(token) })
+    fetch(`${BASE}/api/workitems?limit=${DISPATCH_BOARD}`, { headers: authH(token!) })
       .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
       .then(d => { if (alive) { setItems(Array.isArray(d) ? d : d.items ?? []); setLoading(false) } })
       .catch(e => { if (alive) { setError(String(e)); setLoading(false) } })

@@ -9,6 +9,7 @@
 // Errors hide the table/board entirely and log to console (no banner).
 
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 import WorkItemsBoard from '../components/WorkItemsBoard'
 import { EmptyState, PermissionDenied, SkeletonRows, ErrorBanner } from '../components/States'
@@ -88,16 +89,15 @@ function priorityPill(priority: string | null | undefined) {
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export default function MyTasksView({
-  token,
   canConfigure = false,
   onConfigure,
   onNavigate,
 }: {
-  token: string
   canConfigure?: boolean
   onConfigure?: () => void
   onNavigate?: (target: string) => void
 }) {
+  const { token } = useAuth()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
@@ -114,7 +114,7 @@ export default function MyTasksView({
 
   async function loadData() {
     setState({ kind: 'loading' })
-    const res = await listWorkItems(token, { mine: true })
+    const res = await listWorkItems(token!, { mine: true })
     if (res.status === 403) { setState({ kind: 'forbidden' }); return }
     if (!res.ok) {
       console.error('[mytasks] listWorkItems failed', res.status)
@@ -130,11 +130,11 @@ export default function MyTasksView({
   // falls back to displaying IDs/dashes for unresolved values).
   useEffect(() => {
     (async () => {
-      const res = await listUsers(token)
+      const res = await listUsers(token!)
       if (res.ok && Array.isArray(res.data)) setUsers(res.data)
     })()
     ;(async () => {
-      try { setCustomerNames(await loadCustomers(token)) } catch { /* hide-if-missing */ }
+      try { setCustomerNames(await loadCustomers(token!)) } catch { /* hide-if-missing */ }
     })()
   }, [token])
 
@@ -194,7 +194,7 @@ export default function MyTasksView({
     setDetailId(item.id)
   }
 
-  const handleStatusChange = makeStatusChangeHandler(token, loadData)
+  const handleStatusChange = makeStatusChangeHandler(token!, loadData)
 
   // ── Subtitle (built from real counts) ──────────────────────────────────────
   // Per doctrine: 0 IS a real fetched value → show it. A failed/forbidden fetch
@@ -343,7 +343,6 @@ export default function MyTasksView({
       {/* Detail/edit modal */}
       {detailId && (
         <MyTaskDetailModal
-          token={token}
           id={detailId}
           users={users}
           customerNames={customerNames}
@@ -354,7 +353,6 @@ export default function MyTasksView({
       {/* Create modal */}
       {createOpen && (
         <MyTaskCreateModal
-          token={token}
           onClose={() => setCreateOpen(false)}
           onDone={() => { setCreateOpen(false); loadData() }}
         />
@@ -376,14 +374,14 @@ function statusLabel(s: WorkItemStatus): string {
 // those components are not exported from WorkItemsView.
 
 function MyTaskDetailModal({
-  token, id, users, customerNames, onClose,
+  id, users, customerNames, onClose,
 }: {
-  token: string
   id: string
   users: User[]
   customerNames: Record<string, string>
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [item, setItem] = useState<WorkItem | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -404,7 +402,7 @@ function MyTaskDetailModal({
 
   async function load() {
     setError('')
-    const res = await getWorkItem(token, id)
+    const res = await getWorkItem(token!, id)
     if (!res.ok) { setError(res.status === 404 ? 'Work item not found' : 'Failed to load'); return }
     const wi = res.data!
     setItem(wi)
@@ -425,7 +423,7 @@ function MyTaskDetailModal({
     if (!title.trim() || busy) return
     setBusy(true)
     try {
-      await patchWorkItem(token, id, {
+      await patchWorkItem(token!, id, {
         title: title.trim(),
         description: description.trim() || undefined,
         kind: (kind as WorkItemKind) || undefined,
@@ -446,11 +444,11 @@ function MyTaskDetailModal({
     if (busy) return
     setBusy(true)
     try {
-      if (action === 'start') await startWorkItem(token, id)
-      else if (action === 'complete') await completeWorkItem(token, id)
-      else if (action === 'block') await blockWorkItem(token, id)
-      else if (action === 'cancel') await cancelWorkItem(token, id)
-      else await reopenWorkItem(token, id)
+      if (action === 'start') await startWorkItem(token!, id)
+      else if (action === 'complete') await completeWorkItem(token!, id)
+      else if (action === 'block') await blockWorkItem(token!, id)
+      else if (action === 'cancel') await cancelWorkItem(token!, id)
+      else await reopenWorkItem(token!, id)
       toast.success(`Work item ${action === 'complete' ? 'completed' : action + 'ed'}`)
       await load()
     } catch (e) { toast.error((e as Error).message) }
@@ -462,7 +460,7 @@ function MyTaskDetailModal({
     if (!window.confirm('Delete this work item? This cannot be undone.')) return
     setBusy(true)
     try {
-      await deleteWorkItem(token, id)
+      await deleteWorkItem(token!, id)
       toast.success('Deleted')
       onClose()
     } catch (e) { toast.error((e as Error).message); setBusy(false) }
@@ -592,7 +590,6 @@ function MyTaskDetailModal({
             <label className="field">
               <span>Assignee</span>
               <UserPicker
-                token={token}
                 value={assigneeId}
                 onChange={setAssigneeId}
                 aria-label="Assignee"
@@ -663,12 +660,12 @@ function MyTaskDetailModal({
 // ── Create Modal ──────────────────────────────────────────────────────────────
 
 function MyTaskCreateModal({
-  token, onClose, onDone,
+  onClose, onDone,
 }: {
-  token: string
   onClose: () => void
   onDone: () => void
 }) {
+  const { token } = useAuth()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<WorkItemKind | ''>('')
@@ -695,7 +692,7 @@ function MyTaskCreateModal({
         scheduled_at: scheduledAt || undefined,
         location: location.trim() || undefined,
       }
-      await createWorkItem(token, payload)
+      await createWorkItem(token!, payload)
       toast.success('Work item created')
       onDone()
     } catch (e) {
@@ -765,7 +762,6 @@ function MyTaskCreateModal({
         <label className="field">
           <span>Assignee</span>
           <UserPicker
-            token={token}
             value={assigneeId}
             onChange={setAssigneeId}
             aria-label="Assignee"

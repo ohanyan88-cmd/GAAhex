@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { bget, loadCustomers } from '../lib/billing'
+import { useAuth } from '../context/AuthContext'
 import { listUsers, type User } from '../lib/users'
 import { EmptyState, SkeletonRows, PermissionDenied, ErrorBanner } from '../components/States'
 import { CheckIcon, InboxIcon, SearchIcon } from '../components/icons'
@@ -87,7 +88,8 @@ function priorityPill(priority: string | null | undefined) {
 
 // ── Main view ────────────────────────────────────────────────────────────────
 
-export default function CustomerTasksView({ token }: { token: string }) {
+export default function CustomerTasksView() {
+  const { token } = useAuth()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
   const [users, setUsers] = useState<User[]>([])
@@ -97,7 +99,7 @@ export default function CustomerTasksView({ token }: { token: string }) {
   useEffect(() => {
     let cancelled = false
     setState({ kind: 'loading' })
-    bget<CustomerTask[]>(token, '/api/tasks?parent_entity_type=customer')
+    bget<CustomerTask[]>(token!, '/api/tasks?parent_entity_type=customer')
       .then((r) => {
         if (cancelled) return
         if (r.status === 403) { setState({ kind: 'forbidden' }); return }
@@ -120,12 +122,12 @@ export default function CustomerTasksView({ token }: { token: string }) {
     let cancelled = false
     ;(async () => {
       try {
-        const map = await loadCustomers(token)
+        const map = await loadCustomers(token!)
         if (!cancelled) setCustomerNames(map)
       } catch { /* hide-if-missing */ }
     })()
     ;(async () => {
-      const res = await listUsers(token)
+      const res = await listUsers(token!)
       if (!cancelled && res.ok && Array.isArray(res.data)) setUsers(res.data)
     })()
     return () => { cancelled = true }

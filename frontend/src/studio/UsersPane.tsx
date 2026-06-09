@@ -20,6 +20,7 @@
 
 import { Button } from '../primitives'
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useAuth } from '../context/AuthContext'
 import {
   LoadingState, EmptyState, ErrorBanner, PermissionDenied,
 } from '../components/States'
@@ -83,7 +84,8 @@ async function jget_public<T = unknown>(path: string): Promise<T> {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-export default function UsersPane({ token }: { token: string }) {
+export default function UsersPane() {
+  const { token } = useAuth()
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [nodes, setNodes] = useState<OrgNode[]>([])
@@ -135,8 +137,8 @@ export default function UsersPane({ token }: { token: string }) {
     let alive = true
     setLoading(true); setError(''); setDenied(false)
     Promise.all([
-      jreq<User[]>(token, '/api/users'),
-      jreq<Role[]>(token, '/api/roles'),
+      jreq<User[]>(token!,'/api/users'),
+      jreq<Role[]>(token!,'/api/roles'),
       jget_public<{ nodes: OrgNode[] }>('/org-tree'),
     ])
       .then(([u, r, t]) => {
@@ -192,7 +194,7 @@ export default function UsersPane({ token }: { token: string }) {
     e.preventDefault()
     setCreating(true); setCreateErr('')
     try {
-      const created = await jreq<User>(token, '/api/users', {
+      const created = await jreq<User>(token!,'/api/users', {
         method: 'POST',
         body: JSON.stringify({
           name: createName.trim(),
@@ -227,7 +229,7 @@ export default function UsersPane({ token }: { token: string }) {
       return
     }
     try {
-      const updated = await jreq<User>(token, `/api/users/${selected.id}`, {
+      const updated = await jreq<User>(token!,`/api/users/${selected.id}`, {
         method: 'PATCH',
         body: JSON.stringify(body),
       })
@@ -246,7 +248,7 @@ export default function UsersPane({ token }: { token: string }) {
   async function deleteUser(id: string) {
     setDeleting(true); setDeleteErr('')
     try {
-      const result = await jreq<{ status: string }>(token, `/api/users/${id}`, { method: 'DELETE' })
+      const result = await jreq<{ status: string }>(token!,`/api/users/${id}`, { method: 'DELETE' })
       // Soft-delete: status flips to inactive. Reflect locally; keep row in list so
       // operator sees the state, but the drawer drops back to closed for clarity.
       setUsers((prev) => prev.map((u) => u.id === id ? { ...u, status: result.status } : u))
@@ -265,7 +267,7 @@ export default function UsersPane({ token }: { token: string }) {
     if (!selected) return
     setAddingRole(true); setAddRoleErr('')
     try {
-      await jreq(token, '/api/assignments', {
+      await jreq(token!,'/api/assignments', {
         method: 'POST',
         body: JSON.stringify({
           user_id: selected.id,
@@ -274,7 +276,7 @@ export default function UsersPane({ token }: { token: string }) {
         }),
       })
       // Re-fetch the user so chips reflect the new assignment row + id.
-      const fresh = await jreq<User>(token, `/api/users/${selected.id}`)
+      const fresh = await jreq<User>(token!,`/api/users/${selected.id}`)
       applyUserUpdate(fresh)
       setAddRoleId(''); setAddNodeId('')
       setShowAddRole(false)
@@ -289,8 +291,8 @@ export default function UsersPane({ token }: { token: string }) {
     if (!selected) return
     setRemovingAssign(true); setRemoveAssignErr('')
     try {
-      await jreq(token, `/api/assignments/${assignmentId}`, { method: 'DELETE' })
-      const fresh = await jreq<User>(token, `/api/users/${selected.id}`)
+      await jreq(token!,`/api/assignments/${assignmentId}`, { method: 'DELETE' })
+      const fresh = await jreq<User>(token!,`/api/users/${selected.id}`)
       applyUserUpdate(fresh)
       setRemoveAssignId(null)
     } catch (e) {

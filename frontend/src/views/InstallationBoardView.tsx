@@ -15,6 +15,7 @@
 // Clicking a card opens a snapshot drawer (/install-summary) showing the linked
 // strand / VLAN / CPE rows. Real data only — missing → empty state.
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { bget, bpost } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { Modal } from '../components/Modal'
@@ -103,16 +104,15 @@ function shortId(id: string | null | undefined, n = 8): string {
 }
 
 interface ViewProps {
-  token: string
   canConfigure?: boolean
   capabilities?: Capabilities
 }
 
 export default function InstallationBoardView({
-  token,
   canConfigure = false,
   capabilities = FULL_ACCESS,
 }: ViewProps) {
+  const { token } = useAuth()
   const canEdit = canConfigure || can(capabilities, 'order', 'edit')
 
   const [orders, setOrders] = useState<InstallOrder[] | null>(null)
@@ -130,7 +130,7 @@ export default function InstallationBoardView({
     if (opts.silent) setReloading(true)
     else setLoading(true)
     setError(null); setDenied(false); setNotFound(false)
-    const r = await bget<ListResponse>(token, `/api/install-board?page=1`)
+    const r = await bget<ListResponse>(token!, `/api/install-board?page=1`)
     if (r.status === 403) { setDenied(true); setLoading(false); setReloading(false); return }
     if (r.status === 404) { setNotFound(true); setOrders([]); setLoading(false); setReloading(false); return }
     if (!r.ok || !r.data) {
@@ -157,7 +157,7 @@ export default function InstallationBoardView({
   async function allocate(order: InstallOrder) {
     setBusyOrderId(order.id)
     try {
-      await bpost(token, `/api/install-board/orders/${order.id}/allocate-resources`)
+      await bpost(token!, `/api/install-board/orders/${order.id}/allocate-resources`)
       toast.success('Resources allocated')
       await load({ silent: true })
     } catch (e) {
@@ -170,7 +170,7 @@ export default function InstallationBoardView({
   async function activate(order: InstallOrder) {
     setBusyOrderId(order.id)
     try {
-      await bpost(token, `/api/install-board/orders/${order.id}/activate`)
+      await bpost(token!, `/api/install-board/orders/${order.id}/activate`)
       toast.success('Service activated')
       await load({ silent: true })
     } catch (e) {
@@ -294,7 +294,6 @@ export default function InstallationBoardView({
 
       {bindForOrder && (
         <BindCpeModal
-          token={token}
           order={bindForOrder}
           onClose={() => setBindForOrder(null)}
           onBound={async () => {
@@ -306,7 +305,6 @@ export default function InstallationBoardView({
 
       {summaryFor && (
         <InstallSummaryModal
-          token={token}
           order={summaryFor}
           onClose={() => setSummaryFor(null)}
         />
@@ -418,16 +416,15 @@ function OrderCard({
 /* ─── Bind CPE Modal ────────────────────────────────────────────────────── */
 
 function BindCpeModal({
-  token,
   order,
   onClose,
   onBound,
 }: {
-  token: string
   order: InstallOrder
   onClose: () => void
   onBound: () => void
 }) {
+  const { token } = useAuth()
   const [mac, setMac] = useState('')
   const [serial, setSerial] = useState('')
   const [vendor, setVendor] = useState('')
@@ -443,7 +440,7 @@ function BindCpeModal({
     if (!canSubmit) return
     setSaving(true); setErr(null)
     try {
-      await bpost(token, `/api/install-board/orders/${order.id}/bind-cpe`, {
+      await bpost(token!, `/api/install-board/orders/${order.id}/bind-cpe`, {
         mac_address: mac.trim().toLowerCase(),
         serial: serial.trim(),
         vendor: vendor.trim() || undefined,
@@ -530,21 +527,20 @@ function BindCpeModal({
 /* ─── Install Summary Modal ─────────────────────────────────────────────── */
 
 function InstallSummaryModal({
-  token,
   order,
   onClose,
 }: {
-  token: string
   order: InstallOrder
   onClose: () => void
 }) {
+  const { token } = useAuth()
   const [summary, setSummary] = useState<InstallSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     setSummary(null); setError(null)
-    bget<InstallSummary>(token, `/api/install-board/orders/${order.id}/install-summary`)
+    bget<InstallSummary>(token!, `/api/install-board/orders/${order.id}/install-summary`)
       .then((r) => {
         if (!alive) return
         if (!r.ok || !r.data) {
