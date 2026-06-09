@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useI18n } from '../../lib/i18n'
 import {
   getWorkItem, patchWorkItem,
   startWorkItem, completeWorkItem, blockWorkItem,
@@ -29,6 +30,7 @@ export default function MyTaskDetailModal({
   onClose: () => void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [item, setItem] = useState<WorkItem | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -50,7 +52,7 @@ export default function MyTaskDetailModal({
   async function load() {
     setError('')
     const res = await getWorkItem(token!, id)
-    if (!res.ok) { setError(res.status === 404 ? 'Work item not found' : 'Failed to load'); return }
+    if (!res.ok) { setError(res.status === 404 ? t('mytasks.notFound', 'Work item not found') : t('common.error', 'Failed to load')); return }
     const wi = res.data!
     setItem(wi)
     setTitle(wi.title ?? '')
@@ -81,7 +83,7 @@ export default function MyTaskDetailModal({
         scheduled_at: scheduledAt || undefined,
         location: location.trim() || undefined,
       })
-      toast.success('Work item saved')
+      toast.success(t('mytasks.toast.saved', 'Work item saved'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
     finally { setBusy(false) }
@@ -108,7 +110,7 @@ export default function MyTaskDetailModal({
     setBusy(true)
     try {
       await deleteWorkItem(token!, id)
-      toast.success('Deleted')
+      toast.success(t('common.deleted', 'Deleted'))
       onClose()
     } catch (e) { toast.error((e as Error).message); setBusy(false) }
   }
@@ -133,17 +135,17 @@ export default function MyTaskDetailModal({
             title="Delete">
             <TrashIcon size={13} />
           </Button>
-          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="primary" size="md"
             disabled={busy || !title.trim()}
             onClick={handleSave}>
-            {busy ? 'Saving…' : 'Save'}
+            {busy ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
           </Button>
         </div>
       }
     >
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {!item && !error && <p className="muted">Loading…</p>}
+      {!item && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
       {item && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-8)' }}>
@@ -158,37 +160,37 @@ export default function MyTaskDetailModal({
               {s === 'TODO' && (
                 <Button variant="primary" size="sm"
             disabled={busy} onClick={() => handleAction('start')}>
-                  <PlayIcon size={12} /> Start
+                  <PlayIcon size={12} /> {t('mytasks.action.start', 'Start')}
                 </Button>
               )}
               {s === 'IN_PROGRESS' && (
                 <>
                   <Button variant="primary" size="sm"
             disabled={busy} onClick={() => handleAction('complete')}>
-                    <CheckIcon size={12} /> Complete
+                    <CheckIcon size={12} /> {t('mytasks.action.complete', 'Complete')}
                   </Button>
                   <Button variant="ghost" size="sm"
             disabled={busy} onClick={() => handleAction('block')}>
-                    <PauseIcon size={12} /> Block
+                    <PauseIcon size={12} /> {t('mytasks.action.block', 'Block')}
                   </Button>
                 </>
               )}
               {s === 'BLOCKED' && (
                 <Button variant="ghost" size="sm"
             disabled={busy} onClick={() => handleAction('start')}>
-                  <PlayIcon size={12} /> Resume
+                  <PlayIcon size={12} /> {t('mytasks.action.resume', 'Resume')}
                 </Button>
               )}
               {(s === 'TODO' || s === 'IN_PROGRESS' || s === 'BLOCKED') && (
                 <Button variant="ghost" size="sm"
             disabled={busy} onClick={() => handleAction('cancel')}>
-                  <CloseIcon size={12} /> Cancel
+                  <CloseIcon size={12} /> {t('common.cancel', 'Cancel')}
                 </Button>
               )}
               {(s === 'DONE' || s === 'CANCELLED') && (
                 <Button variant="primary" size="sm"
             disabled={busy} onClick={() => handleAction('reopen')}>
-                  Reopen
+                  {t('mytasks.action.reopen', 'Reopen')}
                 </Button>
               )}
             </div>
@@ -197,36 +199,36 @@ export default function MyTaskDetailModal({
           {/* Fields */}
           <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
             <label className="field">
-              <span>Title <span style={{ color: 'var(--gx-danger)' }}>*</span></span>
+              <span>{t('mytasks.field.title', 'Title')} <span style={{ color: 'var(--gx-danger)' }}>*</span></span>
               <input
                 className="inp inp-md"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Work item title"
+                placeholder={t('mytasks.field.titlePlaceholder', 'Work item title')}
               />
             </label>
             <label className="field">
-              <span>Description</span>
+              <span>{t('mytasks.field.description', 'Description')}</span>
               <textarea
                 className="inp inp-md"
                 rows={3}
                 style={{ resize: 'vertical' }}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional details…"
+                placeholder={t('mytasks.field.descriptionPlaceholder', 'Optional details…')}
               />
             </label>
 
             <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
               <label className="field" style={{ flex: 1, minWidth: 140 }}>
-                <span>Kind</span>
+                <span>{t('mytasks.field.kind', 'Kind')}</span>
                 <select className="inp inp-md" value={kind} onChange={(e) => setKind(e.target.value as WorkItemKind | '')}>
                   <option value="">—</option>
                   {KINDS.map((k) => <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>)}
                 </select>
               </label>
               <label className="field" style={{ flex: 1, minWidth: 140 }}>
-                <span>Priority</span>
+                <span>{t('mytasks.field.priority', 'Priority')}</span>
                 <select className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as WorkItemPriority | '')}>
                   <option value="">—</option>
                   {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>)}
@@ -235,7 +237,7 @@ export default function MyTaskDetailModal({
             </div>
 
             <label className="field">
-              <span>Assignee</span>
+              <span>{t('mytasks.field.assignee', 'Assignee')}</span>
               <UserPicker
                 value={assigneeId}
                 onChange={setAssigneeId}
@@ -244,18 +246,18 @@ export default function MyTaskDetailModal({
             </label>
 
             <label className="field">
-              <span>Customer ID</span>
+              <span>{t('mytasks.field.customerId', 'Customer ID')}</span>
               <input
                 className="inp inp-md"
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                placeholder="optional"
+                placeholder={t('common.optional', 'optional')}
               />
             </label>
 
             <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
               <label className="field" style={{ flex: 1, minWidth: 160 }}>
-                <span>Due</span>
+                <span>{t('mytasks.field.due', 'Due')}</span>
                 <input
                   className="inp inp-md"
                   type="datetime-local"
@@ -264,7 +266,7 @@ export default function MyTaskDetailModal({
                 />
               </label>
               <label className="field" style={{ flex: 1, minWidth: 160 }}>
-                <span>Scheduled</span>
+                <span>{t('mytasks.field.scheduled', 'Scheduled')}</span>
                 <input
                   className="inp inp-md"
                   type="datetime-local"
@@ -275,12 +277,12 @@ export default function MyTaskDetailModal({
             </div>
 
             <label className="field">
-              <span>Location (field dispatch)</span>
+              <span>{t('mytasks.field.location', 'Location (field dispatch)')}</span>
               <input
                 className="inp inp-md"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Address or GPS coords…"
+                placeholder={t('mytasks.field.locationPlaceholder', 'Address or GPS coords…')}
               />
             </label>
           </div>
@@ -288,12 +290,12 @@ export default function MyTaskDetailModal({
           {/* Timestamps */}
           <div className="bill-meta">
             <div>
-              <span className="muted">Created</span>
+              <span className="muted">{t('mytasks.field.created', 'Created')}</span>
               <div>{fmtDate(item.created_at)}</div>
             </div>
             {item.completed_at && (
               <div>
-                <span className="muted">Completed</span>
+                <span className="muted">{t('mytasks.field.completed', 'Completed')}</span>
                 <div>{fmtDate(item.completed_at)}</div>
               </div>
             )}

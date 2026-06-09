@@ -201,7 +201,7 @@ export default function CustomerView({ customerId, onBack, configVersion = 0, ca
   const statusSummary: StatusSummary | undefined = p?.status
     ? { label: p.status, variant: toSummaryVariant(mapCustomerStatus(p.status)) }
     : undefined
-  const subtitle = p?.id ? `Customer 360 · ${p.id.slice(0, 8)}` : 'Customer 360'
+  const subtitle = p?.id ? `${t('cust.subtitle', 'Customer 360')} · ${p.id.slice(0, 8)}` : t('cust.subtitle', 'Customer 360')
 
   return (
     <PageShell
@@ -212,7 +212,7 @@ export default function CustomerView({ customerId, onBack, configVersion = 0, ca
       subtitle={subtitle}
       statusSummary={statusSummary}
       secondaryActions={[
-        ...(canConfigure && onConfigure ? [{ label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure }] : []),
+        ...(canConfigure && onConfigure ? [{ label: t('common.configure', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure }] : []),
         { label: t('nav.customers', 'Customers'), icon: <ChevronLeftIcon size={13} />, onClick: onBack },
       ]}
     >
@@ -243,15 +243,15 @@ export default function CustomerView({ customerId, onBack, configVersion = 0, ca
               subtitle={(sum.overdue_count ?? 0) > 0 ? `${sum.overdue_count} ${t('cust.overdue', 'overdue invoice(s)')}` : undefined}
               size="sm" danger={(sum.outstanding ?? 0) > 0}
               onClick={onOpenInvoices ? () => onOpenInvoices('OVERDUE') : undefined}
-              ariaLabel="Outstanding amount. Click to see overdue invoices." />
+              ariaLabel={t('cust.outstandingAria', 'Outstanding amount. Click to see overdue invoices.')} />
             <KPITile label={t('cust.billed', 'Total billed')} value={money(sum.total_billed)}
               subtitle={sum.invoice_count != null ? `${sum.invoice_count} ${t('cust.invoiceCount', 'invoice(s)')}` : undefined}
               size="sm" onClick={onOpenInvoices ? () => onOpenInvoices() : undefined}
-              ariaLabel="Total billed. Click to see all invoices." />
+              ariaLabel={t('cust.billedAria', 'Total billed. Click to see all invoices.')} />
             <KPITile label={t('cust.paid', 'Total paid')} value={money(sum.total_paid)}
               subtitle={sum.subscription_count != null ? `${sum.subscription_count} ${t('cust.subCount', 'active subscription(s)')}` : undefined}
               size="sm" onClick={onOpenInvoices ? () => onOpenInvoices('PAID') : undefined}
-              ariaLabel="Total paid. Click to see paid invoices." />
+              ariaLabel={t('cust.paidAria', 'Total paid. Click to see paid invoices.')} />
             {related.filter(([, n]) => n > 0).length > 0 && (
               <KPITile label={t('cust.related', 'Related records')} value=" " size="sm"
                 accessory={

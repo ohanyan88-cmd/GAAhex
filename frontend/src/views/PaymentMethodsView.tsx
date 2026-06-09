@@ -11,6 +11,7 @@
 //  - Mutation errors (4xx) inside the vault modal surface the backend `detail` and DON'T close.
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { bget, bpost, bpatch, loadCustomers } from '../lib/billing'
 import { toast } from '../components/Toast'
 import { Modal, confirmDialog } from '../components/Modal'
@@ -83,6 +84,7 @@ export default function PaymentMethodsView({
   capabilities: Capabilities
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [list, setList] = useState<PaymentMethod[] | null>(null)
   const [error, setError] = useState('')
   const [unavailable, setUnavailable] = useState(false)
@@ -102,7 +104,7 @@ export default function PaymentMethodsView({
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) {
-      setError('Failed to load payment methods')
+      setError(t('paymentMethods.loadError', 'Failed to load payment methods'))
       setList([])
       return
     }
@@ -119,7 +121,7 @@ export default function PaymentMethodsView({
   async function setDefault(pm: PaymentMethod) {
     try {
       await bpatch(token!, `/api/payment-methods/${pm.id}`, { is_default: true })
-      toast.success(`Default card set · •••• ${pm.last4}`)
+      toast.success(`${t('paymentMethods.defaultSet', 'Default card set')} · •••• ${pm.last4}`)
       await load()
     } catch (e) {
       toast.error((e as Error).message)
@@ -128,15 +130,15 @@ export default function PaymentMethodsView({
 
   async function remove(pm: PaymentMethod) {
     const ok = await confirmDialog({
-      title: `Remove card •••• ${pm.last4}`,
-      message: 'Soft-remove this vaulted card? The customer will need to re-vault to charge it again.',
-      confirmLabel: 'Remove',
+      title: `${t('paymentMethods.removeTitle', 'Remove card')} •••• ${pm.last4}`,
+      message: t('paymentMethods.removeMsg', 'Soft-remove this vaulted card? The customer will need to re-vault to charge it again.'),
+      confirmLabel: t('common.delete', 'Remove'),
       danger: true,
     })
     if (!ok) return
     try {
       await bpatch(token!, `/api/payment-methods/${pm.id}`, { status: 'removed' })
-      toast.success('Card removed')
+      toast.success(t('paymentMethods.removed', 'Card removed'))
       await load()
     } catch (e) {
       toast.error((e as Error).message)
@@ -145,10 +147,10 @@ export default function PaymentMethodsView({
 
   // ── Gates that exit before render of the registry body ─────────────────────────────────────
   if (!canView) {
-    return <PermissionDenied message="You don't have permission to view payment methods." />
+    return <PermissionDenied message={t('paymentMethods.permDenied', "You don't have permission to view payment methods.")} />
   }
   if (denied) {
-    return <PermissionDenied message="You don't have permission to view payment methods." />
+    return <PermissionDenied message={t('paymentMethods.permDenied', "You don't have permission to view payment methods.")} />
   }
 
   const all = list ?? []
@@ -158,10 +160,10 @@ export default function PaymentMethodsView({
   const expiredCount = all.filter((p) => p.status === 'expired').length
 
   const kpis: KPISpec[] = total > 0 ? [
-    { label: 'Total', value: total, subtitle: 'vaulted' },
-    { label: 'Active', value: activeCount, subtitle: 'chargeable' },
-    { label: 'Removed', value: removedCount, subtitle: 'soft-deleted', muted: removedCount > 0 },
-    { label: 'Expired', value: expiredCount, subtitle: 'past exp date', warning: expiredCount > 0 },
+    { label: t('common.total', 'Total'), value: total, subtitle: t('paymentMethods.kpi.vaulted', 'vaulted') },
+    { label: t('paymentMethods.kpi.active', 'Active'), value: activeCount, subtitle: t('paymentMethods.kpi.chargeable', 'chargeable') },
+    { label: t('paymentMethods.kpi.removed', 'Removed'), value: removedCount, subtitle: t('paymentMethods.kpi.softDeleted', 'soft-deleted'), muted: removedCount > 0 },
+    { label: t('paymentMethods.kpi.expired', 'Expired'), value: expiredCount, subtitle: t('paymentMethods.kpi.pastExpDate', 'past exp date'), warning: expiredCount > 0 },
   ] : []
 
   // Client-side search + status filter.
@@ -188,13 +190,13 @@ export default function PaymentMethodsView({
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Billing & Revenue', 'Payment Methods']}
+      breadcrumb={[t('nav.billingRevenue', 'Billing & Revenue'), t('paymentMethods.title', 'Payment Methods')]}
       icon={<CreditCardIcon size={18} />}
-      title="Payment Methods"
-      subtitle="Tokenized card vault for customer billing"
+      title={t('paymentMethods.title', 'Payment Methods')}
+      subtitle={t('paymentMethods.subtitle', 'Tokenized card vault for customer billing')}
       kpis={kpis}
       primaryAction={canWrite && !unavailable ? {
-        label: '+ Vault new card',
+        label: t('paymentMethods.vaultNew', '+ Vault new card'),
         icon: <PlusIcon size={14} />,
         onClick: () => setShowNew(true),
       } : undefined}
@@ -202,41 +204,41 @@ export default function PaymentMethodsView({
         search: {
           value: query,
           onChange: setQuery,
-          placeholder: 'Search by customer or last4…',
+          placeholder: t('paymentMethods.searchPlaceholder', 'Search by customer or last4…'),
         },
         quick: [{
-          label: 'Status',
+          label: t('common.status', 'Status'),
           value: statusFilter,
           options: [
-            { label: 'All', value: 'all' },
-            { label: 'Active', value: 'active' },
-            { label: 'Removed', value: 'removed' },
-            { label: 'Expired', value: 'expired' },
+            { label: t('common.all', 'All'), value: 'all' },
+            { label: t('paymentMethods.status.active', 'Active'), value: 'active' },
+            { label: t('paymentMethods.status.removed', 'Removed'), value: 'removed' },
+            { label: t('paymentMethods.status.expired', 'Expired'), value: 'expired' },
           ],
           onChange: (v) => setStatusFilter(v as StatusFilter),
         }],
       }}
     >
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
+      {list === null && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
       {unavailable && (
         <EmptyState
           icon={<CreditCardIcon size={40} />}
-          title="Payment methods endpoint not yet available"
-          message="The vaulted-card service will appear here once enabled."
+          title={t('paymentMethods.unavailable.title', 'Payment methods endpoint not yet available')}
+          message={t('paymentMethods.unavailable.msg', 'The vaulted-card service will appear here once enabled.')}
         />
       )}
 
       {list !== null && !unavailable && list.length === 0 && !error && (
         <EmptyState
           icon={<CreditCardIcon size={40} />}
-          title="No payment methods vaulted yet"
-          message="Vault a customer's card to start billing it via the gateway."
+          title={t('paymentMethods.empty.title', 'No payment methods vaulted yet')}
+          message={t('paymentMethods.empty.msg', "Vault a customer's card to start billing it via the gateway.")}
           action={canWrite ? (
             <Button variant="primary" size="md"
             onClick={() => setShowNew(true)}>
-              <PlusIcon size={14} /> Vault first card
+              <PlusIcon size={14} /> {t('paymentMethods.vaultFirst', 'Vault first card')}
             </Button>
           ) : undefined}
         />
@@ -248,12 +250,12 @@ export default function PaymentMethodsView({
             <table className="grid">
               <thead>
                 <tr>
-                  <th scope="col">Card</th>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Default</th>
-                  <th scope="col">Expires</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Last used</th>
+                  <th scope="col">{t('paymentMethods.col.card', 'Card')}</th>
+                  <th scope="col">{t('paymentMethods.col.customer', 'Customer')}</th>
+                  <th scope="col">{t('paymentMethods.col.default', 'Default')}</th>
+                  <th scope="col">{t('paymentMethods.col.expires', 'Expires')}</th>
+                  <th scope="col">{t('common.status', 'Status')}</th>
+                  <th scope="col">{t('paymentMethods.col.lastUsed', 'Last used')}</th>
                   {canWrite && <th scope="col" style={{ width: 'var(--gx-space-9)' }}></th>}
                 </tr>
               </thead>
@@ -294,9 +296,9 @@ export default function PaymentMethodsView({
                       <td>
                         {p.is_default
                           ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-warning)' }} title="Default card for this customer">
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--gx-space-2)', color: 'var(--gx-warning)' }} title={t('paymentMethods.col.defaultTitle', 'Default card for this customer')}>
                               <StarIcon size={14} />
-                              <span style={{ fontSize: 'var(--gx-text-11)' }}>Default</span>
+                              <span style={{ fontSize: 'var(--gx-text-11)' }}>{t('paymentMethods.col.default', 'Default')}</span>
                             </span>
                           )
                           : <span style={{ color: 'var(--gx-text-3)' }}>—</span>}
@@ -305,7 +307,7 @@ export default function PaymentMethodsView({
                       <td><StatusPill variant={statusVariant(p.status)} label={p.status} size="sm" /></td>
                       <td>
                         <span style={{ color: 'var(--gx-text-3)' }}>
-                          {p.last_used_at ? timeAgo(p.last_used_at) : 'Never'}
+                          {p.last_used_at ? timeAgo(p.last_used_at) : t('paymentMethods.never', 'Never')}
                         </span>
                       </td>
                       {canWrite && (
@@ -314,14 +316,14 @@ export default function PaymentMethodsView({
                             actions={[
                               {
                                 key: 'set-default',
-                                label: 'Set default',
+                                label: t('paymentMethods.action.setDefault', 'Set default'),
                                 icon: <StarIcon size={13} />,
                                 onClick: () => setDefault(p),
                                 hidden: p.is_default || p.status !== 'active',
                               },
                               {
                                 key: 'remove',
-                                label: 'Remove',
+                                label: t('common.delete', 'Remove'),
                                 danger: true,
                                 onClick: () => remove(p),
                                 hidden: p.status === 'removed',
@@ -339,7 +341,7 @@ export default function PaymentMethodsView({
                       colSpan={canWrite ? 7 : 6}
                       style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}
                     >
-                      No matching payment methods.
+                      {t('paymentMethods.empty.noMatch', 'No matching payment methods.')}
                     </td>
                   </tr>
                 )}
@@ -354,7 +356,7 @@ export default function PaymentMethodsView({
           onClose={() => setShowNew(false)}
           onCreated={async (last4) => {
             setShowNew(false)
-            toast.success(`Card vaulted · last4 ${last4}`)
+            toast.success(`${t('paymentMethods.vaulted', 'Card vaulted')} · last4 ${last4}`)
             await load()
           }}
         />
@@ -375,6 +377,7 @@ function VaultModal({
   onCreated: (last4: string) => Promise<void> | void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [customerId, setCustomerId] = useState('')
   const [accountId, setAccountId] = useState('')
   const [cardNumber, setCardNumber] = useState('')
@@ -410,7 +413,7 @@ function VaultModal({
       const created = await bpost<{ last4: string }>(token!, '/api/payment-methods', body)
       await onCreated(created.last4 ?? cardNumber.trim().slice(-4))
     } catch (e) {
-      setFormError((e as Error).message || 'Failed to vault card')
+      setFormError((e as Error).message || t('paymentMethods.vault.failed', 'Failed to vault card'))
     } finally {
       setBusy(false)
     }
@@ -422,42 +425,42 @@ function VaultModal({
     <Modal
       open
       onClose={onClose}
-      title="Vault new card"
-      subtitle="Raw card data is sent to the gateway, not stored locally"
+      title={t('paymentMethods.vault.title', 'Vault new card')}
+      subtitle={t('paymentMethods.vault.subtitle', 'Raw card data is sent to the gateway, not stored locally')}
       size="md"
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant="ghost" size="md" onClick={onClose} disabled={busy}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="primary" size="md"
             onClick={submit}
             disabled={!valid || busy}>
-            {busy ? 'Vaulting…' : 'Vault card'}
+            {busy ? t('paymentMethods.vault.vaulting', 'Vaulting…') : t('paymentMethods.vault.submit', 'Vault card')}
           </Button>
         </>
       }
     >
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field">
-          <span>Customer ID <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
+          <span>{t('paymentMethods.vault.customerId', 'Customer ID')} <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
           <input
             className="inp inp-md mono"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
-            placeholder="Paste UUID from CRM"
+            placeholder={t('paymentMethods.vault.customerIdPlaceholder', 'Paste UUID from CRM')}
             autoFocus
           />
         </label>
         <label className="field">
-          <span>Account ID (optional)</span>
+          <span>{t('paymentMethods.vault.accountId', 'Account ID (optional)')}</span>
           <input
             className="inp inp-md mono"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
-            placeholder="Optional billing account UUID"
+            placeholder={t('paymentMethods.vault.accountIdPlaceholder', 'Optional billing account UUID')}
           />
         </label>
         <label className="field">
-          <span>Card number <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
+          <span>{t('paymentMethods.vault.cardNumber', 'Card number')} <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
           <input
             className="inp inp-md mono"
             value={cardNumber}
@@ -467,12 +470,12 @@ function VaultModal({
             autoComplete="off"
           />
           <span className="hint" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)', display: 'block' }}>
-            Raw card data not stored; opaque vault token returned.
+            {t('paymentMethods.vault.cardHint', 'Raw card data not stored; opaque vault token returned.')}
           </span>
         </label>
         <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 100 }}>
-            <span>Exp month <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
+            <span>{t('paymentMethods.vault.expMonth', 'Exp month')} <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
             <select
               className="inp inp-md"
               value={expMonth}
@@ -482,7 +485,7 @@ function VaultModal({
             </select>
           </label>
           <label className="field" style={{ flex: 1, minWidth: 100 }}>
-            <span>Exp year <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
+            <span>{t('paymentMethods.vault.expYear', 'Exp year')} <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
             <input
               className="inp inp-md mono"
               value={expYear}
@@ -493,7 +496,7 @@ function VaultModal({
             />
           </label>
           <label className="field" style={{ flex: 1, minWidth: 100 }}>
-            <span>CVC <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
+            <span>{t('paymentMethods.vault.cvc', 'CVC')} <span style={{ color: 'var(--gx-danger-fg)' }}>*</span></span>
             <input
               className="inp inp-md mono"
               value={cvc}
@@ -506,12 +509,12 @@ function VaultModal({
           </label>
         </div>
         <label className="field">
-          <span>Cardholder name (optional)</span>
+          <span>{t('paymentMethods.vault.cardholderName', 'Cardholder name (optional)')}</span>
           <input
             className="inp inp-md"
             value={cardholderName}
             onChange={(e) => setCardholderName(e.target.value)}
-            placeholder="As printed on the card"
+            placeholder={t('paymentMethods.vault.cardholderNamePlaceholder', 'As printed on the card')}
             autoComplete="off"
           />
         </label>
@@ -521,7 +524,7 @@ function VaultModal({
             checked={isDefault}
             onChange={(e) => setIsDefault(e.target.checked)}
           />
-          Set as default card for this customer
+          {t('paymentMethods.vault.setDefault', 'Set as default card for this customer')}
         </label>
         {formError && (
           <p

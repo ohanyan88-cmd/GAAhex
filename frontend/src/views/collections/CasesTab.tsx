@@ -137,7 +137,9 @@ export function CasesTab({
       {/* Top action row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
         <div style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
-          {policyCount > 0 ? `${policyCount} policy${policyCount === 1 ? '' : ' set'} configured` : ''}
+          {policyCount > 0 ? t('collections.policyCount', '{count} {policy} configured')
+            .replace('{count}', String(policyCount))
+            .replace('{policy}', policyCount === 1 ? 'policy' : 'policy set') : ''}
         </div>
         <span style={{ flex: 1 }} />
         {isAdmin && (
@@ -294,8 +296,11 @@ export function CasesTab({
           <div className="table-foot">
             <span className="hint">
               {filtered.length === 0
-                ? '0 records'
-                : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length}`}
+                ? t('common.noResults', '0 records')
+                : t('common.pagination', 'Showing {from}–{to} of {total}')
+                    .replace('{from}', String((page - 1) * PAGE_SIZE + 1))
+                    .replace('{to}', String(Math.min(page * PAGE_SIZE, filtered.length)))
+                    .replace('{total}', String(filtered.length))}
             </span>
             <span className="spacer" />
             <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>

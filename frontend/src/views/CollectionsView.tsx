@@ -87,7 +87,7 @@ export default function CollectionsView({
         {/* Tab bar — same pattern as PipelineView */}
         <div
           role="tablist"
-          aria-label="Collections views"
+          aria-label={t('collections.tablist.label', 'Collections views')}
           style={{
             display: 'flex',
             gap: 'var(--gx-space-2)',

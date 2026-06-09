@@ -160,18 +160,18 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
     {
       label: t('leads.open', 'Open'),
       value: open,
-      subtitle: 'in pipeline',
+      subtitle: t('leads.inPipeline', 'in pipeline'),
       onClick: () => setSearch(''),
     },
     {
       label: t('leads.converted', 'Converted'),
       value: converted,
-      subtitle: 'won',
+      subtitle: t('leads.won', 'won'),
     },
     {
       label: t('leads.lost', 'Lost'),
       value: lost,
-      subtitle: 'closed-lost',
+      subtitle: t('leads.closedLost', 'closed-lost'),
       muted: true,
     },
   ]
@@ -182,7 +182,7 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
       {/* Configure gear — shown only when canConfigure is active */}
       {canConfigure && onConfigure && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--gx-space-4)' }}>
-          <Button variant="ghost" size="sm" className="hide-sm" onClick={onConfigure} title="Configure this page">
+          <Button variant="ghost" size="sm" className="hide-sm" onClick={onConfigure} title={t('common.configurePage', 'Configure this page')}>
             <GearIcon size={13} style={{ color: 'var(--gx-gold)' }} />
           </Button>
         </div>
@@ -209,7 +209,7 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
                     required={!!f.required}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">Select source…</option>
+                    <option value="">{t('leads.selectSource', 'Select source…')}</option>
                     {LEAD_SOURCES.map((src) => (
                       <option key={src} value={src}>{src}</option>
                     ))}
@@ -323,7 +323,7 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
                   })}
                   {items.length === 0 && (
                     <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)', borderRadius: 'var(--gx-radius-sm)', border: '1px dashed var(--gx-border)' }}>
-                      No leads in this stage
+                      {t('leads.emptyStage', 'No leads in this stage')}
                     </div>
                   )}
                 </div>
@@ -343,11 +343,11 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
       type="PIPELINE"
       breadcrumb={['CRM', 'Leads']}
       icon={<InboxIcon size={18} />}
-      title="Leads"
-      subtitle="Central raw entry inbox"
+      title={t('leads.title', 'Leads')}
+      subtitle={t('leads.subtitle', 'Central raw entry inbox')}
       kpis={!loading && allLeads.length > 0 ? kpis : undefined}
-      primaryAction={canCreate ? { label: '+ New Lead', onClick: () => setShowNew(true) } : undefined}
-      filters={{ search: { value: search, onChange: setSearch, placeholder: 'Search leads…' } }}
+      primaryAction={canCreate ? { label: t('leads.newLead', '+ New Lead'), onClick: () => setShowNew(true) } : undefined}
+      filters={{ search: { value: search, onChange: setSearch, placeholder: t('leads.searchPlaceholder', 'Search leads…') } }}
     >
       {body}
     </PageShell>

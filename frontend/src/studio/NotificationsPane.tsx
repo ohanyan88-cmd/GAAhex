@@ -20,6 +20,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { useFetch } from '../hooks/useFetch'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
 import { Button } from '../primitives'
@@ -31,6 +32,7 @@ import { DetailDrawer } from './notifications/DetailDrawer'
 import { NotifDefTable } from './notifications/NotifDefTable'
 
 export default function NotificationsPane({ channel, rulesView }: Props) {
+  const { t } = useI18n()
   const { token } = useAuth()
 
   const [showCreate, setShowCreate] = useState(false)
@@ -44,7 +46,7 @@ export default function NotificationsPane({ channel, rulesView }: Props) {
   const defs = Array.isArray(defsRaw) ? defsRaw : []
 
   if (loading) return <LoadingState />
-  if (denied) return <PermissionDenied message="You don't have permission to manage notifications." />
+  if (denied) return <PermissionDenied message={t('notifications.permissionDenied', "You don't have permission to manage notifications.")} />
   if (error) return <ErrorBanner message={error} onRetry={load} />
 
   // Rules view: only show defs that have a non-empty gxl_condition.
@@ -60,11 +62,11 @@ export default function NotificationsPane({ channel, rulesView }: Props) {
       )
     : view
 
-  const headingLabel = rulesView ? 'Notification Rules' : (channel ? CHANNEL_LABELS[channel] : 'Notification Templates')
+  const headingLabel = rulesView ? t('notifications.rulesHeading', 'Notification Rules') : (channel ? CHANNEL_LABELS[channel] : t('notifications.templatesHeading', 'Notification Templates'))
   const headingHint = rulesView
-    ? 'Notification defs gated by a GXL condition — only emit when the rule passes.'
-    : 'Templates for ' + (channel ?? 'all channels') + '. Edit, preview with sample context, and test-send to your own inbox.'
-  const createLabel = rulesView ? 'New rule' : 'New template'
+    ? t('notifications.rulesHint', 'Notification defs gated by a GXL condition — only emit when the rule passes.')
+    : t('notifications.templatesHint', 'Templates for') + ' ' + (channel ?? t('notifications.allChannels', 'all channels')) + '. ' + t('notifications.templatesHintSuffix', 'Edit, preview with sample context, and test-send to your own inbox.')
+  const createLabel = rulesView ? t('notifications.newRule', 'New rule') : t('notifications.newTemplate', 'New template')
 
   return (
     <div>
@@ -85,7 +87,7 @@ export default function NotificationsPane({ channel, rulesView }: Props) {
       <div style={{ marginBottom: 'var(--gx-space-4)', maxWidth: 320 }}>
         <input
           className="inp inp-md"
-          placeholder="Filter by key, label, or category…"
+          placeholder={t('notifications.filterPlaceholder', 'Filter by key, label, or category…')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -93,11 +95,11 @@ export default function NotificationsPane({ channel, rulesView }: Props) {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={q ? 'No notification defs match the filter.' : (rulesView ? 'No rules yet.' : 'No templates yet.')}
+          title={q ? t('notifications.emptyFilterTitle', 'No notification defs match the filter.') : (rulesView ? t('notifications.emptyRulesTitle', 'No rules yet.') : t('notifications.emptyTemplatesTitle', 'No templates yet.'))}
           message={
             q
-              ? 'Try a different query.'
-              : `Create the first ${rulesView ? 'rule' : 'template'} using "${createLabel}" above.`
+              ? t('common.tryDifferentQuery', 'Try a different query.')
+              : t('notifications.emptyCreateHint', 'Create the first') + ' ' + (rulesView ? t('notifications.newRule', 'New rule').toLowerCase() : t('notifications.newTemplate', 'New template').toLowerCase()) + ' ' + t('notifications.emptyCreateHintSuffix', `using "${createLabel}" above.`)
           }
         />
       ) : (

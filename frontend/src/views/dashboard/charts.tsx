@@ -9,6 +9,7 @@
 import type { ReactNode } from 'react'
 import { TrendingUp, TrendingDown, type LucideIcon } from 'lucide-react'
 import { money } from '../../lib/money'
+import { t } from '../../lib/i18n'
 import { PLAN_COLORS } from './types'
 
 // ─── skeleton ────────────────────────────────────────────────────────────────
@@ -138,7 +139,7 @@ export function DonutChart({ slices }: { slices: { label: string; value: number;
         {paths.map((p, i) => (
           <path key={i} d={p.d} fill="none" stroke={p.color} strokeWidth={sw} strokeLinecap="butt" />
         ))}
-        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={11} fill="var(--gx-text-3)">Total</text>
+        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={11} fill="var(--gx-text-3)">{t('common.total', 'Total')}</text>
         <text x={cx} y={cy + 12} textAnchor="middle" fontSize={20} fontWeight={700} fill="var(--gx-text-1)">
           {slices.reduce((s, sl) => s + sl.value, 0)}
         </text>
@@ -334,9 +335,9 @@ export function ParetoChart({ data }: { data: { category: string; count: number;
         </svg>
       </div>
       <div className="d-pareto-legend">
-        <span><span className="d-pareto-swatch-sq" style={{ background: 'var(--gx-chart-active)' }} />Top 3</span>
-        <span><span className="d-pareto-swatch-ln" style={{ background: 'var(--gx-gold)' }} />Cumulative %</span>
-        <span style={{ marginLeft: 'auto' }}>80% target line</span>
+        <span><span className="d-pareto-swatch-sq" style={{ background: 'var(--gx-chart-active)' }} />{t('charts.pareto.top3', 'Top 3')}</span>
+        <span><span className="d-pareto-swatch-ln" style={{ background: 'var(--gx-gold)' }} />{t('charts.pareto.cumulativePct', 'Cumulative %')}</span>
+        <span style={{ marginLeft: 'auto' }}>{t('charts.pareto.target80', '80% target line')}</span>
       </div>
     </div>
   )
@@ -445,10 +446,10 @@ export function NetGrowthChart({ data }: { data: { week: string; new: number; ch
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
-        <span>Net change: {data.reduce((s, d) => s + d.net, 0)}</span>
+        <span>{t('charts.netGrowth.netChange', 'Net change')}: {data.reduce((s, d) => s + d.net, 0)}</span>
         <span style={{ display: 'flex', gap: 'var(--gx-space-5)' }}>
-          <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', background: 'var(--gx-success)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />New</span>
-          <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', background: 'var(--gx-danger)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />Churned</span>
+          <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', background: 'var(--gx-success)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />{t('charts.netGrowth.new', 'New')}</span>
+          <span><span style={{ display: 'inline-block', width: 'var(--gx-space-4)', height: 'var(--gx-space-4)', background: 'var(--gx-danger)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />{t('charts.netGrowth.churned', 'Churned')}</span>
         </span>
       </div>
     </div>
@@ -482,7 +483,7 @@ export function ComparisonCard({ label, thisVal, lastVal, formatter = (n: number
           {flat ? '—' : `${pctDelta > 0 ? '+' : ''}${pctDelta.toFixed(1)}%`}
         </span>
       </div>
-      <div className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>vs {formatter(lastVal)} prior</div>
+      <div className="muted" style={{ fontSize: 'var(--gx-text-11)' }}>{t('charts.comparison.vs', 'vs')} {formatter(lastVal)} {t('charts.comparison.prior', 'prior')}</div>
     </div>
   )
 }
@@ -507,10 +508,10 @@ export function GroupedBarChart({ data }: { data: { label: string; thisVal: numb
       </div>
       <div style={{ display: 'flex', gap: 'var(--gx-space-7)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-chart-active)', borderRadius: 2 }} />This period
+          <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-chart-active)', borderRadius: 2 }} />{t('charts.groupedBar.thisPeriod', 'This period')}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-text-3)', opacity: 0.5, borderRadius: 2 }} />Last period
+          <span style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', background: 'var(--gx-text-3)', opacity: 0.5, borderRadius: 2 }} />{t('charts.groupedBar.lastPeriod', 'Last period')}
         </span>
       </div>
     </div>
@@ -570,13 +571,13 @@ export function HeatmapChart({ data }: { data: { date: string; count: number; am
         })}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
-        <span>Less</span>
+        <span>{t('charts.heatmap.less', 'Less')}</span>
         <div style={{ display: 'flex', gap: 'var(--gx-space-1)' }}>
           {[0.15, 0.35, 0.55, 0.75, 1].map(i => (
             <span key={i} style={{ width: 'var(--gx-space-5)', height: 'var(--gx-space-5)', borderRadius: 2, background: `rgba(59,130,246,${i})` }} />
           ))}
         </div>
-        <span>More</span>
+        <span>{t('charts.heatmap.more', 'More')}</span>
       </div>
     </div>
   )

@@ -17,6 +17,7 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import LoadingState from '../components/LoadingState'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
+import { useI18n } from '../lib/i18n'
 import WorkItemDetailModal from './workitems/WorkItemDetailModal'
 import CreateWorkItemModal from './workitems/CreateWorkItemModal'
 import { KINDS } from './workitems/types'
@@ -32,6 +33,7 @@ export default function WorkItemsView({
   onConfigure?: () => void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const cfg = usePageConfig(token!, 'workitems', configVersion)
   const [items, setItems] = useState<WorkItem[] | null>(null)
   const cf = useCustomFields('workitems', cfg.customFields, (items ?? []).map((item) => item.id))
@@ -71,7 +73,7 @@ export default function WorkItemsView({
 
     const res = await listWorkItems(token!, filters)
     if (res.status === 404) { setUnavailable(true); setItems([]); setAllItems([]); return }
-    if (!res.ok) { setError('Failed to load work items'); setItems([]); setAllItems([]); return }
+    if (!res.ok) { setError(t('workitems.loadError', 'Failed to load work items')); setItems([]); setAllItems([]); return }
     let list = Array.isArray(res.data) ? res.data : []
 
     setAllItems(list)
@@ -147,10 +149,10 @@ export default function WorkItemsView({
   }
 
   const kpis: KPISpec[] = allItems.length > 0 ? [
-    { label: 'TODO',        value: allItems.filter(i => i.status === 'TODO').length },
-    { label: 'In Progress', value: inProgressCount, warning: inProgressCount > 0 },
-    { label: 'Blocked',     value: blockedCount,     danger: blockedCount > 0 },
-    { label: 'Done',        value: doneCount },
+    { label: t('workitems.kpiTodo', 'TODO'),        value: allItems.filter(i => i.status === 'TODO').length },
+    { label: t('workitems.kpiInProgress', 'In Progress'), value: inProgressCount, warning: inProgressCount > 0 },
+    { label: t('workitems.kpiBlocked', 'Blocked'),     value: blockedCount,     danger: blockedCount > 0 },
+    { label: t('workitems.kpiDone', 'Done'),        value: doneCount },
   ] : []
 
   if (unavailable) {
@@ -159,13 +161,13 @@ export default function WorkItemsView({
         type="OPERATIONS"
         breadcrumb={['Tech & NOC', 'Work Items']}
         icon={<RowsIcon size={18} />}
-        title="Work Items"
-        subtitle="Field operations work queue"
+        title={t('workitems.title', 'Work Items')}
+        subtitle={t('workitems.subtitle', 'Field operations work queue')}
       >
         <EmptyState
           icon={<InboxIcon size={40} />}
-          title="Work Items aren't available yet"
-          message="This service will appear here once the work items module is enabled."
+          title={t('workitems.unavailableTitle', "Work Items aren't available yet")}
+          message={t('workitems.unavailableMsg', 'This service will appear here once the work items module is enabled.')}
         />
       </PageShell>
     )
@@ -176,22 +178,22 @@ export default function WorkItemsView({
       type="OPERATIONS"
       breadcrumb={['Tech & NOC', 'Work Items']}
       icon={<RowsIcon size={18} />}
-      title="Work Items"
-      subtitle="Field operations work queue"
+      title={t('workitems.title', 'Work Items')}
+      subtitle={t('workitems.subtitle', 'Field operations work queue')}
       kpis={kpis.length > 0 ? kpis : undefined}
-      primaryAction={{ label: 'New work item', onClick: () => setCreateOpen(true) }}
+      primaryAction={{ label: t('workitems.newItem', 'New work item'), onClick: () => setCreateOpen(true) }}
     >
       {/* Tabs */}
       <div className="tabs">
         {([
-          ['active', 'Active', activeCount],
-          ['all', 'All', allCount],
-          ['mine', 'Mine', null],
-        ] as [Tab, string, number | null][]).map(([t, label, count]) => (
+          ['active', t('workitems.tabActive', 'Active'), activeCount],
+          ['all', t('workitems.tabAll', 'All'), allCount],
+          ['mine', t('workitems.tabMine', 'Mine'), null],
+        ] as [Tab, string, number | null][]).map(([tabKey, label, count]) => (
           <button
-            key={t}
-            className={'tab' + (tab === t ? ' on' : '')}
-            onClick={() => setTab(t)}
+            key={tabKey}
+            className={'tab' + (tab === tabKey ? ' on' : '')}
+            onClick={() => setTab(tabKey)}
           >
             {label}
             {count !== null && <span className="tab-count">{count}</span>}
@@ -201,15 +203,15 @@ export default function WorkItemsView({
 
       {error && <ErrorBanner message={error} onRetry={loadData} />}
       <ErrorBoundary onReset={loadData}>
-        {items === null && !error && <LoadingState kind="rows" label="Loading work items…" />}
+        {items === null && !error && <LoadingState kind="rows" label={t('workitems.loading', 'Loading work items…')} />}
         {items && items.length === 0 && !error && (
           <EmptyState
             icon={<InboxIcon size={40} />}
-            title="No work items"
-            message="Create a work item or adjust your filters."
+            title={t('workitems.emptyTitle', 'No work items')}
+            message={t('workitems.emptyMsg', 'Create a work item or adjust your filters.')}
             action={
               <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
-                New item
+                {t('workitems.newItemShort', 'New item')}
               </Button>
             }
           />
@@ -223,7 +225,7 @@ export default function WorkItemsView({
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search work items"
+                  placeholder={t('workitems.searchPlaceholder', 'Search work items')}
                   style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--gx-text-1)', fontSize: 'var(--gx-text-13)' }}
                 />
               </div>
@@ -234,7 +236,7 @@ export default function WorkItemsView({
                 onChange={(e) => setKindFilter(e.target.value)}
                 style={{ marginLeft: 'var(--gx-space-4)' }}
               >
-                <option value="">All kinds</option>
+                <option value="">{t('workitems.allKinds', 'All kinds')}</option>
                 {KINDS.map((k) => (
                   <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
                 ))}

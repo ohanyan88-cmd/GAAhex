@@ -2,6 +2,7 @@
 // Extracted from OrdersView.tsx; no logic changes.
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useI18n } from '../../lib/i18n'
 import { bget, bpost } from '../../lib/billing'
 import { money } from '../../lib/money'
 import { toast } from '../../components/Toast'
@@ -22,6 +23,7 @@ export function OrderDetailModal({
   onClose: () => void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [order, setOrder] = useState<OrderRow | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -30,7 +32,7 @@ export function OrderDetailModal({
     setError('')
     const res = await bget<OrderRow>(token!, `/api/orders/${id}`)
     if (!res.ok) {
-      setError(res.status === 404 ? 'Order not found' : 'Failed to load order')
+      setError(res.status === 404 ? t('orders.notFound', 'Order not found') : t('orders.failedToLoad', 'Failed to load order'))
       return
     }
     setOrder(res.data)
@@ -65,10 +67,10 @@ export function OrderDetailModal({
     : undefined
 
   const fields: RecordDrawerField[] = order ? [
-    { key: 'customer', label: 'Customer', value: cust },
-    { key: 'total', label: 'Total', value: <span className="mono tnum">{money(order.total)}</span> },
-    { key: 'created', label: 'Created', value: fmtDate(order.created_at) },
-    { key: 'items', label: 'Items', value: order.items && order.items.length > 0 ? (
+    { key: 'customer', label: t('orders.col.customer', 'Customer'), value: cust },
+    { key: 'total', label: t('orders.col.total', 'Total'), value: <span className="mono tnum">{money(order.total)}</span> },
+    { key: 'created', label: t('orders.col.created', 'Created'), value: fmtDate(order.created_at) },
+    { key: 'items', label: t('orders.detail.items', 'Items'), value: order.items && order.items.length > 0 ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
         {order.items.map((it) => (
           <div key={it.id} style={{ display: 'flex', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-sm)' }}>
@@ -78,7 +80,7 @@ export function OrderDetailModal({
           </div>
         ))}
       </div>
-    ) : <span className="muted">No items on this order.</span> },
+    ) : <span className="muted">{t('orders.detail.noItems', 'No items on this order.')}</span> },
   ] : []
 
   return (
@@ -88,7 +90,7 @@ export function OrderDetailModal({
         onClose={onClose}
         entityKey="ORD"
         id={order ? order.number : id.slice(0, 8)}
-        title={order ? `Order ${order.number}` : 'Loading order…'}
+        title={order ? `${t('orders.detail.orderTitle', 'Order')} ${order.number}` : t('common.loading', 'Loading…')}
         subtitle={order?.customer_id ? cust : undefined}
         status={drawerStatus}
         fields={fields}
@@ -98,13 +100,13 @@ export function OrderDetailModal({
               {canFinalCancel && (
                 <Button variant="ghost" size="sm"
             disabled={busy} onClick={() => action('cancel')}>
-                  <CloseIcon size={13} /> Cancel order
+                  <CloseIcon size={13} /> {t('orders.action.cancel', 'Cancel order')}
                 </Button>
               )}
               {status === 'DRAFT' && (
                 <Button variant="primary" size="sm"
             disabled={busy} onClick={() => action('submit')}>
-                  <ArrowRightIcon size={13} /> Submit
+                  <ArrowRightIcon size={13} /> {t('common.submit', 'Submit')}
                 </Button>
               )}
               {advLbl && (

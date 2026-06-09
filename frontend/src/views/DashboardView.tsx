@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useI18n } from '../lib/i18n'
 import { BarChart3, TrendingUp, Users, Banknote, AlertTriangle, PieChart, ArrowRight, Calendar, Activity, Inbox, CheckSquare, Settings } from 'lucide-react'
 import { GearIcon, ChartIcon } from '../components/icons'
 import { money } from '../lib/money'
@@ -30,6 +31,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
   // SM-1 — token + user state consumed from AuthContext instead of being
   // prop-drilled. The view used to start with `token: string` in its props.
   const { token } = useAuth()
+  const { t } = useI18n()
   const [range, setRange] = useState<Range>('30d')
   // SM-2 — use App's capabilities prop instead of refetching. capsLoaded stays
   // a flag indicating "App finished its initial capabilities fetch" — we infer
@@ -119,10 +121,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
     ]).then(([leads, opps, deals, customers]) => {
       if (!alive) return
       const stages = [
-        { label: 'Leads', value: (Array.isArray(leads) ? leads : leads?.items ?? []).length },
-        { label: 'Opportunities', value: (Array.isArray(opps) ? opps : opps?.items ?? []).length },
-        { label: 'Deals', value: (Array.isArray(deals) ? deals : deals?.items ?? []).length },
-        { label: 'Customers', value: (Array.isArray(customers) ? customers : customers?.items ?? []).length },
+        { label: t('dashboard.funnel.leads', 'Leads'), value: (Array.isArray(leads) ? leads : leads?.items ?? []).length },
+        { label: t('dashboard.funnel.opportunities', 'Opportunities'), value: (Array.isArray(opps) ? opps : opps?.items ?? []).length },
+        { label: t('dashboard.funnel.deals', 'Deals'), value: (Array.isArray(deals) ? deals : deals?.items ?? []).length },
+        { label: t('dashboard.funnel.customers', 'Customers'), value: (Array.isArray(customers) ? customers : customers?.items ?? []).length },
       ]
       if (stages[0].value > 0) setFunnel({ state: 'ok', value: stages })
       else setFunnel({ state: 'hide' })
@@ -135,10 +137,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
 
   // KPIs from overview data — only rendered when data is available and user can view revenue
   const kpis: KPISpec[] | undefined = (isShown('kpi-strip') && ov && showRevenue) ? [
-    { label: 'MRR',                 value: money(ov.mrr),                  subtitle: `${ov.active_subscriptions} active subs` },
-    { label: 'AR Outstanding',      value: money(ov.ar_outstanding),        subtitle: `${ov.overdue_count} overdue`, warning: ov.overdue_count > 0 },
-    { label: 'Collected This Month',value: money(ov.collected_this_month),  subtitle: `vs ${money(ov.collected_prev_month)} last month` },
-    { label: 'New Leads (30d)',      value: ov.new_leads_30d,               subtitle: `vs ${ov.new_leads_prev_30d} prior 30d` },
+    { label: t('analytics.mrr', 'MRR'),                 value: money(ov.mrr),                  subtitle: `${ov.active_subscriptions} active subs` },
+    { label: t('dashboard.kpi.arOutstanding', 'AR Outstanding'),      value: money(ov.ar_outstanding),        subtitle: `${ov.overdue_count} overdue`, warning: ov.overdue_count > 0 },
+    { label: t('dashboard.kpi.collectedThisMonth', 'Collected This Month'), value: money(ov.collected_this_month),  subtitle: `vs ${money(ov.collected_prev_month)} last month` },
+    { label: t('dashboard.kpi.newLeads30d', 'New Leads (30d)'),      value: ov.new_leads_30d,               subtitle: `vs ${ov.new_leads_prev_30d} prior 30d` },
   ] : undefined
 
   return (
@@ -146,8 +148,8 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
       type="ANALYTICS"
       breadcrumb={['Analytics & AI', 'Operational Dashboards']}
       icon={<ChartIcon size={18} />}
-      title="Dashboards"
-      subtitle="Operational KPI dashboards"
+      title={t('nav.dashboards', 'Dashboards')}
+      subtitle={t('dashboard.subtitle', 'Operational KPI dashboards')}
       kpis={kpis}
       secondaryActions={[
         { label: `7d`,  onClick: () => setRange('7d') },
@@ -164,7 +166,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
             {isShown('revenue-bar') && showRevenue && (
-              <DashboardCard title="Revenue vs Churn" icon={BarChart3}>
+              <DashboardCard title={t('dashboard.chart.revenueVsChurn', 'Revenue vs Churn')} icon={BarChart3}>
                 {revTrend.state === 'loading' && <ChartSkeleton />}
                 {revTrend.state === 'ok' && (
                   <>
@@ -174,10 +176,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     <div style={{ display: 'flex', gap: 'var(--gx-space-5)', marginTop: 'var(--gx-space-5)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
                       <span className="d-legend-row">
                         {/* D18: legend swatch matches BarChart primary fill → --gx-chart-active. */}
-                        <span className="d-swatch" style={{ background: 'var(--gx-chart-active)' }} />Collected
+                        <span className="d-swatch" style={{ background: 'var(--gx-chart-active)' }} />{t('dashboard.legend.collected', 'Collected')}
                       </span>
                       <span className="d-legend-row">
-                        <span className="d-swatch" style={{ background: 'var(--gx-gold)' }} />Churn events
+                        <span className="d-swatch" style={{ background: 'var(--gx-gold)' }} />{t('dashboard.legend.churnEvents', 'Churn events')}
                       </span>
                     </div>
                   </>
@@ -186,7 +188,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
             )}
 
             {isShown('sub-donut') && (
-              <DashboardCard title="Subscription Mix" icon={PieChart}>
+              <DashboardCard title={t('dashboard.chart.subscriptionMix', 'Subscription Mix')} icon={PieChart}>
                 {subMix.state === 'loading' && <ChartSkeleton h={120} />}
                 {subMix.state === 'ok' && (
                   <DonutChart slices={subMix.value.map((s, i) => ({
@@ -195,7 +197,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                     color: PLAN_COLORS[i % PLAN_COLORS.length],
                   }))} />
                 )}
-                {subMix.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No subscription data</div>}
+                {subMix.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noSubscriptionData', 'No subscription data')}</div>}
               </DashboardCard>
             )}
           </div>
@@ -206,7 +208,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
           {isShown('payment-area') && showRevenue && (
-            <DashboardCard title="Payment Trend" icon={TrendingUp}>
+            <DashboardCard title={t('dashboard.chart.paymentTrend', 'Payment Trend')} icon={TrendingUp}>
               {revTrend.state === 'loading' && <ChartSkeleton h={120} />}
               {revTrend.state === 'ok' && (
                 <AreaChart data={revTrend.value.map(b => ({ label: b.month, value: b.collected }))} />
@@ -215,18 +217,18 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           )}
 
           {isShown('customer-line') && (
-          <DashboardCard title="New vs Churned Subs" icon={Users}>
+          <DashboardCard title={t('dashboard.chart.newVsChurnedSubs', 'New vs Churned Subs')} icon={Users}>
             {customerData.state === 'loading' && <ChartSkeleton h={120} />}
             {customerData.state === 'ok' && (
               <LineChart
                 data={customerData.value.labels.map((l, i) => ({
                   label: l, v1: customerData.value.new_[i], v2: customerData.value.churned[i]
                 }))}
-                series1Label="New customers"
-                series2Label="Churns"
+                series1Label={t('dashboard.series.newCustomers', 'New customers')}
+                series2Label={t('dashboard.series.churns', 'Churns')}
               />
             )}
-            {customerData.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No customer activity data</div>}
+            {customerData.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noCustomerActivityData', 'No customer activity data')}</div>}
           </DashboardCard>
           )}
         </div>
@@ -237,24 +239,24 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
           {isShown('ar-aging') && showRevenue && (
-            <DashboardCard title="AR Aging" icon={AlertTriangle}>
+            <DashboardCard title={t('dashboard.chart.arAging', 'AR Aging')} icon={AlertTriangle}>
               {arAging.state === 'loading' && <ChartSkeleton h={100} />}
               {/* D18: AR aging buckets — Current (success), 1-30 = sequential intermediate (slate default, not yet a warning), 31-60 (warning), 61-90 (danger-adjacent, was inline #f97316 → semantic warning is closest), 90+ (danger). */}
               {arAging.state === 'ok' && (
                 <HorizontalBarChart buckets={[
-                  { label: 'Current',   value: arAging.value.current, color: 'var(--gx-success)' },
-                  { label: '1-30 days', value: arAging.value.d1_30,   color: 'var(--gx-chart-default)' },
-                  { label: '31-60 days',value: arAging.value.d31_60,  color: 'var(--gx-warning)' },
-                  { label: '61-90 days',value: arAging.value.d61_90,  color: 'var(--gx-warning)' },
-                  { label: '90+ days',  value: arAging.value.d90_plus,color: 'var(--gx-danger)' },
+                  { label: t('dashboard.arAging.current', 'Current'),   value: arAging.value.current, color: 'var(--gx-success)' },
+                  { label: t('dashboard.aging.d1_30', '1-30 days'), value: arAging.value.d1_30,   color: 'var(--gx-chart-default)' },
+                  { label: t('dashboard.aging.d31_60', '31-60 days'), value: arAging.value.d31_60,  color: 'var(--gx-warning)' },
+                  { label: t('dashboard.aging.d61_90', '61-90 days'), value: arAging.value.d61_90,  color: 'var(--gx-warning)' },
+                  { label: t('dashboard.aging.d90plus', '90+ days'),  value: arAging.value.d90_plus, color: 'var(--gx-danger)' },
                 ].filter(b => b.value > 0)} />
               )}
-              {arAging.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No outstanding AR</div>}
+              {arAging.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noOutstandingAR', 'No outstanding AR')}</div>}
             </DashboardCard>
           )}
 
           {isShown('monthly-revenue') && showRevenue && (
-            <DashboardCard title="Monthly Revenue vs Prior" icon={BarChart3}>
+            <DashboardCard title={t('dashboard.chart.monthlyRevenueVsPrior', 'Monthly Revenue vs Prior')} icon={BarChart3}>
               {revMetrics.state === 'loading' && <ChartSkeleton h={100} />}
               {revMetrics.state === 'ok' && (
                 <BarChart data={revMetrics.value.map((b: any) => ({
@@ -265,10 +267,10 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
           )}
 
           {isShown('funnel') && (
-          <DashboardCard title="Sales Funnel" icon={ArrowRight}>
+          <DashboardCard title={t('dashboard.chart.salesFunnel', 'Sales Funnel')} icon={ArrowRight}>
             {funnel.state === 'loading' && <ChartSkeleton h={100} />}
             {funnel.state === 'ok' && <FunnelChart stages={funnel.value} />}
-            {funnel.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No pipeline data</div>}
+            {funnel.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noPipelineData', 'No pipeline data')}</div>}
           </DashboardCard>
           )}
         </div>
@@ -278,17 +280,17 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {isShown('wow-cards') && compare.state === 'ok' && (
           <>
             <div className="d-section-heading d-section-heading--top">
-              Week vs Last Week
+              {t('dashboard.section.weekVsLastWeek', 'Week vs Last Week')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
-              <ComparisonCard label="Revenue (paid)"    thisVal={compare.value.week.revenue.this}      lastVal={compare.value.week.revenue.last}      formatter={(n) => money(n)} />
-              <ComparisonCard label="Invoiced"          thisVal={compare.value.week.invoiced.this}     lastVal={compare.value.week.invoiced.last}     formatter={(n) => money(n)} />
-              <ComparisonCard label="Payments"          thisVal={compare.value.week.payments.this}     lastVal={compare.value.week.payments.last} />
-              <ComparisonCard label="New customers"     thisVal={compare.value.week.new_customers.this} lastVal={compare.value.week.new_customers.last} />
-              <ComparisonCard label="New leads"         thisVal={compare.value.week.new_leads.this}    lastVal={compare.value.week.new_leads.last} />
-              <ComparisonCard label="Churned subs"      thisVal={compare.value.week.churned.this}      lastVal={compare.value.week.churned.last}      invertColor />
-              <ComparisonCard label="Tickets opened"    thisVal={compare.value.week.tickets.this}      lastVal={compare.value.week.tickets.last}      invertColor />
-              <ComparisonCard label="Workitems done"    thisVal={compare.value.week.workitems_done.this} lastVal={compare.value.week.workitems_done.last} />
+              <ComparisonCard label={t('dashboard.compare.revenuePaid', 'Revenue (paid)')}    thisVal={compare.value.week.revenue.this}      lastVal={compare.value.week.revenue.last}      formatter={(n) => money(n)} />
+              <ComparisonCard label={t('dashboard.compare.invoiced', 'Invoiced')}          thisVal={compare.value.week.invoiced.this}     lastVal={compare.value.week.invoiced.last}     formatter={(n) => money(n)} />
+              <ComparisonCard label={t('dashboard.compare.payments', 'Payments')}          thisVal={compare.value.week.payments.this}     lastVal={compare.value.week.payments.last} />
+              <ComparisonCard label={t('dashboard.compare.newCustomers', 'New customers')}     thisVal={compare.value.week.new_customers.this} lastVal={compare.value.week.new_customers.last} />
+              <ComparisonCard label={t('dashboard.compare.newLeads', 'New leads')}         thisVal={compare.value.week.new_leads.this}    lastVal={compare.value.week.new_leads.last} />
+              <ComparisonCard label={t('dashboard.compare.churnedSubs', 'Churned subs')}      thisVal={compare.value.week.churned.this}      lastVal={compare.value.week.churned.last}      invertColor />
+              <ComparisonCard label={t('dashboard.compare.ticketsOpened', 'Tickets opened')}    thisVal={compare.value.week.tickets.this}      lastVal={compare.value.week.tickets.last}      invertColor />
+              <ComparisonCard label={t('dashboard.compare.workitemsDone', 'Workitems done')}    thisVal={compare.value.week.workitems_done.this} lastVal={compare.value.week.workitems_done.last} />
             </div>
           </>
         )}
@@ -297,17 +299,17 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {isShown('mom-cards') && compare.state === 'ok' && (
           <>
             <div className="d-section-heading">
-              Month vs Last Month
+              {t('dashboard.section.monthVsLastMonth', 'Month vs Last Month')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 'var(--gx-space-6)', marginBottom: 'var(--gx-space-18)' }}>
-              <ComparisonCard label="Revenue (paid)"    thisVal={compare.value.month.revenue.this}      lastVal={compare.value.month.revenue.last}      formatter={(n) => money(n)} />
-              <ComparisonCard label="Invoiced"          thisVal={compare.value.month.invoiced.this}     lastVal={compare.value.month.invoiced.last}     formatter={(n) => money(n)} />
-              <ComparisonCard label="Payments"          thisVal={compare.value.month.payments.this}     lastVal={compare.value.month.payments.last} />
-              <ComparisonCard label="New customers"     thisVal={compare.value.month.new_customers.this} lastVal={compare.value.month.new_customers.last} />
-              <ComparisonCard label="New leads"         thisVal={compare.value.month.new_leads.this}    lastVal={compare.value.month.new_leads.last} />
-              <ComparisonCard label="Churned subs"      thisVal={compare.value.month.churned.this}      lastVal={compare.value.month.churned.last}      invertColor />
-              <ComparisonCard label="Tickets opened"    thisVal={compare.value.month.tickets.this}      lastVal={compare.value.month.tickets.last}      invertColor />
-              <ComparisonCard label="Workitems done"    thisVal={compare.value.month.workitems_done.this} lastVal={compare.value.month.workitems_done.last} />
+              <ComparisonCard label={t('dashboard.compare.revenuePaid', 'Revenue (paid)')}    thisVal={compare.value.month.revenue.this}      lastVal={compare.value.month.revenue.last}      formatter={(n) => money(n)} />
+              <ComparisonCard label={t('dashboard.compare.invoiced', 'Invoiced')}          thisVal={compare.value.month.invoiced.this}     lastVal={compare.value.month.invoiced.last}     formatter={(n) => money(n)} />
+              <ComparisonCard label={t('dashboard.compare.payments', 'Payments')}          thisVal={compare.value.month.payments.this}     lastVal={compare.value.month.payments.last} />
+              <ComparisonCard label={t('dashboard.compare.newCustomers', 'New customers')}     thisVal={compare.value.month.new_customers.this} lastVal={compare.value.month.new_customers.last} />
+              <ComparisonCard label={t('dashboard.compare.newLeads', 'New leads')}         thisVal={compare.value.month.new_leads.this}    lastVal={compare.value.month.new_leads.last} />
+              <ComparisonCard label={t('dashboard.compare.churnedSubs', 'Churned subs')}      thisVal={compare.value.month.churned.this}      lastVal={compare.value.month.churned.last}      invertColor />
+              <ComparisonCard label={t('dashboard.compare.ticketsOpened', 'Tickets opened')}    thisVal={compare.value.month.tickets.this}      lastVal={compare.value.month.tickets.last}      invertColor />
+              <ComparisonCard label={t('dashboard.compare.workitemsDone', 'Workitems done')}    thisVal={compare.value.month.workitems_done.this} lastVal={compare.value.month.workitems_done.last} />
             </div>
           </>
         )}
@@ -316,30 +318,30 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {(isShown('qoq-bars') || isShown('yoy-bars')) && compare.state === 'ok' && (
           <>
             <div className="d-section-heading">
-              Quarter & Year Comparisons
+              {t('dashboard.section.quarterYearComparisons', 'Quarter & Year Comparisons')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
               {isShown('qoq-bars') && (
-              <DashboardCard title="Quarter vs Last Quarter" icon={Calendar}>
+              <DashboardCard title={t('dashboard.chart.quarterVsLastQuarter', 'Quarter vs Last Quarter')} icon={Calendar}>
                 <GroupedBarChart data={[
-                  { label: 'Revenue',    thisVal: compare.value.quarter.revenue.this / 100,   lastVal: compare.value.quarter.revenue.last / 100 },
-                  { label: 'Payments',   thisVal: compare.value.quarter.payments.this,        lastVal: compare.value.quarter.payments.last },
-                  { label: 'Customers',  thisVal: compare.value.quarter.new_customers.this,   lastVal: compare.value.quarter.new_customers.last },
-                  { label: 'Leads',      thisVal: compare.value.quarter.new_leads.this,       lastVal: compare.value.quarter.new_leads.last },
-                  { label: 'Churn',      thisVal: compare.value.quarter.churned.this,         lastVal: compare.value.quarter.churned.last },
-                  { label: 'Tickets',    thisVal: compare.value.quarter.tickets.this,         lastVal: compare.value.quarter.tickets.last },
+                  { label: t('dashboard.compare.revenue', 'Revenue'),    thisVal: compare.value.quarter.revenue.this / 100,   lastVal: compare.value.quarter.revenue.last / 100 },
+                  { label: t('dashboard.compare.payments', 'Payments'),   thisVal: compare.value.quarter.payments.this,        lastVal: compare.value.quarter.payments.last },
+                  { label: t('dashboard.compare.customers', 'Customers'),  thisVal: compare.value.quarter.new_customers.this,   lastVal: compare.value.quarter.new_customers.last },
+                  { label: t('dashboard.compare.leads', 'Leads'),      thisVal: compare.value.quarter.new_leads.this,       lastVal: compare.value.quarter.new_leads.last },
+                  { label: t('dashboard.compare.churn', 'Churn'),      thisVal: compare.value.quarter.churned.this,         lastVal: compare.value.quarter.churned.last },
+                  { label: t('dashboard.compare.tickets', 'Tickets'),    thisVal: compare.value.quarter.tickets.this,         lastVal: compare.value.quarter.tickets.last },
                 ]} />
               </DashboardCard>
               )}
               {isShown('yoy-bars') && (
-              <DashboardCard title="Year vs Last Year (YoY)" icon={Calendar}>
+              <DashboardCard title={t('dashboard.chart.yearVsLastYearYoY', 'Year vs Last Year (YoY)')} icon={Calendar}>
                 <GroupedBarChart data={[
-                  { label: 'Revenue',    thisVal: compare.value.year.revenue.this / 100,      lastVal: compare.value.year.revenue.last / 100 },
-                  { label: 'Payments',   thisVal: compare.value.year.payments.this,           lastVal: compare.value.year.payments.last },
-                  { label: 'Customers',  thisVal: compare.value.year.new_customers.this,      lastVal: compare.value.year.new_customers.last },
-                  { label: 'Leads',      thisVal: compare.value.year.new_leads.this,          lastVal: compare.value.year.new_leads.last },
-                  { label: 'Churn',      thisVal: compare.value.year.churned.this,            lastVal: compare.value.year.churned.last },
-                  { label: 'Tickets',    thisVal: compare.value.year.tickets.this,            lastVal: compare.value.year.tickets.last },
+                  { label: t('dashboard.compare.revenue', 'Revenue'),    thisVal: compare.value.year.revenue.this / 100,      lastVal: compare.value.year.revenue.last / 100 },
+                  { label: t('dashboard.compare.payments', 'Payments'),   thisVal: compare.value.year.payments.this,           lastVal: compare.value.year.payments.last },
+                  { label: t('dashboard.compare.customers', 'Customers'),  thisVal: compare.value.year.new_customers.this,      lastVal: compare.value.year.new_customers.last },
+                  { label: t('dashboard.compare.leads', 'Leads'),      thisVal: compare.value.year.new_leads.this,          lastVal: compare.value.year.new_leads.last },
+                  { label: t('dashboard.compare.churn', 'Churn'),      thisVal: compare.value.year.churned.this,            lastVal: compare.value.year.churned.last },
+                  { label: t('dashboard.compare.tickets', 'Tickets'),    thisVal: compare.value.year.tickets.this,            lastVal: compare.value.year.tickets.last },
                 ]} />
               </DashboardCard>
               )}
@@ -351,28 +353,28 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {(isShown('weekly-trend') || isShown('heatmap')) && (
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
           {isShown('weekly-trend') && (
-          <DashboardCard title="Weekly Trend — Revenue, Customers, Churn" icon={TrendingUp}>
+          <DashboardCard title={t('dashboard.chart.weeklyTrend', 'Weekly Trend — Revenue, Customers, Churn')} icon={TrendingUp}>
             {weekly.state === 'loading' && <ChartSkeleton h={130} />}
             {/* D18: three distinct-identity series in one multi-line chart. Revenue = primary drillable series → --gx-chart-active. New customers (was inline #22c55e) is the "good growth" line — keep semantic success. Churns stays on semantic danger. */}
             {weekly.state === 'ok' && (
               <MultiLineChart
                 labels={weekly.value.map((w: any) => w.week)}
                 series={[
-                  { name: 'Revenue (x1k AMD)',  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--gx-chart-active)' },
-                  { name: 'New customers',      values: weekly.value.map((w: any) => w.customers),                    color: 'var(--gx-success)' },
-                  { name: 'Churns',             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger)' },
+                  { name: t('dashboard.series.revenueAMD', 'Revenue (x1k AMD)'),  values: weekly.value.map((w: any) => Math.round(w.revenue / 100000)), color: 'var(--gx-chart-active)' },
+                  { name: t('dashboard.series.newCustomers', 'New customers'),      values: weekly.value.map((w: any) => w.customers),                    color: 'var(--gx-success)' },
+                  { name: t('dashboard.series.churns', 'Churns'),             values: weekly.value.map((w: any) => w.churns),                       color: 'var(--gx-danger)' },
                 ]}
               />
             )}
-            {weekly.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No weekly data</div>}
+            {weekly.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noWeeklyData', 'No weekly data')}</div>}
           </DashboardCard>
           )}
 
           {isShown('heatmap') && (
-          <DashboardCard title="Daily Payment Heatmap" icon={Activity}>
+          <DashboardCard title={t('dashboard.chart.dailyPaymentHeatmap', 'Daily Payment Heatmap')} icon={Activity}>
             {heatmap.state === 'loading' && <ChartSkeleton h={130} />}
             {heatmap.state === 'ok' && <HeatmapChart data={heatmap.value} />}
-            {heatmap.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No payment activity</div>}
+            {heatmap.state === 'hide' && <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noPaymentActivity', 'No payment activity')}</div>}
           </DashboardCard>
           )}
         </div>
@@ -382,63 +384,63 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {statusBreak.state === 'ok' && (isShown('status-workitems') || isShown('status-tickets') || isShown('status-invoices') || isShown('status-subs')) && (
           <>
             <div className="d-section-heading">
-              Current Status Breakdown
+              {t('dashboard.section.currentStatusBreakdown', 'Current Status Breakdown')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
               {isShown('status-workitems') && (
-              <DashboardCard title="Workitems by Status" icon={CheckSquare}>
+              <DashboardCard title={t('dashboard.chart.workitemsByStatus', 'Workitems by Status')} icon={CheckSquare}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.workitems).reduce((s: number, v) => s + (v as number), 0) as number}
                   // D18: IN_PROGRESS = actively-being-worked status → --gx-chart-active (interactive). Other states use slate (todo), semantic danger (blocked), semantic success (done).
                   buckets={[
-                    { label: 'TODO',        value: statusBreak.value.workitems.TODO ?? 0,        color: 'var(--gx-text-3)' },
-                    { label: 'In Progress', value: statusBreak.value.workitems.IN_PROGRESS ?? 0, color: 'var(--gx-chart-active)' },
-                    { label: 'Blocked',     value: statusBreak.value.workitems.BLOCKED ?? 0,     color: 'var(--gx-danger)' },
-                    { label: 'Done',        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success)' },
+                    { label: t('common.status.todo', 'TODO'),        value: statusBreak.value.workitems.TODO ?? 0,        color: 'var(--gx-text-3)' },
+                    { label: t('common.status.inProgress', 'In Progress'), value: statusBreak.value.workitems.IN_PROGRESS ?? 0, color: 'var(--gx-chart-active)' },
+                    { label: t('common.status.blocked', 'Blocked'),     value: statusBreak.value.workitems.BLOCKED ?? 0,     color: 'var(--gx-danger)' },
+                    { label: t('common.status.done', 'Done'),        value: statusBreak.value.workitems.DONE ?? 0,        color: 'var(--gx-success)' },
                   ]}
                 />
               </DashboardCard>
               )}
 
               {isShown('status-tickets') && (
-              <DashboardCard title="Tickets by Status" icon={Inbox}>
+              <DashboardCard title={t('dashboard.chart.ticketsByStatus', 'Tickets by Status')} icon={Inbox}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.tickets).reduce((s: number, v) => s + (v as number), 0) as number}
                   // D18: OPEN = the active drillable ticket bucket → --gx-chart-active. Pending (warning), Resolved (success), Closed (slate).
                   buckets={[
-                    { label: 'Open',     value: statusBreak.value.tickets.OPEN ?? 0,        color: 'var(--gx-chart-active)' },
-                    { label: 'Pending',  value: statusBreak.value.tickets.PENDING ?? 0,     color: 'var(--gx-warning)' },
-                    { label: 'Resolved', value: statusBreak.value.tickets.RESOLVED ?? 0,    color: 'var(--gx-success)' },
-                    { label: 'Closed',   value: statusBreak.value.tickets.CLOSED ?? 0,      color: 'var(--gx-text-3)' },
+                    { label: t('common.status.open', 'Open'),     value: statusBreak.value.tickets.OPEN ?? 0,        color: 'var(--gx-chart-active)' },
+                    { label: t('common.status.pending', 'Pending'),  value: statusBreak.value.tickets.PENDING ?? 0,     color: 'var(--gx-warning)' },
+                    { label: t('common.status.resolved', 'Resolved'), value: statusBreak.value.tickets.RESOLVED ?? 0,    color: 'var(--gx-success)' },
+                    { label: t('common.status.closed', 'Closed'),   value: statusBreak.value.tickets.CLOSED ?? 0,      color: 'var(--gx-text-3)' },
                   ]}
                 />
               </DashboardCard>
               )}
 
               {isShown('status-invoices') && (
-              <DashboardCard title="Invoices by Status" icon={Banknote}>
+              <DashboardCard title={t('dashboard.chart.invoicesByStatus', 'Invoices by Status')} icon={Banknote}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.invoices).reduce((s: number, v) => s + (v as number), 0) as number}
                   // D18: ISSUED = the active drillable invoice bucket awaiting payment → --gx-chart-active. Paid (success), Overdue (danger), Draft/Void (slate).
                   buckets={[
-                    { label: 'Draft',   value: statusBreak.value.invoices.DRAFT ?? 0,   color: 'var(--gx-text-3)' },
-                    { label: 'Issued',  value: statusBreak.value.invoices.ISSUED ?? 0,  color: 'var(--gx-chart-active)' },
-                    { label: 'Paid',    value: statusBreak.value.invoices.PAID ?? 0,    color: 'var(--gx-success)' },
-                    { label: 'Overdue', value: statusBreak.value.invoices.OVERDUE ?? 0, color: 'var(--gx-danger)' },
-                    { label: 'Void',    value: statusBreak.value.invoices.VOID ?? 0,    color: 'var(--gx-text-3)' },
+                    { label: t('common.status.draft', 'Draft'),   value: statusBreak.value.invoices.DRAFT ?? 0,   color: 'var(--gx-text-3)' },
+                    { label: t('common.status.issued', 'Issued'),  value: statusBreak.value.invoices.ISSUED ?? 0,  color: 'var(--gx-chart-active)' },
+                    { label: t('common.status.paid', 'Paid'),    value: statusBreak.value.invoices.PAID ?? 0,    color: 'var(--gx-success)' },
+                    { label: t('common.status.overdue', 'Overdue'), value: statusBreak.value.invoices.OVERDUE ?? 0, color: 'var(--gx-danger)' },
+                    { label: t('common.status.void', 'Void'),    value: statusBreak.value.invoices.VOID ?? 0,    color: 'var(--gx-text-3)' },
                   ]}
                 />
               </DashboardCard>
               )}
 
               {isShown('status-subs') && (
-              <DashboardCard title="Subscriptions by Status" icon={Users}>
+              <DashboardCard title={t('dashboard.chart.subscriptionsByStatus', 'Subscriptions by Status')} icon={Users}>
                 <StatusBreakdown
                   total={Object.values(statusBreak.value.subscriptions).reduce((s: number, v) => s + (v as number), 0) as number}
                   buckets={[
-                    { label: 'Active',    value: statusBreak.value.subscriptions.ACTIVE ?? 0,    color: 'var(--gx-success)' },
-                    { label: 'Suspended', value: statusBreak.value.subscriptions.SUSPENDED ?? 0, color: 'var(--gx-warning)' },
-                    { label: 'Cancelled', value: statusBreak.value.subscriptions.CANCELLED ?? 0, color: 'var(--gx-danger)' },
+                    { label: t('common.status.active', 'Active'),    value: statusBreak.value.subscriptions.ACTIVE ?? 0,    color: 'var(--gx-success)' },
+                    { label: t('common.status.suspended', 'Suspended'), value: statusBreak.value.subscriptions.SUSPENDED ?? 0, color: 'var(--gx-warning)' },
+                    { label: t('common.status.cancelled', 'Cancelled'), value: statusBreak.value.subscriptions.CANCELLED ?? 0, color: 'var(--gx-danger)' },
                   ]}
                 />
               </DashboardCard>
@@ -451,56 +453,60 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {(isShown('rag-health') || isShown('task-aging') || isShown('issue-aging') || isShown('risk-heatmap') || isShown('lead-source-donut') || isShown('salesperson-rank')) && (
           <>
             <div className="d-section-heading">
-              Execution Insights
+              {t('dashboard.section.executionInsights', 'Execution Insights')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
               {isShown('rag-health') && ragHealth.state === 'ok' && (
-                <DashboardCard title="RAG Execution Health" icon={AlertTriangle}>
+                <DashboardCard title={t('dashboard.chart.ragExecutionHealth', 'RAG Execution Health')} icon={AlertTriangle}>
                   <DonutChart slices={[
-                    { label: 'Red',   value: ragHealth.value.red,   color: 'var(--gx-danger)' },
-                    { label: 'Amber', value: ragHealth.value.amber, color: 'var(--gx-warning)' },
-                    { label: 'Green', value: ragHealth.value.green, color: 'var(--gx-success)' },
+                    { label: t('dashboard.rag.red', 'Red'),   value: ragHealth.value.red,   color: 'var(--gx-danger)' },
+                    { label: t('dashboard.rag.amber', 'Amber'), value: ragHealth.value.amber, color: 'var(--gx-warning)' },
+                    { label: t('dashboard.rag.green', 'Green'), value: ragHealth.value.green, color: 'var(--gx-success)' },
                   ].filter(s => s.value > 0)} />
                 </DashboardCard>
               )}
 
               {isShown('task-aging') && taskAging.state === 'ok' && (
-                <DashboardCard title="Task Aging" icon={CheckSquare}>
+                <DashboardCard title={t('dashboard.chart.taskAging', 'Task Aging')} icon={CheckSquare}>
                   {/* D18: aging sequence (0-7 success, 8-15 intermediate slate, 16-30 warning, 30+ danger). 8-15 was --azure-400 (Tier-0 violation) — now slate default. */}
                   <HorizontalBarChart buckets={[
-                    { label: '0-7 days',   value: taskAging.value.d0_7,     color: 'var(--gx-success)' },
-                    { label: '8-15 days',  value: taskAging.value.d8_15,    color: 'var(--gx-chart-default)' },
-                    { label: '16-30 days', value: taskAging.value.d16_30,   color: 'var(--gx-warning)' },
-                    { label: '30+ days',   value: taskAging.value.d30_plus, color: 'var(--gx-danger)' },
+                    { label: t('dashboard.aging.d0_7', '0-7 days'),   value: taskAging.value.d0_7,     color: 'var(--gx-success)' },
+                    { label: t('dashboard.aging.d8_15', '8-15 days'),  value: taskAging.value.d8_15,    color: 'var(--gx-chart-default)' },
+                    { label: t('dashboard.aging.d16_30', '16-30 days'), value: taskAging.value.d16_30,   color: 'var(--gx-warning)' },
+                    { label: t('dashboard.aging.d30plus', '30+ days'),   value: taskAging.value.d30_plus, color: 'var(--gx-danger)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
-                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)' }}>Open workitems by age</div>
+                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)' }}>{t('dashboard.aging.openWorkitemsByAge', 'Open workitems by age')}</div>
                 </DashboardCard>
               )}
 
               {isShown('issue-aging') && ticketAging.state === 'ok' && (
-                <DashboardCard title="Issue Aging" icon={Inbox}>
+                <DashboardCard title={t('dashboard.chart.issueAging', 'Issue Aging')} icon={Inbox}>
                   {/* D18: aging sequence mirror of Task Aging — 8-15 was --azure-400 (Tier-0 violation) → --gx-chart-default (slate). */}
                   <HorizontalBarChart buckets={[
-                    { label: '0-7 days',   value: ticketAging.value.d0_7,     color: 'var(--gx-success)' },
-                    { label: '8-15 days',  value: ticketAging.value.d8_15,    color: 'var(--gx-chart-default)' },
-                    { label: '16-30 days', value: ticketAging.value.d16_30,   color: 'var(--gx-warning)' },
-                    { label: '30+ days',   value: ticketAging.value.d30_plus, color: 'var(--gx-danger)' },
+                    { label: t('dashboard.aging.d0_7', '0-7 days'),   value: ticketAging.value.d0_7,     color: 'var(--gx-success)' },
+                    { label: t('dashboard.aging.d8_15', '8-15 days'),  value: ticketAging.value.d8_15,    color: 'var(--gx-chart-default)' },
+                    { label: t('dashboard.aging.d16_30', '16-30 days'), value: ticketAging.value.d16_30,   color: 'var(--gx-warning)' },
+                    { label: t('dashboard.aging.d30plus', '30+ days'),   value: ticketAging.value.d30_plus, color: 'var(--gx-danger)' },
                   ].filter(b => b.value > 0).map(b => ({ ...b, value: b.value * 100 }))} />
-                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)' }}>Open tickets by age</div>
+                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-4)' }}>{t('dashboard.aging.openTicketsByAge', 'Open tickets by age')}</div>
                 </DashboardCard>
               )}
 
               {isShown('risk-heatmap') && riskHeatmap.state === 'ok' && (
-                <DashboardCard title="Risk Heat Map" icon={AlertTriangle}>
+                <DashboardCard title={t('dashboard.chart.riskHeatMap', 'Risk Heat Map')} icon={AlertTriangle}>
                   <div className="d-risk-grid">
                     <div></div>
-                    {['Low', 'Medium', 'High'].map(im => (
-                      <div key={im} style={{ fontSize: 'var(--gx-text-10)', textAlign: 'center', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) 0' }}>{im}</div>
+                    {[
+                      [t('common.severity.low', 'Low'), 'Low'],
+                      [t('common.severity.medium', 'Medium'), 'Medium'],
+                      [t('common.severity.high', 'High'), 'High'],
+                    ].map(([label, im]) => (
+                      <div key={im} style={{ fontSize: 'var(--gx-text-10)', textAlign: 'center', color: 'var(--gx-text-3)', padding: 'var(--gx-space-2) 0' }}>{label}</div>
                     ))}
                     {['high', 'medium', 'low'].map(li => (
                       <>
-                        <div key={li} style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', alignSelf: 'center', paddingRight: 'var(--gx-space-3)', textAlign: 'right' }}>{li[0].toUpperCase() + li.slice(1)}</div>
+                        <div key={li} style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', alignSelf: 'center', paddingRight: 'var(--gx-space-3)', textAlign: 'right' }}>{t(`common.severity.${li}`, li[0].toUpperCase() + li.slice(1))}</div>
                         {['low', 'medium', 'high'].map(im => {
                           const v = Number(riskHeatmap.value[`${li}_${im}`] ?? 0)
                           const score = (li === 'high' ? 2 : li === 'medium' ? 1 : 0) + (im === 'high' ? 2 : im === 'medium' ? 1 : 0)
@@ -518,12 +524,12 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
                       </>
                     ))}
                   </div>
-                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>Impact -&gt;</div>
+                  <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-3)', textAlign: 'center' }}>{t('dashboard.risk.impact', 'Impact')} -&gt;</div>
                 </DashboardCard>
               )}
 
               {isShown('lead-source-donut') && leadSources.state === 'ok' && (
-                <DashboardCard title="Lead Source Distribution" icon={Users}>
+                <DashboardCard title={t('dashboard.chart.leadSourceDistribution', 'Lead Source Distribution')} icon={Users}>
                   <DonutChart slices={Object.entries(leadSources.value).map(([src, cnt], i) => ({
                     label: String(src), value: Number(cnt), color: PLAN_COLORS[i % PLAN_COLORS.length],
                   }))} />
@@ -531,7 +537,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
               )}
 
               {isShown('salesperson-rank') && salesByUser.state === 'ok' && (
-                <DashboardCard title="Customers by Account Manager" icon={Users}>
+                <DashboardCard title={t('dashboard.chart.customersByAccountManager', 'Customers by Account Manager')} icon={Users}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-4)' }}>
                     {Object.entries(salesByUser.value)
                       .sort((a, b) => Number(b[1]) - Number(a[1]))
@@ -563,41 +569,41 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {(isShown('gantt') || isShown('exec-summary') || isShown('sankey-leads') || isShown('pareto-leads') || isShown('geographic-map') || isShown('net-subscriber-growth')) && (
           <>
             <div className="d-section-heading">
-              Strategic & Operational Charts
+              {t('dashboard.section.strategicOperationalCharts', 'Strategic & Operational Charts')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--gx-space-18)', marginBottom: 'var(--gx-space-18)' }}>
 
               {isShown('gantt') && gantt.state === 'ok' && (
-                <DashboardCard title="Project Gantt" icon={Calendar}>
+                <DashboardCard title={t('dashboard.chart.projectGantt', 'Project Gantt')} icon={Calendar}>
                   <GanttChart projects={gantt.value} />
                 </DashboardCard>
               )}
               {isShown('gantt') && gantt.state === 'hide' && (
-                <DashboardCard title="Project Gantt" icon={Calendar}>
-                  <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>No projects with start/due dates</div>
+                <DashboardCard title={t('dashboard.chart.projectGantt', 'Project Gantt')} icon={Calendar}>
+                  <div className="muted" style={{ padding: 'var(--gx-space-18)', fontSize: 'var(--gx-text-13)' }}>{t('dashboard.empty.noProjectsWithDates', 'No projects with start/due dates')}</div>
                 </DashboardCard>
               )}
 
               {isShown('pareto-leads') && pareto.state === 'ok' && (
-                <DashboardCard title="Lead Sources Pareto" icon={BarChart3}>
+                <DashboardCard title={t('dashboard.chart.leadSourcesPareto', 'Lead Sources Pareto')} icon={BarChart3}>
                   <ParetoChart data={pareto.value} />
                 </DashboardCard>
               )}
 
               {isShown('sankey-leads') && sankey.state === 'ok' && (
-                <DashboardCard title="Sales Conversion Flow (Sankey)" icon={ArrowRight}>
+                <DashboardCard title={t('dashboard.chart.salesConversionFlow', 'Sales Conversion Flow (Sankey)')} icon={ArrowRight}>
                   <SankeyChart data={sankey.value} />
                 </DashboardCard>
               )}
 
               {isShown('geographic-map') && geoPoints.state === 'ok' && (
-                <DashboardCard title="Geographic Distribution" icon={Activity}>
+                <DashboardCard title={t('dashboard.chart.geographicDistribution', 'Geographic Distribution')} icon={Activity}>
                   <GeoMap points={geoPoints.value} />
                 </DashboardCard>
               )}
 
               {isShown('net-subscriber-growth') && netGrowth.state === 'ok' && (
-                <DashboardCard title="Net Subscriber Growth (Weekly)" icon={Users}>
+                <DashboardCard title={t('dashboard.chart.netSubscriberGrowth', 'Net Subscriber Growth (Weekly)')} icon={Users}>
                   <NetGrowthChart data={netGrowth.value} />
                 </DashboardCard>
               )}
@@ -610,7 +616,7 @@ export default function DashboardView({ canConfigure = false, onConfigure, onNav
         {selected.size === 0 && (
           <div className="d-empty-state">
             <Settings size={40} className="d-icon-muted" style={{ marginBottom: 'var(--gx-space-5)' }} />
-            <p style={{ fontSize: 'var(--gx-text-md)' }}>No charts selected. Click <strong>Customize</strong> above to choose what to display.</p>
+            <p style={{ fontSize: 'var(--gx-text-md)' }}>{t('dashboard.empty.noChartsSelected', 'No charts selected. Click Customize above to choose what to display.')}</p>
           </div>
         )}
 

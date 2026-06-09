@@ -1,5 +1,6 @@
 import { ListChecks, Play, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button, KPITile, StatusPill } from '../../primitives'
+import { useI18n } from '../../lib/i18n'
 import { PermissionDenied, EmptyState, ErrorBanner } from '../../components/States'
 import RowActionsMenu, { type RowAction } from '../../components/RowActionsMenu'
 import { SearchIcon, CheckIcon, EditIcon, CloseIcon } from '../../components/icons'
@@ -74,6 +75,7 @@ export function FindingsTab(props: {
   onOpenMarkFP: (f: RaFinding) => void
   onOpenDrawer: (f: RaFinding) => void
 }) {
+  const { t } = useI18n()
   const {
     state, statusFilter, onStatusFilter, typeFilter, onTypeFilter,
     severityFilter, onSeverityFilter, canAdmin, onRunScan, lastScan,
@@ -82,15 +84,15 @@ export function FindingsTab(props: {
   } = props
 
   if (state.state === 'denied') {
-    return <PermissionDenied message="You don't have permission to view revenue assurance findings." />
+    return <PermissionDenied message={t('ra.findings.permissionDenied', "You don't have permission to view revenue assurance findings.")} />
   }
 
   if (state.state === 'unavailable') {
     return (
       <EmptyState
         icon={<ListChecks size={40} />}
-        title="Revenue Assurance endpoints not yet available"
-        message="The findings worklist will appear once the Phase B.3 backend is live."
+        title={t('ra.findings.unavailableTitle', 'Revenue Assurance endpoints not yet available')}
+        message={t('ra.findings.unavailableMessage', 'The findings worklist will appear once the Phase B.3 backend is live.')}
       />
     )
   }
@@ -103,38 +105,38 @@ export function FindingsTab(props: {
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', alignItems: 'center' }}>
           <FilterSelect
-            label="Status"
+            label={t('common.status', 'Status')}
             value={statusFilter}
             onChange={(v) => onStatusFilter(v as FindingStatus | 'all')}
             options={[
-              ['all', 'All statuses'],
-              ['open', 'Open'],
-              ['investigating', 'Investigating'],
-              ['resolved', 'Resolved'],
-              ['false_positive', 'False positive'],
+              ['all', t('ra.findings.filter.allStatuses', 'All statuses')],
+              ['open', t('ra.findings.status.open', 'Open')],
+              ['investigating', t('ra.findings.status.investigating', 'Investigating')],
+              ['resolved', t('ra.findings.status.resolved', 'Resolved')],
+              ['false_positive', t('ra.findings.status.falsePositive', 'False positive')],
             ]}
           />
           <FilterSelect
-            label="Type"
+            label={t('common.type', 'Type')}
             value={typeFilter}
             onChange={(v) => onTypeFilter(v as FindingType | 'all')}
             options={[
-              ['all', 'All types'],
+              ['all', t('ra.findings.filter.allTypes', 'All types')],
               ['unbilled_service', FINDING_TYPE_LABEL.unbilled_service],
               ['uninvoiced_subscription', FINDING_TYPE_LABEL.uninvoiced_subscription],
               ['orphan_invoice', FINDING_TYPE_LABEL.orphan_invoice],
             ]}
           />
           <FilterSelect
-            label="Severity"
+            label={t('ra.findings.filter.severityLabel', 'Severity')}
             value={severityFilter}
             onChange={(v) => onSeverityFilter(v as FindingSeverity | 'all')}
             options={[
-              ['all', 'All severities'],
-              ['critical', 'Critical'],
-              ['high', 'High'],
-              ['medium', 'Medium'],
-              ['low', 'Low'],
+              ['all', t('ra.findings.filter.allSeverities', 'All severities')],
+              ['critical', t('ra.findings.severity.critical', 'Critical')],
+              ['high', t('ra.findings.severity.high', 'High')],
+              ['medium', t('ra.findings.severity.medium', 'Medium')],
+              ['low', t('ra.findings.severity.low', 'Low')],
             ]}
           />
         </div>
@@ -143,22 +145,22 @@ export function FindingsTab(props: {
 
         {lastScan && (
           <span style={{ fontSize: 'var(--gx-text-sm)', color: 'var(--gx-text-3)' }}>
-            Last scan: <strong style={{ color: 'var(--gx-text-2)' }} title={lastScan.started_at}>
-              {timeAgo(lastScan.started_at) || 'just now'}
+            {t('ra.findings.lastScan', 'Last scan')}: <strong style={{ color: 'var(--gx-text-2)' }} title={lastScan.started_at}>
+              {timeAgo(lastScan.started_at) || t('ra.findings.justNow', 'just now')}
             </strong>
-            {' '}· {lastScan.findings_count} finding{lastScan.findings_count === 1 ? '' : 's'}
+            {' '}· {lastScan.findings_count} {lastScan.findings_count === 1 ? t('ra.findings.finding', 'finding') : t('ra.findings.findings', 'findings')}
           </span>
         )}
         <Button variant="ghost" size="sm"
             onClick={onRetry}
           title="Reload findings">
-          <RefreshCw size={13} /> Refresh
+          <RefreshCw size={13} /> {t('common.refresh', 'Refresh')}
         </Button>
         {canAdmin && (
           <Button variant="primary" size="sm"
             onClick={onRunScan}
             title="Start a new scan run">
-            <Play size={13} /> Run Scan
+            <Play size={13} /> {t('ra.findings.runScan', 'Run Scan')}
           </Button>
         )}
       </div>
@@ -166,24 +168,24 @@ export function FindingsTab(props: {
       {state.state === 'ok' && (
         <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-8)' }}>
           <KPITile
-            label="Open"
+            label={t('ra.findings.kpi.open', 'Open')}
             value={kpiCounts.open}
             size="sm"
             danger={kpiCounts.open > 0}
           />
           <KPITile
-            label="Investigating"
+            label={t('ra.findings.kpi.investigating', 'Investigating')}
             value={kpiCounts.investigating}
             size="sm"
             warning={kpiCounts.investigating > 0}
           />
           <KPITile
-            label="Resolved"
+            label={t('ra.findings.kpi.resolved', 'Resolved')}
             value={kpiCounts.resolved}
             size="sm"
           />
           <KPITile
-            label="False positives"
+            label={t('ra.findings.kpi.falsePositives', 'False positives')}
             value={kpiCounts.false_positive}
             size="sm"
             muted
@@ -192,7 +194,7 @@ export function FindingsTab(props: {
       )}
 
       {state.state === 'loading' && (
-        <p className="muted" style={{ padding: 'var(--gx-space-18)' }}>Loading findings…</p>
+        <p className="muted" style={{ padding: 'var(--gx-space-18)' }}>{t('ra.findings.loading', 'Loading findings…')}</p>
       )}
 
       {state.state === 'error' && (
@@ -202,14 +204,14 @@ export function FindingsTab(props: {
       {state.state === 'empty' && (
         <EmptyState
           icon={<SearchIcon size={40} />}
-          title="No findings to triage."
+          title={t('ra.findings.emptyTitle', 'No findings to triage.')}
           message={lastScan
-            ? `Last scan ${timeAgo(lastScan.started_at) || 'just now'}.`
-            : 'Run a scan to detect revenue leakage.'}
+            ? `${t('ra.findings.lastScan', 'Last scan')} ${timeAgo(lastScan.started_at) || t('ra.findings.justNow', 'just now')}.`
+            : t('ra.findings.runScanPrompt', 'Run a scan to detect revenue leakage.')}
           action={canAdmin ? (
             <Button variant="primary" size="sm"
             onClick={onRunScan}>
-              <Play size={13} /> Run Scan
+              <Play size={13} /> {t('ra.findings.runScan', 'Run Scan')}
             </Button>
           ) : undefined}
         />
@@ -221,12 +223,12 @@ export function FindingsTab(props: {
             <table className="grid">
               <thead>
                 <tr>
-                  <th scope="col">Detected</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Severity</th>
-                  <th scope="col">Entity</th>
-                  <th scope="col">Summary</th>
-                  <th scope="col">Status</th>
+                  <th scope="col">{t('ra.findings.col.detected', 'Detected')}</th>
+                  <th scope="col">{t('common.type', 'Type')}</th>
+                  <th scope="col">{t('ra.findings.col.severity', 'Severity')}</th>
+                  <th scope="col">{t('ra.findings.col.entity', 'Entity')}</th>
+                  <th scope="col">{t('ra.findings.col.summary', 'Summary')}</th>
+                  <th scope="col">{t('common.status', 'Status')}</th>
                   <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -285,13 +287,13 @@ export function FindingsTab(props: {
                         {(() => {
                           const actions: RowAction[] = []
                           if (actionable && f.status === 'open') {
-                            actions.push({ key: 'ack', label: 'Acknowledge', icon: <CheckIcon size={14} />, onClick: () => onAck(f) })
+                            actions.push({ key: 'ack', label: t('ra.findings.action.acknowledge', 'Acknowledge'), icon: <CheckIcon size={14} />, onClick: () => onAck(f) })
                           }
                           if (actionable) {
-                            actions.push({ key: 'resolve', label: 'Resolve', icon: <EditIcon size={14} />, onClick: () => onOpenResolve(f) })
+                            actions.push({ key: 'resolve', label: t('ra.findings.action.resolve', 'Resolve'), icon: <EditIcon size={14} />, onClick: () => onOpenResolve(f) })
                           }
                           if (actionable && canAdmin) {
-                            actions.push({ key: 'fp', label: 'Mark false positive', icon: <CloseIcon size={14} />, danger: true, onClick: () => onOpenMarkFP(f) })
+                            actions.push({ key: 'fp', label: t('ra.findings.action.markFalsePositive', 'Mark false positive'), icon: <CloseIcon size={14} />, danger: true, onClick: () => onOpenMarkFP(f) })
                           }
                           if (actions.length === 0) return null
                           return <RowActionsMenu actions={actions} ariaLabel="Finding actions" />
@@ -303,7 +305,7 @@ export function FindingsTab(props: {
                 {pageRows.length === 0 && (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
-                      No findings on this page.
+                      {t('ra.findings.noFindingsOnPage', 'No findings on this page.')}
                     </td>
                   </tr>
                 )}
@@ -314,8 +316,8 @@ export function FindingsTab(props: {
           <div className="table-foot">
             <span className="hint">
               {totalRows === 0
-                ? '0 findings'
-                : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} of ${totalRows}`}
+                ? t('ra.findings.zeroFindings', '0 findings')
+                : `${t('common.showing', 'Showing')} ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, totalRows)} ${t('common.of', 'of')} ${totalRows}`}
             </span>
             <span className="spacer" />
             <div style={{ display: 'flex', gap: 'var(--gx-space-2)' }}>

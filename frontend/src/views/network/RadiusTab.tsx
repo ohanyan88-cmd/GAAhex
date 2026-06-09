@@ -1,4 +1,5 @@
 // NetworkInventoryView — RADIUS Sessions tab.
+import { useI18n } from '../../lib/i18n'
 import { Button, StatusPill, KPITile } from '../../primitives'
 import type { LoadState } from '../../primitives'
 import { RefreshIcon } from '../../components/icons'
@@ -17,21 +18,22 @@ export function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, o
   onStop: (s: RadiusSession) => void
   onReload: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div>
       <TabToolbar
         left={
           <>
             <FilterSelect
-              label="Status"
+              label={t('common.status', 'Status')}
               value={status}
               onChange={(v) => onStatus(v as 'active' | 'stopped' | 'all')}
-              options={[['active', 'Active'], ['stopped', 'Stopped'], ['all', 'All']]}
+              options={[['active', t('radius.statusActive', 'Active')], ['stopped', t('radius.statusStopped', 'Stopped')], ['all', t('radius.statusAll', 'All')]]}
             />
             <input
               className="inp inp-sm"
               type="search"
-              placeholder="Search by username…"
+              placeholder={t('radius.searchPlaceholder', 'Search by username…')}
               value={query}
               onChange={(e) => onQuery(e.target.value)}
               style={{ minWidth: 240 }}
@@ -41,7 +43,7 @@ export function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, o
         right={
           <Button variant="ghost" size="sm"
             onClick={onReload}>
-            <RefreshIcon size={13} /> Refresh
+            <RefreshIcon size={13} /> {t('common.refresh', 'Refresh')}
           </Button>
         }
       />
@@ -50,9 +52,9 @@ export function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, o
           but render an inline mini-strip too so admins see counts before they scroll. */}
       {state.state === 'ok' && (
         <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-8)' }}>
-          <KPITile label="Active sessions" value={state.items.filter((s) => (s.status ?? '').toLowerCase() === 'active').length} size="sm" />
+          <KPITile label={t('radius.activeSessions', 'Active sessions')} value={state.items.filter((s) => (s.status ?? '').toLowerCase() === 'active').length} size="sm" />
           <KPITile
-            label="Started today"
+            label={t('radius.startedToday', 'Started today')}
             value={(() => {
               const today = new Date(); today.setHours(0, 0, 0, 0)
               return state.items.filter((s) => {
@@ -68,8 +70,8 @@ export function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, o
 
       <LoadShell
         state={state}
-        emptyTitle="No RADIUS sessions match this filter"
-        emptyMessage="No sessions are currently in this state. Try widening the filter or refresh."
+        emptyTitle={t('radius.emptyTitle', 'No RADIUS sessions match this filter')}
+        emptyMessage={t('radius.emptyMsg', 'No sessions are currently in this state. Try widening the filter or refresh.')}
         onRetry={onReload}
       >
         {(items) => (
@@ -78,15 +80,15 @@ export function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, o
               <table className="grid" style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>Username</th>
-                    <th>Session ID</th>
-                    <th>NAS IP</th>
-                    <th>Framed IP</th>
-                    <th>Started</th>
-                    <th>Status</th>
-                    <th className="num">Octets In</th>
-                    <th className="num">Octets Out</th>
-                    <th className="actions-col"><span className="sr-only">Actions</span></th>
+                    <th>{t('radius.col.username', 'Username')}</th>
+                    <th>{t('radius.col.sessionId', 'Session ID')}</th>
+                    <th>{t('radius.col.nasIp', 'NAS IP')}</th>
+                    <th>{t('radius.col.framedIp', 'Framed IP')}</th>
+                    <th>{t('radius.col.started', 'Started')}</th>
+                    <th>{t('common.status', 'Status')}</th>
+                    <th className="num">{t('radius.col.octetsIn', 'Octets In')}</th>
+                    <th className="num">{t('radius.col.octetsOut', 'Octets Out')}</th>
+                    <th className="actions-col"><span className="sr-only">{t('common.actions', 'Actions')}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -109,7 +111,7 @@ export function RadiusTab({ state, status, onStatus, query, onQuery, canAdmin, o
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {canAdmin && isActive && (
-                              <Button variant="ghost" size="sm" onClick={() => onStop(s)}>Stop</Button>
+                              <Button variant="ghost" size="sm" onClick={() => onStop(s)}>{t('radius.stop', 'Stop')}</Button>
                             )}
                           </div>
                         </td>

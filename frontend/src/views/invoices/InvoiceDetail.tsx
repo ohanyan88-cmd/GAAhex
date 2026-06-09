@@ -3,6 +3,7 @@
 // · Related · Communications · Audit. The Overview tab WRAPS the existing bill
 // detail + lines + totals + payments + AllocationPanel content unchanged.
 import { useEffect, useState, type ReactNode } from 'react'
+import { useI18n } from '../../lib/i18n'
 import { bget, bpost, openDocument, type Invoice, type Payment } from '../../lib/billing'
 import { money } from '../../lib/money'
 import { fmtDate } from '../../lib/time'
@@ -70,6 +71,7 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
   canAllocatePayment: boolean
   onBack: () => void
 }) {
+  const { t } = useI18n()
   const [inv, setInv] = useState<Invoice | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
   const [error, setError] = useState('')
@@ -80,7 +82,7 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
   async function load() {
     setError('')
     const res = await bget<Invoice>(token, `/api/invoices/${id}`)
-    if (!res.ok) { setError(res.status === 404 ? 'Invoice not found' : 'Failed to load invoice'); return }
+    if (!res.ok) { setError(res.status === 404 ? t('invoices.detail.notFound', 'Invoice not found') : t('invoices.detail.loadError', 'Failed to load invoice')); return }
     setInv(res.data)
     const pr = await bget<Payment[]>(token, `/api/invoices/${id}/payments`)
     if (pr.ok && Array.isArray(pr.data)) setPayments(pr.data)
@@ -91,16 +93,16 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
   async function issue() {
     try {
       await bpost(token, `/api/invoices/${id}/issue`)
-      toast.success('Invoice issued')
+      toast.success(t('invoices.detail.issued', 'Invoice issued'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
 
   async function voidInvoice() {
-    if (!window.confirm('Void this invoice? This cannot be undone.')) return
+    if (!window.confirm(t('invoices.detail.voidConfirm', 'Void this invoice? This cannot be undone.'))) return
     try {
       await bpost(token, `/api/invoices/${id}/void`)
-      toast.success('Invoice voided')
+      toast.success(t('invoices.detail.voided', 'Invoice voided'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -112,16 +114,16 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['Billing & Revenue', 'Invoices', inv?.number ?? `Invoice ${id.slice(0, 8)}`]}
+      breadcrumb={[t('nav.billingRevenue', 'Billing & Revenue'), t('invoices.title', 'Invoices'), inv?.number ?? `Invoice ${id.slice(0, 8)}`]}
       icon={<ReceiptIcon size={18} />}
       title={inv?.number ?? `Invoice ${id.slice(0, 8)}`}
       subtitle={inv ? `Customer: ${cust}` : undefined}
       secondaryActions={[
-        { label: 'Invoices', icon: <ChevronLeftIcon size={14} />, onClick: onBack },
+        { label: t('invoices.title', 'Invoices'), icon: <ChevronLeftIcon size={14} />, onClick: onBack },
       ]}
     >
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {!inv && !error && <p className="muted">Loading…</p>}
+      {!inv && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
 
       {inv && (
         <>
@@ -129,7 +131,7 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
               The bill detail + lines + totals + payments + AllocationPanel live in Overview. */}
           <div
             role="tablist"
-            aria-label="Object Detail tabs"
+            aria-label={t('invoices.detail.tabs', 'Object Detail tabs')}
             style={{
               display: 'flex',
               gap: 'var(--gx-space-2)',
@@ -155,20 +157,20 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
                 <Card pad="md">
                   <SectionHeading
                     icon={<InfoIcon size={14} />}
-                    title="Invoice summary"
+                    title={t('invoices.detail.summary', 'Invoice summary')}
                     action={
                       <Inline gap="sm" align="center">
                         {canEditInvoice && status === 'DRAFT' && (
-                          <Button variant="primary" size="sm" onClick={issue}>Issue</Button>
+                          <Button variant="primary" size="sm" onClick={issue}>{t('invoices.detail.issue', 'Issue')}</Button>
                         )}
                         {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
                           <PayOnlineButton token={token} invoiceId={id} onDone={load} />
                         )}
                         {canCreatePayment && (status === 'ISSUED' || status === 'OVERDUE') && (
-                          <Button variant="primary" size="sm" onClick={() => setPayOpen(true)}>Record payment</Button>
+                          <Button variant="primary" size="sm" onClick={() => setPayOpen(true)}>{t('invoices.detail.recordPayment', 'Record payment')}</Button>
                         )}
                         {canEditInvoice && (status === 'ISSUED' || status === 'OVERDUE') && (
-                          <Button variant="ghost" size="sm" onClick={voidInvoice}>Void</Button>
+                          <Button variant="ghost" size="sm" onClick={voidInvoice}>{t('invoices.detail.void', 'Void')}</Button>
                         )}
                         <Button variant="ghost" size="sm"
             onClick={async () => {
@@ -176,28 +178,28 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
                             if (e) toast.error(e)
                           }}
                         >
-                          <PrinterIcon size={14} /> Print / Download
+                          <PrinterIcon size={14} /> {t('invoices.detail.printDownload', 'Print / Download')}
                         </Button>
                       </Inline>
                     }
                   />
                   <div className="bill-meta">
-                    <div><span className="muted">Customer</span><div>{cust}</div></div>
-                    <div><span className="muted">Status</span><div>{statusPill(inv.status)}</div></div>
-                    <div><span className="muted">Issued</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
-                    <div><span className="muted">Due</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
+                    <div><span className="muted">{t('invoices.detail.customer', 'Customer')}</span><div>{cust}</div></div>
+                    <div><span className="muted">{t('common.status', 'Status')}</span><div>{statusPill(inv.status)}</div></div>
+                    <div><span className="muted">{t('invoices.detail.issued', 'Issued')}</span><div className="mono">{fmtDate(inv.issued_at ?? inv.created_at)}</div></div>
+                    <div><span className="muted">{t('invoices.detail.due', 'Due')}</span><div className="mono">{fmtDate(inv.due_at)}</div></div>
                   </div>
                 </Card>
 
                 <Card pad="md">
-                  <SectionHeading icon={<LayersIcon size={14} />} title="Line items" />
+                  <SectionHeading icon={<LayersIcon size={14} />} title={t('invoices.detail.lineItems', 'Line items')} />
                   <table className="grid bill-lines">
                     <thead>
                       <tr>
-                        <th>Description</th>
-                        <th className="num">Qty</th>
-                        <th className="num">Unit (֏)</th>
-                        <th className="num">Amount (֏)</th>
+                        <th>{t('invoices.col.description', 'Description')}</th>
+                        <th className="num">{t('invoices.col.qty', 'Qty')}</th>
+                        <th className="num">{t('invoices.col.unit', 'Unit (֏)')}</th>
+                        <th className="num">{t('invoices.col.amount', 'Amount (֏)')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -213,18 +215,18 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
                         )
                       })}
                       {lines.length === 0 && (
-                        <tr><td colSpan={4} className="muted">No line items.</td></tr>
+                        <tr><td colSpan={4} className="muted">{t('invoices.detail.noLines', 'No line items.')}</td></tr>
                       )}
                     </tbody>
                   </table>
 
                   <div className="bill-totals">
-                    <div className="bill-total-row"><span>Total</span><span>{money(inv.total)}</span></div>
+                    <div className="bill-total-row"><span>{t('invoices.totals.total', 'Total')}</span><span>{money(inv.total)}</span></div>
                     {inv.balance !== undefined && (
                       <>
-                        <div className="bill-total-row"><span>Paid</span><span>{money(inv.paid_total)}</span></div>
+                        <div className="bill-total-row"><span>{t('invoices.totals.paid', 'Paid')}</span><span>{money(inv.paid_total)}</span></div>
                         <div className="bill-total-row">
-                          <span>Balance due</span>
+                          <span>{t('invoices.totals.balanceDue', 'Balance due')}</span>
                           <span style={{ color: (inv.balance ?? 0) > 0 ? 'var(--gx-danger)' : 'var(--gx-success)' }}>
                             {money(inv.balance)}
                           </span>
@@ -236,14 +238,14 @@ export function InvoiceDetail({ token, id, names, canEditInvoice, canCreatePayme
 
                 {payments.length > 0 && (
                   <Card pad="md">
-                    <SectionHeading icon={<CreditCardIcon size={14} />} title="Payments recorded" />
+                    <SectionHeading icon={<CreditCardIcon size={14} />} title={t('invoices.detail.paymentsRecorded', 'Payments recorded')} />
                     <table className="grid">
                       <thead>
                         <tr>
-                          <th>Date</th>
-                          <th>Method</th>
-                          <th className="num">Amount (֏)</th>
-                          <th>Note</th>
+                          <th>{t('common.date', 'Date')}</th>
+                          <th>{t('invoices.col.method', 'Method')}</th>
+                          <th className="num">{t('invoices.col.amount', 'Amount (֏)')}</th>
+                          <th>{t('invoices.col.note', 'Note')}</th>
                         </tr>
                       </thead>
                       <tbody>

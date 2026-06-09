@@ -17,6 +17,7 @@
 // not yet live. 403 → PermissionDenied. 409 → toast. No mock/placeholder rows ever.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { PageShell, type KPISpec } from '../page-shell'
 import { confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -44,6 +45,7 @@ interface NetworkInventoryViewProps {
 
 export default function NetworkInventoryView({ canConfigure = false, capabilities }: NetworkInventoryViewProps) {
   const { token } = useAuth()
+  const { t } = useI18n()
   // SM-2 — capabilities flow as a prop from App.tsx. The previous fallback fetch is
   // gone; App is the single source. Until App finishes its initial fetch the prop
   // is undefined and we default-open via FULL_ACCESS so first-paint isn't blank.
@@ -120,51 +122,51 @@ export default function NetworkInventoryView({ canConfigure = false, capabilitie
   // ── Action handlers ──
   async function releaseIpam(a: IpamAssignment) {
     const ok = await confirmDialog({
-      title: 'Release IP assignment',
-      message: `Release ${a.address ?? a.id.slice(0, 8)}? The address returns to the pool.`,
-      confirmLabel: 'Release',
+      title: t('ipam.releaseTitle', 'Release IP assignment'),
+      message: `${t('ipam.releaseMsg', 'Release')} ${a.address ?? a.id.slice(0, 8)}? ${t('ipam.releaseMsgSuffix', 'The address returns to the pool.')}`,
+      confirmLabel: t('ipam.releaseConfirm', 'Release'),
       danger: true,
     })
     if (!ok) return
     try {
       await bpost(token!, '/api/ipam/release', { assignment_id: a.id })
-      toast.success('Assignment released')
+      toast.success(t('ipam.released', 'Assignment released'))
       await loadIpam()
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 409) toast.error(err.message || 'Conflict — cannot release')
-      else toast.error(err.message || 'Failed to release')
+      if (err.status === 409) toast.error(err.message || t('ipam.conflictRelease', 'Conflict — cannot release'))
+      else toast.error(err.message || t('ipam.failedRelease', 'Failed to release'))
     }
   }
 
   async function stopSession(s: RadiusSession) {
     const ok = await confirmDialog({
-      title: 'Stop RADIUS session',
-      message: `Force-stop session for ${s.username ?? s.id.slice(0, 8)}?`,
-      confirmLabel: 'Stop',
+      title: t('radius.stopTitle', 'Stop RADIUS session'),
+      message: `${t('radius.stopMsg', 'Force-stop session for')} ${s.username ?? s.id.slice(0, 8)}?`,
+      confirmLabel: t('radius.stopConfirm', 'Stop'),
       danger: true,
     })
     if (!ok) return
     try {
       await bpatch(token!, `/api/radius/sessions/${s.id}/stop`, { acct_stop: new Date().toISOString() })
-      toast.success('Session stopped')
+      toast.success(t('radius.stopped', 'Session stopped'))
       await loadRadius()
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 409) toast.error(err.message || 'Conflict — already stopped')
-      else toast.error(err.message || 'Failed to stop session')
+      if (err.status === 409) toast.error(err.message || t('radius.conflictStop', 'Conflict — already stopped'))
+      else toast.error(err.message || t('radius.failedStop', 'Failed to stop session'))
     }
   }
 
   async function sendBroadcast(b: Broadcast) {
     try {
       await bpost(token!, `/api/broadcasts/${b.id}/send`, {})
-      toast.success('Broadcast sent')
+      toast.success(t('broadcast.sent', 'Broadcast sent'))
       await loadBroadcasts()
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 409) toast.error(err.message || 'Conflict — broadcast not in draft')
-      else toast.error(err.message || 'Failed to send broadcast')
+      if (err.status === 409) toast.error(err.message || t('broadcast.conflictSend', 'Conflict — broadcast not in draft'))
+      else toast.error(err.message || t('broadcast.failedSend', 'Failed to send broadcast'))
     }
   }
 
@@ -181,30 +183,30 @@ export default function NetworkInventoryView({ canConfigure = false, capabilitie
       return !isNaN(t) && t >= today.getTime()
     }).length
     return [
-      { label: 'Active sessions', value: active },
-      { label: 'Started today',   value: startedToday },
-      { label: 'Total (page)',    value: items.length, muted: true },
+      { label: t('radius.activeSessions', 'Active sessions'), value: active },
+      { label: t('radius.startedToday', 'Started today'),   value: startedToday },
+      { label: t('radius.totalPage', 'Total (page)'),    value: items.length, muted: true },
     ]
   }, [tab, radius])
 
   // ── Permission gate (after caps load) ──
   if (capsLoaded && !canView) {
-    return <PermissionDenied message="You don't have permission to view network inventory." />
+    return <PermissionDenied message={t('networkInventory.denied', "You don't have permission to view network inventory.")} />
   }
 
   return (
     <PageShell
       type="OPERATIONS"
-      breadcrumb={['Tech & NOC', 'Network & Stock Inventory']}
+      breadcrumb={['Tech & NOC', t('networkInventory.title', 'Network & Stock Inventory')]}
       icon={<PackageIcon size={18} />}
-      title="Network & Stock Inventory"
-      subtitle="Fiber routes · IPAM · RADIUS sessions · broadcasts"
+      title={t('networkInventory.title', 'Network & Stock Inventory')}
+      subtitle={t('networkInventory.subtitle', 'Fiber routes · IPAM · RADIUS sessions · broadcasts')}
       kpis={kpis}
     >
       {/* Tab strip — same kit pattern as PipelineView / RevenueAssuranceView. */}
       <div
         role="tablist"
-        aria-label="Inventory views"
+        aria-label={t('networkInventory.tabsAriaLabel', 'Inventory views')}
         style={{
           display: 'flex',
           gap: 'var(--gx-space-2)',
@@ -214,10 +216,10 @@ export default function NetworkInventoryView({ canConfigure = false, capabilitie
           paddingBottom: 0,
         }}
       >
-        <NiTab active={tab === 'fiber'}      onClick={() => setTab('fiber')}      icon={<GlobeIcon size={14} />}           label="Fiber Routes"   sub="PostGIS-backed inventory" />
-        <NiTab active={tab === 'ipam'}       onClick={() => setTab('ipam')}       icon={<ServerIcon size={14} />}          label="IPAM"            sub="Per-address assignments" />
-        <NiTab active={tab === 'radius'}     onClick={() => setTab('radius')}     icon={<ActivityIcon size={14} />}        label="RADIUS Sessions" sub="Live AAA sessions" />
-        <NiTab active={tab === 'broadcasts'} onClick={() => setTab('broadcasts')} icon={<SendHorizontalIcon size={14} />}  label="Mass Broadcasts" sub="Incident notifications" />
+        <NiTab active={tab === 'fiber'}      onClick={() => setTab('fiber')}      icon={<GlobeIcon size={14} />}           label={t('networkInventory.tab.fiber', 'Fiber Routes')}   sub={t('networkInventory.tab.fiber.sub', 'PostGIS-backed inventory')} />
+        <NiTab active={tab === 'ipam'}       onClick={() => setTab('ipam')}       icon={<ServerIcon size={14} />}          label={t('networkInventory.tab.ipam', 'IPAM')}            sub={t('networkInventory.tab.ipam.sub', 'Per-address assignments')} />
+        <NiTab active={tab === 'radius'}     onClick={() => setTab('radius')}     icon={<ActivityIcon size={14} />}        label={t('networkInventory.tab.radius', 'RADIUS Sessions')} sub={t('networkInventory.tab.radius.sub', 'Live AAA sessions')} />
+        <NiTab active={tab === 'broadcasts'} onClick={() => setTab('broadcasts')} icon={<SendHorizontalIcon size={14} />}  label={t('networkInventory.tab.broadcasts', 'Mass Broadcasts')} sub={t('networkInventory.tab.broadcasts.sub', 'Incident notifications')} />
       </div>
 
       {tab === 'fiber' && (

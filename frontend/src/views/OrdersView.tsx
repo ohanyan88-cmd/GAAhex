@@ -14,6 +14,7 @@
 // hiding here keeps the UI honest.
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { bget, bpost, loadCustomers, loadCustomerOptions } from '../lib/billing'
 import { money } from '../lib/money'
 import { can as canDo, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
@@ -42,6 +43,7 @@ export default function OrdersView({ capabilities }: {
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [list, setList] = useState<OrderRow[] | null>(null)
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
   const [customerOptions, setCustomerOptions] = useState<{ id: string; label: string }[]>([])
@@ -71,7 +73,7 @@ export default function OrdersView({ capabilities }: {
     if (res.status === 403) { setDenied(true); setList([]); return }
     if (!res.ok) {
       console.error('[orders] list failed', res.status)
-      setError('Failed to load orders')
+      setError(t('orders.failedToLoad', 'Failed to load orders'))
       setList([])
       return
     }
@@ -103,11 +105,11 @@ export default function OrdersView({ capabilities }: {
   const awaitingStage8 = all.filter((o) => o.status === 'SUBMITTED' && o.control_pass !== true).length
 
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Drafts', value: draftCount, subtitle: 'not yet submitted', onClick: () => setStatusFilter('DRAFT') },
-    { label: 'In flight', value: inFlightCount, subtitle: 'submitted or provisioning', warning: true, onClick: () => setStatusFilter('SUBMITTED') },
-    { label: 'Awaiting Stage 8', value: awaitingStage8, subtitle: 'gate not passed', warning: awaitingStage8 > 0, onClick: () => setStatusFilter('SUBMITTED') },
-    { label: 'Completed', value: completedCount, subtitle: 'provisioned', onClick: () => setStatusFilter('COMPLETED') },
-    { label: 'Completed value', value: money(completedValue), subtitle: 'sum of totals' },
+    { label: t('orders.kpi.drafts', 'Drafts'), value: draftCount, subtitle: t('orders.kpi.draftsSubtitle', 'not yet submitted'), onClick: () => setStatusFilter('DRAFT') },
+    { label: t('orders.kpi.inFlight', 'In flight'), value: inFlightCount, subtitle: t('orders.kpi.inFlightSubtitle', 'submitted or provisioning'), warning: true, onClick: () => setStatusFilter('SUBMITTED') },
+    { label: t('orders.kpi.awaitingStage8', 'Awaiting Stage 8'), value: awaitingStage8, subtitle: t('orders.kpi.awaitingStage8Subtitle', 'gate not passed'), warning: awaitingStage8 > 0, onClick: () => setStatusFilter('SUBMITTED') },
+    { label: t('orders.kpi.completed', 'Completed'), value: completedCount, subtitle: t('orders.kpi.completedSubtitle', 'provisioned'), onClick: () => setStatusFilter('COMPLETED') },
+    { label: t('orders.kpi.completedValue', 'Completed value'), value: money(completedValue), subtitle: t('orders.kpi.completedValueSubtitle', 'sum of totals') },
   ] : []
 
   // Permission gates.
@@ -194,51 +196,51 @@ export default function OrdersView({ capabilities }: {
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Billing & Revenue', 'Orders & Validation']}
+      breadcrumb={[t('nav.billingRevenue', 'Billing & Revenue'), t('orders.pageTitle', 'Orders & Validation')]}
       icon={<ArchiveIcon size={18} />}
-      title="Orders & Validation"
-      subtitle="Order pipeline · Stage 8 control gate"
+      title={t('orders.pageTitle', 'Orders & Validation')}
+      subtitle={t('orders.pageSubtitle', 'Order pipeline · Stage 8 control gate')}
       kpis={kpis}
       primaryAction={!unavailable && canCreate ? {
-        label: 'New order',
+        label: t('orders.newOrder', 'New order'),
         icon: <Plus size={14} />,
         onClick: () => setCreateOpen(true),
       } : undefined}
       filters={{
-        search: { value: query, onChange: setQuery, placeholder: 'Search orders…' },
+        search: { value: query, onChange: setQuery, placeholder: t('orders.searchPlaceholder', 'Search orders…') },
         quick: [{
-          label: 'Status',
+          label: t('common.status', 'Status'),
           value: statusFilter,
           options: [
-            { label: 'All statuses', value: '' },
-            { label: 'Draft', value: 'DRAFT' },
-            { label: 'Submitted', value: 'SUBMITTED' },
-            { label: 'Provisioning', value: 'PROVISIONING' },
-            { label: 'Completed', value: 'COMPLETED' },
-            { label: 'Cancelled', value: 'CANCELLED' },
+            { label: t('orders.filter.allStatuses', 'All statuses'), value: '' },
+            { label: t('orders.status.draft', 'Draft'), value: 'DRAFT' },
+            { label: t('orders.status.submitted', 'Submitted'), value: 'SUBMITTED' },
+            { label: t('orders.status.provisioning', 'Provisioning'), value: 'PROVISIONING' },
+            { label: t('orders.status.completed', 'Completed'), value: 'COMPLETED' },
+            { label: t('orders.status.cancelled', 'Cancelled'), value: 'CANCELLED' },
           ],
           onChange: setStatusFilter,
         }],
       }}
     >
         {error && <ErrorBanner message={error} onRetry={load} />}
-        {list === null && !error && <p className="muted">Loading…</p>}
+        {list === null && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
         {unavailable && (
           <EmptyState
             icon={<ArchiveIcon size={40} />}
-            title="Orders aren't available yet"
-            message="Orders will appear here once the provisioning service is enabled."
+            title={t('orders.unavailableTitle', "Orders aren't available yet")}
+            message={t('orders.unavailableMessage', 'Orders will appear here once the provisioning service is enabled.')}
           />
         )}
         {list && !unavailable && list.length === 0 && !error && (
           <EmptyState
             icon={<ArchiveIcon size={40} />}
-            title="No orders"
-            message={canCreate ? 'Start by creating a draft order for a customer.' : 'No orders to show yet.'}
+            title={t('orders.emptyTitle', 'No orders')}
+            message={canCreate ? t('orders.emptyMessageCreate', 'Start by creating a draft order for a customer.') : t('orders.emptyMessage', 'No orders to show yet.')}
             action={canCreate ? (
               <Button variant="primary" size="sm"
             onClick={() => setCreateOpen(true)}>
-                <Plus size={14} /> New order
+                <Plus size={14} /> {t('orders.newOrder', 'New order')}
               </Button>
             ) : undefined}
           />
@@ -251,11 +253,11 @@ export default function OrdersView({ capabilities }: {
                 <thead>
                   <tr>
                     {([
-                      ['number', 'Order #'],
-                      ['customer', 'Customer'],
-                      ['status', 'Status'],
-                      ['total', 'Total'],
-                      ['created', 'Created'],
+                      ['number', t('orders.col.number', 'Order #')],
+                      ['customer', t('orders.col.customer', 'Customer')],
+                      ['status', t('common.status', 'Status')],
+                      ['total', t('orders.col.total', 'Total')],
+                      ['created', t('orders.col.created', 'Created')],
                     ] as [string, string][]).map(([k, lbl]) => (
                       <th
                         key={k}
@@ -273,7 +275,7 @@ export default function OrdersView({ capabilities }: {
                         </span>
                       </th>
                     ))}
-                    <th scope="col">Stage 8</th>
+                    <th scope="col">{t('orders.col.stage8', 'Stage 8')}</th>
                     <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
@@ -316,13 +318,13 @@ export default function OrdersView({ capabilities }: {
                             {(() => {
                               const actions: RowAction[] = []
                               if (canEdit && o.status === 'DRAFT') {
-                                actions.push({ key: 'submit', label: 'Submit for provisioning', icon: <ArrowRightIcon size={14} />, onClick: () => doSubmit(o) })
+                                actions.push({ key: 'submit', label: t('orders.action.submitForProvisioning', 'Submit for provisioning'), icon: <ArrowRightIcon size={14} />, onClick: () => doSubmit(o) })
                               }
                               if (canEdit && advLbl) {
                                 actions.push({ key: 'advance', label: `Advance to ${advLbl}`, icon: <CheckIcon size={14} />, onClick: () => doAdvance(o) })
                               }
                               if (canEdit && canFinalCancel) {
-                                actions.push({ key: 'cancel', label: 'Cancel order', icon: <CloseIcon size={14} />, danger: true, onClick: () => doCancel(o) })
+                                actions.push({ key: 'cancel', label: t('orders.action.cancel', 'Cancel order'), icon: <CloseIcon size={14} />, danger: true, onClick: () => doCancel(o) })
                               }
                               return <RowActionsMenu actions={actions} ariaLabel="Order actions" />
                             })()}
@@ -336,8 +338,8 @@ export default function OrdersView({ capabilities }: {
                       <td colSpan={7} style={{ padding: 0 }}>
                         <EmptyState
                           icon={<SearchIcon size={34} />}
-                          title="No matching orders"
-                          message="Try a different search term or clear the status filter."
+                          title={t('orders.noMatchTitle', 'No matching orders')}
+                          message={t('orders.noMatchMessage', 'Try a different search term or clear the status filter.')}
                         />
                       </td>
                     </tr>

@@ -67,11 +67,11 @@ export default function InvoicesView({
   async function runDunning() {
     try {
       await bpost(token!, '/api/invoices/run-dunning')
-      toast.success('Dunning run complete')
+      toast.success(t('invoices.dunning.done', 'Dunning run complete'))
       await load()
     } catch (e) {
       const err = e as Error & { status?: number }
-      toast.error(err.status === 404 ? "Dunning isn't available yet" : err.message)
+      toast.error(err.status === 404 ? t('invoices.dunning.na', "Dunning isn't available yet") : err.message)
     }
   }
 
@@ -102,19 +102,19 @@ export default function InvoicesView({
   const overdueCount = countFor('OVERDUE')
 
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Total billed', value: `֏${(totalBilled / 100000).toFixed(1)}k`, subtitle: `${all.length} invoice${all.length !== 1 ? 's' : ''}`, onClick: () => setStatus('') },
-    { label: 'Outstanding', value: `֏${(outstanding / 100000).toFixed(1)}k`, subtitle: `${countFor('ISSUED')} issued · ${overdueCount} overdue`, warning: outstanding > 0, onClick: () => setStatus('ISSUED') },
-    { label: 'Paid', value: paidCount, subtitle: `of ${all.length} invoices`, onClick: () => setStatus('PAID') },
-    ...(overdueCount > 0 ? [{ label: 'Overdue', value: overdueCount, subtitle: 'action required', danger: true, onClick: () => setStatus('OVERDUE') }] : []),
+    { label: t('invoices.kpi.totalBilled', 'Total billed'), value: `֏${(totalBilled / 100000).toFixed(1)}k`, subtitle: `${all.length} invoice${all.length !== 1 ? 's' : ''}`, onClick: () => setStatus('') },
+    { label: t('invoices.kpi.outstanding', 'Outstanding'), value: `֏${(outstanding / 100000).toFixed(1)}k`, subtitle: `${countFor('ISSUED')} issued · ${overdueCount} overdue`, warning: outstanding > 0, onClick: () => setStatus('ISSUED') },
+    { label: t('invoices.kpi.paid', 'Paid'), value: paidCount, subtitle: `of ${all.length} invoices`, onClick: () => setStatus('PAID') },
+    ...(overdueCount > 0 ? [{ label: t('invoices.kpi.overdue', 'Overdue'), value: overdueCount, subtitle: t('invoices.kpi.overdue.sub', 'action required'), danger: true, onClick: () => setStatus('OVERDUE') }] : []),
   ] : []
 
   const TAB_DEFS: Array<[string, string]> = [
-    ['', 'All'],
-    ['DRAFT', 'Draft'],
-    ['ISSUED', 'Issued'],
-    ['PAID', 'Paid'],
-    ['OVERDUE', 'Overdue'],
-    ['VOID', 'Void'],
+    ['', t('common.all', 'All')],
+    ['DRAFT', t('invoices.tab.draft', 'Draft')],
+    ['ISSUED', t('invoices.tab.issued', 'Issued')],
+    ['PAID', t('invoices.tab.paid', 'Paid')],
+    ['OVERDUE', t('invoices.tab.overdue', 'Overdue')],
+    ['VOID', t('invoices.tab.void', 'Void')],
   ]
 
   if (detailId) return (
@@ -132,13 +132,13 @@ export default function InvoicesView({
   return (
     <PageShell
       type="REGISTRY"
-      breadcrumb={['Billing & Revenue', cfg.title]}
+      breadcrumb={[t('nav.billingRevenue', 'Billing & Revenue'), cfg.title]}
       icon={<ReceiptIcon size={18} />}
       title={cfg.title}
-      subtitle="Immutable billing ledger"
+      subtitle={t('invoices.subtitle', 'Immutable billing ledger')}
       kpis={kpis}
       secondaryActions={[
-        ...(canEditInvoice ? [{ label: 'Run dunning', onClick: runDunning }] : []),
+        ...(canEditInvoice ? [{ label: t('invoices.action.runDunning', 'Run dunning'), onClick: runDunning }] : []),
         ...(canConfigure && canEditInvoice && !cycleNA ? [{
           label: cycleBusy ? t('billing.running', 'Running…') : t('billing.runCycle', 'Run billing cycle'),
           onClick: runCycle,
@@ -162,10 +162,10 @@ export default function InvoicesView({
       </div>
 
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {list === null && !error && <p className="muted">Loading…</p>}
-      {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title="Billing isn't available yet" message="Invoices will appear here once the billing service is enabled." />}
+      {list === null && !error && <p className="muted">{t('common.loading', 'Loading…')}</p>}
+      {unavailable && <EmptyState icon={<ReceiptIcon size={40} />} title={t('invoices.unavailable.title', "Billing isn't available yet")} message={t('invoices.unavailable.msg', 'Invoices will appear here once the billing service is enabled.')} />}
       {list && !unavailable && list.length === 0 && !error && (
-        <EmptyState icon={<ReceiptIcon size={40} />} title="No invoices" message="No invoices match this filter." />
+        <EmptyState icon={<ReceiptIcon size={40} />} title={t('invoices.empty.title', 'No invoices')} message={t('invoices.empty.msg', 'No invoices match this filter.')} />
       )}
 
       {list && list.length > 0 && (
@@ -176,7 +176,7 @@ export default function InvoicesView({
                 <tr>
                   {cfg.columns.map((c) => <th key={c.key} scope="col" className={COL_CLASS[c.key] ?? ''}>{c.label}</th>)}
                   {cf.headers()}
-                  <th scope="col" className="actions-col"><span className="sr-only">Actions</span></th>
+                  <th scope="col" className="actions-col"><span className="sr-only">{t('common.actions', 'Actions')}</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -193,7 +193,7 @@ export default function InvoicesView({
                         {canCreatePayment && (inv.status === 'ISSUED' || inv.status === 'OVERDUE') && (
                           <PayOnlineButton token={token!} invoiceId={inv.id} onDone={load} />
                         )}
-                        <button className="iconbtn" title="Open" onClick={() => setDetailId(inv.id)}>
+                        <button className="iconbtn" title={t('common.open', 'Open')} onClick={() => setDetailId(inv.id)}>
                           <ArrowRightIcon size={13} />
                         </button>
                       </div>
@@ -205,8 +205,8 @@ export default function InvoicesView({
                     <td colSpan={cfg.columns.length + 1 + cfg.customFields.length} style={{ padding: 0 }}>
                       <EmptyState
                         icon={<SearchIcon size={34} />}
-                        title="No matching invoices"
-                        message="Try a different status tab."
+                        title={t('invoices.empty.noMatch', 'No matching invoices')}
+                        message={t('invoices.empty.noMatch.msg', 'Try a different status tab.')}
                       />
                     </td>
                   </tr>

@@ -9,6 +9,7 @@ import { Modal } from '../../components/Modal'
 import { toast } from '../../components/Toast'
 import { Button } from '../../primitives'
 import { KINDS, PRIORITIES } from './types'
+import { useI18n } from '../../lib/i18n'
 
 export default function CreateWorkItemModal({
   onClose, onDone,
@@ -17,6 +18,7 @@ export default function CreateWorkItemModal({
   onDone: () => void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [kind, setKind] = useState<WorkItemKind | ''>('')
@@ -44,7 +46,7 @@ export default function CreateWorkItemModal({
         location: location.trim() || undefined,
       }
       await createWorkItem(token!, payload)
-      toast.success('Work item created')
+      toast.success(t('workitems.created', 'Work item created'))
       onDone()
     } catch (e) {
       toast.error((e as Error).message)
@@ -57,81 +59,81 @@ export default function CreateWorkItemModal({
     <Modal
       open
       onClose={onClose}
-      title="New work item"
+      title={t('workitems.newModalTitle', 'New work item')}
       size="md"
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="primary" size="md"
             disabled={saving || !title.trim()}
             onClick={submit}>
-            {saving ? 'Creating…' : 'Create'}
+            {saving ? t('common.creating', 'Creating…') : t('common.create', 'Create')}
           </Button>
         </>
       }
     >
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field">
-          <span>Title <span style={{ color: 'var(--gx-danger)' }}>*</span></span>
+          <span>{t('workitems.fieldTitle', 'Title')} <span style={{ color: 'var(--gx-danger)' }}>*</span></span>
           <input
             className="inp inp-md"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="What needs to be done?"
+            placeholder={t('workitems.createTitlePlaceholder', 'What needs to be done?')}
             autoFocus
           />
         </label>
         <label className="field">
-          <span>Description</span>
+          <span>{t('workitems.fieldDescription', 'Description')}</span>
           <textarea
             className="inp inp-md"
             rows={3}
             style={{ resize: 'vertical' }}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional details…"
+            placeholder={t('common.optionalDetails', 'Optional details…')}
           />
         </label>
 
         <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 140 }}>
-            <span>Kind</span>
+            <span>{t('workitems.fieldKind', 'Kind')}</span>
             <select className="inp inp-md" value={kind} onChange={(e) => setKind(e.target.value as WorkItemKind | '')}>
-              <option value="">— select —</option>
+              <option value="">{t('common.selectPlaceholder', '— select —')}</option>
               {KINDS.map((k) => <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>)}
             </select>
           </label>
           <label className="field" style={{ flex: 1, minWidth: 140 }}>
-            <span>Priority</span>
+            <span>{t('workitems.fieldPriority', 'Priority')}</span>
             <select className="inp inp-md" value={priority} onChange={(e) => setPriority(e.target.value as WorkItemPriority | '')}>
-              <option value="">Default</option>
+              <option value="">{t('helpdesk.priorityDefault', 'Default')}</option>
               {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>)}
             </select>
           </label>
         </div>
 
         <label className="field">
-          <span>Assignee</span>
+          <span>{t('workitems.fieldAssignee', 'Assignee')}</span>
           <UserPicker
             value={assigneeId}
             onChange={setAssigneeId}
-            aria-label="Assignee"
+            aria-label={t('workitems.fieldAssignee', 'Assignee')}
           />
         </label>
 
         <label className="field">
-          <span>Customer ID</span>
+          <span>{t('workitems.fieldCustomerId', 'Customer ID')}</span>
           <input
             className="inp inp-md"
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
-            placeholder="optional"
+            placeholder={t('common.optional', 'optional')}
           />
         </label>
 
         <div style={{ display: 'flex', gap: 'var(--gx-space-4)', flexWrap: 'wrap' }}>
           <label className="field" style={{ flex: 1, minWidth: 160 }}>
-            <span>Due</span>
+            <span>{t('workitems.fieldDue', 'Due')}</span>
             <input
               className="inp inp-md"
               type="datetime-local"
@@ -140,7 +142,7 @@ export default function CreateWorkItemModal({
             />
           </label>
           <label className="field" style={{ flex: 1, minWidth: 160 }}>
-            <span>Scheduled</span>
+            <span>{t('workitems.fieldScheduled', 'Scheduled')}</span>
             <input
               className="inp inp-md"
               type="datetime-local"
@@ -151,12 +153,12 @@ export default function CreateWorkItemModal({
         </div>
 
         <label className="field">
-          <span>Location (field dispatch)</span>
+          <span>{t('workitems.fieldLocation', 'Location (field dispatch)')}</span>
           <input
             className="inp inp-md"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="Address or GPS coords…"
+            placeholder={t('workitems.locationPlaceholder', 'Address or GPS coords…')}
           />
         </label>
       </div>

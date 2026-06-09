@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { bget, bpost, bdel, loadCustomers } from '../lib/billing'
 import { Modal, confirmDialog } from '../components/Modal'
 import { toast } from '../components/Toast'
@@ -55,6 +56,7 @@ function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) 
 
 export default function ServicesView({ canConfigure = false, configVersion = 0, onConfigure, capabilities = FULL_ACCESS }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void; capabilities?: Capabilities }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [list, setList] = useState<Service[] | null>(null)
   const [names, setNames] = useState<Record<string, string>>({})
   const [status, setStatus] = useState('')
@@ -86,7 +88,7 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
     const res = await bget<Service[]>(token!, `/api/services${qs ? `?${qs}` : ''}`)
     if (res.status === 404) { setUnavailable(true); setList([]); return }
     if (res.status === 403) { setDenied(true); setList([]); return }
-    if (!res.ok) { setError('Failed to load services'); setList([]); return }
+    if (!res.ok) { setError(t('services.loadError', 'Failed to load services')); setList([]); return }
     setList(Array.isArray(res.data) ? res.data : [])
     setNames(await loadCustomers(token!))
   }
@@ -148,14 +150,14 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
   const suspendedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'SUSPENDED').length
   const terminatedCount = all.filter(s => (s.status ?? '').toUpperCase() === 'TERMINATED').length
 
-  if (denied) return <PermissionDenied message="You don't have permission to view services." />
+  if (denied) return <PermissionDenied message={t('services.denied', "You don't have permission to view services.")} />
 
   const kpis: KPISpec[] = all.length > 0 ? [
-    { label: 'Total', value: all.length, subtitle: `${activeCount} active`, onClick: () => setStatus('') },
-    { label: 'Active', value: activeCount, subtitle: 'delivering', onClick: () => setStatus('ACTIVE') },
-    ...(pendingCount > 0 ? [{ label: 'Pending', value: pendingCount, subtitle: 'awaiting activation', onClick: () => setStatus('PENDING') }] : []),
-    ...(suspendedCount > 0 ? [{ label: 'Suspended', value: suspendedCount, subtitle: 'action required', warning: true, onClick: () => setStatus('SUSPENDED') }] : []),
-    ...(terminatedCount > 0 ? [{ label: 'Terminated', value: terminatedCount, subtitle: 'closed', danger: true, onClick: () => setStatus('TERMINATED') }] : []),
+    { label: t('common.total', 'Total'), value: all.length, subtitle: `${activeCount} ${t('services.kpi.active', 'active')}`, onClick: () => setStatus('') },
+    { label: t('services.kpi.activeLabel', 'Active'), value: activeCount, subtitle: t('services.kpi.delivering', 'delivering'), onClick: () => setStatus('ACTIVE') },
+    ...(pendingCount > 0 ? [{ label: t('services.kpi.pendingLabel', 'Pending'), value: pendingCount, subtitle: t('services.kpi.awaitingActivation', 'awaiting activation'), onClick: () => setStatus('PENDING') }] : []),
+    ...(suspendedCount > 0 ? [{ label: t('services.kpi.suspendedLabel', 'Suspended'), value: suspendedCount, subtitle: t('services.kpi.actionRequired', 'action required'), warning: true, onClick: () => setStatus('SUSPENDED') }] : []),
+    ...(terminatedCount > 0 ? [{ label: t('services.kpi.terminatedLabel', 'Terminated'), value: terminatedCount, subtitle: t('services.kpi.closed', 'closed'), danger: true, onClick: () => setStatus('TERMINATED') }] : []),
   ] : []
 
   return (
@@ -164,30 +166,30 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
       breadcrumb={['Tech & NOC', page.title]}
       icon={<ServerIcon size={18} />}
       title={page.title}
-      subtitle="Active subscriber services"
+      subtitle={t('services.subtitle', 'Active subscriber services')}
       kpis={kpis}
       primaryAction={canCreate ? {
-        label: 'New service',
+        label: t('services.newService', 'New service'),
         icon: <Plus size={14} />,
         onClick: () => setCreateOpen(true),
       } : undefined}
       secondaryActions={canConfigure && onConfigure ? [
-        { label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure },
+        { label: t('common.configurePageTitle', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure },
       ] : undefined}
       // TL-5 — search + type quick-filter lift into PageShell zone D.
       filters={{
-        search: { value: query, onChange: setQuery, placeholder: 'Search services' },
+        search: { value: query, onChange: setQuery, placeholder: t('services.searchPlaceholder', 'Search services') },
         quick: [{
           label: 'Type',
           value: type,
           onChange: setType,
-          options: [{ value: '', label: 'All' }, ...TYPES.map((t) => ({ value: t, label: t }))],
+          options: [{ value: '', label: t('services.typeAll', 'All') }, ...TYPES.map((tp) => ({ value: tp, label: tp }))],
         }],
       }}
     >
         <div className="tabs">
           <button className={'tab' + (status === '' ? ' on' : '')} onClick={() => setStatus('')}>
-            All <span className="tab-count">{all.length}</span>
+            {t('services.tabAll', 'All')} <span className="tab-count">{all.length}</span>
           </button>
           {SERVICE_ALL.map((s) => (
             <button key={s} className={'tab' + (status === s ? ' on' : '')} onClick={() => setStatus(s)}>
@@ -202,9 +204,9 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
             <SkeletonRows rows={6} />
           </div>
         )}
-        {unavailable && <EmptyState icon={<ServerIcon size={40} />} title="Services aren't available yet" message="Provisioned services will appear here once the service inventory is enabled." />}
+        {unavailable && <EmptyState icon={<ServerIcon size={40} />} title={t('services.unavailableTitle', "Services aren't available yet")} message={t('services.unavailableMsg', 'Provisioned services will appear here once the service inventory is enabled.')} />}
         {list && !unavailable && list.length === 0 && !error && (
-          <EmptyState icon={<InboxIcon size={40} />} title="No services" message="Nothing matches this filter." />
+          <EmptyState icon={<InboxIcon size={40} />} title={t('services.emptyTitle', 'No services')} message={t('services.emptyMsg', 'Nothing matches this filter.')} />
         )}
 
         {list && list.length > 0 && (
@@ -247,7 +249,7 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
                   {pageRows.length === 0 && (
                     <tr>
                       <td colSpan={page.columns.length + page.customFields.length} style={{ textAlign: 'center', padding: 'var(--gx-space-9)', color: 'var(--gx-text-3)' }}>
-                        No matching services.
+                        {t('services.noMatch', 'No matching services.')}
                       </td>
                     </tr>
                   )}
@@ -286,6 +288,7 @@ export default function ServicesView({ canConfigure = false, configVersion = 0, 
 
 function CreateServiceModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [name, setName] = useState('')
   const [type, setType] = useState('internet')
   const [saving, setSaving] = useState(false)
@@ -295,22 +298,22 @@ function CreateServiceModal({ onClose, onDone }: { onClose: () => void; onDone: 
     setSaving(true)
     try {
       await bpost(token!, '/api/services', { name: name.trim(), type })
-      toast.success('Service created')
+      toast.success(t('services.created', 'Service created'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
   }
 
   return (
-    <Modal open onClose={onClose} title="New service" size="sm"
+    <Modal open onClose={onClose} title={t('services.newService', 'New service')} size="sm"
       footer={<>
-        <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" size="md" disabled={saving || !name.trim()} onClick={submit}>{saving ? 'Saving…' : 'Create'}</Button>
+        <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
+        <Button variant="primary" size="md" disabled={saving || !name.trim()} onClick={submit}>{saving ? t('common.saving', 'Saving…') : t('common.create', 'Create')}</Button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
-        <label className="field"><span>Name *</span>
+        <label className="field"><span>{`${t('common.name', 'Name')} *`}</span>
           <input className="inp inp-md" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Fiber 1Gbps · Site A" autoFocus />
         </label>
-        <label className="field"><span>Type</span>
+        <label className="field"><span>{t('services.typeLabel', 'Type')}</span>
           <select className="inp inp-md" value={type} onChange={(e) => setType(e.target.value)}>
             {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -333,6 +336,7 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
   onClose: () => void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [sv, setSv] = useState<Service | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [error, setError] = useState('')
@@ -344,7 +348,7 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
   async function load() {
     setError('')
     const res = await bget<Service>(token!, `/api/services/${id}`)
-    if (!res.ok) { setError(res.status === 404 ? 'Service not found' : 'Failed to load service'); return }
+    if (!res.ok) { setError(res.status === 404 ? t('services.notFound', 'Service not found') : t('services.loadServiceError', 'Failed to load service')); return }
     setSv(res.data)
     setResources(res.data?.resources ?? [])
   }
@@ -355,7 +359,7 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
   // We surface that as an informational toast rather than a destructive error.
   async function lifecycle(verb: 'activate' | 'suspend' | 'terminate') {
     if (verb === 'terminate') {
-      const ok = await confirmDialog({ title: 'Terminate service', message: 'Terminate this service? This stops delivery.', confirmLabel: 'Terminate', danger: true })
+      const ok = await confirmDialog({ title: t('services.terminateTitle', 'Terminate service'), message: t('services.terminateMsg', 'Terminate this service? This stops delivery.'), confirmLabel: t('services.terminateConfirm', 'Terminate'), danger: true })
       if (!ok) return
     }
     if (busy) return
@@ -370,9 +374,9 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
         : result?.status === 'approval_required' ? result
         : null
       if (approval) {
-        toast.success(`${verb === 'suspend' ? 'Suspension' : 'Action'} queued for approval`)
+        toast.success(t('services.queuedForApproval', `${verb === 'suspend' ? 'Suspension' : 'Action'} queued for approval`))
       } else {
-        toast.success(`Service ${verb}d`)
+        toast.success(t('services.lifecycleSuccess', `Service ${verb}d`))
       }
       await load()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
@@ -381,7 +385,7 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
   async function release(rid: string) {
     try {
       await bdel(token!, `/api/services/${id}/resources/${rid}`)
-      toast.success('Resource released')
+      toast.success(t('services.resourceReleased', 'Resource released'))
       await load()
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -395,10 +399,10 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
   } : undefined
 
   const fields: RecordDrawerField[] = sv ? [
-    { key: 'customer', label: 'Customer', value: custName },
-    { key: 'type', label: 'Type', value: sv.type ? <span style={{ textTransform: 'capitalize' }}>{sv.type}</span> : '—' },
-    { key: 'activated', label: 'Activated', value: <span className="mono">{fmtDate(sv.activated_at)}</span> },
-    { key: 'created', label: 'Created', value: <span className="mono">{fmtDate(sv.created_at)}</span> },
+    { key: 'customer', label: t('cust.title', 'Customer'), value: custName },
+    { key: 'type', label: t('cust.type', 'Type'), value: sv.type ? <span style={{ textTransform: 'capitalize' }}>{sv.type}</span> : '—' },
+    { key: 'activated', label: t('cust.activated', 'Activated'), value: <span className="mono">{fmtDate(sv.activated_at)}</span> },
+    { key: 'created', label: t('common.created', 'Created'), value: <span className="mono">{fmtDate(sv.created_at)}</span> },
     {
       key: 'resources',
       label: `Resources (${resources.length})`,
@@ -407,17 +411,17 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
           {status !== 'TERMINATED' && canEdit && (
             <div>
               <Button variant="ghost" size="sm" leftIcon={Plus} onClick={() => setAllocOpen(true)}>
-                Allocate resource
+                {t('services.allocateResource', 'Allocate resource')}
               </Button>
             </div>
           )}
           {resources.length === 0
-            ? <span className="muted">No resources allocated.</span>
+            ? <span className="muted">{t('services.noResources', 'No resources allocated.')}</span>
             : (
               <div className="card" style={{ overflow: 'hidden' }}>
                 <div className="grid-wrap">
                   <table className="grid">
-                    <thead><tr><th scope="col">Kind</th><th scope="col">Value</th><th scope="col">Label</th><th scope="col">Status</th><th scope="col" className="actions-col"><span className="sr-only">Actions</span></th></tr></thead>
+                    <thead><tr><th scope="col">{t('services.resource.kind', 'Kind')}</th><th scope="col">{t('services.resource.value', 'Value')}</th><th scope="col">{t('services.resource.label', 'Label')}</th><th scope="col">{t('common.status', 'Status')}</th><th scope="col" className="actions-col"><span className="sr-only">{t('common.actions', 'Actions')}</span></th></tr></thead>
                     <tbody>
                       {resources.map((r) => {
                         const rs = (r.status ?? '').toUpperCase()
@@ -427,13 +431,13 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
                             <td className="mono">{r.value ?? '—'}</td>
                             <td>{r.label ?? '—'}</td>
                             <td>{rs === 'RELEASED'
-                              ? <StatusPill variant="neutral" label="Released" size="sm" />
-                              : <StatusPill variant="active" label="Allocated" size="sm" />}
+                              ? <StatusPill variant="neutral" label={t('services.resource.released', 'Released')} size="sm" />
+                              : <StatusPill variant="active" label={t('services.resource.allocated', 'Allocated')} size="sm" />}
                             </td>
                             <td className="actions-col">
                               <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                                 {rs !== 'RELEASED' && canEdit && (
-                                  <Button variant="ghost" size="sm" onClick={() => release(r.id)}>Release</Button>
+                                  <Button variant="ghost" size="sm" onClick={() => release(r.id)}>{t('ipam.release', 'Release')}</Button>
                                 )}
                               </div>
                             </td>
@@ -466,17 +470,17 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
             <>
               {(status === 'PENDING' || status === 'SUSPENDED') && (
                 <Button variant="primary" size="sm" leftIcon={Play} disabled={busy} onClick={() => lifecycle('activate')}>
-                  Activate
+                  {t('services.activate', 'Activate')}
                 </Button>
               )}
               {status === 'ACTIVE' && (
                 <Button variant="ghost" size="sm" leftIcon={Pause} disabled={busy} onClick={() => lifecycle('suspend')}>
-                  Suspend
+                  {t('services.suspend', 'Suspend')}
                 </Button>
               )}
               {status && status !== 'TERMINATED' && (
                 <Button variant="secondary" size="sm" leftIcon={Trash2} disabled={busy} onClick={() => lifecycle('terminate')}>
-                  Terminate
+                  {t('services.terminate', 'Terminate')}
                 </Button>
               )}
             </>
@@ -495,6 +499,7 @@ function ServiceDrawer({ id, names, capabilities, onClose }: {
 
 function AllocateModal({ serviceId, onClose, onDone }: { serviceId: string; onClose: () => void; onDone: () => void }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [kind, setKind] = useState('ip')
   const [value, setValue] = useState('')
   const [label, setLabel] = useState('')
@@ -505,23 +510,23 @@ function AllocateModal({ serviceId, onClose, onDone }: { serviceId: string; onCl
     setSaving(true)
     try {
       await bpost(token!, `/api/services/${serviceId}/resources`, { kind, value: value.trim(), label: label.trim() || undefined })
-      toast.success('Resource allocated')
+      toast.success(t('services.resource.allocatedToast', 'Resource allocated'))
       onDone()
     } catch (e) { toast.error((e as Error).message) } finally { setSaving(false) }
   }
 
   return (
-    <Modal open onClose={onClose} title="Allocate resource" size="sm"
+    <Modal open onClose={onClose} title={t('services.allocateResource', 'Allocate resource')} size="sm"
       footer={<>
-        <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" size="md" disabled={saving || !value.trim()} onClick={submit}>{saving ? 'Saving…' : 'Allocate'}</Button>
+        <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
+        <Button variant="primary" size="md" disabled={saving || !value.trim()} onClick={submit}>{saving ? t('common.saving', 'Saving…') : t('services.resource.allocateBtn', 'Allocate')}</Button>
       </>}>
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
-        <label className="field"><span>Kind</span>
+        <label className="field"><span>{t('services.resource.kind', 'Kind')}</span>
           <select className="inp inp-md" value={kind} onChange={(e) => setKind(e.target.value)}>{KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
         </label>
-        <label className="field"><span>Value *</span><input className="inp inp-md mono" value={value} onChange={(e) => setValue(e.target.value)} placeholder="10.0.0.5" /></label>
-        <label className="field"><span>Label</span><input className="inp inp-md" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="optional" /></label>
+        <label className="field"><span>{`${t('services.resource.value', 'Value')} *`}</span><input className="inp inp-md mono" value={value} onChange={(e) => setValue(e.target.value)} placeholder="10.0.0.5" /></label>
+        <label className="field"><span>{t('services.resource.label', 'Label')}</span><input className="inp inp-md" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t('common.optional', 'optional')} /></label>
       </div>
     </Modal>
   )

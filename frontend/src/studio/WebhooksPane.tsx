@@ -14,6 +14,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { useFetch } from '../hooks/useFetch'
 import { Button, KPITile } from '../primitives'
 import { LoadingState, EmptyState, ErrorBanner, PermissionDenied } from '../components/States'
@@ -25,6 +26,7 @@ import { DetailDrawer } from './webhooks/DetailDrawer'
 import { WebhookTable } from './webhooks/WebhookTable'
 
 export default function WebhooksPane() {
+  const { t } = useI18n()
   const { token } = useAuth()
   const { data: hooksData, loading, status, error, refetch } = useFetch<Webhook[]>('/api/webhooks')
 
@@ -33,7 +35,7 @@ export default function WebhooksPane() {
   const [search, setSearch] = useState('')
 
   if (loading) return <LoadingState />
-  if (status === 403) return <PermissionDenied message="You don't have permission to manage webhooks." />
+  if (status === 403) return <PermissionDenied message={t('webhooks.permissionDenied', "You don't have permission to manage webhooks.")} />
   if (error) return <ErrorBanner message={error} onRetry={refetch} />
 
   const hooks: Webhook[] = Array.isArray(hooksData) ? hooksData : []
@@ -55,11 +57,9 @@ export default function WebhooksPane() {
     <div>
       <div className="row" style={{ marginBottom: 'var(--gx-space-5)', alignItems: 'flex-end' }}>
         <div>
-          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>Webhooks</h3>
+          <h3 style={{ margin: '0 0 var(--gx-space-2)' }}>{t('webhooks.heading', 'Webhooks')}</h3>
           <p className="hint" style={{ margin: 0 }}>
-            Forward platform events to external HTTPS endpoints. Deliveries are
-            HMAC-SHA256 signed when a secret is set; retries are recorded in the
-            delivery log per endpoint.
+            {t('webhooks.hint', 'Forward platform events to external HTTPS endpoints. Deliveries are HMAC-SHA256 signed when a secret is set; retries are recorded in the delivery log per endpoint.')}
           </p>
         </div>
         <span className="spacer" />
@@ -67,28 +67,28 @@ export default function WebhooksPane() {
             type="button"
           onClick={() => setShowCreate(true)}
         >
-          <PlusIcon size={13} /> New webhook
+          <PlusIcon size={13} /> {t('webhooks.newWebhook', 'New webhook')}
         </Button>
       </div>
 
       {total > 0 && (
         <div className="kpi-strip" style={{ marginBottom: 'var(--gx-space-6)' }}>
           <KPITile
-            label="Endpoints"
+            label={t('webhooks.kpiEndpoints', 'Endpoints')}
             value={total}
-            subtitle={`${activeCount} enabled`}
+            subtitle={`${activeCount} ${t('webhooks.kpiEnabled', 'enabled')}`}
             size="sm"
           />
           <KPITile
-            label="Signed"
+            label={t('webhooks.kpiSigned', 'Signed')}
             value={signedCount}
-            subtitle="HMAC-secured"
+            subtitle={t('webhooks.kpiHmacSecured', 'HMAC-secured')}
             size="sm"
           />
           <KPITile
-            label="Disabled"
+            label={t('webhooks.kpiDisabled', 'Disabled')}
             value={total - activeCount}
-            subtitle="no deliveries"
+            subtitle={t('webhooks.kpiNoDeliveries', 'no deliveries')}
             size="sm"
             muted
           />
@@ -98,7 +98,7 @@ export default function WebhooksPane() {
       <div style={{ marginBottom: 'var(--gx-space-4)', maxWidth: 320 }}>
         <input
           className="inp inp-md"
-          placeholder="Filter by name, URL, or event…"
+          placeholder={t('webhooks.filterPlaceholder', 'Filter by name, URL, or event…')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -107,11 +107,11 @@ export default function WebhooksPane() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<ServerIcon size={40} />}
-          title={q ? 'No webhooks match the filter.' : 'No webhooks yet.'}
+          title={q ? t('webhooks.emptyFilterTitle', 'No webhooks match the filter.') : t('webhooks.emptyTitle', 'No webhooks yet.')}
           message={
             q
-              ? 'Try a different query.'
-              : 'Create the first endpoint with "New webhook" above. Once active, it will receive subscribed events.'
+              ? t('common.tryDifferentQuery', 'Try a different query.')
+              : t('webhooks.emptyMessage', 'Create the first endpoint with "New webhook" above. Once active, it will receive subscribed events.')
           }
         />
       ) : (

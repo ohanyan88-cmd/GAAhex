@@ -28,6 +28,7 @@ import { WIDGET_ITEMS, WIDGET_APPROVALS } from '../lib/pagination'
 import { OBJ } from '../lib/permissions-constants'
 import { DetailTab, DetailTabList } from '../primitives'
 import { useFetch, useFetched } from '../hooks/useFetch'
+import { useI18n } from '../lib/i18n'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
 import CalendarView from './CalendarView'
@@ -79,7 +80,18 @@ function detectRole(caps: Capabilities): Role {
   return 'general'
 }
 
-const ROLE_SUBTITLE: Record<Role, string> = {
+const ROLE_SUBTITLE_KEY: Record<Role, string> = {
+  admin:     'home.subtitle.admin',
+  manager:   'home.subtitle.manager',
+  support:   'home.subtitle.support',
+  sales:     'home.subtitle.sales',
+  tech:      'home.subtitle.tech',
+  finance:   'home.subtitle.finance',
+  hr:        'home.subtitle.hr',
+  executive: 'home.subtitle.executive',
+  general:   'home.subtitle.general',
+}
+const ROLE_SUBTITLE_DEFAULT: Record<Role, string> = {
   admin:     'Administrator overview',
   manager:   'Manager dashboard',
   support:   'Support center',
@@ -143,6 +155,7 @@ export default function HomeView({ onNavigate, capabilities }: {
   capabilities?: Capabilities  // SM-2 — App's capabilities snapshot
 }) {
   const { user: authUser } = useAuth()
+  const { t } = useI18n()
   const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
 
   // SM-2 — receive caps via prop instead of refetching.
@@ -209,34 +222,34 @@ export default function HomeView({ onNavigate, capabilities }: {
   //   4 ORG   — company:    company-wide health snapshot
   const kpiSpecs: KPISpec[] = [
     {
-      label: 'My Open Tasks',
+      label: t('home.kpi.myOpenTasks', 'My Open Tasks'),
       value: tasksOpen.length,
-      subtitle: overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : 'up to date',
+      subtitle: overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : t('home.kpi.upToDate', 'up to date'),
       cornerNote: <span className="kpi-scope kpi-scope-you">YOU</span>,
       warning: overdueTasks.length > 0,
       loading: tasks.state === 'loading',
       onClick: () => onNavigate?.('workitems'),
     },
     {
-      label: 'Team Tickets Open',
+      label: t('home.kpi.teamTicketsOpen', 'Team Tickets Open'),
       value: ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length,
-      subtitle: breachedTickets.length > 0 ? `${breachedTickets.length} past SLA` : 'all within SLA',
+      subtitle: breachedTickets.length > 0 ? `${breachedTickets.length} past SLA` : t('home.kpi.allWithinSla', 'all within SLA'),
       cornerNote: <span className="kpi-scope kpi-scope-team">TEAM</span>,
       danger: breachedTickets.length > 0,
       loading: tickets.state === 'loading',
       onClick: () => onNavigate?.('helpdesk'),
     },
     {
-      label: "Today's Dispatches",
+      label: t('home.kpi.todayDispatches', "Today's Dispatches"),
       value: todaySlots.length,
-      subtitle: myTodaySlots.length > 0 ? `${myTodaySlots.length} assigned to me` : 'none assigned to me',
+      subtitle: myTodaySlots.length > 0 ? `${myTodaySlots.length} assigned to me` : t('home.kpi.noneAssignedToMe', 'none assigned to me'),
       cornerNote: <span className="kpi-scope kpi-scope-dept">DEPT</span>,
       loading: slots.state === 'loading',
     },
     {
-      label: 'Pending Approvals',
+      label: t('home.kpi.pendingApprovals', 'Pending Approvals'),
       value: approvalArr.length,
-      subtitle: approvalArr.length > 0 ? 'require your decision' : 'nothing pending',
+      subtitle: approvalArr.length > 0 ? t('home.kpi.requireDecision', 'require your decision') : t('home.kpi.nothingPending', 'nothing pending'),
       cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
       warning: approvalArr.length > 0,
       loading: approvals.state === 'loading',
@@ -245,30 +258,30 @@ export default function HomeView({ onNavigate, capabilities }: {
     // L-6 — live org stats; only surfaced for roles that have org-level visibility
     ...(role === 'admin' || role === 'manager' || role === 'finance' ? [
       {
-        label: 'Payments Today',
+        label: t('home.kpi.paymentsToday', 'Payments Today'),
         value: dashStats?.payments_today ?? 0,
-        subtitle: 'collected since midnight',
+        subtitle: t('home.kpi.collectedSinceMidnight', 'collected since midnight'),
         cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
         loading: dashStatsLoading,
       },
       {
-        label: 'Resolved Today',
+        label: t('home.kpi.resolvedToday', 'Resolved Today'),
         value: dashStats?.collections_resolved ?? 0,
-        subtitle: 'tickets closed today',
+        subtitle: t('home.kpi.ticketsClosedToday', 'tickets closed today'),
         cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
         loading: dashStatsLoading,
       },
       {
-        label: 'Active Users',
+        label: t('home.kpi.activeUsers', 'Active Users'),
         value: dashStats?.active_users ?? 0,
-        subtitle: 'staff accounts active',
+        subtitle: t('home.kpi.staffAccountsActive', 'staff accounts active'),
         cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
         loading: dashStatsLoading,
       },
       {
-        label: 'System Health',
+        label: t('home.kpi.systemHealth', 'System Health'),
         value: `${dashStats?.system_health_pct ?? 0}%`,
-        subtitle: dashStats?.system_health_pct === 100 ? 'all systems go' : 'degraded',
+        subtitle: dashStats?.system_health_pct === 100 ? t('home.kpi.allSystemsGo', 'all systems go') : t('home.kpi.degraded', 'degraded'),
         cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
         loading: dashStatsLoading,
         warning: (dashStats?.system_health_pct ?? 100) < 100,
@@ -280,25 +293,25 @@ export default function HomeView({ onNavigate, capabilities }: {
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['Workspace']}
+      breadcrumb={[t('nav.workspace', 'Workspace')]}
       icon={
         authUser?.avatar_url
           ? <img src={authUser.avatar_url} alt="" />
           : <span className="ps-header-icon-initials">{initialsOf(authUser?.name ?? me?.name)}</span>
       }
       title={me?.name ?? 'Workspace'}
-      subtitle={ROLE_SUBTITLE[role]}
+      subtitle={t(ROLE_SUBTITLE_KEY[role], ROLE_SUBTITLE_DEFAULT[role])}
       kpis={kpiSpecs}
       pageTabs={
         <DetailTabList ariaLabel="Workspace sections">
-          <DetailTab active={tab === 'workspace'} onSelect={() => setTab('workspace')}>Workspace</DetailTab>
-          <DetailTab active={tab === 'ask'} onSelect={() => setTab('ask')}>Ask Me</DetailTab>
-          <DetailTab active={tab === 'messages'} onSelect={() => setTab('messages')}>Messages</DetailTab>
-          <DetailTab active={tab === 'calendar'} onSelect={() => setTab('calendar')}>Calendar</DetailTab>
-          <DetailTab active={tab === 'requests'} onSelect={() => setTab('requests')}>My Requests</DetailTab>
-          <DetailTab active={tab === 'documents'} onSelect={() => setTab('documents')}>My Documents</DetailTab>
-          <DetailTab active={tab === 'benefits'} onSelect={() => setTab('benefits')}>My Benefits</DetailTab>
-          <DetailTab active={tab === 'kb'} onSelect={() => setTab('kb')}>Knowledge Base</DetailTab>
+          <DetailTab active={tab === 'workspace'} onSelect={() => setTab('workspace')}>{t('home.tab.workspace', 'Workspace')}</DetailTab>
+          <DetailTab active={tab === 'ask'} onSelect={() => setTab('ask')}>{t('home.tab.ask', 'Ask Me')}</DetailTab>
+          <DetailTab active={tab === 'messages'} onSelect={() => setTab('messages')}>{t('home.tab.messages', 'Messages')}</DetailTab>
+          <DetailTab active={tab === 'calendar'} onSelect={() => setTab('calendar')}>{t('home.tab.calendar', 'Calendar')}</DetailTab>
+          <DetailTab active={tab === 'requests'} onSelect={() => setTab('requests')}>{t('home.tab.requests', 'My Requests')}</DetailTab>
+          <DetailTab active={tab === 'documents'} onSelect={() => setTab('documents')}>{t('home.tab.documents', 'My Documents')}</DetailTab>
+          <DetailTab active={tab === 'benefits'} onSelect={() => setTab('benefits')}>{t('home.tab.benefits', 'My Benefits')}</DetailTab>
+          <DetailTab active={tab === 'kb'} onSelect={() => setTab('kb')}>{t('home.tab.kb', 'Knowledge Base')}</DetailTab>
         </DetailTabList>
       }
     >
@@ -308,11 +321,11 @@ export default function HomeView({ onNavigate, capabilities }: {
 
           {/* ── ME ──────────────────────────────────────────────────────────── */}
           <div className="ws-col">
-            <div className="ws-col-head">ME</div>
+            <div className="ws-col-head">{t('home.section.me', 'ME')}</div>
 
-            <Widget icon={Inbox} title="My Tickets" count={myTickets.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
+            <Widget icon={Inbox} title={t('home.widget.myTickets', 'My Tickets')} count={myTickets.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
               {tickets.state === 'loading' && <Skel />}
-              {myTickets.length === 0 ? <Empty msg="No tickets assigned to you" /> : myTickets.slice(0, 8).map(t => (
+              {myTickets.length === 0 ? <Empty msg={t('home.empty.noTicketsAssigned', 'No tickets assigned to you')} /> : myTickets.slice(0, 8).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-primary" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
@@ -320,9 +333,9 @@ export default function HomeView({ onNavigate, capabilities }: {
               ))}
             </Widget>
 
-            <Widget icon={CheckSquare} title="My Open Tasks" count={tasksOpen.length}>
+            <Widget icon={CheckSquare} title={t('home.widget.myOpenTasks', 'My Open Tasks')} count={tasksOpen.length}>
               {tasks.state === 'loading' && <Skel />}
-              {tasksOpen.length === 0 ? <Empty msg="No open tasks" /> : tasksOpen.slice(0, 8).map(t => (
+              {tasksOpen.length === 0 ? <Empty msg={t('home.empty.noOpenTasks', 'No open tasks')} /> : tasksOpen.slice(0, 8).map(t => (
                 <button key={t.id} type="button" onClick={() => onNavigate?.('workitems')} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', cursor: 'pointer', width: '100%', background: 'none', border: 'none', borderBottom: '1px solid var(--gx-border)', font: 'inherit', textAlign: 'left' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status?.replace(/_/g, ' ')}</span>
@@ -330,9 +343,9 @@ export default function HomeView({ onNavigate, capabilities }: {
               ))}
             </Widget>
 
-            <Widget icon={MapPin} title="My Dispatches Today" count={myTodaySlots.length}>
+            <Widget icon={MapPin} title={t('home.widget.myDispatchesToday', 'My Dispatches Today')} count={myTodaySlots.length}>
               {slots.state === 'loading' && <Skel />}
-              {myTodaySlots.length === 0 ? <Empty msg="No dispatches for you today" /> : myTodaySlots.slice(0, 8).map(s => (
+              {myTodaySlots.length === 0 ? <Empty msg={t('home.empty.noDispatchesToday', 'No dispatches for you today')} /> : myTodaySlots.slice(0, 8).map(s => (
                 <div key={s.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
                   <Clock size={13} color="var(--gx-text-3)" />
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-medium)' }}>{s.data?.title ?? 'Slot'}</span>
@@ -342,7 +355,7 @@ export default function HomeView({ onNavigate, capabilities }: {
             </Widget>
 
             {overdueTasks.length > 0 && (
-              <Widget icon={AlertTriangle} title="Overdue" count={overdueTasks.length}>
+              <Widget icon={AlertTriangle} title={t('home.widget.overdue', 'Overdue')} count={overdueTasks.length}>
                 {overdueTasks.slice(0, 6).map(t => (
                   <div key={t.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
                     <AlertTriangle size={13} color="var(--gx-danger)" />
@@ -356,11 +369,11 @@ export default function HomeView({ onNavigate, capabilities }: {
 
           {/* ── TEAM ────────────────────────────────────────────────────────── */}
           <div className="ws-col">
-            <div className="ws-col-head">TEAM</div>
+            <div className="ws-col-head">{t('home.section.team', 'TEAM')}</div>
 
-            <Widget icon={Inbox} title="Team Tickets" count={ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
+            <Widget icon={Inbox} title={t('home.widget.teamTickets', 'Team Tickets')} count={ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).length}>
               {tickets.state === 'loading' && <Skel />}
-              {ticketArr.length === 0 ? <Empty msg="No open tickets" /> : ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).slice(0, 8).map(t => (
+              {ticketArr.length === 0 ? <Empty msg={t('home.empty.noOpenTickets', 'No open tickets')} /> : ticketArr.filter(t => !TICKET_CLOSED.includes(t.status ?? '')).slice(0, 8).map(t => (
                 <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject ?? '(no subject)'}</span>
                   <span className="badge badge-neutral" style={{ fontSize: 'var(--gx-text-11)' }}>{t.status}</span>
@@ -369,7 +382,7 @@ export default function HomeView({ onNavigate, capabilities }: {
             </Widget>
 
             {breachedTickets.length > 0 && (
-              <Widget icon={AlertTriangle} title="SLA at Risk" count={breachedTickets.length}>
+              <Widget icon={AlertTriangle} title={t('home.widget.slaAtRisk', 'SLA at Risk')} count={breachedTickets.length}>
                 {breachedTickets.slice(0, 6).map(t => (
                   <div key={t.id} role="button" tabIndex={0} onClick={() => onNavigate?.('helpdesk', t.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('helpdesk', t.id) } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                     <AlertTriangle size={13} color="var(--gx-danger)" />
@@ -380,9 +393,9 @@ export default function HomeView({ onNavigate, capabilities }: {
               </Widget>
             )}
 
-            <Widget icon={Shield} title="Pending Approvals" count={approvalArr.length}>
+            <Widget icon={Shield} title={t('home.widget.pendingApprovals', 'Pending Approvals')} count={approvalArr.length}>
               {approvals.state === 'loading' && <Skel />}
-              {approvalArr.length === 0 ? <Empty msg="Nothing pending" /> : approvalArr.slice(0, 8).map(a => (
+              {approvalArr.length === 0 ? <Empty msg={t('home.empty.nothingPending', 'Nothing pending')} /> : approvalArr.slice(0, 8).map(a => (
                 <div key={a.id} role="button" tabIndex={0} onClick={() => onNavigate?.('my-approvals')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate?.('my-approvals') } }} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)', cursor: 'pointer' }}>
                   <span style={{ flex: 1, fontSize: 'var(--gx-text-13)' }}>{a.action_type?.replace(/_/g, ' ')}</span>
                   <span style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>{relTime(a.created_at)}</span>
@@ -391,7 +404,7 @@ export default function HomeView({ onNavigate, capabilities }: {
             </Widget>
 
             {(nodes.length > 0 || orgMembers.length > 0) && (
-              <Widget icon={Users} title="Team Members" count={orgMembers.length}>
+              <Widget icon={Users} title={t('home.widget.teamMembers', 'Team Members')} count={orgMembers.length}>
                 {orgMembers.slice(0, 8).map((m: any) => (
                   <div key={m.id} style={{ display: 'flex', gap: 'var(--gx-space-5)', alignItems: 'center', padding: 'var(--gx-space-4) var(--gx-space-18)', borderBottom: '1px solid var(--gx-border)' }}>
                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gx-interactive)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--gx-text-10)', fontWeight: 'var(--gx-weight-bold)', color: 'var(--gx-on-primary)', flexShrink: 0 }}>

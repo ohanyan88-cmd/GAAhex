@@ -1,4 +1,5 @@
 // NetworkInventoryView — IPAM Assignments tab.
+import { useI18n } from '../../lib/i18n'
 import { Button, StatusPill } from '../../primitives'
 import type { LoadState } from '../../primitives'
 import { RefreshIcon } from '../../components/icons'
@@ -17,21 +18,22 @@ export function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onR
   onRelease: (a: IpamAssignment) => void
   onReload: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div>
       <TabToolbar
         left={
           <>
             <FilterSelect
-              label="Status"
+              label={t('common.status', 'Status')}
               value={status}
               onChange={(v) => onStatus(v as 'active' | 'all')}
-              options={[['active', 'Active'], ['all', 'All']]}
+              options={[['active', t('ipam.statusActive', 'Active')], ['all', t('ipam.statusAll', 'All')]]}
             />
             <input
               className="inp inp-sm"
               type="search"
-              placeholder="Search by address…"
+              placeholder={t('ipam.searchPlaceholder', 'Search by address…')}
               value={query}
               onChange={(e) => onQuery(e.target.value)}
               style={{ minWidth: 240 }}
@@ -41,15 +43,15 @@ export function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onR
         right={
           <Button variant="ghost" size="sm"
             onClick={onReload}>
-            <RefreshIcon size={13} /> Refresh
+            <RefreshIcon size={13} /> {t('common.refresh', 'Refresh')}
           </Button>
         }
       />
 
       <LoadShell
         state={state}
-        emptyTitle="No IP assignments to show"
-        emptyMessage="IP assignment happens during service provisioning. Empty here means no active leases match the current filter."
+        emptyTitle={t('ipam.emptyTitle', 'No IP assignments to show')}
+        emptyMessage={t('ipam.emptyMsg', 'IP assignment happens during service provisioning. Empty here means no active leases match the current filter.')}
         onRetry={onReload}
       >
         {(items) => (
@@ -58,14 +60,14 @@ export function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onR
               <table className="grid" style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>Address</th>
-                    <th>Family</th>
-                    <th>Status</th>
-                    <th>Service</th>
-                    <th>MAC</th>
-                    <th>Assigned</th>
-                    <th>Lease expires</th>
-                    <th className="actions-col"><span className="sr-only">Actions</span></th>
+                    <th>{t('ipam.col.address', 'Address')}</th>
+                    <th>{t('ipam.col.family', 'Family')}</th>
+                    <th>{t('common.status', 'Status')}</th>
+                    <th>{t('ipam.col.service', 'Service')}</th>
+                    <th>{t('ipam.col.mac', 'MAC')}</th>
+                    <th>{t('ipam.col.assigned', 'Assigned')}</th>
+                    <th>{t('ipam.col.leaseExpires', 'Lease expires')}</th>
+                    <th className="actions-col"><span className="sr-only">{t('common.actions', 'Actions')}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -89,7 +91,7 @@ export function IpamTab({ state, status, onStatus, query, onQuery, canAdmin, onR
                         <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                           <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                             {canAdmin && isActive && (
-                              <Button variant="ghost" size="sm" onClick={() => onRelease(a)}>Release</Button>
+                              <Button variant="ghost" size="sm" onClick={() => onRelease(a)}>{t('ipam.release', 'Release')}</Button>
                             )}
                           </div>
                         </td>

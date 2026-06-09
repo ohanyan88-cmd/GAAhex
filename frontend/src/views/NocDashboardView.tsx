@@ -20,6 +20,7 @@
 // — no empty holes.
 import { useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import { PageShell, SlideOutPanel } from '../page-shell'
 import { PermissionDenied } from '../components/States'
 import { ServerIcon } from '../components/icons'
@@ -244,13 +245,13 @@ type ModuleNum = 1 | 2 | 3 | 4 | 5 | 6
 type SlotSize = 'kpi' | 'small' | 'medium' | 'wide'
 type DataStatus = 'live' | 'partial' | 'pending'
 
-const MODULE_LABELS: Record<ModuleNum, string> = {
-  1: 'Module 1 · Global ISP Health',
-  2: 'Module 2 · ONU Phase & Optical Alarms',
-  3: 'Module 3 · Categorical Network Analytics',
-  4: 'Module 4 · Provisioning & Billing Tiers',
-  6: 'Module 6 · ISP Hierarchy Explorer',
-  5: 'Module 5 · Geographic & Field Operations',
+const MODULE_LABEL_KEYS: Record<ModuleNum, [string, string]> = {
+  1: ['noc.module1', 'Module 1 · Global ISP Health'],
+  2: ['noc.module2', 'Module 2 · ONU Phase & Optical Alarms'],
+  3: ['noc.module3', 'Module 3 · Categorical Network Analytics'],
+  4: ['noc.module4', 'Module 4 · Provisioning & Billing Tiers'],
+  6: ['noc.module6', 'Module 6 · ISP Hierarchy Explorer'],
+  5: ['noc.module5', 'Module 5 · Geographic & Field Operations'],
 }
 
 // Display order on the page — alarms-first per Gev's lock.
@@ -298,6 +299,7 @@ function NMSCard({
   children: React.ReactNode
   action?: React.ReactNode
 }) {
+  const { t } = useI18n()
   return (
     <div className="nms-card">
       <div className="nms-card-header">
@@ -305,8 +307,8 @@ function NMSCard({
         <div className="nms-card-hd-end">
           {action}
           {status !== 'live' && (
-            <span className="nms-card-preview-tag" title="This widget shows sample data while we finalize the design.">
-              ▾ sample data
+            <span className="nms-card-preview-tag" title={t('noc.sampleDataTooltip', 'This widget shows sample data while we finalize the design.')}>
+              {t('noc.sampleDataTag', '▾ sample data')}
             </span>
           )}
         </div>
@@ -360,19 +362,20 @@ function ValueBlock({ label, value, sub, variant = 'default' }: {
 // ═══════════════════════════════════════════════════════════════════════
 
 const WOltsOnline: React.FC<WidgetCtx> = ({ nocData }) => {
+  const { t } = useI18n()
   const items = nocData?.oltList.items ?? []
   const count = items.length
     ? (items.filter(o => (o.status ?? '').toLowerCase() === 'active').length || items.length)
     : SAMPLE_OLTS_ONLINE.count
   const delta = SAMPLE_OLTS_ONLINE.delta_60s
   return (
-    <NMSCard title="OLTs Online" status={nocData ? 'live' : 'partial'}>
+    <NMSCard title={t('noc.widget.oltsOnline', 'OLTs Online')} status={nocData ? 'live' : 'partial'}>
       <ValueBlock
-        label="ACTIVE CHASSIS"
+        label={t('noc.widget.activeChassis', 'ACTIVE CHASSIS')}
         value={count}
         sub={
           <span className={`nms-delta ${delta >= 0 ? 'nms-delta--up' : 'nms-delta--down'}`}>
-            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} in last 60 s
+            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} {t('noc.widget.inLast60s', 'in last 60 s')}
           </span>
         }
       />
@@ -381,12 +384,13 @@ const WOltsOnline: React.FC<WidgetCtx> = ({ nocData }) => {
 }
 
 const WUplinkCapacity: React.FC<WidgetCtx> = () => {
+  const { t } = useI18n()
   const pct = (SAMPLE_UPLINK.used_gbps / SAMPLE_UPLINK.capacity_gbps) * 100
   const variant = pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'green'
   return (
-    <NMSCard title="Total Uplink Capacity" status="pending">
+    <NMSCard title={t('noc.widget.totalUplinkCapacity', 'Total Uplink Capacity')} status="pending">
       <ValueBlock
-        label="CURRENT LOAD"
+        label={t('noc.widget.currentLoad', 'CURRENT LOAD')}
         value={`${pct.toFixed(0)}%`}
         sub={`${SAMPLE_UPLINK.used_gbps} / ${SAMPLE_UPLINK.capacity_gbps} Gbps`}
         variant={variant}
@@ -397,32 +401,34 @@ const WUplinkCapacity: React.FC<WidgetCtx> = () => {
 }
 
 const WActiveSessions: React.FC<WidgetCtx> = ({ nocData }) => {
+  const { t } = useI18n()
   const count = nocData ? nocData.radiusSessions.length : SAMPLE_SESSIONS.active
   return (
-    <NMSCard title="Active Customer Sessions" status={nocData ? 'live' : 'pending'}>
+    <NMSCard title={t('noc.widget.activeCustomerSessions', 'Active Customer Sessions')} status={nocData ? 'live' : 'pending'}>
       <ValueBlock
-        label="PPPoE / IPoE ONLINE"
+        label={t('noc.widget.pppoeipoeonline', 'PPPoE / IPoE ONLINE')}
         value={count.toLocaleString()}
-        sub="Authenticated broadband subscribers"
+        sub={t('noc.widget.authenticatedSubscribers', 'Authenticated broadband subscribers')}
       />
     </NMSCard>
   )
 }
 
 const WIpPool: React.FC<WidgetCtx> = () => {
+  const { t } = useI18n()
   const pct = (SAMPLE_IP_POOL.used / SAMPLE_IP_POOL.total) * 100
   const remaining = SAMPLE_IP_POOL.total - SAMPLE_IP_POOL.used
   return (
-    <NMSCard title="IP Pool Exhaustion" status="pending">
+    <NMSCard title={t('noc.widget.ipPoolExhaustion', 'IP Pool Exhaustion')} status="pending">
       <ValueBlock
-        label="USED / TOTAL"
+        label={t('noc.widget.usedTotal', 'USED / TOTAL')}
         value={
           <span>
             <span className="nms-mono">{SAMPLE_IP_POOL.used.toLocaleString()}</span>
             <span className="nms-muted">/{SAMPLE_IP_POOL.total.toLocaleString()}</span>
           </span>
         }
-        sub={`${remaining.toLocaleString()} available addresses remaining`}
+        sub={`${remaining.toLocaleString()} ${t('noc.widget.availableAddresses', 'available addresses remaining')}`}
         variant={pct >= 85 ? 'red' : pct >= 70 ? 'amber' : 'default'}
       />
       <Bar pct={pct} variant={pct >= 85 ? 'red' : 'green'} height={6} />
@@ -435,6 +441,7 @@ const WIpPool: React.FC<WidgetCtx> = () => {
 // ═══════════════════════════════════════════════════════════════════════
 
 const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const apiTotal = nocData?.analytics?.totals.onus
   const s = apiTotal != null && apiTotal > 0 ? {
     total:      apiTotal,
@@ -444,13 +451,13 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   } : SAMPLE_PHASE_STATE
   type PhaseCell = { key: string; label: string; value: number; pillCls: string; dot: string; share: number; isTotal?: boolean }
   const cells: PhaseCell[] = [
-    { key: 'working',    label: 'Working',         value: s.working,    pillCls: 'nms-pill-green', dot: 'nms-dot-green',           share: s.working / s.total },
-    { key: 'dying_gasp', label: 'Dying Gasp',      value: s.dying_gasp, pillCls: 'nms-pill-amber', dot: 'nms-dot-amber is-alarm',  share: s.dying_gasp / s.total },
-    { key: 'offline',    label: 'Offline / LOS',   value: s.offline,    pillCls: 'nms-pill-red',   dot: 'nms-dot-red is-alarm',    share: s.offline / s.total },
-    { key: 'total',      label: 'Total Ecosystem', value: s.total,      pillCls: '',               dot: '',                        share: 1, isTotal: true },
+    { key: 'working',    label: t('noc.phase.working', 'Working'),         value: s.working,    pillCls: 'nms-pill-green', dot: 'nms-dot-green',           share: s.working / s.total },
+    { key: 'dying_gasp', label: t('noc.phase.dyingGasp', 'Dying Gasp'),      value: s.dying_gasp, pillCls: 'nms-pill-amber', dot: 'nms-dot-amber is-alarm',  share: s.dying_gasp / s.total },
+    { key: 'offline',    label: t('noc.phase.offline', 'Offline / LOS'),   value: s.offline,    pillCls: 'nms-pill-red',   dot: 'nms-dot-red is-alarm',    share: s.offline / s.total },
+    { key: 'total',      label: t('noc.phase.total', 'Total Ecosystem'), value: s.total,      pillCls: '',               dot: '',                        share: 1, isTotal: true },
   ]
   return (
-    <NMSCard title="ONU Phase State Grid" status={nocData ? 'partial' : 'partial'}>
+    <NMSCard title={t('noc.widget.onuPhaseStateGrid', 'ONU Phase State Grid')} status={nocData ? 'partial' : 'partial'}>
       <div className="nms-phase-grid">
         {cells.map(c => (
           <button
@@ -484,9 +491,10 @@ const WOnuPhaseState: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
 }
 
 const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const { t } = useI18n()
   const max = Math.max(...SAMPLE_OPTICAL_RX.map(b => b.count))
   return (
-    <NMSCard title="Optical RX Power Distribution" status="pending">
+    <NMSCard title={t('noc.widget.opticalRxPower', 'Optical RX Power Distribution')} status="pending">
       <div className="nms-bar-chart">
         {SAMPLE_OPTICAL_RX.map(b => {
           const h = (b.count / max) * 160
@@ -510,18 +518,19 @@ const WOpticalRx: React.FC<WidgetCtx> = ({ openDrawer }) => {
 }
 
 const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const { t } = useI18n()
   const isAlarm = SAMPLE_ROGUE.count > 0
   return (
-    <NMSCard title="Rogue ONUs Detected" status="pending">
+    <NMSCard title={t('noc.widget.rogueOnusDetected', 'Rogue ONUs Detected')} status="pending">
       <button
         type="button"
-        onClick={() => openDrawer({ kind: 'segment', id: 'rogue', label: 'Rogue ONU Alarm' })}
+        onClick={() => openDrawer({ kind: 'segment', id: 'rogue', label: t('noc.drawer.rogueOnuAlarm', 'Rogue ONU Alarm') })}
         className="nms-stat-btn"
       >
         <span className={'nms-dot nms-dot-lg ' + (isAlarm ? 'nms-dot-red is-alarm' : 'nms-dot-green')} />
         <div className={'nms-value nms-value-lg nms-mono ' + (isAlarm ? 'nms-value-red' : 'nms-value-green')}>{SAMPLE_ROGUE.count}</div>
         <div className="nms-stat-note">
-          {isAlarm ? 'Blinded ports — uncontrolled light' : 'No rogue ONUs · all ports stable'}
+          {isAlarm ? t('noc.rogue.alarm', 'Blinded ports — uncontrolled light') : t('noc.rogue.clear', 'No rogue ONUs · all ports stable')}
         </div>
       </button>
     </NMSCard>
@@ -533,6 +542,7 @@ const WRogueOnu: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // ═══════════════════════════════════════════════════════════════════════
 
 const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const ports = nocData?.analytics?.by_port.length
     ? nocData.analytics.by_port.map(p => ({ id: `0/${p.port_no}`, count: p.count, max: 128 }))
     : SAMPLE_PON_SATURATION.ports
@@ -540,7 +550,7 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
   const peak = sorted[0]
   const peakPct = (peak.count / peak.max) * 100
   return (
-    <NMSCard title="PON Port Saturation" status={nocData?.analytics ? 'live' : 'live'}>
+    <NMSCard title={t('noc.widget.ponPortSaturation', 'PON Port Saturation')} status={nocData?.analytics ? 'live' : 'live'}>
       <div className="nms-list">
         {ports.map(p => {
           const pct = (p.count / p.max) * 100
@@ -550,7 +560,7 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
             <button
               key={p.id}
               type="button"
-              onClick={() => openDrawer({ kind: 'port', id: p.id, label: `Port ${p.id}` })}
+              onClick={() => openDrawer({ kind: 'port', id: p.id, label: `${t('noc.port', 'Port')} ${p.id}` })}
               className="nms-list-row nms-list-row--pon"
             >
               <span className="nms-list-label">{p.id}</span>
@@ -561,13 +571,14 @@ const WPonSaturation: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
         })}
       </div>
       <div className="nms-peak-note">
-        Peak port: <b>{peak.id}</b> at <b>{peakPct.toFixed(0)}%</b>
+        {t('noc.peakPort', 'Peak port')}: <b>{peak.id}</b> {t('noc.at', 'at')} <b>{peakPct.toFixed(0)}%</b>
       </div>
     </NMSCard>
   )
 }
 
 const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const vendors = nocData?.analytics?.by_vendor.length
     ? nocData.analytics.by_vendor.map(v => ({
         vendor: VENDOR_NAMES[v.prefix] ?? v.prefix,
@@ -585,7 +596,7 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
     'var(--gx-border-strong)',
   ]
   return (
-    <NMSCard title="ONU Vendor Diversity Mix" status={nocData?.analytics ? 'live' : 'live'}>
+    <NMSCard title={t('noc.widget.onuVendorMix', 'ONU Vendor Diversity Mix')} status={nocData?.analytics ? 'live' : 'live'}>
       <div className="nms-donut-grid">
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
           <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--gx-border-strong)" strokeWidth={STROKE} />
@@ -634,9 +645,10 @@ const WVendorMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
 }
 
 const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const { t } = useI18n()
   const max = Math.max(...SAMPLE_DENSITY.map(d => d.count))
   return (
-    <NMSCard title="Subscriber Density per OLT" status="partial">
+    <NMSCard title={t('noc.widget.subscriberDensity', 'Subscriber Density per OLT')} status="partial">
       <div className="nms-list">
         {SAMPLE_DENSITY.map(d => (
           <button key={d.olt}
@@ -659,34 +671,35 @@ const WSubscriberDensity: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // ═══════════════════════════════════════════════════════════════════════
 
 const WTierMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const tiers = nocData?.subscriptionMix.length
     ? nocData.subscriptionMix.map(m => ({ tier: m.product_name, count: m.count }))
     : SAMPLE_TIER_MIX
   const sorted = [...tiers].sort((a, b) => b.count - a.count)
   const peak = sorted[0]
-  const total = tiers.reduce((s, t) => s + t.count, 0)
+  const total = tiers.reduce((s, ti) => s + ti.count, 0)
   const peakPct = Math.round((peak.count / total) * 100)
   const max = peak.count
   const CHART_H = 160
   return (
-    <NMSCard title="Subscription Speed Tier Mix" status={nocData ? 'live' : 'live'}>
+    <NMSCard title={t('noc.widget.subscriptionSpeedTierMix', 'Subscription Speed Tier Mix')} status={nocData ? 'live' : 'live'}>
       <div
         className="nms-tier-chart"
         style={{ gridTemplateColumns: `repeat(${tiers.length}, minmax(0, 1fr))`, height: CHART_H + 40 }}
       >
-        {tiers.map(t => {
-          const isLeader = t.tier === peak.tier
-          const stem = (t.count / max) * CHART_H
+        {tiers.map(ti => {
+          const isLeader = ti.tier === peak.tier
+          const stem = (ti.count / max) * CHART_H
           return (
-            <button key={t.tier}
+            <button key={ti.tier}
               type="button"
-              onClick={() => openDrawer({ kind: 'tier', name: t.tier })}
+              onClick={() => openDrawer({ kind: 'tier', name: ti.tier })}
               className="nms-tier-col"
               style={{ height: CHART_H + 40 }}
             >
               {isLeader && (
                 <div className="nms-tier-peak-tag" style={{ bottom: stem + 24 }}>
-                  ▼ Peak Plan · {peakPct}%
+                  {t('noc.tierPeak', '▼ Peak Plan')} · {peakPct}%
                 </div>
               )}
               <div className="nms-tier-stem" style={{ height: stem }} />
@@ -694,8 +707,8 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
                 className={`nms-tier-dot${isLeader ? ' nms-tier-dot--leader' : ''}`}
                 style={{ bottom: 24 + stem - 5 }}
               />
-              <span className={`nms-tier-name ${isLeader ? 'nms-tier-name--leader' : 'nms-tier-name--rest'}`}>{t.tier}</span>
-              <span className="nms-tier-count">{t.count}</span>
+              <span className={`nms-tier-name ${isLeader ? 'nms-tier-name--leader' : 'nms-tier-name--rest'}`}>{ti.tier}</span>
+              <span className="nms-tier-count">{ti.count}</span>
             </button>
           )
         })}
@@ -705,13 +718,14 @@ const WTierMix: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
 }
 
 const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const rawProfiles = parseProfiles(nocData?.analytics?.line_profile_counts)
   const profiles = rawProfiles.length
     ? rawProfiles.sort((a, b) => b.count - a.count)
     : SAMPLE_PROFILES
   const max = Math.max(...profiles.map(p => p.count), 1)
   return (
-    <NMSCard title="Service Profiles Breakdown" status={rawProfiles.length ? 'live' : 'live'}>
+    <NMSCard title={t('noc.widget.serviceProfilesBreakdown', 'Service Profiles Breakdown')} status={rawProfiles.length ? 'live' : 'live'}>
       <div className="nms-list nms-list-sm">
         {profiles.map(p => (
           <button key={p.name}
@@ -730,19 +744,20 @@ const WServiceProfiles: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
 }
 
 const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const { t } = useI18n()
   const n = SAMPLE_UNPROVISIONED.count
   const isAlarm = n > 0
   return (
-    <NMSCard title="Unprovisioned ONUs" status="pending">
+    <NMSCard title={t('noc.widget.unprovisionedOnus', 'Unprovisioned ONUs')} status="pending">
       <button
         type="button"
-        onClick={() => openDrawer({ kind: 'segment', id: 'unprov', label: 'Unprovisioned ONUs' })}
+        onClick={() => openDrawer({ kind: 'segment', id: 'unprov', label: t('noc.widget.unprovisionedOnus', 'Unprovisioned ONUs') })}
         className="nms-stat-btn"
       >
         <span className={'nms-dot nms-dot-lg ' + (isAlarm ? 'nms-dot-amber is-alarm' : 'nms-dot-green')} />
         <div className={'nms-value nms-value-lg nms-mono ' + (isAlarm ? 'nms-value-amber' : 'nms-value-green')}>{n}</div>
         <div className="nms-stat-note">
-          Pending activation from billing CRM
+          {t('noc.unprovisioned.note', 'Pending activation from billing CRM')}
         </div>
       </button>
     </NMSCard>
@@ -754,6 +769,7 @@ const WUnprovisioned: React.FC<WidgetCtx> = ({ openDrawer }) => {
 // ═══════════════════════════════════════════════════════════════════════
 
 const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const liveVlans = parseVlans(nocData?.analytics?.vlans)
   const segments = liveVlans.length ? liveVlans : SAMPLE_SEGMENTS
   const kindColor = (k: string) =>
@@ -763,7 +779,7 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
     k === 'transit'    ? 'nms-pill-cyan' :
     k === 'bng'        ? 'nms-pill-red'  : ''
   return (
-    <NMSCard title="Global Segmentation · VLAN / BNG" status={liveVlans.length ? 'live' : 'live'}>
+    <NMSCard title={t('noc.widget.globalSegmentation', 'Global Segmentation · VLAN / BNG')} status={liveVlans.length ? 'live' : 'live'}>
       <div className="nms-seg-strip">
         {segments.map(s => (
           <button key={s.id}
@@ -776,13 +792,14 @@ const WSegmentationStrip: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
         ))}
       </div>
       <div className="nms-seg-note">
-        Click a chip to filter every widget on the dashboard to that traffic segment.
+        {t('noc.segmentation.note', 'Click a chip to filter every widget on the dashboard to that traffic segment.')}
       </div>
     </NMSCard>
   )
 }
 
 const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token }) => {
+  const { t } = useI18n()
   const apiRegions = nocData?.regions ?? []
   const oltItems   = nocData?.oltList.items ?? []
   const usingSample = apiRegions.length === 0 && oltItems.length === 0
@@ -836,12 +853,12 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
     p === 'working' ? 'nms-pill-green' : p === 'dying_gasp' ? 'nms-pill-amber' : 'nms-pill-red'
 
   return (
-    <NMSCard title="ISP Hierarchy Explorer" status={usingSample ? 'partial' : 'live'}>
+    <NMSCard title={t('noc.widget.hierarchyExplorer', 'ISP Hierarchy Explorer')} status={usingSample ? 'partial' : 'live'}>
       <div className="nms-hier-grid">
 
         {/* Column 1 — Regions */}
         <div className="nms-hier-col nms-hier-col--border">
-          <div className="nms-hier-col-header">Regions</div>
+          <div className="nms-hier-col-header">{t('noc.hier.regions', 'Regions')}</div>
           {regionList.map(r => (
             <button key={r.id} type="button"
               onClick={() => onRegion(r.id)}
@@ -855,7 +872,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
 
         {/* Column 2 — OLTs + ports */}
         <div className="nms-hier-col nms-hier-col--border">
-          <div className="nms-hier-col-header">OLT · PON</div>
+          <div className="nms-hier-col-header">{t('noc.hier.oltPon', 'OLT · PON')}</div>
           {(usingSample ? sampleRegion?.olts ?? [] : oltItems).map(o => {
             const oId  = o.id
             const name = usingSample
@@ -882,9 +899,9 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
                           </button>
                         ))
                       : treeLoading
-                        ? <div className="nms-hier-empty">Loading ports…</div>
+                        ? <div className="nms-hier-empty">{t('noc.hier.loadingPorts', 'Loading ports…')}</div>
                         : treePorts.length === 0
-                          ? <div className="nms-hier-empty">No ports synced. Run a refresh first.</div>
+                          ? <div className="nms-hier-empty">{t('noc.hier.noPortsSynced', 'No ports synced. Run a refresh first.')}</div>
                           : treePorts.map(p => (
                               <button key={p.id} type="button" onClick={() => setPortId(p.id)}
                                 className={`nms-hier-port${portId === p.id ? ' nms-hier-port--active' : ''}`}
@@ -906,11 +923,11 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
           {usingSample ? (
             <>
               <div className="nms-hier-col-header">
-                {samplePort ? `Port ${samplePort.label}` : '—'} · {samplePort?.onus.length ?? 0} ONUs
+                {samplePort ? `${t('noc.port', 'Port')} ${samplePort.label}` : '—'} · {samplePort?.onus.length ?? 0} {t('noc.onus', 'ONUs')}
               </div>
               <div className="nms-hier-onu-list">
                 {!samplePort || samplePort.onus.length === 0
-                  ? <div className="nms-hier-empty">No ONUs on this port.</div>
+                  ? <div className="nms-hier-empty">{t('noc.hier.noOnusOnPort', 'No ONUs on this port.')}</div>
                   : samplePort.onus.map(o => (
                       <button key={o.id} type="button" onClick={() => openDrawer({ kind: 'onu', serial: o.serial })}
                         className="nms-hier-onu-row"
@@ -927,11 +944,11 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
             <>
               <div className="nms-hier-col-header">
                 {portId
-                  ? `Port 0/${treePorts.find(p => p.id === portId)?.port_no ?? '?'} · ${treePorts.find(p => p.id === portId)?.onu_count ?? 0} ONUs`
-                  : 'Select a port'}
+                  ? `${t('noc.port', 'Port')} 0/${treePorts.find(p => p.id === portId)?.port_no ?? '?'} · ${treePorts.find(p => p.id === portId)?.onu_count ?? 0} ONUs`
+                  : t('noc.hier.selectPort', 'Select a port')}
               </div>
               <div className="nms-hier-phase2">
-                Per-ONU serial list via port drill-down is Phase 2.
+                {t('noc.hier.phase2DrillDown', 'Per-ONU serial list via port drill-down is Phase 2.')}
               </div>
             </>
           )}
@@ -947,6 +964,7 @@ const WHierarchyExplorer: React.FC<WidgetCtx> = ({ openDrawer, nocData, token })
 // ═══════════════════════════════════════════════════════════════════════
 
 const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
+  const { t } = useI18n()
   const liveHubs = (nocData?.regions ?? [])
     .map(r => {
       const coords = REGION_COORDS[r.name]
@@ -970,7 +988,7 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
     return [x, y]
   }
   return (
-    <NMSCard title="Regional Outage Field Map" status={liveHubs.length ? 'live' : 'partial'}>
+    <NMSCard title={t('noc.widget.regionalOutageMap', 'Regional Outage Field Map')} status={liveHubs.length ? 'live' : 'partial'}>
       <svg viewBox={`0 0 ${W} ${H}`} className="nms-map-svg" style={{ height: H }}>
         {Array.from({ length: 10 }).map((_, i) => (
           <line key={'h' + i} x1={0} y1={(i * H) / 10} x2={W} y2={(i * H) / 10} stroke="var(--gx-border)" strokeWidth={1} opacity={0.4} />
@@ -1006,22 +1024,23 @@ const WRegionalOutageMap: React.FC<WidgetCtx> = ({ openDrawer, nocData }) => {
         })}
       </svg>
       <div className="nms-map-legend">
-        <span><span className="nms-map-legend-dot nms-map-legend-dot--ok" /> Operational</span>
-        <span><span className="nms-map-legend-dot nms-map-legend-dot--warn" /> Warning</span>
-        <span><span className="nms-map-legend-dot nms-map-legend-dot--outage" /> Outage</span>
+        <span><span className="nms-map-legend-dot nms-map-legend-dot--ok" /> {t('noc.map.operational', 'Operational')}</span>
+        <span><span className="nms-map-legend-dot nms-map-legend-dot--warn" /> {t('noc.map.warning', 'Warning')}</span>
+        <span><span className="nms-map-legend-dot nms-map-legend-dot--outage" /> {t('noc.map.outage', 'Outage')}</span>
       </div>
     </NMSCard>
   )
 }
 
 const WTechnicianFleet: React.FC<WidgetCtx> = ({ openDrawer }) => {
+  const { t } = useI18n()
   const groups = [
-    { key: 'available' as const, label: 'Available', count: SAMPLE_TECHS.available, pill: 'nms-pill-green' },
-    { key: 'en_route'  as const, label: 'En Route',  count: SAMPLE_TECHS.en_route,  pill: 'nms-pill-amber' },
-    { key: 'on_site'   as const, label: 'On-Site',   count: SAMPLE_TECHS.on_site,   pill: 'nms-pill-cyan'  },
+    { key: 'available' as const, label: t('noc.fleet.available', 'Available'), count: SAMPLE_TECHS.available, pill: 'nms-pill-green' },
+    { key: 'en_route'  as const, label: t('noc.fleet.enRoute', 'En Route'),    count: SAMPLE_TECHS.en_route,  pill: 'nms-pill-amber' },
+    { key: 'on_site'   as const, label: t('noc.fleet.onSite', 'On-Site'),      count: SAMPLE_TECHS.on_site,   pill: 'nms-pill-cyan'  },
   ]
   return (
-    <NMSCard title="Technician Fleet Status" status="pending">
+    <NMSCard title={t('noc.widget.technicianFleet', 'Technician Fleet Status')} status="pending">
       <div className="nms-fleet-list">
         {groups.map(g => (
           <button key={g.key}
@@ -1079,6 +1098,7 @@ interface NocDashboardProps {
 
 export default function NocDashboardView({ capabilities }: NocDashboardProps) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const canViewService = can(capabilities, OBJ.SERVICE, 'view')
 
   const oltListFetch   = useFetch<{ items: OltRecord[]; total: number }>('/api/noc/olts')
@@ -1124,8 +1144,8 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
 
   if (!canViewService) {
     return (
-      <PageShell type="OPERATIONS" breadcrumb={['NMS', 'Network Management System']} title="Network Management System" icon={<ServerIcon size={20} />}>
-        <PermissionDenied message="You don't have permission to view NOC monitoring." />
+      <PageShell type="OPERATIONS" breadcrumb={['NMS', t('noc.title', 'Network Management System')]} title={t('noc.title', 'Network Management System')} icon={<ServerIcon size={20} />}>
+        <PermissionDenied message={t('noc.denied', "You don't have permission to view NOC monitoring.")} />
       </PageShell>
     )
   }
@@ -1133,8 +1153,8 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
   return (
     <PageShell
       type="WORKSPACE"
-      breadcrumb={['NMS', 'Network Management System']}
-      title="Network Management System"
+      breadcrumb={['NMS', t('noc.title', 'Network Management System')]}
+      title={t('noc.title', 'Network Management System')}
       icon={<ServerIcon size={20} />}
       secondaryActions={[{
         label: `WIDGETS · ${WIDGETS.filter(w => visibility[w.id] !== false).length}/${WIDGETS.length}`,
@@ -1149,7 +1169,7 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
               if (list.length === 0) return null
               return (
                 <div key={mod} className="nms-widget-manager-group">
-                  <div className="nms-widget-manager-group-label">{MODULE_LABELS[mod]}</div>
+                  <div className="nms-widget-manager-group-label">{t(...MODULE_LABEL_KEYS[mod])}</div>
                   {list.map(w => (
                     <label key={w.id} className="nms-widget-manager-row">
                       <input
@@ -1182,7 +1202,7 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
             w.dataStatus === 'pending' && !shouldRenderPendingAsWidget(w.id) ? (
               <NMSCard title={w.title} status="pending">
                 <PendingState
-                  headline={`Awaiting ${pendingPipelineFor(w.id)}`}
+                  headline={`${t('noc.pending.awaiting', 'Awaiting')} ${pendingPipelineFor(w.id)}`}
                   body={pendingMessageFor(w.id)}
                 />
               </NMSCard>
@@ -1217,8 +1237,8 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
       <SlideOutPanel
         open={drawer !== null}
         onClose={closeDrawer}
-        title={drawer ? drawerTitleFor(drawer) : ''}
-        subtitle={drawer ? drawerSubtitleFor(drawer) : undefined}
+        title={drawer ? drawerTitleFor(drawer, t) : ''}
+        subtitle={drawer ? drawerSubtitleFor(drawer, t) : undefined}
       >
         {drawer && <DrawerBody payload={drawer} />}
       </SlideOutPanel>
@@ -1230,11 +1250,11 @@ export default function NocDashboardView({ capabilities }: NocDashboardProps) {
 // 12. DRAWER BODY (context-aware)
 // ═══════════════════════════════════════════════════════════════════════
 
-function drawerTitleFor(p: DrawerPayload): string {
+function drawerTitleFor(p: DrawerPayload, t: (key: string, fallback?: string) => string): string {
   switch (p.kind) {
-    case 'port':       return `Port ${p.label}`
+    case 'port':       return `${t('noc.port', 'Port')} ${p.label}`
     case 'vendor':     return p.label
-    case 'tier':       return `Tier · ${p.name}`
+    case 'tier':       return `${t('noc.drawer.tier', 'Tier')} · ${p.name}`
     case 'profile':    return p.name
     case 'segment':    return p.label
     case 'onu':        return p.serial
@@ -1244,27 +1264,26 @@ function drawerTitleFor(p: DrawerPayload): string {
   }
 }
 
-function drawerSubtitleFor(p: DrawerPayload): string {
+function drawerSubtitleFor(p: DrawerPayload, t: (key: string, fallback?: string) => string): string {
   switch (p.kind) {
-    case 'port':       return 'PON port detail'
-    case 'vendor':     return `OUI prefix · ${p.prefix}`
-    case 'tier':       return 'Subscription tier'
-    case 'profile':    return 'Line / DBA profile'
-    case 'segment':    return 'Network segment'
-    case 'onu':        return 'ONU device'
-    case 'olt':        return 'OLT chassis'
-    case 'region':     return 'Region / hub site'
-    case 'tech-group': return 'Field technician group'
+    case 'port':       return t('noc.drawer.sub.port', 'PON port detail')
+    case 'vendor':     return `${t('noc.drawer.sub.ouiPrefix', 'OUI prefix')} · ${p.prefix}`
+    case 'tier':       return t('noc.drawer.sub.tier', 'Subscription tier')
+    case 'profile':    return t('noc.drawer.sub.profile', 'Line / DBA profile')
+    case 'segment':    return t('noc.drawer.sub.segment', 'Network segment')
+    case 'onu':        return t('noc.drawer.sub.onu', 'ONU device')
+    case 'olt':        return t('noc.drawer.sub.olt', 'OLT chassis')
+    case 'region':     return t('noc.drawer.sub.region', 'Region / hub site')
+    case 'tech-group': return t('noc.drawer.sub.techGroup', 'Field technician group')
   }
 }
 
 function DrawerBody({ payload }: { payload: DrawerPayload }) {
+  const { t } = useI18n()
   return (
     <div className="nms-drawer-content">
       <div className="nms-hint">
-        Slide-out drawer body — Phase 1A design preview. Real per-asset detail will
-        render here once each widget is wired to live data and the matching backend
-        endpoint exists.
+        {t('noc.drawer.phase1Hint', 'Slide-out drawer body — Phase 1A design preview. Real per-asset detail will render here once each widget is wired to live data and the matching backend endpoint exists.')}
       </div>
       <div className="nms-drawer-block">
         {JSON.stringify(payload, null, 2)}

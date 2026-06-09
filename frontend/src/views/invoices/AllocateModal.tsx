@@ -1,5 +1,6 @@
 // AllocateModal — admin-gated payment allocation dialog (Phase A.3).
 import { useState } from 'react'
+import { useI18n } from '../../lib/i18n'
 import { bpost } from '../../lib/billing'
 import { money } from '../../lib/money'
 import { Button } from '../../primitives'
@@ -26,6 +27,7 @@ export function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }
 }) {
   // v1: user pastes a Payment UUID + types an amount in major ֏. Backend (POST /payments/{id}/allocate)
   // rejects over-allocation with 409; we surface the message inline. Autocomplete is out of scope here.
+  const { t } = useI18n()
   const [paymentId, setPaymentId] = useState('')
   const [amount, setAmount] = useState(outstanding) // pre-fill with the outstanding amount
   const [saving, setSaving] = useState(false)
@@ -35,21 +37,21 @@ export function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }
     if (saving) return
     setError('')
     const id = paymentId.trim()
-    if (!validUuid(id)) { setError('Enter a valid Payment UUID.'); return }
+    if (!validUuid(id)) { setError(t('allocate.error.invalidUuid', 'Enter a valid Payment UUID.')); return }
     const amt = parseFloat(amount)
-    if (!isFinite(amt) || amt <= 0) { setError('Enter a positive amount.'); return }
+    if (!isFinite(amt) || amt <= 0) { setError(t('allocate.error.invalidAmount', 'Enter a positive amount.')); return }
     setSaving(true)
     try {
       await bpost(token, `/api/payments/${id}/allocate`, {
         allocations: [{ invoice_id: invoiceId, amount: amt.toFixed(2) }],
       })
-      toast.success('Payment allocated')
+      toast.success(t('allocate.success', 'Payment allocated'))
       onDone()
     } catch (e) {
       const err = e as Error & { status?: number }
       // 409 = over-allocation / state conflict; surface the backend message verbatim.
       // 403 = admin gate; same treatment. Otherwise generic.
-      setError(err.message || 'Allocation failed')
+      setError(err.message || t('allocate.error.failed', 'Allocation failed'))
     } finally {
       setSaving(false)
     }
@@ -59,22 +61,22 @@ export function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }
     <Modal
       open
       onClose={onClose}
-      title="Allocate payment"
-      subtitle={`Outstanding ${moneyDecToLumaFmt(outstanding)}`}
+      title={t('allocate.title', 'Allocate payment')}
+      subtitle={`${t('allocate.outstanding', 'Outstanding')} ${moneyDecToLumaFmt(outstanding)}`}
       size="sm"
       footer={
         <>
-          <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" size="md" onClick={onClose}>{t('common.cancel', 'Cancel')}</Button>
           <Button variant="primary" size="md"
             disabled={saving || !paymentId || !amount} onClick={submit}>
-            {saving ? 'Allocating…' : 'Allocate'}
+            {saving ? t('allocate.allocating', 'Allocating…') : t('allocate.submit', 'Allocate')}
           </Button>
         </>
       }
     >
       <div className="rec-form" style={{ boxShadow: 'none', border: 0, padding: 0, marginBottom: 0 }}>
         <label className="field">
-          <span>Payment UUID</span>
+          <span>{t('allocate.field.paymentUuid', 'Payment UUID')}</span>
           <input
             className="inp inp-md mono"
             value={paymentId}
@@ -84,7 +86,7 @@ export function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }
           />
         </label>
         <label className="field">
-          <span>Amount (֏)</span>
+          <span>{t('allocate.field.amount', 'Amount (֏)')}</span>
           <input
             className="inp inp-md inp-numeric"
             type="number"
@@ -100,8 +102,7 @@ export function AllocateModal({ token, invoiceId, outstanding, onClose, onDone }
           </div>
         )}
         <p className="muted" style={{ fontSize: 'var(--gx-text-sm)', marginTop: 'var(--gx-space-2)' }}>
-          The backend will reject over-allocation; if amounts change while this dialog is open, the
-          server response will explain — just retry after refreshing.
+          {t('allocate.hint', 'The backend will reject over-allocation; if amounts change while this dialog is open, the server response will explain — just retry after refreshing.')}
         </p>
       </div>
     </Modal>

@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../lib/i18n'
 import WorkItemsTable, { makeStatusChangeHandler } from '../components/WorkItemsTable'
 import WorkItemsBoard from '../components/WorkItemsBoard'
 import { EmptyState, PermissionDenied, SkeletonRows } from '../components/States'
@@ -40,6 +41,7 @@ export default function MyTasksView({
   onNavigate?: (target: string) => void
 }) {
   const { token } = useAuth()
+  const { t } = useI18n()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [users, setUsers] = useState<User[]>([])
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({})
@@ -137,31 +139,31 @@ export default function MyTasksView({
         const pendingCount = items.filter((i) => i.status === 'TODO').length
         const doneCount = items.filter((i) => i.status === 'DONE').length
         return [
-          { label: 'Open',    value: openCount },
-          { label: 'Pending', value: pendingCount },
-          { label: 'Done',    value: doneCount },
-          { label: 'Overdue', value: overdueCount, danger: overdueCount > 0 },
+          { label: t('mytasks.kpi.open', 'Open'),    value: openCount },
+          { label: t('mytasks.kpi.pending', 'Pending'), value: pendingCount },
+          { label: t('mytasks.kpi.done', 'Done'),    value: doneCount },
+          { label: t('mytasks.kpi.overdue', 'Overdue'), value: overdueCount, danger: overdueCount > 0 },
         ]
       })()
     : undefined
 
   const filtersSpec: FiltersSpec = {
-    search: { value: query, onChange: setQuery, placeholder: 'Search my tasks' },
+    search: { value: query, onChange: setQuery, placeholder: t('mytasks.searchPlaceholder', 'Search my tasks') },
     quick: [
       {
-        label: 'Status',
+        label: t('common.status', 'Status'),
         value: statusFilter,
         options: [
-          { label: 'All statuses', value: '' },
+          { label: t('mytasks.filter.allStatuses', 'All statuses'), value: '' },
           ...WORKITEM_ALL.map((s) => ({ label: statusLabel(s), value: s })),
         ],
         onChange: (next) => setStatusFilter(next as WorkItemStatus | ''),
       },
       {
-        label: 'Priority',
+        label: t('mytasks.filter.priorityLabel', 'Priority'),
         value: priorityFilter,
         options: [
-          { label: 'All priorities', value: '' },
+          { label: t('mytasks.filter.allPriorities', 'All priorities'), value: '' },
           ...PRIORITIES.map((p) => ({ label: p.charAt(0) + p.slice(1).toLowerCase(), value: p })),
         ],
         onChange: (next) => setPriorityFilter(next as WorkItemPriority | ''),
@@ -170,13 +172,13 @@ export default function MyTasksView({
   }
 
   const primaryAction: PrimaryAction = {
-    label: '+ New Task',
+    label: t('mytasks.newTask', '+ New Task'),
     icon: <Plus size={14} />,
     onClick: () => setCreateOpen(true),
   }
   const secondaryActions: SecondaryAction[] | undefined =
     canConfigure && onConfigure
-      ? [{ label: 'Configure', icon: <GearIcon size={13} />, onClick: onConfigure }]
+      ? [{ label: t('common.configure', 'Configure'), icon: <GearIcon size={13} />, onClick: onConfigure }]
       : undefined
 
   const viewSwitcher: ViewSwitcher = {
@@ -191,10 +193,10 @@ export default function MyTasksView({
     return (
       <PageShell
         type="WORKSPACE"
-        breadcrumb={['Workspace', 'My Day']}
+        breadcrumb={[t('nav.workspace', 'Workspace'), t('mytasks.pageTitle', 'My Day')]}
         icon={<CheckIcon size={18} />}
-        title="My Day"
-        subtitle="Personal execution bench"
+        title={t('mytasks.pageTitle', 'My Day')}
+        subtitle={t('mytasks.pageSubtitle', 'Personal execution bench')}
       >
         <PermissionDenied />
       </PageShell>
@@ -206,10 +208,10 @@ export default function MyTasksView({
   ) : sorted.length === 0 ? (
     <EmptyState
       icon={<InboxIcon size={40} />}
-      title={items.length === 0 ? 'No tasks assigned to you' : 'No tasks match your filters'}
+      title={items.length === 0 ? t('mytasks.emptyTitle', 'No tasks assigned to you') : t('mytasks.noMatchTitle', 'No tasks match your filters')}
       message={items.length === 0
-        ? 'Tasks assigned to you will appear here.'
-        : 'Try clearing search or filters.'}
+        ? t('mytasks.emptyMessage', 'Tasks assigned to you will appear here.')
+        : t('mytasks.noMatchMessage', 'Try clearing search or filters.')}
     />
   ) : mode === 'table' ? (
     <WorkItemsTable
@@ -236,15 +238,15 @@ export default function MyTasksView({
     <>
       <PageShell
         type="WORKSPACE"
-        breadcrumb={['Workspace', 'My Day']}
+        breadcrumb={[t('nav.workspace', 'Workspace'), t('mytasks.pageTitle', 'My Day')]}
         icon={<CheckIcon size={18} />}
-        title="My Day"
+        title={t('mytasks.pageTitle', 'My Day')}
         subtitle={subtitle}
         kpis={kpiSpec}
         pageTabs={
           <DetailTabList ariaLabel="My Day sections">
-            <DetailTab active={false} onSelect={() => onNavigate?.('home')}>Overview</DetailTab>
-            <DetailTab active onSelect={() => {}}>Work</DetailTab>
+            <DetailTab active={false} onSelect={() => onNavigate?.('home')}>{t('tab.overview', 'Overview')}</DetailTab>
+            <DetailTab active onSelect={() => {}}>{t('mytasks.tab.work', 'Work')}</DetailTab>
           </DetailTabList>
         }
         views={viewSwitcher}

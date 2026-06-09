@@ -2,12 +2,14 @@ import { useState, useMemo } from 'react'
 import { ArrowUpIcon, ArrowDownIcon, SearchIcon } from '../../../components/icons'
 import type { OrgNode, CFApi } from '../types'
 import { toneClass } from '../utils'
+import { useI18n } from '../../../lib/i18n'
 
 type SortCol = 'name' | 'type' | 'path' | 'parent'
 type SortDir = 'asc' | 'desc'
 type ListRow = { node: OrgNode; parentName: string }
 
 export function ListLayout({ nodes, cf }: { nodes: OrgNode[]; cf: CFApi }) {
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [sortCol, setSortCol] = useState<SortCol>('name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
@@ -62,7 +64,7 @@ export function ListLayout({ nodes, cf }: { nodes: OrgNode[]; cf: CFApi }) {
           <input
             type="text"
             className="org-search-input"
-            placeholder="Filter by name or path…"
+            placeholder={t('org.filterByNameOrPath', 'Filter by name or path…')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Filter nodes"
@@ -74,16 +76,16 @@ export function ListLayout({ nodes, cf }: { nodes: OrgNode[]; cf: CFApi }) {
         <table className="grid org-list-table">
           <thead>
             <tr>
-              <SortHead col="name" label="Name" />
-              <SortHead col="type" label="Type" />
-              <SortHead col="path" label="Path / Code" />
-              <SortHead col="parent" label="Parent" />
+              <SortHead col="name" label={t('common.name', 'Name')} />
+              <SortHead col="type" label={t('common.type', 'Type')} />
+              <SortHead col="path" label={t('org.pathCode', 'Path / Code')} />
+              <SortHead col="parent" label={t('org.parent', 'Parent')} />
               {cf.headers()}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={4 + cf.defs.length} className="org-list-empty muted">No nodes match "{query}".</td></tr>
+              <tr><td colSpan={4 + cf.defs.length} className="org-list-empty muted">{t('org.noNodesMatch', 'No nodes match')} "{query}".</td></tr>
             ) : filtered.map((r) => (
               <tr key={r.node.id}>
                 <td className="org-list-name">{r.node.name}</td>
