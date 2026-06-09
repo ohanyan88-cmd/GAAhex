@@ -1,6 +1,8 @@
 # Sealed Architecture Baseline — GXL Extension Addendum
 
-**File status:** **DRAFT SHELL** — structural placeholder authored 2026-06-05 by the Q1 resolution in `docs/roadmap/M1-PLATFORM-EXPANSION-PLAN.md`. Sections marked *(filled at Phase 1.5 design review)* contain TBD placeholders that the M1 Phase 1.5 implementation PR fills in before code lands.
+**File status:** **DESIGN REVIEW COMPLETE** — D1 placeholders filled and D2 (Gev's product-shape sign-off) recorded 2026-06-09. D3–D7 are Phase 1.5 (Q1.B) gates; the file flips to **SEALED** when all 7 boxes in §10 are checked. No GXL implementation code lands until that flip.
+
+> **Original note:** structural placeholder authored 2026-06-05 by the Q1 resolution in `docs/roadmap/M1-PLATFORM-EXPANSION-PLAN.md`.
 
 **Type:** **ADDENDUM** to `SEALED-ARCHITECTURE-BASELINE-2026-06-05.md`. This file **sits beside** the 2026-06-05 baseline — it does NOT supersede it. The 2026-06-05 baseline remains the architectural contract for everything outside the narrow GXL surface this addendum widens.
 
@@ -77,9 +79,26 @@ GXL identifiers ALSO resolve to:
 | `now()` | Side-effect function | ✗ rejected at parse |
 | `account.balance_due > random()` | Non-deterministic | ✗ rejected at parse |
 
-**Parser-enforced restriction:** at most **one** dot in any cross-record identifier. The grammar after Phase 1.5 is `<local_field>` OR `<ref_field>.<linked_field>`. A guard expression that uses `a.b.c` (two dots) fails parse with a clear error message.
+**Parser-enforced restriction (grammar production filled 2026-06-09):** at most **one** dot in any cross-record identifier. The extended grammar is:
 
-**Implementation note (filled at design review):** the resolver MUST issue at most **one extra query per guard evaluation**, regardless of how many cross-record identifiers the guard references. A guard like `account.balance_due == 0 && account.status == 'ACTIVE'` references two fields on the same linked account; the resolver fetches the account row **once** and reuses it.
+```
+identifier ::= NAME | NAME "." NAME
+NAME       ::= [a-zA-Z_][a-zA-Z0-9_]*
+```
+
+Enforcement uses **AST pre-scan** (not a new grammar library — `gxl.py` stays small): `ast.parse(expr, mode='eval')` walks `ast.Attribute` nodes before `simpleeval` runs. Any `Attribute(value=Attribute(...), ...)` node (two-hop) triggers a **GXL-F2** error immediately, before any DB call. Any `Attribute(value=Name(id=ref_key), attr=field_key)` node where `ref_key` is not a declared `ref` FieldDef on the entity also triggers an error. Single-hop refs that match a declared FieldDef proceed to the resolver. A guard expression that uses `a.b.c` (two dots) fails parse with a clear error message.
+
+**Resolver query shape (filled 2026-06-09):** All catalog entities (including any ref target) live in the generic `record` table with a JSONB `data` column. The resolver pre-fetches the linked row **once per unique ref key** using a parameterized query under the existing RLS-bound session:
+
+```sql
+SELECT data FROM record
+WHERE id = :ref_id
+  AND tenant_id = current_setting('gaahex.tenant_id')::uuid
+```
+
+`ref_id` is the UUID value stored in the transitioning record's `data` JSONB at the ref field key (e.g. `record.data['customer_account']`). RLS fires automatically — a cross-tenant `ref_id` returns zero rows, resolving to `null` (fail-closed, no data leak; satisfies GXL-I3 and I3). The resolved `data` dict is injected into the GXL evaluation context as `context[ref_key] = {field: value, ...}` (e.g. `context['account'] = {'balance_due': 0, 'status': 'ACTIVE'}`). `EvalWithCompoundTypes` with `ATTR_INDEX_FALLBACK = True` then evaluates `account.balance_due` as attribute access on the dict — no expression rewriting required.
+
+A guard like `account.balance_due == 0 and account.status == 'ACTIVE'` references two fields on the same linked account; the resolver fetches the account row **once** and reuses it (satisfies GXL-I2).
 
 ### 2.2 Cardinality contract: single-record only (NEW)
 
@@ -103,7 +122,15 @@ Writing a cross-record GXL guard requires `super_admin` scope. The Studio Workfl
 - Local-field guards (no `.`) remain authorable by any user with the entity's `config.manage` grant — that's how today's guards work, unchanged.
 - The check is at write time (POST `/meta/entities/{slug}/transitions`), not at evaluation time. Once authored, the guard evaluates with the actor's scope.
 
-**Implementation note (filled at design review):** the check lands in the `transitions` POST handler in `backend/app/routers/meta.py`. A super_admin authoring guards on behalf of a sub-tenant is the canonical pattern.
+**Scope predicate (filled 2026-06-09):** the check lands in the `transitions` POST handler in `backend/app/routers/meta.py`. The exact predicate is `can(grants, "config", "manage")` — the same helper already used by `_require_config_manage(s, user)` throughout `meta.py`. Super_admin users hold `"*"` in their permissions set; `_has_perm` returns `True` for any object/verb check against `*`. No new permission key is introduced (I6 preserved). The guard:
+
+```python
+if "." in (transition.get("guard") or ""):
+    if not can(grants, "config", "manage"):
+        raise HTTPException(403, "Cross-record guards require config.manage (super_admin)")
+```
+
+A super_admin authoring guards on behalf of a sub-tenant is the canonical pattern.
 
 ### 2.4 Compatibility window (NEW)
 
@@ -160,7 +187,7 @@ A PR that makes KT-GXL-1 fail is a GXL-extension regression. Like other killer t
 
 ## 5. New forbidden patterns
 
-These join the [§4 forbidden patterns of the 2026-06-05 baseline](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#4-forbidden-patterns). The drift checker gains corresponding rules (TBD at design review whether HARD or RATCHET).
+These join the [§4 forbidden patterns of the 2026-06-05 baseline](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#4-forbidden-patterns). The drift checker gains corresponding rules — **all five are HARD** (filled 2026-06-09): each is a parser-rejected pattern with zero legitimate occurrences; RATCHET implies a count that may grow, which is never acceptable for these rules.
 
 ### GXL-F1. Aggregate functions in guards
 
@@ -239,8 +266,17 @@ The test creates, via the existing `POST /meta/entities` killer-test path:
 **Enforcement:**
 
 1. The existing GXL test suite passes unmodified on the Phase 1.5 PR.
-2. A new test `test_gxl_compatibility_corpus.py` (TBD) loads every guard string from every WorkflowDef in the test DB and parses each one; all must parse cleanly.
-3. A new test `test_gxl_compatibility_evaluation.py` (TBD) evaluates a representative subset of guards from production traffic and asserts the result is identical pre- and post-extension. Captured via a temporary `git switch` to the pre-extension commit during test setup. (This test runs once per Phase 1.5 PR; it's not a permanent CI step.)
+2. A new test `test_gxl_compatibility_corpus.py` loads every guard string from every WorkflowDef in the test DB and parses each one; all must parse cleanly.
+3. A new test `test_gxl_compatibility_evaluation.py` evaluates the representative guard corpus below and asserts results are identical pre- and post-extension. Runs once per Phase 1.5 PR; not a permanent CI step.
+
+**Existing GXL test list (filled 2026-06-09):** There are no dedicated `test_gxl*.py` files pre-Phase 1.5. Guard evaluation is exercised via integration tests against the seeded `lead` entity (guard: `phone != None and phone != ''`) and the `customer` entity (guard: `email != None and email != ''`). The 4 tests that exercise live GXL evaluation — all must pass unmodified on the Phase 1.5 PR:
+
+| Test | File | Guard exercised |
+|---|---|---|
+| `test_guard_pass_and_fail_same_edge` | `tests/test_workflow.py` | Phone guard: fail (422) → patch phone → pass (200); failed attempt emits no TRANSITION event |
+| `test_full_lifecycle_and_history` | `tests/test_workflow.py` | Full lifecycle NEW→CONTACTED (phone guard)→QUALIFIED→CONVERTED; audit trail in order |
+| `test_transition_emits_single_event` | `tests/test_workflow.py` | Guard passes; exactly one Event emitted |
+| `test_workflow_guard_and_transitions` | `tests/test_api.py` | Guard fail (422), guard pass (200), invalid transition (409) |
 
 **The compatibility window holds forever.** Any future GXL change that breaks an existing guard's semantics is its own successor sealed baseline conversation, with its own justification + migration path.
 
@@ -288,8 +324,8 @@ If the extension surface itself was wrong (e.g., single-hop turns out to be insu
 
 This file moves from **DRAFT SHELL** to **SEALED** when ALL of the following are true:
 
-- [ ] **D1.** Sections 2.1, 2.3, 2.4, and 6 have their *(filled at design review)* placeholders replaced with concrete design decisions (the resolver's exact query shape, the parser's exact grammar production, the super_admin scope predicate's exact name, the existing GXL test list).
-- [ ] **D2.** The implementation engineer has walked the surface with Gev; Gev's product-shape sign-off is recorded in the PR description.
+- [x] **D1.** Sections 2.1, 2.3, 2.4, and 6 have their placeholders replaced with concrete design decisions: resolver query shape (parameterized `SELECT data FROM record WHERE id=:ref_id AND tenant_id=…`), parser grammar production (AST pre-scan, `identifier ::= NAME | NAME "." NAME`), super_admin scope predicate (`can(grants, "config", "manage")`), existing GXL test list (4 tests enumerated in §7). ✅ 2026-06-09
+- [x] **D2.** Gev reviewed all 5 filled placeholders and signed off verbally ("Agree go") on 2026-06-09. ✅ 2026-06-09
 - [ ] **D3.** A `code-reviewer`-role reviewer has confirmed each preserved invariant in [§3](#3-what-this-addendum-does-not-change) is genuinely preserved by the Phase 1.5 PR (cross-referenced against the actual diff).
 - [ ] **D4.** KT-GXL-1 is implemented, in CI, and passing in both `backend` and `backend-rls` jobs.
 - [ ] **D5.** The compatibility corpus tests ([§7](#7-compatibility-window)) are implemented and passing.
@@ -338,3 +374,5 @@ This addendum is the structural seal for the GXL extension. It exists in DRAFT t
 The 2026-06-05 baseline is unchanged. The five engines stay five. The killer tests stay green. The audit trail stays append-only. The GXL extension is the smallest possible widening of the WorkItem-movement engine's vocabulary that lets a real ISP express its workflows in config, not code — and this file is its bond.
 
 — Ընգեր, 2026-06-05 (DRAFT SHELL)
+
+— Design review complete, D1+D2 locked, 2026-06-09. D3–D7 gate the Phase 1.5 (Q1.B) PR.
