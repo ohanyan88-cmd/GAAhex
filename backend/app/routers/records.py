@@ -2,15 +2,20 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import cast, desc, or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.types import Text
 
 from ..db import get_session, set_tenant_guc
 from ..models import EntityDef, FieldDef, StatusDef, Record, OrgNode, User, Event
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from ..pagination import Page, X_TOTAL_COUNT, MAX_LIMIT, count_select
 from .. import workflow, gxl, notify_hooks
+from ..services.records_service import (
+    build_record_list_stmt,
+    build_count_stmt,
+    apply_org_scope,
+    apply_gxl_filter,
+)
 from ..utils.http_errors import approval_required  # PC-2
 from ..kernel import (
     MASTER_RECORD_KEYS,
@@ -266,38 +271,7 @@ async def list_records(
     # Build the SQL query: filter + sort + paginate AT THE DATABASE, not in Python. The
     # original implementation materialised every row in the tenant and then filtered — that
     # was the D25 critical (unbounded memory).
-    stmt = select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key)
-
-    # ---- q (free-text search) — pushed into SQL ----------------------------------------
-    # Approximate the legacy in-Python ``_matches_q`` with ``data::text ILIKE '%q%'`` plus a
-    # check on the ``status`` column. See module docstring for the documented trade-off
-    # (false-positive risk on non-string values is acceptable; the alternative was an
-    # unbounded tenant scan in Python).
-    if q:
-        needle = f"%{q}%"
-        stmt = stmt.where(or_(
-            cast(Record.data, Text).ilike(needle),
-            Record.status.ilike(needle),
-        ))
-
-    # ---- sort — pushed into SQL --------------------------------------------------------
-    # status / created_at → plain column; anything else → JSONB key lookup (``data ->> 'k'``).
-    # Validate the requested field looks like a key (defensive — prevents arbitrary SQL via
-    # the sort param even though SQLAlchemy already parameterises it).
-    sort_clause = Record.created_at  # default ordering
-    sort_desc = False
-    if sort:
-        sort_desc = sort.startswith("-")
-        field = sort[1:] if sort_desc else sort
-        if not re.match(r"^[A-Za-z0-9_]+$", field):
-            raise HTTPException(422, f"Invalid sort field '{field}'")
-        if field == "created_at":
-            sort_clause = Record.created_at
-        elif field == "status":
-            sort_clause = Record.status
-        else:
-            sort_clause = Record.data[field].astext
-    stmt = stmt.order_by(desc(sort_clause).nullslast() if sort_desc else sort_clause.nullslast())
+    stmt = build_record_list_stmt(user.tenant_id, ent.key, q, sort)
 
     # ---- pagination — pushed into SQL --------------------------------------------------
     # Defaults to DEFAULT_LIMIT (100) when ``limit`` is omitted; Page() raises 422 on
@@ -315,30 +289,18 @@ async def list_records(
     # 1. org-scope view-gate — runs AFTER pagination because the path-subtree match is
     #    expensive to push into SQL (would need an org-tree join). The page may shrink as
     #    a result; clients should rely on X-Total-Count and the page emptying out for the
-    #    end-of-list signal. Documented in the docstring above.
-    visible = [
-        r for r in rows
-        if can(grants, ent.key, "view", paths.get(str(r.owner_node_id)) if r.owner_node_id else None)
-    ]
+    #    end-of-list signal.
+    visible = apply_org_scope(rows, grants, ent.key, paths)
 
     # 2. GXL filter (per record; broken/false expression excludes — never 500). Runs on the
     #    page only, so even pathological filters can no longer trigger a full-tenant scan.
-    if filter:
-        visible = [r for r in visible if gxl.evaluate(filter, {**(r.data or {}), "status": r.status})]
+    visible = apply_gxl_filter(visible, filter)
 
     # X-Total-Count: total matching rows from the SQL query (pre-view-gate-in-Python). With
     # SQL-side pagination this is now an UPPER bound on what the caller can see (vs. exact
     # pre-page count under the old all-rows-in-memory model). Frontend pagers still work —
     # they may overshoot by the org-scope-denied delta, but never undershoot.
-    # Build a count over the same WHERE without ORDER/LIMIT/OFFSET.
-    base_stmt = select(Record).where(Record.tenant_id == user.tenant_id, Record.entity_key == ent.key)
-    if q:
-        needle = f"%{q}%"
-        base_stmt = base_stmt.where(or_(
-            cast(Record.data, Text).ilike(needle),
-            Record.status.ilike(needle),
-        ))
-    total = (await s.execute(count_select(base_stmt))).scalar_one()
+    total = (await s.execute(count_select(build_count_stmt(user.tenant_id, ent.key, q)))).scalar_one()
     response.headers[X_TOTAL_COUNT] = str(total)
 
     return [_serialize(r, hidden) for r in visible]

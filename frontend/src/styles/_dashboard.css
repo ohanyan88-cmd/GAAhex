@@ -207,6 +207,9 @@
 /* Line/MultiLine — swatch for line-type legend (narrow rectangle) */
 .d-swatch-line { width: var(--gx-space-6); height: var(--gx-space-1); display: inline-block; border-radius: var(--gx-radius-xs); }
 
+/* DonutChart — outer flex wrapper (unscoped alias; .gx-dash .gx-donut covers the same inside .gx-dash) */
+.gx-donut { display: flex; align-items: center; gap: var(--gx-space-18); flex-wrap: wrap; }
+
 /* DonutChart — legend list */
 .d-donut-legend { flex: 1; min-width: 120px; }
 /* DonutChart — legend row */

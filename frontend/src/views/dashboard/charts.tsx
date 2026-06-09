@@ -183,15 +183,15 @@ export function HorizontalBarChart({ buckets }: { buckets: { label: string; valu
 export function FunnelChart({ stages }: { stages: { label: string; value: number }[] }) {
   const max = stages[0]?.value || 1
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)' }}>
+    <div className="d-funnel-wrap">
       {stages.map((st, i) => {
         const pct = st.value / max * 100
         const convRate = i > 0 ? Math.round(st.value / stages[i - 1].value * 100) : 100
         return (
           <div key={st.label}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3, fontSize: 'var(--gx-text-sm)' }}>
+            <div className="d-funnel-label-row">
               <span>{st.label}</span>
-              <span style={{ display: 'flex', gap: 'var(--gx-space-4)' }}>
+              <span className="d-funnel-values">
                 <span style={{ fontWeight: 'var(--gx-weight-semibold)' }}>{st.value.toLocaleString()}</span>
                 {i > 0 && <span className="muted">{convRate}%</span>}
               </span>
@@ -221,15 +221,15 @@ export function KPICard({ label, value, sublabel, color, icon: Icon, trend = [] 
   const W = 80, H = 28
   const pts = trend.map((v, i) => `${(i / Math.max(trend.length - 1, 1)) * W},${H - (v / maxT) * (H - 4)}`).join(' ')
   return (
-    <div className="card" style={{ padding: 'var(--gx-space-6) var(--gx-space-18)', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div className="card d-kpicard">
+      <div className="d-kpicard-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-3)' }}>
+          <div className="d-kpicard-meta">
             <Icon size={13} />
             <span className="muted" style={{ fontSize: 'var(--gx-text-sm)' }}>{label}</span>
           </div>
-          <div style={{ fontSize: 'var(--gx-text-3xl)', fontWeight: 'var(--gx-weight-bold)', color: color ?? 'inherit', lineHeight: 1 }}>{value}</div>
-          {sublabel && <div className="muted" style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)' }}>{sublabel}</div>}
+          <div className="d-kpicard-value" style={{ color: color ?? 'inherit' }}>{value}</div>
+          {sublabel && <div className="muted d-kpicard-sublabel">{sublabel}</div>}
         </div>
         {trend.length > 1 && (
           <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, height: H, flexShrink: 0, opacity: 0.6 }}>
@@ -253,14 +253,14 @@ export function DashboardCard({ title, icon: Icon, children, action }: {
   children: ReactNode; action?: ReactNode
 }) {
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="card-head" style={{ borderBottom: '1px solid var(--gx-border)' }}>
+    <div className="card d-dashcard">
+      <div className="card-head">
         <Icon size={14} color="var(--gx-text-3)" />
-        <h3 style={{ margin: 0, fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)' }}>{title}</h3>
+        <h3>{title}</h3>
         <span className="spacer" />
         {action}
       </div>
-      <div className="card-pad" style={{ flex: 1 }}>{children}</div>
+      <div className="card-pad d-dashcard-pad">{children}</div>
     </div>
   )
 }
@@ -284,23 +284,20 @@ export function GanttChart({ projects }: { projects: { id: string; name: string;
     'CANCELLED': 'var(--gx-danger)',
   }[s] ?? 'var(--gx-text-3)')
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-3)', maxHeight: 280, overflowY: 'auto', padding: 'var(--gx-space-2)' }}>
+    <div className="d-gantt-wrap">
       {projects.slice(0, 12).map(p => {
         const s = new Date(p.start_date).getTime()
         const e = new Date(p.due_date).getTime()
         const leftPct  = ((s - minT) / span) * 100
         const widthPct = Math.max(2, ((e - s) / span) * 100)
         return (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', fontSize: 'var(--gx-text-11)' }}>
-            <span style={{ width: 110, textAlign: 'right', color: 'var(--gx-text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</span>
-            <div style={{ flex: 1, position: 'relative', height: 'var(--gx-space-8)', background: 'var(--gx-surface-2)', borderRadius: 'var(--gx-radius-xs)' }}>
-              <div title={`${p.start_date} to ${p.due_date} - ${p.status}`}
-                style={{
-                  position: 'absolute', left: `${leftPct}%`, width: `${widthPct}%`,
-                  top: 1, bottom: 1, background: statusColor(p.status), borderRadius: 'var(--gx-radius-xs)',
-                }} />
+          <div key={p.id} className="d-gantt-row">
+            <span className="d-gantt-name" title={p.name}>{p.name}</span>
+            <div className="d-gantt-track">
+              <div className="d-gantt-bar" title={`${p.start_date} to ${p.due_date} - ${p.status}`}
+                style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: statusColor(p.status) }} />
             </div>
-            <span style={{ width: 60, fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textAlign: 'right' }}>{p.status}</span>
+            <span className="d-gantt-status">{p.status}</span>
           </div>
         )
       })}
@@ -315,16 +312,16 @@ export function ParetoChart({ data }: { data: { category: string; count: number;
   const maxCount = Math.max(...data.map(d => d.count), 1)
   return (
     <div>
-      <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 'var(--gx-space-2)', height: 160 }}>
+      <div className="d-pareto-chart">
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', position: 'relative' }} title={`${d.category}: ${d.count} (${d.cum_pct}% cum)`}>
             {/* D18: Pareto top-3 = highlighted drillable bars → --gx-chart-active; rest = passive slate → --gx-chart-default. */}
             <div style={{
               height: `${(d.count / maxCount) * 80}%`,
               background: i < 3 ? 'var(--gx-chart-active)' : 'var(--gx-chart-default)',
-              borderRadius: '3px 3px 0 0',
+              borderRadius: 'var(--gx-radius-xs) var(--gx-radius-xs) 0 0',
             }} />
-            <span style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 'var(--gx-space-1)' }}>{d.category}</span>
+            <span className="d-chart-xlabel" style={{ marginTop: 'var(--gx-space-1)' }}>{d.category}</span>
           </div>
         ))}
         <svg viewBox={`0 0 ${data.length} 100`} preserveAspectRatio="none"
@@ -336,9 +333,9 @@ export function ParetoChart({ data }: { data: { category: string; count: number;
           <line x1="0" y1="20" x2={data.length} y2="20" stroke="var(--gx-warning)" strokeDasharray="2 2" strokeWidth="0.5" vectorEffect="non-scaling-stroke" />
         </svg>
       </div>
-      <div style={{ display: 'flex', gap: 'var(--gx-space-4)', marginTop: 'var(--gx-space-3)', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>
-        <span><span style={{ display: 'inline-block', width: 9, height: 9, background: 'var(--gx-chart-active)', borderRadius: 2, marginRight: 'var(--gx-space-2)' }} />Top 3</span>
-        <span><span style={{ display: 'inline-block', width: 9, height: 2, background: 'var(--gx-gold)', verticalAlign: 'middle', marginRight: 'var(--gx-space-2)' }} />Cumulative %</span>
+      <div className="d-pareto-legend">
+        <span><span className="d-pareto-swatch-sq" style={{ background: 'var(--gx-chart-active)' }} />Top 3</span>
+        <span><span className="d-pareto-swatch-ln" style={{ background: 'var(--gx-gold)' }} />Cumulative %</span>
         <span style={{ marginLeft: 'auto' }}>80% target line</span>
       </div>
     </div>
@@ -357,29 +354,17 @@ export function SankeyChart({ data }: { data: { nodes: { id: string; name: strin
           const conv = i > 0 ? Math.round((n.value / Math.max(data.nodes[i - 1].value, 1)) * 100) : null
           return (
             <>
-              <div key={n.id} style={{ flex: '0 0 16%', display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                <div style={{ width: '80%', height: `${Math.max(h, 5)}%`,
-                  background: PLAN_COLORS[i % PLAN_COLORS.length], borderRadius: 'var(--gx-radius-xs)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--gx-on-primary)', fontWeight: 'var(--gx-weight-bold)', fontSize: 'var(--gx-text-13)',
-                }}>{n.value}</div>
-                <div style={{ fontSize: 'var(--gx-text-11)', marginTop: 'var(--gx-space-2)', fontWeight: 'var(--gx-weight-semibold)' }}>{n.name}</div>
+              <div key={n.id} className="d-sankey-col">
+                <div className="d-sankey-bar" style={{ height: `${Math.max(h, 5)}%`, background: PLAN_COLORS[i % PLAN_COLORS.length] }}>{n.value}</div>
+                <div className="d-sankey-label">{n.name}</div>
                 {conv !== null && (
-                  <div style={{ fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-3)' }}>{conv}% conv</div>
+                  <div className="d-sankey-conv">{conv}% conv</div>
                 )}
               </div>
               {i < data.nodes.length - 1 && (
-                <div key={`arrow-${i}`} style={{
-                  flex: 1, height: 'var(--gx-space-1)',
-                  // D18: connector encodes flow direction → start = active (--gx-chart-active), end = passive (--gx-text-3).
-                  background: 'linear-gradient(90deg, var(--gx-chart-active), var(--gx-text-3))',
-                  position: 'relative',
-                }}>
-                  <div style={{
-                    position: 'absolute', right: -5, top: -3, width: 0, height: 0,
-                    borderLeft: '6px solid var(--gx-text-3)',
-                    borderTop: '4px solid transparent', borderBottom: '4px solid transparent',
-                  }} />
+                // D18: connector encodes flow direction → start = active (--gx-chart-active), end = passive (--gx-text-3).
+                <div key={`arrow-${i}`} className="d-sankey-arrow">
+                  <div className="d-sankey-arrowhead" />
                 </div>
               )}
             </>
