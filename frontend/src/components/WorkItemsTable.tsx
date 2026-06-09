@@ -17,6 +17,7 @@ import { StatusPill, Button } from '../primitives'  // T-P3-7
 import { PlayIcon, CheckIcon, PauseIcon } from './icons'
 import { ChevronsUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from './Toast'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // ── Helpers (kept in-module so both consumers see identical rendering) ────────
 
@@ -26,14 +27,9 @@ function fmtDateShort(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// WorkItem status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapWorkItemStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (v === 'DONE' || v === 'CLOSED') return 'active'
-  if (v === 'IN_PROGRESS') return 'degraded'
-  if (v === 'BLOCKED') return 'critical'
-  if (v === 'CANCELLED') return 'neutral'
-  return 'info'
+  return getStatusTone(s, 'workitem')
 }
 function statusLabel(s: string | null | undefined): string {
   const v = (s ?? '').toUpperCase()

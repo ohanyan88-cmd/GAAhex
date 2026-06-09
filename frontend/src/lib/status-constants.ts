@@ -1,12 +1,83 @@
 // Status constants — Standard 14 single source of truth for all domain status enums.
 // Types for existing API domains live in their helper modules (billing.ts, workitems.ts,
 // paymentgw.ts). This file adds: (a) missing domain types, (b) semantic grouping arrays
-// for `includes()` filter checks, (c) full value sets for filter tabs/pickers.
+// for `includes()` filter checks, (c) full value sets for filter tabs/pickers,
+// (d) the canonical PillVariant type and getStatusTone() mapping (L-16).
 //
 // Re-export existing types so callers only need one import:
 export type { WorkItemStatus } from './workitems'
 export type { InvoiceStatus, SubscriptionStatus } from './billing'
 export type { PaymentOrderStatus } from './paymentgw'
+
+// ── Canonical StatusPill variant type (L-16) ──────────────────────────────────
+// Single definition — import from here instead of re-declaring in each view.
+export type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+
+/**
+ * getStatusTone — canonical status→PillVariant mapper (L-16).
+ *
+ * Covers all platform status enums (Standard 14) via a single normalised switch.
+ * Optional `entityType` resolves same-named values that differ across domains
+ * (e.g. "ACTIVE" is always 'active', but "PENDING" is 'info' for subscriptions
+ * and 'degraded' for tickets — pass entityType to disambiguate when needed).
+ *
+ * Callers that do their own label formatting can ignore the return value's label
+ * field and only use the variant.
+ */
+export function getStatusTone(
+  status: string | null | undefined,
+  entityType?: string,
+): PillVariant {
+  const v = (status ?? '').toUpperCase()
+
+  // Universal positives
+  if (v === 'ACTIVE' || v === 'PAID' || v === 'DONE' || v === 'CLOSED' ||
+      v === 'RESOLVED' || v === 'ENABLED' || v === 'SENT' || v === 'AVAILABLE') {
+    return 'active'
+  }
+
+  // Universal criticals
+  if (v === 'FAILED' || v === 'BLOCKED' || v === 'EXPIRED' ||
+      v === 'TERMINATED' || v === 'EXHAUSTED' || v === 'BREACHED') {
+    return 'critical'
+  }
+
+  // Universal degraded (at-risk / warning states)
+  if (v === 'SUSPENDED' || v === 'PAST_DUE' || v === 'OVERDUE') {
+    return 'degraded'
+  }
+
+  // Universal neutral (terminal non-error states)
+  if (v === 'CANCELLED' || v === 'CANCELED' || v === 'VOID' ||
+      v === 'DRAFT' || v === 'RETIRED' || v === 'DISABLED' ||
+      v === 'REMOVED' || v === 'ARCHIVED' || v === 'INACTIVE') {
+    return 'neutral'
+  }
+
+  // Context-dependent: PENDING
+  if (v === 'PENDING') {
+    // Tickets/work: pending = degraded (waiting on action)
+    if (entityType === 'ticket' || entityType === 'helpdesk') return 'degraded'
+    // Everything else: pending = info (in-queue, not urgent)
+    return 'info'
+  }
+
+  // Context-dependent: IN_PROGRESS
+  if (v === 'IN_PROGRESS') {
+    return entityType === 'workitem' || entityType === 'task' ? 'degraded' : 'active'
+  }
+
+  // Context-dependent: RESERVED
+  if (v === 'RESERVED') return 'info'
+
+  // Universal info fallback (open, trialing, queued, etc.)
+  if (v === 'OPEN' || v === 'TRIALING' || v === 'QUEUED' || v === 'TODO') {
+    return 'info'
+  }
+
+  // Unknown — fall through to info (non-alarming default)
+  return 'info'
+}
 
 // ── Domain types (not yet in a helper module) ─────────────────────────────────
 

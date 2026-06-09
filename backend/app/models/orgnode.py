@@ -1,7 +1,8 @@
 from app.utils.ids import uuid7
 import uuid
+from datetime import datetime
 
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy_utils import LtreeType
@@ -32,3 +33,13 @@ class OrgNode(Base):
     # "what region is this assignment in?" without parsing the ltree at request time. Nullable;
     # when NULL the kernel falls back to the node's own id as a region surrogate.
     region_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # created_at / updated_at: org structure is edited infrequently but the history matters for
+    # rollup / audit diffing (e.g. "when was this Division added?"). updated_at also lets the
+    # front-end cache bust org-tree queries cheaply. No soft-delete here — removal of a node
+    # is a structural operation governed by the workflow engine (reassign children first).
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, onupdate=func.now()
+    )

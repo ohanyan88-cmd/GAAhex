@@ -16,16 +16,11 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { Button, StatusPill } from '../primitives'
 import { fmtDate } from '../lib/time'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
-
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Payment order status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapOrderStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase() as PaymentOrderStatus | ''
-  if (v === 'PAID') return 'active'
-  if (v === 'PENDING') return 'info'
-  if (v === 'FAILED' || v === 'EXPIRED') return 'critical'
-  if (v === 'CANCELLED') return 'neutral'
-  return 'neutral'
+  return getStatusTone(s)
 }
 
 const TAB_DEFS: Array<[string, string]> = [

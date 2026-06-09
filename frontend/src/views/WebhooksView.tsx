@@ -19,6 +19,7 @@ import { useCustomFields } from '../components/CustomCells'
 import { Button, KPITile, Pagination, StatusPill} from '../primitives'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // Webhooks admin (E12 /api/webhooks) — CRUD + per-webhook deliveries log + test. Degrades on 404.
 import { BASE } from '../lib/config'
@@ -34,19 +35,14 @@ const EVENT_OPTIONS = ['create', 'update', 'delete', 'transition', 'comment', 'p
   'approval_requested', 'approval_approved', 'approval_rejected']
 const EMPTY: Draft = { name: '', url: '', events: [], active: true }
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Webhook/delivery status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapWebhookStatus(w: Webhook): { label: string; variant: PillVariant } {
   if (w.active === false) return { label: 'disabled', variant: 'neutral' }
   return { label: 'enabled', variant: 'active' }
 }
 function mapDeliveryStatus(status: string | null | undefined): { label: string; variant: PillVariant } {
-  // Backend status: QUEUED | SENT | FAILED
-  const s = (status ?? '').toUpperCase()
   const label = status ?? '—'
-  if (s === 'SENT') return { label, variant: 'active' }
-  if (s === 'FAILED') return { label, variant: 'critical' }
-  if (s === 'QUEUED') return { label, variant: 'info' }
-  return { label, variant: 'neutral' }
+  return { label, variant: getStatusTone(status) }
 }
 
 async function jfetch(token: string, path: string, init?: RequestInit) {

@@ -22,6 +22,7 @@ import { humanizeStatus } from '../lib/humanize'
 import { useAuth } from '../context/AuthContext'
 import { PageShell } from '../page-shell'
 import type { KPISpec } from '../page-shell'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -36,10 +37,7 @@ function fmtDateShort(iso: string | null | undefined): string {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
-// Priority → StatusPill variant. Mapping (real values: low | normal | high | urgent):
-//   urgent → critical · high → degraded · normal → info · low → neutral
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
-
+// Priority → StatusPill variant (L-16: PillVariant imported from status-constants).
 function priorityPill(priority: string | null | undefined) {
   if (!priority) return <span className="muted">—</span>
   const p = priority.toLowerCase()
@@ -50,16 +48,10 @@ function priorityPill(priority: string | null | undefined) {
   return <StatusPill variant={variant} label={humanizeStatus(priority)} size="sm" />
 }
 
-// Status → StatusPill variant. Mapping (real values: open | in_progress | pending | resolved | closed):
-//   open → info · in_progress → active · pending → degraded · resolved → neutral · closed → neutral
+// Status → StatusPill variant — delegated to canonical mapper (L-16).
 function statusPill(status: string | null | undefined) {
   if (!status) return <span className="muted">—</span>
-  const s = status.toLowerCase()
-  const variant: PillVariant = s === 'in_progress' ? 'active'
-    : s === 'pending' ? 'degraded'
-    : s === 'resolved' || s === 'closed' ? 'neutral'
-    : 'info'
-  return <StatusPill variant={variant} label={humanizeStatus(status)} size="sm" />
+  return <StatusPill variant={getStatusTone(status, 'ticket')} label={humanizeStatus(status)} size="sm" />
 }
 
 // SLA badge per spec:

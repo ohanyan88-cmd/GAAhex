@@ -1,14 +1,11 @@
 import { StatusPill } from '../../primitives'
 import type { WorkItemStatus } from '../../lib/workitems'
 import type { PillVariant } from './types'
+import { getStatusTone } from '../../lib/status-constants'
 
+// WorkItem status → StatusPill variant — delegated to canonical mapper (L-16).
 export function mapWorkItemStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (v === 'DONE' || v === 'CLOSED') return 'active'
-  if (v === 'IN_PROGRESS') return 'degraded'
-  if (v === 'BLOCKED') return 'critical'
-  if (v === 'CANCELLED') return 'neutral'
-  return 'info'
+  return getStatusTone(s, 'workitem')
 }
 
 export function statusLabelFull(s: string | null | undefined): string {

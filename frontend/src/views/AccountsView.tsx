@@ -70,6 +70,7 @@ type BalanceCell = BalanceSnapshot | null
 // in lib/money.ts; local alias keeps existing call sites unchanged.
 import { moneyDecStr as moneyDecimal } from '../lib/money'
 import { useAuth } from '../context/AuthContext'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // Balance sign tone: NEGATIVE = customer owes us (red), POSITIVE = credit on account (green),
 // zero = default. Returns an inline style snippet to keep the column tnum + right-aligned.
@@ -87,25 +88,12 @@ function decimalNum(s: string | null | undefined): number {
   return isFinite(n) ? n : 0
 }
 
-// Account status → StatusPill primitive variant (configurable statuses tolerated).
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Account/billing status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapAccountStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (v === 'ACTIVE') return 'active'
-  if (v === 'SUSPENDED') return 'degraded'
-  if (v === 'CLOSED' || v === 'INACTIVE') return 'neutral'
-  if (v === 'PENDING' || v === 'DRAFT') return 'info'
-  return 'info'
+  return getStatusTone(s)
 }
-
-// Sub/invoice statuses appear in the detail panel — keep the broader mapping for those.
 function mapBillingStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (['ACTIVE', 'PAID'].includes(v)) return 'active'
-  if (['SUSPENDED', 'OVERDUE'].includes(v)) return 'critical'
-  if (['VOID', 'CANCELLED', 'CLOSED'].includes(v)) return 'neutral'
-  if (['DRAFT'].includes(v)) return 'neutral'
-  return 'info'
+  return getStatusTone(s)
 }
 
 export default function AccountsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {

@@ -19,7 +19,7 @@ import { StatusPill, Button, Pagination } from '../primitives'
 import { can, FULL_ACCESS, type Capabilities } from '../lib/capabilities'
 import { OBJ } from '../lib/permissions-constants'
 import { humanizeStatus } from '../lib/humanize'
-import { SERVICE_ALL } from '../lib/status-constants'
+import { SERVICE_ALL, getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // Services UI (A14 /api/services) — list + RecordDrawer detail with resources + lifecycle.
 // SPEC §4.5 mandatory-approval gate is wired on the backend `suspend` transition:
@@ -35,14 +35,9 @@ const KINDS = ['ip', 'mac', 'port', 'device', 'circuit', 'other']
 // DF-4 — canonical fmtDate in lib/time.ts.
 import { fmtDate } from '../lib/time'
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Service status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapServiceStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (v === 'ACTIVE') return 'active'
-  if (v === 'SUSPENDED') return 'degraded'
-  if (v === 'TERMINATED') return 'critical'
-  if (v === 'PENDING') return 'info'
-  return 'neutral'
+  return getStatusTone(s)
 }
 
 function renderCell(colKey: string, sv: Service, cust: (sv: Service) => string) {

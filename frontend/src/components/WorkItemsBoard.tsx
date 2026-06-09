@@ -13,6 +13,7 @@ import { StatusPill, Button } from '../primitives'  // T-P3-7
 import { PlayIcon, CheckIcon, PauseIcon } from './icons'
 import { toast } from './Toast'
 import type { WorkItemAction } from './WorkItemsTable'
+import { type PillVariant } from '../lib/status-constants'
 
 // ── Helpers (mirrors WorkItemsTable so cards/rows stay visually consistent) ──
 
@@ -21,8 +22,6 @@ function fmtDateShort(iso: string | null | undefined): string | null {
   const d = new Date(iso)
   return isNaN(d.getTime()) ? null : d.toLocaleDateString()
 }
-
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 
 function priorityPill(priority: string | null | undefined) {
   const p = (priority ?? '').toUpperCase()

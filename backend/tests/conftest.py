@@ -17,6 +17,66 @@ os.environ.setdefault("PAYMENT_GATEWAY_PROVIDER", "mock")
 import tempfile as _tempfile
 os.environ.setdefault("STORAGE_LOCAL_PATH", os.path.join(_tempfile.gettempdir(), "portal-test-uploads"))
 
+# ─── M-23: DB isolation strategy — decision record ───────────────────────────
+#
+# WHY session-scoped (not transaction-rollback-per-test)
+# ======================================================
+#
+# The standard "wrap each test in a SAVEPOINT → ROLLBACK" technique is
+# impractical here. Four distinct reasons, each sufficient on its own:
+#
+# 1. SESSIONS ARE APP-OWNED, NOT TEST-OWNED.
+#    FastAPI resolves DB sessions through its own dependency injection (Depends).
+#    The test client (AsyncClient) calls the full ASGI stack; the sessions the
+#    app opens are internal and commit/rollback at the end of each *request*,
+#    completely outside the test function. There is no hook to wrap those
+#    commits in a savepoint that a test fixture controls.
+#
+# 2. MULTI-REQUEST TESTS RELY ON COMMITTED STATE.
+#    Many tests assert cross-request state — the Stripe idempotency tests, for
+#    example, POST an event, then POST the same event again and verify the DB
+#    row exists after the first POST. If the first POST's commit were rolled
+#    back before the second POST, those tests would break. Savepoint-per-test
+#    would require rewriting a significant portion of the suite.
+#
+# 3. DUAL-ENGINE RLS TESTS SPAN TWO SEPARATE CONNECTIONS.
+#    test_rls.py + test_rls_parametric.py open a second SQLAlchemy engine
+#    (gaahex_app, the NOSUPERUSER role) alongside the main engine to verify
+#    cross-tenant isolation. Savepoint coordination across two independent
+#    asyncpg connections is not supported — the second engine can't see the
+#    first engine's open transaction, let alone participate in its savepoint.
+#
+# 4. asyncpg SAVEPOINT SUPPORT IS LIMITED FOR OUTER SCOPE CONTROL.
+#    asyncpg supports SAVEPOINTs within a transaction, but the outer
+#    transaction itself must be visible to both the test fixture AND every
+#    connection the app opens. asyncpg does not support "attach to existing
+#    transaction" — each new connection pool checkout starts in autocommit
+#    mode unless explicitly told otherwise. Disabling the pool would create a
+#    single-connection bottleneck that breaks session-scoped parallelism.
+#
+# TRADEOFF & MITIGATIONS
+# ======================
+# Because tests share a single DB across the session, order-dependent state
+# leaks between tests are possible. These are mitigated by:
+#   a. Unique data per test: tests generate names/IDs with uuid4() so they
+#      don't collide with each other's rows.
+#   b. The session DB is dropped and fully recreated at session start (_setup_db
+#      below), so no state leaks across pytest invocations.
+#   c. Tests that create secondary tenants use delete_tenant_cleanly() (see
+#      below) to clean up rows that would shadow later tests.
+#
+# FUTURE PATH
+# ===========
+# Proper per-test isolation becomes achievable if conftest is rearchitected to:
+#   (a) manage the app's DB sessions through a test-supplied session factory
+#       (i.e. move away from Depends(get_session) to something the test can
+#       intercept), AND
+#   (b) adopt alembic-managed schema creation so tables are owned by `gaahex`
+#       and the app connects as `gaahex_app` even during create_all.
+# That rearchitecture is tracked as a future milestone and is gated on the
+# alembic migration path being fully established.
+# ─────────────────────────────────────────────────────────────────────────────
+
 import asyncpg
 import pytest
 import pytest_asyncio

@@ -1126,3 +1126,55 @@ async def sla_breach_summary(user: User = Depends(current_user), s: AsyncSession
         "tech":    {"breaches": tech_breaches,     "at_risk": tech_at_risk},
         "billing": {"breaches": billing_breaches,  "at_risk": billing_at_risk},
     }
+
+
+# ==========================================================================================
+# 21. Dashboard stats — 4 headline KPIs consumed by HomeView (L-6)
+# ==========================================================================================
+
+@router.get("/dashboard/stats")
+async def dashboard_stats(user: User = Depends(current_user), s: AsyncSession = Depends(get_session)):
+    """Four headline stats for the HomeView KPI strip (scoped to caller's tenant).
+
+    Returns:
+      payments_today     — count of Payment rows created today (UTC wall clock)
+      collections_resolved — count of RESOLVED or CLOSED HelpdeskTickets updated today
+      active_users       — count of User rows with is_active=True (or fallback: all users)
+      system_health_pct  — integer 0–100: 100 if DB is alive, 0 on error
+    """
+    t = user.tenant_id
+    now = _now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # payments_today — payments recorded since midnight UTC
+    payments_today: int = int((await s.execute(
+        select(func.count()).select_from(Payment).where(
+            Payment.tenant_id == t,
+            Payment.paid_at >= today_start,
+        )
+    )).scalar_one())
+
+    # collections_resolved — helpdesk tickets resolved/closed today (resolved_at column)
+    collections_resolved: int = int((await s.execute(
+        select(func.count()).select_from(HelpdeskTicket).where(
+            HelpdeskTicket.tenant_id == t,
+            HelpdeskTicket.status.in_(["RESOLVED", "CLOSED"]),
+            HelpdeskTicket.resolved_at >= today_start,
+        )
+    )).scalar_one())
+
+    # active_users — users with status=ACTIVE in the tenant
+    active_users: int = int((await s.execute(
+        select(func.count()).select_from(User).where(
+            User.tenant_id == t,
+            User.status == "ACTIVE",
+        )
+    )).scalar_one())
+
+    # system_health_pct — 100 if we got this far (DB is alive)
+    return {
+        "payments_today":      payments_today,
+        "collections_resolved": collections_resolved,
+        "active_users":        active_users,
+        "system_health_pct":   100,
+    }

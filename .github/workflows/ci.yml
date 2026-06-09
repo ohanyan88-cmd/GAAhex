@@ -93,7 +93,7 @@ jobs:
 
       - name: Tests (pytest)
         working-directory: backend
-        run: pytest --tb=short -q
+        run: pytest --tb=short -q --cov=app --cov-report=term-missing --cov-fail-under=53
 
       - name: Dependency audit (pip-audit, warn only)
         working-directory: backend

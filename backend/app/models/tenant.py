@@ -28,3 +28,10 @@ class Tenant(Base):
     # Allow-lists live in routers/tenant_settings.py — keep them in sync with StudioRichPanes.tsx.
     theme: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # updated_at tracks the last time any tenant profile field was written (name, status,
+    # currency, locale, logo_text, logo_url, theme, onboarded_at). Required for change-
+    # detection in settings sync, audit diffing, and cache invalidation. Set via
+    # onupdate=func.now() at the ORM layer; router PATCH handlers rely on this implicitly.
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, onupdate=func.now()
+    )

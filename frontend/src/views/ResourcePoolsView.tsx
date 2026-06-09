@@ -16,6 +16,7 @@ import RecordDrawer, { type RecordDrawerField } from '../components/RecordDrawer
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { StatusPill, Button, Pagination } from '../primitives'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // Resource pools / IPAM (A15 /api/resource-pools) — list + RecordDrawer detail with allocations.
 // Backend serializes the live allocation tally as `allocated_count` (see respool.py _pool()).
@@ -28,15 +29,13 @@ type Svc = { id: string; name?: string }
 
 const KINDS = ['ipv4', 'ipv6', 'vlan', 'phone', 'other']
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
 // Map only real status enums; missing status → caller renders nothing (no fake "available" default).
+// Delegated to canonical mapper (L-16).
 function mapPoolStatus(raw: string): { label: string; variant: PillVariant } | null {
   const v = raw.toUpperCase()
-  if (v === 'AVAILABLE') return { label: 'Available', variant: 'active' }
-  if (v === 'RESERVED') return { label: 'Reserved', variant: 'info' }
-  if (v === 'EXHAUSTED') return { label: 'Exhausted', variant: 'critical' }
-  if (v === 'DISABLED') return { label: 'Disabled', variant: 'neutral' }
-  return null
+  if (!['AVAILABLE', 'RESERVED', 'EXHAUSTED', 'DISABLED'].includes(v)) return null
+  const label = v.charAt(0) + v.slice(1).toLowerCase()
+  return { label, variant: getStatusTone(v) }
 }
 
 function specSummary(spec: any): string {

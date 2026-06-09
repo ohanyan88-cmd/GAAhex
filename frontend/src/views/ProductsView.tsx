@@ -19,18 +19,16 @@ import { PageShell, type KPISpec } from '../page-shell'
 import { usePageConfig } from '../lib/pageConfig'
 import { useCustomFields } from '../components/CustomCells'
 import { Button, Pagination, StatusPill } from '../primitives'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 type Draft = { id?: string; key: string; name: string; default_amount: string; cycle: string; active: boolean }
 const EMPTY: Draft = { key: '', name: '', default_amount: '', cycle: 'monthly', active: true }
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Product status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapProductStatus(p: Product): { label: string; variant: PillVariant } {
   // Product objects expose `active`; DRAFT/RETIRED aren't on the type but may exist via status field.
   const status = ((p as any).status ?? (p.active === false ? 'RETIRED' : 'ACTIVE')).toString().toUpperCase()
-  if (status === 'ACTIVE') return { label: 'active', variant: 'active' }
-  if (status === 'DRAFT') return { label: 'draft', variant: 'neutral' }
-  if (status === 'RETIRED') return { label: 'retired', variant: 'neutral' }
-  return { label: status.toLowerCase(), variant: 'neutral' }
+  return { label: status.toLowerCase(), variant: getStatusTone(status) }
 }
 
 function renderProductCell(colKey: string, p: Product) {

@@ -168,6 +168,18 @@ export default function HomeView({ onNavigate, capabilities }: {
   const approvals = useFetched<any[]>(`/api/mandatory-approvals?status=PENDING&limit=${WIDGET_APPROVALS}`,     d => toArr(d).length > 0)
   const slots     = useFetched<any[]>(`/api/schedule-slots?limit=${WIDGET_ITEMS}`,                             d => toArr(d).length > 0)
 
+  // L-6 — dashboard stats: 4 live org-level KPIs for admin/manager/finance roles.
+  // Scoped by the backend to the caller's tenant; zero-safe defaults while loading.
+  type DashboardStats = {
+    payments_today: number
+    collections_resolved: number
+    active_users: number
+    system_health_pct: number
+  }
+  const { data: dashStats, loading: dashStatsLoading } = useFetch<DashboardStats>(
+    (role === 'admin' || role === 'manager' || role === 'finance') ? '/api/analytics/dashboard/stats' : null
+  )
+
   // ── Derived state ────────────────────────────────────────────────────────────
   const today = useMemo(() => todayKey(), [])
 
@@ -230,6 +242,38 @@ export default function HomeView({ onNavigate, capabilities }: {
       loading: approvals.state === 'loading',
       onClick: () => onNavigate?.('my-approvals'),
     },
+    // L-6 — live org stats; only surfaced for roles that have org-level visibility
+    ...(role === 'admin' || role === 'manager' || role === 'finance' ? [
+      {
+        label: 'Payments Today',
+        value: dashStats?.payments_today ?? 0,
+        subtitle: 'collected since midnight',
+        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
+        loading: dashStatsLoading,
+      },
+      {
+        label: 'Resolved Today',
+        value: dashStats?.collections_resolved ?? 0,
+        subtitle: 'tickets closed today',
+        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
+        loading: dashStatsLoading,
+      },
+      {
+        label: 'Active Users',
+        value: dashStats?.active_users ?? 0,
+        subtitle: 'staff accounts active',
+        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
+        loading: dashStatsLoading,
+      },
+      {
+        label: 'System Health',
+        value: `${dashStats?.system_health_pct ?? 0}%`,
+        subtitle: dashStats?.system_health_pct === 100 ? 'all systems go' : 'degraded',
+        cornerNote: <span className="kpi-scope kpi-scope-org">ORG</span>,
+        loading: dashStatsLoading,
+        warning: (dashStats?.system_health_pct ?? 100) < 100,
+      },
+    ] as KPISpec[] : []),
   ]
 
   // ── Render ────────────────────────────────────────────────────────────────

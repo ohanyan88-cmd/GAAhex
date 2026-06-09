@@ -19,19 +19,14 @@ import { useCustomFields } from '../components/CustomCells'
 import { Button, Pagination, StatusPill} from '../primitives'
 import ErrorBoundary from '../components/ErrorBoundary'
 import LoadingState from '../components/LoadingState'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 type Draft = { customer_id: string; product_id: string; plan_name: string; amount: string; cycle: string }
 const EMPTY: Draft = { customer_id: '', product_id: '', plan_name: '', amount: '', cycle: 'monthly' }
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Subscription status → StatusPill variant — delegated to canonical mapper (L-16).
 function mapSubStatus(s: string | null | undefined): PillVariant {
-  const v = (s ?? '').toUpperCase()
-  if (v === 'ACTIVE') return 'active'
-  if (v === 'TRIALING') return 'info'
-  if (v === 'PAST_DUE') return 'degraded'
-  if (v === 'SUSPENDED') return 'degraded'
-  if (v === 'CANCELLED' || v === 'CANCELED' || v === 'EXPIRED') return 'neutral'
-  return 'info'
+  return getStatusTone(s)
 }
 
 export default function SubscriptionsView({ canConfigure = false, configVersion = 0, onConfigure }: { canConfigure?: boolean; configVersion?: number; onConfigure?: () => void }) {

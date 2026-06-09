@@ -22,6 +22,7 @@ import { can, type Capabilities } from '../lib/capabilities'
 import { OBJ } from '../lib/permissions-constants'
 import { timeAgo } from '../lib/time'
 import RowActionsMenu from '../components/RowActionsMenu'
+import { getStatusTone, type PillVariant } from '../lib/status-constants'
 
 // PaymentMethod public shape (B.1 router serializer). Raw card_number / cvc / cardholder_name
 // are never persisted nor echoed — they live only inside the create form's local state.
@@ -44,14 +45,9 @@ type PaymentMethod = {
 
 type StatusFilter = 'all' | 'active' | 'removed' | 'expired'
 
-type PillVariant = 'active' | 'degraded' | 'critical' | 'neutral' | 'info'
+// Payment method status → StatusPill variant — delegated to canonical mapper (L-16).
 function statusVariant(s: string): PillVariant {
-  switch (s) {
-    case 'active': return 'active'
-    case 'expired': return 'degraded'
-    case 'removed': return 'neutral'
-    default: return 'info'
-  }
+  return getStatusTone(s)
 }
 
 // Brand badge — small inline pill. Real brand comes from the backend (derived from PAN BIN). We
