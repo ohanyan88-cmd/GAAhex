@@ -1,5 +1,6 @@
 import { Button } from './primitives'
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { login, me, getEntities, orgTree } from './lib/api'
 import ErrorBoundary from './components/ErrorBoundary'
 import EntityView from './views/EntityView'
@@ -29,7 +30,6 @@ import AccountsView from './views/AccountsView'
 import AnalyticsView from './views/AnalyticsView'
 import PipelineView from './views/PipelineView'
 import CustomerView from './views/CustomerView'
-import CustomersListView from './views/CustomersListView'
 import AskGaaexView from './views/AskGaaexView'
 import HelpdeskView from './views/HelpdeskView'
 import PaymentGatewayView from './views/PaymentGatewayView'
@@ -59,7 +59,7 @@ import { NAV_SECTIONS, type NavItemDef, type NavSectionDef } from './lib/nav-con
 import { loadDynamicNav } from './lib/nav-loader'
 import { useI18n, initI18n } from './lib/i18n'
 import { RowsIcon, ChevronRightIcon, ServerIcon } from './components/icons'
-import { PanelLeft, Wand, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle, Calendar } from 'lucide-react'
+import { PanelLeft, LogIn, Shield, Eye, EyeOff, Sun, Moon, Mail, MessageCircle, Calendar } from 'lucide-react'
 import { fetchCapabilities, FULL_ACCESS, type Capabilities } from './lib/capabilities'
 import { useAuth } from './context/AuthContext'
 import ProfileModal from './modals/ProfileModal'
@@ -69,126 +69,150 @@ import { ShortcutsModal, DocsModal, WhatsNewModal } from './modals/SupportModals
 type Me = { email: string; name: string; can_configure?: boolean; avatar_url?: string | null }
 type Entity = { key: string; label: string; label_plural: string; route_slug: string }
 type OrgNode = { id: string; type: string; name: string; path: string; code?: string; parent_id?: string | null }
-type View =
-  | { type: 'org' }
-  | { type: 'entity'; slug: string }
-  | { type: 'studio'; focusSlug?: string; group?: string; module?: string; leaf?: string }
-  | { type: 'home' }
-  | { type: 'reports' }
-  | { type: 'dashboards' }
-  | { type: 'messages' }
-  | { type: 'notifications' }
-  | { type: 'profile' }
-  | { type: 'activity' }
-  | { type: 'my-approvals' }
-  | { type: 'saved-views' }
-  | { type: 'activity-feed' }
-  | { type: 'invoices'; initialStatus?: string }
-  | { type: 'payments' }
-  | { type: 'payment-methods' }
-  | { type: 'subscriptions' }
-  | { type: 'products' }
-  | { type: 'tariff-plans' }
-  | { type: 'usage' }
-  | { type: 'webhooks' }
-  | { type: 'services' }
-  | { type: 'resource-pools' }
-  | { type: 'accounts' }
-  | { type: 'analytics' }
-  | { type: 'lead-pipeline' }
-  | { type: 'customer'; id: string }
-  | { type: 'ask' }
-  | { type: 'settings' }
-  | { type: 'calendar' }
-  | { type: 'helpdesk'; initialStatus?: string; initialOpenTicketId?: string }
-  | { type: 'workitems' }
-  | { type: 'mytasks' }
-  | { type: 'customer-tasks' }
-  | { type: 'gateway' }
-  | { type: 'orders' }
-  | { type: 'revenue-assurance' }
-  | { type: 'collections' }
-  | { type: 'team-workspace' }
-  | { type: 'network-topology' }
-  | { type: 'network-inventory' }
-  | { type: 'provisioning' }
-  | { type: 'dispatch-board' }
-  | { type: 'installation-board' }
-  | { type: 'coverage-gis' }
-  | { type: 'noc-dashboard' }
-  | { type: 'coming-soon'; id: string; title: string; parent: string }
-  | { type: 'module-stub'; moduleId: string; moduleLabel: string }
 
 // Entity slugs that have dedicated nav-config items; others surface as extra Records
 const BUILTIN_ENTITY_SLUGS = new Set(['customers', 'contacts', 'tickets', 'users'])
 
-// Bespoke (non-entity) views that opt into "configure in place" — view.type → page-config key.
-// Add a view.type here (and register the page in pageConfig.ts) to light up its Configure button +
-// page-settings drawer. Template stage: Services only.
-const BESPOKE_PAGE_KEYS: Partial<Record<View['type'], string>> = {
-  services: 'services',
-  invoices: 'invoices',
-  payments: 'payments',
-  subscriptions: 'subscriptions',
-  accounts: 'accounts',
-  products: 'products',
-  usage: 'usage',
-  webhooks: 'webhooks',
-  'resource-pools': 'resource-pools',
-  // Title-only pages.
-  dashboards: 'dashboards',
-  analytics: 'analytics',
-  org: 'org',
-  gateway: 'gateway',
-  customer: 'customer',
-  reports: 'reports',
-  calendar: 'calendar',
-  mytasks: 'mytasks',
-  'my-approvals': 'my-approvals',
-  'activity-feed': 'activity-feed',
-  'saved-views': 'saved-views',
-  // Table-capable pages.
-  helpdesk: 'helpdesk',
-  workitems: 'workitems',
-  // Wave A §3 pages.
-  'revenue-assurance': 'revenue-assurance',
+// ─── AppShellContext ──────────────────────────────────────────────────────────
+// Non-auth App state shared with route-level adapters that can't read App scope.
+interface AppShellContextValue { canConfigure: boolean; pageConfigVersion: number }
+const AppShellContext = createContext<AppShellContextValue>({ canConfigure: false, pageConfigVersion: 0 })
+
+// ─── Route adapters ───────────────────────────────────────────────────────────
+// These are module-level because they call useParams()/useSearchParams().
+// Simple routes (no URL params) are rendered inline in <Routes> with App scope.
+
+function EntityRouteAdapter() {
+  const { slug = '' } = useParams()
+  const navigate = useNavigate()
+  const { token, capabilities } = useAuth()
+  const { canConfigure } = useContext(AppShellContext)
+  return (
+    <EntityView
+      token={token!}
+      slug={slug}
+      onOpenCustomer={(id) => navigate(`/customer/${id}`)}
+      onOpenPipeline={() => navigate('/lead-pipeline')}
+      capabilities={capabilities}
+      onBack={() => navigate(-1)}
+      canConfigure={canConfigure}
+    />
+  )
 }
 
+function CustomerRouteAdapter() {
+  const { id = '' } = useParams()
+  const navigate = useNavigate()
+  const { token, capabilities } = useAuth()
+  const { canConfigure, pageConfigVersion } = useContext(AppShellContext)
+  return (
+    <CustomerView
+      token={token!}
+      customerId={id}
+      onBack={() => navigate(-1)}
+      configVersion={pageConfigVersion}
+      canConfigure={canConfigure}
+      capabilities={capabilities}
+      onOpenInvoices={(initialStatus) =>
+        navigate(initialStatus ? `/invoices?status=${encodeURIComponent(initialStatus)}` : '/invoices')
+      }
+    />
+  )
+}
+
+function StudioRouteAdapter() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { token } = useAuth()
+  const { canConfigure } = useContext(AppShellContext)
+  return (
+    <StudioShell
+      token={token}
+      canConfigure={canConfigure}
+      route={{
+        group:  searchParams.get('group')  ?? undefined,
+        module: searchParams.get('module') ?? undefined,
+        leaf:   searchParams.get('leaf')   ?? undefined,
+      }}
+      onRoute={(r: StudioRoute) => {
+        const p = new URLSearchParams()
+        if (r.group)  p.set('group', r.group)
+        if (r.module) p.set('module', r.module)
+        if (r.leaf)   p.set('leaf', r.leaf)
+        setSearchParams(p)
+      }}
+      onBack={() => navigate(-1)}
+    />
+  )
+}
+
+function InvoicesRouteAdapter() {
+  const [searchParams] = useSearchParams()
+  const { token, capabilities } = useAuth()
+  const { canConfigure, pageConfigVersion } = useContext(AppShellContext)
+  return (
+    <InvoicesView
+      token={token!}
+      canConfigure={canConfigure}
+      configVersion={pageConfigVersion}
+      initialStatus={searchParams.get('status') ?? undefined}
+      capabilities={capabilities}
+    />
+  )
+}
+
+function HelpdeskRouteAdapter() {
+  const [searchParams] = useSearchParams()
+  const { token, capabilities } = useAuth()
+  const { canConfigure, pageConfigVersion } = useContext(AppShellContext)
+  return (
+    <HelpdeskView
+      token={token!}
+      canConfigure={canConfigure}
+      configVersion={pageConfigVersion}
+      capabilities={capabilities}
+      initialStatus={searchParams.get('status') ?? undefined}
+      openTicketId={searchParams.get('ticket') ?? undefined}
+    />
+  )
+}
+
+function ComingSoonRouteAdapter() {
+  const { id = '' } = useParams()
+  const [searchParams] = useSearchParams()
+  return (
+    <ComingSoonView
+      id={id}
+      title={searchParams.get('title') ?? ''}
+      parent={searchParams.get('parent') ?? ''}
+    />
+  )
+}
+
+function ModuleRouteAdapter() {
+  const { id = '' } = useParams()
+  const [searchParams] = useSearchParams()
+  return <ModuleStubView moduleId={id} moduleLabel={searchParams.get('label') ?? ''} />
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // SM-1 — auth state (token, user, capabilities, entities, orgNodes) lives in
-  // AuthContext now. App.tsx still drives login/logout but reads/writes through
-  // the context so views can migrate to useAuth() incrementally.
   const {
     token, user, capabilities, entities, orgNodes,
     setToken, setUser, setCapabilities, setEntities, setOrgNodes, clearAuth,
   } = useAuth()
-  const [view, setView] = useState<View>({ type: 'home' })
-  const [prevView, setPrevView] = useState<View>({ type: 'home' })
-  const [customerReturn, setCustomerReturn] = useState<View>({ type: 'home' })
-  const [cfgSlug, setCfgSlug] = useState<string | null>(null)   // open the in-place Configure drawer for this entity slug
-  const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)   // …or for this bespoke page (page-config, not an entity)
-  const [pageConfigVersion, setPageConfigVersion] = useState(0)   // bumped on a page-config save so the live view re-reads it
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  function openCustomer(id: string) { setCustomerReturn(view); setView({ type: 'customer', id }) }
+  // Overlays — page Configure drawer (entity config or page-config flavor)
+  const [cfgSlug, setCfgSlug] = useState<string | null>(null)
+  const [cfgPageKey, setCfgPageKey] = useState<string | null>(null)
+  const [pageConfigVersion, setPageConfigVersion] = useState(0)
 
-  // The config-entity slug for the current page (undefined ⇒ not an entity-config page).
-  const configSlug: string | undefined =
-    view.type === 'entity' ? (view as { type: 'entity'; slug: string }).slug
-    : view.type === 'lead-pipeline' ? 'leads'
-    : entities.some((e) => e.route_slug === (view as { type: string }).type) ? (view as { type: string }).type
-    : undefined
+  const canConfigure = !!user?.can_configure
 
-  // The page-config key for the current bespoke page (undefined ⇒ not a page-config page).
-  // Distinct from configSlug: this opens the drawer's "Page settings" pane, not entity Fields/Workflows.
-  const pageConfigKey: string | undefined = configSlug ? undefined : BESPOKE_PAGE_KEYS[view.type]
-
-  // Either kind of config makes the header "Configure page" button appear.
-  const canConfigureThisPage = configSlug != null || pageConfigKey != null
-
-  // Gear button → save current page, open Studio. Back button restores the saved page.
-  const openConfigure = () => { setPrevView(view); setView({ type: 'studio' }) }
-  const backFromStudio = () => setView(prevView)
+  function openCustomer(id: string) { navigate(`/customer/${id}`) }
 
   const [email, setEmail] = useState('admin@demo.isp')
   const [password, setPassword] = useState('admin123')
@@ -196,24 +220,14 @@ export default function App() {
   const [error, setError] = useState('')
   const [navOpen, setNavOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  // Account-menu modals (My Profile, Security, and SUPPORT items).
   const [accountModal, setAccountModal] = useState<'profile' | 'security' | 'shortcuts' | 'docs' | 'whatsnew' | null>(null)
   const { t, lang, setLang } = useI18n()
 
-  // SPEC §1 dynamic nav: attempt to load the nav tree from GAAhex /api/nav after
-  // login; fall back to the static NAV_SECTIONS if the endpoint isn't reachable
-  // or returns nothing usable. The static config stays bundled so the UI is
-  // never blank.
   const [navSections, setNavSections] = useState<NavSectionDef[]>(NAV_SECTIONS)
-
-  // Collapsible nav section state — pre-open sections marked defaultOpen in nav-config
   const [openSections, setOpenSections] = useState<Set<string>>(
     () => new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)),
   )
 
-  // After login, try the dynamic nav endpoint. Success ⇒ swap in the live tree
-  // and re-seed openSections from its defaultOpen markers. Failure ⇒ keep the
-  // static fallback.
   useEffect(() => {
     if (!token) return
     // Dynamic nav loader is intentionally OFF: the static NAV_SECTIONS already
@@ -238,37 +252,32 @@ export default function App() {
   function navItemClick(item: NavItemDef, e: React.MouseEvent) {
     e.stopPropagation()
     if (!item.viewType) {
-      setView({ type: 'module-stub', moduleId: item.id, moduleLabel: item.label })
+      navigate(`/module/${item.id}?label=${encodeURIComponent(item.label)}`)
       return
     }
     if (item.viewType === 'entity') {
-      setView({ type: 'entity', slug: item.viewArgs!.slug })
+      navigate(`/entity/${item.viewArgs!.slug}`)
       return
     }
     if (item.viewType === 'coming-soon') {
       const a = item.viewArgs!
-      setView({ type: 'coming-soon', id: a.id, title: a.title, parent: a.parent })
+      navigate(`/coming-soon/${a.id}?title=${encodeURIComponent(a.title)}&parent=${encodeURIComponent(a.parent)}`)
       return
     }
-    setView({ type: item.viewType } as View)
+    navigate(item.viewType === 'home' ? '/' : `/${item.viewType}`)
   }
 
   function isItemActive(item: NavItemDef): boolean {
-    if (!item.viewType) {
-      return view.type === 'module-stub' && (view as { type: 'module-stub'; moduleId: string }).moduleId === item.id
-    }
-    if (item.viewType === 'entity') {
-      return view.type === 'entity' && (view as { type: 'entity'; slug: string }).slug === item.viewArgs?.slug
-    }
-    if (item.viewType === 'coming-soon') {
-      return view.type === 'coming-soon' && (view as { type: 'coming-soon'; id: string }).id === item.viewArgs?.id
-    }
-    return view.type === item.viewType
+    const p = location.pathname
+    if (!item.viewType) return p.startsWith('/module/') && p === `/module/${item.id}`
+    if (item.viewType === 'home') return p === '/'
+    if (item.viewType === 'entity') return p === `/entity/${item.viewArgs?.slug}`
+    if (item.viewType === 'coming-soon') return p === `/coming-soon/${item.viewArgs?.id}`
+    return p === `/${item.viewType}`
   }
 
   useEffect(() => { initI18n(token) }, [token])
 
-  // theme + setTheme are consumed by the user-menu theme toggle (P5 UserMenu).
   const [theme, setTheme] = useState<'dark' | 'light'>(
     () => (localStorage.getItem('gaahex-theme') === 'light' ? 'light' : 'dark'),
   )
@@ -288,17 +297,13 @@ export default function App() {
 
   // AC-3 — listen for centralized 401 events from the canonical API client
   // (frontend/src/lib/billing.ts). Any bget/bpost/etc. that hits a 401 dispatches
-  // `gaahex:auth-401`; clearAuth() (from AuthContext) clears every piece of
-  // session state and re-renders the login screen via the `if (!token)` gate
-  // below. View state (current page, drawers) is App-local and reset here.
+  // `gaahex:auth-401`; clearAuth() clears every piece of session state and
+  // re-renders the login screen via the `if (!token)` gate below.
   useEffect(() => {
-    const onAuth401 = () => {
-      clearAuth()
-      setView({ type: 'home' })
-    }
+    const onAuth401 = () => { clearAuth(); navigate('/') }
     window.addEventListener('gaahex:auth-401', onAuth401)
     return () => window.removeEventListener('gaahex:auth-401', onAuth401)
-  }, [clearAuth])
+  }, [clearAuth, navigate])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -317,7 +322,7 @@ export default function App() {
 
   function logout() {
     clearAuth()
-    setView({ type: 'home' })
+    navigate('/')
     setNavSections(NAV_SECTIONS)
     setOpenSections(new Set(NAV_SECTIONS.filter((s) => s.defaultOpen).map((s) => s.id)))
   }
@@ -429,416 +434,332 @@ export default function App() {
     )
   }
 
-
-  // Entities not covered by built-in nav items (Studio-created custom entities)
   const extraEntities = entities.filter((e) => !BUILTIN_ENTITY_SLUGS.has(e.route_slug))
 
-  const breadcrumbLabel = view.type === 'entity'
-    ? (view as { type: 'entity'; slug: string }).slug
-    : view.type === 'module-stub'
-      ? (view as { type: 'module-stub'; moduleLabel: string }).moduleLabel
-      : view.type
-
   return (
-    <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
-      <a href="#main-content" className="skip-link">Skip to content</a>
-      {navOpen && (
-        <div
-          className="nav-scrim"
-          role="button"
-          tabIndex={-1}
-          aria-label="Close navigation"
-          onClick={() => setNavOpen(false)}
-          onKeyDown={(e) => { if (e.key === 'Escape') setNavOpen(false) }}
-        />
-      )}
-      <aside className="sb">
-        <div className="sb-head">
-          <img
-            src={collapsed ? '/logo/GAAhex-mark-animated.svg' : '/logo/GAAhex-logo-reversed.svg'}
-            alt="GAAhex"
-            className="wm"
+    <AppShellContext.Provider value={{ canConfigure, pageConfigVersion }}>
+      <div className={'app' + (collapsed ? ' collapsed' : '') + (navOpen ? ' navopen' : '')}>
+        <a href="#main-content" className="skip-link">Skip to content</a>
+        {navOpen && (
+          <div
+            className="nav-scrim"
+            role="button"
+            tabIndex={-1}
+            aria-label="Close navigation"
+            onClick={() => setNavOpen(false)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setNavOpen(false) }}
           />
-        </div>
+        )}
+        <aside className="sb">
+          <div className="sb-head">
+            <img
+              src={collapsed ? '/logo/GAAhex-mark-animated.svg' : '/logo/GAAhex-logo-reversed.svg'}
+              alt="GAAhex"
+              className="wm"
+            />
+          </div>
 
-        <div className="sb-scroll">
-          {navSections.filter((sec) => !sec.adminOnly || !!user?.can_configure).map((sec) => {
-            const isOpen = openSections.has(sec.id)
-            if (sec.standalone) {
-              const synth: NavItemDef = { id: sec.id, label: sec.label, icon: sec.icon, viewType: sec.viewType }
+          <div className="sb-scroll">
+            {navSections.filter((sec) => !sec.adminOnly || canConfigure).map((sec) => {
+              const isOpen = openSections.has(sec.id)
+              if (sec.standalone) {
+                const synth: NavItemDef = { id: sec.id, label: sec.label, icon: sec.icon, viewType: sec.viewType }
+                return (
+                  <div key={sec.id} className="sb-sec">
+                    <button
+                      className={'sb-sec-btn' + (isItemActive(synth) ? ' on' : '')}
+                      onClick={(e) => navItemClick(synth, e)}
+                    >
+                      <sec.icon size={16} />
+                      <span>{sec.label}</span>
+                    </button>
+                  </div>
+                )
+              }
               return (
                 <div key={sec.id} className="sb-sec">
                   <button
-                    className={'sb-sec-btn' + (isItemActive(synth) ? ' on' : '')}
-                    onClick={(e) => navItemClick(synth, e)}
+                    className={'sb-sec-btn' + (isOpen ? ' open' : '')}
+                    onClick={(e) => toggleSection(sec.id, e)}
+                    aria-expanded={isOpen}
                   >
                     <sec.icon size={16} />
                     <span>{sec.label}</span>
+                    <ChevronRightIcon size={14} className="chev" />
                   </button>
+                  {isOpen && (
+                    <>
+                      {sec.items.length > 0 && (
+                        <div className="sb-items">
+                          {sec.items.map((item) => (
+                            <button
+                              key={item.id}
+                              className={'sb-item' + (isItemActive(item) ? ' on' : '')}
+                              onClick={(e) => navItemClick(item, e)}
+                            >
+                              <span className="ic"><item.icon size={15} /></span>
+                              <span>{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {sec.subsections?.map((sub) => {
+                        const isAdminRecords = sec.id === 'admin_panel' && sub.id === 'admin_records'
+                        const items: NavItemDef[] = isAdminRecords
+                          ? extraEntities.map((en) => ({
+                              id: `extra-${en.key}`,
+                              label: en.label_plural,
+                              icon: RowsIcon,
+                              viewType: 'entity',
+                              viewArgs: { slug: en.route_slug },
+                            }))
+                          : sub.items
+                        if (items.length === 0) return null
+                        const subKey = `${sec.id}/${sub.id}`
+                        const subOpen = openSections.has(subKey)
+                        return (
+                          <div key={sub.id} className="sb-sec" style={{ paddingLeft: 8 }}>
+                            <button
+                              className={'sb-sec-btn' + (subOpen ? ' open' : '')}
+                              onClick={(e) => toggleSection(subKey, e)}
+                              aria-expanded={subOpen}
+                              style={{ fontSize: 12, opacity: 0.85 }}
+                            >
+                              <sub.icon size={14} />
+                              <span>{sub.label}</span>
+                              <ChevronRightIcon size={12} className="chev" />
+                            </button>
+                            {subOpen && (
+                              <div className="sb-items">
+                                {items.map((item) => (
+                                  <button
+                                    key={item.id}
+                                    className={'sb-item' + (isItemActive(item) ? ' on' : '')}
+                                    onClick={(e) => navItemClick(item, e)}
+                                  >
+                                    <span className="ic"><item.icon size={15} /></span>
+                                    <span>{item.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </>
+                  )}
                 </div>
               )
-            }
-            return (
-              <div key={sec.id} className="sb-sec">
-                <button
-                  className={'sb-sec-btn' + (isOpen ? ' open' : '')}
-                  onClick={(e) => toggleSection(sec.id, e)}
-                  aria-expanded={isOpen}
-                >
-                  <sec.icon size={16} />
-                  <span>{sec.label}</span>
-                  <ChevronRightIcon size={14} className="chev" />
-                </button>
-                {isOpen && (
-                  <>
-                    {/* Direct leaf items */}
-                    {sec.items.length > 0 && (
-                      <div className="sb-items">
-                        {sec.items.map((item) => (
-                          <button
-                            key={item.id}
-                            className={'sb-item' + (isItemActive(item) ? ' on' : '')}
-                            onClick={(e) => navItemClick(item, e)}
-                          >
-                            <span className="ic"><item.icon size={15} /></span>
-                            <span>{item.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Nested sub-sections (one level deep). Used by Admin Panel to house
-                        Records (auto-injected from extraEntities) + System + Dev Internals + Studio. */}
-                    {sec.subsections?.map((sub) => {
-                      const isAdminRecords = sec.id === 'admin_panel' && sub.id === 'admin_records'
-                      const items: NavItemDef[] = isAdminRecords
-                        ? extraEntities.map((en) => ({
-                            id: `extra-${en.key}`,
-                            label: en.label_plural,
-                            icon: RowsIcon,
-                            viewType: 'entity',
-                            viewArgs: { slug: en.route_slug },
-                          }))
-                        : sub.items
-                      if (items.length === 0) return null  // hide empty subsections (e.g. Records when no custom entities)
-                      const subKey = `${sec.id}/${sub.id}`
-                      const subOpen = openSections.has(subKey)
-                      return (
-                        <div key={sub.id} className="sb-sec" style={{ paddingLeft: 8 }}>
-                          <button
-                            className={'sb-sec-btn' + (subOpen ? ' open' : '')}
-                            onClick={(e) => toggleSection(subKey, e)}
-                            aria-expanded={subOpen}
-                            style={{ fontSize: 12, opacity: 0.85 }}
-                          >
-                            <sub.icon size={14} />
-                            <span>{sub.label}</span>
-                            <ChevronRightIcon size={12} className="chev" />
-                          </button>
-                          {subOpen && (
-                            <div className="sb-items">
-                              {items.map((item) => (
-                                <button
-                                  key={item.id}
-                                  className={'sb-item' + (isItemActive(item) ? ' on' : '')}
-                                  onClick={(e) => navItemClick(item, e)}
-                                >
-                                  <span className="ic"><item.icon size={15} /></span>
-                                  <span>{item.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-      </aside>
-
-      <div className="main">
-        {/* P2: new topbar layout — [sidebar toggle][OrgIdentity] ...spacer... [Bell][UserMenu].
-            The three right-of-toggle slots render placeholder skeletons here; they get real
-            implementations in P3 (OrgIdentity), P4 (NotificationBell), P5 (UserMenu). */}
-        <header className="tb">
-          {/* Topbar quick tools — Toggle · Bell · Mail · Messenger · Calendar · Language · Theme, uniform spacing */}
-          <div className="tb-tools">
-            <button
-              className="tb-icon"
-              aria-label="Toggle sidebar"
-              onClick={() => {
-                if (window.matchMedia('(max-width: 900px)').matches) setNavOpen((o) => !o)
-                else setCollapsed((c) => !c)
-              }}
-            >
-              <PanelLeft size={18} />
-            </button>
-            <NotificationBell
-              token={token!}
-              entities={entities}
-              onOpen={(slug) => setView({ type: 'entity', slug })}
-              onViewAll={() => setView({ type: 'notifications' })}
-            />
-            <TopbarMenu
-              icon={<Mail size={18} />}
-              itemIcon={<Mail size={16} />}
-              title={t('common.email', 'Email')}
-              emptyLabel={t('email.empty', 'No new emails')}
-              viewAllLabel={t('common.viewAll', 'View all')}
-              onViewAll={() => setView({ type: 'messages' })}
-              items={[
-                { title: 'Մելքոնյան Շուշան', body: 'WiFi ծածկույթ 2-րդ հարկում', time: '2ժ' },
-                { title: 'Erebuni IT Solutions', body: 'Պայմանագրի երկարաձգում', time: '5ժ' },
-                { title: 'Հակոբյան Արամ', body: 'Նոր փաթեթի հարցում', time: '1օր' },
-                { title: 'Tumo Center', body: 'Enterprise կապի հարց', time: '1օր' },
-                { title: 'Սարգսյան Լիլիթ', body: 'Հաշիվ-ապրանքագիր #1042', time: '2օր' },
-              ]}
-            />
-            <TopbarMenu
-              icon={<MessageCircle size={18} />}
-              itemIcon={<MessageCircle size={16} />}
-              title={t('common.messenger', 'Messenger')}
-              emptyLabel={t('messenger.empty', 'No new messages')}
-              viewAllLabel={t('common.viewAll', 'View all')}
-              onViewAll={() => setView({ type: 'messages' })}
-              items={[
-                { title: 'Tigran Auto', body: 'Երբ կգաք տեղադրման?', time: '10ր' },
-                { title: 'Ավագյան Նարեկ', body: 'Շնորհակալություն 🙏', time: '1ժ' },
-                { title: 'Davit Group', body: 'Office link-ի կարգավիճակ?', time: '4ժ' },
-                { title: 'Մարտիրոսյան Գոռ', body: 'Վճարումը կատարված է', time: '1օր' },
-                { title: 'Aren Tech', body: 'Fiber quote-ի հարց', time: '2օր' },
-              ]}
-            />
-            <TopbarMenu
-              icon={<Calendar size={18} />}
-              itemIcon={<Calendar size={16} />}
-              title={t('common.calendar', 'Calendar')}
-              emptyLabel={t('calendar.empty', 'No upcoming events')}
-              viewAllLabel={t('common.viewAll', 'View all')}
-              onViewAll={() => setView({ type: 'calendar' })}
-              items={[
-                { title: 'Team sync', body: 'Weekly standup', time: '10:00' },
-                { title: 'Customer call', body: 'Tumo Center onboarding', time: '14:00' },
-                { title: 'Network maintenance', body: 'Scheduled downtime', time: 'Tomorrow' },
-              ]}
-            />
-            <LangMenu />
-            <button
-              className="tb-icon"
-              aria-label={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
-              title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+            })}
           </div>
 
-          <span className="spacer" />
-          <OrgIdentity token={token!} />
+        </aside>
 
-          {user && (
-            <UserMenu
-              user={user}
-              onSignOut={logout}
-            />
-          )}
-        </header>
-        <main id="main-content" className="view">
-          <ErrorBoundary>
-            {view.type === 'org'
-              ? <OrgView
-                  nodes={orgNodes}
-                  configVersion={pageConfigVersion}
-                  token={token}
-                  canConfigure={!!user?.can_configure}
-                  onRefresh={async () => setOrgNodes((await orgTree()).nodes)}
-                 
-                />
-              : view.type === 'home'
-                ? <HomeView
-                    token={token}
-                    capabilities={capabilities}
-                    onNavigate={(type, id) => {
-                      if (type === 'workitems') setView({ type: 'workitems' })
-                      else if (type === 'mytasks') setView({ type: 'mytasks' })
-                      else if (type === 'my-approvals') setView({ type: 'my-approvals' })
-                      else if (type === 'helpdesk') setView({ type: 'helpdesk', initialOpenTicketId: id })
-                      else if (type === 'entity' && id) setView({ type: 'entity', slug: id })
-                    }}
-                  />
-              : view.type === 'dashboards'
-                ? <DashboardView
-                    configVersion={pageConfigVersion}
-                    canConfigure={!!user?.can_configure}
-                    capabilities={capabilities}
-                    onNavigate={(target) => {
-                      if (target.type === 'subscriptions') setView({ type: 'subscriptions' })
-                      else if (target.type === 'invoices') setView({ type: 'invoices' })
-                      else if (target.type === 'helpdesk') setView({ type: 'helpdesk' })
-                      else if (target.type === 'workitems') setView({ type: 'workitems' })
-                    }}
-                  />
-              : view.type === 'analytics'
-                ? <AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
-              : view.type === 'lead-pipeline'
-                ? <PipelineView token={token} onOpenCustomer={openCustomer} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'customer'
-                ? <CustomerView token={token} customerId={view.id} onBack={() => setView(customerReturn)} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} onOpenInvoices={(initialStatus) => setView({ type: 'invoices', initialStatus })} />
-              : view.type === 'ask'
-                ? <AskGaaexView token={token} />
-              : view.type === 'messages'
-                ? <MessagesView token={token} capabilities={capabilities} />
-              : view.type === 'notifications'
-                ? <NotificationsView />
-              : view.type === 'profile'
-                ? <ProfileView />
-              : view.type === 'activity' || view.type === 'activity-feed'
-                ? <ActivityFeedView
-                    token={token}
-                    onNavigate={(target) => {
-                      if (target.type === 'helpdesk') {
-                        setView({ type: 'helpdesk', initialOpenTicketId: target.openTicketId })
-                      } else if (target.type === 'entity') {
-                        setView({ type: 'entity', slug: target.slug })
-                      }
-                    }}
-                  />
-              : view.type === 'my-approvals'
-                ? <MyApprovalsView token={token} />
-              : view.type === 'team-workspace'
-                ? <TeamWorkspaceView token={token} />
-              : view.type === 'network-topology'
-                ? <NetworkTopologyView token={token} />
-              : view.type === 'network-inventory'
-                ? <NetworkInventoryView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'provisioning'
-                ? <ProvisioningView token={token} />
-              : view.type === 'dispatch-board'
-                ? <DispatchBoardView token={token} />
-              : view.type === 'installation-board'
-                ? <InstallationBoardView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'coverage-gis'
-                ? <CoverageView token={token} />
-              : view.type === 'noc-dashboard'
-                ? <NocDashboardView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'saved-views'
-                ? <SavedViewsView token={token} onOpenEntity={(slug) => setView({ type: 'entity', slug })} />
-              : view.type === 'invoices'
-                ? <InvoicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} initialStatus={view.initialStatus} capabilities={capabilities} />
-              : view.type === 'payments'
-                ? <PaymentsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'payment-methods'
-                ? <PaymentMethodsView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'gateway'
-                ? <PaymentGatewayView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'subscriptions'
-                ? <SubscriptionsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'products'
-                ? <ProductsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'tariff-plans'
-                ? <TariffPlansView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'webhooks'
-                ? <WebhooksView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />
-              : view.type === 'services'
-                ? <ServicesView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} capabilities={capabilities} />
-              : view.type === 'usage'
-                ? <UsageView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'resource-pools'
-                ? <ResourcePoolsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'accounts'
-                ? <AccountsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'helpdesk'
-                ? <HelpdeskView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} capabilities={capabilities} initialStatus={view.initialStatus} openTicketId={view.initialOpenTicketId} />
-              : view.type === 'workitems'
-                ? <WorkItemsView token={token} canConfigure={!!user?.can_configure} configVersion={pageConfigVersion} />
-              : view.type === 'mytasks'
-                ? <MyTasksView token={token} canConfigure={!!user?.can_configure} onNavigate={(t) => { if (t === 'home') setView({ type: 'home' }) }} />
-              : view.type === 'customer-tasks'
-                ? <CustomerTasksView token={token} />
-              : view.type === 'calendar'
-                ? <CalendarView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} />
-              : view.type === 'settings'
-                ? <SettingsView token={token} />
-              : view.type === 'reports'
-                ? <ReportsView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'orders'
-                ? <OrdersView token={token} capabilities={capabilities} />
-              : view.type === 'revenue-assurance'
-                ? <RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'collections'
-                ? <CollectionsView token={token} canConfigure={!!user?.can_configure} capabilities={capabilities} />
-              : view.type === 'studio'
-                ? <StudioShell
-                    token={token}
-                    canConfigure={!!user?.can_configure}
-                    route={{ group: view.group, module: view.module, leaf: view.leaf }}
-                    onRoute={(r: StudioRoute) => setView({ type: 'studio', group: r.group, module: r.module, leaf: r.leaf })}
-                    onBack={backFromStudio}
-                  />
-              : view.type === 'coming-soon'
-                ? <ComingSoonView title={view.title} parent={view.parent} id={view.id} />
-              : view.type === 'module-stub'
-                ? <ModuleStubView moduleId={view.moduleId} moduleLabel={view.moduleLabel} />
-              : <EntityView token={token} slug={(view as { slug: string }).slug} onOpenCustomer={openCustomer} onOpenPipeline={() => setView({ type: 'lead-pipeline' })} capabilities={capabilities} onBack={() => setView({ type: 'org' })} canConfigure={!!user?.can_configure} />}
-          </ErrorBoundary>
-        </main>
+        <div className="main">
+          <header className="tb">
+            <div className="tb-tools">
+              <button
+                className="tb-icon"
+                aria-label="Toggle sidebar"
+                onClick={() => {
+                  if (window.matchMedia('(max-width: 900px)').matches) setNavOpen((o) => !o)
+                  else setCollapsed((c) => !c)
+                }}
+              >
+                <PanelLeft size={18} />
+              </button>
+              <NotificationBell
+                token={token!}
+                entities={entities}
+                onOpen={(slug) => navigate(`/entity/${slug}`)}
+                onViewAll={() => navigate('/notifications')}
+              />
+              <TopbarMenu
+                icon={<Mail size={18} />}
+                itemIcon={<Mail size={16} />}
+                title={t('common.email', 'Email')}
+                emptyLabel={t('email.empty', 'No new emails')}
+                viewAllLabel={t('common.viewAll', 'View all')}
+                onViewAll={() => navigate('/messages')}
+                items={[
+                  { title: 'Մելքոնյան Շուշան', body: 'WiFi ծածկույթ 2-րդ հարկում', time: '2ժ' },
+                  { title: 'Erebuni IT Solutions', body: 'Պայմանագրի երկարաձգում', time: '5ժ' },
+                  { title: 'Հակոբյան Արամ', body: 'Նոր փաթեթի հարցում', time: '1օր' },
+                  { title: 'Tumo Center', body: 'Enterprise կապի հարց', time: '1օր' },
+                  { title: 'Սարգսյան Լիլիթ', body: 'Հաշիվ-ապրանքագիր #1042', time: '2օր' },
+                ]}
+              />
+              <TopbarMenu
+                icon={<MessageCircle size={18} />}
+                itemIcon={<MessageCircle size={16} />}
+                title={t('common.messenger', 'Messenger')}
+                emptyLabel={t('messenger.empty', 'No new messages')}
+                viewAllLabel={t('common.viewAll', 'View all')}
+                onViewAll={() => navigate('/messages')}
+                items={[
+                  { title: 'Tigran Auto', body: 'Երբ կգաք տեղադրման?', time: '10ր' },
+                  { title: 'Ավագյան Նարեկ', body: 'Շնորհակալություն 🙏', time: '1ժ' },
+                  { title: 'Davit Group', body: 'Office link-ի կարգավիճակ?', time: '4ժ' },
+                  { title: 'Մարտիրոսյան Գոռ', body: 'Վճարումը կատարված է', time: '1օր' },
+                  { title: 'Aren Tech', body: 'Fiber quote-ի հարց', time: '2օր' },
+                ]}
+              />
+              <TopbarMenu
+                icon={<Calendar size={18} />}
+                itemIcon={<Calendar size={16} />}
+                title={t('common.calendar', 'Calendar')}
+                emptyLabel={t('calendar.empty', 'No upcoming events')}
+                viewAllLabel={t('common.viewAll', 'View all')}
+                onViewAll={() => navigate('/calendar')}
+                items={[
+                  { title: 'Team sync', body: 'Weekly standup', time: '10:00' },
+                  { title: 'Customer call', body: 'Tumo Center onboarding', time: '14:00' },
+                  { title: 'Network maintenance', body: 'Scheduled downtime', time: 'Tomorrow' },
+                ]}
+              />
+              <LangMenu />
+              <button
+                className="tb-icon"
+                aria-label={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
+                title={theme === 'dark' ? t('common.themeLight', 'Light theme') : t('common.themeDark', 'Dark theme')}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              >
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+
+            <span className="spacer" />
+            <OrgIdentity token={token!} />
+
+            {user && (
+              <UserMenu
+                user={user}
+                onSignOut={logout}
+              />
+            )}
+          </header>
+
+          <main id="main-content" className="view">
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/"                   element={<HomeView token={token} capabilities={capabilities} onNavigate={(type, id) => {
+                  if (type === 'workitems') navigate('/workitems')
+                  else if (type === 'mytasks') navigate('/mytasks')
+                  else if (type === 'my-approvals') navigate('/my-approvals')
+                  else if (type === 'helpdesk') navigate(id ? `/helpdesk?ticket=${encodeURIComponent(id)}` : '/helpdesk')
+                  else if (type === 'entity' && id) navigate(`/entity/${id}`)
+                }} />} />
+                <Route path="/org"                element={<OrgView nodes={orgNodes} configVersion={pageConfigVersion} token={token} canConfigure={canConfigure} onRefresh={async () => setOrgNodes((await orgTree()).nodes)} />} />
+                <Route path="/dashboards"         element={<DashboardView configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} onNavigate={(target) => {
+                  if (target.type === 'subscriptions') navigate('/subscriptions')
+                  else if (target.type === 'invoices') navigate('/invoices')
+                  else if (target.type === 'helpdesk') navigate('/helpdesk')
+                  else if (target.type === 'workitems') navigate('/workitems')
+                }} />} />
+                <Route path="/analytics"          element={<AnalyticsView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
+                <Route path="/lead-pipeline"      element={<PipelineView token={token} onOpenCustomer={openCustomer} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/ask"                element={<AskGaaexView token={token} />} />
+                <Route path="/messages"           element={<MessagesView token={token} capabilities={capabilities} />} />
+                <Route path="/notifications"      element={<NotificationsView />} />
+                <Route path="/profile"            element={<ProfileView />} />
+                <Route path="/activity-feed"      element={<ActivityFeedView token={token} onNavigate={(target) => {
+                  if (target.type === 'helpdesk') navigate(`/helpdesk?ticket=${encodeURIComponent(target.openTicketId ?? '')}`)
+                  else if (target.type === 'entity') navigate(`/entity/${target.slug}`)
+                }} />} />
+                <Route path="/activity"           element={<Navigate to="/activity-feed" replace />} />
+                <Route path="/my-approvals"       element={<MyApprovalsView token={token} />} />
+                <Route path="/team-workspace"     element={<TeamWorkspaceView token={token} />} />
+                <Route path="/network-topology"   element={<NetworkTopologyView token={token} />} />
+                <Route path="/network-inventory"  element={<NetworkInventoryView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/provisioning"       element={<ProvisioningView token={token} />} />
+                <Route path="/dispatch-board"     element={<DispatchBoardView token={token} />} />
+                <Route path="/installation-board" element={<InstallationBoardView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/coverage-gis"       element={<CoverageView token={token} />} />
+                <Route path="/noc-dashboard"      element={<NocDashboardView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/saved-views"        element={<SavedViewsView token={token} onOpenEntity={(slug) => navigate(`/entity/${slug}`)} />} />
+                <Route path="/payments"           element={<PaymentsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/payment-methods"    element={<PaymentMethodsView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/gateway"            element={<PaymentGatewayView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/subscriptions"      element={<SubscriptionsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/products"           element={<ProductsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/tariff-plans"       element={<TariffPlansView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/webhooks"           element={<WebhooksView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} onConfigure={() => setCfgPageKey('webhooks')} />} />
+                <Route path="/services"           element={<ServicesView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} capabilities={capabilities} />} />
+                <Route path="/usage"              element={<UsageView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/resource-pools"     element={<ResourcePoolsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/accounts"           element={<AccountsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/workitems"          element={<WorkItemsView token={token} canConfigure={canConfigure} configVersion={pageConfigVersion} />} />
+                <Route path="/mytasks"            element={<MyTasksView token={token} canConfigure={canConfigure} onNavigate={(t) => { if (t === 'home') navigate('/') }} />} />
+                <Route path="/customer-tasks"     element={<CustomerTasksView token={token} />} />
+                <Route path="/calendar"           element={<CalendarView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} />} />
+                <Route path="/settings"           element={<SettingsView token={token} />} />
+                <Route path="/reports"            element={<ReportsView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/orders"             element={<OrdersView token={token} capabilities={capabilities} />} />
+                <Route path="/revenue-assurance"  element={<RevenueAssuranceView token={token} configVersion={pageConfigVersion} canConfigure={canConfigure} capabilities={capabilities} />} />
+                <Route path="/collections"        element={<CollectionsView token={token} canConfigure={canConfigure} capabilities={capabilities} />} />
+                {/* Param-bearing routes use module-level adapters */}
+                <Route path="/invoices"           element={<InvoicesRouteAdapter />} />
+                <Route path="/helpdesk"           element={<HelpdeskRouteAdapter />} />
+                <Route path="/entity/:slug"       element={<EntityRouteAdapter />} />
+                <Route path="/customer/:id"       element={<CustomerRouteAdapter />} />
+                <Route path="/studio"             element={<StudioRouteAdapter />} />
+                <Route path="/coming-soon/:id"    element={<ComingSoonRouteAdapter />} />
+                <Route path="/module/:id"         element={<ModuleRouteAdapter />} />
+                <Route path="*"                   element={<Navigate to="/" replace />} />
+              </Routes>
+            </ErrorBoundary>
+          </main>
+        </div>
+
+        {cfgSlug && (
+          <ConfigureDrawer
+            token={token}
+            slug={cfgSlug}
+            entities={entities}
+            onClose={() => setCfgSlug(null)}
+            onSwitchPage={(slug) => {
+              navigate(slug === 'leads' ? '/lead-pipeline' : `/entity/${slug}`)
+              setCfgSlug(slug)
+            }}
+          />
+        )}
+
+        {cfgPageKey && (
+          <ConfigureDrawer
+            token={token}
+            pageKey={cfgPageKey}
+            entities={entities}
+            onClose={() => setCfgPageKey(null)}
+            onSaved={() => setPageConfigVersion((v) => v + 1)}
+          />
+        )}
+
+        <ProfileModal
+          open={accountModal === 'profile'}
+          onClose={() => setAccountModal(null)}
+          token={token}
+          name={user?.name ?? ''}
+          email={user?.email ?? ''}
+          avatarUrl={user?.avatar_url ?? null}
+          onAvatarChange={(avatar_url) => setUser((u) => (u ? { ...u, avatar_url } : u))}
+        />
+        <SecurityModal
+          open={accountModal === 'security'}
+          onClose={() => setAccountModal(null)}
+          token={token}
+        />
+        <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
+        <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
+        <WhatsNewModal open={accountModal === 'whatsnew'} onClose={() => setAccountModal(null)} />
       </div>
-
-      {cfgSlug && (
-        <ConfigureDrawer
-          token={token}
-          slug={cfgSlug}
-          entities={entities}
-          onClose={() => setCfgSlug(null)}
-          onSwitchPage={(slug) => {
-            setView(slug === 'leads' ? { type: 'lead-pipeline' } : { type: 'entity', slug })
-            setCfgSlug(slug)
-          }}
-        />
-      )}
-
-      {/* Page-config drawer for bespoke pages (Services): same shell, "Page settings" pane. */}
-      {cfgPageKey && (
-        <ConfigureDrawer
-          token={token}
-          pageKey={cfgPageKey}
-          entities={entities}
-          onClose={() => setCfgPageKey(null)}
-          onSaved={() => setPageConfigVersion((v) => v + 1)}
-        />
-      )}
-
-      {/* Account-menu modals (personal scope only). */}
-      <ProfileModal
-        open={accountModal === 'profile'}
-        onClose={() => setAccountModal(null)}
-        token={token}
-        name={user?.name ?? ''}
-        email={user?.email ?? ''}
-        avatarUrl={user?.avatar_url ?? null}
-        onAvatarChange={(avatar_url) => setUser((u) => (u ? { ...u, avatar_url } : u))}
-      />
-      <SecurityModal
-        open={accountModal === 'security'}
-        onClose={() => setAccountModal(null)}
-        token={token}
-      />
-      <ShortcutsModal open={accountModal === 'shortcuts'} onClose={() => setAccountModal(null)} />
-      <DocsModal open={accountModal === 'docs'} onClose={() => setAccountModal(null)} />
-      <WhatsNewModal open={accountModal === 'whatsnew'} onClose={() => setAccountModal(null)} />
-    </div>
+    </AppShellContext.Provider>
   )
 }
 
+// ─── ModuleStubView ───────────────────────────────────────────────────────────
+
 function ModuleStubView({ moduleId, moduleLabel }: { moduleId: string; moduleLabel: string }) {
-  // SPEC §1 modules that don't have a GAAhex view yet land here. Honest "coming soon" message,
-  // no scary "not enabled for this tenant" copy (that read as a config problem when it's just
-  // "this page hasn't been built yet").
   void moduleId
   return (
     <div className="view">

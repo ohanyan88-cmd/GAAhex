@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { ToastHost } from './components/Toast'
@@ -20,9 +21,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     {/* SM-1 — AuthProvider owns token + user + capabilities + entities + orgNodes.
         Views consume it via useAuth(); no more prop-drilling. */}
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
     {/* Overlay-family singletons — portal to <body>, so they work app-wide (incl. logged-out). */}
     <ToastHost />
     <ConfirmHost />
