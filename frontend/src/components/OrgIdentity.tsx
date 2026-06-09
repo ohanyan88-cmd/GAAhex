@@ -1,8 +1,9 @@
 // OrgIdentity — left-side topbar chip that lets a tenant admin edit the company name + logo
 // (single-tenant; this is NOT a tenant switcher). Backed by GET/PUT /api/tenant/settings,
 // reading the same `name` field that powers the rest of the app and the new `logo_url` column
-// (P3 migration f9ef47c3db77). Logo upload follows the avatar pattern in me.py — read the file
-// with FileReader and PUT the resulting `data:image/<mime>;base64,...` URL.
+// (P3 migration f9ef47c3db77). Logo upload posts multipart to POST /api/tenant/logo via bupload()
+// (same pattern as the avatar upload in /api/me/avatar). The returned URL is a served static path,
+// not a base64 blob — logo is no longer stored in the DB column as a data URL.
 //
 // Mirrors the kit OrgIdentity in design-system/ui_kits/portal/Shell.jsx — same `.org`/`.org-pop`
 // markup and behavior (chip → popover → save → toast). Outside-click + Escape close.
@@ -14,7 +15,7 @@ import { EditIcon, CheckIcon, CloseIcon } from './icons'
 import { Camera } from 'lucide-react'
 import { Button } from '../primitives'  // T-P3-7
 
-import { BASE } from '../lib/config'
+import { bupload, bput } from '../lib/billing'
 
 interface TenantSettings {
   name: string
@@ -37,7 +38,10 @@ export default function OrgIdentity() {
   const logoUrl = settings?.logo_url ?? null
   const [open, setOpen] = useState(false)
   const [draftName, setDraftName] = useState('')
+  // draftLogo: preview URL for display (object URL while a new file is selected; existing logo_url otherwise)
   const [draftLogo, setDraftLogo] = useState<string | null>(null)
+  // pendingFile: the raw File chosen by the user, waiting to be uploaded on save
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -62,6 +66,7 @@ export default function OrgIdentity() {
   function openEditor() {
     setDraftName(name)
     setDraftLogo(logoUrl)
+    setPendingFile(null)
     setOpen(true)
   }
 
@@ -80,28 +85,32 @@ export default function OrgIdentity() {
       toast.error('Logo too large (max 2MB)')
       return
     }
-    const r = new FileReader()
-    r.onload = () => setDraftLogo(typeof r.result === 'string' ? r.result : null)
-    r.readAsDataURL(f)
+    // Show an instant object-URL preview; the actual upload happens on save.
+    setPendingFile(f)
+    setDraftLogo(URL.createObjectURL(f))
   }
 
   async function save() {
     const next = draftName.trim() || 'Company'
     setSaving(true)
     try {
-      const res = await fetch(`${BASE}/api/tenant/settings`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token!}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: next, logo_url: draftLogo }),
-      })
-      if (!res.ok) {
-        const msg = await res.text().catch(() => '')
-        throw new Error(msg || `HTTP ${res.status}`)
+      // 1. If a new file was selected, upload it first via multipart POST.
+      if (pendingFile) {
+        const form = new FormData()
+        form.append('file', pendingFile)
+        await bupload<{ logo_url: string }>(token!, '/api/tenant/logo', form)
+        setPendingFile(null)
+      } else if (draftLogo === null && logoUrl !== null) {
+        // Logo was explicitly cleared — write null via settings PUT.
+        await bput(token!, '/api/tenant/settings', { logo_url: null })
       }
+
+      // 2. Save the company name (always; even a name-only edit lands here).
+      await bput(token!, '/api/tenant/settings', { name: next })
+
       toast.success('Company identity updated')
       setOpen(false)
-      // Re-fetch so the chip reflects what the server committed (and to surface server-side
-      // normalization, e.g. trimmed name).
+      // Re-fetch so the chip reflects what the server committed.
       reloadSettings()
     } catch (err) {
       toast.error(`Could not save: ${(err as Error).message}`)
@@ -131,7 +140,7 @@ export default function OrgIdentity() {
                 <Camera size={11} />
               </button>
               {draftLogo && (
-                <button type="button" className="user-card-av-remove" onClick={() => setDraftLogo(null)} title="Remove logo" aria-label="Remove logo">
+                <button type="button" className="user-card-av-remove" onClick={() => { setDraftLogo(null); setPendingFile(null) }} title="Remove logo" aria-label="Remove logo">
                   <CloseIcon size={10} />
                 </button>
               )}

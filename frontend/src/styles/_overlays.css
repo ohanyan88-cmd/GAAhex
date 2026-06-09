@@ -15,7 +15,8 @@
 .gx-dialog-head { display:flex; align-items:center; padding:14px 18px; border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
 
 /* D20 — Modal chrome classes (replaces static inline styles in Modal.tsx) */
-.gx-dialog-panel { display:flex; flex-direction:column; width:100%; }
+.gx-dialog-panel { display:flex; flex-direction:column; width:100%; max-height:calc(100vh - 48px); }
+.gx-dialog-panel--fullscreen { max-height:100%; }
 .gx-dialog-title-col { display:flex; flex-direction:column; gap:var(--gx-space-1); min-width:0; flex:1; }
 .gx-dialog-title { margin:0; font-size:var(--gx-text-md); font-weight:var(--gx-weight-semibold); color:var(--gx-text-1); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .gx-dialog-subtitle { font-size:var(--gx-text-11); color:var(--gx-text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -23,6 +24,14 @@
 .gx-dialog-body { padding:var(--gx-space-18) var(--gx-space-20); overflow-y:auto; flex:1; min-height:0; }
 .gx-dialog-footer { display:flex; gap:var(--gx-space-5); justify-content:flex-end; padding:var(--gx-space-6) var(--gx-space-20); border-top:1px solid var(--gx-border-subtle); background:var(--gx-surface-2); }
 .gx-confirm-message { margin:0; color:var(--gx-text-2); font-size:var(--gx-text-13); line-height:1.5; }
+
+/* D20 — Modal size modifier classes (replaces maxWidth inline styles in Modal.tsx).
+   Each maps to a constrained kit width matching the RecordModal/RecordDrawer scale. */
+.gx-dialog--sm { max-width:420px; }
+.gx-dialog--md { max-width:560px; }
+.gx-dialog--lg { max-width:640px; }
+.gx-dialog--xl { max-width:920px; }
+.gx-dialog--fullscreen { width:100%; height:100%; max-width:none; }
 
 /* toasts */
 .gx-toast-host { position:fixed; bottom:20px; right:20px; z-index:var(--gx-z-toast); display:flex; flex-direction:column; gap:10px; align-items:flex-end; }

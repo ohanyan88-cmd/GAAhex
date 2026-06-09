@@ -7,8 +7,10 @@ Tenant-scoped: a user reads/updates only their OWN tenant. Writes are gated on `
 NOTE: fixed paths under /api ("/api/tenant"), so register BEFORE records.router ("/api/{slug}").
 """
 import base64
+import os
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -148,6 +150,71 @@ async def update_settings(payload: dict, user: User = Depends(current_user), s: 
     await s.commit()
     await s.refresh(t)
     return _serialize(t)
+
+
+# ---- logo upload (file-based; replaces base64-in-column for the topbar chip) ----------------
+
+# Resolve the uploads/logos dir relative to this file's location (backend/app/routers/ → backend/).
+_UPLOADS_ROOT = Path(__file__).resolve().parent.parent.parent / "uploads" / "logos"
+
+# Map accepted MIME types to their canonical file extension.
+_LOGO_EXT = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
+
+
+@router.post("/logo")
+async def upload_logo(
+    file: UploadFile = File(...),
+    user: User = Depends(current_user),
+    s: AsyncSession = Depends(get_session),
+):
+    """Upload a company logo (multipart field `file`).
+
+    Validates: image/png, image/jpeg, image/gif, or image/webp only; max 2 MB.
+    Saves to backend/uploads/logos/{tenant_id}.{ext} (overwrites on re-upload so there
+    is never more than one logo file per tenant). Updates tenant.logo_url to the served
+    path and returns {"logo_url": "/uploads/logos/{tenant_id}.{ext}"}.
+    """
+    await _require_settings(s, user)
+
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    if content_type not in ALLOWED_LOGO_TYPES:
+        raise HTTPException(
+            400,
+            f"File must be a PNG, JPEG, GIF, or WebP image ({', '.join(sorted(ALLOWED_LOGO_TYPES))})",
+        )
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty file")
+    if len(data) > MAX_LOGO_BYTES:
+        raise HTTPException(400, "Logo too large (max 2MB)")
+
+    ext = _LOGO_EXT[content_type]
+    _UPLOADS_ROOT.mkdir(parents=True, exist_ok=True)
+
+    dest = _UPLOADS_ROOT / f"{user.tenant_id}.{ext}"
+
+    # Remove any previously-uploaded logo for this tenant (different extension).
+    for old in _UPLOADS_ROOT.glob(f"{user.tenant_id}.*"):
+        if old != dest:
+            try:
+                old.unlink()
+            except OSError:
+                pass
+
+    dest.write_bytes(data)
+
+    logo_url = f"/uploads/logos/{user.tenant_id}.{ext}"
+    t = await _tenant(s, user)
+    t.logo_url = logo_url
+    await workflow.emit(s, user.tenant_id, "UPDATE", "tenant", t.id, user.id, {"logo_url": "<file-upload>"})
+    await s.commit()
+    return {"logo_url": logo_url}
 
 
 # ---- theme (Studio AppearancePane) -----------------------------------------------------------

@@ -1,4 +1,4 @@
-import type { ReactNode, CSSProperties } from 'react'
+import type { ReactNode } from 'react'
 // D20 — static chrome classes live in _overlays.css (.gx-dialog-panel, .gx-dialog-title-col, etc.)
 import { useEffect, useId, useState } from 'react'
 import Overlay from './Overlay'
@@ -6,17 +6,6 @@ import { CloseIcon } from './icons'
 import { Button } from '../primitives'  // T-P3-7
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen'
-
-// Constrained kit widths — no more full-bleed `lg` with dead space on the right.
-// The kit RecordModal/RecordDrawer pattern caps detail panels at ~520–640px; we
-// follow the same scale here so every Modal caller benefits from one fix.
-const SIZE_MAX: Record<ModalSize, number | undefined> = {
-  sm: 420,
-  md: 560,
-  lg: 640,
-  xl: 920,
-  fullscreen: undefined,
-}
 
 // Modal — built on the Overlay primitive. Kit chrome: scrim backdrop, .gx-dialog panel,
 // .gx-dialog-head title row, scrollable body, optional footer row with border-top.
@@ -40,29 +29,21 @@ export function Modal({ open, onClose, title, subtitle, size = 'md', children, f
 }) {
   const titleId = useId()
   if (!open) return null
-  const maxW = SIZE_MAX[size]
-  // The outer .gx-dialog wrapper (from Overlay) has CSS `width:100%` which
-  // would blow out our constraint — explicitly cap it here so the dialog
-  // doesn't stretch full-bleed. Inner panel is just a flex column.
-  const wrapperStyle: CSSProperties = maxW
-    ? { width: '100%', maxWidth: maxW }
-    : { width: '100%', height: '100%' }
-  const panelStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    maxHeight: size === 'fullscreen' ? '100%' : 'calc(100vh - 48px)',
-    width: '100%',
-  }
+  // D20 — size constraint via CSS modifier classes (.gx-dialog--sm/md/lg/xl/fullscreen)
+  // defined in _overlays.css. No inline styles needed.
+  const dialogClass = `gx-dialog gx-dialog--${size}`
+  const panelClass = size === 'fullscreen'
+    ? 'gx-dialog-panel gx-dialog-panel--fullscreen'
+    : 'gx-dialog-panel'
   return (
     <Overlay
       onClose={onClose}
       backdropClassName="gx-scrim"
-      className="gx-dialog"
+      className={dialogClass}
       labelledBy={titleId}
-      style={wrapperStyle}
       bare
     >
-      <div className="gx-dialog-panel" style={panelStyle}>
+      <div className={panelClass}>
         <div className="gx-dialog-head">
           <div className="gx-dialog-title-col">
             <h3 id={titleId} className="gx-dialog-title">{title}</h3>

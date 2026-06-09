@@ -8,9 +8,13 @@ from dotenv import load_dotenv
 # be populated before `from .config import settings` triggers app.* imports below.
 load_dotenv()
 
+import os
+from pathlib import Path
+
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text, select
 
@@ -396,6 +400,14 @@ app.include_router(records.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)
 app.include_router(dashboards.router)
+
+# Static file serving — logo uploads (and any future upload categories).
+# The uploads dir lives at backend/uploads/ relative to this file (backend/app/main.py → backend/).
+# Created on demand by the logo-upload endpoint; we create it here too so the mount never 404s on
+# a fresh install before the first upload.
+_UPLOADS_DIR = Path(__file__).resolve().parent.parent / "uploads"
+_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_UPLOADS_DIR)), name="uploads")
 
 
 @app.get("/health")
