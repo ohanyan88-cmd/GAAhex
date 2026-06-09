@@ -26,7 +26,7 @@ import { PageShell, type KPISpec } from '../page-shell'
 type Status = { key: string; label: string; order: number; is_initial: boolean }
 type Transition = { from: string; to: string }
 type Def = { fields: Field[]; statuses: Status[]; transitions: Transition[] }
-type Lead = { id: string; status: string | null; name?: string; phone?: string; email?: string; source?: string; [k: string]: any }
+type Lead = { id: string; status: string | null; name?: string; phone?: string; email?: string; source?: string; ref?: string; [k: string]: any }
 type Score = { score: number; band: 'hot' | 'warm' | 'cold'; reasons: string[] }
 
 const SLUG = 'leads'
@@ -282,7 +282,7 @@ export default function LeadPipelineView({ onOpenCustomer, canConfigure = false,
                     return (
                       <div key={lead.id} className="kcard">
                         <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
-                          {lead.id?.slice(0, 12)}
+                          {lead.ref ?? lead.id?.slice(0, 12)}
                         </div>
                         <div style={{ fontSize: 'var(--gx-text-sm)', lineHeight: 1.45, marginBottom: 'var(--gx-space-5)' }}>
                           {lead.name || t('leads.unnamed', 'Unnamed lead')}
