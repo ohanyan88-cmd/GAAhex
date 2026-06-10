@@ -66,6 +66,7 @@ from .routers.digests import run_digests
 from .routers.helpdesk import run_sla_breach_sweep
 from .routers.payment_gateway import run_payment_reconcile
 from .routers.notifications import run_expired_sweep, run_retry_sweep
+from .services.mail_sync import sync_all_enabled
 
 log = logging.getLogger("gaahex.scheduler")
 
@@ -145,6 +146,9 @@ _JOBS = (
     ("notification.run_expired_sweep", lambda s, actor: run_expired_sweep(s, tenant_id=actor.tenant_id, actor=actor)),
     # Retry failed external deliveries; dead-letter after _MAX_DELIVERY_RETRIES.
     ("notification.run_retry_sweep",   lambda s, actor: run_retry_sweep(s, tenant_id=actor.tenant_id, actor=actor)),
+    # Mail module Phase B: pull new inbound mail for the tenant's accounts. Inert unless
+    # settings.mail_sync_enabled (the function self-gates), so dev/test/fresh-clone do nothing.
+    ("mail.sync_all",               lambda s, actor: sync_all_enabled(s, tenant_id=actor.tenant_id)),
 )
 
 

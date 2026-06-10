@@ -114,8 +114,65 @@
 .gx-comms .mail-row:hover { background:var(--gx-hover); }
 .gx-comms .mail-row.on { background:var(--gx-selected); border-left-color:var(--gx-primary); }
 .gx-comms .mail-row.unread { border-left-color:var(--gx-gold); }
+/* MessageList row internals (Phase C) — header/snippet/date columns, token-only. */
+.gx-comms .mail-list-head { display:flex; align-items:center; justify-content:space-between; gap:var(--gx-space-4); padding:var(--gx-space-6) var(--gx-space-7); border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface); flex-shrink:0; }
+.gx-comms .mail-list-title { font-family:var(--gx-font-display); font-size:var(--gx-text-13); font-weight:600; color:var(--gx-text-1); margin:0; letter-spacing:-.01em; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-comms .mail-list-count { color:var(--gx-text-3); font-family:var(--gx-font-mono); font-size:var(--gx-text-10); font-weight:400; }
+.gx-comms .mail-list-scroll { flex:1; min-height:0; overflow-y:auto; }
+.gx-comms .mail-row-top { display:flex; align-items:baseline; justify-content:space-between; gap:var(--gx-space-4); }
+.gx-comms .mail-row-from { font-size:var(--gx-text-13); color:var(--gx-text-2); font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-comms .mail-row.unread .mail-row-from { color:var(--gx-text-1); font-weight:600; }
+.gx-comms .mail-row-date { color:var(--gx-text-3); font-family:var(--gx-font-mono); font-size:var(--gx-text-10); flex-shrink:0; }
+.gx-comms .mail-row-subject { font-size:var(--gx-text-13); color:var(--gx-text-1); margin-top:var(--gx-space-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-comms .mail-row.unread .mail-row-subject { font-weight:600; }
+.gx-comms .mail-row-snippet { font-size:var(--gx-text-11); color:var(--gx-text-3); margin-top:var(--gx-space-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-comms .mail-row-icons { display:inline-flex; align-items:center; gap:var(--gx-space-3); color:var(--gx-text-3); flex-shrink:0; }
+.gx-comms .mail-row-icons .flagged { color:var(--gx-gold); }
+.gx-comms .mail-list-more { display:flex; justify-content:center; padding:var(--gx-space-6); border-top:1px solid var(--gx-border-subtle); }
 .gx-comms .mail-read { display:flex; flex-direction:column; min-height:0; background:var(--gx-bg); }
 .gx-comms .mail-read .tb-icon { width:32px; height:32px; }
+/* ThreadReader internals (Phase C) — header / body / attachments, token-only. */
+.gx-comms .mail-read-head { display:flex; flex-direction:column; gap:var(--gx-space-5); padding:var(--gx-space-7); border-bottom:1px solid var(--gx-border-subtle); background:var(--gx-surface); flex-shrink:0; }
+.gx-comms .mail-read-bar { display:flex; align-items:center; gap:var(--gx-space-3); }
+.gx-comms .mail-read-bar .spacer { flex:1; }
+.gx-comms .mail-read-subject { font-family:var(--gx-font-display); font-size:var(--gx-text-md); font-weight:600; letter-spacing:-.01em; color:var(--gx-text-1); margin:0; line-height:1.35; word-break:break-word; }
+.gx-comms .mail-read-meta { display:flex; flex-direction:column; gap:var(--gx-space-2); }
+.gx-comms .mail-read-meta-row { display:flex; align-items:baseline; gap:var(--gx-space-4); font-size:var(--gx-text-sm); line-height:1.45; }
+.gx-comms .mail-read-meta-label { color:var(--gx-text-3); font-size:var(--gx-text-10); min-width:42px; flex-shrink:0; text-transform:uppercase; letter-spacing:.05em; }
+.gx-comms .mail-read-meta-val { color:var(--gx-text-2); word-break:break-word; }
+.gx-comms .mail-read-meta-val .who { color:var(--gx-text-1); font-weight:500; }
+.gx-comms .mail-read-date { margin-left:auto; color:var(--gx-text-3); font-family:var(--gx-font-mono); font-size:var(--gx-text-10); white-space:nowrap; padding-left:var(--gx-space-4); }
+.gx-comms .mail-read .tb-icon.flagged { color:var(--gx-gold); background:var(--gx-gold-soft); }
+.gx-comms .mail-read .tb-icon.seen { color:var(--gx-success-fg); }
+.gx-comms .mail-read-scroll { flex:1; overflow-y:auto; padding:var(--gx-space-7) 20px; min-height:0; }
+.gx-comms .mail-body-text { white-space:pre-wrap; word-break:break-word; font-family:var(--gx-font-sans); font-size:var(--gx-text-13); line-height:1.6; color:var(--gx-text-1); margin:0; }
+.gx-comms .mail-body-html { font-size:var(--gx-text-13); line-height:1.6; color:var(--gx-text-1); word-break:break-word; }
+.gx-comms .mail-body-html img { max-width:100%; height:auto; }
+.gx-comms .mail-body-html a { color:var(--gx-info-fg); }
+.gx-comms .mail-body-empty { color:var(--gx-text-3); font-size:var(--gx-text-sm); font-style:italic; }
+.gx-comms .mail-images-bar { display:flex; align-items:center; gap:var(--gx-space-5); padding:var(--gx-space-4) var(--gx-space-6); margin-bottom:var(--gx-space-7); background:var(--gx-warning-soft); border:1px solid var(--gx-border-subtle); border-radius:var(--gx-radius-md); color:var(--gx-warning-fg); font-size:var(--gx-text-sm); }
+.gx-comms .mail-images-bar .spacer { flex:1; }
+.gx-comms .mail-attachments { display:flex; flex-wrap:wrap; gap:var(--gx-space-4); margin-top:18px; padding-top:var(--gx-space-7); border-top:1px solid var(--gx-border-subtle); }
+.gx-comms .mail-chip { display:inline-flex; align-items:center; gap:var(--gx-space-4); max-width:260px; padding:7px 11px; background:var(--gx-bg-subtle); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); color:var(--gx-text-1); font-family:var(--gx-font-sans); font-size:var(--gx-text-sm); cursor:pointer; transition:all var(--gx-dur-fast); text-align:left; }
+.gx-comms .mail-chip:hover:not(:disabled) { border-color:var(--gx-border-strong); background:var(--gx-surface-2); }
+.gx-comms .mail-chip:disabled { opacity:.55; cursor:default; }
+.gx-comms .mail-chip-ic { color:var(--gx-text-3); flex-shrink:0; display:inline-flex; }
+.gx-comms .mail-chip-body { display:flex; flex-direction:column; min-width:0; }
+.gx-comms .mail-chip-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gx-comms .mail-chip-meta { color:var(--gx-text-3); font-size:var(--gx-text-10); font-family:var(--gx-font-mono); }
+
+/* FolderSidebar chrome (Phase C) — left-pane header, account switcher, folder rows. Token-only. */
+.gx-comms .mail-folders-head { display:flex; align-items:center; gap:var(--gx-space-5); margin-bottom:var(--gx-space-6); }
+.gx-comms .mail-acct-ic { width:26px; height:26px; flex-shrink:0; border-radius:var(--gx-radius-md); background:var(--gx-primary-soft); color:var(--gx-info-fg); display:flex; align-items:center; justify-content:center; }
+.gx-comms .mail-acct-meta { display:flex; flex-direction:column; min-width:0; flex:1; }
+.gx-comms .mail-acct-name { font-size:var(--gx-text-sm); font-weight:600; color:var(--gx-text-1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gx-comms .mail-acct-addr { font-size:var(--gx-text-xs); color:var(--gx-text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gx-comms .mail-folders-switch { margin-bottom:var(--gx-space-6); }
+.gx-comms .mail-compose { width:100%; margin-bottom:var(--gx-space-6); justify-content:center; }
+.gx-comms .mail-folder .mail-folder-ic { display:inline-flex; align-items:center; flex-shrink:0; }
+.gx-comms .mail-folder .mail-folder-name { flex:1; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gx-comms .mail-folder .mail-folder-count { margin-left:auto; flex-shrink:0; }
+.gx-comms .mail-folders-empty { font-size:var(--gx-text-xs); color:var(--gx-text-3); text-align:center; padding:var(--gx-space-6); }
 
 /* full calendar */
 .gx-comms .cal-layout { flex:1; min-height:0; display:grid; grid-template-columns:240px 1fr; gap:14px; }
@@ -155,3 +212,34 @@
   .gx-comms .mail-folders, .gx-comms .mail-list { display:none; }
   .gx-comms .cal-layout { grid-template-columns:1fr; }
 }
+
+/* =========================================================================
+   Compose / reply / forward (ComposeModal + RecipientField). These render
+   inside the <Modal/> body PORTAL (document.body), so they are NOT scoped
+   under `.gx-comms` — they own a self-contained `.mail-compose*` namespace.
+   D20: every value is a --gx-* token, no inline hex/px.
+   ========================================================================= */
+.mail-compose { display:flex; flex-direction:column; gap:var(--gx-space-7); }
+.mail-compose-account { display:flex; flex-direction:column; gap:var(--gx-space-3); }
+.mail-compose-label { font-size:var(--gx-text-11); font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--gx-text-3); }
+.mail-compose-select { height:34px; padding:0 var(--gx-space-5); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); background:var(--gx-surface-2); color:var(--gx-text-1); font-family:var(--gx-font-sans); font-size:var(--gx-text-13); cursor:pointer; }
+.mail-compose-select:focus-visible { outline:2px solid var(--gx-interactive); outline-offset:1px; }
+.mail-compose-body { min-height:220px; resize:vertical; padding:var(--gx-space-6); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); background:var(--gx-surface-2); color:var(--gx-text-1); font-family:var(--gx-font-sans); font-size:var(--gx-text-13); line-height:1.55; }
+.mail-compose-body:focus-visible { outline:2px solid var(--gx-interactive); outline-offset:1px; }
+.mail-compose-attach { display:flex; flex-direction:column; gap:var(--gx-space-4); }
+.mail-compose-attach-list { display:flex; flex-wrap:wrap; gap:var(--gx-space-3); }
+.mail-compose-attach-chip { display:inline-flex; align-items:center; gap:var(--gx-space-3); height:26px; padding:0 var(--gx-space-3) 0 var(--gx-space-5); border:1px solid var(--gx-border); border-radius:var(--gx-radius-full); background:var(--gx-bg-subtle); color:var(--gx-text-2); font-size:var(--gx-text-11); max-width:240px; }
+.mail-compose-attach-chip > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mail-compose-attach-x { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border:none; background:none; color:var(--gx-text-3); border-radius:var(--gx-radius-sm); cursor:pointer; flex-shrink:0; }
+.mail-compose-attach-x:hover { background:var(--gx-hover); color:var(--gx-danger-fg); }
+
+/* RecipientField — chip input. */
+.mail-recip { display:flex; flex-wrap:wrap; align-items:center; gap:var(--gx-space-3); min-height:34px; padding:var(--gx-space-3) var(--gx-space-4); border:1px solid var(--gx-border); border-radius:var(--gx-radius-md); background:var(--gx-surface-2); }
+.mail-recip:focus-within { outline:2px solid var(--gx-interactive); outline-offset:1px; }
+.mail-recip-chip { display:inline-flex; align-items:center; gap:var(--gx-space-3); height:24px; padding:0 var(--gx-space-2) 0 var(--gx-space-4); border:1px solid var(--gx-border); border-radius:var(--gx-radius-full); background:var(--gx-primary-soft); color:var(--gx-info-fg); font-size:var(--gx-text-11); max-width:100%; }
+.mail-recip-chip.invalid { background:var(--gx-danger-soft); color:var(--gx-danger-fg); border-color:var(--gx-danger); }
+.mail-recip-chip > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mail-recip-chip-x { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border:none; background:none; color:currentColor; border-radius:var(--gx-radius-sm); cursor:pointer; flex-shrink:0; opacity:.7; }
+.mail-recip-chip-x:hover { opacity:1; }
+.mail-recip-input { flex:1 1 120px; min-width:80px; height:24px; border:none; background:none; color:var(--gx-text-1); font-family:var(--gx-font-sans); font-size:var(--gx-text-13); outline:none; }
+.mail-recip-input::placeholder { color:var(--gx-text-3); }

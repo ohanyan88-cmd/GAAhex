@@ -30,6 +30,7 @@ from .report import ReportDef
 from .order import Order, OrderItem
 from .outbound import OutboundMessage
 from .webhook import WebhookDef, WebhookDelivery
+from .mail import MailAccount, MailFolder, MailMessage, MailAttachment
 from .apikey import ApiKey
 from .service import Service, ServiceResource
 from .interaction import Interaction
@@ -96,6 +97,7 @@ __all__ = [
     "Product", "ReportDef",
     "Order", "OrderItem",
     "OutboundMessage", "WebhookDef", "WebhookDelivery",
+    "MailAccount", "MailFolder", "MailMessage", "MailAttachment",
     "ApiKey",
     "Service", "ServiceResource", "Interaction",
     "ResourcePool", "PoolAllocation", "UsageRecord",

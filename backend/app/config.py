@@ -34,6 +34,23 @@ class Settings(BaseSettings):
     # WEBHOOK_ALLOW_PRIVATE=true only in a trusted network that legitimately needs internal webhooks.
     webhook_allow_private: bool = False
 
+    # ─── Mail module (per-tenant email client — MAILBOX-MODULE-PLAN.md) ───────
+    # All default OFF so a fresh clone / CI boot is fully inert: no IMAP socket, no sync task.
+    # Per-tenant SMTP/IMAP credentials live on the `mail_account` row (Fernet-encrypted), NOT here —
+    # these are only the module-level kill-switches + sync tuning.
+    feature_mail_enabled: bool = False        # mounts /api/mail/* behavior; OFF = module inert
+    mail_sync_enabled: bool = False           # Phase B: IMAP inbound sync worker on/off
+    mail_sync_poll_seconds: int = 120         # poll cadence per account (IDLE used opportunistically)
+    mail_sync_fetch_batch: int = 200          # max messages fetched per sync chunk (memory bound)
+    mail_sync_max_message_bytes: int = 25 * 1024 * 1024  # > this → headers-only (no body/attachment pull)
+
+    # GXL cross-record guard reach (M1 Phase 1.5 — sealed GXL Extension addendum §9 Tier-2 rollback).
+    # Default ON: a workflow guard may dereference one hop into a linked record (`account.balance_due`).
+    # Flip OFF (FEATURE_GXL_CROSS_RECORD_ENABLED=false) as an immediate kill-switch if the resolver
+    # misbehaves in prod — any guard with cross-record reach is then rejected (fail-closed); existing
+    # local-field guards keep working unchanged.
+    feature_gxl_cross_record_enabled: bool = True
+
     # ─── S4 Stage 2: Portal authentication mode (default-OFF cookie, prod-required) ────
     # Controls how `/portal/auth/*` issues and validates the customer-facing access token.
     #   "header" — legacy bearer-only flow (Authorization: Bearer <jwt>). DEV-DEFAULT for

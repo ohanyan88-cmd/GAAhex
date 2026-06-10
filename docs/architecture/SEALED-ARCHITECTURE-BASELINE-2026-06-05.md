@@ -751,7 +751,7 @@ Per I10, the architecture trail is append-only. As successor sealed baselines ar
 authored, they're linked here. This is the **one** edit channel this file accepts
 after the seal — every other change opens a new file.
 
-- **`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`** *(DRAFT SHELL — pending Phase 1.5 design review)* — addendum widening the WorkItem-movement engine's GXL vocabulary to support one-hop cross-record workflow guards. Status flips to SEALED when its §10 acceptance checklist completes.
+- **`SEALED-ARCHITECTURE-BASELINE-2026-06-05-GXL-EXTENSION.md`** *(SEALED 2026-06-10)* — addendum widening the WorkItem-movement engine's GXL vocabulary to support one-hop cross-record workflow guards (`account.balance_due == 0`). All 7 §10 acceptance boxes complete: KT-GXL-1 green in `backend` + `backend-rls`, compatibility corpus passing, parser hard-rejects aggregates/multi-hop/calls (GXL-F1..F5). Adds invariants GXL-I1..I4; preserves I1–I10 of this baseline.
 
 ## Resolved technical debt
 

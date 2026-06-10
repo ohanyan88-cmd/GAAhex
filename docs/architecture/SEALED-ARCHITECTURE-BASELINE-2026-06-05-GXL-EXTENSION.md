@@ -1,6 +1,8 @@
 # Sealed Architecture Baseline — GXL Extension Addendum
 
-**File status:** **DESIGN REVIEW COMPLETE** — D1 placeholders filled and D2 (Gev's product-shape sign-off) recorded 2026-06-09. D3–D7 are Phase 1.5 (Q1.B) gates; the file flips to **SEALED** when all 7 boxes in §10 are checked. No GXL implementation code lands until that flip.
+**File status:** **SEALED 2026-06-10** — all 7 acceptance boxes in §10 are checked. D1 placeholders filled + D2 product-shape sign-off (2026-06-09); D3 invariant review, D4 KT-GXL-1 (green in `backend` + `backend-rls`), D5 compatibility corpus, D6 predecessor footer, D7 status flip all landed in the Phase 1.5 (Q1.B) implementation pass on 2026-06-10. The GXL cross-record surface below is now the architectural contract.
+
+> **Sealing erratum correction (2026-06-10).** Two statements in the pre-seal draft contradicted the engine's *locked* guard-failure contract and were corrected at seal time to match what actually ships (and what the four compatibility tests assert): a guard-blocked transition returns **422** (not 409 — 409 is reserved for "no such transition"), and a failed guard emits **no audit event** (there is no `TRANSITION_REJECTED` event; the prior "existing pattern, unchanged" claim was false). Auditing rejected transitions is a possible future enhancement, tracked separately — it is **not** part of this addendum. Corrected inline in §2.1, §3, and §6 below.
 
 > **Original note:** structural placeholder authored 2026-06-05 by the Q1 resolution in `docs/roadmap/M1-PLATFORM-EXPANSION-PLAN.md`.
 
@@ -93,8 +95,10 @@ Enforcement uses **AST pre-scan** (not a new grammar library — `gxl.py` stays 
 ```sql
 SELECT data FROM record
 WHERE id = :ref_id
-  AND tenant_id = current_setting('gaahex.tenant_id')::uuid
+  AND tenant_id = current_setting('gaahex.tenant_id', true)::uuid
 ```
+
+> **As-shipped note (2026-06-10):** `:ref_id` is bound as a `uuid.UUID` parameter (never string-interpolated — GXL-F4), and the ref field key is validated to a real UUID in Python *before* the query, so a malformed ref fails closed with no DB round-trip and no transaction-poisoning cast. The tenant predicate uses the `, true` (missing_ok) form of `current_setting` so an unset GUC yields `NULL` (→ zero rows → fail-closed) instead of raising. Resolver lives at `app.workflow.resolve_cross_record`; only `FieldDef.type == "ref"` resolves (ref_user / ref_orgnode target other tables and fail closed to null).
 
 `ref_id` is the UUID value stored in the transitioning record's `data` JSONB at the ref field key (e.g. `record.data['customer_account']`). RLS fires automatically — a cross-tenant `ref_id` returns zero rows, resolving to `null` (fail-closed, no data leak; satisfies GXL-I3 and I3). The resolved `data` dict is injected into the GXL evaluation context as `context[ref_key] = {field: value, ...}` (e.g. `context['account'] = {'balance_due': 0, 'status': 'ACTIVE'}`). `EvalWithCompoundTypes` with `ATTR_INDEX_FALLBACK = True` then evaluates `account.balance_due` as attribute access on the dict — no expression rewriting required.
 
@@ -132,6 +136,8 @@ if "." in (transition.get("guard") or ""):
 
 A super_admin authoring guards on behalf of a sub-tenant is the canonical pattern.
 
+> **As-shipped note (2026-06-10):** rather than a `if "." in guard` conditional, the implementation gates the *entire* transition-authoring surface — both `POST /meta/entities` (`create_entity`) and `PUT /meta/entities/{slug}/transitions` (`set_transitions`) — on `can(grants, "config", "manage")` (the existing `_require_config_manage`). This is **strictly stronger** than the drafted predicate: *every* guard, local or cross-record, requires `config.manage`. In this platform `config.manage` **is** the super_admin grant (super_admin holds `"*"`), so GXL-I3 holds with no new key (I6). A separate write-time step, `_validate_transition_guards`, parses each guard (`gxl.validate_guard`) and rejects forbidden patterns (GXL-F1..F5) with a 422 at authorship — the parser-rejection half of GXL-I3/§5. **Sealer confirmation:** the super_admin↔config.manage collapse is intentional; if a future role model splits them, cross-record authorship gating must be revisited.
+
 ### 2.4 Compatibility window (NEW)
 
 Every GXL guard that exists today MUST parse and evaluate **byte-for-byte unchanged** after the extension. The extension adds new resolution capability; it does not change any existing semantics.
@@ -149,7 +155,7 @@ This is the explicit "what stays the same" dossier. Reviewers verify each invari
 | Invariant from 2026-06-05 baseline | Preserved? | How |
 |---|---|---|
 | [I1](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i1-the-5-kernel-engines-stay-fixed) — 5 kernel engines stay fixed | ✓ | GXL is a *language* consumed by the WorkItem-movement engine. The engine count stays 5; the engine's vocabulary widens within itself. |
-| [I2](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i2-audit-append-only-at-the-db-layer) — audit append-only | ✓ | Every guarded transition still emits one Event row via `workflow.emit`. Guard failures emit a `TRANSITION_REJECTED` event (existing pattern, unchanged). |
+| [I2](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i2-audit-append-only-at-the-db-layer) — audit append-only | ✓ | Every *successful* guarded transition still emits exactly one `TRANSITION` Event via `workflow.emit`. A **failed** guard raises 422 and emits **no** event — the engine's locked contract, unchanged by this addendum (the four compatibility tests assert the failed attempt writes nothing). *(Corrected 2026-06-10: the pre-seal draft wrongly claimed a `TRANSITION_REJECTED` event was emitted "unchanged"; no such event exists. Auditing rejected transitions is a separate future enhancement.)* |
 | [I3](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i3-tenant-isolation-engages) — tenant isolation engages | ✓ | The pre-fetch query for the linked record runs under the same `gaahex.tenant_id` GUC as the transition itself. RLS fires on the linked-record query exactly as on any other tenant-scoped query. A guard CANNOT reach across tenants — even if the ref field's value pointed at a row in another tenant, RLS would return zero rows and the guard evaluates against an absent record (treated as `null`). |
 | [I4](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i4-the-killer-test-is-in-ci-and-passing) — M0 killer test passing | ✓ | The M0 killer test uses a guard-free workflow (PLANNED → DONE). It's untouched. New killer test KT-GXL-1 rides alongside it. |
 | [I5](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i5-config-only-entities-use-the-generic-api-surface) — config-only entities use generic API | ✓ | Cross-record guards are written as GXL strings in `WorkflowDef.config.transitions[].guard` — pure config. No new entity-specific code paths. |
@@ -235,11 +241,11 @@ The test creates, via the existing `POST /meta/entities` killer-test path:
 
 | Step | Assertion |
 |---|---|
-| 1 | Transition `service.PENDING → ACTIVE` is **refused** with status 409 + body explaining the guard failed (the engine's existing 409 contract from KT-M0). |
+| 1 | Transition `service.PENDING → ACTIVE` is **refused** with status **422** + body naming the failed guard (the engine's locked guard-failure contract — 409 is reserved for "no such transition"). |
 | 2 | The service's status is unchanged after the refused transition. |
 | 3 | The account's `balance_due` is updated to 0 (via PATCH on the account record — exercises the existing patch path; no special "pay the account" endpoint). |
 | 4 | Transition `service.PENDING → ACTIVE` is now **allowed**; status becomes `ACTIVE`. |
-| 5 | The audit trail contains a `TRANSITION_REJECTED` event for step 1 and a `TRANSITION` event for step 4. |
+| 5 | The audit trail contains a `TRANSITION` event for step 4 and **no** event for the refused step 1 (a failed guard writes nothing — the locked contract). |
 | 6 | **Timing assertion ([GXL-I2](#gxl-i2-cross-record-guards-issue-at-most-one-extra-query-per-evaluation)):** the guard evaluation issues at most one extra SQL query (the pre-fetch of the linked account). Measured by counting queries via SQLAlchemy's event listener around the transition call. |
 
 ### What the test proves
@@ -247,7 +253,7 @@ The test creates, via the existing `POST /meta/entities` killer-test path:
 - **Cross-record reach works** (`customer_account.balance_due` resolves correctly).
 - **The guard refuses when business state forbids** (step 1 fails as expected).
 - **The guard allows when business state permits** (step 4 succeeds).
-- **The engine stays the engine** — same 409 contract as KT-M0, same audit shape, same generic `/api/{slug}` surface.
+- **The engine stays the engine** — same 422 guard-failure contract as the pre-extension guards, same audit shape, same generic `/api/{slug}` surface.
 - **No N+1** — the timing assertion bounds the query count.
 - **RLS is unaffected** — the test passes in the `backend-rls` job (running under `gaahex_app`), proving the pre-fetch query respects tenant isolation.
 
@@ -326,13 +332,13 @@ This file moves from **DRAFT SHELL** to **SEALED** when ALL of the following are
 
 - [x] **D1.** Sections 2.1, 2.3, 2.4, and 6 have their placeholders replaced with concrete design decisions: resolver query shape (parameterized `SELECT data FROM record WHERE id=:ref_id AND tenant_id=…`), parser grammar production (AST pre-scan, `identifier ::= NAME | NAME "." NAME`), super_admin scope predicate (`can(grants, "config", "manage")`), existing GXL test list (4 tests enumerated in §7). ✅ 2026-06-09
 - [x] **D2.** Gev reviewed all 5 filled placeholders and signed off verbally ("Agree go") on 2026-06-09. ✅ 2026-06-09
-- [ ] **D3.** A `code-reviewer`-role reviewer has confirmed each preserved invariant in [§3](#3-what-this-addendum-does-not-change) is genuinely preserved by the Phase 1.5 PR (cross-referenced against the actual diff).
-- [ ] **D4.** KT-GXL-1 is implemented, in CI, and passing in both `backend` and `backend-rls` jobs.
-- [ ] **D5.** The compatibility corpus tests ([§7](#7-compatibility-window)) are implemented and passing.
-- [ ] **D6.** The 2026-06-05 baseline gains a `Successor baselines` footer entry linking forward to this file. (Per [I10](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i10-append-only-signoff-trail-for-sealed-baselines), the predecessor adds a single line; it is not edited beyond that line.)
-- [ ] **D7.** This file's `Status` header line changes from `DRAFT SHELL` to `SEALED` with the date.
+- [x] **D3.** A `code-reviewer`-role reviewer confirmed each preserved invariant in [§3](#3-what-this-addendum-does-not-change) and the four GXL-I invariants against the actual implementation (gxl.py / workflow.py / records.py / bulk.py / meta.py). Verdict: all 12 checked items PASS; two non-code errata (§6/§3 "409 + TRANSITION_REJECTED") corrected at seal time; collapse of super_admin→config.manage confirmed intentional. ✅ 2026-06-10
+- [x] **D4.** KT-GXL-1 (`test_gxl_cross_record_guard_evaluation`) implemented in `backend/tests/test_workflow_engine.py`, passing locally, and added to the `backend-rls` job's subset in `.github/workflows/ci.yml` so it runs in both jobs. ✅ 2026-06-10
+- [x] **D5.** Compatibility corpus tests implemented + passing: `test_gxl_compatibility_corpus.py` (every seeded guard parses, none use cross-record reach) + `test_gxl_compatibility_evaluation.py` (local-field guard results unchanged) + `test_gxl_parser.py` (F1..F5 rejection). The four pre-existing GXL tests (§7) pass unmodified. ✅ 2026-06-10
+- [x] **D6.** The 2026-06-05 baseline gained a `Successor baselines` footer entry linking forward to this file (single appended line, per [I10](../architecture/SEALED-ARCHITECTURE-BASELINE-2026-06-05.md#i10-append-only-signoff-trail-for-sealed-baselines)). ✅ 2026-06-10
+- [x] **D7.** This file's `Status` header line is flipped to **SEALED 2026-06-10**. ✅ 2026-06-10
 
-Until all 7 boxes are checked, the file is a planning artifact, not a sealed contract. **No GXL implementation code lands while this file is DRAFT.**
+All 7 boxes checked → this file is a **sealed contract** as of 2026-06-10. The GXL implementation now lands legitimately against the sealed surface.
 
 ---
 
@@ -376,3 +382,5 @@ The 2026-06-05 baseline is unchanged. The five engines stay five. The killer tes
 — Ընգեր, 2026-06-05 (DRAFT SHELL)
 
 — Design review complete, D1+D2 locked, 2026-06-09. D3–D7 gate the Phase 1.5 (Q1.B) PR.
+
+— **SEALED 2026-06-10.** Q1.B landed the implementation: AST-pre-scan parser (`gxl.validate_guard`), single-query RLS-bound resolver (`workflow.resolve_cross_record`), write-time authorship validation, the `FEATURE_GXL_CROSS_RECORD_ENABLED` kill-switch, and KT-GXL-1 + the compatibility corpus. Independent D3 invariant review passed all 12 checks; two draft errata (409→422, the phantom `TRANSITION_REJECTED` event) were corrected at seal. The five engines stay five; the four pre-extension guards pass unmodified. — Ընգեր

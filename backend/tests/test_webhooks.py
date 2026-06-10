@@ -135,15 +135,14 @@ async def test_webhook_tenant_isolation(client, admin):
     assert (await client.get(f"/api/webhooks/{foreign_id}", headers=admin)).status_code == 404
 
 
-# ===================== known bug (reported) =====================
+# ===================== BUG-WHK1 — FIXED 2026-06-10 =====================
+# Was xfail: DELETE /api/webhooks/{id} 500'd once the webhook had any WebhookDelivery, because
+# the FK webhook_delivery.webhook_id had no ON DELETE action. Fixed by adding ON DELETE CASCADE
+# (model `ondelete="CASCADE"` + migration b3c4d5e6f7a8). Now a mandatory green path.
 
-@pytest.mark.xfail(reason="BUG: DELETE /api/webhooks/{id} fails once the webhook has any "
-                          "WebhookDelivery — the FK webhook_delivery.webhook_id has no ON DELETE "
-                          "CASCADE and delete_webhook doesn't remove deliveries first.",
-                   strict=False, raises=Exception)
 async def test_delete_webhook_with_deliveries(client, admin):
     wid = (await client.post("/api/webhooks", headers=admin, json={
         "name": "hookDel", "url": DEAD_URL, "events": ["test"]})).json()["id"]
     await client.post(f"/api/webhooks/{wid}/test", headers=admin, json={"event_type": "test"})  # creates a delivery
-    # desired behavior: a webhook can be deleted even after it has fired
+    # a webhook can be deleted even after it has fired — deliveries cascade away.
     assert (await client.delete(f"/api/webhooks/{wid}", headers=admin)).status_code == 204

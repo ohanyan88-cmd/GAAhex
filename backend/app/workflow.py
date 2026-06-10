@@ -5,10 +5,13 @@ go ONLY through transitions (not free PATCH), each gated by a GXL guard. On succ
 emitted, the transition's on-enter `actions` run (fail-soft), and — if the transition is flagged for
 `approval` — the move is parked as a PendingApproval until an eligible approver decides it.
 """
+import uuid
+
 from simpleeval import EvalWithCompoundTypes, NameNotDefined
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .config import settings
 from .models import WorkflowDef, FieldDef, Event, Record, OrgNode, RoleDef, Assignment
 from .models.approval import PendingApproval
 from .access import _scope_ok, _has_perm
@@ -38,6 +41,69 @@ async def guard_context(s: AsyncSession, entity_id, record: Record) -> dict:
         ctx[f.key] = (record.data or {}).get(f.key)
     ctx["status"] = record.status
     return ctx
+
+
+# FieldDef.type values whose stored value is a UUID pointing at a row in the generic `record`
+# table — the only field types that resolve cross-record. `ref_user` / `ref_orgnode` target the
+# app_user / org_node tables (not `record`) and are out of scope for the sealed GXL extension, so
+# a guard reaching through them fails closed to None.
+REF_FIELD_TYPES = frozenset({"ref"})
+
+
+async def resolve_cross_record(s: AsyncSession, entity_id, record: Record, guard: str | None, ctx: dict) -> dict:
+    """Widen a guard's evaluation context with one-hop linked-record state (sealed GXL addendum §2.1).
+
+    For each ref key the `guard` reaches across (validated single-hop by `gxl.validate_guard`), this
+    pre-fetches the linked `record` row ONCE (GXL-I2) under the caller's RLS-bound session (GXL-I3 /
+    baseline I3 — RLS filters cross-tenant ref values to zero rows) and binds the row's `data` dict
+    into `ctx[ref_key]`. simpleeval's ATTR_INDEX_FALLBACK then evaluates `account.balance_due` as
+    `account['balance_due']`. A missing / null / cross-tenant / malformed ref fails closed to None.
+
+    Returns `ctx` unchanged when the guard has no cross-record reach. Raises `gxl.GXLError` when the
+    guard violates the sealed grammar (GXL-F1..F5) — the caller surfaces that as a 422.
+    """
+    from . import gxl
+    refs = gxl.validate_guard(guard)
+    if not refs:
+        return ctx
+    if not settings.feature_gxl_cross_record_enabled:
+        # Tier-2 rollback kill-switch (addendum §9): reject any cross-record reach, fail-closed.
+        raise gxl.GXLError("cross-record guards are disabled (FEATURE_GXL_CROSS_RECORD_ENABLED=false)")
+
+    ref_fields = {
+        f.key
+        for f in (await s.execute(
+            select(FieldDef).where(FieldDef.entity_def_id == entity_id)
+        )).scalars().all()
+        if f.type in REF_FIELD_TYPES and f.key in refs
+    }
+    out = dict(ctx)
+    data = record.data or {}
+    for key in refs:
+        if key not in ref_fields:
+            out[key] = None                      # not a declared ref field → fail-closed
+            continue
+        raw = data.get(key)
+        try:
+            ref_id = uuid.UUID(str(raw)) if raw else None
+        except (ValueError, TypeError, AttributeError):
+            ref_id = None                        # malformed ref value → fail-closed (no DB call)
+        if ref_id is None:
+            out[key] = None
+            continue
+        # Parameterised, RLS-bound pre-fetch (addendum §2.1). The tenant scope is the session GUC —
+        # RLS enforces it under gaahex_app; the explicit predicate makes isolation visible in the
+        # non-RLS backend job too. The ref VALUE is a bound parameter (a uuid), never interpolated.
+        row = (await s.execute(
+            text(
+                "SELECT data FROM record "
+                "WHERE id = :rid "
+                "AND tenant_id = current_setting('gaahex.tenant_id', true)::uuid"
+            ),
+            {"rid": ref_id},
+        )).first()
+        out[key] = row[0] if row else None
+    return out
 
 
 async def emit(

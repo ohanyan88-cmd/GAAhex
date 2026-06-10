@@ -23,6 +23,10 @@ Hard rules (immediate fail):
     the frontend D19 token rubbish — converts Std03 from "discipline" to
     "CI-enforced." Catches both invention (LAW-GV5 violation) and registry
     drift (LAW-GV1 amendment needed).
+  * `continue-on-error: true` inside any RLS-named CI job in
+    `.github/workflows/*.yml` (CI-1, zero baseline). TD13 close-out: the
+    `backend-rls` job must stay a HARD gate — re-adding continue-on-error would
+    silently turn dual-role RLS enforcement back into decoration.
 
 Ratchet rules (fail if count INCREASES vs baseline):
   * `let alive = true` blocks in frontend (DF-1/2; baseline 54 — Phase 5 target 0)
@@ -471,6 +475,61 @@ def check_prefix_registry() -> tuple[int, list[tuple[Path, int, str]]]:
     return len(violations), violations
 
 
+# ─────────────────────────────────────────────────────────────────────
+# CI-1 — RLS CI job stays a HARD gate (no continue-on-error). Zero baseline.
+# ─────────────────────────────────────────────────────────────────────
+# TD13 close-out. The `backend-rls` job runs the RLS subset under the
+# NOSUPERUSER `gaahex_app` role and MUST be able to fail the build. A
+# `continue-on-error: true` anywhere inside an RLS-named job would silently
+# turn the dual-role enforcement back into decoration — the exact regression
+# `ci.yml` carried until it was made a hard gate. This check forbids it,
+# forever, with a zero baseline. Parsed line-by-line (stdlib-only, matching
+# this tool's no-extra-deps discipline — no PyYAML import).
+WORKFLOWS_DIR = REPO / ".github" / "workflows"
+_JOB_HEADER_RE = re.compile(r"^  ([A-Za-z0-9_.-]+):\s*$")
+_NAME_FIELD_RE = re.compile(r"^\s*name:\s*(.+?)\s*$")
+_CONTINUE_ON_ERROR_TRUE_RE = re.compile(r"^\s*continue-on-error:\s*true\b")
+
+
+def check_rls_ci_hard_gate() -> tuple[int, list[tuple[Path, int, str]]]:
+    """CI-1 — forbid `continue-on-error: true` inside any RLS-named CI job (zero baseline).
+
+    A job is "RLS-named" when its job id matches /rls/i or its `name:` field contains "rls".
+    Any `continue-on-error: true` within such a job's line block is a violation. Returns
+    (violation_count, sample) shaped like `check_prefix_registry`.
+    """
+    if not WORKFLOWS_DIR.exists():
+        return 0, []
+    violations: list[tuple[Path, int, str]] = []
+    workflow_files = sorted(WORKFLOWS_DIR.glob("*.yml")) + sorted(WORKFLOWS_DIR.glob("*.yaml"))
+    for wf in workflow_files:
+        try:
+            lines = wf.read_text(encoding="utf-8").splitlines()
+        except Exception:
+            continue
+        # Job headers are the only 2-space-indented `key:` lines (under `jobs:`).
+        headers = [(i, m.group(1)) for i, line in enumerate(lines)
+                   if (m := _JOB_HEADER_RE.match(line))]
+        for n, (start, job_id) in enumerate(headers):
+            end = headers[n + 1][0] if n + 1 < len(headers) else len(lines)
+            block = lines[start:end]
+            name_val = ""
+            for bl in block:
+                nm = _NAME_FIELD_RE.match(bl)
+                if nm:
+                    name_val = nm.group(1)
+                    break
+            if "rls" not in job_id.lower() and "rls" not in name_val.lower():
+                continue
+            for off, bl in enumerate(block):
+                if _CONTINUE_ON_ERROR_TRUE_RE.match(bl):
+                    ln = start + off + 1
+                    violations.append(
+                        (wf, ln, f"continue-on-error in RLS job '{job_id}': {bl.strip()[:80]}")
+                    )
+    return len(violations), violations
+
+
 def load_baseline() -> dict:
     if not BASELINE_PATH.exists():
         return {}
@@ -514,6 +573,18 @@ def main() -> int:
             print(f"        {rel}:{ln}: {line}")
     else:
         print(f"  OK   PR-1 Std03 prefix registry")
+
+    # CI-1 — RLS CI job must stay a hard gate (no continue-on-error). Zero baseline.
+    rls_count, rls_violations = check_rls_ci_hard_gate()
+    if rls_count > 0:
+        hard_failures.append("CI-1 RLS job hard-gate")
+        print(f"  FAIL CI-1 RLS job hard-gate: {rls_count} continue-on-error in RLS-named job(s)")
+        print(f"        An RLS CI job with continue-on-error masks dual-role RLS failures (TD13).")
+        for p, ln, line in rls_violations[:3]:
+            rel = p.relative_to(REPO)
+            print(f"        {rel}:{ln}: {line}")
+    else:
+        print(f"  OK   CI-1 RLS CI job stays a hard gate")
 
     baseline = load_baseline()
     new_baseline: dict = dict(baseline)

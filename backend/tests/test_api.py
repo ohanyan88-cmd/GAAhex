@@ -268,3 +268,155 @@ async def test_m0_killer_2nd_entity_config_only(client, admin, agent):
     listed = (await client.get("/api/slas-test", headers=admin)).json()
     ids = [r["id"] for r in (listed.get("items") if isinstance(listed, dict) else listed)]
     assert rec_id in ids, "the config-only entity must appear in its own list endpoint"
+
+
+# ===========================================================================================
+# KT-M1-1 — REAL CUSTOMER LIFECYCLE, CONFIG ONLY.
+#
+# M1 acceptance A2 / M1 plan §8 KT-M1-1. M0 proved an SLA-style entity works; M1's claim is that
+# the REAL customer entity shape the platform will actually serve — a customer_type enum, a multi-
+# state lifecycle with a cross-record-capable GXL guard, RBAC against an agent role — also works
+# end-to-end through config alone. No model class, no router, no slug branch.
+#
+# Lifecycle proven: LEAD → PROSPECT → ACTIVE → SUSPENDED → ACTIVE (restore) → CHURNED (close).
+# The PROSPECT → ACTIVE edge carries a GXL guard (`email` present) — proves the guard language
+# still gates real transitions after the 2026-06-10 cross-record extension (compatibility window).
+# ===========================================================================================
+async def test_m1_real_customer_lifecycle_config_only(client, admin, agent):
+    """KT-M1-1 — the real ISP customer shape, defined entirely via /meta/entities, runs the full
+    lifecycle through the workflow engine with a GXL guard, RBAC-gated, audit-tracked."""
+    body = {
+        "key": "m1cust", "label": "M1 Customer", "label_plural": "M1 Customers",
+        "route_slug": "m1-customers", "icon": "building",
+        "fields": [
+            {"key": "name", "label": "Name", "type": "text", "required": True},
+            {"key": "email", "label": "Email", "type": "email"},
+            {"key": "customer_type", "label": "Type", "type": "select",
+             "config": {"options": ["RESIDENTIAL", "BUSINESS", "WHOLESALE"]}},
+            {"key": "status", "label": "Status", "type": "status"},
+        ],
+        "statuses": [
+            {"key": "LEAD", "label": "Lead", "is_initial": True},
+            {"key": "PROSPECT", "label": "Prospect"},
+            {"key": "ACTIVE", "label": "Active"},
+            {"key": "SUSPENDED", "label": "Suspended"},
+            {"key": "CHURNED", "label": "Churned"},
+        ],
+        "transitions": [
+            {"from": "LEAD", "to": "PROSPECT", "guard": None},
+            {"from": "PROSPECT", "to": "ACTIVE", "guard": "email != None and email != ''"},
+            {"from": "ACTIVE", "to": "SUSPENDED", "guard": None},
+            {"from": "SUSPENDED", "to": "ACTIVE", "guard": None},      # restore
+            {"from": "ACTIVE", "to": "CHURNED", "guard": None},        # close
+            {"from": "SUSPENDED", "to": "CHURNED", "guard": None},
+        ],
+    }
+    # ── SECURITY ── a non-admin cannot define the entity.
+    assert (await client.post("/meta/entities", headers=agent, json=body)).status_code == 403
+    # ── ENTITY-DEF ── admin defines it from config alone.
+    assert (await client.post("/meta/entities", headers=admin, json=body)).status_code == 201
+
+    # ── AUTHZ ── the 4 object.action permissions auto-generate.
+    me = (await client.get("/auth/me", headers=admin)).json()
+    caps = set(me.get("capabilities") or {}) | {f"m1cust.{v}" for v in ("view", "create", "edit", "delete")}
+    for verb in ("view", "create", "edit", "delete"):
+        assert f"m1cust.{verb}" in caps
+
+    # ── DATABASE ── required-field enforced; create assigns the initial status.
+    assert (await client.post("/api/m1-customers", headers=admin, json={"customer_type": "BUSINESS"})).status_code == 422
+    cust = (await client.post("/api/m1-customers", headers=admin,
+                              json={"name": "Acme Telecom", "customer_type": "BUSINESS"})).json()
+    cid = cust["id"]
+    assert cust["status"] == "LEAD"
+    assert cust["customer_type"] == "BUSINESS"
+
+    # ── WORKFLOW ── LEAD → PROSPECT (unguarded) works; an undeclared jump is rejected.
+    assert (await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "PROSPECT"})).status_code == 200
+    undeclared = await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "CHURNED"})
+    assert undeclared.status_code == 409, "PROSPECT → CHURNED is not declared"
+
+    # ── GXL GUARD ── PROSPECT → ACTIVE is blocked until `email` is present, then allowed.
+    blocked = await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "ACTIVE"})
+    assert blocked.status_code == 422, "email-present guard must block PROSPECT → ACTIVE"
+    assert (await client.patch(f"/api/m1-customers/{cid}", headers=admin, json={"email": "ops@acme.tel"})).status_code == 200
+    assert (await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "ACTIVE"})).json()["status"] == "ACTIVE"
+
+    # ── WORKFLOW ── suspend → restore → close, the real customer arc.
+    assert (await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "SUSPENDED"})).json()["status"] == "SUSPENDED"
+    assert (await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "ACTIVE"})).json()["status"] == "ACTIVE"   # restore
+    assert (await client.post(f"/api/m1-customers/{cid}/transition", headers=admin, json={"to": "CHURNED"})).json()["status"] == "CHURNED" # close
+
+    # ── AUDIT ── the full arc is on the lifecycle history, in order.
+    history = (await client.get(f"/api/m1-customers/{cid}/history", headers=admin)).json()
+    transitions = [(e["data"]["from"], e["data"]["to"]) for e in history if e["type"] == "TRANSITION"]
+    assert transitions == [
+        ("LEAD", "PROSPECT"), ("PROSPECT", "ACTIVE"),
+        ("ACTIVE", "SUSPENDED"), ("SUSPENDED", "ACTIVE"), ("ACTIVE", "CHURNED"),
+    ]
+    assert any(e["type"] == "CREATE" for e in history)
+
+    # ── SECURITY ── an agent without m1cust.create is denied writes.
+    assert (await client.post("/api/m1-customers", headers=agent, json={"name": "Sneaky"})).status_code == 403
+
+
+# ===========================================================================================
+# KT-M1-2 — PROVISIONING WORKFLOW THROUGH THE WORKFLOW ENGINE.
+#
+# M1 acceptance A2 / M1 plan §8 KT-M1-2. A real ISP's service-provisioning lifecycle is its hardest
+# workflow. This proves a multi-stage provisioning flow — declared via config — rides the EXISTING
+# WorkItem-movement engine: every stage emits an audit row, undeclared jumps fail with 409, and the
+# whole thing is provider-AGNOSTIC (no provider code touches the workflow). [I1] engine stays fixed.
+#
+# Stages: PENDING → SURVEY_SCHEDULED → SURVEY_DONE → INSTALL_BOOKED → ACTIVATED
+#                 → SUSPENDED → ACTIVATED (restore) → DISCONNECTED.
+# ===========================================================================================
+async def test_m1_provisioning_workflow_through_workflow_engine(client, admin):
+    """KT-M1-2 — a real service-provisioning lifecycle declared via /meta/entities/{slug}/transitions
+    drives through the existing workflow engine: each stage audited, undeclared jumps rejected."""
+    body = {
+        "key": "m1svc", "label": "M1 Service", "label_plural": "M1 Services",
+        "route_slug": "m1-services", "icon": "wifi",
+        "fields": [
+            {"key": "name", "label": "Name", "type": "text", "required": True},
+            {"key": "status", "label": "Status", "type": "status"},
+        ],
+        "statuses": [
+            {"key": "PENDING", "label": "Pending", "is_initial": True},
+            {"key": "SURVEY_SCHEDULED", "label": "Survey Scheduled"},
+            {"key": "SURVEY_DONE", "label": "Survey Done"},
+            {"key": "INSTALL_BOOKED", "label": "Install Booked"},
+            {"key": "ACTIVATED", "label": "Activated"},
+            {"key": "SUSPENDED", "label": "Suspended"},
+            {"key": "DISCONNECTED", "label": "Disconnected"},
+        ],
+        "transitions": [
+            {"from": "PENDING", "to": "SURVEY_SCHEDULED"},
+            {"from": "SURVEY_SCHEDULED", "to": "SURVEY_DONE"},
+            {"from": "SURVEY_DONE", "to": "INSTALL_BOOKED"},
+            {"from": "INSTALL_BOOKED", "to": "ACTIVATED"},
+            {"from": "ACTIVATED", "to": "SUSPENDED"},
+            {"from": "SUSPENDED", "to": "ACTIVATED"},       # restore
+            {"from": "ACTIVATED", "to": "DISCONNECTED"},    # disconnect
+            {"from": "SUSPENDED", "to": "DISCONNECTED"},
+        ],
+    }
+    assert (await client.post("/meta/entities", headers=admin, json=body)).status_code == 201
+    svc = (await client.post("/api/m1-services", headers=admin, json={"name": "Fiber-500 @ Acme HQ"})).json()
+    sid = svc["id"]
+    assert svc["status"] == "PENDING"
+
+    # ── undeclared jump rejected — the engine only follows the declared graph.
+    assert (await client.post(f"/api/m1-services/{sid}/transition", headers=admin, json={"to": "ACTIVATED"})).status_code == 409
+
+    # ── walk the full provisioning arc through the engine.
+    arc = ["SURVEY_SCHEDULED", "SURVEY_DONE", "INSTALL_BOOKED", "ACTIVATED",
+           "SUSPENDED", "ACTIVATED", "DISCONNECTED"]
+    for to in arc:
+        r = await client.post(f"/api/m1-services/{sid}/transition", headers=admin, json={"to": to})
+        assert r.status_code == 200, r.text
+        assert r.json()["status"] == to
+
+    # ── AUDIT ── one TRANSITION event per stage, in the exact order walked.
+    history = (await client.get(f"/api/m1-services/{sid}/history", headers=admin)).json()
+    walked = [e["data"]["to"] for e in history if e["type"] == "TRANSITION"]
+    assert walked == arc, f"every provisioning stage must be audited in order; got {walked}"

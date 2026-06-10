@@ -554,9 +554,19 @@ async def transition(slug: str, rec_id: uuid.UUID, payload: dict, force: bool = 
         else:
             raise HTTPException(409, f"No transition from '{rec.status}' to '{to}'")
 
-    ctx = await workflow.guard_context(s, ent.id, rec)
-    if not gxl.evaluate(tr.get("guard"), ctx) and not force:
-        raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {tr.get('guard')}")
+    # Guard gate. `force` (an APPROVED workflow_override) bypasses the guard entirely, so skip the
+    # evaluation — and its cross-record pre-fetch — in that case. A None/empty guard is always-pass.
+    guard = tr.get("guard")
+    if guard and not force:
+        ctx = await workflow.guard_context(s, ent.id, rec)
+        try:
+            # Cross-record reach (sealed GXL addendum §2.1): pre-fetch any linked records the guard
+            # dereferences and inject them into ctx before evaluating.
+            ctx = await workflow.resolve_cross_record(s, ent.id, rec, guard, ctx)
+        except gxl.GXLError as e:
+            raise HTTPException(422, f"Invalid guard for {rec.status} -> {to}: {e}")
+        if not gxl.evaluate(guard, ctx):
+            raise HTTPException(422, f"Guard failed for {rec.status} -> {to}: {guard}")
 
     frm = rec.status
 

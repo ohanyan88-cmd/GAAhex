@@ -47,6 +47,13 @@ communication.send, webhook.manage, api_key.manage`
 (object CRUD/action permissions follow the same `object.action` pattern: `ticket.view`,
 `ticket.edit`, `ticket.assign`, `invoice.view`, `customer.edit`, etc.)
 
+## Mail (per-tenant email client — MAILBOX-MODULE-PLAN.md)
+`mail.view, mail.send, mail.account.manage, mail.system_sender.manage`
+— `mail.account.manage` configures a user/shared mailbox; `mail.system_sender.manage` (Super-Admin
+scope) is separated so a normal user cannot hijack the tenant's invoice/dunning sender.
+Phase A gates mailbox management on `config.manage` (Super-Admin) as the interim coarse grant; the
+granular keys above are reserved and split in once Phase C wires per-action UI gating.
+
 ## RBAC administration
 `role.view, role.manage, permission.manage, permission_group.manage, user.manage_roles`
 — all permission/role/group/membership changes create audit + security events.

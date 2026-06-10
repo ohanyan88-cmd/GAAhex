@@ -58,6 +58,11 @@ export const NAV_SECTIONS: NavSectionDef[] = [
 
   s('workspace', 'Home', HomeIcon, [], { standalone: true, viewType: 'home' }),
 
+  // Mail — standalone first-class module (Phase C). 3-pane email client on the
+  // COMMUNICATION page type; account settings open inside the view (gear → ?settings=1),
+  // not a second nav item.
+  s('mail', 'Mail', MailIcon, [], { standalone: true, viewType: 'mail' }),
+
   s('crm', 'CRM', UsersIcon, [
     i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
     i('crm-pipeline',       'Pipeline',       ArrowRightIcon, 'lead-pipeline'),

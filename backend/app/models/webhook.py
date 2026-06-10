@@ -90,7 +90,10 @@ class WebhookDelivery(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id"), nullable=False, index=True)
-    webhook_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("webhook_def.id"), nullable=False, index=True)
+    # ON DELETE CASCADE (BUG-WHK1, 2026-06-10): deleting a WebhookDef removes its delivery log rows
+    # at the DB layer, so DELETE /api/webhooks/{id} succeeds even after the hook has fired. Without
+    # it, the FK blocked the delete with a 500. Alembic migration carries the same change for dev/prod.
+    webhook_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("webhook_def.id", ondelete="CASCADE"), nullable=False, index=True)
     event_type: Mapped[str] = mapped_column(String(80), nullable=False)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="QUEUED")  # QUEUED|SENT|FAILED — legacy

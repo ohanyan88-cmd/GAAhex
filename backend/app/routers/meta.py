@@ -6,7 +6,7 @@ from ..db import get_session
 from ..models import EntityDef, FieldDef, StatusDef, WorkflowDef, PermissionDef, Record, User
 from ..access import load_grants, can, role_keys, can_view_field, can_edit_field
 from ..kernel import assert_can, AccessDenied
-from .. import workflow
+from .. import workflow, gxl
 from .auth import current_user
 
 router = APIRouter(prefix="/meta", tags=["meta"])
@@ -32,6 +32,24 @@ async def _require_config_manage(s: AsyncSession, user: User) -> None:
                          region_id=None, owner_user_id=None)
     except AccessDenied as e:
         raise HTTPException(403, detail=str(e))
+
+
+def _validate_transition_guards(transitions: list[dict]) -> None:
+    """Reject any transition guard that breaks the sealed GXL grammar at *authorship* time.
+
+    The forbidden patterns (GXL-F1..F5 — aggregates, multi-hop refs, function calls) are caught here
+    with a clear 422 instead of silently fail-closing at evaluation. Authorship is already gated by
+    `config.manage` (the super_admin grant) at the calling endpoint, which satisfies GXL-I3; this is
+    the parser-rejection half of the same invariant.
+    """
+    for t in transitions or []:
+        g = (t or {}).get("guard")
+        if not g:
+            continue
+        try:
+            gxl.validate_guard(g)
+        except gxl.GXLError as e:
+            raise HTTPException(422, f"Invalid guard '{g}': {e}")
 
 
 async def _get_entity(s: AsyncSession, user: User, slug: str) -> EntityDef:
@@ -130,6 +148,7 @@ async def create_entity(payload: dict, user: User = Depends(current_user), s: As
             raise HTTPException(422, f"Unknown field type '{f.get('type')}'")
     if sum(1 for st in statuses if st.get("is_initial")) > 1:
         raise HTTPException(422, "Only one status can be initial")
+    _validate_transition_guards(transitions)   # GXL grammar (sealed addendum §5); authorship is gated above
 
     ent = EntityDef(
         tenant_id=user.tenant_id, key=key, label=label,
@@ -519,6 +538,7 @@ async def set_transitions(slug: str, payload: dict, user: User = Depends(current
         if frm is not None and frm not in valid:
             raise HTTPException(422, f"Transition source '{frm}' is not a defined status")
         cleaned.append({"from": frm, "to": to, "guard": t.get("guard")})
+    _validate_transition_guards(cleaned)        # GXL grammar (sealed addendum §5)
 
     wf = (await s.execute(select(WorkflowDef).where(WorkflowDef.entity_def_id == ent.id))).scalars().first()
     if wf:

@@ -151,6 +151,25 @@ async def _pref_suppresses_external(s: AsyncSession, tenant_id, user_id, channel
         return False                           # never block delivery on a pref-lookup error
 
 
+# ---- Mail module: per-tenant system-sender routing ----
+
+async def _tenant_system_sender(s: AsyncSession, tenant_id):
+    """The tenant's `is_system_sender` MailAccount, or None. Fail-soft (any error ⇒ None ⇒ the
+    legacy/global email path runs unchanged). This is what makes invoice/dunning mail leave from
+    each ISP's OWN server/domain once they configure a mailbox."""
+    try:
+        from .models import MailAccount  # lazy: avoid import cycle at module load
+        return (await s.execute(
+            select(MailAccount).where(
+                MailAccount.tenant_id == tenant_id,
+                MailAccount.is_system_sender.is_(True),
+                MailAccount.deletion_state == "ACTIVE",
+            )
+        )).scalars().first()
+    except Exception:
+        return None
+
+
 # ---- dispatch ----
 
 async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
@@ -182,6 +201,29 @@ async def dispatch(s: AsyncSession, *, tenant_id, channel: str, to: str | None,
         logger.info("[a26] external dispatch suppressed by pref (channel=%s def_key=%s user=%s)",
                     channel, def_key, user_id)
         return None
+
+    # -- Mail module: route tenant email through the tenant's OWN SMTP server when configured --
+    # Additive + fail-soft: a tenant with an `is_system_sender` MailAccount sends ALL email channel
+    # traffic (invoices, dunning, …) from its own domain via SmtpEmailGateway. Tenants without a mail
+    # account fall through to the existing OOP/legacy adapter path UNCHANGED (every current test).
+    if channel == "email" and to:
+        _acc = await _tenant_system_sender(s, tenant_id)
+        if _acc is not None:
+            status, error = "SENT", None
+            try:
+                from .services.comms.smtp_email import gateway_for_account  # noqa: PLC0415
+                await gateway_for_account(_acc).send(to=to, subject=subject or "", text=body)
+            except Exception as exc:                 # fail-soft — dispatch never raises
+                status, error = "FAILED", str(exc)[:500]
+            try:
+                msg = OutboundMessage(tenant_id=tenant_id, channel=channel, to_addr=to, subject=subject,
+                                      body=body, status=status, def_key=def_key, user_id=user_id, error=error)
+                s.add(msg)
+                await s.flush()
+                return msg
+            except Exception:
+                logger.exception("failed to record OutboundMessage (channel=email, mail account)")
+                return None
 
     # -- E23: try the OOP adapter registry first --
     # Import lazily to avoid a circular import at module load (adapters imports config, not channels).
