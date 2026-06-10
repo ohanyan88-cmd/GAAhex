@@ -31,6 +31,7 @@ import { useFetch, useFetched } from '../hooks/useFetch'
 import { useI18n } from '../lib/i18n'
 import AskGaaexView from './AskGaaexView'
 import MessagesView from './MessagesView'
+import MailView from './mail/MailView'
 import CalendarView from './CalendarView'
 import ProfileView from './ProfileView'
 
@@ -156,7 +157,7 @@ export default function HomeView({ onNavigate, capabilities }: {
 }) {
   const { user: authUser } = useAuth()
   const { t } = useI18n()
-  const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
+  const [tab, setTab] = useState<'workspace' | 'ask' | 'messages' | 'mail' | 'calendar' | 'requests' | 'documents' | 'benefits' | 'kb'>('workspace')
 
   // SM-2 — receive caps via prop instead of refetching.
   const caps: Capabilities = capabilities ?? {}
@@ -306,7 +307,8 @@ export default function HomeView({ onNavigate, capabilities }: {
         <DetailTabList ariaLabel="Workspace sections">
           <DetailTab active={tab === 'workspace'} onSelect={() => setTab('workspace')}>{t('home.tab.workspace', 'Workspace')}</DetailTab>
           <DetailTab active={tab === 'ask'} onSelect={() => setTab('ask')}>{t('home.tab.ask', 'Ask Me')}</DetailTab>
-          <DetailTab active={tab === 'messages'} onSelect={() => setTab('messages')}>{t('home.tab.messages', 'Messages')}</DetailTab>
+          <DetailTab active={tab === 'messages'} onSelect={() => setTab('messages')}>{t('home.tab.messenger', 'Messenger')}</DetailTab>
+          <DetailTab active={tab === 'mail'} onSelect={() => setTab('mail')}>{t('home.tab.mail', 'Mail')}</DetailTab>
           <DetailTab active={tab === 'calendar'} onSelect={() => setTab('calendar')}>{t('home.tab.calendar', 'Calendar')}</DetailTab>
           <DetailTab active={tab === 'requests'} onSelect={() => setTab('requests')}>{t('home.tab.requests', 'My Requests')}</DetailTab>
           <DetailTab active={tab === 'documents'} onSelect={() => setTab('documents')}>{t('home.tab.documents', 'My Documents')}</DetailTab>
@@ -423,6 +425,7 @@ export default function HomeView({ onNavigate, capabilities }: {
 
       {tab === 'ask' && <AskGaaexView embedded />}
       {tab === 'messages' && <MessagesView embedded />}
+      {tab === 'mail' && <MailView />}
       {tab === 'calendar' && <CalendarView embedded />}
       {tab === 'requests' && <ProfileView embedded initialSection="requests" />}
       {tab === 'documents' && <ProfileView embedded initialSection="documents" />}

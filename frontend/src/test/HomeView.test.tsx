@@ -48,9 +48,9 @@ describe('HomeView tab switching', () => {
     expect(screen.getByTestId('ask-view')).toBeInTheDocument()
   })
 
-  it('switches to Messages tab on click', async () => {
+  it('switches to Messenger tab on click', async () => {
     mount()
-    await userEvent.click(screen.getByRole('tab', { name: /messages/i }))
+    await userEvent.click(screen.getByRole('tab', { name: /messenger/i }))
     expect(screen.getByTestId('messages-view')).toBeInTheDocument()
   })
 

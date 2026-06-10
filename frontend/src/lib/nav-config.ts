@@ -58,13 +58,6 @@ export const NAV_SECTIONS: NavSectionDef[] = [
 
   s('workspace', 'Home', HomeIcon, [], { standalone: true, viewType: 'home' }),
 
-  // Mail — standalone first-class module (Phase C). 3-pane email client on the
-  // COMMUNICATION page type; account settings open inside the view (gear → ?settings=1),
-  // not a second nav item.
-  s('mail', 'Mail', MailIcon, [], { standalone: true, viewType: 'mail' }),
-
-  // Channels — per-tenant SMS / Telegram / WhatsApp configuration (config surface).
-  s('channels', 'Channels', MessageIcon, [], { standalone: true, viewType: 'channels' }),
 
   s('crm', 'CRM', UsersIcon, [
     i('crm-leads',          'Leads',          InboxIcon,      'entity', { slug: 'leads' }),
@@ -152,6 +145,10 @@ export const NAV_SECTIONS: NavSectionDef[] = [
       ]),
 
       s('studio', 'Studio', SparkleIcon, [
+        // Communication config (Gev IA directive 2026-06-10) — Mail accounts + messaging Channels
+        // (SMS/Telegram/WhatsApp credentials) are configured HERE in Studio, not in the user nav.
+        i('std-mail-config', 'Mail Accounts', MailIcon,    'mail'),
+        i('std-channels',    'Channels',      MessageIcon, 'channels'),
         i('std-experience',     'Experience',     SparkleIcon, 'studio'),
         i('std-data',           'Data',           LayersIcon,  'studio'),
         i('std-logic',          'Logic',          EditIcon,    'studio'),

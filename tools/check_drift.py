@@ -27,6 +27,11 @@ Hard rules (immediate fail):
     `.github/workflows/*.yml` (CI-1, zero baseline). TD13 close-out: the
     `backend-rls` job must stay a HARD gate — re-adding continue-on-error would
     silently turn dual-role RLS enforcement back into decoration.
+  * `if slug == '<literal>'` / `slug in (...)` branches in the generic record
+    routers `records.py` / `bulk.py` (Q4/R6, zero baseline). The M0 platform
+    thesis: config-only entities ride the generic `/api/{slug}` surface; the
+    router must NEVER special-case an entity by slug. Such a branch is the
+    thesis-collapse risk R6 (M1 plan §12 Q4).
 
 Ratchet rules (fail if count INCREASES vs baseline):
   * `let alive = true` blocks in frontend (DF-1/2; baseline 54 — Phase 5 target 0)
@@ -530,6 +535,36 @@ def check_rls_ci_hard_gate() -> tuple[int, list[tuple[Path, int, str]]]:
     return len(violations), violations
 
 
+# ─────────────────────────────────────────────────────────────────────
+# Q4 / R6 — the generic record router stays slug-agnostic. Zero baseline.
+# ─────────────────────────────────────────────────────────────────────
+# The M0 killer-test thesis: config-only entities use the generic `/api/{slug}` surface; the record
+# router must NEVER branch on a hardcoded entity slug (`if slug == 'customer': ...`). Such a branch
+# is the thesis-collapse R6 in the M1 plan (§12 Q4 — "no entity-specific routes / no slug branches").
+_GENERIC_ROUTER_FILES = ("backend/app/routers/records.py", "backend/app/routers/bulk.py")
+_SLUG_BRANCH_RE = re.compile(r"\bslug\s*(?:==|!=)\s*['\"]|\bslug\s+(?:not\s+)?in\s+[\(\[{]")
+
+
+def check_generic_router_slug_agnostic() -> tuple[int, list[tuple[Path, int, str]]]:
+    """Q4/R6 — forbid `slug == '<literal>'` / `slug in (...)` branches in the generic record routers
+    (zero baseline). The generic `/api/{slug}` surface must not special-case any entity."""
+    violations: list[tuple[Path, int, str]] = []
+    for rel in _GENERIC_ROUTER_FILES:
+        p = REPO / rel
+        if not p.exists():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        lines = text.splitlines()
+        for m in _SLUG_BRANCH_RE.finditer(text):
+            ln = text.count("\n", 0, m.start()) + 1
+            line = lines[ln - 1] if ln - 1 < len(lines) else ""
+            violations.append((p, ln, line.strip()[:100]))
+    return len(violations), violations
+
+
 def load_baseline() -> dict:
     if not BASELINE_PATH.exists():
         return {}
@@ -585,6 +620,18 @@ def main() -> int:
             print(f"        {rel}:{ln}: {line}")
     else:
         print(f"  OK   CI-1 RLS CI job stays a hard gate")
+
+    # Q4 / R6 — generic record router stays slug-agnostic (no `if slug == 'X'`). Zero baseline.
+    slug_count, slug_violations = check_generic_router_slug_agnostic()
+    if slug_count > 0:
+        hard_failures.append("Q4 generic-router slug branch")
+        print(f"  FAIL Q4 generic-router slug-agnostic: {slug_count} slug-literal branch(es)")
+        print(f"        The generic /api/{{slug}} record router must not special-case an entity (M0 thesis / R6).")
+        for p, ln, line in slug_violations[:3]:
+            rel = p.relative_to(REPO)
+            print(f"        {rel}:{ln}: {line}")
+    else:
+        print(f"  OK   Q4 generic record router stays slug-agnostic")
 
     baseline = load_baseline()
     new_baseline: dict = dict(baseline)
