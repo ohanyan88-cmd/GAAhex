@@ -4,7 +4,7 @@ import RefPicker, { refTargetKey, loadRefLabels } from '../components/RefPicker'
 import {
   CheckIcon, ArrowRightIcon, SearchIcon, MessageIcon, ClockIcon, ReceiptIcon,
   SparkleIcon, UsersIcon, LockIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon,
-  RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon,
+  RowsIcon, PlusIcon, EditIcon, GearIcon, TrashIcon, InboxIcon, LayersIcon, PackageIcon,
 } from '../components/icons'
 import RowActionsMenu, { type RowAction } from '../components/RowActionsMenu'
 import { confirmDialog, Modal } from '../components/Modal'
@@ -57,6 +57,16 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const [contractPdfUrl, setContractPdfUrl] = useState<string | null>(null)
   const [contractBusy, setContractBusy] = useState(false)
   const [mode, setMode] = useState<Mode>('idle')
+  // Leads page view switcher (Gev directive 2026-06-11): Table | Kanban | Cards. Leads-only; every
+  // other entity keeps the table unchanged. Choice persisted.
+  const [leadsView, setLeadsView] = useState<'table' | 'kanban' | 'cards'>(() => {
+    try { return (localStorage.getItem('leads-view-mode') as 'table' | 'kanban' | 'cards') || 'table' }
+    catch { return 'table' }
+  })
+  const setLeadsViewMode = (m: 'table' | 'kanban' | 'cards') => {
+    setLeadsView(m)
+    try { localStorage.setItem('leads-view-mode', m) } catch { /* ignore */ }
+  }
   const [createStep, setCreateStep] = useState<'pick' | 'form'>('pick')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingStatus, setEditingStatus] = useState<string | null>(null)
@@ -343,6 +353,34 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
   const leadCell = (v: unknown) => (v == null || v === '' ? <span className="muted">—</span> : String(v))
   const hasWorkflow = (def.transitions ?? []).length > 0
   const nextFrom = (status: string | null) => (def.transitions ?? []).filter((t) => t.from === status).map((t) => t.to)
+
+  // One lead card — shared by the Cards grid and the Kanban columns (leads view switcher).
+  const leadCardEV = (r: Row) => (
+    <div key={r.id} className="kcard">
+      <div className="mono" style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-link)', marginBottom: 'var(--gx-space-3)' }}>
+        {r.ref ? String(r.ref) : leadRef(r.id)}
+      </div>
+      <button className="row-link" onClick={() => openEdit(r)} disabled={!canEdit}
+        style={{ fontSize: 'var(--gx-text-sm)', display: 'block', textAlign: 'left', marginBottom: 'var(--gx-space-4)', ...(canEdit ? {} : { cursor: 'default', pointerEvents: 'none' }) }}>
+        {r.name ? String(r.name) : '—'}
+      </button>
+      {(r.phone || r.email || r.address) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--gx-space-3)', marginBottom: 'var(--gx-space-4)', fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
+          {r.phone ? <span className="mono">{String(r.phone)}</span> : null}
+          {r.email ? <span className="mono">{String(r.email)}</span> : null}
+          {r.address ? <span>{String(r.address)}</span> : null}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--gx-space-3)', flexWrap: 'wrap' }}>
+        {r.status ? <StatusPill variant={mapEntityStatus(r.status, def)} label={r.status} size="sm" /> : null}
+        {hasWorkflow && canEdit && nextFrom(r.status).map((to) => (
+          <Button key={to} variant="ghost" size="sm" onClick={() => doTransition(r.id, to)} style={{ fontSize: 'var(--gx-text-11)' }}>
+            <ArrowRightIcon size={11} />{to}
+          </Button>
+        ))}
+      </div>
+    </div>
+  )
   const formOpen = mode !== 'idle'
 
   const cellValue = (c: typeof cols[0], r: Row) => (c.type === 'ref' ? (refLabels[c.key]?.[r[c.key]] ?? r[c.key]) : r[c.key])
@@ -370,6 +408,10 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
     if (activeFilterField && filterSelectVal && String(r[activeFilterField] ?? '') !== filterSelectVal) return false
     return true
   })
+
+  // Leads default (Gev 2026-06-11): all views show only the 20 most recent leads (load sorts
+  // -created_at). The rest are reachable via search — which re-queries the server.
+  const displayRows = (isLeads && !needle) ? visibleRows.slice(0, 20) : visibleRows
 
   const statusPillMinW = (() => {
     const n = visibleRows.reduce((m, r) => Math.max(m, String(r.status ?? '').length), 0)
@@ -702,6 +744,21 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
             </div>
           )}
 
+          {isLeads && (
+            <div className="row" style={{ gap: 'var(--gx-space-2)', marginBottom: 'var(--gx-space-5)' }}>
+              <Button variant={leadsView === 'table' ? 'primary' : 'ghost'} size="sm" style={{ minWidth: 96, justifyContent: 'center' }} onClick={() => setLeadsViewMode('table')}>
+                <RowsIcon size={13} /> {t('leads.viewTable', 'Table')}
+              </Button>
+              <Button variant={leadsView === 'kanban' ? 'primary' : 'ghost'} size="sm" style={{ minWidth: 96, justifyContent: 'center' }} onClick={() => setLeadsViewMode('kanban')}>
+                <LayersIcon size={13} /> {t('leads.viewKanban', 'Kanban')}
+              </Button>
+              <Button variant={leadsView === 'cards' ? 'primary' : 'ghost'} size="sm" style={{ minWidth: 96, justifyContent: 'center' }} onClick={() => setLeadsViewMode('cards')}>
+                <PackageIcon size={13} /> {t('leads.viewCards', 'Cards')}
+              </Button>
+            </div>
+          )}
+
+          {(!isLeads || leadsView === 'table') && (
           <div className={'grid-wrap' + (isLeads ? ' leads-wrap' : '')}>
             <table className={'grid' + (isLeads ? ' leads-grid' : '')}>
               <thead>
@@ -735,7 +792,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                 </tr>
               </thead>
               <tbody>
-                {visibleRows.map((r) => (
+                {displayRows.map((r) => (
                   <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
                     {!isLeads && (
                       <td className="sel-col">
@@ -835,7 +892,7 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
                     </td>
                   </tr>
                 ))}
-                {!loading && visibleRows.length === 0 && (
+                {!loading && displayRows.length === 0 && (
                   <tr>
                     <td colSpan={colSpan}>
                       <EmptyState
@@ -851,8 +908,39 @@ export default function EntityView({ slug, onOpenCustomer, onOpenPipeline, capab
               </tbody>
             </table>
           </div>
+          )}
 
-          {total !== null && total > PAGE_SIZE && (
+          {isLeads && leadsView === 'kanban' && (
+            <div className="kanban">
+              {[...(def.statuses ?? [])].sort((a, b) => a.order - b.order).map((col) => {
+                const items = displayRows.filter((r) => (r.status ?? '') === col.key)
+                return (
+                  <div key={col.key} className="kcol">
+                    <div className="kcol-head">
+                      <span style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)' }}>{col.label}</span>
+                      <span className="kcol-count">{items.length}</span>
+                    </div>
+                    <div className="kcol-body">
+                      {items.map((r) => leadCardEV(r))}
+                      {items.length === 0 && (
+                        <div style={{ padding: 'var(--gx-space-5)', textAlign: 'center', color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)', borderRadius: 'var(--gx-radius-sm)', border: '1px dashed var(--gx-border)' }}>
+                          {t('leads.emptyStage', 'No leads in this stage')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {isLeads && leadsView === 'cards' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--gx-space-5)', maxHeight: '60vh', overflowY: 'auto', paddingRight: 'var(--gx-space-2)' }}>
+              {displayRows.map((r) => leadCardEV(r))}
+            </div>
+          )}
+
+          {total !== null && total > PAGE_SIZE && !(isLeads && !needle) && (
             <div className="table-foot" role="navigation" aria-label={t('pager.ariaLabel', 'Page navigation')}>
               <span style={{ color: 'var(--gx-text-3)', fontSize: 'var(--gx-text-sm)' }} aria-live="polite">
                 {t('pager.info', '{from}–{to} / {total}')

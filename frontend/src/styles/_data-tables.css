@@ -79,6 +79,11 @@ table.grid.leads-grid td { white-space: nowrap; }
 /* Leads table — borderless: no header underline, no row divider lines (Gev 2026-06-07).
    Row separation is carried by hover background + cell rhythm instead of rules. */
 table.grid.leads-grid th, table.grid.leads-grid td { border-bottom: none; }
+/* Fully borderless on EVERY edge (Gev 2026-06-11): kill any cell/row/table/wrap border + box. */
+.leads-wrap { border: 0 !important; box-shadow: none !important; }
+table.grid.leads-grid,
+table.grid.leads-grid thead, table.grid.leads-grid tbody, table.grid.leads-grid tr,
+table.grid.leads-grid th, table.grid.leads-grid td { border: 0 !important; }
 /* …and no outer box either — the wrapping card goes flat (no border / bg / radius / shadow /
    padding) so the leads table reads as clean rows on the page, no rectangle around it. */
 .card.leads-flat { background: transparent; border: none; border-radius: 0; box-shadow: none; padding: 0; }
