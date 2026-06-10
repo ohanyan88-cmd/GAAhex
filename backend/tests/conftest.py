@@ -146,6 +146,24 @@ async def _setup_db():
 
     async with owner_engine.begin() as c:
         await c.run_sync(Base.metadata.create_all)
+        # Mirror production migration 3a9203795d07: the app role (gaahex_app) is granted DML on
+        # every table + sequences. conftest builds the schema via create_all (NOT migrations) and
+        # drops+recreates the DB at session start, so the migration's grant never lands here and
+        # any gaahex_app query hits "permission denied". The older RLS-subset tests papered over
+        # this by self-granting per-table; an ordinary app flow under gaahex_app (e.g. POST
+        # /meta/entities writing to `assignment`) has no such hook. Grant globally so the test DB
+        # matches production privileges. Guarded on role existence — the regular backend job runs
+        # entirely as `gaahex` and never provisions gaahex_app.
+        role_exists = (await c.execute(text(
+            "SELECT 1 FROM pg_roles WHERE rolname = 'gaahex_app'"
+        ))).scalar() is not None
+        if role_exists:
+            await c.execute(text(
+                "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO gaahex_app"
+            ))
+            await c.execute(text(
+                "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO gaahex_app"
+            ))
     await apply_test_seeds()
     yield
     await engine.dispose()

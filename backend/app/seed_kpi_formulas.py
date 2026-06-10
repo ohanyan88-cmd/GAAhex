@@ -173,6 +173,20 @@ KPI_FORMULAS: dict[str, dict] = {
         },
         "_human": "COMPLETED installation workitems / all installation workitems",
     },
+    # Config (#10) success — ONU provisioned/registered on the OLT. Same shape as
+    # install_success_rate; honest 0 until `config` workitems exist (post-OLT wiring).
+    "config_success_rate": {
+        "type": "ratio",
+        "numerator": {
+            "type": "count", "table": "workitem",
+            "where": {"kind": "config", "status": "COMPLETED"},
+        },
+        "denominator": {
+            "type": "count", "table": "workitem",
+            "where": {"kind": "config"},
+        },
+        "_human": "COMPLETED config workitems / all config workitems",
+    },
 
     # Field Ops / NOC — connection success rate. Services in ACTIVE status / all services.
     # An ACTIVE service implies the connection was provisioned and link is up.
@@ -221,18 +235,10 @@ KPI_FORMULAS: dict[str, dict] = {
         },
         "_human": "workitems with first response within 4 h of assignment / all assigned workitems",
     },
-    "feasibility_pass_rate": {
-        "type": "ratio",
-        "numerator": {
-            "type": "count", "table": "record",
-            "where": {"entity_key": "coverage_check", "data.result": "PASS"},
-        },
-        "denominator": {
-            "type": "count", "table": "record",
-            "where": {"entity_key": "coverage_check"},
-        },
-        "_human": "coverage_check records with result=PASS / total coverage checks",
-    },
+    # NOTE: `feasibility_pass_rate` (legacy `service_qualification` stage) was REMOVED in the
+    # 2026-06-11 lifecycle reconciliation — the SST has no standalone Service Qualification
+    # stage (feasibility folded into `validated_lead`'s exit condition). Re-add here only if a
+    # coverage/feasibility stage is reintroduced to the SST.
     "schedule_fill_rate": {
         "type": "ratio",
         "numerator": {

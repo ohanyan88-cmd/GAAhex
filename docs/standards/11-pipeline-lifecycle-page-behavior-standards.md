@@ -3,12 +3,23 @@
 LOCKED. B5 applied (one accountable owner per stage). S4 applied (pipeline page = multiple tabbed
 views). Lead is the starting point; Customer is the result after Activation.
 
+> **Reconciled 2026-06-11 (owner decision):** the frontend `lifecycle.ts` LIFECYCLE_STAGES is the
+> single source of truth (SST); the backend `stage_def` is its projection, hard-locked by drift
+> rule `SST-1`. Changes from the prior version: `PROVISIONING` → **`CONFIG`** (after INSTALLATION);
+> `ORDER_VALIDATED` is the one hard control gate, owned by **Validation** (independent of Sales);
+> the legacy `SERVICE_QUALIFICATION` stage is dropped (feasibility folded into `VALIDATED_LEAD`).
+> Five exit/off-ramp states (`LOST, CANCELLED, INSTALL_FAILED, SUSPENDED, TERMINATED`) branch off
+> the happy path.
+
 ## Core Lifecycle (canonical stages — UPPER_SNAKE)
 ```
 LEAD → VALIDATED_LEAD → ASSIGNED → DEAL → CONTRACT_SIGNED → ORDER_CREATED → ORDER_VALIDATED →
-SCHEDULING → INSTALLATION → PROVISIONING → CONNECTION_TEST → PAYMENT_CONFIRMED → ACTIVATION →
+SCHEDULING → INSTALLATION → CONFIG → CONNECTION_TEST → PAYMENT_CONFIRMED → ACTIVATION →
 MONITORING
 ```
+Off-ramp states (not linear): `LOST` (from LEAD…CONTRACT_SIGNED), `CANCELLED` (ORDER_CREATED…
+SCHEDULING), `INSTALL_FAILED` (SCHEDULING…CONNECTION_TEST → rejoins SCHEDULING), `SUSPENDED`
+(from MONITORING, non-payment → rejoins MONITORING on payment), `TERMINATED` (final churn).
 Display labels may be localized; logic uses the canonical values. This lifecycle informs page
 copy, empty states, pipeline tabs, status labels, and workflow design. (Stage status values are
 enums per the Enum Standard; the diagram above uses display arrows for readability.)
@@ -52,14 +63,14 @@ Owner Department; supporting departments are contributors, not co-owners.**
 
 | Stage | Accountable Owner | Supporting |
 |-------|-------------------|------------|
-| `ORDER_CREATED` | Back Office | Sales |
-| `ORDER_VALIDATED` | Billing | Validation |
-| `SCHEDULING` | Dispatch | — |
+| `ORDER_CREATED` | Back Office | — |
+| `ORDER_VALIDATED` | Validation | — |  ← the hard control gate (independent of Sales) |
+| `SCHEDULING` | Dispatch Team | — |
 | `INSTALLATION` | Technical Department | — |
-| `PROVISIONING` | NOC | Technical Department |
-| `CONNECTION_TEST` | NOC | Technical Department |
+| `CONFIG` | NOC | — |
+| `CONNECTION_TEST` | NOC | — |
 | `PAYMENT_CONFIRMED` | Billing | — |
-| `ACTIVATION` | Billing | NOC |
+| `ACTIVATION` | Billing | — |
 | `MONITORING` | NOC | Support |
 
 Each card eventually supports: current stage, owner department (one), assigned user, SLA, blocked

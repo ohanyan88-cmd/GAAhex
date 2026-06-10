@@ -565,6 +565,33 @@ def check_generic_router_slug_agnostic() -> tuple[int, list[tuple[Path, int, str
     return len(violations), violations
 
 
+def check_stage_def_matches_sst() -> tuple[int, list[tuple[Path, int, str]]]:
+    """SST-1 — the backend canonical pipeline (`seed_pipeline.py` CANONICAL_PIPELINE) MUST mirror
+    the frontend Customer Lifecycle SST (`lifecycle.ts` LIFECYCLE_STAGES): same stages, same order,
+    same single owner. Keys map by lowercase (SST 'VALIDATED_LEAD' ↔ backend 'validated_lead').
+    Zero baseline — any divergence is drift between the one source of truth and its backend projection."""
+    sst = REPO / "frontend" / "src" / "lib" / "lifecycle.ts"
+    seed = REPO / "backend" / "app" / "seed_pipeline.py"
+    violations: list[tuple[Path, int, str]] = []
+    if not sst.exists() or not seed.exists():
+        return 0, violations
+    sst_text = sst.read_text(encoding="utf-8")
+    seed_text = seed.read_text(encoding="utf-8")
+
+    # SST: pull the LIFECYCLE_STAGES array block, then each {key,label,owner}.
+    m = re.search(r"LIFECYCLE_STAGES[^\[]*\[(.*?)\n\]", sst_text, re.S)
+    sst_stages = re.findall(r"key:\s*'([A-Z_]+)',\s*label:\s*'[^']*',\s*owner:\s*'([^']+)'", m.group(1)) if m else []
+    # Backend: CANONICAL_PIPELINE tuples — (seq, "key", "Name", "Owner", ...).
+    mb = re.search(r"CANONICAL_PIPELINE[^\[]*\[(.*?)\n\]", seed_text, re.S)
+    seed_stages = re.findall(r'\(\s*\d+,\s*"([a-z_]+)",\s*"[^"]*",\s*"([^"]+)",', mb.group(1)) if mb else []
+
+    if [(k.lower(), o) for k, o in sst_stages] != [(k, o) for k, o in seed_stages]:
+        sst_list = [k.lower() for k, _ in sst_stages]
+        seed_list = [k for k, _ in seed_stages]
+        violations.append((seed, 0, f"stage_def != SST | SST={sst_list} | backend={seed_list}"))
+    return len(violations), violations
+
+
 def load_baseline() -> dict:
     if not BASELINE_PATH.exists():
         return {}
@@ -632,6 +659,18 @@ def main() -> int:
             print(f"        {rel}:{ln}: {line}")
     else:
         print(f"  OK   Q4 generic record router stays slug-agnostic")
+
+    # SST-1 — backend canonical pipeline must mirror the lifecycle.ts Customer Lifecycle SST. Zero baseline.
+    sst_count, sst_violations = check_stage_def_matches_sst()
+    if sst_count > 0:
+        hard_failures.append("SST-1 stage_def != lifecycle SST")
+        print(f"  FAIL SST-1 stage_def mirrors lifecycle SST: {sst_count} divergence")
+        print(f"        seed_pipeline.CANONICAL_PIPELINE must match lifecycle.ts LIFECYCLE_STAGES (key+order+owner).")
+        for p, ln, line in sst_violations[:3]:
+            rel = p.relative_to(REPO)
+            print(f"        {rel}:{ln}: {line}")
+    else:
+        print(f"  OK   SST-1 backend pipeline mirrors lifecycle Customer Lifecycle SST")
 
     baseline = load_baseline()
     new_baseline: dict = dict(baseline)

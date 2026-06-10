@@ -61,7 +61,7 @@ SPEC_WORKFLOWS: list[dict] = [
         "actions_spec": [
             {"type": "audit_only", "event_type": "w1.lead_received",
              "data": {"stage": "lead", "note": "W1 entered at Stage 1 (Lead)"}},
-            {"type": "advance_stage", "to_stage_key": "qualified"},
+            {"type": "advance_stage", "to_stage_key": "validated_lead"},
             {"type": "audit_only", "event_type": "w1.stage7_order_created",
              "data": {"stage": "order_created"}},
             # SPEC §3 Stage 8 — the single mandatory gate between Sales and Fulfillment.

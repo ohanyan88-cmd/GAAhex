@@ -21,7 +21,7 @@ export type LifecycleStageKey =
   | 'ORDER_VALIDATED'
   | 'SCHEDULING'
   | 'INSTALLATION'
-  | 'PROVISIONING'
+  | 'CONFIG'
   | 'CONNECTION_TEST'
   | 'PAYMENT_CONFIRMED'
   | 'ACTIVATION'
@@ -58,27 +58,56 @@ export interface LifecycleStage {
   gate?:      ControlGate
 }
 
-// Master 14-stage lifecycle — used by the Customer Lifecycle pipeline view
-// (read-only end-to-end journey) and as the union all other pipelines slice from.
-// B5: the five stages that used to carry "Owner / Other" strings are now split
-// into owner + supporting[] (Order Created, Order Validated, Provisioning,
-// Connection Test, Activation, Monitoring). The first half of the slash is the
-// accountable owner; the second half becomes the single supporting department.
+// Master 14-stage Customer Lifecycle — THE single source of truth (SST) for pipeline
+// stages across the whole platform. Every other place that needs stages derives from
+// here (Pipeline view, backend stage_def seed, KPI bindings). Reconciled 2026-06-11:
+//   • Exactly ONE accountable owner per stage (B5) — supporting[] left empty for now.
+//   • Order is Installation (#9) → Config (#10): the field tech connects the ONU, THEN
+//     NOC registers/provisions it on the OLT.
+//   • #7 ORDER_VALIDATED is THE hard control gate (Validation, independent of Sales) —
+//     enforced in the kernel (app.kernel.control_gate); nothing advances to Scheduling
+//     until control_pass = TRUE.
 export const LIFECYCLE_STAGES: LifecycleStage[] = [
-  { key: 'LEAD',              label: 'Lead',              owner: 'Sales',                supporting: [],                       gate: 'Commercial Gate' },
-  { key: 'VALIDATED_LEAD',    label: 'Validated Lead',    owner: 'Sales',                supporting: [],                       gate: 'Commercial Gate' },
-  { key: 'ASSIGNED',          label: 'Assigned',          owner: 'Sales',                supporting: [],                       gate: 'Commercial Gate' },
-  { key: 'DEAL',              label: 'Deal',              owner: 'Sales',                supporting: [],                       gate: 'Commercial Gate' },
-  { key: 'CONTRACT_SIGNED',   label: 'Contract Signed',   owner: 'Sales',                supporting: [],                       gate: 'Commercial Gate' },
-  { key: 'ORDER_CREATED',     label: 'Order Created',     owner: 'Sales',                supporting: ['Back Office'],          gate: 'Commercial Gate' },
-  { key: 'ORDER_VALIDATED',   label: 'Order Validated',   owner: 'Billing',              supporting: ['Validation'],           gate: 'Technical Gate'  },
-  { key: 'SCHEDULING',        label: 'Scheduling',        owner: 'Dispatch Team',        supporting: [],                       gate: 'Technical Gate'  },
-  { key: 'INSTALLATION',      label: 'Installation',      owner: 'Technical Department', supporting: [],                       gate: 'Technical Gate'  },
-  { key: 'PROVISIONING',      label: 'Provisioning',      owner: 'Technical Department', supporting: ['NOC'],                  gate: 'Technical Gate'  },
-  { key: 'CONNECTION_TEST',   label: 'Connection Test',   owner: 'Technical Department', supporting: ['NOC'],                  gate: 'Service Gate'    },
-  { key: 'PAYMENT_CONFIRMED', label: 'Payment Confirmed', owner: 'Billing Department',   supporting: [],                       gate: 'Service Gate'    },
-  { key: 'ACTIVATION',        label: 'Activation',        owner: 'Billing Department',   supporting: ['NOC'],                  gate: 'Service Gate'    },
-  { key: 'MONITORING',        label: 'Monitoring',        owner: 'NOC',                  supporting: ['Support'],              gate: 'Operational Gate'},
+  { key: 'LEAD',              label: 'Lead',              owner: 'Sales',                supporting: [],          gate: 'Commercial Gate' },
+  { key: 'VALIDATED_LEAD',    label: 'Validated Lead',    owner: 'Sales',                supporting: [],          gate: 'Commercial Gate' },  // exit: coverage=YES + reachable + intent (feasibility folded in)
+  { key: 'ASSIGNED',          label: 'Assigned',          owner: 'Sales',                supporting: [],          gate: 'Commercial Gate' },
+  { key: 'DEAL',              label: 'Deal',              owner: 'Sales',                supporting: [],          gate: 'Commercial Gate' },
+  { key: 'CONTRACT_SIGNED',   label: 'Contract Signed',   owner: 'Sales',                supporting: [],          gate: 'Commercial Gate' },
+  { key: 'ORDER_CREATED',     label: 'Order Created',     owner: 'Back Office',          supporting: [],          gate: 'Commercial Gate' },
+  { key: 'ORDER_VALIDATED',   label: 'Order Validated',   owner: 'Validation',           supporting: [],          gate: 'Technical Gate'  },  // THE control gate
+  { key: 'SCHEDULING',        label: 'Scheduling',        owner: 'Dispatch Team',        supporting: [],          gate: 'Technical Gate'  },
+  { key: 'INSTALLATION',      label: 'Installation',      owner: 'Technical Department', supporting: [],          gate: 'Technical Gate'  },
+  { key: 'CONFIG',            label: 'Config',            owner: 'NOC',                  supporting: [],          gate: 'Technical Gate'  },
+  { key: 'CONNECTION_TEST',   label: 'Connection Test',   owner: 'NOC',                  supporting: [],          gate: 'Service Gate'    },
+  { key: 'PAYMENT_CONFIRMED', label: 'Payment Confirmed', owner: 'Billing',              supporting: [],          gate: 'Service Gate'    },
+  { key: 'ACTIVATION',        label: 'Activation',        owner: 'Billing',              supporting: [],          gate: 'Service Gate'    },
+  { key: 'MONITORING',        label: 'Monitoring',        owner: 'NOC',                  supporting: ['Support'], gate: 'Operational Gate'},
+]
+
+// ── Exit / off-ramp states ────────────────────────────────────────────────────
+// NOT linear stages — branches a record can drop into. Some rejoin the happy path
+// (install_failed → back to scheduling; suspended → back to monitoring on payment).
+export type LifecycleExitKey =
+  | 'LOST'            // lead never converted
+  | 'CANCELLED'       // order cancelled pre-delivery
+  | 'INSTALL_FAILED'  // tech visit failed — reschedule
+  | 'SUSPENDED'       // active customer cut for non-payment — restorable
+  | 'TERMINATED'      // final churn / account closed
+
+export interface LifecycleExitState {
+  key:     LifecycleExitKey
+  label:   string
+  owner:   DepartmentOwner
+  from:    LifecycleStageKey[]   // stages this can branch from
+  rejoin?: LifecycleStageKey     // where a recoverable state returns to
+}
+
+export const LIFECYCLE_EXIT_STATES: LifecycleExitState[] = [
+  { key: 'LOST',           label: 'Lost',           owner: 'Sales',         from: ['LEAD', 'VALIDATED_LEAD', 'ASSIGNED', 'DEAL', 'CONTRACT_SIGNED'] },
+  { key: 'CANCELLED',      label: 'Cancelled',      owner: 'Back Office',   from: ['ORDER_CREATED', 'ORDER_VALIDATED', 'SCHEDULING'] },
+  { key: 'INSTALL_FAILED', label: 'Install Failed', owner: 'Dispatch Team', from: ['SCHEDULING', 'INSTALLATION', 'CONFIG', 'CONNECTION_TEST'], rejoin: 'SCHEDULING' },
+  { key: 'SUSPENDED',      label: 'Suspended',      owner: 'Billing',       from: ['MONITORING'], rejoin: 'MONITORING' },
+  { key: 'TERMINATED',     label: 'Terminated',     owner: 'Support',       from: ['MONITORING', 'ACTIVATION'] },
 ]
 
 // Sales-Pipeline slice — Sales-owned acquisition, LEAD → CONTRACT_SIGNED.

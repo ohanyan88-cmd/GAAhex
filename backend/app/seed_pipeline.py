@@ -33,54 +33,66 @@ from .models.kernel_defs import StageDef, KpiDef
 _log = logging.getLogger("gaahex.seed_pipeline")
 
 
-# SPEC §3 Canonical Pipeline (LOCKED) — 14 rows, verbatim from the SPEC §3 table (lines 170-185).
-# Stage 8 is the ONLY control gate. KPI keys are the snake_case projection of each stage's KPI name.
+# Canonical Customer Lifecycle — 14 rows, MIRRORS the frontend SST
+# (`frontend/src/lib/lifecycle.ts` → LIFECYCLE_STAGES). That file is the single source
+# of truth; this list is its backend projection (same key/name/sequence/owner, lowercased
+# keys). Reconciled 2026-06-11 (supersedes the legacy SPEC §3 set — see RECONCILIATION note
+# at the bottom of this file).
+#
+#   • ONE accountable owner per stage (B5).
+#   • Order is installation (#9) → config (#10): field tech connects the ONU, THEN NOC
+#     registers/provisions it on the OLT.
+#   • #7 order_validated is THE control gate (Validation, independent of Sales).
+#   • #10 config is measured by `config_success_rate` (COMPLETED config workitems / all) — same
+#     shape as install_success_rate; returns 0 honestly until config workitems exist (post-OLT).
+#   • The legacy `service_qualification` stage + its `feasibility_pass_rate` KPI are dropped
+#     (no equivalent in the SST — feasibility folded into validated_lead's exit condition).
 #
 # Tuple shape: (sequence, stage_key, stage_name, owner_module, exit_gate,
-#               kpi_key, kpi_name, is_control_gate)
-CANONICAL_PIPELINE: list[tuple[int, str, str, str, str, str, str, bool]] = [
-    (1,  "lead",                  "Lead",                  "Marketing",
+#               kpi_key | None, kpi_name | None, is_control_gate)
+CANONICAL_PIPELINE: list[tuple[int, str, str, str, str, str | None, str | None, bool]] = [
+    (1,  "lead",                  "Lead",                  "Sales",
         "Mandatory fields complete",
         "lead_capture_rate",         "Lead Capture Rate",            False),
-    (2,  "qualified",              "Qualified",             "Pre-Sales",
+    (2,  "validated_lead",         "Validated Lead",        "Sales",
         "Coverage=YES, Reachable, Intent≥threshold",
         "validation_rate",           "Validation Rate",              False),
-    (3,  "assigned",               "Assigned",              "Sales Ops",
+    (3,  "assigned",               "Assigned",              "Sales",
         "Agent acceptance ≤ SLA",
         "assignment_sla_compliance", "Assignment SLA Compliance",    False),
-    (4,  "deal",                   "Deal",                  "Sales Agent",
+    (4,  "deal",                   "Deal",                  "Sales",
         "Offer accepted (digital)",
         "deal_conversion",           "Deal Conversion",              False),
-    (5,  "contract_signed",        "Contract Signed",       "Sales Agent",
+    (5,  "contract_signed",        "Contract Signed",       "Sales",
         "Signed contract validated",
         "contract_close_rate",       "Contract Close Rate",          False),
-    (6,  "service_qualification",  "Service Qualification", "Coverage & GIS",
-        "Coverage/feasibility = PASS",
-        "feasibility_pass_rate",     "Feasibility Pass Rate",        False),
-    (7,  "order_created",          "Order Created",         "Orders",
+    (6,  "order_created",          "Order Created",         "Back Office",
         "Order record with valid tariff + product",
         "order_creation_accuracy",   "Order Creation Accuracy",      False),
-    # --- STAGE 8: THE CONTROL GATE -----------------------------------------------------------
-    (8,  "order_validation",       "Order Validation",      "Revenue Control",
+    # --- STAGE 7: THE CONTROL GATE (independent validator) -----------------------------------
+    (7,  "order_validated",        "Order Validated",       "Validation",
         "KYC + Credit/Risk + Fraud + Tariff/Product match = ALL PASS",
         "control_pass_rate",         "Control Pass Rate",            True),
     # -----------------------------------------------------------------------------------------
-    (9,  "scheduling",             "Scheduling",            "Dispatch",
+    (8,  "scheduling",             "Scheduling",            "Dispatch Team",
         "Slot within capacity window",
         "schedule_fill_rate",        "Schedule Fill Rate",           False),
-    (10, "installation",           "Installation",          "Field Ops",
-        "Install complete, signal confirmed",
+    (9,  "installation",           "Installation",          "Technical Department",
+        "Install complete, ONU connected on-site",
         "install_success_rate",      "Install Success Rate",         False),
-    (11, "connection",             "Connection",            "Field Ops / NOC",
-        "Link up, device provisioned",
+    (10, "config",                 "Config",                "NOC",
+        "ONU registered on OLT, service profile bound",
+        "config_success_rate",       "Config Success Rate",          False),
+    (11, "connection_test",        "Connection Test",       "NOC",
+        "Link up, signal confirmed",
         "connection_success_rate",   "Connection Success Rate",      False),
-    (12, "payment",                "Payment",               "Billing",
+    (12, "payment_confirmed",      "Payment Confirmed",     "Billing",
         "First payment cleared",
         "first_payment_rate",        "First Payment Rate",           False),
-    (13, "activation",             "Activation",            "Billing (Activation)",
+    (13, "activation",             "Activation",            "Billing",
         "Account live, billing cycle started",
         "activation_rate",           "Activation Rate",              False),
-    (14, "monitoring",             "Monitoring",            "Customer Care / NOC",
+    (14, "monitoring",             "Monitoring",            "NOC",
         "Continuous post-activation",
         "thirty_day_retention",      "30-Day Retention",             False),
 ]
@@ -142,23 +154,25 @@ async def seed_canonical_pipeline_if_empty() -> dict[str, int]:
                 # The structural UNIQUE(tenant_id, key) constraint enforces the "one owner per key"
                 # half. `formula` and `denominator` are left NULL here — those land with the KPI
                 # engine in a later step; the seeder's job is to register the catalog row.
-                kpi_stmt = (
-                    pg_insert(KpiDef.__table__)
-                    .values(
-                        tenant_id=t.id,
-                        key=kkey,
-                        name=kname,
-                        owner_module=sowner,
-                        formula=None,
-                        denominator=None,
-                        bound_stage_key=skey,
-                        bound_workflow_key=None,
+                # A stage may have NO KPI yet (kkey is None — e.g. `config`); skip the kpi_def row.
+                if kkey is not None:
+                    kpi_stmt = (
+                        pg_insert(KpiDef.__table__)
+                        .values(
+                            tenant_id=t.id,
+                            key=kkey,
+                            name=kname,
+                            owner_module=sowner,
+                            formula=None,
+                            denominator=None,
+                            bound_stage_key=skey,
+                            bound_workflow_key=None,
+                        )
+                        .on_conflict_do_nothing(index_elements=["tenant_id", "key"])
                     )
-                    .on_conflict_do_nothing(index_elements=["tenant_id", "key"])
-                )
-                res = await s.execute(kpi_stmt)
-                if res.rowcount:
-                    kpis_inserted += res.rowcount
+                    res = await s.execute(kpi_stmt)
+                    if res.rowcount:
+                        kpis_inserted += res.rowcount
 
         await s.commit()
 
@@ -167,6 +181,24 @@ async def seed_canonical_pipeline_if_empty() -> dict[str, int]:
         stages_inserted, kpis_inserted, len(tenants),
     )
     return {"stages_inserted": stages_inserted, "kpis_inserted": kpis_inserted}
+
+
+# ── RECONCILIATION note (2026-06-11) — SPEC §3 standard divergence, FLAGGED ────────────────
+# This pipeline previously implemented the LOCKED SPEC §3 stage set verbatim. By owner decision
+# (Gev), the **frontend Customer Lifecycle (`lifecycle.ts` LIFECYCLE_STAGES) is now the single
+# source of truth**, and this backend list is its projection. That means we deliberately diverge
+# from the original SPEC §3 table on these points — the standard doc (`docs/standards/`) should be
+# amended to match, or this exception recorded there:
+#   • `qualified` → `validated_lead`; `order_validation` → `order_validated`;
+#     `connection` → `connection_test`; `payment` → `payment_confirmed` (renamed).
+#   • `service_qualification` stage + its `feasibility_pass_rate` KPI REMOVED (feasibility folded
+#     into validated_lead's exit condition).
+#   • New `config` stage at #10 (after installation) with NO KPI yet (gap — KPI TBD).
+#   • Control gate moved from old #8 to #7 (order_validated); relative order (validate → schedule)
+#     is preserved, so `kernel.control_gate` semantics are unchanged.
+#   • Permission keys (`order_validation.*`) are an IMMUTABLE registry namespace and were left
+#     untouched — they intentionally no longer string-match the stage key.
+# The `SST-1` drift rule (tools/check_drift.py) now hard-locks this list to lifecycle.ts.
 
 
 if __name__ == "__main__":

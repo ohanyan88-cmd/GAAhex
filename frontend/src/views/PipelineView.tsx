@@ -13,7 +13,8 @@ import { type Capabilities, FULL_ACCESS } from '../lib/capabilities'
 import LeadPipelineView from './LeadPipelineView'
 import {
   LIFECYCLE_STAGES, SALES_PIPELINE_STAGES, SERVICE_DELIVERY_STAGES,
-  CONTROL_GATE_DEFINITIONS, type LifecycleStage,
+  CONTROL_GATE_DEFINITIONS, LIFECYCLE_EXIT_STATES,
+  type LifecycleStage, type LifecycleExitState,
 } from '../lib/lifecycle'
 import { ArrowRightIcon, UsersIcon, LayersIcon, TruckIcon } from '../components/icons'
 import { PageShell } from '../page-shell'
@@ -67,12 +68,15 @@ export default function PipelineView(props: PipelineViewProps) {
       )}
 
       {tab === 'lifecycle' && (
-        <StageBoard
-          title="Customer Lifecycle"
-          owner="Cross Department"
-          description="Full end-to-end customer/service lifecycle. For management — shows the complete journey from initial lead through active service monitoring."
-          stages={LIFECYCLE_STAGES}
-        />
+        <>
+          <StageBoard
+            title="Customer Lifecycle"
+            owner="Cross Department"
+            description="Full end-to-end customer/service lifecycle. For management — shows the complete journey from initial lead through active service monitoring."
+            stages={LIFECYCLE_STAGES}
+          />
+          <ExitStateBoard states={LIFECYCLE_EXIT_STATES} />
+        </>
       )}
 
       {tab === 'delivery' && (
@@ -218,4 +222,42 @@ function uniqueGates(stages: LifecycleStage[]) {
     if (s.gate && !seen.includes(s.gate)) seen.push(s.gate)
   }
   return seen as (keyof typeof CONTROL_GATE_DEFINITIONS)[]
+}
+
+// Exit / off-ramp states — NOT linear stages; branches a record can drop into. Recoverable
+// states (install_failed, suspended) show where they rejoin the happy path.
+function ExitStateBoard({ states }: { states: LifecycleExitState[] }) {
+  return (
+    <div style={{ marginTop: 'var(--gx-space-7)' }}>
+      <div style={{ fontSize: 'var(--gx-text-sm)', fontWeight: 'var(--gx-weight-semibold)', textTransform: 'uppercase', color: 'var(--gx-text-3)', letterSpacing: '0.06em', marginBottom: 'var(--gx-space-4)' }}>
+        Exit / off-ramp states
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--gx-space-4)' }}>
+        {states.map((s) => (
+          <div key={s.key} style={{
+            background: 'var(--gx-surface)',
+            border: '1px solid var(--gx-border)',
+            borderLeft: '3px solid var(--gx-danger, var(--gx-text-3))',
+            borderRadius: 'var(--gx-radius-md)',
+            padding: 'var(--gx-space-4)',
+            minHeight: 96,
+            display: 'flex', flexDirection: 'column', gap: 'var(--gx-space-2)',
+          }}>
+            <div style={{ fontSize: 'var(--gx-text-13)', fontWeight: 'var(--gx-weight-semibold)', color: 'var(--gx-text-1)' }}>{s.label}</div>
+            <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
+              Owner: <strong style={{ color: 'var(--gx-text-2)' }}>{s.owner}</strong>
+            </div>
+            <div style={{ fontSize: 'var(--gx-text-11)', color: 'var(--gx-text-3)' }}>
+              From: {s.from.length} stage{s.from.length > 1 ? 's' : ''}
+            </div>
+            {s.rejoin && (
+              <div style={{ marginTop: 'auto', fontSize: 'var(--gx-text-10)', color: 'var(--gx-text-2)', fontWeight: 'var(--gx-weight-semibold)' }}>
+                ↩ rejoins {s.rejoin}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
